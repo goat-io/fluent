@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-loopback",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Fluent Connector for Loopback submissions",
   "main": "lib/@goatlab/fluent-loopback.min.js",
   "directories": {
@@ -31,7 +31,7 @@
   },
   "homepage": "https://gitlab.com/goatlab/corporate/goat/fluent-formio.git#readme",
   "dependencies": {
-    "@goatlab/goat-fluent": "^0.2.0",
+    "@goatlab/goat-fluent": "^0.2.1",
     "await-to-js": "^2.1.1",
     "axios": "^0.18.0",
     "bluebird": "^3.5.3",
