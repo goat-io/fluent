@@ -97,7 +97,6 @@ export default Interface.compose({
         undefined
       );
       const form = await this.getForm(baseUrl, remotePath);
-
       if (!form) throw new Error("Could not find form");
 
       const components = form.components;
@@ -262,7 +261,7 @@ export default Interface.compose({
         filter.limit = filter.limit || this.rawQuery.limit;
         filter.skip = filter.skip || this.rawQuery.skip;
         filter.fields = { ...filter.fields, ...this.rawQuery.fields };
-        filter.where = { ...filter.where, ...this.rawQuery.where };
+        filter.where = { ...filter.where.and[0], ...this.rawQuery.where };
       }
       filter.where = {
         ...filter.where,
