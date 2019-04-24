@@ -2,7 +2,7 @@
   "name": "@goatlab/goatjs",
   "version": "0.7.2",
   "description": "Formio interface for online and offline use",
-  "main": "lib/@goatlab/goatjs.min.js",
+  "main": "lib/@goatlab/goatjs.js",
   "directories": {
     "lib": "lib",
     "test": "test"
@@ -34,12 +34,15 @@
     "@goatlab/fluent-formio": "^0.2.2",
     "@goatlab/fluent-loopback": "^0.2.2",
     "@goatlab/goat-fluent": "^0.2.2",
+    "@stamp/it": "^1.1.0",
     "await-to-js": "^2.0.1",
     "axios": "^0.18.0",
     "bluebird": "^3.5.2",
+    "btoa": "^1.2.1",
     "lokijs": "^1.5.5",
     "md5": "^2.2.1",
     "moment": "^2.22.2",
+    "qs": "^6.7.0",
     "uuid": "^3.2.1"
   },
   "devDependencies": {

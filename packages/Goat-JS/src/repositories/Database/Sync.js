@@ -12,7 +12,7 @@ let Sync = class {
   static async now (vm) {
     await Sync.syncUsers();
 
-    if (Auth.check()) {
+    if (Auth().connector().check()) {
       await Sync.syncSubmission(vm);
     }
   }

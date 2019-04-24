@@ -1,13 +1,24 @@
 import to from "await-to-js";
+import moment from "moment";
+import jwtDecode from 'jwt-decode';
 import Utilities from "./Utilities";
 import axios from "axios";
 import { Interface } from "@goatlab/goat-fluent";
 import Connection from "./Wrapers/Connection";
+import AuthenticationError from "./Errors/AuthenticationError";
 
 export default Interface.compose({
   methods: {
     getToken() {
-      return localStorage.getItem("formioToken");
+      if (typeof localStorage === 'undefined') return;
+      const token = localStorage.getItem('formioToken');
+      if (!token || this.getTokenType(token) === 'x-token') return token;
+      
+      const decodedToken = jwtDecode(token);
+      const expDate = moment.unix(decodedToken.exp);
+      if (moment().isSameOrAfter(expDate)) throw new AuthenticationError("Token has expired.");
+
+      return token;
     },
     baseUrl() {
       const { baseUrl, name } = this.connector;
@@ -193,7 +204,7 @@ export default Interface.compose({
       let headers = {};
       let token = {};
       if (typeof localStorage !== "undefined") {
-        token = localStorage.getItem("formioToken");
+        token = this.getToken();
       }
 
       if (this.remoteConnection.token || this.remoteConnection.token === "") {

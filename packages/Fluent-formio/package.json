@@ -2,7 +2,7 @@
   "name": "@goatlab/fluent-formio",
   "version": "0.2.2",
   "description": "Fluent Connector for Formio submissions",
-  "main": "lib/@goatlab/fluent-formio.min.js",
+  "main": "lib/@goatlab/fluent-formio.js",
   "directories": {
     "lib": "lib",
     "test": "test"
@@ -34,7 +34,9 @@
     "@goatlab/goat-fluent": "^0.2.2",
     "await-to-js": "^2.1.1",
     "axios": "^0.18.0",
-    "bluebird": "^3.5.3"
+    "bluebird": "^3.5.3",
+    "jwt-decode": "^2.2.0",
+    "moment": "^2.24.0"
   },
   "devDependencies": {
     "axios-mock-adapter": "^1.15.0",

@@ -29,7 +29,7 @@ export default Fluent.model({
         .where("sync", "=", false)
         .andWhere("draft", "=", false)
         .andWhere("syncError", "=", false)
-        .owner(Auth.email())
+        .owner(Auth().connector().email())
         .orderBy("created", "desc", "date")
         .get()).filter(d => {
         return !d.queuedForSync;
@@ -135,7 +135,7 @@ export default Fluent.model({
           this.remote()
             .select(cols)
             .limit(limit)
-            .owner(Auth.user()._id)
+            .owner(Auth().connector().user()._id)
             .get()
         );
 

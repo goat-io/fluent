@@ -56,7 +56,7 @@ const GetRequest = class {
     /* let submissions = await Submission.local().find();
 
     submissions = submissions.filter((s) => {
-      return s.data.formio.formId === form.data.path && s.data.owner === Auth.user()._id;
+      return s.data.formio.formId === form.data.path && s.data.owner === Auth().connector().user()._id;
     });
 
     submissions = submissions.map((s) => {

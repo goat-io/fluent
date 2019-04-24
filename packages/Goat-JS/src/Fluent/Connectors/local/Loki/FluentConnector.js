@@ -12,7 +12,7 @@ export default Interface.compose({
     async get() {
       if (this.ownerEmail) {
         // this.andWhere("user_email", "=", this.ownerEmail);
-        this.andWhere("user_email", "=", Auth.email());
+        this.andWhere("user_email", "=", Auth().connector().email());
       }
       let filterObject = this.prepareFilter();
 
