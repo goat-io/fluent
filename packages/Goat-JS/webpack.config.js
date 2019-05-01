@@ -1,9 +1,10 @@
 /* global __dirname, require, module*/
-const webpack = require('webpack');
-const path = require('path');
-const env = require('yargs').argv.env; // use --env with webpack 2
-const pkg = require('./package.json');
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const webpack = require("webpack");
+const path = require("path");
+const env = require("yargs").argv.env; // use --env with webpack 2
+const pkg = require("./package.json");
+const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
+  .BundleAnalyzerPlugin;
 const showBundle = false;
 let plugins = [new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/)];
 
@@ -14,25 +15,25 @@ let libraryName = pkg.name;
 
 let outputFile, minimize;
 
-if (env === 'build') {
+if (env === "build") {
   minimize = true;
-  outputFile = libraryName + '.min.js';
+  outputFile = libraryName + ".min.js";
 } else {
   minimize = false;
-  outputFile = libraryName + '.js';
+  outputFile = libraryName + ".min.js";
 }
 
 const config = {
-  mode: 'production',
-  entry: __dirname + '/src/index.js',
-  devtool: 'source-map',
+  mode: "production",
+  entry: __dirname + "/src/index.js",
+  devtool: "source-map",
   output: {
-    path: __dirname + '/lib',
+    path: __dirname + "/lib",
     filename: outputFile,
     library: libraryName,
-    libraryTarget: 'umd',
+    libraryTarget: "umd",
     umdNamedDefine: true,
-    globalObject: 'this'
+    globalObject: "this"
   },
   optimization: {
     minimize: minimize
@@ -41,13 +42,13 @@ const config = {
     rules: [
       {
         test: /(\.jsx|\.js)$/,
-        loader: 'babel-loader',
+        loader: "babel-loader",
         exclude: /(node_modules|bower_components)/,
         options: {
-          plugins: ['lodash'],
-          presets: [['env', { modules: false, targets: { node: 4 } }]]
+          plugins: ["lodash"],
+          presets: [["env", { modules: false, targets: { node: 4 } }]]
         }
-      },
+      }
       /*
         {
           test: /(\.jsx|\.js)$/,
@@ -59,32 +60,32 @@ const config = {
   },
   plugins: plugins,
   resolve: {
-    modules: [path.resolve('./node_modules'), path.resolve('./src')],
-    extensions: ['.json', '.js'],
+    modules: [path.resolve("./node_modules"), path.resolve("./src")],
+    extensions: [".json", ".js"],
     alias: {
-      'formio-export': path.resolve(__dirname, 'src/')
+      "formio-export": path.resolve(__dirname, "src/")
     }
   },
   externals: {
     lodash: {
-      commonjs: 'lodash',
-      commonjs2: 'lodash',
-      amd: '_',
-      root: '_'
+      commonjs: "lodash",
+      commonjs2: "lodash",
+      amd: "_",
+      root: "_"
     },
-    axios: 'axios',
-    bluebird: 'bluebird',
-    formiojs: 'formiojs',
-    moment: 'moment',
-    uuid: 'uuid'
+    axios: "axios",
+    bluebird: "bluebird",
+    formiojs: "formiojs",
+    moment: "moment",
+    uuid: "uuid"
   },
   node: {
     // prevent webpack from injecting mocks to Node native modules
     // that does not make sense for the client
-    dgram: 'empty',
-    fs: 'empty',
-    net: 'empty',
-    tls: 'empty'
+    dgram: "empty",
+    fs: "empty",
+    net: "empty",
+    tls: "empty"
   }
 };
 

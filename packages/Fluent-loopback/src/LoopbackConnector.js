@@ -260,9 +260,11 @@ export default Interface.compose({
       if (this.rawQuery) {
         filter.limit = filter.limit || this.rawQuery.limit;
         filter.skip = filter.skip || this.rawQuery.skip;
+        filter.order = filter.order || this.rawQuery.order;
         filter.fields = { ...filter.fields, ...this.rawQuery.fields };
         filter.where = { ...filter.where.and[0], ...this.rawQuery.where };
       }
+
       filter.where = {
         ...filter.where,
         ...{ deleted: null }

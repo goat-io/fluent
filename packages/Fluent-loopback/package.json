@@ -2,7 +2,7 @@
   "name": "@goatlab/fluent-loopback",
   "version": "0.2.2",
   "description": "Fluent Connector for Loopback submissions",
-  "main": "lib/@goatlab/fluent-loopback.js",
+  "main": "lib/@goatlab/fluent-loopback.min.js",
   "directories": {
     "lib": "lib",
     "test": "test"
@@ -10,7 +10,7 @@
   "scripts": {
     "build": "rm -rf lib/* && webpack --env build",
     "rebuild": "rm -rf node_modules && npm install && npm run build",
-    "dev": "webpack --progress --colors --watch --env dev",
+    "dev": "rm -rf lib/* && webpack --progress --colors --watch --env dev",
     "test": "mocha-webpack --colors --recursive -w --timeout 100000 --webpack-config test/config/webpack.config.test.js --require mock-local-storage --require test/config/setup.js --exit src/**/**/*.spec.js --exit ",
     "test:watch": "mocha-webpack --webpack-config webpack.config.test.js --watch --glob '*.spect.js' --recursive test"
   },

@@ -1,6 +1,6 @@
 import to from "await-to-js";
 import moment from "moment";
-import jwtDecode from 'jwt-decode';
+import jwtDecode from "jwt-decode";
 import Utilities from "./Utilities";
 import axios from "axios";
 import { Interface } from "@goatlab/goat-fluent";
@@ -10,13 +10,14 @@ import AuthenticationError from "./Errors/AuthenticationError";
 export default Interface.compose({
   methods: {
     getToken() {
-      if (typeof localStorage === 'undefined') return;
-      const token = localStorage.getItem('formioToken');
-      if (!token || this.getTokenType(token) === 'x-token') return token;
-      
+      if (typeof localStorage === "undefined") return;
+      const token = localStorage.getItem("formioToken");
+      if (!token || this.getTokenType(token) === "x-token") return token;
+
       const decodedToken = jwtDecode(token);
       const expDate = moment.unix(decodedToken.exp);
-      if (moment().isSameOrAfter(expDate)) throw new AuthenticationError("Token has expired.");
+      if (moment().isSameOrAfter(expDate))
+        throw new AuthenticationError("Token has expired.");
 
       return token;
     },
@@ -58,12 +59,14 @@ export default Interface.compose({
       let filters = this.getFilters();
       let limit = "?limit=1";
       let skip = this.getSkip();
+      let order = this.getOrder();
       let select = this.getSelect();
       let spacer = "";
 
       url = url + spacer + limit;
       url = filters ? url + this.getSpacer(url) + filters : url;
       url = skip ? url + this.getSpacer(url) + skip : url;
+      url = order ? url + this.getSpacer(url) + order : url;
       url = select ? url + this.getSpacer(url) + select : url;
 
       const isOnline = await Connection.isOnline();
@@ -228,6 +231,7 @@ export default Interface.compose({
       let filters = this.getFilters();
       let limit = this.getLimit();
       let skip = this.getSkip();
+      let order = this.getOrder();
       let select = this.getSelect();
       let spacer = "";
 
@@ -237,6 +241,8 @@ export default Interface.compose({
       url = filters ? url + this.getSpacer(url) + filters : url;
 
       url = skip ? url + this.getSpacer(url) + skip : url;
+
+      url = order ? url + this.getSpacer(url) + order : url;
 
       url = select ? url + this.getSpacer(url) + select : url;
 
@@ -368,6 +374,11 @@ export default Interface.compose({
       }
 
       return skip + this.offsetNumber;
+    },
+    getOrder() {
+      let order = "sort=";
+      const or = this.orderByArray[1] === "DESC" ? "-" : "";
+      return order + or + this.orderByArray[0];
     },
     getSelect() {
       let select = this.selectArray;

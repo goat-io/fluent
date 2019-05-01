@@ -1,13 +1,13 @@
-import stampit from '@stamp/it';
-import Formio from './Connectors/Formio';
-import Keycloak from './Connectors/Keycloak';
+import stampit from "@stamp/it";
+import Formio from "./Connectors/Formio";
+import Keycloak from "./Connectors/Keycloak";
 
 export default stampit({
   init({ baseUrl }) {
     this.baseUrl = baseUrl;
   },
   properties: {
-    default: 'Formio',
+    default: "Formio",
     baseUrl: undefined,
     connectors: {
       Formio,
