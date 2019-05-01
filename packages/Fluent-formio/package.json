@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-formio",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Fluent Connector for Formio submissions",
   "main": "lib/@goatlab/fluent-formio.min.js",
   "directories": {
@@ -31,7 +31,7 @@
   },
   "homepage": "https://gitlab.com/goatlabs/goat-fluent-formio.git#readme",
   "dependencies": {
-    "@goatlab/goat-fluent": "^0.2.2",
+    "@goatlab/goat-fluent": "^0.2.3",
     "await-to-js": "^2.1.1",
     "axios": "^0.18.0",
     "bluebird": "^3.5.3",
