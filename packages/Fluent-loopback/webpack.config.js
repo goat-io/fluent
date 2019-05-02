@@ -49,13 +49,6 @@ const config = {
           presets: [["env", { modules: false, targets: { node: 4 } }]]
         }
       }
-      /*
-        {
-          test: /(\.jsx|\.js)$/,
-          loader: 'eslint-loader',
-          exclude: /node_modules/
-        }
-        */
     ]
   },
   plugins: plugins,
@@ -65,15 +58,6 @@ const config = {
     alias: {
       "formio-export": path.resolve(__dirname, "src/")
     }
-  },
-  externals: {
-    lodash: {
-      commonjs: "lodash",
-      commonjs2: "lodash",
-      amd: "_",
-      root: "_"
-    },
-    axios: "axios"
   },
   node: {
     // prevent webpack from injecting mocks to Node native modules

@@ -22,6 +22,7 @@ let GOAT = (() => {
    * @param {*} conf.appConf Configuration of the App
    */
   async function start({ appConf, forceOnline }) {
+    console.log("Setting configuration");
     ErrorHandler.interceptAxios();
     if (!forceOnline) {
       await Fluent.config({

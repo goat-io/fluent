@@ -66,24 +66,8 @@ const config = {
       "formio-export": path.resolve(__dirname, "src/")
     }
   },
-  externals: {
-    lodash: {
-      commonjs: "lodash",
-      commonjs2: "lodash",
-      amd: "_",
-      root: "_"
-    },
-    axios: "axios",
-    bluebird: "bluebird",
-    formiojs: "formiojs",
-    lokijs: "lokijs",
-    md5: "md5",
-    moment: "moment",
-    uuid: "uuid"
-  },
+  externals: {},
   node: {
-    // prevent webpack from injecting mocks to Node native modules
-    // that does not make sense for the client
     dgram: "empty",
     fs: "empty",
     net: "empty",
