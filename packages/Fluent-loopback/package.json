@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-loopback",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fluent Connector for Loopback submissions",
   "main": "lib/@goatlab/fluent-loopback.min.js",
   "directories": {
