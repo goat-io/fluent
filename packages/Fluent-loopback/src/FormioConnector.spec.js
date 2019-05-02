@@ -2,27 +2,51 @@
 import "babel-polyfill";
 import chai from "chai";
 import to from "await-to-js";
-import Model from "Fluent/Model";
-import Fluent from "Fluent/Fluent";
-import Collection from "Fluent/Collection";
-import DB from "models/DB";
+import { Fluent } from "@goatlab/goat-fluent";
+import formio from "./FluentConnector";
+
+const DB = Fluent.model({
+  properties: {
+    name: undefined,
+    remoteConnection: undefined
+  },
+  methods: {
+    table({ name, remoteConnection }) {
+      this.name = name;
+      this.config = {
+        remote: remoteConnection
+      };
+      return this;
+    }
+  }
+})();
 
 chai.expect();
 const expect = chai.expect;
 let testModel;
-
+let token = "w5h8l6pPWJ2ld990xCfApoPW74xKfA";
 describe("Given a FLUENT Remote Instance", () => {
-  before(() => {
-    testModel = Fluent.extend(Model, {
+  before(async () => {
+    await Fluent.config({
+      REMOTE_CONNECTORS: [
+        {
+          default: true,
+          name: "formio",
+          baseUrl: "https://suopywgtyuabhru.form.io",
+          connector: formio
+        }
+      ]
+    });
+    testModel = Fluent.model({
       properties: {
         name: "myTestModel",
-        remoteConnection: {
-          baseUrl: "https://vnikkswzjatywzi.form.io/",
-          path: "mytestmodel",
-          token: undefined
+        config: {
+          remote: {
+            path: "mytestmodel"
+          }
         }
       }
-    }).compose(Fluent.privatize)();
+    })();
   });
 
   it("name should be Private", () => {
@@ -34,14 +58,18 @@ describe("Given a FLUENT Remote Instance", () => {
   });
 
   it("Should insert Data", async () => {
-    let inserted = await testModel.remote().insert({
-      name: "Ignacio",
-      age: 29
+    let inserted = await testModel.remote({ token }).insert({
+      data: {
+        name: "Ignacio",
+        age: 29
+      }
     });
 
-    let inserted2 = await testModel.remote().insert({
-      name: "Andres",
-      age: 15
+    let inserted2 = await testModel.remote({ token }).insert({
+      data: {
+        name: "Andres",
+        age: 15
+      }
     });
 
     expect(inserted._id).to.be.a("string");
@@ -49,26 +77,26 @@ describe("Given a FLUENT Remote Instance", () => {
   });
 
   it("Should get remote data", async () => {
-    let [error, data] = await to(testModel.remote().all());
+    let [error, data] = await to(testModel.remote({ token }).get());
 
     if (error) {
       console.log(error);
       throw new Error("Cannot get remote Model");
     }
 
-    expect(data[0].data.name).to.be.equal("Andres");
+    expect(data[0].data.name).to.be.equal("Ignacio");
   });
 
   it("DB should get data for any local Model", async () => {
     let [error, data] = await to(
       DB.table({
         remoteConnection: {
-          baseUrl: "https://vnikkswzjatywzi.form.io/",
+          baseUrl: "https://suopywgtyuabhru.form.io",
           path: "mytestmodel",
           token: undefined
         }
       })
-        .remote()
+        .remote({ token })
         .all()
     );
 
@@ -77,13 +105,13 @@ describe("Given a FLUENT Remote Instance", () => {
       throw new Error("Cannot get remote Model");
     }
 
-    expect(data[0].data.name).to.be.equal("Andres");
+    expect(data[0].data.name).to.be.equal("Ignacio");
   });
 
   it("select() should filter and name specific columns", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .select("data.name as Name")
         .get()
     );
@@ -92,25 +120,26 @@ describe("Given a FLUENT Remote Instance", () => {
       console.log(error);
       throw new Error("Cannot get remote Model");
     }
-
-    expect(data[0].Name).to.be.equal("Andres");
+    expect(data[0].Name).to.be.equal("Ignacio");
   });
 
   it("pluck() should return a single array", async () => {
-    let [error, data] = await to(testModel.remote().pluck("data.name"));
+    let [error, data] = await to(
+      testModel.remote({ token }).pluck("data.name")
+    );
 
     if (error) {
       console.log(error);
       throw new Error("Cannot get remote Model");
     }
 
-    expect(data[0]).to.be.equal("Andres");
+    expect(data[0]).to.be.equal("Ignacio");
   });
 
   it("orderBy() should order results desc", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .select("data.name as Name")
         .orderBy("Name", "desc")
         .get()
@@ -127,7 +156,7 @@ describe("Given a FLUENT Remote Instance", () => {
   it("orderBy() should order results asc", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .select("data.name as Name")
         .orderBy("Name", "asc")
         .get()
@@ -144,9 +173,9 @@ describe("Given a FLUENT Remote Instance", () => {
   it("orderBy() should order by Dates with Select()", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .select("data.name as Name", "created as created")
-        .orderBy("created", "asc", "date")
+        .orderBy("created", "asc")
         .get()
     );
 
@@ -160,7 +189,7 @@ describe("Given a FLUENT Remote Instance", () => {
   it("orderBy() should order by Dates without Select()", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .orderBy("created", "asc")
         .get()
     );
@@ -176,7 +205,7 @@ describe("Given a FLUENT Remote Instance", () => {
   it("limit() should limit the amount of results", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .select("data.name as Name", "created as created")
         .orderBy("created", "asc", "date")
         .limit(1)
@@ -193,9 +222,9 @@ describe("Given a FLUENT Remote Instance", () => {
   it("offset() should start at the given position", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .select("data.name as Name", "created as created")
-        .orderBy("created", "desc", "date")
+        .orderBy("created", "desc")
         .limit(1)
         .offset(1)
         .get()
@@ -206,13 +235,13 @@ describe("Given a FLUENT Remote Instance", () => {
       throw new Error("Cannot get remote Model");
     }
 
-    expect(data[0].Name).to.be.equal("Ignacio");
+    expect(data[0].Name).to.be.equal("Andres");
   });
 
   it("where() should filter the data", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .where("data.name", "=", "Andres")
         .select("data.name as Name", "created as created")
         .get()
@@ -229,7 +258,7 @@ describe("Given a FLUENT Remote Instance", () => {
   it("first() should take the first result from data", async () => {
     let [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .where("data.name", "=", "Ignacio")
         .select("data.name as Name", "created as created")
         .first()
@@ -244,7 +273,7 @@ describe("Given a FLUENT Remote Instance", () => {
   });
 
   it("collect() should return the data as collection", async () => {
-    let [error, data] = await to(testModel.remote().collect());
+    let [error, data] = await to(testModel.remote({ token }).collect());
 
     if (error) {
       console.log(error);
@@ -263,19 +292,21 @@ describe("Given a FLUENT Remote Instance", () => {
 
         expect(chunk.length).to.be.equal(1);
 
-        let collapsed = Collection(chunk)
-          .collapse()
-          .get();
+        // let collapsed = Collection(chunk)
+        //  .collapse()
+        //  .get();
 
-        expect(collapsed.length).to.be.equal(2);
+        //expect(collapsed.length).to.be.equal(2);
       });
 
-      it("concat() should merge two arrays", () => {});
+      it("concat() should merge two arrays", () => { });
     });
   });
 
   it("clear() should remove all records from the Model", async () => {
-    let [error, data] = await to(testModel.remote().clear({ sure: true }));
+    let [error, data] = await to(
+      testModel.remote({ token }).clear({ sure: true })
+    );
 
     if (error) {
       console.log(error);
@@ -284,7 +315,7 @@ describe("Given a FLUENT Remote Instance", () => {
 
     [error, data] = await to(
       testModel
-        .remote()
+        .remote({ token })
         .select("_id")
         .get()
     );

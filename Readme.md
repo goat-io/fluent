@@ -3,7 +3,7 @@
 
 # Start development
 ```
-lerna run build
+lerna run dev --stream --parallel
 ```
 
 # Build all packages?
