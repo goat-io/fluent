@@ -1,4 +1,4 @@
-import moment from "moment";
+import dayjs from "dayjs";
 import Utilities from "utilities";
 import { Fluent } from "@goatlab/goat-fluent";
 import Labels from "./repositories/Labels";
@@ -53,7 +53,7 @@ export default Fluent.model({
             action === "create"
               ? "statics/customSVG/startSurvey.svg"
               : "statics/customSVG/collectedData.svg",
-          subtitle: "Last updated: " + moment(f.data.modified).fromNow(),
+          subtitle: "Last updated: " + dayjs(f.data.modified).fromNow(),
           actions: [
             {
               text: action === "create" ? "Start" : "View data",
@@ -103,7 +103,7 @@ export default Fluent.model({
       if (localForms) {
         await this.local().clear({ sure: true });
       }
-      const unixDate = moment().unix();
+      const unixDate = dayjs().unix();
       offlineForms.forEach(async form => {
         await this.local().insert({ data: form, fastUpdated: unixDate });
       });
@@ -114,7 +114,7 @@ export default Fluent.model({
      */
     async setOnline() {
       let remoteForms = await this.remote().limit(9999999).get();
-      let unixDate = moment().unix();
+      let unixDate = dayjs().unix();
 
       if (remoteForms && !Utilities.isEmpty(remoteForms)) {
         await this.local().clear({ sure: true });

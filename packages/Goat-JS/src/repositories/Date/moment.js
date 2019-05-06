@@ -1,16 +1,16 @@
-import moment from 'moment';
-import Utilities from '../../utilities';
+import dayjs from "dayjs";
+import Utilities from "../../utilities";
 // import 'moment/min/locales';
 
 let Moment = class {
-  static setLocales () {
-    moment.locale(Moment.getLanguage());
+  static setLocales() {
+    dayjs.locale(Moment.getLanguage());
   }
-  static changeLanguage (code) {
-    moment.locale(code);
+  static changeLanguage(code) {
+    dayjs.locale(code);
   }
 
-  static getLanguage () {
+  static getLanguage() {
     return Utilities.getLanguage();
   }
 };

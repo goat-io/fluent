@@ -2,7 +2,7 @@ import { Fluent } from "@goatlab/goat-fluent";
 import Utilities from 'utilities';
 import Connection from 'Wrappers/Connection';
 import to from 'await-to-js';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 export default Fluent.model({
   properties: {
@@ -47,7 +47,7 @@ export default Fluent.model({
         if (localRoles) {
           await this.local().clear();
         }
-        remoteRoles.fastUpdated = moment().unix();
+        remoteRoles.fastUpdated = dayjs().unix();
 
         let insertedRoles = await this.local().insert(remoteRoles);
 

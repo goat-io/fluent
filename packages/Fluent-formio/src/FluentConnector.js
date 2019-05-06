@@ -1,5 +1,5 @@
 import to from "await-to-js";
-import moment from "moment";
+import moment from "dayjs";
 import jwtDecode from "jwt-decode";
 import Utilities from "./Utilities";
 import axios from "axios";

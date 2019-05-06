@@ -1,7 +1,7 @@
 import Utilities from 'utilities';
 import { Fluent } from "@goatlab/goat-fluent";
 import Configuration from './Configuration';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 export default Fluent.model({
   properties: {
@@ -133,7 +133,7 @@ export default Fluent.model({
       // Insert the new ones
       let appTranslations = await this.local().insert({
         data: translationsArray,
-        fastUpdated: moment().unix()
+        fastUpdated: dayjs().unix()
       });
 
       return appTranslations.data;

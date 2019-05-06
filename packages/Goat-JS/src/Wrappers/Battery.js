@@ -1,14 +1,14 @@
-import Promise from 'bluebird';
+// import Promise from 'bluebird';
 const Battery = class {
   /**
    * [status description]
    * @return {Promise} [description]
    */
-  static status () {
+  static status() {
     return new Promise((resolve, reject) => {
       window.addEventListener(
-        'batterystatus',
-        (status) => {
+        "batterystatus",
+        status => {
           resolve(status);
         },
         false
@@ -20,11 +20,11 @@ const Battery = class {
    * [isLow description]
    * @return {Promise} [description]
    */
-  static isLow () {
+  static isLow() {
     return new Promise((resolve, reject) => {
       window.addEventListener(
-        'batterylow',
-        (status) => {
+        "batterylow",
+        status => {
           resolve(status);
         },
         false
@@ -36,11 +36,11 @@ const Battery = class {
    * [isCritical description]
    * @return {Promise} [description]
    */
-  static isCritical () {
+  static isCritical() {
     return new Promise((resolve, reject) => {
       window.addEventListener(
-        'batterycritical',
-        (status) => {
+        "batterycritical",
+        status => {
           resolve(status);
         },
         false

@@ -2,7 +2,7 @@ import { Fluent } from "@goatlab/goat-fluent";
 import Utilities from "utilities";
 import Configuration from "./Configuration";
 import to from "await-to-js";
-import moment from "moment";
+import dayjs from "dayjs";
 
 export default Fluent.model({
   properties: {
@@ -66,7 +66,7 @@ export default Fluent.model({
       }
       return this.local().insert({
         ...offlinePages,
-        fastUpdated: moment().unix()
+        fastUpdated: dayjs().unix()
       });
     },
     /**
@@ -109,7 +109,7 @@ export default Fluent.model({
         if (localPages) {
           await this.local().clear({ sure: true });
         }
-        return this.local().insert({ ...pages, fastUpdated: moment().unix() });
+        return this.local().insert({ ...pages, fastUpdated: dayjs().unix() });
       }
 
       return localPages;

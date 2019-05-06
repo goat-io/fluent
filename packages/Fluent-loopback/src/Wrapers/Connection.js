@@ -1,5 +1,5 @@
 import Event from './Event';
-import Promise from 'bluebird';
+// import Promise from 'bluebird';
 import axios from 'axios';
 /* eslint-disable no-unused-vars */
 let Connection = (() => {

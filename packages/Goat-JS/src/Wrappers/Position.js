@@ -1,10 +1,10 @@
-import Promise from 'bluebird';
+// import Promise from 'bluebird';
 const Position = class {
   /**
    * [getConfig description]
    * @return {Object} [description]
    */
-  static getConfig () {
+  static getConfig() {
     return {
       maximumAge: 3000,
       timeout: 15000,
@@ -16,13 +16,13 @@ const Position = class {
    * [getPosition description]
    * @return {Promise} [description]
    */
-  static current () {
+  static current() {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           resolve(position);
         },
-        (error) => {
+        error => {
           reject(error);
         },
         this.getConfig()
@@ -34,13 +34,13 @@ const Position = class {
    * [followPosition description]
    * @return {Promise} [description]
    */
-  static follow () {
+  static follow() {
     return new Promise((resolve, reject) => {
       navigator.geolocation.watchPosition(
-        (position) => {
+        position => {
           resolve(position);
         },
-        (error) => {
+        error => {
           reject(error);
         },
         this.getConfig()

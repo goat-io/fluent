@@ -1,5 +1,5 @@
 import md5 from 'md5';
-import Promise from 'bluebird';
+// import Promise from 'bluebird';
 import AuthInterface from '../AuthInterface';
 import Configuration from '../../../models/Configuration';
 import User from '../../../models/User';

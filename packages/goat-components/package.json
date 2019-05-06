@@ -1,0 +1,92 @@
+{
+  "name": "@goatlab/goat-components",
+  "version": "0.1.0",
+  "main": "./dist/goat-components.common.js",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint",
+    "bb": "vue-cli-service build --target lib --name goat-components ./src/Goat/index.js"
+  },
+  "dependencies": {
+    "@goatlab/goatjs": "file:../Goat-JS",
+    "@stamp/it": "^1.1.0",
+    "core-js": "^2.6.5",
+    "lodash.get": "^4.4.2",
+    "quasar": "^1.0.0-beta.20",
+    "sweet-modal-vue": "^2.0.0",
+    "sweetalert2": "^8.10.0",
+    "vue": "^2.6.10",
+    "vuex": "^3.1.0"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.7.0",
+    "@vue/cli-plugin-eslint": "^3.7.0",
+    "@vue/cli-service": "^3.7.0",
+    "axios-mock-adapter": "^1.15.0",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-eslint": "^10.0.1",
+    "babel-loader": "^7.1.4",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-lodash": "^3.3.4",
+    "babel-plugin-transform-es2015-arrow-functions": "^6.22.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-stage-2": "^6.24.1",
+    "buffer": "^5.2.1",
+    "chai": "^4.1.2",
+    "custom-event": "^1.0.1",
+    "eslint": "^5.16.0",
+    "eslint-loader": "^2.0.0",
+    "eslint-plugin-vue": "^5.0.0",
+    "isomorphic-fetch": "^2.2.1",
+    "jsdom": "11.11.0",
+    "jsdom-global": "3.0.2",
+    "lerna": "^3.13.2",
+    "lodash-webpack-plugin": "^0.11.5",
+    "mocha": "^5.2.0",
+    "mocha-webpack": "^2.0.0-beta.0",
+    "mock-local-storage": "^1.0.5",
+    "node-fetch": "^2.2.0",
+    "sass": "^1.19.0",
+    "sass-loader": "^7.1.0",
+    "vue-template-compiler": "^2.5.21",
+    "webpack": "^4.30.0",
+    "webpack-bundle-analyzer": "^2.13.1",
+    "webpack-cli": "^3.1.1",
+    "webpack-node-externals": "^1.7.2",
+    "xmlhttprequest": "^1.8.0",
+    "yargs": "^11.0.0"
+  },
+  "files": [
+    "dist/*",
+    "src/*",
+    "public/*",
+    "*.json",
+    "*.js"
+  ],
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/essential",
+      "eslint:recommended"
+    ],
+    "rules": {},
+    "parserOptions": {
+      "parser": "babel-eslint"
+    }
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}

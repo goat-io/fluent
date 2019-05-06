@@ -4,11 +4,10 @@ import Translation from "./models/Translation";
 import Pages from "./models/Pages";
 import SyncInterval from "./repositories/Database/SyncInterval";
 import Roles from "./models/Role";
-import { Fluent } from "@goatlab/goat-fluent";
-import loki from "./Fluent/Connectors/local/Loki/FluentConnector";
+import { Fluent, MergeConnector } from "@goatlab/goat-fluent";
+import loki from "@goatlab/fluent-loki";
 import formio from "@goatlab/fluent-formio";
 import loopback from "@goatlab/fluent-loopback";
-import formioLoki from "./Fluent/Connectors/merged/Formio-Loki/FluentConnector";
 import Utilities from "./utilities";
 import ErrorHandler from "./repositories/Errors/Errors";
 /* eslint-disable no-unused-vars */
@@ -22,7 +21,7 @@ let GOAT = (() => {
    * @param {*} conf.appConf Configuration of the App
    */
   async function start({ appConf, forceOnline }) {
-    console.log("Setting configuration");
+    console.log("Setting configura...tion!");
     ErrorHandler.interceptAxios();
     if (!forceOnline) {
       await Fluent.config({
@@ -55,7 +54,7 @@ let GOAT = (() => {
           {
             default: true,
             name: "formioLoki",
-            connector: formioLoki
+            connector: MergeConnector
           }
         ]
       });

@@ -1,17 +1,20 @@
-import Event from './Event';
-import Promise from 'bluebird';
-import axios from 'axios';
+import Event from "./Event";
+// import Promise from "bluebird";
+import axios from "axios";
 /* eslint-disable no-unused-vars */
 let Connection = (() => {
-  let online = (typeof window !== 'undefined') && window && window.navigator ? window.navigator.onLine : true;
+  let online =
+    typeof window !== "undefined" && window && window.navigator
+      ? window.navigator.onLine
+      : true;
 
   function setOnline() {
     if (!online) {
       online = true;
       Event.emit({
-        name: 'FAST:CONNECTION:ONLINE',
+        name: "GOAT:CONNECTION:ONLINE",
         data: online,
-        text: 'Application is now online'
+        text: "Application is now online"
       });
     }
   }
@@ -20,9 +23,9 @@ let Connection = (() => {
     if (online) {
       online = false;
       Event.emit({
-        name: 'FAST:CONNECTION:OFFLINE',
+        name: "GOAT:CONNECTION:OFFLINE",
         data: online,
-        text: 'Application is now offline'
+        text: "Application is now offline"
       });
     }
   }
@@ -33,16 +36,16 @@ let Connection = (() => {
    */
   function initEventListeners() {
     Event.listen({
-      name: 'online',
-      callback: function () {
-        console.log('App is now online');
+      name: "online",
+      callback: function() {
+        console.log("App is now online");
         setOnline();
       }
     });
     Event.listen({
-      name: 'offline',
-      callback: function () {
-        console.log('App is now offline');
+      name: "offline",
+      callback: function() {
+        console.log("App is now offline");
         setOffline();
       }
     });
@@ -50,13 +53,14 @@ let Connection = (() => {
 
   function isOnline() {
     return new Promise((resolve, reject) => {
-      axios.get('https://yesno.wtf/api')
-      .then(function (res) {
-        resolve(true);
-      })
-      .catch(function (err) {
-        resolve(false);
-      })
+      axios
+        .get("https://yesno.wtf/api")
+        .then(function(res) {
+          resolve(true);
+        })
+        .catch(function(err) {
+          resolve(false);
+        });
     });
   }
 

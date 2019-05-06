@@ -1,5 +1,5 @@
 import Auth from "repositories/Auth/Auth";
-import moment from "moment";
+import dayjs from "dayjs";
 import Utilities from "utilities";
 import Form from "models/Form";
 import { Fluent } from "@goatlab/goat-fluent";
@@ -72,7 +72,7 @@ export default Fluent.model({
           } else {
             [error, result] = await to(
               this.remote()
-                .where('modified', '>=', moment().subtract(1, timeFilter).toISOString())
+                .where('modified', '>=', dayjs().subtract(1, timeFilter).toISOString())
                 .select(cols)
                 .limit(limit)
                 .get()
@@ -89,7 +89,7 @@ export default Fluent.model({
           if (classifier) {
             parameters = {
               ...parameters,
-              timeFilter: moment().subtract(1, timeFilter).toISOString(),
+              timeFilter: dayjs().subtract(1, timeFilter).toISOString(),
               extraFilters: companyFilter !== 'all' ? { 'data.company': companyFilter } : {}
             };
           }
@@ -158,12 +158,12 @@ export default Fluent.model({
             status: s.sync === false ? "offline" : "online",
             draft: s.draft,
             HumanUpdated: Number.isInteger(s.modified)
-              ? moment.unix(s.modified).fromNow()
-              : moment(s.modified).fromNow(),
+              ? dayjs.unix(s.modified).fromNow()
+              : dayjs(s.modified).fromNow(),
             syncError: s.syncError ? s.syncError : false,
             updated: Number.isInteger(s.modified)
               ? s.modified
-              : moment(s.modified).unix()
+              : dayjs(s.modified).unix()
           };
   
           // Custom templates using FAST_TABLE_TEMPLATE propertie
@@ -193,12 +193,12 @@ export default Fluent.model({
             status: s.sync === false ? "offline" : "online",
             draft: s.draft,
             HumanUpdated: Number.isInteger(s.modified)
-              ? moment.unix(s.modified).fromNow()
-              : moment(s.modified).fromNow(),
+              ? dayjs.unix(s.modified).fromNow()
+              : dayjs(s.modified).fromNow(),
             syncError: s.syncError ? s.syncError : false,
             updated: Number.isInteger(s.modified)
               ? s.modified
-              : moment(s.modified).unix()
+              : dayjs(s.modified).unix()
           };
 
           // Custom templates using FAST_TABLE_TEMPLATE propertie

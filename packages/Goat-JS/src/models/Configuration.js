@@ -1,6 +1,6 @@
 import { Fluent } from "@goatlab/goat-fluent";
 import Utilities from "utilities";
-import moment from "moment";
+import dayjs from "dayjs";
 // TODO We still have to figure out how to solve the problem of
 // The CONFIG URL and FLUENT_URL changing on APP sync
 // Every page refresh will make the urls go back to their default
@@ -48,7 +48,7 @@ export default Fluent.model({
 
       return this.local().insert({
         ...appConf.offlineFiles.Configuration.data,
-        fastUpdated: moment().unix()
+        fastUpdated: dayjs().unix()
       });
     },
     /**
@@ -75,7 +75,7 @@ export default Fluent.model({
       }
       return this.local().insert({
         ...remoteConfig.data,
-        fastUpdated: moment().unix()
+        fastUpdated: dayjs().unix()
       });
     },
     /**

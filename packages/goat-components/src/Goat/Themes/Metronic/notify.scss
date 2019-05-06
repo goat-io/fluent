@@ -1,0 +1,17 @@
+.q-alert.bg-negative {
+  color: #fff;
+  background-color: #f66e84 !important;
+  border-color: #f55f78;
+  .q-alert-side {
+    background: #f66e84 !important;
+  }
+}
+
+.q-alert.bg-positive {
+  color: #fff;
+  background: #0abb87 !important;
+  border: 1px solid #0abb87;
+  .q-alert-side {
+    background: #0abb87 !important;
+  }
+}

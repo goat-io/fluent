@@ -1,7 +1,7 @@
 import uuidv4 from "uuid/v4";
 import Utilities from "utilities";
 import Submission from "models/Submission";
-import Promise from "bluebird";
+// import Promise from "bluebird";
 
 let ParallelSurvey = (() => {
   function getNewGroupWizard(vm) {
