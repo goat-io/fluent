@@ -2,7 +2,6 @@
   "name": "@goatlab/goat-components",
   "version": "1.0.4",
   "main": "./dist/goat-components.common.js",
-  "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",

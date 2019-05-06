@@ -31,7 +31,7 @@
   },
   "homepage": "https://gitlab.com/goatlabs/goat-fluent-formio.git#readme",
   "dependencies": {
-    "@goatlab/goat-fluent": "file:../Fluent",
+    "@goatlab/goat-fluent": "^1.0.4",
     "await-to-js": "^2.1.1",
     "axios": "^0.18.0",
     "bluebird": "^3.5.3",
@@ -77,5 +77,6 @@
     "webpack-node-externals": "^1.7.2",
     "xmlhttprequest": "^1.8.0",
     "yargs": "^11.0.0"
-  }
+  },
+  "gitHead": "f683e960f234ae9d9131622dc21656cda3856bf2"
 }
