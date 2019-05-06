@@ -9,7 +9,8 @@
     "rebuild": "lerna clean && lerna bootstrap",
     "dev": "lerna run dev --stream --parallel",
     "testio": "lerna run test --scope=\"@goatlab/fluent-formio\" --stream",
-    "devio": "lerna run dev --scope=\"@goatlab/fluent-formio\" --stream"
+    "devio": "lerna run dev --scope=\"@goatlab/fluent-formio\" --stream",
+    "devgoat": "lerna run dev --scope=\"@goatlab/goatjs\" --stream"
   },
   "dependencies": {
     "@goatlab/fluent-export": "file:packages\\Fluent-export",

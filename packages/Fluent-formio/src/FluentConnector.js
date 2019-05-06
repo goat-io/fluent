@@ -1,11 +1,13 @@
 import to from "await-to-js";
-import moment from "dayjs";
+import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import jwtDecode from "jwt-decode";
 import Utilities from "./Utilities";
 import axios from "axios";
 import { Interface } from "@goatlab/goat-fluent";
 import Connection from "./Wrapers/Connection";
 import AuthenticationError from "./Errors/AuthenticationError";
+dayjs.extend(isSameOrAfter);
 
 export default Interface.compose({
   methods: {
@@ -15,8 +17,8 @@ export default Interface.compose({
       if (!token || this.getTokenType(token) === "x-token") return token;
 
       const decodedToken = jwtDecode(token);
-      const expDate = moment.unix(decodedToken.exp);
-      if (moment().isSameOrAfter(expDate))
+      const expDate = dayjs.unix(decodedToken.exp);
+      if (dayjs().isSameOrAfter(expDate))
         throw new AuthenticationError("Token has expired.");
 
       return token;
