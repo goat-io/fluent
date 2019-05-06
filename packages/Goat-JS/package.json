@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/goatjs",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Formio interface for online and offline use",
   "main": "lib/@goatlab/goatjs.min.js",
   "directories": {

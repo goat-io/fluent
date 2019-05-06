@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/goat-components",
-  "version": "0.1.0",
+  "version": "1.0.4",
   "main": "./dist/goat-components.common.js",
   "private": true,
   "scripts": {
