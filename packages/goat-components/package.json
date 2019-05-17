@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/goat-components",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "./dist/goat-components.common.js",
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -88,5 +88,5 @@
     "> 1%",
     "last 2 versions"
   ],
-  "gitHead": "7ec6c8983d6899ddeef2a489eef8b86f10dd65c2"
+  "gitHead": "5a8287048a5619f3191ccbba255a65047acbff66"
 }

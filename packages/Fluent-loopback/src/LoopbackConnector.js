@@ -203,7 +203,6 @@ export default Interface.compose({
       const form = await Config.local()
         .where("data.path", "=", path)
         .first();
-
       return form.data;
     },
     getUrl() {
