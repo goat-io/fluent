@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/goat-fluent",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Readable query Interface for Local and Remote storage providers",
   "main": "lib/@goatlab/goat-fluent.js",
   "directories": {
@@ -75,5 +75,5 @@
     "xmlhttprequest": "^1.8.0",
     "yargs": "^11.0.0"
   },
-  "gitHead": "5a8287048a5619f3191ccbba255a65047acbff66"
+  "gitHead": "76999c6dd0099f493e123df997a2ffa4d8f3e46a"
 }

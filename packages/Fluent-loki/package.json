@@ -31,7 +31,7 @@
   },
   "homepage": "https://gitlab.com/goatlabs/goat-fluent-formio.git#readme",
   "dependencies": {
-    "@goatlab/goat-fluent": "^1.0.7",
+    "@goatlab/goat-fluent": "^1.0.8",
     "bluebird": "^3.5.4",
     "loki-react-native-asyncstorage-adapter": "^1.0.1",
     "lokijs": "^1.5.6",
@@ -76,5 +76,5 @@
     "xmlhttprequest": "^1.8.0",
     "yargs": "^11.0.0"
   },
-  "gitHead": "5a8287048a5619f3191ccbba255a65047acbff66"
+  "gitHead": "76999c6dd0099f493e123df997a2ffa4d8f3e46a"
 }

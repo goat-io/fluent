@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/goatjs",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Formio interface for online and offline use",
   "main": "lib/@goatlab/goatjs.js",
   "directories": {
@@ -31,10 +31,10 @@
   },
   "homepage": "https://gitlab.com/goatlabs/goatjs.git#readme",
   "dependencies": {
-    "@goatlab/fluent-formio": "^1.0.7",
-    "@goatlab/fluent-loki": "^1.0.7",
-    "@goatlab/fluent-loopback": "^1.0.7",
-    "@goatlab/goat-fluent": "^1.0.7",
+    "@goatlab/fluent-formio": "^1.0.8",
+    "@goatlab/fluent-loki": "^1.0.8",
+    "@goatlab/fluent-loopback": "^1.0.8",
+    "@goatlab/goat-fluent": "^1.0.8",
     "@stamp/it": "^1.1.0",
     "await-to-js": "^2.0.1",
     "axios": "^0.18.0",
@@ -84,5 +84,5 @@
     "xmlhttprequest": "^1.8.0",
     "yargs": "^11.0.0"
   },
-  "gitHead": "5a8287048a5619f3191ccbba255a65047acbff66"
+  "gitHead": "76999c6dd0099f493e123df997a2ffa4d8f3e46a"
 }
