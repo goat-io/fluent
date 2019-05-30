@@ -2,7 +2,7 @@
   "name": "@goatlab/goatjs",
   "version": "1.0.8",
   "description": "Formio interface for online and offline use",
-  "main": "lib/@goatlab/goatjs.min.js",
+  "main": "lib/@goatlab/goatjs.js",
   "directories": {
     "lib": "lib",
     "test": "test"
@@ -41,6 +41,7 @@
     "btoa": "^1.2.1",
     "dayjs": "^1.8.13",
     "md5": "^2.2.1",
+    "pusher-js": "^4.4.0",
     "qs": "^6.7.0",
     "uuid": "^3.2.1"
   },

@@ -2,7 +2,7 @@
   "name": "@goatlab/fluent-export",
   "version": "1.0.8",
   "description": "Fluent Connector for Formio submissions",
-  "main": "lib/@goatlab/fluent-export.min.js",
+  "main": "lib/@goatlab/fluent-export.js",
   "directories": {
     "lib": "lib",
     "test": "test"

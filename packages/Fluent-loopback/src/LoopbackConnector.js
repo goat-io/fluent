@@ -189,26 +189,25 @@ export default Interface.compose({
       return data;
     }, */
     async getForm(baseUrl, path) {
-      let Config = Fluent.model({
+      let Forms = Fluent.model({
         properties: {
           name: "Form",
           config: {
             remote: {
-              path: "form",
-              pullForm: true
+              path: "forms"
             }
           }
         }
       })();
-      const form = await Config.local()
-        .where("data.path", "=", path)
+      const form = await Forms.remote({ token: this.remoteConnection.token })
+        .where("path", "=", path)
         .first();
-      return form.data;
+      return form;
     },
     getUrl() {
       const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined;
 
-      return `${baseUrl}/submissions`;
+      return baseUrl;
     },
     getHeaders() {
       let headers = {};
@@ -227,6 +226,7 @@ export default Interface.compose({
 
       let type = this.getTokenType(token);
       headers[type] = token;
+      headers['Authorization'] = `Bearer ${token}`;
       return headers;
     },
     getPage() {
@@ -269,8 +269,13 @@ export default Interface.compose({
         ...{ deleted: null }
       };
 
+      const remotePath = Utilities.get(
+        () => this.remoteConnection.path,
+        undefined
+      );
+
       // Always limit the amount of request
-      url = `${url}?${page}filter=${encodeURI(JSON.stringify(filter))}`;
+      url = `${url}/${remotePath}?${page}filter=${encodeURI(JSON.stringify(filter))}`;
 
       const isOnline = true || (await Connection.isOnline());
 
@@ -318,21 +323,12 @@ export default Interface.compose({
     },
     async getFilters(filters) {
       let filter = this.whereArray;
-      const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined;
-      const remotePath = Utilities.get(
-        () => this.remoteConnection.path,
-        undefined
-      );
-      const form = await this.getForm(baseUrl, remotePath);
-      filters["where"] = { and: [] };
-
-      if (form._id) {
-        filters.where.and.push({ form: form._id });
-      }
 
       if (!filter || filter.length === 0) {
         return filters;
       }
+
+      filters["where"] = { and: [] };
 
       filter.forEach(condition => {
         let element = condition[0];

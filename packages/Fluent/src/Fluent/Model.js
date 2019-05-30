@@ -87,7 +87,7 @@ export default stampit({
      * [remote description]
      * @return {[type]} [description]
      */
-    remote({ token = undefined, pullForm = undefined, connectorName = undefined } = {}) {
+    remote({ token = undefined, pullForm = undefined, connectorName = undefined, path = undefined } = {}) {
       const FLUENT = this.getFluentConfig();
       const connectors = FLUENT && FLUENT.connectors && FLUENT.connectors.remote;
 
@@ -98,6 +98,9 @@ export default stampit({
       const remoteConnector = this.getConnector(connectors, 'remote', connectorName || false);
 
       this.config.remote.token = token || this.config.remote.token;
+      this.config.remote.path = path || this.config.remote.path;
+
+      console.log('aaaa');
 
       if (pullForm) {
         this.config.remote.pullForm = pullForm || this.config.remote.pullForm;

@@ -89,6 +89,44 @@ const Fluent = stampit({
       if (typeof global !== "undefined" && global) {
         return global._FLUENT_;
       }
+    },
+    registerConnector({ type, connector }) {
+      if (!type || !connector) throw new Error('type and connector must be defined');
+      if (!['local', 'remote', 'merge'].includes(type)) throw new Error('type must be either local, remote or merge');
+
+      const ctx = (typeof window !== 'undefined' && window) ? window._FLUENT_ : global._FLUENT_;
+      const connectors = (ctx.connectors.hasOwnProperty(type))? ctx.connectors[type] : [];
+
+      if (connectors.length === 0) {
+        connector = {
+          ...connector,
+          default: true
+        };
+
+        connectors.push(connector);
+        ctx.connectors[type] = connectors;
+        return;
+      }
+
+      if (connectors.find(o => o.name === connector.name)) {
+        console.log(`A ${type} connector with the name '${connector.name}' already exists`);
+        return;
+      }
+
+      connectors.push(connector);
+      ctx.connectors[type] = connectors;
+    },
+    deregisterConnector({ type, name }) {
+      if (!type || !name) throw new Error('type and name must be defined');
+      if (!['local', 'remote', 'merge'].includes(type)) throw new Error('type must be either local, remote or merge');
+
+      const ctx = (typeof window !== 'undefined' && window) ? window._FLUENT_ : global._FLUENT_;
+      const connectors = (ctx.connectors.hasOwnProperty(type))? ctx.connectors[type] : [];
+
+      if (connectors.length === 0) return;
+
+      const filteredConnectors = connectors.filter(o => o.name !== name);
+      ctx.connectors[type] = filteredConnectors;
     }
   }
 })();
