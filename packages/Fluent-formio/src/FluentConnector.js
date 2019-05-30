@@ -7,6 +7,8 @@ import axios from "axios";
 import { Interface } from "@goatlab/goat-fluent";
 import Connection from "./Wrapers/Connection";
 import AuthenticationError from "./Errors/AuthenticationError";
+import { Event } from "@goatlab/goat-fluent";
+
 dayjs.extend(isSameOrAfter);
 
 export default Interface.compose({
@@ -18,9 +20,10 @@ export default Interface.compose({
 
       const decodedToken = jwtDecode(token);
       const expDate = dayjs.unix(decodedToken.exp);
-      if (dayjs().isSameOrAfter(expDate))
+      if (dayjs().isSameOrAfter(expDate)) {
+        Event.emit({ name: "GOAT:SESSION:EXPIRED" });
         throw new AuthenticationError("Token has expired.");
-
+      }
       return token;
     },
     baseUrl() {
