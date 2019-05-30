@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-loki",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Fluent Connector for Loki local DB",
   "main": "lib/@goatlab/fluent-loki.min.js",
   "directories": {
@@ -31,7 +31,7 @@
   },
   "homepage": "https://gitlab.com/goatlabs/goat-fluent-formio.git#readme",
   "dependencies": {
-    "@goatlab/goat-fluent": "^1.0.7",
+    "@goatlab/goat-fluent": "^1.0.8",
     "bluebird": "^3.5.4",
     "lokijs": "^1.5.6",
     "uuid": "^3.3.2"
