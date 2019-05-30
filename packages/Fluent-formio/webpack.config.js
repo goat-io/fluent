@@ -20,7 +20,7 @@ if (env === "build") {
   outputFile = libraryName + ".min.js";
 } else {
   minimize = false;
-  outputFile = libraryName + ".min.js";
+  outputFile = libraryName + ".js";
 }
 
 const config = {

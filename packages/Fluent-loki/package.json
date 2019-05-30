@@ -1,8 +1,8 @@
 {
   "name": "@goatlab/fluent-loki",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Fluent Connector for Loki local DB",
-  "main": "lib/@goatlab/fluent-loki.min.js",
+  "main": "lib/@goatlab/fluent-loki.js",
   "directories": {
     "lib": "lib",
     "test": "test"
@@ -33,6 +33,7 @@
   "dependencies": {
     "@goatlab/goat-fluent": "^1.0.7",
     "bluebird": "^3.5.4",
+    "loki-react-native-asyncstorage-adapter": "^1.0.1",
     "lokijs": "^1.5.6",
     "uuid": "^3.3.2"
   },

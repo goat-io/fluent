@@ -15,7 +15,7 @@ let libraryName = pkg.name;
 
 let outputFile, minimize;
 
-outputFile = libraryName + ".min.js";
+outputFile = libraryName + ".js";
 minimize = !!(env === "build");
 
 const config = {
