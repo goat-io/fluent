@@ -21,7 +21,11 @@ export default Interface.compose({
       const decodedToken = jwtDecode(token);
       const expDate = dayjs.unix(decodedToken.exp);
       if (dayjs().isSameOrAfter(expDate)) {
-        Event.emit({ name: "GOAT:SESSION:EXPIRED" });
+        Event.emit({
+          name: "GOAT:SESSION:EXPIRED",
+          data: expDate,
+          text: "Session expired"
+        });
         throw new AuthenticationError("Token has expired.");
       }
       return token;

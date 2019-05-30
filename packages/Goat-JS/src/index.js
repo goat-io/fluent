@@ -15,9 +15,11 @@ import OfflinePlugin from "offlinePlugin/offlinePlugin";
 import Role from "models/Role";
 import Hash from "repositories/Submission/Hash";
 import Sync from "repositories/Database/Sync";
+import Schedule from "repositories/Schedule";
 import Utilities from "utilities";
 
 export {
+  Schedule,
   Moment,
   Event,
   GOAT,

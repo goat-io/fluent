@@ -1,15 +1,15 @@
-var FastIsSyncing = false;
+var GoatIsSyncing = false;
 let Scheduler = class {
-  static async isSyncing () {
-    return FastIsSyncing;
+  static async isSyncing() {
+    return GoatIsSyncing;
   }
-  static async startSync () {
-    FastIsSyncing = true;
+  static async startSync() {
+    GoatIsSyncing = true;
     return this.isSyncing();
   }
 
-  static async stopSync () {
-    FastIsSyncing = false;
+  static async stopSync() {
+    GoatIsSyncing = false;
     return this.isSyncing();
   }
 };
