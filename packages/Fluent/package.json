@@ -1,8 +1,8 @@
 {
   "name": "@goatlab/goat-fluent",
-  "version": "1.0.8",
+  "version": "1.0.7",
   "description": "Readable query Interface for Local and Remote storage providers",
-  "main": "lib/@goatlab/goat-fluent.js",
+  "main": "lib/@goatlab/goat-fluent.min.js",
   "directories": {
     "lib": "lib",
     "test": "test"

@@ -91,11 +91,18 @@ const Fluent = stampit({
       }
     },
     registerConnector({ type, connector }) {
-      if (!type || !connector) throw new Error('type and connector must be defined');
-      if (!['local', 'remote', 'merge'].includes(type)) throw new Error('type must be either local, remote or merge');
+      if (!type || !connector)
+        throw new Error("type and connector must be defined");
+      if (!["local", "remote", "merge"].includes(type))
+        throw new Error("type must be either local, remote or merge");
 
-      const ctx = (typeof window !== 'undefined' && window) ? window._FLUENT_ : global._FLUENT_;
-      const connectors = (ctx.connectors.hasOwnProperty(type))? ctx.connectors[type] : [];
+      const ctx =
+        typeof window !== "undefined" && window
+          ? window._FLUENT_
+          : global._FLUENT_;
+      const connectors = ctx.connectors.hasOwnProperty(type)
+        ? ctx.connectors[type]
+        : [];
 
       if (connectors.length === 0) {
         connector = {
@@ -109,7 +116,9 @@ const Fluent = stampit({
       }
 
       if (connectors.find(o => o.name === connector.name)) {
-        console.log(`A ${type} connector with the name '${connector.name}' already exists`);
+        console.log(
+          `A ${type} connector with the name '${connector.name}' already exists`
+        );
         return;
       }
 
@@ -117,11 +126,17 @@ const Fluent = stampit({
       ctx.connectors[type] = connectors;
     },
     deregisterConnector({ type, name }) {
-      if (!type || !name) throw new Error('type and name must be defined');
-      if (!['local', 'remote', 'merge'].includes(type)) throw new Error('type must be either local, remote or merge');
+      if (!type || !name) throw new Error("type and name must be defined");
+      if (!["local", "remote", "merge"].includes(type))
+        throw new Error("type must be either local, remote or merge");
 
-      const ctx = (typeof window !== 'undefined' && window) ? window._FLUENT_ : global._FLUENT_;
-      const connectors = (ctx.connectors.hasOwnProperty(type))? ctx.connectors[type] : [];
+      const ctx =
+        typeof window !== "undefined" && window
+          ? window._FLUENT_
+          : global._FLUENT_;
+      const connectors = ctx.connectors.hasOwnProperty(type)
+        ? ctx.connectors[type]
+        : [];
 
       if (connectors.length === 0) return;
 

@@ -2,7 +2,7 @@
   "name": "@goatlab/fluent-loki",
   "version": "1.0.8",
   "description": "Fluent Connector for Loki local DB",
-  "main": "lib/@goatlab/fluent-loki.js",
+  "main": "lib/@goatlab/fluent-loki.min.js",
   "directories": {
     "lib": "lib",
     "test": "test"
@@ -31,7 +31,7 @@
   },
   "homepage": "https://gitlab.com/goatlabs/goat-fluent-formio.git#readme",
   "dependencies": {
-    "@goatlab/goat-fluent": "^1.0.8",
+    "@goatlab/goat-fluent": "^1.0.7",
     "bluebird": "^3.5.4",
     "loki-react-native-asyncstorage-adapter": "^1.0.1",
     "lokijs": "^1.5.6",

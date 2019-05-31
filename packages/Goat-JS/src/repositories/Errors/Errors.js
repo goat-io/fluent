@@ -3,7 +3,6 @@ import Event from "../../Wrappers/Event";
 
 let ErrorHandler = (() => {
   const parse = async error => {
-    console.log("errorerror", error);
     switch (error.response.status) {
       case 400:
         console.log("Bad request");

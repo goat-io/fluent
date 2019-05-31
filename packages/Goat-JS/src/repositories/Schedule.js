@@ -2,11 +2,11 @@ import Utilities from "utilities";
 
 let Schedule = (() => {
   let _every = 0;
-  every = milliseconds => {
+  let every = milliseconds => {
     _every = milliseconds;
     return this;
   };
-  set = async cb => {
+  let set = async cb => {
     if (_every === 0) {
       throw new Error(
         "You must asign a timeframe. Cannot Schedule every 0 milliseconds. Did you call function every()?"

@@ -2,8 +2,8 @@
 import Loki from "lokijs";
 import LokiIndexedAdapter from "lokijs/src/loki-indexed-adapter";
 let LokiReactNativeAdapter;
-if (typeof navigator != 'undefined' && navigator.product == 'ReactNative') {
-  LokiReactNativeAdapter = require("loki-react-native-asyncstorage-adapter");
+if (typeof navigator != "undefined" && navigator.product == "ReactNative") {
+  // LokiReactNativeAdapter = require("loki-react-native-asyncstorage-adapter");
 }
 var DB = null;
 let Database = (() => {
@@ -53,10 +53,13 @@ let Database = (() => {
         pa = new Loki.LokiPartitioningAdapter(idbAdapter, {
           paging: true
         });
-        
+
         db = new Loki("GOAT", { ...dbConfig, adapter: pa });
       } catch (error) {
-        if (typeof navigator != 'undefined' && navigator.product == 'ReactNative') {
+        if (
+          typeof navigator != "undefined" &&
+          navigator.product == "ReactNative"
+        ) {
           adapter = new LokiReactNativeAdapter();
           db = new Loki("GOAT", { ...dbConfig, adapter });
         } else {

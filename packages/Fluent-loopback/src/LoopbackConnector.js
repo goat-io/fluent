@@ -3,9 +3,32 @@ import Utilities from "./Utilities";
 import axios from "axios";
 import { Interface, Fluent } from "@goatlab/goat-fluent";
 import Connection from "./Wrapers/Connection";
+import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import { Event } from "@goatlab/goat-fluent";
+import jwtDecode from "jwt-decode";
+import pluralize from "pluralize";
+dayjs.extend(isSameOrAfter);
 
 export default Interface.compose({
   methods: {
+    getToken() {
+      if (typeof localStorage === "undefined") return;
+      const token = localStorage.getItem("formioToken");
+      if (!token || this.getTokenType(token) === "x-token") return token;
+
+      const decodedToken = jwtDecode(token);
+      const expDate = dayjs.unix(decodedToken.exp);
+      if (dayjs().isSameOrAfter(expDate)) {
+        Event.emit({
+          name: "GOAT:SESSION:EXPIRED",
+          data: expDate,
+          text: "Session expired"
+        });
+        throw new Error("Token has expired.");
+      }
+      return token;
+    },
     baseUrl() {
       const { baseUrl, name } = this.connector;
 
@@ -26,7 +49,14 @@ export default Interface.compose({
       [error, result] = await to(this.httpGET());
 
       if (error) {
-        console.log(error);
+        if (error.response.status === 440) {
+          Event.emit({
+            name: "GOAT:SESSION:EXPIRED",
+            data: error,
+            text: "Session expired"
+          });
+          throw new Error("Session has expired.");
+        }
         throw new Error("Error while getting submissions");
       }
 
@@ -73,6 +103,7 @@ export default Interface.compose({
       }
 
       const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined;
+
       const remotePath = Utilities.get(
         () => this.remoteConnection.path,
         undefined
@@ -189,20 +220,21 @@ export default Interface.compose({
       return data;
     }, */
     async getForm(baseUrl, path) {
-      let Forms = Fluent.model({
+      let Config = Fluent.model({
         properties: {
           name: "Form",
           config: {
             remote: {
-              path: "forms"
+              path: "form",
+              pullForm: true
             }
           }
         }
       })();
-      const form = await Forms.remote({ token: this.remoteConnection.token })
-        .where("path", "=", path)
+      const form = await Config.local()
+        .where("data.path", "=", path)
         .first();
-      return form;
+      return form.data;
     },
     getUrl() {
       const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined;
@@ -212,10 +244,10 @@ export default Interface.compose({
     getHeaders() {
       let headers = {};
       let token = {};
-      if (typeof localStorage !== "undefined") {
-        token = localStorage.getItem("formioToken");
-      }
+      // Get token from local storage
+      token = this.getToken();
 
+      // Overwrite if a token is given in the connector
       if (this.remoteConnection.token || this.remoteConnection.token === "") {
         token = this.remoteConnection.token;
       }
@@ -226,7 +258,7 @@ export default Interface.compose({
 
       let type = this.getTokenType(token);
       headers[type] = token;
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
       return headers;
     },
     getPage() {
@@ -261,7 +293,9 @@ export default Interface.compose({
         filter.skip = filter.skip || this.rawQuery.skip;
         filter.order = filter.order || this.rawQuery.order;
         filter.fields = { ...filter.fields, ...this.rawQuery.fields };
-        filter.where = { ...filter.where.and[0], ...this.rawQuery.where };
+        const where =
+          filter.where && filter.where.and ? filter.where.and[0] : {};
+        filter.where = { ...where, ...this.rawQuery.where };
       }
 
       filter.where = {
@@ -269,13 +303,27 @@ export default Interface.compose({
         ...{ deleted: null }
       };
 
+      // Loopback replaces all / by camel case
+
+      if (this.remoteConnection.path.includes("/")) {
+        this.remoteConnection.path = this.remoteConnection.path.replace(
+          "/",
+          ""
+        );
+      }
+
+      // Looback replaces all singular words by plural
+
+      this.remoteConnection.path = pluralize(this.remoteConnection.path);
       const remotePath = Utilities.get(
         () => this.remoteConnection.path,
         undefined
       );
 
       // Always limit the amount of request
-      url = `${url}/${remotePath}?${page}filter=${encodeURI(JSON.stringify(filter))}`;
+      url = `${url}/${remotePath}?${page}filter=${encodeURI(
+        JSON.stringify(filter)
+      )}`;
 
       const isOnline = true || (await Connection.isOnline());
 
