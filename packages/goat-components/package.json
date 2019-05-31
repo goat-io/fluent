@@ -4,6 +4,7 @@
   "main": "./dist/goat-components.common.js",
   "scripts": {
     "serve": "vue-cli-service serve",
+    "publish": "",
     "build": "",
     "lint": "vue-cli-service lint",
     "bb": "vue-cli-service build --target lib --name goat-components ./src/Goat/index.js"

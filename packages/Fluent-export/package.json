@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "rm -rf lib",
+    "publish": "",
     "rebuild": "rm -rf node_modules && npm install && npm run build",
     "dev": "rm -rf lib/* && webpack --progress --colors --watch --env dev",
     "test": "mocha-webpack --colors --recursive -w --timeout 100000 --webpack-config test/config/webpack.config.test.js --require mock-local-storage --require test/config/setup.js --exit src/**/**/*.spec.js --exit ",
