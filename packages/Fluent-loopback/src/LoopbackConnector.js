@@ -1,11 +1,10 @@
 import to from "await-to-js";
 import Utilities from "./Utilities";
 import axios from "axios";
-import { Interface, Fluent } from "@goatlab/goat-fluent";
+import { Interface, Fluent, Event } from "@goatlab/goat-fluent";
 import Connection from "./Wrapers/Connection";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
-import { Event } from "@goatlab/goat-fluent";
 import jwtDecode from "jwt-decode";
 import pluralize from "pluralize";
 dayjs.extend(isSameOrAfter);
