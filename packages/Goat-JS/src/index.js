@@ -3,6 +3,7 @@ import Auth from "./repositories/Auth/Auth";
 import Connection from "./Wrappers/Connection";
 import Event from "./Wrappers/Event";
 import Moment from "./repositories/Date/moment";
+import Sockets from "./repositories/Sockets/Sockets";
 import Form from "models/Form";
 import Pages from "models/Pages";
 import Submission from "models/Submission";
@@ -21,6 +22,7 @@ import Utilities from "utilities";
 export {
   Schedule,
   Moment,
+  Sockets,
   Event,
   GOAT,
   Connection,
