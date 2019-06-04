@@ -4,6 +4,7 @@ import Connection from "./Wrappers/Connection";
 import Event from "./Wrappers/Event";
 import Moment from "./repositories/Date/moment";
 import Sockets from "./repositories/Sockets/Sockets";
+import SocketsInterface from "./repositories/Sockets/SocketsInterface";
 import Form from "models/Form";
 import Pages from "models/Pages";
 import Submission from "models/Submission";
@@ -23,6 +24,7 @@ export {
   Schedule,
   Moment,
   Sockets,
+  SocketsInterface,
   Event,
   GOAT,
   Connection,

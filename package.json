@@ -19,6 +19,7 @@
     "@goatlab/fluent-loopback": "file:packages\\Fluent-loopback",
     "@goatlab/goat-components": "file:packages\\goat-components",
     "@goatlab/goat-fluent": "file:packages\\Fluent",
-    "@goatlab/goatjs": "file:packages\\Goat-JS"
+    "@goatlab/goatjs": "file:packages\\Goat-JS",
+    "@goatlab/sockets-pusherrn": "file:packages\\Sockets-PusherRN"
   }
 }
