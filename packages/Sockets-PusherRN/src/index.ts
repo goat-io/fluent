@@ -1,3 +1,3 @@
-import Sockets from './Sockets-PusherRN';
+import Sockets from './Sockets-PusherRN'
 
-export default Sockets;
+export default Sockets

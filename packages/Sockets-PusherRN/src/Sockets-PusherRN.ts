@@ -1,9 +1,9 @@
-import stampit from "@stamp/it";
-import Pusher from "./Connectors/Pusher";
+import stampit from "@stamp/it"
+import Pusher from "./Connectors/Pusher"
 
 export default stampit({
   init({ connector }) {
-    this.default = connector || this.default;
+    this.default = connector || this.default
   },
   properties: {
     default: "Pusher",
@@ -13,10 +13,10 @@ export default stampit({
   },
   methods: {
     getConnector(connector) {
-      return this.connectors[connector];
+      return this.connectors[connector]
     },
     connector(params) {
-      return this.getConnector(this.default)(params);
+      return this.getConnector(this.default)(params)
     }
   }
-});
+})
