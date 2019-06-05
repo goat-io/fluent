@@ -62,11 +62,13 @@ const config = {
     modules: [path.resolve("./node_modules"), path.resolve("./src")],
     extensions: [".json", ".js"],
     alias: {
-      "sockets-rn": path.resolve(__dirname, "src/"),
-      "react-native$": "react-native-web"
+      "sockets-rn": path.resolve(__dirname, "src/")
+      //"react-native$": "react-native-web"
     }
   },
-  externals: {},
+  externals: {
+    "react-native": "react-native"
+  },
   node: {
     dgram: "empty",
     fs: "empty",
