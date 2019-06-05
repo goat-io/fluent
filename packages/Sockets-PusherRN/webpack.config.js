@@ -62,7 +62,8 @@ const config = {
     modules: [path.resolve("./node_modules"), path.resolve("./src")],
     extensions: [".json", ".js"],
     alias: {
-      "formio-export": path.resolve(__dirname, "src/")
+      "sockets-rn": path.resolve(__dirname, "src/"),
+      "react-native$": "react-native-web"
     }
   },
   externals: {},
