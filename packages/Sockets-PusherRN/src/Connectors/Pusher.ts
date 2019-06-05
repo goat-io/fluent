@@ -1,5 +1,5 @@
-import Pusher from 'pusher-js/react-native';
 import { SocketsInterface, Auth } from '@goatlab/goatjs';
+import Pusher from 'pusher-js/react-native';
 
 export default SocketsInterface.compose({
   init({ appKey, appCluster, authEndpoint, token }) {
@@ -37,14 +37,10 @@ export default SocketsInterface.compose({
       this.channel = this.instance.subscribe(`presence-${channel}`);
       return this;
     },
-    leave() {
-      this.instance.subscribe(this.channel).trigger(this.channels.leaving, { user });
-      this.channel = undefined;
-    },
     here(callback) {
       if (typeof callback !== 'function') throw new Error('Callback must be a function.');
       this.channel.bind(this.channels.error, (err) => {
-        throw new Error('Could not subscribe to channel', err);
+        throw new Error(`Could not subscribe to channel: ${err}`);
       });
       return this;
     },
