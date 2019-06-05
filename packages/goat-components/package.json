@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/goat-components",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "main": "./dist/goat-components.common.js",
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -10,7 +10,7 @@
     "bb": "vue-cli-service build --target lib --name goat-components ./src/Goat/index.js"
   },
   "dependencies": {
-    "@goatlab/goatjs": "^1.1.6",
+    "@goatlab/goatjs": "^1.1.7",
     "@stamp/it": "^1.1.0",
     "core-js": "^2.6.5",
     "lodash.get": "^4.4.2",
