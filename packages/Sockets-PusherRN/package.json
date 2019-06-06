@@ -4,13 +4,26 @@
   "description": "Sockets connector for Pusher React Native",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "publish": "npm publish"
+    "publish": "npm publish",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "lint": "tslint -p tsconfig.json",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint"
   },
-  "keywords": [],
-  "author": "Garox",
+  "keywords": [
+    "pusher",
+    "react",
+    "native",
+    "goat"
+  ],
+  "author": "tomas.castro@goatlab.io",
   "license": "MIT",
   "dependencies": {
     "@goatlab/goatjs": "^1.1.8",
@@ -22,7 +35,10 @@
     "@types/jest": "^24.0.13",
     "jest": "^24.8.0",
     "lerna": "^3.13.2",
+    "prettier": "^1.17.1",
     "ts-jest": "^24.0.2",
+    "tslint": "^5.17.0",
+    "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.5.1"
   }
 }

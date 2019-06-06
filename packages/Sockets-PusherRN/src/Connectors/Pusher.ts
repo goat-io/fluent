@@ -2,11 +2,25 @@ import { SocketsInterface, Auth } from '@goatlab/goatjs'
 import Pusher from 'pusher-js/react-native'
 
 export default SocketsInterface.compose({
-  init({ appKey, appCluster, authEndpoint, token }) {
+  init({
+    appKey,
+    appCluster,
+    authEndpoint,
+    token
+  }: {
+    appKey: string
+    appCluster: string
+    authEndpoint: string
+    token: string
+  }) {
     this.credentials.appKey = appKey || this.credentials.appKey
     this.credentials.appCluster = appCluster || this.credentials.appCluster
     this.authEndpoint = authEndpoint || this.authEndpoint
-    const jwt_token = token || Auth().connector().user().x_jwt_token
+    const jwt_token =
+      token ||
+      Auth()
+        .connector()
+        .user().x_jwt_token
     this.instance = new Pusher(this.credentials.appKey, {
       cluster: this.credentials.appCluster,
       authEndpoint: this.authEndpoint,
@@ -33,25 +47,28 @@ export default SocketsInterface.compose({
     channel: undefined
   },
   methods: {
-    join(channel) {
+    join(channel: string): any {
       this.channel = this.instance.subscribe(`presence-${channel}`)
-      this.channel.bind(this.channels.error, (err) => {
+      this.channel.bind(this.channels.error, err => {
         throw new Error(`Could not subscribe to channel: ${err}`)
-      });
+      })
       return this
     },
-    here(callback) {
-      if (typeof callback !== 'function') throw new Error('Callback must be a function.')
+    leave(channel: string): void {
+      this.instance.unsubscribe(`presence-${channel}`)
+    },
+    here(callback: Function): any {
+      if (typeof callback !== 'function') throw new Error('Callback is not a function.')
       this.channel.bind(this.channels.here, callback)
       return this
     },
-    joining(callback) {
-      if (typeof callback !== 'function') throw new Error('Callback must be a function.')
+    joining(callback: Function): any {
+      if (typeof callback !== 'function') throw new Error('Callback is not a function.')
       this.channel.bind(this.channels.entering, callback)
       return this
     },
-    leaving(callback) {
-      if (typeof callback !== 'function') throw new Error('Callback must be a function.')
+    leaving(callback: Function): any {
+      if (typeof callback !== 'function') throw new Error('Callback is not a function.')
       this.channel.bind(this.channels.leaving, callback)
       return this
     }

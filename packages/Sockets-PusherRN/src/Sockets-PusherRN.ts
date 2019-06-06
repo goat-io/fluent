@@ -1,21 +1,21 @@
-import stampit from "@stamp/it"
-import Pusher from "./Connectors/Pusher"
+import stampit from '@stamp/it'
+import Pusher from './Connectors/Pusher'
 
 export default stampit({
-  init({ connector }) {
+  init({ connector }: { connector: string }) {
     this.default = connector || this.default
   },
   properties: {
-    default: "Pusher",
+    default: 'Pusher',
     connectors: {
       Pusher
     }
   },
   methods: {
-    getConnector(connector) {
+    getConnector(connector: string): any {
       return this.connectors[connector]
     },
-    connector(params) {
+    connector(params: object): any {
       return this.getConnector(this.default)(params)
     }
   }
