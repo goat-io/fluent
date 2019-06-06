@@ -22,33 +22,20 @@ export default SocketsInterface.compose({
         .connector()
         .user().x_jwt_token
     this.instance = new Pusher(this.credentials.appKey, {
-      cluster: this.credentials.appCluster,
-      authEndpoint: this.authEndpoint,
       auth: {
         headers: {
           Authorization: `Bearer ${jwtToken}`
         }
-      }
+      },
+      authEndpoint: this.authEndpoint,
+      cluster: this.credentials.appCluster
     })
-  },
-  properties: {
-    credentials: {
-      appCluster: undefined,
-      appKey: undefined
-    },
-    channels: {
-      here: 'pusher:subscription_succeeded',
-      error: 'pusher:subscription_error',
-      entering: 'pusher:member_added',
-      leaving: 'pusher:member_removed'
-    },
-    authEndpoint: undefined,
-    instance: undefined,
-    channel: undefined
   },
   methods: {
     here(callback: () => void): any {
-      if (typeof callback !== 'function') throw new Error('Callback is not a function.')
+      if (typeof callback !== 'function') {
+        throw new Error('Callback is not a function.')
+      }
       this.channel.bind(this.channels.here, callback)
       return this
     },
@@ -60,7 +47,9 @@ export default SocketsInterface.compose({
       return this
     },
     joining(callback: () => void): any {
-      if (typeof callback !== 'function') throw new Error('Callback is not a function.')
+      if (typeof callback !== 'function') {
+        throw new Error('Callback is not a function.')
+      }
       this.channel.bind(this.channels.entering, callback)
       return this
     },
@@ -68,9 +57,26 @@ export default SocketsInterface.compose({
       this.instance.unsubscribe(`presence-${channel}`)
     },
     leaving(callback: () => void): any {
-      if (typeof callback !== 'function') throw new Error('Callback is not a function.')
+      if (typeof callback !== 'function') {
+        throw new Error('Callback is not a function.')
+      }
       this.channel.bind(this.channels.leaving, callback)
       return this
     }
+  },
+  properties: {
+    authEndpoint: undefined,
+    channel: undefined,
+    channels: {
+      entering: 'pusher:member_added',
+      error: 'pusher:subscription_error',
+      here: 'pusher:subscription_succeeded',
+      leaving: 'pusher:member_removed'
+    },
+    credentials: {
+      appCluster: undefined,
+      appKey: undefined
+    },
+    instance: undefined
   }
 })

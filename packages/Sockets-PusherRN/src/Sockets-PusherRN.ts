@@ -5,12 +5,6 @@ export default stampit({
   init({ connector }: { connector: string }) {
     this.default = connector || this.default
   },
-  properties: {
-    connectors: {
-      Pusher
-    },
-    default: 'Pusher'
-  },
   methods: {
     connector(params: object): any {
       return this.getConnector(this.default)(params)
@@ -18,5 +12,11 @@ export default stampit({
     getConnector(connector: string): any {
       return this.connectors[connector]
     }
+  },
+  properties: {
+    connectors: {
+      Pusher
+    },
+    default: 'Pusher'
   }
 })
