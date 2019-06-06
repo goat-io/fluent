@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/sockets-pusherrn",
-  "version": "1.1.8",
+  "version": "1.1.9-alpha.0",
   "description": "Sockets connector for Pusher React Native",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
