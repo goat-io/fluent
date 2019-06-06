@@ -6,17 +6,17 @@ export default stampit({
     this.default = connector || this.default
   },
   properties: {
-    default: 'Pusher',
     connectors: {
       Pusher
-    }
+    },
+    default: 'Pusher'
   },
   methods: {
-    getConnector(connector: string): any {
-      return this.connectors[connector]
-    },
     connector(params: object): any {
       return this.getConnector(this.default)(params)
+    },
+    getConnector(connector: string): any {
+      return this.connectors[connector]
     }
   }
 })
