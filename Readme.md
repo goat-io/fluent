@@ -11,5 +11,5 @@ lerna run dev --stream --parallel
 ```
 lerna run build
 git commit -m "changes"
-lerna run version
+lerna version
 ```
