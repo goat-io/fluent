@@ -21,6 +21,7 @@ let GOAT = (() => {
    * @param {*} conf.appConf Configuration of the App
    */
   async function start({ appConf, forceOnline }) {
+    console.log("appConf", appConf);
     ErrorHandler.interceptAxios();
     if (!forceOnline) {
       await Fluent.config({
@@ -29,11 +30,6 @@ let GOAT = (() => {
             default: true,
             name: "formio",
             baseUrl: appConf.fluentFormioBaseUrl,
-            connector: formio
-          },
-          {
-            name: "formioConfig",
-            baseUrl: appConf.appConfigUrl,
             connector: formio
           },
           {
@@ -59,7 +55,7 @@ let GOAT = (() => {
       });
       SyncInterval.set(3000);
     }
-    const config = await Configuration.set({ appConf, forceOnline });
+    const config = await Configuration.set({ appConf });
     let promises = [
       Roles.set({ appConf, forceOnline }),
       Pages.set({ appConf, forceOnline }),
