@@ -20,5 +20,8 @@
     "@goatlab/goat-fluent": "file:packages\\Fluent",
     "@goatlab/goatjs": "file:packages\\Goat-JS",
     "@goatlab/sockets-pusherrn": "file:packages\\Sockets-PusherRN"
+  },
+  "devDependencies": {
+    "lerna": "^3.15.0"
   }
 }

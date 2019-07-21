@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/sockets-pusherrn",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Sockets connector for Pusher React Native",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
     "prepare": "npm run build",
-    "prepublishOnly": "npm test && npm run lint",
+    "prepublishOnly": "npm run lint",
     "preversion": "npm run lint"
   },
   "keywords": [

@@ -39,12 +39,12 @@ export default SocketsInterface.compose({
       this.channel.bind(this.channels.here, callback)
       return this
     },
-    join(channel: string): any {
-      this.channel = this.instance.subscribe(`presence-${channel}`)
-      this.channel.bind(this.channels.error, err => {
-        throw new Error(`Could not subscribe to channel: ${err}`)
-      })
+    ignore(channel: string): any {
+      channel ? this.channel.unbind(channel) : this.channel.unbind()
       return this
+    },
+    join(channel: string): any {
+      return this.subscribe(`presence-${channel}`)
     },
     joining(callback: () => void): any {
       if (typeof callback !== 'function') {
@@ -54,7 +54,7 @@ export default SocketsInterface.compose({
       return this
     },
     leave(channel: string): void {
-      this.instance.unsubscribe(`presence-${channel}`)
+      this.unsubscribe(`presence-${channel}`)
     },
     leaving(callback: () => void): any {
       if (typeof callback !== 'function') {
@@ -62,6 +62,25 @@ export default SocketsInterface.compose({
       }
       this.channel.bind(this.channels.leaving, callback)
       return this
+    },
+    listen(event: string, callback: () => void): any {
+      if (typeof callback !== 'function') {
+        throw new Error('Callback is not a function.')
+      }
+
+      this.channel.bind(event, callback)
+
+      return this
+    },
+    subscribe(channel: string): any {
+      this.channel = this.instance.subscribe(channel)
+      this.channel.bind(this.channels.error, err => {
+        throw new Error(`Could not subscribe to channel: ${err}`)
+      })
+      return this
+    },
+    unsubscribe(channel: string): void {
+      this.instance.unsubscribe(channel)
     }
   },
   properties: {
