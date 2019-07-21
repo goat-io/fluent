@@ -97,23 +97,7 @@ export default Interface.compose({
       return this;
     },
     async insert(data) {
-      if (!Array.isArray(data)) {
-        await this.validate(data);
-      }
-
-      const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined;
-
-      const remotePath = Utilities.get(
-        () => this.remoteConnection.path,
-        undefined
-      );
-      const form = await this.getForm(baseUrl, remotePath);
-
-      const headers = this.getHeaders();
-
-      const postData = { data, form: form._id, ...headers };
-
-      let [error, result] = await to(this.httpPOST(postData));
+      let [error, result] = await to(this.httpPOST(data));
 
       if (error) {
         throw new Error("Cannot insert data");
@@ -134,7 +118,8 @@ export default Interface.compose({
       finalComponents = [
         ...finalComponents,
         "id as _id",
-        "modified as HumanUpdated"
+        "modified as HumanUpdated",
+        "related"
       ];
       this.select(finalComponents);
 
@@ -148,7 +133,7 @@ export default Interface.compose({
         .filter(c => !!(c.label !== ""))
         .map(c => `data.${c.key} as ${c.key}`);
     },
-    /* async update(data) {
+    async update(data) {
       if (!data._id) {
         throw new Error(
           "Formio connector error. Cannot update a Model without _id key"
@@ -167,7 +152,7 @@ export default Interface.compose({
         throw new Error("Cannot insert data");
       }
       return result.data;
-    }, */
+    },
     /* async clear({ sure } = {}) {
       if (!sure || sure !== true) {
         throw new Error(
@@ -237,8 +222,18 @@ export default Interface.compose({
     },
     getUrl() {
       const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined;
+      let path =
+        Utilities.get(() => this.path, undefined) ||
+        Utilities.get(() => this.remoteConnection.path, undefined);
 
-      return baseUrl;
+      if (!baseUrl) {
+        throw new Error("Cannot get remote model. baseUrl was not found");
+      }
+      if (!path) {
+        throw new Error("Cannot get remote model. Path was not found");
+      }
+
+      return `${baseUrl}/${path}`;
     },
     getHeaders() {
       let headers = {};
@@ -275,9 +270,29 @@ export default Interface.compose({
 
       return filter;
     },
+    getPopulate() {
+      const populate = [];
+      this.populateArray.forEach(relation => {
+        if (typeof relation === "string") {
+          populate.push({ relation: relation });
+        } else if (Array.isArray(relation)) {
+          relation.forEach(nestedRelation => {
+            if (typeof nestedRelation === "string") {
+              populate.push({ relation: nestedRelation });
+            } else if (typeof nestedRelation === "object") {
+              populate.push(nestedRelation);
+            }
+          });
+        } else if (typeof relation === "object") {
+          populate.push(relation);
+        }
+      });
+
+      return populate;
+    },
     async httpGET() {
       let filter = {};
-      let url = this.getUrl();
+      let url = this.baseUrl();
       const headers = this.getHeaders();
       filter = await this.getFilters(filter);
       filter = this.getLimit(filter);
@@ -286,8 +301,10 @@ export default Interface.compose({
       filter = this.getOrderBy(filter);
       filter = this.getPaginatorLimit(filter);
       const page = this.getPage();
+      const populate = this.getPopulate();
 
       if (this.rawQuery) {
+        filter.related = populate || this.rawQuery.populate;
         filter.limit = filter.limit || this.rawQuery.limit;
         filter.skip = filter.skip || this.rawQuery.skip;
         filter.order = filter.order || this.rawQuery.order;
@@ -334,6 +351,7 @@ export default Interface.compose({
     },
     async httpPOST(data) {
       let url = this.getUrl();
+
       let headers = this.getHeaders();
       const isOnline = true || (await Connection.isOnline());
 
@@ -344,8 +362,8 @@ export default Interface.compose({
       }
       return axios.post(url, data, { headers });
     },
-    /* async httpPUT(data) {
-      const isOnline = true || await Connection.isOnline();
+    async httpPUT(data) {
+      const isOnline = true || (await Connection.isOnline());
       let url = `${this.getUrl()}/${data._id}`;
       let headers = this.getHeaders();
 
@@ -354,8 +372,9 @@ export default Interface.compose({
           `Cannot make request post to ${url}.You are not online`
         );
       }
+
       return axios.put(url, data, { headers });
-    }, */
+    },
     /* httpDelete(_id) {
       let headers = this.getHeaders();
       let url = `${this.getUrl()}/${_id}`;

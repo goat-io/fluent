@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-formio",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Fluent Connector for Formio submissions",
   "main": "lib/@goatlab/fluent-formio.min.js",
   "directories": {

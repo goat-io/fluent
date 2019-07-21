@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-loki",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Fluent Connector for Loki local DB",
   "main": "lib/@goatlab/fluent-loki.min.js",
   "directories": {

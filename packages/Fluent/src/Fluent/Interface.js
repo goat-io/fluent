@@ -23,7 +23,7 @@ export default stampit({
     this.orderByArray = [];
     this.limitNumber = undefined;
     this.offsetNumber = undefined;
-    this.populate = [];
+    this.populateArray = [];
     this.chunk = null;
     this.pullSize = null;
     this.ownerId = undefined;
@@ -237,7 +237,19 @@ export default stampit({
       return this;
     },
     /**
-     *  Alias for the offset method
+     *  Sets the relations to be
+     *  loded with the query
+     *
+     * @param {int} offset The given offset
+     * @returns {Model} Fluent Model
+     */
+    populate(...relations) {
+      this.chainReference.push({ method: "relations", args: relations });
+      this.populateArray = relations;
+      return this;
+    },
+    /**
+     *  Alias for the offset methods
      *
      * @param {int} offset the given offset
      */
