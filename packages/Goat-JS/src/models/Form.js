@@ -24,10 +24,24 @@ export default Fluent.model({
         }
       })();
     },
-    find({ path }) {
-      return this.local()
-        .where("data.path", "=", path)
+    get() {
+      return this.remote()
+        .limit(99999)
+        .get();
+    },
+    find({ _id }) {
+      return this.remote()
+        .where("_id", "=", _id)
         .first();
+    },
+    update(form) {
+      return this.remote().update(form);
+    },
+    insert(form) {
+      return this.remote().insert(form);
+    },
+    delete(_id) {
+      return this.remote().remove(_id);
     },
     /**
      *
@@ -113,7 +127,9 @@ export default Fluent.model({
      *
      */
     async setOnline() {
-      let remoteForms = await this.remote().limit(9999999).get();
+      let remoteForms = await this.remote()
+        .limit(9999999)
+        .get();
       let unixDate = dayjs().unix();
 
       if (remoteForms && !Utilities.isEmpty(remoteForms)) {
@@ -156,6 +172,9 @@ export default Fluent.model({
       });
 
       return templates;
+    },
+    dataObject(form) {
+      return {};
     }
   }
 })();

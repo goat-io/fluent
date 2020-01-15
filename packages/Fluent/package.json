@@ -1,80 +1,62 @@
 {
-  "name": "@goatlab/goat-fluent",
-  "version": "1.3.0",
+  "name": "@goatlab/fluent",
+  "version": "0.1.1",
   "description": "Readable query Interface for Local and Remote storage providers",
-  "main": "lib/@goatlab/goat-fluent.min.js",
-  "directories": {
-    "lib": "lib",
-    "test": "test"
+  "homepage": "https://docs.goatlab.io",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
   },
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
-    "build": "rm -rf lib/* && webpack --env build",
+    "test": "jest",
+    "build": "tsc",
     "publish": "npm publish",
-    "rebuild": "rm -rf node_modules && npm install && npm run build",
-    "dev": "rm -rf lib/* && webpack --progress --colors --watch --env dev",
-    "test": "mocha-webpack --colors --recursive -w --timeout 100000 --webpack-config test/config/webpack.config.test.js --require mock-local-storage --require test/config/setup.js --exit src/**/**/*.spec.js --exit ",
-    "test:watch": "mocha-webpack --webpack-config webpack.config.test.js --watch --glob '*.spect.js' --recursive test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://gitlab.com/goatlabs/goat-fluent.git"
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "lint": "tslint -p tsconfig.json",
+    "prepare": "npm run build",
+    "preversion": "npm run lint"
   },
   "keywords": [
-    "form.io",
-    "js",
-    "cordova",
-    "browser"
+    "goat",
+    "fluent",
+    "loopback"
   ],
-  "author": "Ignacio Cabrera",
+  "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
-  "bugs": {
-    "url": "https://gitlab.com/goatlabs/goat-fluent.git/issues"
-  },
-  "homepage": "https://gitlab.com/goatlabs/goat-fluent.git#readme",
   "dependencies": {
     "@stamp/compose": "^1.0.2",
     "@stamp/it": "^1.1.0",
     "@stamp/privatize": "^1.0.3",
-    "stampit": "^4.2.0"
+    "await-to-js": "^2.1.1",
+    "axios": "^0.19.1",
+    "bson": "^4.0.3",
+    "chalk": "^3.0.0",
+    "dayjs": "^1.8.19",
+    "http-errors": "^1.7.3",
+    "jwt-decode": "^2.2.0",
+    "loglevel": "^1.6.6",
+    "loglevel-plugin-prefix": "^0.8.4",
+    "loki-react-native-asyncstorage-adapter": "^1.0.1",
+    "lokijs": "^1.5.8",
+    "pluralize": "^8.0.0",
+    "react-native": "^0.61.5",
+    "stampit": "^4.3.1",
+    "uuid": "^3.3.3",
+    "verror": "^1.10.0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.7.0",
-    "@vue/cli-plugin-eslint": "^3.7.0",
-    "@vue/cli-service": "^3.7.0",
-    "axios-mock-adapter": "^1.15.0",
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.3",
-    "babel-eslint": "^10.0.1",
-    "babel-loader": "^7.1.4",
-    "babel-plugin-add-module-exports": "^0.2.1",
-    "babel-plugin-lodash": "^3.3.4",
-    "babel-plugin-transform-es2015-arrow-functions": "^6.22.0",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-stage-2": "^6.24.1",
-    "buffer": "^5.2.1",
-    "chai": "^4.1.2",
-    "custom-event": "^1.0.1",
-    "eslint": "^5.16.0",
-    "eslint-loader": "^2.0.0",
-    "eslint-plugin-vue": "^5.0.0",
-    "isomorphic-fetch": "^2.2.1",
-    "jsdom": "11.11.0",
-    "jsdom-global": "3.0.2",
-    "lerna": "^3.13.2",
-    "lodash-webpack-plugin": "^0.11.5",
-    "mocha": "^5.2.0",
-    "mocha-webpack": "^2.0.0-beta.0",
-    "mock-local-storage": "^1.0.5",
-    "node-fetch": "^2.2.0",
-    "sass": "^1.19.0",
-    "sass-loader": "^7.1.0",
-    "vue-template-compiler": "^2.5.21",
-    "webpack": "^4.30.0",
-    "webpack-bundle-analyzer": "^2.13.1",
-    "webpack-cli": "^3.1.1",
-    "webpack-node-externals": "^1.7.2",
-    "xmlhttprequest": "^1.8.0",
-    "yargs": "^11.0.0"
-  },
-  "gitHead": "8f54ee13e8a7e027f293140f2ede13233926e625"
+    "@types/jest": "^24.0.25",
+    "@types/node": "^13.1.6",
+    "jest": "^24.9.0",
+    "lerna": "^3.20.2",
+    "prettier": "^1.19.1",
+    "ts-jest": "^24.3.0",
+    "tslint": "^5.20.1",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.7.4"
+  }
 }

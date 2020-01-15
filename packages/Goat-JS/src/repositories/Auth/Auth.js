@@ -1,17 +1,19 @@
 import stampit from "@stamp/it";
 import Formio from "./Connectors/Formio";
 import Keycloak from "./Connectors/Keycloak";
+import Loopback from "./Connectors/Loopback";
 
 export default stampit({
   init({ baseUrl }) {
     this.baseUrl = baseUrl;
   },
   properties: {
-    default: "Formio",
+    default: "Loopback",
     baseUrl: undefined,
     connectors: {
       Formio,
-      Keycloak
+      Keycloak,
+      Loopback
     }
   },
   methods: {

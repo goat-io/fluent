@@ -10,7 +10,7 @@ import formio from "@goatlab/fluent-formio";
 import loopback from "@goatlab/fluent-loopback";
 import Utilities from "./utilities";
 import ErrorHandler from "./repositories/Errors/Errors";
-/* eslint-disable no-unused-vars */
+
 let GOAT = (() => {
   /**
    * Loads all configuration for the GOAT app
@@ -26,12 +26,12 @@ let GOAT = (() => {
       await Fluent.config({
         REMOTE_CONNECTORS: [
           {
-            default: true,
             name: "formio",
             baseUrl: appConf.fluentFormioBaseUrl,
             connector: formio
           },
           {
+            default: true,
             name: "loopback",
             baseUrl: appConf.loopbackBaseUrl,
             connector: loopback
