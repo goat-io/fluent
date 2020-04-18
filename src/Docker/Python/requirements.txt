@@ -1,111 +1,110 @@
-asn1crypto==1.0.1
-attrs==19.2.0
-Automat==0.7.0
-cffi==1.12.3
+asn1crypto==1.3.0  # Updated from 1.0.1
+attrs==19.3.0  # Updated from 19.2.0
+Automat==20.2.0  # Updated from 0.7.0
+cffi==1.14.0  # Updated from 1.12.3
 constantly==15.1.0
-cryptography==2.7
+cryptography==2.9  # Updated from 2.7
 cssselect==1.1.0
-enum34==1.1.6
+enum34==1.1.10  # Updated from 1.1.6
 #functools32==3.2.3.post2
 hyperlink==19.0.0
 incremental==17.5.0
-ipaddress==1.0.22
-lxml==4.4.1
+ipaddress==1.0.23  # Updated from 1.0.22
+lxml==4.5.0  # Updated from 4.4.1
 parsel==1.5.2
-pyasn1==0.4.7
-pyasn1-modules==0.2.6
-pycparser==2.19
+pyasn1==0.4.8  # Updated from 0.4.7
+pyasn1-modules==0.2.8  # Updated from 0.2.6
+pycparser==2.20  # Updated from 2.19
 PyDispatcher==2.0.5
-PyHamcrest==1.9.0
-pyOpenSSL==19.0.0
+PyHamcrest==2.0.2  # Updated from 1.9.0
+pyOpenSSL==19.1.0  # Updated from 19.0.0
 queuelib==1.5.0
-Scrapy==1.7.3
+Scrapy==2.0.1  # Updated from 1.7.3
 service-identity==18.1.0
-six==1.12.0
-Twisted==19.7.0
+six==1.14.0  # Updated from 1.12.0
+Twisted==20.3.0  # Updated from 19.7.0
 w3lib==1.21.0
-zope.interface==4.6.0
-astroid==2.1.0
-autopep8==1.4.3
-awscli==1.16.79
+zope.interface==5.1.0  # Updated from 4.6.0
+astroid==2.3.3  # Updated from 2.1.0
+autopep8==1.5.1  # Updated from 1.4.3
+awscli==1.18.41  # Updated from 1.16.79
 backcall==0.1.0
-beautifulsoup4==4.7.1
-bleach==3.1.0
-blessed==1.15.0
-botocore==1.12.69
+beautifulsoup4==4.9.0  # Updated from 4.7.1
+bleach==3.1.4  # Updated from 3.1.0
+blessed==1.17.4  # Updated from 1.15.0
+botocore==1.15.41  # Updated from 1.12.69
 bs4==0.0.1
 cached-property==1.5.1
-cement==2.8.2
-certifi==2018.11.29
+cement==3.0.4  # Updated from 2.8.2
+certifi==2020.4.5.1  # Updated from 2018.11.29
 chardet==3.0.4
-colorama==0.3.9
-decorator==4.3.2
-defusedxml==0.5.0
-docker==3.5.0
-docker-compose==1.24.1
-docker-pycreds==0.3.0
+colorama==0.4.3  # Updated from 0.3.9
+decorator==4.4.2  # Updated from 4.3.2
+defusedxml==0.6.0  # Updated from 0.5.0
+docker==4.2.0  # Updated from 3.5.0
+docker-compose==1.25.5  # Updated from 1.24.1
+docker-pycreds==0.4.0  # Updated from 0.3.0
 dockerpty==0.4.1
 docopt==0.6.2
-docutils==0.14
+docutils==0.16  # Updated from 0.14
 entrypoints==0.3
-idna==2.8
-ipykernel==5.1.0
-ipython==7.2.0
+idna==2.9  # Updated from 2.8
+ipykernel==5.2.1  # Updated from 5.1.0
+ipython==7.13.0  # Updated from 7.2.0
 ipython-genutils==0.2.0
-ipywidgets==7.4.2
-isort==4.3.4
-jedi==0.13.2
-Jinja2==2.10
-jmespath==0.9.3
-jsonschema==2.6.0
+ipywidgets==7.5.1  # Updated from 7.4.2
+isort==4.3.21  # Updated from 4.3.4
+jedi==0.17.0  # Updated from 0.13.2
+Jinja2==2.11.2  # Updated from 2.10
+jmespath==0.9.5  # Updated from 0.9.3
+jsonschema==3.2.0  # Updated from 2.6.0
 jupyter==1.0.0
-jupyter-client==5.2.4
-jupyter-console==6.0.0
-jupyter-core==4.4.0
-lazy-object-proxy==1.3.1
-MarkupSafe==1.1.0
+jupyter-client==6.1.3  # Updated from 5.2.4
+jupyter-console==6.1.0  # Updated from 6.0.0
+jupyter-core==4.6.3  # Updated from 4.4.0
+lazy-object-proxy==1.4.3  # Updated from 1.3.1
+MarkupSafe==1.1.1  # Updated from 1.1.0
 mccabe==0.6.1
 mistune==0.8.4
-nbconvert==5.4.1
-nbformat==4.4.0
-notebook==5.7.4
-numpy==1.17.2
-pandas==0.25.1
+nbconvert==5.6.1  # Updated from 5.4.1
+nbformat==5.0.5  # Updated from 4.4.0
+notebook==6.0.3  # Updated from 5.7.4
+numpy==1.18.2  # Updated from 1.17.2
+pandas==1.0.3  # Updated from 0.25.1
 pandocfilters==1.4.2
-parso==0.3.4
-pathspec==0.5.5
-pexpect==4.6.0
+parso==0.7.0  # Updated from 0.3.4
+pathspec==0.8.0  # Updated from 0.5.5
+pexpect==4.8.0  # Updated from 4.6.0
 pickleshare==0.7.5
-prometheus-client==0.5.0
-prompt-toolkit==2.0.8
+prometheus-client==0.7.1  # Updated from 0.5.0
+prompt-toolkit==3.0.5  # Updated from 2.0.8
 ptyprocess==0.6.0
 pycodestyle==2.5.0
 pyfluentformio==0.1.3
-Pygments==2.3.1
-pylint==2.2.2
-python-dateutil==2.8.0
-python-dotenv==0.10.1
+Pygments==2.6.1  # Updated from 2.3.1
+pylint==2.4.4  # Updated from 2.2.2
+python-dateutil==2.8.1  # Updated from 2.8.0
+python-dotenv==0.13.0  # Updated from 0.10.1
 pytz==2019.3
-PyYAML==3.13
-pyzmq==17.1.2
-qtconsole==4.4.3
-requests==2.21.0
-rsa==3.4.2
-s3transfer==0.1.13
-semantic-version==2.5.0
+PyYAML==5.3.1  # Updated from 4.2b1
+pyzmq==19.0.0  # Updated from 17.1.2
+qtconsole==4.7.3  # Updated from 4.4.3
+requests==2.23.0  # Updated from 2.21.0
+rsa==4.0  # Updated from 3.4.2
+s3transfer==0.3.3  # Updated from 0.1.13
+semantic-version==2.8.4  # Updated from 2.5.0
 Send2Trash==1.5.0
-soupsieve==1.7.3
+soupsieve==2.0  # Updated from 1.7.3
 termcolor==1.1.0
-terminado==0.8.1
-testpath==0.4.2
-texttable==0.9.1
-tornado==5.1.1
-traitlets==4.3.2
-typed-ast==1.3.1
-urllib3==1.24.1
-wcwidth==0.1.7
+terminado==0.8.3  # Updated from 0.8.1
+testpath==0.4.4  # Updated from 0.4.2
+texttable==1.6.2  # Updated from 0.9.1
+tornado==6.0.4  # Updated from 5.1.1
+traitlets==4.3.3  # Updated from 4.3.2
+typed-ast==1.4.1  # Updated from 1.3.1
+urllib3==1.25.9  # Updated from 1.24.1
+wcwidth==0.1.9  # Updated from 0.1.7
 webencodings==0.5.1
-websocket-client==0.53.0
-widgetsnbextension==3.4.2
-wrapt==1.11.1
-
+websocket-client==0.57.0  # Updated from 0.53.0
+widgetsnbextension==3.5.1  # Updated from 3.4.2
+wrapt==1.12.1  # Updated from 1.11.1
