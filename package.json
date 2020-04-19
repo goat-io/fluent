@@ -15,7 +15,6 @@
     "test": "jest",
     "dev": "rm -rf ./dist && tsc -w",
     "build": "rm -rf ./dist && tsc",
-    "publish": "npm publish",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
     "prepare": "npm run build",
