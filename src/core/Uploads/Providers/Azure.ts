@@ -1,4 +1,4 @@
-import { MulterAzureStorage } from 'multer-azure-blob-storage'
+/*import { MulterAzureStorage } from 'multer-azure-blob-storage'
 import { extname } from 'path'
 import { MulterConfiguration } from '../Upload'
 
@@ -19,4 +19,4 @@ export const Azure = (config: MulterConfiguration) => {
     containerName: config.folder,
     urlExpirationTime: 60
   })
-}
+}*/

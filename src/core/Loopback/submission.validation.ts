@@ -1,9 +1,9 @@
-import { Interceptor } from "@loopback/core";
+import { GenericInterceptor } from '@loopback/core'
 // import { to } from "await-to-js";
 // import Validate from "./utilities/Validator/Validate";
 // import _G from "./utilities";
 
-export const validateSubmission: Interceptor = async (ctx, next) => {
+export const validateSubmission: GenericInterceptor = async (ctx, next) => {
   /*
   const method = ctx.methodName;
   const isPatch = ["updateById"].includes(method);
@@ -26,6 +26,6 @@ export const validateSubmission: Interceptor = async (ctx, next) => {
 
   ctx.args[argsIndex] = validated;
 */
-  const result = await next();
-  return result;
-};
+  const result = await next()
+  return result
+}

@@ -31,7 +31,7 @@ export class {{_Model.name}}Base {
    * /POST/
    * Creates a new {{_Model.name}}
    */
-  @intercept(validateSubmission)
+  // @intercept(validateSubmission)
   @post("/{{_Model.path}}", {
     responses: {
       "200": {
@@ -62,7 +62,7 @@ export class {{_Model.name}}Base {
    * /POST/
    * Creates a many new {{_Model.name}}
    */
-  @intercept(validateSubmission)
+  // @intercept(validateSubmission)
   @post("/{{_Model.path}}/createMany", {
     responses: {
       "200": {
@@ -98,7 +98,7 @@ export class {{_Model.name}}Base {
    * /PUT/
    * Replace a {{_Model.name}} by _id
    */
-  @intercept(validateSubmission)
+  // @intercept(validateSubmission)
   @put("/{{_Model.path}}/{_id}", {
     responses: {
       "204": {
@@ -117,7 +117,7 @@ export class {{_Model.name}}Base {
    * /PATCH/
    * Update a {{_Model.name}} by _id
    */
-  @intercept(validateSubmission)
+  // @intercept(validateSubmission)
   @patch("/{{_Model.path}}/{_id}", {
     responses: {
       "204": {
@@ -136,7 +136,7 @@ export class {{_Model.name}}Base {
    * /PATCH/
    * Update {{_Model.name}} matching WHERE
    */
-  @intercept(validateSubmission)
+  // @intercept(validateSubmission)
   @patch("/{{_Model.path}}", {
     responses: {
       "200": {

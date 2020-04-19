@@ -3,7 +3,7 @@ import { Request, RequestHandler, Response } from 'express'
 import { existsSync, mkdirSync } from 'fs'
 import * as multer from 'multer'
 import { extname } from 'path'
-import { Azure } from './Providers/Azure'
+// import { Azure } from './Providers/Azure'
 import { Google } from './Providers/Google'
 import { S3 } from './Providers/S3'
 
@@ -11,7 +11,7 @@ export enum Providers {
   Memory = 'memory',
   Google = 'google',
   S3 = 's3',
-  Azure = 'azure',
+  // Azure = 'azure',
   Local = 'local'
 }
 
@@ -72,10 +72,10 @@ export class Upload {
       case Providers.S3:
         storage = S3(config)
         break
-      case Providers.Azure:
-        storage = Azure(config)
-        break
-      case Providers.Azure:
+      //  case Providers.Azure:
+      //  storage = Azure(config)
+      //  break
+      case Providers.Google:
         storage = Google(config)
         break
       case Providers.Local:
