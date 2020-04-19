@@ -1,5 +1,4 @@
 name: Publish release to NPM
-
 on:
   release:
     types: [created]
