@@ -1,7 +1,9 @@
 import { eachComponent } from './Formio/eachComponent'
 import { findComponents } from './Formio/findComponents'
 import { flattenComponents } from './Formio/flattenComponents'
+import { labels } from './Formio/labels'
 import { getter, setter } from './Formio/mutators'
+import { tableViewComponents } from './Formio/tableView'
 import { FormioForm } from './Formio/types/FormioForm'
 
 export const Formio = (() => {
@@ -20,12 +22,24 @@ export const Formio = (() => {
     return parsedForms
   }
 
+  const tableViewLabels = (form: FormioForm) => {
+    const tableCols = tableViewComponents(form)
+    let cols = tableCols.map(o => `${o.path}`)
+
+    cols = [...cols, '_id', 'created', 'modified']
+
+    return cols
+  }
+
   return Object.freeze({
     eachComponent,
     findComponents,
     flattenComponents,
     getFromJson,
     getter,
-    setter
+    labels,
+    setter,
+    tableViewComponents,
+    tableViewLabels
   })
 })()

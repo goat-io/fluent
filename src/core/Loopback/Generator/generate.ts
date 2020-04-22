@@ -10,6 +10,9 @@ import { join } from 'path'
 
 export const generate = async (rawJsonForms: any, directory: string) => {
   const parsedForms = Formio.getFromJson(rawJsonForms)
+  if (!parsedForms || parsedForms.length === 0) {
+    return
+  }
   const goatModels = await parse(parsedForms, SupportedFrameworks.Loopback)
 
   for (const m of goatModels) {
