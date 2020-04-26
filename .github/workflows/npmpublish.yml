@@ -13,7 +13,7 @@ jobs:
         uses: actions/cache@v1
         env:
           cache-name: fluent-cache-modules
-          NPM_TOKEN: ${{secrets.GOATLAB_NPM_TOKEN}}
+          NPM_TOKEN: ${{ secrets.GOATLAB_NPM_TOKEN }}
         with:
           path: ~/.npm
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
