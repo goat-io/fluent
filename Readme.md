@@ -18,14 +18,14 @@
   <p align="center">
     Readable query Interface & API generator
     <br />
-    <a href="https://github.com/github_username/repo"><strong>Explore the docs »</strong></a>
+    <a href="https://docs.goatlab.io/#/0.1.0/fluent/fluent"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/github_username/repo">View Demo</a>
+    <a href="https://github.com/goat-io/fluent/repo">View Demo</a>
     ·
-    <a href="https://github.com/github_username/repo/issues">Report Bug</a>
+    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
     ·
-    <a href="https://github.com/github_username/repo/issues">Request Feature</a>
+    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
   </p>
 </p>
 
