@@ -1,4 +1,4 @@
-name: Publish to NPM
+name: Test and Publish
 
 on:
   push:
@@ -9,22 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12
-      - run: npm ci
-      - run: npm test
-
-  publish-npm:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12
-          registry-url: https://registry.npmjs.org/
-      - run: npm ci
-      - run: npm publish
+      - name: Cache node modules
+        uses: actions/cache@v1
         env:
-          NODE_AUTH_TOKEN: ${{secrets.GOATLAB_NPM_TOKEN}}
+          cache-name: fluent-cache-modules
+          NPM_TOKEN: ${{secrets.GOATLAB_NPM_TOKEN}}
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: Installing Fluent´s Dependencies
+        run: npm install
+      - name: Building Fluent
+        run: npm build
+      - name: Testing Fluent
+        run: npm test
+      - name: Publish to NPM
+        run: npm publish
