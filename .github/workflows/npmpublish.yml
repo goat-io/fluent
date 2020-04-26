@@ -22,7 +22,7 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
       - name: Installing Fluent´s Dependencies
-        run: npm install
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm install
       - name: Building Fluent
         run: npm build
       - name: Testing Fluent
