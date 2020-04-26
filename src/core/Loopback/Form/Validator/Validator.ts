@@ -1,5 +1,5 @@
 const vm = require('vm')
-const Joi = require('@hapi/joi')
+const Joi = require('joi')
 import * as _ from 'lodash'
 const util = require('./utils').default
 const FormioUtils = require('formiojs/utils').default

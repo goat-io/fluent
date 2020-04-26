@@ -1,5 +1,5 @@
 import { AuthenticationBindings, AuthenticationMetadata, AuthenticationStrategy } from '@loopback/authentication'
-import { StrategyAdapter } from '@loopback/authentication-passport'
+import { StrategyAdapter } from './strategyAdapter'
 import { BindingScope, extensionPoint, inject, Provider, ValueOrPromise } from '@loopback/core'
 import { repository } from '@loopback/repository'
 import { securityId, UserProfile } from '@loopback/security'
