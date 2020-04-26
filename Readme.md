@@ -14,4 +14,4 @@ npm install --global @goatlab/fluent
 
 ### Documentation
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io)
+To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.1.0/fluent/fluent)
