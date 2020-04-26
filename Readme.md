@@ -10,7 +10,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="100" height="80">
+       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
   </a>
 
   <h3 align="center">GOAT-FLUENT</h3>
