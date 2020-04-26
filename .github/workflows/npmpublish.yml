@@ -21,8 +21,10 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
+      - name: Config NPM cache
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm config set cache-min 9999999
       - name: Installing Fluent´s Dependencies
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm --cache-min 9999999 install
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm install
       - name: Building Fluent
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm run build
       - name: Testing Fluent
