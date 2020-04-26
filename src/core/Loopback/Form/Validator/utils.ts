@@ -1,20 +1,19 @@
 /* eslint-disable global-require */
-const mongoose = require("mongoose");
-const { ObjectID } = require("mongodb");
-const _ = require("lodash");
-const nodeUrl = require("url");
-const Q = require("q");
+const mongoose = require('mongoose')
+const { ObjectID } = require('mongodb')
+const _ = require('lodash')
+const nodeUrl = require('url')
+const Q = require('q')
 
-const formioUtils = require("formiojs/utils").default;
-const deleteProp = require("delete-property").default;
-const workerUtils = require("formio-workers/util");
-const errorCodes = require("./error-codes.js");
+const formioUtils = require('formiojs/utils').default
+const deleteProp = require('delete-property').default
+const errorCodes = require('./error-codes.js')
 
 const debug = {
-  idToBson: require("debug")("formio:util:idToBson"),
-  getUrlParams: require("debug")("formio:util:getUrlParams"),
-  removeProtectedFields: require("debug")("formio:util:removeProtectedFields")
-};
+  idToBson: require('debug')('formio:util:idToBson'),
+  getUrlParams: require('debug')('formio:util:getUrlParams'),
+  removeProtectedFields: require('debug')('formio:util:removeProtectedFields')
+}
 
 const Utils = {
   deleteProp,
@@ -27,11 +26,11 @@ const Utils = {
    */
   log(content: any) {
     if (process.env.TEST_SUITE) {
-      return;
+      return
     }
 
     /* eslint-disable */
-    console.log(content);
+    console.log(content)
     /* eslint-enable */
   },
 
@@ -41,14 +40,14 @@ const Utils = {
    * @return {boolean}
    */
   isBoolean(value: any) {
-    if (typeof value === "boolean") {
-      return true;
+    if (typeof value === 'boolean') {
+      return true
     }
-    if (typeof value === "string") {
-      value = value.toLowerCase();
-      return value === "true" || value === "false";
+    if (typeof value === 'string') {
+      value = value.toLowerCase()
+      return value === 'true' || value === 'false'
     }
-    return false;
+    return false
   },
 
   /**
@@ -57,13 +56,13 @@ const Utils = {
    * @return {boolean}
    */
   boolean(value: any) {
-    if (typeof value === "boolean") {
-      return value;
+    if (typeof value === 'boolean') {
+      return value
     }
-    if (typeof value === "string") {
-      return value.toLowerCase() === "true";
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true'
     }
-    return !!value;
+    return !!value
   },
 
   /**
@@ -74,7 +73,7 @@ const Utils = {
    */
   error(content: any) {
     /* eslint-disable */
-    console.error(content);
+    console.error(content)
     /* eslint-enable */
   },
 
@@ -83,17 +82,17 @@ const Utils = {
    */
   getAlias(req: any, reservedForms: any) {
     /* eslint-disable no-useless-escape */
-    const formsRegEx = new RegExp(`\/(${reservedForms.join("|")}).*`, "i");
+    const formsRegEx = new RegExp(`\/(${reservedForms.join('|')}).*`, 'i')
     /* eslint-enable no-useless-escape */
-    const alias = req.url.substr(1).replace(formsRegEx, "");
-    let additional = req.url.substr(alias.length + 1);
-    if (!additional && req.method === "POST") {
-      additional = "/submission";
+    const alias = req.url.substr(1).replace(formsRegEx, '')
+    let additional = req.url.substr(alias.length + 1)
+    if (!additional && req.method === 'POST') {
+      additional = '/submission'
     }
     return {
       alias: alias,
       additional: additional
-    };
+    }
   },
 
   /**
@@ -104,7 +103,7 @@ const Utils = {
    */
   escapeRegExp(str: string) {
     /* eslint-disable */
-    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&')
     /* eslint-enable */
   },
 
@@ -115,22 +114,22 @@ const Utils = {
    * @return {{send: function(), sendStatus: function(*=), status: function(*=)}}
    */
   createSubResponse(response: any) {
-    response = response || _.noop;
+    response = response || _.noop
     const subResponse = {
       statusCode: 200,
       send: (err: any) => response(err),
       json: (err: any) => response(err),
       setHeader: () => _.noop,
       sendStatus: (status: any) => {
-        subResponse.statusCode = status;
-        response(status);
+        subResponse.statusCode = status
+        response(status)
       },
       status: (status: any) => {
-        subResponse.statusCode = status;
-        return subResponse;
+        subResponse.statusCode = status
+        return subResponse
       }
-    };
-    return subResponse;
+    }
+    return subResponse
   },
 
   /**
@@ -140,45 +139,45 @@ const Utils = {
    */
   createSubRequest(req: any) {
     // Determine how many child requests have been made.
-    let childRequests = req.childRequests || 0;
+    let childRequests = req.childRequests || 0
 
     // Break recursive child requests.
     if (childRequests > 5) {
-      return null;
+      return null
     }
 
     // Save off formio for fast cloning...
-    const cache = req.formioCache;
-    delete req.formioCache;
+    const cache = req.formioCache
+    delete req.formioCache
 
     // Clone the request.
-    const childReq = _.clone(req);
-    childReq.params = _.clone(childReq.params);
-    childReq.query = _.clone(childReq.query);
+    const childReq = _.clone(req)
+    childReq.params = _.clone(childReq.params)
+    childReq.query = _.clone(childReq.query)
 
     // Add the parameters back.
-    childReq.formioCache = cache;
-    childReq.user = req.user;
-    childReq.modelQuery = null;
-    childReq.countQuery = null;
-    childReq.childRequests = ++childRequests;
-    childReq.permissionsChecked = false;
+    childReq.formioCache = cache
+    childReq.user = req.user
+    childReq.modelQuery = null
+    childReq.countQuery = null
+    childReq.childRequests = ++childRequests
+    childReq.permissionsChecked = false
 
     // Delete the actions cache.
-    delete childReq.actions;
+    delete childReq.actions
 
     // Delete submission model.
-    delete childReq.submissionModel;
+    delete childReq.submissionModel
 
     // Delete default resourceData from actions
     // otherwise you get an endless loop
-    delete childReq.resourceData;
+    delete childReq.resourceData
 
     // Delete skipResource so child requests can decide
     // this for themselves
-    delete childReq.skipResource;
+    delete childReq.skipResource
 
-    return childReq;
+    return childReq
   },
 
   /**
@@ -268,9 +267,9 @@ const Utils = {
    */
   ObjectId(id: any) {
     try {
-      return _.isObject(id) ? id : mongoose.Types.ObjectId(id);
+      return _.isObject(id) ? id : mongoose.Types.ObjectId(id)
     } catch (e) {
-      return id;
+      return id
     }
   },
 
@@ -286,18 +285,12 @@ const Utils = {
    *   The header value if found or false.
    */
   getHeader(req: any, key: any) {
-    if (typeof req.headers[key] !== "undefined") {
-      return req.headers[key];
+    if (typeof req.headers[key] !== 'undefined') {
+      return req.headers[key]
     }
 
-    return false;
+    return false
   },
-
-  flattenComponentsForRender: workerUtils.flattenComponentsForRender.bind(
-    workerUtils
-  ),
-  renderFormSubmission: workerUtils.renderFormSubmission.bind(workerUtils),
-  renderComponentValue: workerUtils.renderComponentValue.bind(workerUtils),
 
   /**
    * Search the request query for the given key.
@@ -311,11 +304,11 @@ const Utils = {
    *   The query value if found or false.
    */
   getQuery(req: any, key: any) {
-    if (typeof req.query[key] !== "undefined") {
-      return req.query[key];
+    if (typeof req.query[key] !== 'undefined') {
+      return req.query[key]
     }
 
-    return false;
+    return false
   },
 
   /**
@@ -330,11 +323,11 @@ const Utils = {
    *   The parameter value if found or false.
    */
   getParameter(req: any, key: any) {
-    if (typeof req.params[key] !== "undefined") {
-      return req.params[key];
+    if (typeof req.params[key] !== 'undefined') {
+      return req.params[key]
     }
 
-    return false;
+    return false
   },
 
   /**
@@ -349,27 +342,27 @@ const Utils = {
    *   Return the value of the key or false if not found.
    */
   getRequestValue(req: any, key: any) {
-    let ret = null;
+    let ret = null
 
     // If the header is present, return it.
-    ret = this.getHeader(req, key);
+    ret = this.getHeader(req, key)
     if (ret !== false) {
-      return ret;
+      return ret
     }
 
     // If the url query is present, return it.
-    ret = this.getQuery(req, key);
+    ret = this.getQuery(req, key)
     if (ret !== false) {
-      return ret;
+      return ret
     }
 
     // If the url parameter is present, return it.
-    ret = this.getParameter(req, key);
+    ret = this.getParameter(req, key)
     if (ret !== false) {
-      return ret;
+      return ret
     }
 
-    return false;
+    return false
   },
 
   /**
@@ -382,29 +375,29 @@ const Utils = {
    *   The key/value pairs of the request url.
    */
   getUrlParams(url: any) {
-    const urlParams: any = {};
+    const urlParams: any = {}
     if (!url) {
-      return urlParams;
+      return urlParams
     }
-    const parsed = nodeUrl.parse(url);
-    let parts = parsed.pathname.split("/");
-    debug.getUrlParams(parsed);
+    const parsed = nodeUrl.parse(url)
+    let parts = parsed.pathname.split('/')
+    debug.getUrlParams(parsed)
 
     // Remove element originating from first slash.
-    parts = _.tail(parts);
+    parts = _.tail(parts)
 
     // Url is not symmetric, add an empty value for the last key.
     if (parts.length % 2 !== 0) {
-      parts.push("");
+      parts.push('')
     }
 
     // Build key/value list.
     for (let a = 0; a < parts.length; a += 2) {
-      urlParams[parts[a]] = parts[a + 1];
+      urlParams[parts[a]] = parts[a + 1]
     }
 
-    debug.getUrlParams(urlParams);
-    return urlParams;
+    debug.getUrlParams(urlParams)
+    return urlParams
   },
 
   /**
@@ -417,7 +410,7 @@ const Utils = {
    *   The submission key
    */
   getSubmissionKey(key: any) {
-    return key.replace(/\./g, ".data.");
+    return key.replace(/\./g, '.data.')
   },
 
   /**
@@ -430,7 +423,7 @@ const Utils = {
    *   The form component key
    */
   getFormComponentKey(key: any) {
-    return key.replace(/\.data\./g, ".");
+    return key.replace(/\.data\./g, '.')
   },
 
   /**
@@ -439,7 +432,7 @@ const Utils = {
    * to mock this than the individual required 'request' modules
    * in each file.
    */
-  request: Q.denodeify(require("request")),
+  request: Q.denodeify(require('request')),
 
   /**
    * Utility function to ensure the given id is always a BSON object.
@@ -452,13 +445,13 @@ const Utils = {
    */
   idToBson(_id: any) {
     try {
-      _id = _.isObject(_id) ? _id : mongoose.Types.ObjectId(_id);
+      _id = _.isObject(_id) ? _id : mongoose.Types.ObjectId(_id)
     } catch (e) {
-      debug.idToBson(`Unknown _id given: ${_id}, typeof: ${typeof _id}`);
-      _id = false;
+      debug.idToBson(`Unknown _id given: ${_id}, typeof: ${typeof _id}`)
+      _id = false
     }
 
-    return _id;
+    return _id
   },
 
   /**
@@ -471,7 +464,7 @@ const Utils = {
    *   The mongo string id.
    */
   idToString(_id: any) {
-    return _.isObject(_id) ? _id.toString() : _id;
+    return _.isObject(_id) ? _id.toString() : _id
   },
 
   /**
@@ -481,68 +474,63 @@ const Utils = {
    */
   ensureIds(data: any) {
     if (!data) {
-      return false;
+      return false
     }
-    let changed = false;
+    let changed = false
     _.each(data, (value: any, key: any) => {
       if (!value) {
-        return;
+        return
       }
       if (_.isArray(value)) {
         changed =
           value.reduce((subchanged: any, row: any) => {
-            return Utils.ensureIds(row) || subchanged;
-          }, false) || changed;
+            return Utils.ensureIds(row) || subchanged
+          }, false) || changed
       } else if (_.isObject(value)) {
-        changed = Utils.ensureIds(value) || changed;
+        changed = Utils.ensureIds(value) || changed
       } else if (
-        (key === "_id" || key === "form" || key === "owner") &&
-        typeof value === "string" &&
+        (key === '_id' || key === 'form' || key === 'owner') &&
+        typeof value === 'string' &&
         ObjectID.isValid(value)
       ) {
-        const bsonId = Utils.idToBson(value);
+        const bsonId = Utils.idToBson(value)
         if (bsonId) {
-          data[key] = bsonId;
-          changed = true;
+          data[key] = bsonId
+          changed = true
         }
       }
-    });
-    return changed;
+    })
+    return changed
   },
 
   removeProtectedFields(form: any, action: any, submissions: any) {
     if (!Array.isArray(submissions)) {
-      submissions = [submissions];
+      submissions = [submissions]
     }
 
     // Initialize our delete fields array.
-    const modifyFields: any = [];
+    const modifyFields: any = []
 
     // Iterate through all components.
     this.eachComponent(
       form.components,
       (component: any, path: any) => {
-        path = `data.${path}`;
+        path = `data.${path}`
         if (component.protected) {
-          debug.removeProtectedFields(
-            "Removing protected field:",
-            component.key
-          );
-          modifyFields.push(deleteProp(path));
-        } else if (component.type === "signature" && action === "index") {
+          debug.removeProtectedFields('Removing protected field:', component.key)
+          modifyFields.push(deleteProp(path))
+        } else if (component.type === 'signature' && action === 'index') {
           modifyFields.push((submission: any) => {
-            const data = _.get(submission, path);
-            _.set(submission, path, !data || data.length < 25 ? "" : "YES");
-          });
+            const data = _.get(submission, path)
+            _.set(submission, path, !data || data.length < 25 ? '' : 'YES')
+          })
         }
       },
       true
-    );
+    )
 
     // Iterate through each submission once.
-    submissions.forEach((submission: any) =>
-      modifyFields.forEach((modifyField: any) => modifyField(submission))
-    );
+    submissions.forEach((submission: any) => modifyFields.forEach((modifyField: any) => modifyField(submission)))
   },
 
   base64: {
@@ -556,7 +544,7 @@ const Utils = {
      *   The base64 representation of the given data.
      */
     encode(decoded: any) {
-      return new Buffer(decoded.toString()).toString("base64");
+      return new Buffer(decoded.toString()).toString('base64')
     },
     /**
      * Base64 decode the given data.
@@ -568,7 +556,7 @@ const Utils = {
      *   The ascii representation of the given encoded data.
      */
     decode(encoded: any) {
-      return new Buffer(encoded.toString()).toString("ascii");
+      return new Buffer(encoded.toString()).toString('ascii')
     }
   },
 
@@ -585,9 +573,9 @@ const Utils = {
     var query: any = {
       machineName: { $regex: `^${document.machineName}[0-9]*$` },
       deleted: { $eq: null }
-    };
+    }
     if (document._id) {
-      query._id = { $ne: document._id };
+      query._id = { $ne: document._id }
     }
 
     model
@@ -595,30 +583,30 @@ const Utils = {
       .lean()
       .exec((err: any, records: any) => {
         if (err) {
-          return next(err);
+          return next(err)
         }
 
         if (!records || !records.length) {
-          return next();
+          return next()
         }
 
-        let i = 0;
+        let i = 0
         records.forEach((record: any) => {
-          const parts = record.machineName.split(/(\d+)$/).filter(Boolean);
-          const number = parseInt(parts[1], 10) || 0;
+          const parts = record.machineName.split(/(\d+)$/).filter(Boolean)
+          const number = parseInt(parts[1], 10) || 0
           if (number > i) {
-            i = number;
+            i = number
           }
-        });
-        document.machineName += ++i;
-        next();
-      });
+        })
+        document.machineName += ++i
+        next()
+      })
   },
 
   /**
    * Application error codes.
    */
   errorCodes
-};
+}
 
-export default Utils;
+export default Utils
