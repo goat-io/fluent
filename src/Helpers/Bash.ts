@@ -1,11 +1,11 @@
 import { execSync, spawnSync } from 'child_process'
 import colors from 'colors'
-import * as figlet from 'figlet'
 import { exec } from 'shelljs'
 const { program } = require('commander')
 const inquirer = require('inquirer')
 const cliProgress = require('cli-progress')
 const ora = require('ora')
+const figlet = require('figlet')
 
 export interface PackageInfo {
   name: string
@@ -66,9 +66,9 @@ export const Bash = (() => {
    * @param command
    * @param options
    */
-  const execute = (command: string): Promise<any> => {
+  const execute = (command: string, silent?: boolean): Promise<any> => {
     return new Promise((resolve, reject) => {
-      exec(command, { silent: true, async: true }, (code, stdout, stderr) => {
+      exec(command, { silent: typeof silent === 'undefined' ? true : silent, async: true }, (code, stdout, stderr) => {
         return resolve(code)
       })
     })
