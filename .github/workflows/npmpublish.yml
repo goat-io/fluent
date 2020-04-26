@@ -24,8 +24,8 @@ jobs:
       - name: Installing Fluent´s Dependencies
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm install
       - name: Building Fluent
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm build
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm run build
       - name: Testing Fluent
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm test
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm run test
       - name: Publish to NPM
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm publish
