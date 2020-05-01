@@ -1,7 +1,7 @@
 import { IDataElement } from './BaseConnector'
 import { Collection } from './Collection'
 import { GoatModelConfig, Model } from './Model'
-import { PrimitivesArray } from './Providers/types'
+import { Primitives } from './Providers/types'
 
 export interface _FLUENT_ {
   connectors: {
@@ -64,8 +64,8 @@ export class Fluent {
    *
    * @param args
    */
-  public static collect(data: IDataElement[] | PrimitivesArray): Collection {
-    return new Collection(data)
+  public static collect<T = IDataElement | Primitives>(data: T[]): Collection<T> {
+    return new Collection<T>(data)
   }
 
   public static getConfig(): _FLUENT_ {
@@ -102,7 +102,7 @@ export class Fluent {
       return
     }
 
-    if (connectors.find(o => o.name === connector.name)) {
+    if (connectors.find((o) => o.name === connector.name)) {
       console.log(`A ${type} connector with the name '${connector.name}' already exists`)
       return
     }

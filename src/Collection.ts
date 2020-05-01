@@ -1,9 +1,40 @@
 import { IDataElement } from './BaseConnector'
 import { Objects } from './Helpers/Objects'
-import { PrimitivesArray } from './Providers/types'
+import { Primitives } from './Providers/types'
 
-export class Collection {
-  public constructor(private data: IDataElement[] | PrimitivesArray) {}
+// Original source
+// https://www.manongdao.com/article-1769839.html
+
+type Cons<H, T> = T extends readonly any[]
+  ? ((h: H, ...t: T) => void) extends (...r: infer R) => void
+    ? R
+    : never
+  : never
+
+type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...0[]]
+
+type Paths<T, D extends number = 10> = [D] extends [never]
+  ? never
+  : T extends object
+  ? {
+      [K in keyof T]-?: [K] | (Paths<T[K], Prev[D]> extends infer P ? (P extends [] ? never : Cons<K, P>) : never)
+    }[keyof T]
+  : []
+
+type Leaves<T, D extends number = 10> = [D] extends [never]
+  ? never
+  : T extends object
+  ? { [K in keyof T]-?: Cons<K, Leaves<T[K], Prev[D]>> }[keyof T]
+  : []
+
+type Contains<T> = {
+  value?: Primitives
+  path?: Paths<T>
+  Fx?(element: T, index: number): boolean
+}
+
+export class Collection<T = IDataElement | Primitives> {
+  public constructor(private data: T[]) {}
   /**
    *
    */
@@ -23,7 +54,7 @@ export class Collection {
    * @param  {String}  path Path of the key
    * @return function
    */
-  public avg(path?: string) {
+  public avg(path?: Paths<T>) {
     return this.average(path)
   }
   /**
@@ -32,14 +63,15 @@ export class Collection {
    * @param  {String}  path Path of the key
    * @return static
    */
-  public average(path: string = ''): number {
+  public average(path?: Paths<T>): number {
+    const stringPath = path && path.join('.')
     const data = [...this.data]
     const sum: number = Number(
       data.reduce((acc: number, element) => {
         let value: number
 
         if (element instanceof Object) {
-          const extract = Objects.getFromPath(element, path, undefined)
+          const extract = Objects.getFromPath(element, stringPath, undefined)
           if (typeof extract !== 'undefined' && extract.value) {
             value = extract.value
           }
@@ -71,11 +103,11 @@ export class Collection {
     const totalSize = this.data.length
     let count = 0
 
-    this.chunks(size)
+    this.chunk(size)
 
     const reducer = (chain, batch) =>
       chain
-        .then(() => Promise.all(batch.map(d => callback(d))))
+        .then(() => Promise.all(batch.map((d) => callback(d))))
         .then(() => {
           count = count + size > totalSize ? totalSize : count + size
           console.log(`Processed ${count}/${totalSize} elements...`)
@@ -93,36 +125,34 @@ export class Collection {
    * @param {Int} size
    * @return static
    */
-  public chunks(size) {
+  public chunk(size: number) {
     const data = [...this.data]
-    const results = []
+    const results: T[][] = []
 
     while (data.length) {
       results.push(data.splice(0, size))
     }
 
-    this.data = results
-    return this
+    return new Collection<T[]>(results)
   }
   /**
    *
    */
   public collapse() {
     const data = [...this.data]
-    const results = []
+    const results: T[] = []
 
-    data.forEach(chunk => {
+    data.forEach((chunk) => {
       if (Array.isArray(chunk)) {
-        chunk.forEach(element => {
+        chunk.forEach((element) => {
           results.push(element)
         })
       } else {
         results.push(chunk)
       }
     })
-    this.data = results
 
-    return this
+    return new Collection<T>(results)
   }
   /**
    *
@@ -150,7 +180,7 @@ export class Collection {
     this.data = result
     return this
   }*/
-  public concat(array) {
+  public concat(array: T[]) {
     this.data = [...this.data, ...array]
     return this
   }
@@ -158,34 +188,36 @@ export class Collection {
    *
    * @param args
    */
-  public contains(...args) {
-    let value
-    let path
-    let Fx
-    if (args.length === 1) {
-      if (this.isFunction(args[0])) {
-        Fx = args[0]
-      }
-      value = args[0]
-    } else {
-      value = args[1]
-      path = args[0]
-    }
+  public contains(contains: Contains<T>): boolean {
     const data = [...this.data]
 
-    return data.some((e, index) => {
-      if (Fx) {
-        return !!Fx(e, index)
+    if (!contains.Fx && !contains.value) {
+      throw new Error('No Function nor value to compare. Please add one of them')
+    }
+
+    return data.some((element, index) => {
+      if (contains.Fx) {
+        return !!contains.Fx(element, index)
       }
-      let val = e
-      if (e instanceof Object) {
-        const extract = Objects.getFromPath(e, path, undefined)
+
+      if (element instanceof Object) {
+        const stringPath = contains.path && contains.path.join('.')
+        const extract = Objects.getFromPath(element, stringPath, undefined)
         if (extract.value) {
-          val = extract.value
+          return extract.value === contains.value
         }
       }
-      return val === value
+
+      if (typeof element === 'string' || typeof element === 'number' || typeof element === 'boolean') {
+        return element === contains.value
+      }
     })
+  }
+  /**
+   *
+   */
+  public count(): number {
+    return this.data.length
   }
   /**
    * Returns an array of duplicate submissions, based on an array of keys.
@@ -211,12 +243,7 @@ export class Collection {
 
     return this
   }
-  /**
-   *
-   */
-  public count(): number {
-    return this.data.length
-  }
+
   /**
    *
    * @param functionToCheck
