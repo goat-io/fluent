@@ -21,6 +21,8 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
+      - name: Config npm secret token
+        run: echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
       - name: Config NPM cache
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm config set cache ~/.npm && npm config set cache-min 9999999
       - name: Installing Fluent´s Dependencies
