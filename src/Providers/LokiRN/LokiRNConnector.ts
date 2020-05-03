@@ -1,14 +1,21 @@
-import { BaseConnector, IDataElement } from '../../BaseConnector'
+import { BaseConnector, IDataElement, IGoatExtendedAttributes, GoatConnectorInterface } from '../../BaseConnector'
 import { Id } from '../../Helpers/Id'
 import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 import { Database } from './Database'
+import { Dates } from '../../Helpers/Dates'
 
-export class LokiRNConnector extends BaseConnector {
+export class LokiRNConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
+  private name: string = 'baseModel'
+
+  constructor(name: string) {
+    super()
+    this.name = name
+  }
   /**
    *
    */
-  public async get(): Promise<IDataElement[]> {
+  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
     const filterObject = this.prepareFilter()
 
     let data = await (await this.getModel())
@@ -26,17 +33,15 @@ export class LokiRNConnector extends BaseConnector {
   /**
    *
    */
-  public async all(): Promise<IDataElement[]> {
-    const model = await this.getModel()
-
-    return model.find()
+  public async all(): Promise<(T & IGoatExtendedAttributes)[]> {
+    return this.get()
   }
   /**
    * [remove description]
    * @param  {[type]} document [description]
    * @return {[type]}          [description]
    */
-  public async removeById(_id: string): Promise<IDeleted> {
+  public async deleteById(_id: string): Promise<string> {
     if (!_id) {
       throw new Error('No id assign to remove().You must give and _id to delete')
     }
@@ -44,42 +49,78 @@ export class LokiRNConnector extends BaseConnector {
     if (!_id.includes('_local')) {
       throw new Error('You can`t delete non local submissions')
     }
-    const model = await this.getModel()
 
-    return model.findAndRemove({ _id })
+    const model = await this.getModel()
+    await model.findAndRemove({ _id })
+    return _id
   }
+
+  public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
+    if (!_id) {
+      throw new Error('No id assign to remove().You must give and _id to delete')
+    }
+
+    if (!_id.includes('_local')) {
+      throw new Error('You can`t delete non local submissions')
+    }
+
+    const model = await this.getModel()
+    const result: T & IGoatExtendedAttributes = await model.find({ _id })
+    return result
+  }
+
   /**
    * [insert description]
    * @param  {Object, Array} element [description]
    * @return {[type]}         [description]
    */
-  public async insert(data: IDataElement) {
-    if (Array.isArray(data)) {
-      return this.ArrayInsert(data, {})
-    }
-    data = Objects.clone(data)
+  public async insert(data: T): Promise<T & IGoatExtendedAttributes> {
+    const _data = Objects.clone(data)
 
     const model = await this.getModel()
 
-    data._id = Id.uuid() + '_local'
+    const goatAttributes = this.getExtendedCreateAttributes()
 
-    return model.insert(data)
+    const inserted: T & IGoatExtendedAttributes = { ...goatAttributes, ..._data }
+
+    model.insert(inserted)
+
+    return inserted
+  }
+  /**
+   *
+   * @param data
+   */
+  public async insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]> {
+    const insertedElements: (T & IGoatExtendedAttributes)[] = []
+
+    for (const element of data) {
+      const goatAttributes = this.getExtendedCreateAttributes()
+
+      const inserted: T & IGoatExtendedAttributes = await this.insert({ ...goatAttributes, ...element })
+
+      insertedElements.push(inserted)
+    }
+
+    return insertedElements
   }
   /**
    *
    * @param document
    */
-  public async update(data: IDataElement): Promise<IDataElement> {
-    if (!data._id) {
+  public async updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes> {
+    if (!_id) {
       throw new Error('Loki connector error. Cannot update a Model without _id key')
     }
     const model = await this.getModel()
 
-    data.modified = Math.round(+new Date() / 1000)
-    const local = await model.findOne({ _id: data._id })
-    const mod = { ...local, ...data }
+    const local = await model.findOne({ _id })
 
-    return model.update(mod)
+    const mod = { ...local, ...data, ...{ modified: Dates.currentIsoString() } }
+
+    const updated: T & IGoatExtendedAttributes = model.update(mod)
+
+    return updated
   }
   /**
    *
@@ -125,7 +166,7 @@ export class LokiRNConnector extends BaseConnector {
 
     // All first Level AND conditions
     if (this.whereArray.length > 0) {
-      this.whereArray.forEach(c => {
+      this.whereArray.forEach((c) => {
         const conditionToObject = {}
 
         if (c[0].includes('[')) {
@@ -147,7 +188,7 @@ export class LokiRNConnector extends BaseConnector {
     }
     // All second level OR conditions
     if (this.orWhereArray.length > 0) {
-      this.orWhereArray.forEach(c => {
+      this.orWhereArray.forEach((c) => {
         const conditionToObject = {}
 
         conditionToObject[c[0]] = {}
@@ -174,10 +215,6 @@ export class LokiRNConnector extends BaseConnector {
    * @param {*} operator
    */
   private getLokiOperator(operator) {
-    if (!this.operators.includes(operator)) {
-      throw new Error('The "' + operator + '" operator is not supported')
-    }
-
     const lokiOperators = {
       '=': '$eq',
       '<': '$lt',

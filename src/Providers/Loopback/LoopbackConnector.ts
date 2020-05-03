@@ -4,7 +4,7 @@ import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import pluralize from 'pluralize'
-import { BaseConnector, IDataElement, IGoatExtendedAttributes } from '../../BaseConnector'
+import { BaseConnector, IDataElement, IGoatExtendedAttributes, GoatConnectorInterface } from '../../BaseConnector'
 import { Connection } from '../../Helpers/Connection'
 import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
@@ -16,7 +16,7 @@ interface ILoopbackConnector {
   baseEndPoint: string
   token?: string
 }
-export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
+export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
   private baseEndPoint: string = ''
   private authToken: string = ''
 
@@ -28,11 +28,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
   /**
    *
    */
-  public async get(): Promise<T[]> {
-    if (this.ownerId) {
-      this.andWhere('owner', '=', this.ownerId)
-    }
-
+  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
     const [error, result]: any = await to(this.httpGET())
 
     if (error) {
@@ -48,19 +44,10 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
 
-    if (result && result.data && this.selectArray.length > 0) {
-      result.data = this.jsApplySelect(result.data)
-      return [result.data]
-    }
-
     return this.jsApplySelect(result && result.data)
   }
 
   public async getPaginated(): Promise<IPaginatedData<T>> {
-    if (this.ownerId) {
-      this.andWhere('owner', '=', this.ownerId)
-    }
-
     const [error, response]: any = await to(this.httpGET())
 
     if (error) {
@@ -96,7 +83,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
   /**
    *
    */
-  public async all(): Promise<T[]> {
+  public async all(): Promise<(T & IGoatExtendedAttributes)[]> {
     return this.get()
   }
   /**
@@ -128,7 +115,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
    *
    * @param data
    */
-  public async insert(data: T) {
+  public async insert(data: T): Promise<T & IGoatExtendedAttributes> {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
@@ -140,15 +127,32 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
    *
    * @param data
    */
-  public async update(data: T & IGoatExtendedAttributes): Promise<T & IGoatExtendedAttributes> {
-    if (!data._id) {
+  public async insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]> {
+    const insertedElements: (T & IGoatExtendedAttributes)[] = []
+
+    for (const element of data) {
+      const goatAttributes = this.getExtendedCreateAttributes()
+
+      const inserted: T & IGoatExtendedAttributes = await this.insert({ ...goatAttributes, ...element })
+
+      insertedElements.push(inserted)
+    }
+
+    return insertedElements
+  }
+  /**
+   *
+   * @param data
+   */
+  public async updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes> {
+    if (!_id) {
       throw new Error('Formio connector error. Cannot update a Model without _id key')
     }
-    if (data._id.includes('_local')) {
+    if (_id.includes('_local')) {
       throw new Error('Formio connector error. Cannot update a local document')
     }
 
-    const [error, result] = await to(this.httpPUT(data))
+    const [error, result] = await to(this.httpPUT(_id, data))
 
     if (error) {
       console.log(error)
@@ -168,7 +172,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
     }
     const promises = []
 
-    const [error, data] = await to(this.select('_id').pluck('_id'))
+    const [error, data] = await to(this.select(['_id']).pluck(['_id']))
 
     if (error) {
       console.log(error)
@@ -185,7 +189,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
    *
    * @param _id
    */
-  public async removeById(_id: string): Promise<IDeleted> {
+  public async deleteById(_id: string): Promise<string> {
     const [error, removed] = await to(this.httpDelete(_id))
 
     if (error) {
@@ -193,18 +197,18 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
       throw new Error(`FormioConnector: Could not delete ${_id}`)
     }
 
-    return { deleted: 1 }
+    return removed.data._id
   }
   /**
    *
    * @param _id
    */
-  public async findById(_id: string): Promise<T> {
-    const [error, data] = await to(this.where('_id', '=', _id).first())
+  public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
+    const [error, data] = await to(this.where(['_id'], '=', _id).first())
 
     if (error) {
       console.log(error)
-      throw new Error('Find() could not get remote data')
+      throw new Error('FindById() could not get remote data')
     }
 
     return data
@@ -336,15 +340,10 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
     }
     return axios.post(url, data, { headers })
   }
-  public async httpPUT(data) {
+  public async httpPUT(_id: string, data: T) {
     const isOnline = true || (await Connection.isOnline())
-    const url = `${this.getUrl()}/${data._id}`
+    const url = `${this.getUrl()}/${_id}`
     const headers = this.getHeaders()
-    delete data.draft
-    delete data.redirect
-    delete data.syncError
-    delete data.trigger
-    delete data._id
 
     if (!isOnline) {
       throw new Error(`Cannot make request post to ${url}.You are not online`)

@@ -69,7 +69,7 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
    */
   public async updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes> {
     const dbIndex = db.findIndex((obj) => obj._id === _id)
-    db[dbIndex] = { ...db[dbIndex], ...data, ...{ modified: Dates.currentUnixDate() } }
+    db[dbIndex] = { ...db[dbIndex], ...data, ...{ modified: Dates.currentIsoString() } }
 
     return db[dbIndex]
   }

@@ -3,7 +3,7 @@ import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import jwtDecode from 'jwt-decode'
-import { BaseConnector, IDataElement } from '../../BaseConnector'
+import { BaseConnector, IDataElement, GoatConnectorInterface, IGoatExtendedAttributes } from '../../BaseConnector'
 import { AuthenticationError } from '../../Helpers/AuthenticationError'
 import { Connection } from '../../Helpers/Connection'
 import { Event } from '../../Helpers/Event'
@@ -11,49 +11,76 @@ import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 dayjs.extend(isSameOrAfter)
 
-export class FormioConnector extends BaseConnector {
+interface IFormioConnector {
+  baseEndPoint: string
+  token?: string
+}
+
+const GoatExtenderAttributes = ['_id', 'owner', 'roles', 'created', 'modified']
+
+export class FormioConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
+  private baseEndPoint: string = ''
+  private authToken: string = ''
+
+  constructor({ baseEndPoint, token }: IFormioConnector) {
+    super()
+    this.baseEndPoint = baseEndPoint
+    this.authToken = token
+  }
   /**
    *
    */
-  public async get(): Promise<IDataElement[]> {
-    if (this.ownerId) {
-      this.andWhere('owner', '=', this.ownerId)
-    }
-    let error
-    let result
-    ;[error, result] = await to(this.httpGET())
+  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
+    const [error, result] = await to(this.httpGET())
 
     if (error) {
       console.log(error)
       throw new Error('Error while getting submissions')
     }
 
-    result = this.jsApplySelect(result && result.data)
-    result = this.jsApplyOrderBy(result)
-    const data: IDataElement[] = result
-    return data
+    const data: (T & IGoatExtendedAttributes)[] = result.data.map((r) => {
+      const response: T & IGoatExtendedAttributes = {
+        ...{
+          _id: r._id,
+          owner: r.owner,
+          roles: r.roles,
+          created: r.created,
+          modified: r.modified
+        },
+        ...r.data
+      }
+      return response
+    })
+
+    let orderedResults = this.jsApplySelect(data)
+    orderedResults = this.jsApplyOrderBy(orderedResults)
+
+    return orderedResults
   }
   /**
    *
    */
-  public async all(): Promise<IDataElement[]> {
+  public async all(): Promise<(T & IGoatExtendedAttributes)[]> {
     return this.get()
   }
   /**
    *
    * @param paginator
    */
-  public async paginate(paginator: IPaginator): Promise<IPaginatedData> {
+  public async paginate(paginator: IPaginator): Promise<IPaginatedData<T>> {
     const numberOfRows = await this.numberOfRows()
 
     this.offset((paginator.page - 1) * paginator.perPage).take(paginator.perPage)
 
-    const results: any = {}
-    results.data = await this.get()
-    results.paginator = {
-      page: paginator.page,
-      rowsNumber: numberOfRows,
-      rowsPerPage: paginator.perPage
+    const results: IPaginatedData<T> = {
+      data: await this.get(),
+      current_page: paginator.page,
+      first_page_url: '',
+      prev_page_url: '',
+      next_page_url: '',
+      per_page: paginator.perPage,
+      path: '',
+      total: numberOfRows
     }
 
     return results
@@ -62,65 +89,96 @@ export class FormioConnector extends BaseConnector {
    *
    * @param data
    */
-  public async insert(data: IDataElement) {
-    if (Array.isArray(data)) {
-      return this.ArrayInsert(data, {})
-    }
-
+  public async insert(data: T): Promise<T & IGoatExtendedAttributes> {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    return result.data
+    const response: T & IGoatExtendedAttributes = {
+      ...{
+        _id: result.data._id,
+        owner: result.data.owner,
+        roles: result.data.roles,
+        created: result.data.created,
+        modified: result.data.modified
+      },
+      ...result.data.data
+    }
+
+    return response
   }
   /**
    *
    * @param data
    */
-  public async update(data: IDataElement): Promise<IDataElement> {
-    if (!data._id) {
+  public async insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]> {
+    const insertedElements: (T & IGoatExtendedAttributes)[] = []
+
+    for (const element of data) {
+      const goatAttributes = this.getExtendedCreateAttributes()
+
+      const inserted: T & IGoatExtendedAttributes = await this.insert({ ...goatAttributes, ...element })
+
+      insertedElements.push(inserted)
+    }
+
+    return insertedElements
+  }
+  /**
+   *
+   * @param data
+   */
+  public async updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes> {
+    if (!_id) {
       throw new Error('Formio connector error. Cannot update a Model without _id key')
     }
-    if (data._id.includes('_local')) {
+    if (_id.includes('_local')) {
       throw new Error('Formio connector error. Cannot update a local document')
     }
 
-    const [error, result] = await to(this.httpPUT(data))
+    const [error, result] = await to(this.httpPUT(_id, data))
 
     if (error) {
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    return result.data
+    const response: T & IGoatExtendedAttributes = result.data
+    return response
   }
   /**
    *
    * @param param0
    */
-  public async clear({ sure }: ISure) {
+
+  public async truncate({ sure }: ISure) {
     if (!sure || sure !== true) {
       throw new Error(
-        'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
+        'truncate() method will delete everything!, you must set the "sure" parameter "truncate({sure:true})" to continue'
       )
     }
     const promises = []
 
-    const [error, data] = await to(this.select('_id').pluck('_id'))
+    const [error, data] = await to(this.select(['_id']).pluck(['_id']))
 
     if (error) {
       console.log(error)
       throw new Error('Cannot get remote Model')
     }
 
-    data.forEach(_id => {
+    data.forEach((_id: string) => {
       promises.push(this.httpDelete(_id))
     })
 
     return axios.all(promises)
   }
-  public async removeById(_id: string): Promise<IDeleted> {
+
+  /**
+   *
+   * @param _id
+   */
+  public async deleteById(_id: string): Promise<string> {
     const [error, removed] = await to(this.httpDelete(_id))
 
     if (error) {
@@ -128,10 +186,14 @@ export class FormioConnector extends BaseConnector {
       throw new Error(`FormioConnector: Could not delete ${_id}`)
     }
 
-    return { deleted: 1 }
+    return removed.data
   }
-  public async findById(_id: string): Promise<IDataElement> {
-    const [error, data] = await to(this.where('_id', '=', _id).first())
+  /**
+   *
+   * @param _id
+   */
+  public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
+    const [error, data] = await to(this.where(['_id'], '=', _id).first())
 
     if (error) {
       console.log(error)
@@ -192,31 +254,9 @@ export class FormioConnector extends BaseConnector {
     }
     return token
   }
-  private baseUrl() {
-    const { baseUrl, name } = this.connector
 
-    if (!baseUrl) {
-      throw new Error(`You did not provide a baseUrl for the "${name}" connector`)
-    }
-    return baseUrl.replace(/\/+$/, '')
-  }
   private getUrl() {
-    const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined
-    let path = Objects.get(() => this.remoteConnection.path, undefined)
-    const id = Objects.get(() => this.remoteConnection.id, undefined)
-    const pullForm = Objects.get(() => this.remoteConnection.pullForm, undefined)
-
-    if (!pullForm && path) {
-      path = !id ? `${path}/submission` : `${path}/submission/${id}`
-    }
-
-    if (!baseUrl) {
-      throw new Error('Cannot get remote model. baseUrl not defined')
-    }
-
-    if (path) {
-      return `${baseUrl}/${path}`
-    }
+    const baseUrl = `${this.baseEndPoint}/submission`
     return baseUrl
   }
   private getHeaders() {
@@ -226,8 +266,8 @@ export class FormioConnector extends BaseConnector {
       token = this.getToken()
     }
 
-    if (this.remoteConnection.token || this.remoteConnection.token === '') {
-      token = this.remoteConnection.token
+    if (this.authToken || this.authToken === '') {
+      token = this.authToken
     }
 
     if (!token) {
@@ -238,9 +278,16 @@ export class FormioConnector extends BaseConnector {
     headers[type] = token
     return headers
   }
+  /**
+   *
+   * @param url
+   */
   private getSpacer(url) {
     return url.substr(url.length - 1) === '&' ? '' : '&'
   }
+  /**
+   *
+   */
   private async httpGET() {
     let url = this.getUrl()
     const headers = this.getHeaders()
@@ -270,7 +317,11 @@ export class FormioConnector extends BaseConnector {
 
     return axios.get(url, { headers })
   }
-  private async httpPOST(data) {
+  /**
+   *
+   * @param data
+   */
+  private async httpPOST(data: T) {
     const url = this.getUrl()
     const headers = this.getHeaders()
     const isOnline = await Connection.isOnline()
@@ -278,27 +329,43 @@ export class FormioConnector extends BaseConnector {
     if (!isOnline) {
       throw new Error(`Cannot make request post to ${url}.You are not online`)
     }
-    return axios.post(url, data, { headers })
+    return axios.post(url, { data }, { headers })
   }
-  private async httpPUT(data) {
+  /**
+   *
+   * @param _id
+   * @param data
+   */
+  private async httpPUT(_id: string, data: T) {
     const isOnline = await Connection.isOnline()
-    const url = `${this.getUrl()}/${data._id}`
+    const url = `${this.getUrl()}/${_id}`
     const headers = this.getHeaders()
 
     if (!isOnline) {
       throw new Error(`Cannot make request post to ${url}.You are not online`)
     }
-    return axios.put(url, data, { headers })
+    return axios.put(url, { data }, { headers })
   }
-  private httpDelete(_id) {
+  /**
+   *
+   * @param _id
+   */
+  private httpDelete(_id: string) {
     const headers = this.getHeaders()
     const url = `${this.getUrl()}/${_id}`
 
     return axios.delete(url, { headers })
   }
+  /**
+   *
+   * @param token
+   */
   private getTokenType(token) {
     return token.length > 32 ? 'x-jwt-token' : 'x-token'
   }
+  /**
+   *
+   */
   private getFilters() {
     const filter = this.whereArray
 
@@ -308,9 +375,10 @@ export class FormioConnector extends BaseConnector {
 
     let filterQuery = ''
 
-    filter.forEach(condition => {
+    filter.forEach((condition) => {
       let valueString = ''
-      const element = condition[0]
+
+      const element = GoatExtenderAttributes.includes(condition[0]) ? condition[0] : `data.${condition[0]}`
       const operator = condition[1]
       const value = condition[2]
 
@@ -360,6 +428,9 @@ export class FormioConnector extends BaseConnector {
     })
     return filterQuery.substring(0, filterQuery.length - 1)
   }
+  /**
+   *
+   */
   private getLimit() {
     const limit = '?limit='
 
@@ -369,6 +440,9 @@ export class FormioConnector extends BaseConnector {
 
     return `${limit}${this.limitNumber}`
   }
+  /**
+   *
+   */
   private getSkip() {
     const skip = 'skip='
 
@@ -386,13 +460,17 @@ export class FormioConnector extends BaseConnector {
   private getSelect() {
     let select = this.selectArray
 
-    select = select.map(e => {
+    select = select.map((e) => {
       return e.split(' as ')[0]
     })
 
     if (!select) {
       return
     }
+
+    select = select.map((e) => {
+      return GoatExtenderAttributes.includes(e) ? e : `data.${e}`
+    })
 
     return 'select=' + select.join(',')
   }

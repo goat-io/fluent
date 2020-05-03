@@ -1,11 +1,11 @@
-import { BaseConnector, IDataElement, IGoatExtendedAttributes } from '../../BaseConnector'
+import { BaseConnector, IDataElement, IGoatExtendedAttributes, GoatConnectorInterface } from '../../BaseConnector'
 import { Id } from '../../Helpers/Id'
 import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
 
-export class LokiConnector<T = IDataElement> extends BaseConnector<T> {
+export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
   private name: string = 'baseModel'
 
   constructor(name: string) {
@@ -55,6 +55,23 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> {
     return _id
   }
   /**
+   *
+   * @param _id
+   */
+  public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
+    if (!_id) {
+      throw new Error('No id assign to remove().You must give and _id to delete')
+    }
+
+    if (!_id.includes('_local')) {
+      throw new Error('You can`t delete non local submissions')
+    }
+
+    const model = await this.getModel()
+    const result: T & IGoatExtendedAttributes = await model.find({ _id })
+    return result
+  }
+  /**
    * [insert description]
    * @param  {Object, Array} element [description]
    * @return {[type]}         [description]
@@ -101,7 +118,7 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> {
 
     const local = await model.findOne({ _id })
 
-    const mod = { ...local, ...data, ...{ modified: Dates.currentUnixDate() } }
+    const mod = { ...local, ...data, ...{ modified: Dates.currentIsoString() } }
 
     const updated: T & IGoatExtendedAttributes = model.update(mod)
 

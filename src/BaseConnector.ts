@@ -9,9 +9,9 @@ import { type } from 'os'
 
 export interface IGoatExtendedAttributes {
   _id: string
-  modified: number
-  updated: number
-  deleted: number
+  created: string
+  modified: string
+  deleted?: string
   owner?: string
   roles: string[]
 }
@@ -73,12 +73,11 @@ export abstract class BaseConnector<T> {
   protected rawQuery = undefined
 
   protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
-    const date = Dates.currentUnixDate()
+    const date = Dates.currentIsoString()
     return {
       _id: Id.objectID() + '_local',
       modified: date,
-      updated: date,
-      deleted: 0,
+      created: date,
       roles: []
     }
   }
@@ -140,7 +139,7 @@ export abstract class BaseConnector<T> {
    * transforms it into a collection
    * @returns {Collection} Fluent Collection
    */
-  public async collect() {
+  public async collect(): Promise<Collection<T>> {
     const data = await this.get()
 
     if (!Array.isArray(data)) {
@@ -156,7 +155,7 @@ export abstract class BaseConnector<T> {
    * @param {Array|String} columns The columns to select
    * @returns {Model} Fluent Model
    */
-  public select(...columns: Paths<T & IGoatExtendedAttributes>[]) {
+  public select(...columns: Paths<T & IGoatExtendedAttributes>[] | Paths<T>[] | Paths<IGoatExtendedAttributes>[]) {
     columns = this.prepareInput(columns)
     this.chainReference.push({ method: 'select', args: columns })
     this.selectArray = this.selectArray.concat(columns).filter((elem, pos, arr) => {
@@ -203,7 +202,7 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public where(path: Paths<T & IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
+  public where(path: Paths<T> | Paths<IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
     const stringPath = path && path.join('.')
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'where', chainedWhere })
@@ -221,7 +220,7 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public andWhere(path: Paths<T & IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
+  public andWhere(path: Paths<T> | Paths<IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
     const stringPath = path && path.join('.')
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'andWhere', chainedWhere })
@@ -236,7 +235,7 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args OR where filters
    * @returns {Model} Fluent Model
    */
-  public orWhere(path: Paths<T & IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
+  public orWhere(path: Paths<T> | Paths<IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
     const stringPath = path && path.join('.')
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'orWhere', chainedWhere })
@@ -268,26 +267,28 @@ export abstract class BaseConnector<T> {
    * @param {String} keyPath The path to the key
    * @returns {Array}
    */
-  public async pluck(path: Paths<T & IGoatExtendedAttributes>) {
+  public async pluck(
+    path: Paths<T & IGoatExtendedAttributes> | Paths<T> | Paths<IGoatExtendedAttributes>
+  ): Promise<string[]> {
     const stringPath = path && path.join('.')
     this.chainReference.push({ method: 'pluck', args: stringPath })
-    let data = await this.get()
+    const data = await this.get()
 
-    data = data.map((e) => {
+    const result: string[] = data.map((e) => {
       const extracted = Objects.getFromPath(e, stringPath, undefined)
 
       if (typeof extracted.value !== 'undefined') {
         return extracted.value
       }
     })
-    return data
+    return result
   }
   /**
    *
    * @param {*} args
    */
   public orderBy(
-    path: Paths<T & IGoatExtendedAttributes>,
+    path: Paths<T> | Paths<IGoatExtendedAttributes>,
     order: 'asc' | 'desc' = 'desc',
     orderType: 'string' | 'number' | 'date' = 'string'
   ) {

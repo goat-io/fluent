@@ -20,6 +20,12 @@ export const Dates = (() => {
   }
   /**
    *
+   */
+  const currentIsoString = (): string => {
+    return new Date().toISOString()
+  }
+  /**
+   *
    * @param code
    */
   const changeLanguage = (code: string): void => {
@@ -63,6 +69,7 @@ export const Dates = (() => {
   return Object.freeze({
     changeLanguage,
     currentUnixDate,
+    currentIsoString,
     isSameOrAfterNow,
     isSameOrBeforeNow,
     setLocales,
