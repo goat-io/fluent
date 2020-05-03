@@ -8,9 +8,6 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
    *
    */
   public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
-    if (this.ownerId) {
-      this.andWhere('owner', '=', this.ownerId)
-    }
     let result: (T & IGoatExtendedAttributes)[] = db
     result = this.jsApplySelect(result)
     result = this.jsApplyOrderBy(result)

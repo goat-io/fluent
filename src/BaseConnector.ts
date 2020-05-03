@@ -12,6 +12,7 @@ export interface IGoatExtendedAttributes {
   modified: number
   updated: number
   deleted: number
+  owner?: string
   roles: string[]
 }
 
@@ -155,7 +156,7 @@ export abstract class BaseConnector<T> {
    * @param {Array|String} columns The columns to select
    * @returns {Model} Fluent Model
    */
-  public select(...columns: Paths<T>[]) {
+  public select(...columns: Paths<T & IGoatExtendedAttributes>[]) {
     columns = this.prepareInput(columns)
     this.chainReference.push({ method: 'select', args: columns })
     this.selectArray = this.selectArray.concat(columns).filter((elem, pos, arr) => {
@@ -202,7 +203,7 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public where(path: Paths<T>, operator: OperatorType, value: Primitives) {
+  public where(path: Paths<T & IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
     const stringPath = path && path.join('.')
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'where', chainedWhere })
@@ -220,7 +221,7 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public andWhere(path: Paths<T>, operator: OperatorType, value: Primitives) {
+  public andWhere(path: Paths<T & IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
     const stringPath = path && path.join('.')
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'andWhere', chainedWhere })
@@ -235,7 +236,7 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args OR where filters
    * @returns {Model} Fluent Model
    */
-  public orWhere(path: Paths<T>, operator: OperatorType, value: Primitives) {
+  public orWhere(path: Paths<T & IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
     const stringPath = path && path.join('.')
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'orWhere', chainedWhere })
@@ -267,7 +268,7 @@ export abstract class BaseConnector<T> {
    * @param {String} keyPath The path to the key
    * @returns {Array}
    */
-  public async pluck(path: Paths<T>) {
+  public async pluck(path: Paths<T & IGoatExtendedAttributes>) {
     const stringPath = path && path.join('.')
     this.chainReference.push({ method: 'pluck', args: stringPath })
     let data = await this.get()
@@ -285,7 +286,11 @@ export abstract class BaseConnector<T> {
    *
    * @param {*} args
    */
-  public orderBy(path: Paths<T>, order: 'asc' | 'desc' = 'desc', orderType: 'string' | 'number' | 'date' = 'string') {
+  public orderBy(
+    path: Paths<T & IGoatExtendedAttributes>,
+    order: 'asc' | 'desc' = 'desc',
+    orderType: 'string' | 'number' | 'date' = 'string'
+  ) {
     const stringPath = path && path.join('.')
     const orderB = [stringPath, order, orderType]
     this.chainReference.push({ method: 'orderBy', orderB })
