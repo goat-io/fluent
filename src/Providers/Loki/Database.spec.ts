@@ -16,7 +16,6 @@ it('Should be named GOAT', () => {
 })
 
 it('Should start with no collections', () => {
-  // const expectedCollections = ['Submission', 'Form', 'Translation', 'User', 'Role', 'Configuration', 'Pages']
   const expectedCollections = []
   const dbCollections = db.collections.reduce((dbColArray, dbCol) => {
     dbColArray.push(dbCol.name)

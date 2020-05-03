@@ -4,22 +4,31 @@ import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import pluralize from 'pluralize'
-import { BaseConnector, IDataElement, IInsertOptions } from '../../BaseConnector'
-import { Fluent } from '../../Fluent'
+import { BaseConnector, IDataElement, IGoatExtendedAttributes } from '../../BaseConnector'
 import { Connection } from '../../Helpers/Connection'
 import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
-import { findComponents } from '../../Helpers/Formio/findComponents'
 import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 dayjs.extend(isSameOrAfter)
-// import jwtDecode from 'jwt-decode'
 
-export class Loopback extends BaseConnector {
+interface ILoopbackConnector {
+  baseEndPoint: string
+  token?: string
+}
+export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> {
+  private baseEndPoint: string = ''
+  private authToken: string = ''
+
+  constructor({ baseEndPoint, token }: ILoopbackConnector) {
+    super()
+    this.baseEndPoint = baseEndPoint
+    this.authToken = token
+  }
   /**
    *
    */
-  public async get(): Promise<IDataElement[]> {
+  public async get(): Promise<T[]> {
     if (this.ownerId) {
       this.andWhere('owner', '=', this.ownerId)
     }
@@ -46,27 +55,28 @@ export class Loopback extends BaseConnector {
 
     return this.jsApplySelect(result && result.data)
   }
-  /**
-   *
-   */
-  public async all() {
-    return this.get()
-  }
-  /**
-   *
-   * @param paginator
-   */
-  public async paginate(paginator: IPaginator): Promise<IPaginatedData> {
-    if (!paginator) {
-      throw new Error('Paginator cannot be empty')
-    }
-    this.paginator = paginator
 
-    const response = await this.get()
-    if (!response[0]) {
-      throw new Error('The query was not paginated')
+  public async getPaginated(): Promise<IPaginatedData<T>> {
+    if (this.ownerId) {
+      this.andWhere('owner', '=', this.ownerId)
     }
-    const results: IPaginatedData = {
+
+    const [error, response]: any = await to(this.httpGET())
+
+    if (error) {
+      if (error.response.status === 440) {
+        Event.emit({
+          name: 'GOAT:SESSION:EXPIRED',
+          data: error,
+          text: 'Session expired'
+        })
+
+        throw new Error(Errors(error, 'Session has expired.'))
+      }
+      throw new Error(Errors(error, 'Error while getting submissions'))
+    }
+
+    const results: IPaginatedData<T> = {
       current_page: response[0].meta.currentPage,
       data: response[0].data,
       first_page_url: response[0].meta.firstPageUrl,
@@ -77,7 +87,31 @@ export class Loopback extends BaseConnector {
       total: response[0].meta.totalItemCount
     }
 
+    if (results && results.data && this.selectArray.length > 0) {
+      results.data = this.jsApplySelect(results.data)
+      return results
+    }
     return results
+  }
+  /**
+   *
+   */
+  public async all(): Promise<T[]> {
+    return this.get()
+  }
+  /**
+   *
+   * @param paginator
+   */
+  public async paginate(paginator: IPaginator): Promise<IPaginatedData<T>> {
+    if (!paginator) {
+      throw new Error('Paginator cannot be empty')
+    }
+    this.paginator = paginator
+
+    const response = await this.getPaginated()
+
+    return response
   }
   /**
    *
@@ -94,7 +128,7 @@ export class Loopback extends BaseConnector {
    *
    * @param data
    */
-  public async insert(data: IDataElement) {
+  public async insert(data: T) {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
@@ -104,40 +138,9 @@ export class Loopback extends BaseConnector {
   }
   /**
    *
-   * @param paginator
-   */
-  public async tableView(paginator: IPaginator): Promise<IPaginatedData> {
-    const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined
-    const remotePath = Objects.get(() => this.remoteConnection.path, undefined)
-    const form = await this.getForm(remotePath)
-    if (!form) {
-      throw new Error('Could not find form')
-    }
-
-    const components = form.components
-    let finalComponents = this.getTableViewComponents(components)
-    finalComponents = [...finalComponents, '_id as _id', 'modified as HumanUpdated', 'related']
-    this.select(finalComponents)
-
-    return this.paginate(paginator)
-  }
-  /**
-   *
-   * @param components
-   */
-  public getTableViewComponents(components) {
-    return findComponents(components, {
-      input: true,
-      tableView: true
-    })
-      .filter(c => !!(c.label !== ''))
-      .map(c => `data.${c.key} as ${c.key}`)
-  }
-  /**
-   *
    * @param data
    */
-  public async update(data: IDataElement): Promise<IDataElement> {
+  public async update(data: T & IGoatExtendedAttributes): Promise<T & IGoatExtendedAttributes> {
     if (!data._id) {
       throw new Error('Formio connector error. Cannot update a Model without _id key')
     }
@@ -172,7 +175,7 @@ export class Loopback extends BaseConnector {
       throw new Error('Cannot get remote Model')
     }
 
-    data.forEach(_id => {
+    data.forEach((_id) => {
       promises.push(this.httpDelete(_id))
     })
 
@@ -196,7 +199,7 @@ export class Loopback extends BaseConnector {
    *
    * @param _id
    */
-  public async findById(_id: string): Promise<IDataElement> {
+  public async findById(_id: string): Promise<T> {
     const [error, data] = await to(this.where('_id', '=', _id).first())
 
     if (error) {
@@ -206,47 +209,17 @@ export class Loopback extends BaseConnector {
 
     return data
   }
+
+  public getUrl() {
+    const baseUrl = this.baseUrl()
+    return `${baseUrl}`
+  }
   /**
    *
-   * @param baseUrl
-   * @param path
    */
-  public async getForm(path: string) {
-    const Config = Fluent.model('Form', {
-      remote: {
-        path: 'form',
-        pullForm: true
-      }
-    })
-    const form = await Config.local()
-      .where('data.path', '=', path)
-      .first()
-
-    return form.data
-  }
-  public getUrl() {
-    const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined
-    const path = Objects.get(() => this.remoteConnection.path, undefined)
-
-    if (!baseUrl) {
-      throw new Error('Cannot get remote model. baseUrl was not found')
-    }
-    if (!path) {
-      throw new Error('Cannot get remote model. Path was not found')
-    }
-
-    return `${baseUrl}/${path}`
-  }
   public getHeaders() {
     const headers: any = {}
-    let token = {}
-    // Get token from local storage
-    token = this.getToken()
-
-    // Overwrite if a token is given in the connector
-    if (this.remoteConnection.token || this.remoteConnection.token === '') {
-      token = this.remoteConnection.token
-    }
+    const token = this.authToken || this.getToken()
 
     if (!token) {
       return headers
@@ -257,6 +230,9 @@ export class Loopback extends BaseConnector {
     headers.Authorization = `Bearer ${token}`
     return headers
   }
+  /**
+   *
+   */
   public getPage() {
     const page = 'page='
     if (this.paginator && this.paginator.page) {
@@ -265,6 +241,10 @@ export class Loopback extends BaseConnector {
 
     return ''
   }
+  /**
+   *
+   * @param filter
+   */
   public getPaginatorLimit(filter) {
     if (this.paginator && this.paginator.perPage) {
       return { ...filter, limit: this.paginator.perPage }
@@ -274,11 +254,11 @@ export class Loopback extends BaseConnector {
   }
   public getPopulate() {
     const populate = []
-    this.populateArray.forEach(relation => {
+    this.populateArray.forEach((relation) => {
       if (typeof relation === 'string') {
         populate.push({ relation })
       } else if (Array.isArray(relation)) {
-        relation.forEach(nestedRelation => {
+        relation.forEach((nestedRelation) => {
           if (typeof nestedRelation === 'string') {
             populate.push({ relation: nestedRelation })
           } else if (typeof nestedRelation === 'object') {
@@ -322,14 +302,13 @@ export class Loopback extends BaseConnector {
 
     // Loopback replaces all / by camel case
 
-    if (this.remoteConnection.path.includes('/')) {
-      this.remoteConnection.path = this.remoteConnection.path.replace('/', '')
+    if (this.baseEndPoint.includes('/')) {
+      this.baseEndPoint = this.baseEndPoint.replace('/', '')
     }
 
     // Looback replaces all singular words by plural
-
-    this.remoteConnection.path = pluralize(this.remoteConnection.path)
-    const remotePath = Objects.get(() => this.remoteConnection.path, undefined)
+    this.baseEndPoint = pluralize(this.baseEndPoint)
+    const remotePath = Objects.get(() => this.baseEndPoint, undefined)
 
     // Always limit the amount of request
     url = `${url}/${remotePath}?${page}filter=${encodeURI(JSON.stringify(filter))}`
@@ -393,7 +372,7 @@ export class Loopback extends BaseConnector {
 
     filters.where = { and: [] }
 
-    filter.forEach(condition => {
+    filter.forEach((condition) => {
       const element = condition[0]
       const operator = condition[1]
       const value = condition[2]
@@ -464,13 +443,13 @@ export class Loopback extends BaseConnector {
   public getSelect(filter) {
     let select = this.selectArray
 
-    select = select.map(s => {
+    select = select.map((s) => {
       s = s.split(' as ')[0]
       s = s.includes('_id') ? '_id' : s
       return s
     })
 
-    if (select.find(e => e.startsWith('data.'))) {
+    if (select.find((e) => e.startsWith('data.'))) {
       select.unshift('data')
     }
 
@@ -480,7 +459,7 @@ export class Loopback extends BaseConnector {
 
     const fields = {}
 
-    select.forEach(e => {
+    select.forEach((e) => {
       fields[e] = true
     })
 
@@ -512,11 +491,9 @@ export class Loopback extends BaseConnector {
     return token
   }
   private baseUrl() {
-    const { baseUrl, name } = this.connector
-
-    if (!baseUrl) {
-      throw new Error(`You did not provide a baseUrl for the "${name}" connector`)
+    if (!this.baseEndPoint) {
+      throw new Error(`You did not provide a baseUrl for the Loopback connector`)
     }
-    return baseUrl.replace(/\/+$/, '')
+    return this.baseEndPoint.replace(/\/+$/, '')
   }
 }

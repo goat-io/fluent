@@ -1,17 +1,11 @@
 import Loki from 'lokijs'
 import LokiIndexedAdapter from 'lokijs/src/loki-indexed-adapter'
 
-/*
-if (typeof navigator != 'undefined' && navigator.product == 'ReactNative') {
-  const LokiReactNativeAdapter
-  // LokiReactNativeAdapter = require("loki-react-native-asyncstorage-adapter");
-}
-*/
 let DB = null
 export const Database = (() => {
   /*
   |--------------------------------------------------------------------------
-  | LockiDB Config
+  | LokiDB Config
   |--------------------------------------------------------------------------
   | Configuration for the Local DB creation.
   |
@@ -33,7 +27,7 @@ export const Database = (() => {
    * @returns
    */
   const _create = () => {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       let idbAdapter: any
       let pa: any
       let db: any
@@ -61,11 +55,11 @@ export const Database = (() => {
         const baseModels = getModels()
         if (!baseModels) {
           throw new Error(
-            'Cannot Start FLUENT, no models registered or you dont have access to the "window" or "global" variable'
+            'Cannot Start FLUENT, no models registered or you don`t have access to the "window" or "global" variable'
           )
         }
 
-        Object.keys(baseModels).forEach(model => {
+        Object.keys(baseModels).forEach((model) => {
           const dbModel = db.getCollection(model)
 
           if (!dbModel) {
@@ -89,7 +83,7 @@ export const Database = (() => {
     }, [])
 
     const models = []
-    Object.keys(windowModels).forEach(m => {
+    Object.keys(windowModels).forEach((m) => {
       if (!dbModels.includes(m)) {
         models.push(m)
       }
@@ -111,7 +105,7 @@ export const Database = (() => {
     }
     const recreateModels = shouldCreate()
     if (recreateModels.length > 0) {
-      recreateModels.forEach(model => {
+      recreateModels.forEach((model) => {
         DB.addCollection(model)
       })
     }

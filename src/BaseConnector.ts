@@ -1,12 +1,38 @@
 import { Filter } from '@loopback/repository'
 import { Collection } from './Collection'
 import { Objects } from './Helpers/Objects'
-import { IDeleted, IPaginatedData, IPaginator, ISure } from './Providers/types'
+import { IDeleted, IPaginatedData, IPaginator, ISure, Primitives } from './Providers/types'
+import { Id } from './Helpers/Id'
+import { Dates } from './Helpers/Dates'
+import { Paths } from './Collection'
+import { type } from 'os'
 
-export interface IConnector {
-  name?: string
-  remoteConnection?: any
-  connector?: any
+export interface IGoatExtendedAttributes {
+  _id: string
+  modified: number
+  updated: number
+  deleted: number
+  roles: string[]
+}
+
+export interface GoatConnectorInterface<T> {
+  get(): Promise<(T & IGoatExtendedAttributes)[]>
+  all(): Promise<(T & IGoatExtendedAttributes)[]>
+  findById(_id: string): Promise<T & IGoatExtendedAttributes>
+  // find(query: any): Promise<T[]>
+  // findOne(): Promise<T>
+  deleteById(_id: string): Promise<string>
+  // softDelete(): Promise<T>
+  updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes>
+  insert(data: T): Promise<T & IGoatExtendedAttributes>
+  insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]>
+  // update(data: T): Promise<T & IGoatExtendedAttributes>
+  // updateOrCreate(data: T): Promise<T & IGoatExtendedAttributes>
+  // clear({ sure }: ISure): Promise<string[]>
+  // findAndRemove(): Promise<T[]>
+  // paginate(paginator: IPaginator): Promise<IPaginatedData<T>>
+  // tableView(paginator: IPaginator): Promise<IPaginatedData<T>>
+  // raw(query: Filter): this
 }
 
 export interface IDataElement {
@@ -14,47 +40,48 @@ export interface IDataElement {
   [key: string]: any
 }
 
-export interface IInsertOptions {
-  showProgress: boolean
-}
+type OperatorType =
+  | '='
+  | '<'
+  | '>'
+  | '<='
+  | '>='
+  | '<>'
+  | '!='
+  | 'in'
+  | 'nin'
+  | 'like'
+  | 'regexp'
+  | 'startsWith'
+  | 'endsWith'
+  | 'contains'
 
-export abstract class BaseConnector {
-  protected name: string
-  protected remoteConnection: any
-  protected connector: any
+export abstract class BaseConnector<T> {
   protected chainReference = []
   protected whereArray = []
   protected orWhereArray = []
   protected selectArray = []
   protected orderByArray = []
-  protected limitNumber = undefined
-  protected offsetNumber = undefined
+  protected limitNumber: number = 0
+  protected offsetNumber: number = 0
   protected populateArray = []
   protected chunk = null
   protected pullSize = null
   protected ownerId = undefined
   protected paginator = undefined
   protected rawQuery = undefined
-  protected operators = [
-    '=',
-    '<',
-    '>',
-    '<=',
-    '>=',
-    '<>',
-    '!=',
-    'in',
-    'nin',
-    'like',
-    'regexp',
-    'startsWith',
-    'endsWith',
-    'contains'
-  ]
-  constructor({ name, remoteConnection, connector }: IConnector) {
-    this.name = name || this.name
-    this.remoteConnection = remoteConnection || this.remoteConnection
-    this.connector = connector || this.connector
+
+  protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
+    const date = Dates.currentUnixDate()
+    return {
+      _id: Id.objectID() + '_local',
+      modified: date,
+      updated: date,
+      deleted: 0,
+      roles: []
+    }
+  }
+  constructor() {
     this.chainReference = []
     this.whereArray = []
     this.orWhereArray = []
@@ -73,99 +100,8 @@ export abstract class BaseConnector {
   /**
    *
    */
-  public async get(): Promise<IDataElement[]> {
+  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
     throw new Error('get() method not implemented')
-  }
-  /**
-   *
-   */
-  public async all(): Promise<IDataElement[]> {
-    throw new Error('all() method not implemented')
-  }
-  /**
-   *
-   */
-  public async findById(id: string): Promise<IDataElement> {
-    throw new Error('find() method not implemented')
-  }
-  /**
-   *
-   */
-  public async find(id): Promise<IDataElement[]> {
-    throw new Error('find() method not implemented')
-  }
-  /**
-   *
-   */
-  public async findOne(): Promise<IDataElement[]> {
-    throw new Error('findOne() method not implemented')
-  }
-  /**
-   *
-   */
-  public async remove(): Promise<IDataElement> {
-    throw new Error('remove() method not implemented')
-  }
-  /**
-   *
-   */
-  public async removeById(_id: string): Promise<IDeleted> {
-    throw new Error('remove() method not implemented')
-  }
-  /**
-   *
-   */
-  public softDelete(): Promise<IDataElement> {
-    throw new Error('softDelete() method not implemented')
-  }
-  /**
-   *
-   */
-  public async insert(data: IDataElement, options?: IInsertOptions): Promise<IDataElement> {
-    throw new Error('insert() method not implemented')
-  }
-  /**
-   *
-   */
-  public async update(data: IDataElement): Promise<IDataElement> {
-    throw new Error('update() method not implemented')
-  }
-  /**
-   *
-   */
-  public async clear({ sure }: ISure): Promise<any[]> {
-    throw new Error('clear() method not implemented')
-  }
-  /**
-   *
-   */
-  public async updateOrCreate(): Promise<IDataElement> {
-    throw new Error('updateOrCreate() method not implemented')
-  }
-  /**
-   *
-   */
-  public async findAndRemove(): Promise<IDataElement[]> {
-    throw new Error('findAndRemove() method not implemented')
-  }
-  /**
-   *
-   * @param {*} paginator
-   */
-  public async paginate(paginator: IPaginator): Promise<IPaginatedData> {
-    throw new Error('paginate() method not implemented')
-  }
-  /**
-   * @param {*} tableView
-   */
-  public tableView(paginator: IPaginator): Promise<IPaginatedData> {
-    throw new Error('tableView() method not implemented')
-  }
-  /**
-   * @param {*} raw
-   */
-  public raw(query: Filter): this {
-    throw new Error('Raw method not implemented')
   }
   /**
    *
@@ -185,13 +121,17 @@ export abstract class BaseConnector {
   }
   /**
    * Executes the Get() method and
-   * returns the its first result
+   * returns its first result
    *
    * @return {Object} First result
    */
-  public async first() {
+  public async first(): Promise<T & IGoatExtendedAttributes> {
     const data = await this.get()
-    return Objects.get(() => data[0], [])
+    if (!data[0]) {
+      throw new Error('First could not find elements')
+    }
+
+    return data[0]
   }
   /**
    *
@@ -206,7 +146,7 @@ export abstract class BaseConnector {
       throw new Error('Collect method only accepts arrays of data')
     }
 
-    return new Collection(data)
+    return new Collection<T>(data)
   }
   /**
    * Adds the given columns to the SelectArray
@@ -215,7 +155,7 @@ export abstract class BaseConnector {
    * @param {Array|String} columns The columns to select
    * @returns {Model} Fluent Model
    */
-  public select(...columns) {
+  public select(...columns: Paths<T>[]) {
     columns = this.prepareInput(columns)
     this.chainReference.push({ method: 'select', args: columns })
     this.selectArray = this.selectArray.concat(columns).filter((elem, pos, arr) => {
@@ -231,7 +171,7 @@ export abstract class BaseConnector {
    * @param {int} offset The given offset
    * @returns {Model} Fluent Model
    */
-  public offset(offset) {
+  public offset(offset: number) {
     this.chainReference.push({ method: 'offset', args: offset })
     this.offsetNumber = offset
     return this
@@ -253,7 +193,7 @@ export abstract class BaseConnector {
    *
    * @param {int} offset the given offset
    */
-  public skip(offset) {
+  public skip(offset: number) {
     return this.offset(offset)
   }
   /**
@@ -262,20 +202,15 @@ export abstract class BaseConnector {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public where(...args) {
-    this.chainReference.push({ method: 'where', args })
+  public where(path: Paths<T>, operator: OperatorType, value: Primitives) {
+    const stringPath = path && path.join('.')
+    const chainedWhere = [stringPath, operator, value]
+    this.chainReference.push({ method: 'where', chainedWhere })
+
     this.whereArray = []
-    args = Array.isArray(args[0]) ? args : [args]
-    args.forEach(arg => {
-      if (arg.length !== 3) {
-        throw new Error(
-          'There where clouse is not properly formatted, expecting: ["attribute", "operator","value"] but got "' +
-            JSON.stringify(arg) +
-            '" '
-        )
-      }
-      this.whereArray.push(arg)
-    })
+
+    this.whereArray.push(chainedWhere)
+
     return this
   }
   /**
@@ -285,19 +220,12 @@ export abstract class BaseConnector {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public andWhere(...args) {
-    this.chainReference.push({ method: 'andWhere', args })
-    args = Array.isArray(args[0]) ? args : [args]
-    args.forEach(arg => {
-      if (arg.length !== 3) {
-        throw new Error(
-          'There where clouse is not properly formatted, expecting: ["attribute", "operator","value"] but got "' +
-            JSON.stringify(arg) +
-            '" '
-        )
-      }
-      this.whereArray.push(arg)
-    })
+  public andWhere(path: Paths<T>, operator: OperatorType, value: Primitives) {
+    const stringPath = path && path.join('.')
+    const chainedWhere = [stringPath, operator, value]
+    this.chainReference.push({ method: 'andWhere', chainedWhere })
+
+    this.whereArray.push(chainedWhere)
     return this
   }
   /**
@@ -307,19 +235,11 @@ export abstract class BaseConnector {
    * @param {String|Array} args OR where filters
    * @returns {Model} Fluent Model
    */
-  public orWhere(...args) {
-    this.chainReference.push({ method: 'orWhere', args })
-    args = Array.isArray(args[0]) ? args : [args]
-    args.forEach(arg => {
-      if (arg.length !== 3) {
-        throw new Error(
-          'There orWhere clouse is not properly formatted, expecting: ["attribute", "operator","value"] but got "' +
-            JSON.stringify(arg) +
-            '" '
-        )
-      }
-      this.orWhereArray.push(arg)
-    })
+  public orWhere(path: Paths<T>, operator: OperatorType, value: Primitives) {
+    const stringPath = path && path.join('.')
+    const chainedWhere = [stringPath, operator, value]
+    this.chainReference.push({ method: 'orWhere', chainedWhere })
+    this.orWhereArray.push(chainedWhere)
     return this
   }
   /**
@@ -328,7 +248,7 @@ export abstract class BaseConnector {
    * @param {int} limit limit number
    * @returns {Model} Fluent Model
    */
-  public limit(limit) {
+  public limit(limit: number) {
     this.chainReference.push({ method: 'limit', args: limit })
     this.limitNumber = limit
     return this
@@ -339,7 +259,7 @@ export abstract class BaseConnector {
    * @param {*} limit limit number
    * @returns {Model} Fluent Model
    */
-  public take(limit) {
+  public take(limit: number) {
     return this.limit(limit)
   }
   /**
@@ -347,12 +267,13 @@ export abstract class BaseConnector {
    * @param {String} keyPath The path to the key
    * @returns {Array}
    */
-  public async pluck(keyPath) {
-    this.chainReference.push({ method: 'pluck', args: keyPath })
+  public async pluck(path: Paths<T>) {
+    const stringPath = path && path.join('.')
+    this.chainReference.push({ method: 'pluck', args: stringPath })
     let data = await this.get()
 
-    data = data.map(e => {
-      const extracted = Objects.getFromPath(e, keyPath, undefined)
+    data = data.map((e) => {
+      const extracted = Objects.getFromPath(e, stringPath, undefined)
 
       if (typeof extracted.value !== 'undefined') {
         return extracted.value
@@ -364,30 +285,12 @@ export abstract class BaseConnector {
    *
    * @param {*} args
    */
-  public orderBy(...args) {
-    this.chainReference.push({ method: 'orderBy', args })
-    this.orderByArray = args
+  public orderBy(path: Paths<T>, order: 'asc' | 'desc' = 'desc', orderType: 'string' | 'number' | 'date' = 'string') {
+    const stringPath = path && path.join('.')
+    const orderB = [stringPath, order, orderType]
+    this.chainReference.push({ method: 'orderBy', orderB })
+    this.orderByArray = orderB
     return this
-  }
-  public async ArrayInsert(dataArray, options) {
-    let initial = 1
-    const length = dataArray.length
-    for (const element of dataArray) {
-      if (options && options.showProgress) {
-        console.log(`Inserting ${initial} of ${length}`)
-      }
-      try {
-        const a = await this.insert(element, options)
-        if (options && options.showProgress) {
-          console.log(`Element ${initial} inserted`)
-        }
-        initial++
-      } catch (e) {
-        console.log(`ERROR - Element ${initial} - ${JSON.stringify(element)} could not be inserted`)
-        console.log(e)
-        initial++
-      }
-    }
   }
   /**
    * Maps the given Data to show only those fields
@@ -400,10 +303,10 @@ export abstract class BaseConnector {
     let _data = Array.isArray(data) ? [...data] : [data]
 
     if (this.selectArray.length > 0) {
-      _data = _data.map(element => {
+      _data = _data.map((element) => {
         const newElement = {}
 
-        this.selectArray.forEach(attribute => {
+        this.selectArray.forEach((attribute) => {
           const extract = Objects.getFromPath(element, attribute, undefined)
 
           const value = Objects.get(() => extract.value, undefined)
@@ -477,10 +380,10 @@ export abstract class BaseConnector {
   private prepareInput(input) {
     let cols = []
 
-    input.forEach(item => {
+    input.forEach((item) => {
       let value = Array.isArray(item) ? item : item.split(',')
 
-      value = value.map(e => {
+      value = value.map((e) => {
         return e.trim()
       })
       cols = cols.concat(value)

@@ -1,36 +1,29 @@
 import { Fluent } from '../../Fluent'
 //import { To } from '../../Helpers/To'
-import { Loopback } from './LoopbackConnector'
+import { LoopbackConnector } from './LoopbackConnector'
 
-// const DB = Fluent.model('TestModel')
+interface IGoat {
+  name: string
+  age: number
+  breed?: {
+    family: string
+    members: number
+  }
+}
+const authToken = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
 
-let testModel
-const token = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
+const testModel = (() => {
+  Fluent.model<IGoat>('myTestModel')
 
-beforeAll(async () => {
-  const fluent = new Fluent()
-  fluent.config({
-    LOCAL_CONNECTORS: [],
-    MERGE_CONNECTORS: [],
-    REMOTE_CONNECTORS: [
-      {
-        baseUrl: 'https://suopywgtyuabhru.form.io',
-        connector: Loopback,
-        default: true,
-        name: 'Loopback'
-      }
-    ]
-  })
+  const remote = (token?: string) => {
+    return new LoopbackConnector<IGoat>({ baseEndPoint: 'https://someEndpoint', token: token || authToken })
+  }
 
-  testModel = Fluent.model('myTestModel', {
-    remote: {
-      path: 'mytestmodel'
-    }
-  })
-})
+  return Object.freeze({ remote })
+})()
 
-it('name should be visible using a getter and composable overwriting properties', () => {
-  expect(testModel.getModelName()).toBe('myTestModel')
+it('Should...', async () => {
+  expect(1).toBe(1)
 })
 
 /*
@@ -39,15 +32,6 @@ describe('Given a FLUENT Remote Instance', () => {
     
   })
 
- 
-
-  it('Should insert Data', async () => {
-    let inserted = await testModel.remote({ token }).insert({
-      data: {
-        name: 'Ignacio',
-        age: 29
-      }
-    })
 
     let inserted2 = await testModel.remote({ token }).insert({
       data: {

@@ -1,6 +1,6 @@
-export interface IPaginatedData {
+export interface IPaginatedData<T> {
   current_page: number
-  data: any[]
+  data: T[]
   first_page_url: string
   next_page_url: string
   prev_page_url: string
