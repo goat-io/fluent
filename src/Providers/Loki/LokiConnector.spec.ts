@@ -132,6 +132,18 @@ it('where() should filter the data', async () => {
   expect(forms.length).toBe(2)
 })
 
+it('andWhere() should filter the data', async () => {
+  const forms = await testModel.local().where(['nestedTest', 'c'], '>=', 3).andWhere(['order'], '=', 2).get()
+  expect(forms.length).toBe(1)
+  expect(forms[0].order).toBe(2)
+})
+
+it('andWhere() should filter the data', async () => {
+  const forms = await testModel.local().where(['nestedTest', 'c'], '>=', 3).orWhere(['order'], '=', 2).get()
+  expect(forms.length).toBe(2)
+  expect(forms[0].order).toBe(1)
+})
+
 it('first() should take the first result from data', async () => {
   const form = await testModel.local().where(['nestedTest', 'c'], '>=', 3).orderBy(['order'], 'desc').first()
 
