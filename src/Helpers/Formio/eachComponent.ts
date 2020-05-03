@@ -9,11 +9,11 @@ import { FormioComponent } from './types/FormioComponent'
  */
 export const eachComponent = (
   components: FormioComponent[],
-  fn?: any,
+  fn?: (component: FormioComponent, path?: string) => any,
   includeAll?: boolean,
   path?: string,
   parent?: any
-) => {
+): void => {
   if (!components) {
     return
   }
@@ -58,13 +58,13 @@ export const eachComponent = (
 
     if (!noRecurse) {
       if (hasColumns) {
-        component.columns.forEach(column =>
+        component.columns.forEach((column) =>
           eachComponent(column.components, fn, includeAll, subPath(), parent ? component : null)
         )
       } else if (hasRows) {
-        component.rows.forEach(row => {
+        component.rows.forEach((row) => {
           if (Array.isArray(row)) {
-            row.forEach(column =>
+            row.forEach((column) =>
               eachComponent(column.components, fn, includeAll, subPath(), parent ? component : null)
             )
           }

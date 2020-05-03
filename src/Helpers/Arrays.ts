@@ -6,7 +6,7 @@ export const Arrays = (() => {
    * @param  mixed  def
    * @return mixed
    */
-  const first = (arr: any, def: any): any => {
+  const first = (arr: any, def?: any): any => {
     if (arr && Array.isArray(arr) && arr[0]) {
       return arr[0]
     }

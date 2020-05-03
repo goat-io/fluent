@@ -1,5 +1,7 @@
 import { Objects } from '../Objects'
 import { eachComponent } from './eachComponent'
+import { FormioComponent } from './types/FormioComponent'
+import { IDataElement } from '../../BaseConnector'
 /**
  *
  * @param component
@@ -11,7 +13,7 @@ const matchComponent = (component: any, query: any) => {
   }
   let matches = false
 
-  Object.keys(query).forEach(path => {
+  Object.keys(query).forEach((path) => {
     matches = Objects.getFromPath(component, path).value === query[path]
     if (!matches) {
       return false
@@ -25,7 +27,7 @@ const matchComponent = (component: any, query: any) => {
  * @param components
  * @param query
  */
-export const findComponents = (components: any, query: any) => {
+export const findComponents = (components: FormioComponent[], query: IDataElement): FormioComponent[] => {
   const results = []
 
   eachComponent(

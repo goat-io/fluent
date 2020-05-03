@@ -16,7 +16,7 @@ interface IFormioConnector {
   token?: string
 }
 
-const GoatExtenderAttributes = ['_id', 'owner', 'roles', 'created', 'modified']
+const GoatExtenderAttributes = ['_id', 'owner', 'roles', 'created', 'modified', '_ngram']
 
 export class FormioConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
   private baseEndPoint: string = ''

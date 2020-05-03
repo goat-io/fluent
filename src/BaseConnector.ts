@@ -13,6 +13,7 @@ export interface IGoatExtendedAttributes {
   modified: string
   deleted?: string
   owner?: string
+  _ngram?: string
   roles: string[]
 }
 

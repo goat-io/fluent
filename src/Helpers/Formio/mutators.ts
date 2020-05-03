@@ -1,11 +1,12 @@
 import { Objects } from '../Objects'
 import { FormioForm } from './types/FormioForm'
+import { FormioStringForm } from './types/FormioStringForm'
 /**
  * String to Components. Converts a Formio stored form instance,
  * to a usable none stringified version
  * @param form
  */
-export const getter = (form: FormioForm) => {
+export const getter = (form: FormioStringForm): FormioForm => {
   const editForm = Objects.clone(form)
 
   if (editForm.components) {
@@ -19,7 +20,7 @@ export const getter = (form: FormioForm) => {
  * instance where the components are a single string
  * @param form
  */
-export const setter = (form: FormioForm) => {
+export const setter = (form: FormioForm): FormioStringForm => {
   const editForm = Objects.clone(form)
 
   if (editForm.components) {
