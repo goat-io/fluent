@@ -1,23 +1,24 @@
 import { Event } from './Event'
+import { Connection } from './Connection'
 
-let event = { name: 'myBasicEvent', data: { test: 'true' }, text: 'Some test' }
+const event = { data: { test: 'true' }, text: 'Some test' }
 let eventWorked = false
 
-let changeEventStatus = function() {
+const changeEventStatus = () => {
   eventWorked = !eventWorked
 }
 
-function sleep(time) {
-  return new Promise(resolve => setTimeout(resolve, time))
+const sleep = (time) => {
+  return new Promise((resolve) => setTimeout(resolve, time))
 }
 
 beforeAll(() => {
-  Event.listen({ name: 'myBasicEvent', callback: changeEventStatus })
+  Event.listen('myBasicEvent', changeEventStatus)
 })
 
 it('emit() and listen() Should should work in sync', async () => {
   expect(eventWorked).toBe(false)
-  Event.emit(event)
+  Event.emit('myBasicEvent', event)
   while (!eventWorked) {
     console.log('waiting for event to trigger...')
     await sleep(500)
@@ -27,11 +28,11 @@ it('emit() and listen() Should should work in sync', async () => {
 
 it('remove() should delete the event', async () => {
   expect(eventWorked).toBe(true)
-  Event.emit(event)
+  Event.emit('myBasicEvent', event)
 
   expect(eventWorked).toBe(false)
 
-  Event.remove({ name: 'myBasicEvent', callback: changeEventStatus })
-  Event.emit(event)
+  Event.remove('myBasicEvent', changeEventStatus)
+  Event.emit('myBasicEvent', event)
   expect(eventWorked).toBe(false)
 })

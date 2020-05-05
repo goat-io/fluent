@@ -1,6 +1,7 @@
-import { IDataElement, BaseConnector } from './BaseConnector'
+import { IDataElement, BaseConnector, IGoatExtendedAttributes } from './BaseConnector'
 import { Collection } from './Collection'
 import { Primitives } from './Providers/types'
+import { TypedPathWrapper, typedPath } from 'typed-path'
 
 export interface _FLUENT_ {
   models?: {
@@ -46,8 +47,9 @@ export class Fluent {
   /**
    *
    */
-  public static model<T = IDataElement>(name: string): void {
-    this.registerModel<T>(name)
+  public static model<T = IDataElement>(name: string): TypedPathWrapper<T & IGoatExtendedAttributes> {
+    this.registerModel<T & IGoatExtendedAttributes>(name)
+    return typedPath<T & IGoatExtendedAttributes>()
   }
   /**
    *

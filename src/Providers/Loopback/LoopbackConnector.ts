@@ -33,8 +33,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> implem
 
     if (error) {
       if (error.response.status === 440) {
-        Event.emit({
-          name: 'GOAT:SESSION:EXPIRED',
+        Event.emit('GOAT:SESSION:EXPIRED', {
           data: error,
           text: 'Session expired'
         })
@@ -52,8 +51,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> implem
 
     if (error) {
       if (error.response.status === 440) {
-        Event.emit({
-          name: 'GOAT:SESSION:EXPIRED',
+        Event.emit('GOAT:SESSION:EXPIRED', {
           data: error,
           text: 'Session expired'
         })
@@ -172,7 +170,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> implem
     }
     const promises = []
 
-    const [error, data] = await to(this.select(['_id']).pluck(['_id']))
+    const [error, data] = await to(this.select(this._keys._id).pluck(this._keys._id))
 
     if (error) {
       console.log(error)
@@ -204,7 +202,7 @@ export class LoopbackConnector<T = IDataElement> extends BaseConnector<T> implem
    * @param _id
    */
   public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
-    const [error, data] = await to(this.where(['_id'], '=', _id).first())
+    const [error, data] = await to(this.where(this._keys._id, '=', _id).first())
 
     if (error) {
       console.log(error)

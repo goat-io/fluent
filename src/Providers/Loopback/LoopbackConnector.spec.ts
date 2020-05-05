@@ -13,13 +13,13 @@ interface IGoat {
 const authToken = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
 
 const testModel = (() => {
-  Fluent.model<IGoat>('myTestModel')
+  const _keys = Fluent.model<IGoat>('myTestModel')
 
   const remote = (token?: string) => {
     return new LoopbackConnector<IGoat>({ baseEndPoint: 'https://someEndpoint', token: token || authToken })
   }
 
-  return Object.freeze({ remote })
+  return Object.freeze({ remote, _keys })
 })()
 
 it('Should...', async () => {

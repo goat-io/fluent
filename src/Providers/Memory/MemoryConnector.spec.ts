@@ -12,7 +12,7 @@ interface IGoat {
 let storedId: string = ''
 
 const GoatModel = (() => {
-  Fluent.model<IGoat>('GoatModel')
+  const _keys = Fluent.model<IGoat>('GoatModel')
 
   const remote = () => {
     return new MemoryConnector<IGoat>()
@@ -22,7 +22,7 @@ const GoatModel = (() => {
     return new MemoryConnector<IGoat>()
   }
 
-  return Object.freeze({ remote, local })
+  return Object.freeze({ remote, local, _keys })
 })()
 
 test('Get - Should  GET data', async () => {
@@ -94,41 +94,51 @@ it('First - Should get a single element', async () => {
 })
 
 it('Pluck - Should get a single column', async () => {
-  const names = await GoatModel.local().pluck(['name'])
+  const names = await GoatModel.local().pluck(GoatModel._keys.name)
   expect(Array.isArray(names)).toBe(true)
   expect(names[0]).toBe('Ignacio')
 })
 
 it('Select - Should get a single column', async () => {
-  const names = await GoatModel.local().pluck(['name'])
+  const names = await GoatModel.local().pluck(GoatModel._keys.name)
   expect(Array.isArray(names)).toBe(true)
   expect(names[0]).toBe('Ignacio')
 })
 
 it('Select - should filter specific columns', async () => {
-  const goats = await GoatModel.remote().select(['name']).get()
+  const goats = await GoatModel.remote().select(GoatModel._keys.name).get()
   expect(goats[0].name).toBe('Ignacio')
 })
 
 it('Select - should select Nested Columns', async () => {
-  const goats = await GoatModel.remote().select(['name'], ['breed', 'family']).get()
-
+  const goats = await GoatModel.remote().select(GoatModel._keys.name, GoatModel._keys.breed.family).get()
+  console.log('goats[0]', goats[0])
   expect(goats[0].breed.family).toBe('The Goats')
 })
 
 it('OrderBy - should order results asc', async () => {
-  const goats = await GoatModel.remote().select(['name']).orderBy(['name'], 'desc').get()
+  const goats = await GoatModel.remote().select(GoatModel._keys.name).orderBy(GoatModel._keys.name, 'desc').get()
   expect(goats[0].name).toBe('Oh!MyGoat')
 })
 
 it('Skip/Take - should restrict the results', async () => {
-  const goats = await GoatModel.remote().select(['name']).orderBy(['name'], 'desc').skip(1).take(2).get()
+  const goats = await GoatModel.remote()
+    .select(GoatModel._keys.name)
+    .orderBy(GoatModel._keys.name, 'desc')
+    .skip(1)
+    .take(2)
+    .get()
   expect(goats.length).toBe(2)
   expect(goats[0].name).toBe('MyUpdatedGoat')
 })
 
 it('Offset/Limit - should restrict the results', async () => {
-  const goats = await GoatModel.remote().select(['name']).orderBy(['name'], 'desc').offset(1).limit(2).get()
+  const goats = await GoatModel.remote()
+    .select(GoatModel._keys.name)
+    .orderBy(GoatModel._keys.name, 'desc')
+    .offset(1)
+    .limit(2)
+    .get()
   expect(goats.length).toBe(2)
   expect(goats[0].name).toBe('MyUpdatedGoat')
 })

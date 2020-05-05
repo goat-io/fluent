@@ -4,8 +4,7 @@ import { Objects } from './Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure, Primitives } from './Providers/types'
 import { Id } from './Helpers/Id'
 import { Dates } from './Helpers/Dates'
-import { Paths } from './Collection'
-import { type } from 'os'
+import { typedPath, TypedPathWrapper } from 'typed-path'
 
 export interface IGoatExtendedAttributes {
   _id: string
@@ -59,6 +58,7 @@ type OperatorType =
   | 'contains'
 
 export abstract class BaseConnector<T> {
+  public _keys = typedPath<T & IGoatExtendedAttributes>()
   protected chainReference = []
   protected whereArray = []
   protected orWhereArray = []
@@ -156,8 +156,9 @@ export abstract class BaseConnector<T> {
    * @param {Array|String} columns The columns to select
    * @returns {Model} Fluent Model
    */
-  public select(...columns: Paths<T & IGoatExtendedAttributes>[] | Paths<T>[] | Paths<IGoatExtendedAttributes>[]) {
+  public select(...columns: TypedPathWrapper<Primitives>[]) {
     columns = this.prepareInput(columns)
+
     this.chainReference.push({ method: 'select', args: columns })
     this.selectArray = this.selectArray.concat(columns).filter((elem, pos, arr) => {
       return arr.indexOf(elem) === pos
@@ -203,8 +204,8 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public where(path: Paths<T> | Paths<IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
-    const stringPath = path && path.join('.')
+  public where(path: TypedPathWrapper<Primitives>, operator: OperatorType, value: Primitives) {
+    const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'where', chainedWhere })
 
@@ -221,8 +222,8 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public andWhere(path: Paths<T> | Paths<IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
-    const stringPath = path && path.join('.')
+  public andWhere(path: TypedPathWrapper<Primitives>, operator: OperatorType, value: Primitives) {
+    const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'andWhere', chainedWhere })
 
@@ -236,8 +237,8 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args OR where filters
    * @returns {Model} Fluent Model
    */
-  public orWhere(path: Paths<T> | Paths<IGoatExtendedAttributes>, operator: OperatorType, value: Primitives) {
-    const stringPath = path && path.join('.')
+  public orWhere(path: TypedPathWrapper<Primitives>, operator: OperatorType, value: Primitives) {
+    const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'orWhere', chainedWhere })
     this.orWhereArray.push(chainedWhere)
@@ -268,10 +269,8 @@ export abstract class BaseConnector<T> {
    * @param {String} keyPath The path to the key
    * @returns {Array}
    */
-  public async pluck(
-    path: Paths<T & IGoatExtendedAttributes> | Paths<T> | Paths<IGoatExtendedAttributes>
-  ): Promise<string[]> {
-    const stringPath = path && path.join('.')
+  public async pluck(path: TypedPathWrapper<Primitives>): Promise<string[]> {
+    const stringPath = path && path.$path
     this.chainReference.push({ method: 'pluck', args: stringPath })
     const data = await this.get()
 
@@ -289,11 +288,11 @@ export abstract class BaseConnector<T> {
    * @param {*} args
    */
   public orderBy(
-    path: Paths<T> | Paths<IGoatExtendedAttributes>,
+    path: TypedPathWrapper<Primitives>,
     order: 'asc' | 'desc' = 'desc',
     orderType: 'string' | 'number' | 'date' = 'string'
   ) {
-    const stringPath = path && path.join('.')
+    const stringPath = path && path.$path
     const orderB = [stringPath, order, orderType]
     this.chainReference.push({ method: 'orderBy', orderB })
     this.orderByArray = orderB
@@ -309,29 +308,27 @@ export abstract class BaseConnector<T> {
   protected jsApplySelect(data) {
     let _data = Array.isArray(data) ? [...data] : [data]
 
-    if (this.selectArray.length > 0) {
-      _data = _data.map((element) => {
-        const newElement = {}
-
-        this.selectArray.forEach((attribute) => {
-          const extract = Objects.getFromPath(element, attribute, undefined)
-
-          const value = Objects.get(() => extract.value, undefined)
-
-          if (typeof value !== 'undefined') {
-            if (typeof value === 'object' && value.hasOwnProperty('data') && value.data.hasOwnProperty('name')) {
-              newElement[extract.label] = value.data.name
-            } else {
-              newElement[extract.label] = value
-            }
-          }
-        })
-
-        return newElement
-      })
+    if (this.selectArray.length <= 0) {
+      return _data
     }
+    return _data.map((element) => {
+      const newElement = {}
+      this.selectArray.forEach((attribute) => {
+        const extract = Objects.getFromPath(element, attribute, undefined)
 
-    return _data
+        const value = Objects.get(() => extract.value, undefined)
+
+        if (typeof value !== 'undefined') {
+          if (typeof value === 'object' && value.hasOwnProperty('data') && value.data.hasOwnProperty('name')) {
+            newElement[extract.label] = value.data.name
+          } else {
+            newElement[extract.label] = value
+          }
+        }
+      })
+
+      return newElement
+    })
   }
   /**
    *
@@ -384,16 +381,11 @@ export abstract class BaseConnector<T> {
    *
    * @param {*} input
    */
-  private prepareInput(input) {
+  private prepareInput(columns: TypedPathWrapper<Primitives>[]) {
     let cols = []
 
-    input.forEach((item) => {
-      let value = Array.isArray(item) ? item : item.split(',')
-
-      value = value.map((e) => {
-        return e.trim()
-      })
-      cols = cols.concat(value)
+    columns.forEach((col) => {
+      cols = cols.concat(col.$path.trim())
     })
 
     cols.filter((elem, pos, arr) => {

@@ -1,26 +1,29 @@
-import axios from 'axios'
 import { Event } from './Event'
+
+export enum status {
+  online = 'GOAT:CONNECTION:ONLINE',
+  offline = 'GOAT:CONNECTION:OFFLINE'
+}
 
 export const Connection = (() => {
   let online = typeof window !== 'undefined' && window && window.navigator ? window.navigator.onLine : true
 
-  function setOnline() {
+  const setOnline = () => {
     if (!online) {
       online = true
-      Event.emit({
+      Event.emit(status.online, {
         data: online,
-        name: 'GOAT:CONNECTION:ONLINE',
+
         text: 'Application is now online'
       })
     }
   }
 
-  function setOffline() {
+  const setOffline = () => {
     if (online) {
       online = false
-      Event.emit({
+      Event.emit(status.offline, {
         data: online,
-        name: 'GOAT:CONNECTION:OFFLINE',
         text: 'Application is now offline'
       })
     }
@@ -30,38 +33,47 @@ export const Connection = (() => {
    * [status description]
    * @return {Promise} [description]
    */
-  function initEventListeners() {
-    Event.listen({
-      callback: () => {
-        console.log('App is now online')
-        setOnline()
-      },
-      name: 'online'
-    })
-    Event.listen({
-      callback: () => {
-        console.log('App is now offline')
-        setOffline()
-      },
-      name: 'offline'
-    })
+  const listen = () => {
+    Event.listen('online', setOnline)
+
+    Event.listen('offline', setOffline)
   }
 
-  function isOnline() {
+  const removeListeners = () => {
+    Event.remove('online', setOnline)
+    Event.remove('offline', setOffline)
+  }
+
+  const isOnline = (fileUrl?: string): Promise<boolean> => {
     return new Promise((resolve, reject) => {
-      axios
-        .get('https://yesno.wtf/api')
-        .then(res => {
-          resolve(true)
-        })
-        .catch(err => {
-          resolve(false)
-        })
+      return resolve(true)
+      const xhr = new XMLHttpRequest()
+      const file =
+        fileUrl ||
+        'https://www.google.com/logos/doodles/2020/stay-and-play-at-home-with-popular-past-google-doodles-loteria-2019-6753651837108772-s.png'
+      const randomNum = Math.round(Math.random() * 10000)
+
+      xhr.open('HEAD', file + '?rand=' + randomNum, true)
+      xhr.send()
+
+      const processRequest = (e) => {
+        if (xhr.readyState == 4) {
+          if (xhr.status >= 200 && xhr.status < 304) {
+            return resolve(true)
+          } else {
+            return resolve(false)
+          }
+        }
+      }
+
+      xhr.addEventListener('readystatechange', processRequest, false)
     })
   }
 
   return Object.freeze({
-    initEventListeners,
-    isOnline
+    listen,
+    removeListeners,
+    isOnline,
+    status
   })
 })()

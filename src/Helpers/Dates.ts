@@ -6,6 +6,20 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
 import DayjsweekOfYear from 'dayjs/plugin/weekOfYear'
 import { Language } from './Language'
 
+import 'dayjs/locale/es'
+import 'dayjs/locale/en'
+import 'dayjs/locale/fr'
+import 'dayjs/locale/ar'
+import 'dayjs/locale/zh'
+
+enum supportedLanguages {
+  spanish = 'es',
+  english = 'en',
+  french = 'fr',
+  arabic = 'ar',
+  chinese = 'zh'
+}
+
 dayjs.extend(isSameOrAfter)
 dayjs.extend(isSameOrBefore)
 dayjs.extend(isBetween)
@@ -26,6 +40,13 @@ export const Dates = (() => {
   }
   /**
    *
+   */
+  const currentDateObject = (): Dayjs => {
+    return dayjs()
+  }
+
+  /**
+   *
    * @param code
    */
   const changeLanguage = (code: string): void => {
@@ -41,22 +62,30 @@ export const Dates = (() => {
    * Get a Dayjs instance given a unixDate
    * @param unixDate
    */
-  const unix = (unixDate: number): Dayjs => {
-    return dayjs(unixDate)
+  const parseUnixDate = (unixDate: number): Dayjs => {
+    return dayjs.unix(unixDate)
+  }
+  /**
+   * Get a Dayjs instance given a unixDate
+   * @param unixDate
+   */
+  const parseIsoStringDate = (isoStringDate: string): Dayjs => {
+    // var d = new Date(isoStringDate)
+    return dayjs(isoStringDate)
   }
   /**
    *
    * @param date
    */
   const isSameOrAfterNow = (date: Dayjs): boolean => {
-    return dayjs().isSameOrAfter(date)
+    return date.isSameOrAfter(dayjs(), 'millisecond')
   }
   /**
    *
    * @param date
    */
   const isSameOrBeforeNow = (date: Dayjs): boolean => {
-    return dayjs().isSameOrBefore(date)
+    return date.isSameOrBefore(dayjs())
   }
   /**
    *
@@ -70,10 +99,13 @@ export const Dates = (() => {
     changeLanguage,
     currentUnixDate,
     currentIsoString,
+    currentDateObject,
     isSameOrAfterNow,
     isSameOrBeforeNow,
     setLocales,
-    unix,
-    weekOfYear
+    parseUnixDate,
+    parseIsoStringDate,
+    weekOfYear,
+    supportedLanguages
   })
 })()

@@ -160,7 +160,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
     }
     const promises = []
 
-    const [error, data] = await to(this.select(['_id']).pluck(['_id']))
+    const [error, data] = await to(this.select(this._keys._id).pluck(this._keys._id))
 
     if (error) {
       console.log(error)
@@ -193,7 +193,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
    * @param _id
    */
   public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
-    const [error, data] = await to(this.where(['_id'], '=', _id).first())
+    const [error, data] = await to(this.where(this._keys._id, '=', _id).first())
 
     if (error) {
       console.log(error)
@@ -245,9 +245,8 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
     const decodedToken = jwtDecode(token)
     const expDate = dayjs.unix(decodedToken.exp)
     if (dayjs().isSameOrAfter(expDate)) {
-      Event.emit({
+      Event.emit('GOAT:SESSION:EXPIRED', {
         data: expDate,
-        name: 'GOAT:SESSION:EXPIRED',
         text: 'Session expired'
       })
       throw new AuthenticationError('Token has expired.')

@@ -1,40 +1,22 @@
 import { IDataElement } from './BaseConnector'
 import { Objects } from './Helpers/Objects'
 import { Primitives } from './Providers/types'
-
-// Original source
-// https://www.manongdao.com/article-1769839.html
-
-type Cons<H, T> = T extends readonly any[]
-  ? ((h: H, ...t: T) => void) extends (...r: infer R) => void
-    ? R
-    : never
-  : never
-
-type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...0[]]
-
-export type Paths<T, D extends number = 10> = [D] extends [never]
-  ? never
-  : T extends object
-  ? {
-      [K in keyof T]-?: [K] | (Paths<T[K], Prev[D]> extends infer P ? (P extends [] ? never : Cons<K, P>) : never)
-    }[keyof T]
-  : []
-
-type Leaves<T, D extends number = 10> = [D] extends [never]
-  ? never
-  : T extends object
-  ? { [K in keyof T]-?: Cons<K, Leaves<T[K], Prev[D]>> }[keyof T]
-  : []
+import { typedPath, TypedPathWrapper } from 'typed-path'
 
 type Contains<T> = {
   value?: Primitives
-  path?: Paths<T>
+  path?: TypedPathWrapper<Primitives>
   Fx?(element: T, index: number): boolean
 }
 
 export class Collection<T = IDataElement | Primitives> {
+  public _keys = typedPath<T>()
+
   public constructor(private data: T[]) {}
+  /**
+   *
+   */
+
   /**
    *
    */
@@ -54,7 +36,7 @@ export class Collection<T = IDataElement | Primitives> {
    * @param  {String}  path Path of the key
    * @return function
    */
-  public avg(path?: Paths<T>) {
+  public avg(path?: TypedPathWrapper<Primitives>) {
     return this.average(path)
   }
   /**
@@ -63,8 +45,8 @@ export class Collection<T = IDataElement | Primitives> {
    * @param  {String}  path Path of the key
    * @return static
    */
-  public average(path?: Paths<T>): number {
-    const stringPath = path && path.join('.')
+  public average(path?: TypedPathWrapper<Primitives>): number {
+    const stringPath = path && path.$path
     const data = [...this.data]
     const sum: number = Number(
       data.reduce((acc: number, element) => {
@@ -201,7 +183,7 @@ export class Collection<T = IDataElement | Primitives> {
       }
 
       if (element instanceof Object) {
-        const stringPath = contains.path && contains.path.join('.')
+        const stringPath = contains.path && contains.path.$path
         const extract = Objects.getFromPath(element, stringPath, undefined)
         if (extract.value) {
           return extract.value === contains.value

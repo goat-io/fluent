@@ -1,3 +1,10 @@
+import { IDataElement } from '../BaseConnector'
+import { Primitives } from '../Providers/types'
+
+export interface IEventOptions {
+  data: IDataElement | Primitives
+  text: string
+}
 export const Event = (() => {
   const CustomEvent = (event, params) => {
     const evt = document.createEvent('CustomEvent')
@@ -11,15 +18,9 @@ export const Event = (() => {
    *
    * @param param0
    */
-  const emit = ({ name, data, text }) => {
+  const emit = (name: string, { data, text }: IEventOptions = { data: {}, text: '' }) => {
     if (!name) {
       throw new Error('Event must have a name.')
-    }
-    if (!data) {
-      throw new Error('Event must have data.')
-    }
-    if (!text) {
-      throw new Error('Event must have a text.')
     }
 
     const customEvent = CustomEvent(name, {
@@ -36,7 +37,7 @@ export const Event = (() => {
    *
    * @param param0
    */
-  const listen = ({ name, callback }) => {
+  const listen = (name: string, callback) => {
     if (!name) {
       throw new Error('Listener must have a name.')
     }
@@ -49,7 +50,7 @@ export const Event = (() => {
    *
    * @param param0
    */
-  const remove = ({ name, callback }) => {
+  const remove = (name: string, callback) => {
     if (!name) {
       throw new Error('Listener must have a name to detach')
     }

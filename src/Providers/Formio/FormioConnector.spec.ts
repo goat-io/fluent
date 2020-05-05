@@ -15,22 +15,34 @@ interface IGoat {
   }
 }
 
-const authToken = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
+const authToken = 'ukC8G1KSJfXYmeEyKHaNXnuJgC8msa'
 let collectData: Collection<IGoat>
 let collectError: Error
 
 const testModel = (() => {
-  Fluent.model<IGoat>('myFormioTestModel')
+  const _keys = Fluent.model<IGoat>('myFormioTestModel')
 
   const remote = (token?: string) => {
     return new FormioConnector<IGoat>({
-      baseEndPoint: 'https://suopywgtyuabhru.form.io/mytestmodel',
+      baseEndPoint: 'https://jwhwikkkyucndlj.form.io/mytestmodel',
       token: token || authToken
     })
   }
 
-  return Object.freeze({ remote })
+  return Object.freeze({ remote, _keys })
 })()
+
+beforeAll(async () => {
+  const inserted = await testModel.remote().insert({
+    name: 'Ignacio',
+    age: 29
+  })
+
+  const inserted2 = await testModel.remote().insert({
+    name: 'Andres',
+    age: 15
+  })
+})
 
 it('Should insert Data', async () => {
   const inserted = await testModel.remote().insert({
@@ -60,17 +72,19 @@ it('Should get remote data', async () => {
 })
 
 it('select() should filter and name specific columns', async () => {
-  const [error, data] = await to(testModel.remote().select(['name']).get())
+  const [error, data] = await to(testModel.remote().select(testModel._keys.name).get())
 
   if (error) {
     console.log(error)
     throw new Error('Cannot get remote Model')
   }
+
+  expect(data[0].age).toBe(undefined)
   expect(data[0].name).toBe('Ignacio')
 })
 
 it('pluck() should return a single array', async () => {
-  const [error, data] = await to(testModel.remote().pluck(['name']))
+  const [error, data] = await to(testModel.remote().pluck(testModel._keys.name))
 
   if (error) {
     console.log(error)
@@ -81,7 +95,9 @@ it('pluck() should return a single array', async () => {
 })
 
 it('orderBy() should order results desc', async () => {
-  const [error, data] = await to(testModel.remote().select(['name']).orderBy(['name'], 'desc').get())
+  const [error, data] = await to(
+    testModel.remote().select(testModel._keys.name).orderBy(testModel._keys.name, 'desc').get()
+  )
 
   if (error) {
     console.log(error)
@@ -92,7 +108,9 @@ it('orderBy() should order results desc', async () => {
 })
 
 it('orderBy() should order results asc', async () => {
-  const [error, data] = await to(testModel.remote().select(['name']).orderBy(['name'], 'asc').get())
+  const [error, data] = await to(
+    testModel.remote().select(testModel._keys.name).orderBy(testModel._keys.name, 'asc').get()
+  )
 
   if (error) {
     console.log(error)
@@ -103,7 +121,13 @@ it('orderBy() should order results asc', async () => {
 })
 
 it('orderBy() should order by Dates with Select()', async () => {
-  const [error, data] = await to(testModel.remote().select(['name'], ['created']).orderBy(['created'], 'asc').get())
+  const [error, data] = await to(
+    testModel
+      .remote()
+      .select(testModel._keys.name, testModel._keys.created)
+      .orderBy(testModel._keys.created, 'asc')
+      .get()
+  )
 
   if (error) {
     console.log(error)
@@ -113,7 +137,7 @@ it('orderBy() should order by Dates with Select()', async () => {
 })
 
 it('orderBy() should order by Dates without Select()', async () => {
-  const [error, data] = await to(testModel.remote().orderBy(['created'], 'asc').get())
+  const [error, data] = await to(testModel.remote().orderBy(testModel._keys.created, 'asc').get())
 
   if (error) {
     console.log(error)
@@ -125,7 +149,12 @@ it('orderBy() should order by Dates without Select()', async () => {
 
 it('limit() should limit the amount of results', async () => {
   const [error, data] = await to(
-    testModel.remote().select(['name'], ['created']).orderBy(['created'], 'asc', 'date').limit(1).get()
+    testModel
+      .remote()
+      .select(testModel._keys.name, testModel._keys.created)
+      .orderBy(testModel._keys.created, 'asc', 'date')
+      .limit(1)
+      .get()
   )
 
   if (error) {
@@ -137,7 +166,13 @@ it('limit() should limit the amount of results', async () => {
 
 it('offset() should start at the given position', async () => {
   const [error, data] = await to(
-    testModel.remote().select(['name'], ['created']).orderBy(['created'], 'desc').limit(1).offset(1).get()
+    testModel
+      .remote()
+      .select(testModel._keys.name, testModel._keys.created)
+      .orderBy(testModel._keys.created, 'desc')
+      .limit(1)
+      .offset(1)
+      .get()
   )
 
   if (error) {
@@ -149,7 +184,13 @@ it('offset() should start at the given position', async () => {
 })
 
 it('where() should filter the data', async () => {
-  const [error, data] = await to(testModel.remote().where(['name'], '=', 'Andres').select(['name'], ['created']).get())
+  const [error, data] = await to(
+    testModel
+      .remote()
+      .where(testModel._keys.name, '=', 'Andres')
+      .select(testModel._keys.name, testModel._keys.created)
+      .get()
+  )
 
   if (error) {
     console.log(error)
@@ -161,7 +202,11 @@ it('where() should filter the data', async () => {
 
 it('first() should take the first result from data', async () => {
   const [error, data] = await to(
-    testModel.remote().where(['name'], '=', 'Ignacio').select(['name'], ['created']).first()
+    testModel
+      .remote()
+      .where(testModel._keys.name, '=', 'Ignacio')
+      .select(testModel._keys.name, testModel._keys.created)
+      .first()
   )
 
   if (error) {
@@ -179,22 +224,22 @@ it('collect() should return the data as collection', async () => {
     console.log(collectError)
     throw new Error('Cannot get remote Model')
   }
-  const avg = collectData.avg(['age'])
+  const avg = collectData.avg(testModel._keys.age)
 
   expect(avg).toBe(22)
 })
 
 it('avg() should calculate avg on an obj attribute', () => {
-  const avg = collectData.avg(['age'])
+  const avg = collectData.avg(testModel._keys.age)
 
   expect(avg).toBe(22)
 })
 
 it('chunk() and collapse() an array', async () => {
   ;[collectError, collectData] = await to(testModel.remote().collect())
-  const chunk = collectData.chunk(2).get()
+  const chunk = collectData.chunk(1).get()
 
-  expect(chunk[0].length).toBe(2)
+  expect(chunk[0].length).toBe(1)
 })
 
 it('clear() should remove all records from the Model', async () => {
@@ -205,7 +250,7 @@ it('clear() should remove all records from the Model', async () => {
     throw new Error('Cannot get remote Model')
   }
 
-  const [error1, data1] = await to(testModel.remote().select(['_id']).get())
+  const [error1, data1] = await to(testModel.remote().select(testModel._keys._id).get())
 
   if (error1) {
     console.log(error)

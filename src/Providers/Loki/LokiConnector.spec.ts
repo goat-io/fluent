@@ -10,13 +10,13 @@ interface ILockiData {
 }
 
 const testModel = (() => {
-  Fluent.model<ILockiData>('myTestModel')
+  const _keys = Fluent.model<ILockiData>('myTestModel')
 
   const local = () => {
     return new LokiConnector<ILockiData>('myTestModel')
   }
 
-  return Object.freeze({ local })
+  return Object.freeze({ local, _keys })
 })()
 
 const testModel2 = (() => {
@@ -73,15 +73,15 @@ it('Should get local data', async () => {
 })
 
 it('pluck() should return a single array', async () => {
-  const data = await testModel.local().pluck(['test'])
+  const data = await testModel.local().pluck(testModel._keys.test)
 
   expect(data[0]).toBe(true)
 })
 it('orderBy() should order results desc', async () => {
   const forms = await testModel
     .local()
-    .select(['test'], ['nestedTest', 'b', 'c'], ['order'])
-    .orderBy(['order'], 'desc')
+    .select(testModel._keys.test, testModel._keys.nestedTest.b.c, testModel._keys.order)
+    .orderBy(testModel._keys.order, 'desc')
     .get()
 
   expect(forms[0].order).toBe(3)
@@ -90,21 +90,25 @@ it('orderBy() should order results desc', async () => {
 it('orderBy() should order results asc', async () => {
   const forms = await testModel
     .local()
-    .select(['test'], ['nestedTest', 'b', 'c'], ['order'])
-    .orderBy(['order'], 'asc')
+    .select(testModel._keys.test, testModel._keys.nestedTest.b.c, testModel._keys.order)
+    .orderBy(testModel._keys.order, 'asc')
     .get()
 
   expect(forms[0].order).toBe(1)
 })
 
 it('orderBy() should order by Dates with Select()', async () => {
-  const forms = await testModel.local().select(['created'], ['order']).orderBy(['created'], 'asc', 'date').get()
+  const forms = await testModel
+    .local()
+    .select(testModel._keys.created, testModel._keys.order)
+    .orderBy(testModel._keys.created, 'asc', 'date')
+    .get()
 
   expect(forms[0].order).toBe(3)
 })
 
 it('orderBy() should order by Dates without Select()', async () => {
-  const forms = await testModel.local().orderBy(['created'], 'asc', 'date').get()
+  const forms = await testModel.local().orderBy(testModel._keys.created, 'asc', 'date').get()
 
   expect(forms[0].order).toBe(3)
 })
@@ -112,8 +116,8 @@ it('orderBy() should order by Dates without Select()', async () => {
 it('limit() should limit the amount of results', async () => {
   const forms = await testModel
     .local()
-    .select(['created'], ['order'])
-    .orderBy(['created'], 'asc', 'date')
+    .select(testModel._keys.created, testModel._keys.order)
+    .orderBy(testModel._keys.created, 'asc', 'date')
     .limit(2)
     .get()
 
@@ -121,31 +125,43 @@ it('limit() should limit the amount of results', async () => {
 })
 
 it('offset() should start at the given position', async () => {
-  const forms = await testModel.local().select(['created'], ['order']).offset(1).limit(1).get()
+  const forms = await testModel.local().select(testModel._keys.created, testModel._keys.order).offset(1).limit(1).get()
 
   expect(forms[0].order).toBe(2)
 })
 
 it('where() should filter the data', async () => {
-  const forms = await testModel.local().where(['nestedTest', 'c'], '>=', 3).get()
+  const forms = await testModel.local().where(testModel._keys.nestedTest.c, '>=', 3).get()
 
   expect(forms.length).toBe(2)
 })
 
 it('andWhere() should filter the data', async () => {
-  const forms = await testModel.local().where(['nestedTest', 'c'], '>=', 3).andWhere(['order'], '=', 2).get()
+  const forms = await testModel
+    .local()
+    .where(testModel._keys.nestedTest.c, '>=', 3)
+    .andWhere(testModel._keys.order, '=', 2)
+    .get()
   expect(forms.length).toBe(1)
   expect(forms[0].order).toBe(2)
 })
 
 it('andWhere() should filter the data', async () => {
-  const forms = await testModel.local().where(['nestedTest', 'c'], '>=', 3).orWhere(['order'], '=', 2).get()
+  const forms = await testModel
+    .local()
+    .where(testModel._keys.nestedTest.c, '>=', 3)
+    .orWhere(testModel._keys.order, '=', 2)
+    .get()
   expect(forms.length).toBe(2)
   expect(forms[0].order).toBe(1)
 })
 
 it('first() should take the first result from data', async () => {
-  const form = await testModel.local().where(['nestedTest', 'c'], '>=', 3).orderBy(['order'], 'desc').first()
+  const form = await testModel
+    .local()
+    .where(testModel._keys.nestedTest.c, '>=', 3)
+    .orderBy(testModel._keys.order, 'desc')
+    .first()
 
   expect(form.order).toBe(2)
 })
