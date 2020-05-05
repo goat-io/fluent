@@ -27,9 +27,9 @@ export const validateForm: Interceptor = async (ctx, next) => {
     }).httpError
   }
 
-  validated = Formio.setter(validated)
+  const stringForm = Formio.setter(validated)
 
-  ctx.args[argsIndex] = validated
+  ctx.args[argsIndex] = stringForm
 
   const result = await next()
   return result
