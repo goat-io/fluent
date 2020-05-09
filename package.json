@@ -30,7 +30,8 @@
   "license": "MIT",
   "husky": {
     "hooks": {
-      "pre-commit": "pretty-quick --staged"
+      "pre-commit": "pretty-quick --staged && npm test",
+      "pre-push": "pretty-quick --staged && npm test && npm run build"
     }
   },
   "dependencies": {
