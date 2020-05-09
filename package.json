@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "test": "jest",
-    "dev": "rm -rf ./dist && tsc -w",
-    "build": "rm -rf ./dist && tsc",
+    "dev": "tsc -w",
+    "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
     "prepare": "npm run build",

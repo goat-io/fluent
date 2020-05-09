@@ -1,6 +1,6 @@
 import { InvocationContext } from '@loopback/core'
 import { For } from '../../Helpers/For'
-import Validate from '../../Helpers/Formio/validator/Validate'
+import { Validate } from '../../Helpers/Formio/validator/Validate'
 import { FormioForm } from '../../Helpers/Formio/types/FormioForm'
 import { Errors } from '../../Helpers/Errors'
 /**
