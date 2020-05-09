@@ -31,6 +31,18 @@ export interface IBaseModel {
       type: string
       required: boolean
     }
+    created?: {
+      type: string
+      required: boolean
+    }
+    deleted?: {
+      type: string
+      required: boolean
+    }
+    modified?: {
+      type: string
+      required: boolean
+    }
     [key: string]: any
   }
   mixins: {
@@ -93,6 +105,18 @@ export const baseModel: IBaseModel = {
     form: {
       required: false,
       type: 'string'
+    },
+    created: {
+      type: 'string',
+      required: false
+    },
+    deleted: {
+      type: 'string',
+      required: false
+    },
+    modified: {
+      type: 'string',
+      required: false
     }
   }
   /*

@@ -18,26 +18,29 @@ import {
   requestBody
 } from "@loopback/rest";
 import { intercept } from "@loopback/core";
-import {  {{_Model.name}}Model } from "../{{_Model.name}}.model";
+import {  {{_Model.name}}Model, {{_Model.name}}OriginalModel, {{_Model.name}}ReturnModel } from "../{{_Model.name}}.model";
 import { {{_Model.name}}Repository } from "../{{_Model.name}}.repository";
 import { validateSubmission } from "@goatlab/fluent/dist/core/Loopback/submission.validation";
+import { FormRepository } from "@goatlab/fluent/dist/core/Loopback/Form/form.repository";
 
 export class {{_Model.name}}Base {
   constructor(
     @repository({{_Model.name}}Repository)
-    public {{_Model.name}}_Repository: {{_Model.name}}Repository
+    public {{_Model.name}}_Repository: {{_Model.name}}Repository,
+    @repository(FormRepository)
+    public formRepository: FormRepository
   ) {}
   /*
    * /POST/
    * Creates a new {{_Model.name}}
    */
-  // @intercept(validateSubmission)
+  @intercept(validateSubmission)
   @post("/{{_Model.path}}", {
     responses: {
       "200": {
         description: "{{_Model.name}} model instance",
         content: {
-          "application/json": { schema: getModelSchemaRef({{_Model.name}}Model) }
+          "application/json": { schema: getModelSchemaRef(dogsModel, {exclude: ["deleted", "_ngram"]}) }
         }
       }
     },
@@ -49,13 +52,13 @@ export class {{_Model.name}}Base {
         "application/json": {
           schema: getModelSchemaRef({{_Model.name}}Model, {
             title: "New{{_Model.name}}",
-            exclude: ["_id"]
+            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
           })
         }
       }
     })
-    {{_Model.name}}Submission: Omit< {{_Model.name}}Model, "_id">
-  ): Promise<{{_Model.name}}Model> {
+    {{_Model.name}}Submission: {{_Model.name}}OriginalModel
+  ): Promise<{{_Model.name}}ReturnModel> {
     return this.{{_Model.name}}_Repository.create({{_Model.name}}Submission);
   }
   /*
@@ -71,7 +74,7 @@ export class {{_Model.name}}Base {
           "application/json": {
             schema: {
               type: "array",
-              items: getModelSchemaRef({{_Model.name}}Model)
+              items: getModelSchemaRef({{_Model.name}}Model, {exclude: ["deleted", "_ngram"]})
             }
           }
         }
@@ -85,13 +88,13 @@ export class {{_Model.name}}Base {
         "application/json": {
           schema: {
             type: "array",
-            items: getModelSchemaRef({{_Model.name}}Model)
+            items: getModelSchemaRef({{_Model.name}}Model, {exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]})
           }
         }
       }
     })
-    {{_Model.name}}Submission: {{_Model.name}}Model[]
-  ): Promise< {{_Model.name}}Model[]> {
+    {{_Model.name}}Submission: {{_Model.name}}OriginalModel[]
+  ): Promise< {{_Model.name}}ReturnModel[]> {
     return this.{{_Model.name}}_Repository.createAll({{_Model.name}}Submission);
   }
   /*
@@ -109,7 +112,16 @@ export class {{_Model.name}}Base {
   })
   async replaceById(
     @param.path.string("_id") id: string,
-    @requestBody() {{_Model.name}}Submission: {{_Model.name}}Model
+    @requestBody({
+      content: {
+        "application/json": {
+          schema: getModelSchemaRef({{_Model.name}}Model, {
+            title: "New{{_Model.name}}",
+            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
+          })
+        }
+      }
+    }) {{_Model.name}}Submission: {{_Model.name}}ReturnModel
   ): Promise<void> {
     await this.{{_Model.name}}_Repository.replaceById(id, {{_Model.name}}Submission);
   }
@@ -128,7 +140,16 @@ export class {{_Model.name}}Base {
   })
   async updateById(
     @param.path.string("_id") id: string,
-    @requestBody() {{_Model.name}}Submission: {{_Model.name}}Model
+    @requestBody({
+      content: {
+        "application/json": {
+          schema: getModelSchemaRef({{_Model.name}}Model, {
+            title: "New{{_Model.name}}",
+            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
+          })
+        }
+      }
+    }) {{_Model.name}}Submission: {{_Model.name}}ReturnModel
   ): Promise<void> {
     await this.{{_Model.name}}_Repository.replaceById(id, {{_Model.name}}Submission);
   }
@@ -150,11 +171,14 @@ export class {{_Model.name}}Base {
     @requestBody({
       content: {
         "application/json": {
-          schema: getModelSchemaRef({{_Model.name}}Model, { partial: true })
+          schema: getModelSchemaRef({{_Model.name}}Model, {
+            partial: true,
+            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
+          })
         }
       }
     })
-    {{_Model.name}}Submission: {{_Model.name}}Model,
+    {{_Model.name}}Submission: {{_Model.name}}OriginalModel,
     @param.query.object("where", getWhereSchemaFor({{_Model.name}}Model))
     where?: Where<{{_Model.name}}Model>
   ): Promise<Count> {

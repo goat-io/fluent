@@ -37,7 +37,9 @@ export class {{_Model.name}}Base {
       "200": {
         description: "{{_Model.name}} model instance",
         content: {
-          "application/json": { schema: getModelSchemaRef({{_Model.name}}Model) }
+          "application/json": { schema: getModelSchemaRef({{_Model.name}}Model, {
+              exclude: ["_id", "form", "_ngram", "roles", "owner"]
+            }) }
         }
       }
     },
@@ -48,13 +50,13 @@ export class {{_Model.name}}Base {
       content: {
         "application/json": {
           schema: getModelSchemaRef({{_Model.name}}Model, {
-            title: "New{{_Model.name}}",
-            exclude: ["_id"]
+            title: "Create {{_Model.name}}",
+            exclude: ["_id", "form", "_ngram", "roles", "owner"]
           })
         }
       }
     })
-    {{_Model.name}}Submission: Omit< {{_Model.name}}Model, "_id">
+    {{_Model.name}}Submission: Omit< {{_Model.name}}Model, "_id"|"form"|"_ngram"|"roles"|"owner">
   ): Promise<{{_Model.name}}Model> {
     return this.{{_Model.name}}_Repository.create({{_Model.name}}Submission);
   }
@@ -71,7 +73,9 @@ export class {{_Model.name}}Base {
           "application/json": {
             schema: {
               type: "array",
-              items: getModelSchemaRef({{_Model.name}}Model)
+              items: getModelSchemaRef({{_Model.name}}Model, {
+              exclude: ["_id", "form", "_ngram", "roles", "owner"]
+            })
             }
           }
         }
@@ -85,12 +89,14 @@ export class {{_Model.name}}Base {
         "application/json": {
           schema: {
             type: "array",
-            items: getModelSchemaRef({{_Model.name}}Model)
+            items: getModelSchemaRef({{_Model.name}}Model, {
+              exclude: ["_id", "form", "_ngram", "roles", "owner"]
+            })
           }
         }
       }
     })
-    {{_Model.name}}Submission: {{_Model.name}}Model[]
+    {{_Model.name}}Submission: Omit< {{_Model.name}}Model, "_id"|"form"|"_ngram"|"roles"|"owner">[]
   ): Promise< {{_Model.name}}Model[]> {
     return this.{{_Model.name}}_Repository.createAll({{_Model.name}}Submission);
   }

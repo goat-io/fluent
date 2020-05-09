@@ -1,4 +1,4 @@
-import { inject } from '@loopback/core'
+import { inject, lifeCycleObserver, ValueOrPromise } from '@loopback/core'
 import { juggler } from '@loopback/repository'
 
 const config = {
@@ -9,6 +9,7 @@ const config = {
   useUnifiedTopology: true
 }
 
+@lifeCycleObserver('datasource')
 export class MongoDataSource extends juggler.DataSource {
   public static dataSourceName = 'mongo'
 
@@ -21,5 +22,12 @@ export class MongoDataSource extends juggler.DataSource {
     dsConfig: object = config
   ) {
     super(dsConfig)
+  }
+  /**
+   * Disconnect the datasource when application is stopped. This allows the
+   * application to be shut down gracefully.
+   */
+  public stop(): void | PromiseLike<void> {
+    return super.disconnect()
   }
 }

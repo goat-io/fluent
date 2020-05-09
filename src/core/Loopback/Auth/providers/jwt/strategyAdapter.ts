@@ -26,5 +26,5 @@ export declare class StrategyAdapter<U> implements AuthenticationStrategy {
    *     3. authenticate using the strategy
    * @param request The incoming request.
    */
-  authenticate(request: Request): Promise<UserProfile | RedirectRoute>
+  authenticate(request: Request): Promise<UserProfile | undefined>
 }

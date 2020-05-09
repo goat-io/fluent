@@ -1,10 +1,10 @@
-import { Interceptor } from '@loopback/core'
+import { Interceptor, InvocationContext, ValueOrPromise } from '@loopback/core'
 import { to } from 'await-to-js'
 import { Errors } from '../../../Helpers/Errors'
 import { Formio } from '../../../Helpers/Formio'
-import Validate from './Validator/Validate'
+import Validate from '../../../Helpers/Formio/validator/Validate'
 
-export const validateForm: Interceptor = async (ctx, next) => {
+export const validateForm: Interceptor = async (ctx: InvocationContext, next: ValueOrPromise<any>) => {
   const method = ctx.methodName
   const isPatch = ['updateById'].includes(method)
   const argsIndex = ['replaceById', 'updateById'].includes(method) ? 1 : 0

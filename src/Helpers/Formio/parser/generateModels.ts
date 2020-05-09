@@ -3,8 +3,8 @@ import { findComponents } from '../findComponents'
 import { FormioComponent } from '../types/FormioComponent'
 import { FormioForm } from '../types/FormioForm'
 import { GoatModel } from '../types/GoatModel'
-import { selectBox as getSelectBoxes } from './components/selectbox'
-import { survey as getSurvey } from './components/survey'
+import { selectBox as getSelectBoxes } from '../components/selectbox'
+import { survey as getSurvey } from '../components/survey'
 import { baseModel } from './getBaseModel'
 import { getFormDataObject } from './getFormDataObject'
 import { getRelations } from './getRelations'
@@ -26,7 +26,7 @@ const findDataGrids = (components: FormioComponent[]) => {
 
     const dataObjects = getFormDataObject({ components: dataGrid.components })
 
-    Object.keys(dataObjects).forEach(dataObject => {
+    Object.keys(dataObjects).forEach((dataObject) => {
       if (dataObjects[dataObject].isObject) {
         dataObjects[dataObject].path = `${dataGridPath}_${dataObject}`
       }
@@ -89,7 +89,7 @@ export const generateGoatModels = async (forms: FormioForm[]): Promise<GoatModel
     Model.name = form.name
     const data = getFormDataObject(form)
 
-    Object.keys(data).forEach(attribute => {
+    Object.keys(data).forEach((attribute) => {
       Model.properties[attribute] = data[attribute]
     })
 
@@ -112,10 +112,10 @@ export const generateGoatModels = async (forms: FormioForm[]): Promise<GoatModel
       Model.mixins.Search.enabled = true
       Model.mixins.Search.fullText = findComponents(form.components, {
         'properties.search': 'text'
-      }).map(f => f.key)
+      }).map((f) => f.key)
       Model.mixins.Search.nGram = findComponents(form.components, {
         'properties.search': 'fuzzy'
-      }).map(f => f.key)
+      }).map((f) => f.key)
     }
 
     Model.__datagrids = findDataGrids(form.components)
