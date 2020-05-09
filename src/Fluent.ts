@@ -1,4 +1,8 @@
-import { IDataElement, BaseConnector, IGoatExtendedAttributes } from './BaseConnector'
+import {
+  IDataElement,
+  BaseConnector,
+  IGoatExtendedAttributes
+} from './BaseConnector'
 import { Collection } from './Collection'
 import { Primitives } from './Providers/types'
 import { TypedPathWrapper, typedPath } from 'typed-path'
@@ -47,7 +51,9 @@ export class Fluent {
   /**
    *
    */
-  public static model<T = IDataElement>(name: string): TypedPathWrapper<T & IGoatExtendedAttributes> {
+  public static model<T = IDataElement>(
+    name: string
+  ): TypedPathWrapper<T & IGoatExtendedAttributes> {
     this.registerModel<T & IGoatExtendedAttributes>(name)
     return typedPath<T & IGoatExtendedAttributes>()
   }
@@ -55,7 +61,9 @@ export class Fluent {
    *
    * @param args
    */
-  public static collect<T = IDataElement | Primitives>(data: T[]): Collection<T> {
+  public static collect<T = IDataElement | Primitives>(
+    data: T[]
+  ): Collection<T> {
     return new Collection<T>(data)
   }
 

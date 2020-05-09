@@ -13,11 +13,11 @@
   ],
   "scripts": {
     "test": "jest",
-    "dev": "tsc -w",
-    "build": "tsc",
+    "dev": "npx tsc --watch",
+    "tslint-check": "npx tslint-config-prettier-check ./tslint.json",
+    "build": "npx tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
-    "lint": "tslint -p tsconfig.json",
-    "prepare": "npm run build",
+    "lint": "npx tslint -p ./tslint.json",
     "preversion": "npm run lint",
     "update:packages": "ncu -u && npm install"
   },
@@ -28,6 +28,11 @@
   ],
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  },
   "dependencies": {
     "@azure/storage-blob": "^12.1.1",
     "@hapi/joi": "^17.1.1",
@@ -67,6 +72,7 @@
     "gradient-string": "^1.2.0",
     "handlebars": "^4.7.6",
     "http-errors": "^1.7.3",
+    "husky": "^4.2.5",
     "inquirer": "^7.1.0",
     "ioredis": "^4.16.3",
     "isemail": "^3.2.0",
@@ -95,6 +101,7 @@
     "passport-http": "^0.3.0",
     "passport-jwt": "^4.0.0",
     "pluralize": "^8.0.0",
+    "pretty-quick": "^2.0.1",
     "pusher-js": "^6.0.2",
     "q": "^1.5.1",
     "qs": "^6.9.4",

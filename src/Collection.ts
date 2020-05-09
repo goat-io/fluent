@@ -69,7 +69,9 @@ export class Collection<T = IDataElement | Primitives> {
       const avg = sum / data.length
       return avg
     } catch (e) {
-      throw new Error('Division between "' + sum + '" and "' + data.length + '" is not valid.')
+      throw new Error(
+        'Division between "' + sum + '" and "' + data.length + '" is not valid.'
+      )
     }
   }
   /**
@@ -89,7 +91,7 @@ export class Collection<T = IDataElement | Primitives> {
 
     const reducer = (chain, batch) =>
       chain
-        .then(() => Promise.all(batch.map((d) => callback(d))))
+        .then(() => Promise.all(batch.map(d => callback(d))))
         .then(() => {
           count = count + size > totalSize ? totalSize : count + size
           console.log(`Processed ${count}/${totalSize} elements...`)
@@ -124,9 +126,9 @@ export class Collection<T = IDataElement | Primitives> {
     const data = [...this.data]
     const results: T[] = []
 
-    data.forEach((chunk) => {
+    data.forEach(chunk => {
       if (Array.isArray(chunk)) {
-        chunk.forEach((element) => {
+        chunk.forEach(element => {
           results.push(element)
         })
       } else {
@@ -174,7 +176,9 @@ export class Collection<T = IDataElement | Primitives> {
     const data = [...this.data]
 
     if (!contains.Fx && !contains.value) {
-      throw new Error('No Function nor value to compare. Please add one of them')
+      throw new Error(
+        'No Function nor value to compare. Please add one of them'
+      )
     }
 
     return data.some((element, index) => {
@@ -190,7 +194,11 @@ export class Collection<T = IDataElement | Primitives> {
         }
       }
 
-      if (typeof element === 'string' || typeof element === 'number' || typeof element === 'boolean') {
+      if (
+        typeof element === 'string' ||
+        typeof element === 'number' ||
+        typeof element === 'boolean'
+      ) {
         return element === contains.value
       }
     })
@@ -210,7 +218,10 @@ export class Collection<T = IDataElement | Primitives> {
     const duplicates = []
 
     data.reduce((object, submission) => {
-      const finalKey = keys.reduce((s: string, key) => s + Objects.getFromPath(submission, key, '').value, '')
+      const finalKey = keys.reduce(
+        (s: string, key) => s + Objects.getFromPath(submission, key, '').value,
+        ''
+      )
 
       if (object.hasOwnProperty(finalKey)) {
         duplicates.push(submission)
@@ -231,6 +242,9 @@ export class Collection<T = IDataElement | Primitives> {
    * @param functionToCheck
    */
   private isFunction(functionToCheck) {
-    return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]'
+    return (
+      functionToCheck &&
+      {}.toString.call(functionToCheck) === '[object Function]'
+    )
   }
 }

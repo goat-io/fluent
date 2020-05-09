@@ -1,7 +1,13 @@
 import { Filter } from '@loopback/repository'
 import { Collection } from './Collection'
 import { Objects } from './Helpers/Objects'
-import { IDeleted, IPaginatedData, IPaginator, ISure, Primitives } from './Providers/types'
+import {
+  IDeleted,
+  IPaginatedData,
+  IPaginator,
+  ISure,
+  Primitives
+} from './Providers/types'
 import { Id } from './Helpers/Id'
 import { Dates } from './Helpers/Dates'
 import { typedPath, TypedPathWrapper } from 'typed-path'
@@ -160,9 +166,11 @@ export abstract class BaseConnector<T> {
     columns = this.prepareInput(columns)
 
     this.chainReference.push({ method: 'select', args: columns })
-    this.selectArray = this.selectArray.concat(columns).filter((elem, pos, arr) => {
-      return arr.indexOf(elem) === pos
-    })
+    this.selectArray = this.selectArray
+      .concat(columns)
+      .filter((elem, pos, arr) => {
+        return arr.indexOf(elem) === pos
+      })
 
     return this
   }
@@ -204,7 +212,11 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public where(path: TypedPathWrapper<Primitives>, operator: OperatorType, value: Primitives) {
+  public where(
+    path: TypedPathWrapper<Primitives>,
+    operator: OperatorType,
+    value: Primitives
+  ) {
     const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'where', chainedWhere })
@@ -222,7 +234,11 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args Where filters
    * @returns {Model} Fluent Model
    */
-  public andWhere(path: TypedPathWrapper<Primitives>, operator: OperatorType, value: Primitives) {
+  public andWhere(
+    path: TypedPathWrapper<Primitives>,
+    operator: OperatorType,
+    value: Primitives
+  ) {
     const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'andWhere', chainedWhere })
@@ -237,7 +253,11 @@ export abstract class BaseConnector<T> {
    * @param {String|Array} args OR where filters
    * @returns {Model} Fluent Model
    */
-  public orWhere(path: TypedPathWrapper<Primitives>, operator: OperatorType, value: Primitives) {
+  public orWhere(
+    path: TypedPathWrapper<Primitives>,
+    operator: OperatorType,
+    value: Primitives
+  ) {
     const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'orWhere', chainedWhere })
@@ -274,7 +294,7 @@ export abstract class BaseConnector<T> {
     this.chainReference.push({ method: 'pluck', args: stringPath })
     const data = await this.get()
 
-    const result: string[] = data.map((e) => {
+    const result: string[] = data.map(e => {
       const extracted = Objects.getFromPath(e, stringPath, undefined)
 
       if (typeof extracted.value !== 'undefined') {
@@ -311,15 +331,19 @@ export abstract class BaseConnector<T> {
     if (this.selectArray.length <= 0) {
       return _data
     }
-    return _data.map((element) => {
+    return _data.map(element => {
       const newElement = {}
-      this.selectArray.forEach((attribute) => {
+      this.selectArray.forEach(attribute => {
         const extract = Objects.getFromPath(element, attribute, undefined)
 
         const value = Objects.get(() => extract.value, undefined)
 
         if (typeof value !== 'undefined') {
-          if (typeof value === 'object' && value.hasOwnProperty('data') && value.data.hasOwnProperty('name')) {
+          if (
+            typeof value === 'object' &&
+            value.hasOwnProperty('data') &&
+            value.data.hasOwnProperty('name')
+          ) {
             newElement[extract.label] = value.data.name
           } else {
             newElement[extract.label] = value
@@ -342,9 +366,14 @@ export abstract class BaseConnector<T> {
     }
     const field = this.orderByArray[0]
 
-    if (this.selectArray.length > 0 && (field.includes('.') || field.includes('['))) {
+    if (
+      this.selectArray.length > 0 &&
+      (field.includes('.') || field.includes('['))
+    ) {
       throw new Error(
-        'Cannot orderBy nested attribute "' + field + '" when using Select. You must rename the attribute'
+        'Cannot orderBy nested attribute "' +
+          field +
+          '" when using Select. You must rename the attribute'
       )
     }
 
@@ -360,7 +389,11 @@ export abstract class BaseConnector<T> {
       const B = Objects.getFromPath(b, field, undefined).value
 
       if (typeof A === 'undefined' || typeof B === 'undefined') {
-        throw new Error('Cannot order by property "' + field + '" not all values have this property')
+        throw new Error(
+          'Cannot order by property "' +
+            field +
+            '" not all values have this property'
+        )
       }
       // For default order and numbers
       if (type.includes('string') || type.includes('number')) {
@@ -384,7 +417,7 @@ export abstract class BaseConnector<T> {
   private prepareInput(columns: TypedPathWrapper<Primitives>[]) {
     let cols = []
 
-    columns.forEach((col) => {
+    columns.forEach(col => {
       cols = cols.concat(col.$path.trim())
     })
 

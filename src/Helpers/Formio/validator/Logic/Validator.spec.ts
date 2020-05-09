@@ -1,9 +1,8 @@
 process.env.NODE_ENV = 'test'
-import mongoose from 'mongoose'
-import { mongoMemory } from '../../../../core/Database/mongo.memory'
+// import mongoose from 'mongoose'
+// import { mongoMemory } from '../../../../core/Database/mongo.memory'
 import { Form } from './tests/Forms/SingleNumerComponent'
 import { textForm } from './tests/Forms/SingleTextComponent'
-import { advancedNumberForm } from './tests/Forms/AdvancedRelationsTest'
 import { Validate, FormioValidationError } from '../Validate'
 import { For } from '../../../For'
 import { IDataElement } from '../../../../BaseConnector'
@@ -24,17 +23,19 @@ beforeAll(async () => {
 
 test('Should validate number component', async () => {
   const wrongSubmission = { data: { number: 'HELLO WORLD' } }
-  const [error, submission] = await For.async<IDataElement, FormioValidationError>(
-    Validate.submission(Form, wrongSubmission)
-  )
+  const [error, submission] = await For.async<
+    IDataElement,
+    FormioValidationError
+  >(Validate.submission(Form, wrongSubmission))
 
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe('"number" must be a number')
 
   const validSubmission = { data: { number: 3 } }
-  const [error2, submission2] = await For.async<IDataElement, FormioValidationError>(
-    Validate.submission(Form, validSubmission)
-  )
+  const [error2, submission2] = await For.async<
+    IDataElement,
+    FormioValidationError
+  >(Validate.submission(Form, validSubmission))
 
   expect(error2).toBe(null)
   expect(submission2.number).toBe(3)
@@ -42,9 +43,10 @@ test('Should validate number component', async () => {
 
 test('Should validate required number', async () => {
   const wrongSubmission = { data: { number: undefined } }
-  const [error, submission] = await For.async<IDataElement, FormioValidationError>(
-    Validate.submission(Form, wrongSubmission)
-  )
+  const [error, submission] = await For.async<
+    IDataElement,
+    FormioValidationError
+  >(Validate.submission(Form, wrongSubmission))
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe('"number" is required')
 })
@@ -57,14 +59,18 @@ test('Should validate minimum and maximum number', async () => {
     Validate.submission(ComplexNumberForm, wrongSubmissionMIN)
   )
   expect(error.name).toBe('ValidationError')
-  expect(error.details[0].message).toBe('"number" must be larger than or equal to 10')
+  expect(error.details[0].message).toBe(
+    '"number" must be larger than or equal to 10'
+  )
 
   const wrongSubmissionMAX = { data: { number: 100 } }
   ;[error, submission] = await For.async<IDataElement, FormioValidationError>(
     Validate.submission(ComplexNumberForm, wrongSubmissionMAX)
   )
   expect(error.name).toBe('ValidationError')
-  expect(error.details[0].message).toBe('"number" must be less than or equal to 20')
+  expect(error.details[0].message).toBe(
+    '"number" must be less than or equal to 20'
+  )
 
   const rightSubmission = { data: { number: 15 } }
   ;[error, submission] = await For.async<IDataElement, FormioValidationError>(
@@ -76,23 +82,23 @@ test('Should validate minimum and maximum number', async () => {
 
 test('Should validate required text', async () => {
   const wrongSubmission = { data: { text: undefined } }
-  const [error, submission] = await For.async<IDataElement, FormioValidationError>(
-    Validate.submission(textForm, wrongSubmission)
-  )
+  const [error, submission] = await For.async<
+    IDataElement,
+    FormioValidationError
+  >(Validate.submission(textForm, wrongSubmission))
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe('"text" is required')
 })
 
 test('Should validate text Type', async () => {
   const wrongSubmission = { data: { text: 3 } }
-  const [error, submission] = await For.async<IDataElement, FormioValidationError>(
-    Validate.submission(textForm, wrongSubmission)
-  )
+  const [error, submission] = await For.async<
+    IDataElement,
+    FormioValidationError
+  >(Validate.submission(textForm, wrongSubmission))
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe('"text" must be a string')
 })
-
-
 
 /*
 
