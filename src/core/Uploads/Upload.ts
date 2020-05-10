@@ -11,7 +11,7 @@ export enum Providers {
   Memory = 'memory',
   Google = 'google',
   S3 = 's3',
-  // Azure = 'azure',
+  Azure = 'azure',
   Local = 'local'
 }
 
@@ -98,6 +98,7 @@ export class Upload {
         storage = multer.memoryStorage()
         break
     }
+
     return multer.default({ storage, limits }).array(key, 1)
   }
 }

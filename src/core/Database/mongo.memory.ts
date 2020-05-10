@@ -26,7 +26,7 @@ export const mongoMemory = (() => {
 
       const Test = db.model('test', testSchema)
 
-      const test = new Test({ name: 'Billy', age: 31 })
+      const test = new Test({ name: 'Nacho', age: 31 })
 
       db.once('connected', (err: any) => {
         if (err) {

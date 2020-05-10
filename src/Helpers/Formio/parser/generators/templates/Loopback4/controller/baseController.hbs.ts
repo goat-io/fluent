@@ -26,7 +26,7 @@ import { FormRepository } from "@goatlab/fluent/dist/core/Loopback/Form/form.rep
 export class {{_Model.name}}Base {
   constructor(
     @repository({{_Model.name}}Repository)
-    public {{_Model.name}}_Repository: {{_Model.name}}Repository,
+    public model_Repository: {{_Model.name}}Repository,
     @repository(FormRepository)
     public formRepository: FormRepository
   ) {}
@@ -59,7 +59,7 @@ export class {{_Model.name}}Base {
     })
     {{_Model.name}}Submission: {{_Model.name}}OriginalModel
   ): Promise<{{_Model.name}}ReturnModel> {
-    return this.{{_Model.name}}_Repository.create({{_Model.name}}Submission);
+    return this.model_Repository.create({{_Model.name}}Submission);
   }
   /*
    * /POST/
@@ -95,13 +95,13 @@ export class {{_Model.name}}Base {
     })
     {{_Model.name}}Submission: {{_Model.name}}OriginalModel[]
   ): Promise< {{_Model.name}}ReturnModel[]> {
-    return this.{{_Model.name}}_Repository.createAll({{_Model.name}}Submission);
+    return this.model_Repository.createAll({{_Model.name}}Submission);
   }
   /*
    * /PUT/
    * Replace a {{_Model.name}} by _id
    */
-  // @intercept(validateSubmission)
+  @intercept(validateSubmission)
   @put("/{{_Model.path}}/{_id}", {
     responses: {
       "204": {
@@ -123,7 +123,7 @@ export class {{_Model.name}}Base {
       }
     }) {{_Model.name}}Submission: {{_Model.name}}ReturnModel
   ): Promise<void> {
-    await this.{{_Model.name}}_Repository.replaceById(id, {{_Model.name}}Submission);
+    await this.model_Repository.replaceById(id, {{_Model.name}}Submission);
   }
   /*
    * /PATCH/
@@ -151,7 +151,7 @@ export class {{_Model.name}}Base {
       }
     }) {{_Model.name}}Submission: {{_Model.name}}ReturnModel
   ): Promise<void> {
-    await this.{{_Model.name}}_Repository.replaceById(id, {{_Model.name}}Submission);
+    await this.model_Repository.replaceById(id, {{_Model.name}}Submission);
   }
   /*
    * /PATCH/
@@ -182,7 +182,7 @@ export class {{_Model.name}}Base {
     @param.query.object("where", getWhereSchemaFor({{_Model.name}}Model))
     where?: Where<{{_Model.name}}Model>
   ): Promise<Count> {
-    return this.{{_Model.name}}_Repository.updateAll({{_Model.name}}Submission, where);
+    return this.model_Repository.updateAll({{_Model.name}}Submission, where);
   }
   /*
    * /GET/
@@ -201,7 +201,7 @@ export class {{_Model.name}}Base {
     @param.query.object("where", getWhereSchemaFor({{_Model.name}}Model))
     where?: Where<{{_Model.name}}Model>
   ): Promise<Count> {
-    return this.{{_Model.name}}_Repository.count(where);
+    return this.model_Repository.count(where);
   }
   /*
    * /GET/
@@ -229,7 +229,7 @@ export class {{_Model.name}}Base {
     @param.query.object("filter", getFilterSchemaFor({{_Model.name}}Model))
     filter?: Filter<{{_Model.name}}Model>
   ): Promise<{{_Model.name}}Model[]> {
-    return this.{{_Model.name}}_Repository.find(filter);
+    return this.model_Repository.find(filter);
   }
   /*
    * /GET/
@@ -255,7 +255,7 @@ export class {{_Model.name}}Base {
     @param.query.object("filter", getFilterSchemaFor({{_Model.name}}Model))
     filter?: Filter<{{_Model.name}}Model>
   ): Promise<{{_Model.name}}Model> {
-    return this.{{_Model.name}}_Repository.findById(id, filter);
+    return this.model_Repository.findById(id, filter);
   }
   /*
    * /DELETE/
@@ -270,6 +270,6 @@ export class {{_Model.name}}Base {
     tags: ["{{_Model.path}}"]
   })
   async deleteById(@param.path.string("_id") id: string): Promise<void> {
-    await this.{{_Model.name}}_Repository.deleteById(id);
+    await this.model_Repository.deleteById(id);
   }
 }`

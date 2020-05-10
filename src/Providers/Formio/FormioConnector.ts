@@ -3,11 +3,15 @@ import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import jwtDecode from 'jwt-decode'
-import { BaseConnector, IDataElement, GoatConnectorInterface, IGoatExtendedAttributes } from '../../BaseConnector'
-import { AuthenticationError } from '../../Helpers/AuthenticationError'
+import {
+  BaseConnector,
+  IDataElement,
+  GoatConnectorInterface,
+  IGoatExtendedAttributes
+} from '../../BaseConnector'
+
 import { Connection } from '../../Helpers/Connection'
 import { Event } from '../../Helpers/Event'
-import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 dayjs.extend(isSameOrAfter)
 
@@ -16,9 +20,17 @@ interface IFormioConnector {
   token?: string
 }
 
-const GoatExtenderAttributes = ['_id', 'owner', 'roles', 'created', 'modified', '_ngram']
+const GoatExtenderAttributes = [
+  '_id',
+  'owner',
+  'roles',
+  'created',
+  'modified',
+  '_ngram'
+]
 
-export class FormioConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
+export class FormioConnector<T = IDataElement> extends BaseConnector<T>
+  implements GoatConnectorInterface<T> {
   private baseEndPoint: string = ''
   private authToken: string = ''
 
@@ -38,7 +50,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
       throw new Error('Error while getting submissions')
     }
 
-    const data: (T & IGoatExtendedAttributes)[] = result.data.map((r) => {
+    const data: (T & IGoatExtendedAttributes)[] = result.data.map(r => {
       const response: T & IGoatExtendedAttributes = {
         ...{
           _id: r._id,
@@ -70,7 +82,9 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
   public async paginate(paginator: IPaginator): Promise<IPaginatedData<T>> {
     const numberOfRows = await this.numberOfRows()
 
-    this.offset((paginator.page - 1) * paginator.perPage).take(paginator.perPage)
+    this.offset((paginator.page - 1) * paginator.perPage).take(
+      paginator.perPage
+    )
 
     const results: IPaginatedData<T> = {
       data: await this.get(),
@@ -119,7 +133,10 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
     for (const element of data) {
       const goatAttributes = this.getExtendedCreateAttributes()
 
-      const inserted: T & IGoatExtendedAttributes = await this.insert({ ...goatAttributes, ...element })
+      const inserted: T & IGoatExtendedAttributes = await this.insert({
+        ...goatAttributes,
+        ...element
+      })
 
       insertedElements.push(inserted)
     }
@@ -130,9 +147,14 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
    *
    * @param data
    */
-  public async updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes> {
+  public async updateById(
+    _id: string,
+    data: T
+  ): Promise<T & IGoatExtendedAttributes> {
     if (!_id) {
-      throw new Error('Formio connector error. Cannot update a Model without _id key')
+      throw new Error(
+        'Formio connector error. Cannot update a Model without _id key'
+      )
     }
     if (_id.includes('_local')) {
       throw new Error('Formio connector error. Cannot update a local document')
@@ -160,7 +182,9 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
     }
     const promises = []
 
-    const [error, data] = await to(this.select(this._keys._id).pluck(this._keys._id))
+    const [error, data] = await to(
+      this.select(this._keys._id).pluck(this._keys._id)
+    )
 
     if (error) {
       console.log(error)
@@ -249,7 +273,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
         data: expDate,
         text: 'Session expired'
       })
-      throw new AuthenticationError('Token has expired.')
+      throw new Error('Token has expired.')
     }
     return token
   }
@@ -374,10 +398,12 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
 
     let filterQuery = ''
 
-    filter.forEach((condition) => {
+    filter.forEach(condition => {
       let valueString = ''
 
-      const element = GoatExtenderAttributes.includes(condition[0]) ? condition[0] : `data.${condition[0]}`
+      const element = GoatExtenderAttributes.includes(condition[0])
+        ? condition[0]
+        : `data.${condition[0]}`
       const operator = condition[1]
       const value = condition[2]
 
@@ -403,14 +429,20 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
         case 'in':
           valueString = ''
           value.forEach((val, index, array) => {
-            valueString = index === array.length - 1 ? valueString + val : valueString + val + ','
+            valueString =
+              index === array.length - 1
+                ? valueString + val
+                : valueString + val + ','
           })
           filterQuery = filterQuery + element + '__in=' + valueString + '&'
           break
         case 'nin':
           valueString = ''
           value.forEach((val, index, array) => {
-            valueString = index === array.length - 1 ? valueString + val : valueString + val + ','
+            valueString =
+              index === array.length - 1
+                ? valueString + val
+                : valueString + val + ','
           })
           filterQuery = filterQuery + element + '__nin=' + valueString + '&'
           break
@@ -459,7 +491,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
   private getSelect() {
     let select = this.selectArray
 
-    select = select.map((e) => {
+    select = select.map(e => {
       return e.split(' as ')[0]
     })
 
@@ -467,7 +499,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T> implemen
       return
     }
 
-    select = select.map((e) => {
+    select = select.map(e => {
       return GoatExtenderAttributes.includes(e) ? e : `data.${e}`
     })
 

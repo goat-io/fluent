@@ -1,4 +1,3 @@
-// import Promise from 'bluebird';
 const Position = class {
   /**
    * [getConfig description]
@@ -9,7 +8,7 @@ const Position = class {
       maximumAge: 3000,
       timeout: 15000,
       enableHighAccuracy: true
-    };
+    }
   }
 
   /**
@@ -20,14 +19,14 @@ const Position = class {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         position => {
-          resolve(position);
+          resolve(position)
         },
         error => {
-          reject(error);
+          reject(error)
         },
         this.getConfig()
-      );
-    });
+      )
+    })
   }
 
   /**
@@ -38,15 +37,15 @@ const Position = class {
     return new Promise((resolve, reject) => {
       navigator.geolocation.watchPosition(
         position => {
-          resolve(position);
+          resolve(position)
         },
         error => {
-          reject(error);
+          reject(error)
         },
         this.getConfig()
-      );
-    });
+      )
+    })
   }
-};
+}
 
-export default Position;
+export default Position

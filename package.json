@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "Readable query Interface & API generator for JS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -31,7 +31,7 @@
   "husky": {
     "hooks": {
       "pre-commit": "pretty-quick --staged && npm test",
-      "pre-push": "pretty-quick --staged && npm test && npm run build"
+      "pre-push": "npm run build"
     }
   },
   "dependencies": {
@@ -65,6 +65,7 @@
     "commander": "^5.1.0",
     "cron": "^1.8.2",
     "dayjs": "^1.8.26",
+    "deep-diff": "^1.0.2",
     "delete-property": "0.0.4",
     "faker": "^4.1.0",
     "figlet": "^1.4.0",
@@ -102,6 +103,7 @@
     "passport-http": "^0.3.0",
     "passport-jwt": "^4.0.0",
     "pluralize": "^8.0.0",
+    "portfinder": "^1.0.26",
     "pretty-quick": "^2.0.1",
     "pusher-js": "^6.0.2",
     "q": "^1.5.1",

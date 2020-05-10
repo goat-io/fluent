@@ -1,4 +1,12 @@
-const pluralize = require('pluralize')
+import pluralize from 'pluralize'
+import nGram from 'n-gram'
+import { IDataElement } from '../BaseConnector'
+import { Objects } from './Objects'
+
+export interface INgramFromObject {
+  fields: string[]
+  object: IDataElement
+}
 
 export const Strings = (() => {
   /**
@@ -50,7 +58,9 @@ export const Strings = (() => {
    * @return string
    */
   const camel = (value: string) => {
-    return value.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
+    return value
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
   }
 
   /**
@@ -89,8 +99,10 @@ export const Strings = (() => {
    * @return string
    */
   const slug = (str: string, separator = '-'): string => {
-    const a = 'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
-    const b = 'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrsssssttuuuuuuuuuwxyyzzz------'
+    const a =
+      'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
+    const b =
+      'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrsssssttuuuuuuuuuwxyyzzz------'
     const p = new RegExp(a.split('').join('|'), 'g')
 
     return str
@@ -116,10 +128,73 @@ export const Strings = (() => {
     return (
       str &&
       str
-        .match(/[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g)
+        .match(
+          /[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g
+        )
         .map(x => x.toLowerCase())
         .join(delimiter)
     )
+  }
+  /**
+   *
+   * Generates a nGram based on a given text
+   *
+   * @param {string} text
+   * @returns {string} generated nGram
+   */
+  const ngram = (text: string) => {
+    if (!text || text === 'undefined ') {
+      return ''
+    }
+
+    if (text.length === 1) {
+      return text
+    }
+    // Include 1st and 2nd characters on Ngram
+    let nGramString: string = `${text[0]} ${text[0]}${text[1]}`
+
+    // Generate Ngram from N=3 for better search experience
+    for (let i = 3; i <= text.length; i++) {
+      const ngramArray: string[] = nGram(i)(text)
+      nGramString = nGramString + ' ' + ngramArray.join(' ')
+    }
+
+    return nGramString
+  }
+  /**
+   *
+   * Given an Object It generates de corresponding nGram for
+   * each attribute one.
+   *
+   * @param {Object} param
+   * @param {Array} param.fullTextFields Fields to add as full text
+   * @param {Array} param.fields Fields to add as fuzzy search
+   * @param {Array || Object} param.submissions description
+   * @returns {Array} Submissions with nGram
+   */
+  const ngramFromObject = ({ fields, object }: INgramFromObject): string => {
+    const submission = JSON.parse(JSON.stringify(object))
+
+    const fullNGramString = fields.reduce((r, field) => {
+      const text = Objects.getFromPath(submission, field, '')
+      const nGramText = ngram(text.value)
+      r = `${r} ${nGramText}`
+      return r
+    }, '')
+
+    let ngramString = `${fullNGramString}`
+      .replace(/undefined/g, '')
+      .replace(/\s\s+/g, ' ')
+      .trim()
+
+    ngramString = ngramString
+      .split(' ')
+      .filter((item, i, allItems) => {
+        return i === allItems.indexOf(item)
+      })
+      .join(' ')
+
+    return ngramString
   }
 
   return Object.freeze({
@@ -131,6 +206,8 @@ export const Strings = (() => {
     plural,
     singular,
     slug,
-    snake
+    snake,
+    ngram,
+    ngramFromObject
   })
 })()
