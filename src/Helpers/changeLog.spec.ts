@@ -1,4 +1,4 @@
-import { Changelog } from './ChangeLog'
+import { Changelog } from './Changelog'
 test('Should get basic diffs', () => {
   const changelog = Changelog.get({
     previous: {},
