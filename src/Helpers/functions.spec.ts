@@ -6,6 +6,6 @@ it('Test sleep and repeat', async () => {
     ar.push('A')
   })
 
-  await Functions.sleep(3000)
+  await Functions.sleep(2500)
   expect(ar.length).toBe(2)
 })
