@@ -39,7 +39,6 @@
   },
   "release-it": {
     "git": {
-      "changelog": "npx auto-changelog --stdout --commit-limit false -u --template https://raw.githubusercontent.com/release-it/release-it/master/config/changelog-compact.hbs",
       "requireBranch": "master"
     },
     "hooks": {
@@ -47,7 +46,7 @@
         "npm run build",
         "npm run pack"
       ],
-      "after:bump": "npx auto-changelog -p",
+      "after:bump": "npx auto-changelog -p --issue-pattern ([A-Z]+-\\d+) --issue-url https://goatlab.atlassian.net/browse/{id}",
       "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
     },
     "github": {
@@ -56,10 +55,6 @@
         "./*.zip"
       ]
     }
-  },
-  "auto-changelog": {
-    "issueUrl": "https://goatlab.atlassian.net/browse/{id}",
-    "issuePattern": "[A-Z]+-d+"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.1.1",
