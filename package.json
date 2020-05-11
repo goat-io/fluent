@@ -19,7 +19,10 @@
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "npx tslint -p ./tslint.json",
     "preversion": "npm run lint",
-    "update:packages": "ncu -u && npm install"
+    "update:packages": "ncu -u && npm install",
+    "release": "dotenv release-it --no-npm.publish --ci",
+    "release:minor": "dotenv release-it -- minor --no-npm.publish --ci",
+    "release:mayor": "dotenv release-it -- mayor --no-npm.publish --ci "
   },
   "keywords": [
     "goat",
@@ -32,6 +35,17 @@
     "hooks": {
       "pre-commit": "pretty-quick --staged && npm test",
       "pre-push": "npm run build"
+    }
+  },
+  "release-it": {
+    "git": {
+      "requireBranch": "master"
+    },
+    "github": {
+      "release": true,
+      "assets": [
+        "dist/*.zip"
+      ]
     }
   },
   "dependencies": {
@@ -127,6 +141,7 @@
     "@types/multer-s3": "^2.7.7",
     "@types/node": "^13.13.5",
     "@types/passport-http": "^0.3.8",
+    "dotenv-cli": "^3.1.0",
     "jest": "^26.0.1",
     "prettier": "^2.0.5",
     "ts-jest": "^25.5.0",
