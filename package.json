@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Readable query Interface & API generator for JS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -46,7 +46,7 @@
         "npm run build",
         "npm run pack"
       ],
-      "after:bump": "npx auto-changelog -p --issue-pattern ([A-Z]+-\\d+) --issue-url https://goatlab.atlassian.net/browse/{id}",
+      "after:bump": "npx auto-changelog -p --issue-pattern [A-Z]+-\\d+ --issue-url https://goatlab.atlassian.net/browse/{id}",
       "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
     },
     "github": {
