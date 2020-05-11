@@ -39,7 +39,7 @@ Fluent will help you develop faster in any Framework
 
 To install this package in your project, you can use the following command within your terminal.
 
-```
+```bash
 npm install --global @goatlab/fluent
 ```
 
@@ -57,13 +57,47 @@ See the [open issues](https://github.com/github_username/repo/issues) for a list
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## Release Process
+
+1. If you have an issue assigned, please include the issue code/id in the beginning of you commits.
+2. Include the issue id also at the start of your PR message.
+3. All PRs will be merge directly into Master. (If test are green)
+4. Once we are ready to create a release, we will locally pull the latest master version and run the release process
+
+If patch release
+
+```
+npm run release
+```
+
+If minor release
+
+```
+npm run release:minor
+```
+
+If mayor release
+
+```
+npm run release:mayor
+```
+
+This will start the release scripts including:
+
+- Local tests
+- Final version building
+- Final release zip
+- Tag
+- Release
+- Push
 
 <!-- LICENSE -->
 
@@ -81,7 +115,7 @@ Ignacio Cabrera - [@twitter_handle](https://twitter.com/cabrerabywaters) - ignac
 
 ## Acknowledgements
 
-- []()
+- [Tomas Castro]()
 - []()
 - []()
 
