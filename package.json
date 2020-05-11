@@ -20,10 +20,10 @@
     "version": "npx auto-changelog -p && git add --all && git commit -m 'Auto-changelog update'",
     "build": "npx tsc",
     "pack": "npx npm-pack-zip",
-    "release": "npm run version && npx release-it patch --no-npm.publish --ci",
-    "release:patch": "npm run version && npx release-it patch --no-npm.publish --ci",
-    "release:minor": "npm run version && release-it minor --no-npm.publish --ci",
-    "release:mayor": "npm run version && release-it mayor --no-npm.publish --ci "
+    "release": "npx release-it patch --no-npm.publish --ci",
+    "release:patch": "npx release-it patch --no-npm.publish --ci",
+    "release:minor": "npx release-it minor --no-npm.publish --ci",
+    "release:mayor": "npx release-it mayor --no-npm.publish --ci "
   },
   "keywords": [
     "goat",
