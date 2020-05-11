@@ -12,7 +12,12 @@ import { Errors } from '../../../Errors'
  * @param {Object} data
  *   The full submission data.
  */
-export const checkConditional = (component: any, row: any, data: any, recurse: boolean = false): any => {
+export const checkConditional = (
+  component: any,
+  row: any,
+  data: any,
+  recurse: boolean = false
+): any => {
   let isVisible = true
 
   if (!component || !component.hasOwnProperty('key')) {
@@ -50,7 +55,9 @@ export const checkConditional = (component: any, row: any, data: any, recurse: b
 
   // If visible and recurse, continue down tree to check parents.
   if (isVisible && recurse && component.parent.type !== 'form') {
-    return !component.parent || checkConditional(component.parent, row, data, true)
+    return (
+      !component.parent || checkConditional(component.parent, row, data, true)
+    )
   } else {
     return isVisible
   }

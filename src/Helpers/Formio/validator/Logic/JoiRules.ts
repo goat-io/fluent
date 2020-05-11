@@ -34,13 +34,16 @@ export const getRules = (type: any) => [
         try {
           // Replace with variable substitutions.
           const replace = /({{\s{0,}(.*[^\s]){1}\s{0,}}})/g
-          component.validate.custom = component.validate.custom.replace(replace, (match: any, $1: any, $2: any) =>
-            _.get(data, $2)
+          component.validate.custom = component.validate.custom.replace(
+            replace,
+            (match: any, $1: any, $2: any) => _.get(data, $2)
           )
 
           // Create the sandbox.
           const sandbox: any = vm.createContext({
-            input: _.isObject(_row) ? util.getValue({ data: _row }, component.key) : _row,
+            input: _.isObject(_row)
+              ? util.getValue({ data: _row }, component.key)
+              : _row,
             data,
             row: _row,
             scope: { data },
@@ -61,7 +64,12 @@ export const getRules = (type: any) => [
 
         // If there is an error, then set the error object and break from iterations.
         if (valid !== true) {
-          return Joi.createError(`${type}.custom`, { message: valid }, state, options)
+          return Joi.createError(
+            `${type}.custom`,
+            { message: valid },
+            state,
+            options
+          )
         }
       }
 
@@ -99,7 +107,12 @@ export const getRules = (type: any) => [
 
         // If there is an error, then set the error object and break from iterations.
         if (valid !== true) {
-          return Joi.createError(`${type}.json`, { message: valid }, state, options)
+          return Joi.createError(
+            `${type}.json`,
+            { message: valid },
+            state,
+            options
+          )
         }
       }
 
@@ -127,7 +140,12 @@ export const getRules = (type: any) => [
         return value
       }
 
-      return Joi.createError(`${type}.hidden`, { message: 'hidden with value' }, state, options)
+      return Joi.createError(
+        `${type}.hidden`,
+        { message: 'hidden with value' },
+        state,
+        options
+      )
     }
   },
   {
@@ -140,7 +158,12 @@ export const getRules = (type: any) => [
         return value
       }
 
-      return Joi.createError(`${type}.maxWords`, { message: 'exceeded maximum words.' }, state, options)
+      return Joi.createError(
+        `${type}.maxWords`,
+        { message: 'exceeded maximum words.' },
+        state,
+        options
+      )
     }
   },
   {
@@ -153,7 +176,12 @@ export const getRules = (type: any) => [
         return value
       }
 
-      return Joi.createError(`${type}.minWords`, { message: 'does not have enough words.' }, state, options)
+      return Joi.createError(
+        `${type}.minWords`,
+        { message: 'does not have enough words.' },
+        state,
+        options
+      )
     }
   },
   {
@@ -209,7 +237,8 @@ export const getRules = (type: any) => [
 
         // Add the filters.
         if (component.filter) {
-          requestOptions.url += (!requestOptions.url.includes('?') ? '?' : '&') + component.filter
+          requestOptions.url +=
+            (!requestOptions.url.includes('?') ? '?' : '&') + component.filter
         }
 
         // If they only wish to return certain fields.
@@ -247,7 +276,7 @@ export const getRules = (type: any) => [
           const cacheKey =
             `${requestOptions.method}:${requestOptions.url}?` +
             Object.keys(requestOptions.qs)
-              .map((key) => key + '=' + requestOptions.qs[key])
+              .map(key => key + '=' + requestOptions.qs[key])
               .join('&')
           /* eslint-enable prefer-template */
           const cacheTime: any = 3 * 60 * 60 * 1000
@@ -272,7 +301,9 @@ export const getRules = (type: any) => [
             .then((body: any) => {
               if (!body || !body.length) {
                 const error = {
-                  message: `"${value}" for "${component.label || component.key}" is not a valid selection.`,
+                  message: `"${value}" for "${
+                    component.label || component.key
+                  }" is not a valid selection.`,
                   path: state.path,
                   type: 'any.select'
                 }
@@ -344,7 +375,7 @@ export const getRules = (type: any) => [
 
       // Validate if the submission is unique
       async.push(
-        new Promise((resolve) => {
+        new Promise(resolve => {
           // Try to find an existing value within the form.
           model.findOne(query, (err: any, result: any) => {
             if (err) {
@@ -354,7 +385,12 @@ export const getRules = (type: any) => [
                 type: 'any.unique'
               })
             }
-            if (result && result._id && submission._id && result._id.toString() === submission._id) {
+            if (
+              result &&
+              result._id &&
+              submission._id &&
+              result._id.toString() === submission._id
+            ) {
               // This matches the current submission which is allowed.
               return resolve(null)
             }

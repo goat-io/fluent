@@ -1,4 +1,7 @@
-import { AuthenticationStrategy, UserProfileFactory } from '@loopback/authentication'
+import {
+  AuthenticationStrategy,
+  UserProfileFactory
+} from '@loopback/authentication'
 import { RedirectRoute, Request } from '@loopback/rest'
 import { UserProfile } from '@loopback/security'
 import { Strategy } from 'passport'
@@ -18,7 +21,11 @@ export declare class StrategyAdapter<U> implements AuthenticationStrategy {
    * @param strategy instance of a class which implements a
    * {@link http://passportjs.org/ | passport-strategy}.
    */
-  constructor(strategy: Strategy, name: string, userProfileFactory?: UserProfileFactory<U>)
+  constructor(
+    strategy: Strategy,
+    name: string,
+    userProfileFactory?: UserProfileFactory<U>
+  )
   /**
    * The function to invoke the contained passport strategy.
    *     1. Create an instance of the strategy

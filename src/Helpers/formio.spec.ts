@@ -99,7 +99,7 @@ const form = {
 
 it('eachComponent - Should iterate over all available components', () => {
   const keys: string[] = []
-  Formio.eachComponent(form.components, (component) => {
+  Formio.eachComponent(form.components, component => {
     // Do something with the component
     keys.push(component.key)
   })

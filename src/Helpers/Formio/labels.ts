@@ -28,7 +28,7 @@ const createOrAdd = ({ labels, label }) => {
   if (newObject[label.text]) {
     // If the location is an Array of Locations
     if (label.location && Array.isArray(label.location)) {
-      label.location.forEach((l) => {
+      label.location.forEach(l => {
         newObject[label.text].location.push({
           text: label.text,
           template: label.template,
@@ -47,7 +47,7 @@ const createOrAdd = ({ labels, label }) => {
         template: label.template,
         translations: {}
       }
-      label.location.forEach((l) => {
+      label.location.forEach(l => {
         newObject[label.text].location.push({
           text: label.text,
           template: label.template,
@@ -94,7 +94,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
     'errorLabel'
   ]
 
-  Forms.forEach((form) => {
+  Forms.forEach(form => {
     // Add title of the Forms to the translations
     componentLabels = createOrAdd({
       labels: componentLabels,
@@ -109,9 +109,9 @@ export const labels = (Forms: FormioForm[]): ILabels => {
     // Go across every component
     eachComponent(
       form.components,
-      (component) => {
+      component => {
         // Check for the common translated Items listed above
-        formioLabelsPositions.forEach((position) => {
+        formioLabelsPositions.forEach(position => {
           if (component[position] && component[position] !== '') {
             // Add the Label if is not empty
             componentLabels = createOrAdd({
@@ -135,7 +135,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
             texts.push(component.tooltip)
           }
 
-          texts.forEach((text) => {
+          texts.forEach(text => {
             componentLabels = createOrAdd({
               labels: componentLabels,
               label: {
@@ -151,7 +151,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
 
         // Check for components that have values with labels (i.e: radio)
         if (component.values) {
-          component.values.forEach((value) => {
+          component.values.forEach(value => {
             if (value.label && value.label !== '') {
               componentLabels = createOrAdd({
                 labels: componentLabels,
@@ -178,7 +178,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
               texts.push(html)
             }
             // Create a label for each match (if none, don't anything)
-            texts.forEach((text) => {
+            texts.forEach(text => {
               // Omit empty text strings
               if (text !== '') {
                 componentLabels = createOrAdd({
@@ -199,7 +199,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
         // Check specificaly for select elements
         if (component.type === 'select') {
           if (component.data && component.data.values) {
-            component.data.values.forEach((value) => {
+            component.data.values.forEach(value => {
               if (value.label && value.label !== '') {
                 componentLabels = createOrAdd({
                   labels: componentLabels,
@@ -220,7 +220,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
         if (component.type === 'survey') {
           if (component.questions) {
             // Check for every question on the survey
-            component.questions.forEach((q) => {
+            component.questions.forEach(q => {
               componentLabels = createOrAdd({
                 labels: componentLabels,
                 label: {
@@ -233,7 +233,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
               })
             })
             // Check every text of the answers
-            component.values.forEach((v) => {
+            component.values.forEach(v => {
               componentLabels = createOrAdd({
                 labels: componentLabels,
                 label: {
@@ -256,7 +256,7 @@ export const labels = (Forms: FormioForm[]): ILabels => {
           // Create a label for each match (if none, don't anything)
           Array()
             .concat(header, footer)
-            .forEach((text) => {
+            .forEach(text => {
               // Omit empty text strings
               if (text !== '') {
                 componentLabels = createOrAdd({

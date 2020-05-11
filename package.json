@@ -17,7 +17,6 @@
     "tslint-check": "npx tslint-config-prettier-check ./tslint.json",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "update:packages": "ncu -u && npm install",
-    "version": "npx auto-changelog -p && git add --all && git commit -m 'Auto-changelog update'",
     "build": "npx tsc",
     "pack": "npx npm-pack-zip",
     "release": "npx release-it patch --no-npm.publish --ci",
@@ -40,6 +39,7 @@
   },
   "release-it": {
     "git": {
+      "changelog": "npx auto-changelog --stdout --commit-limit false -u --template https://raw.githubusercontent.com/release-it/release-it/master/config/changelog-compact.hbs",
       "requireBranch": "master"
     },
     "hooks": {
@@ -47,6 +47,7 @@
         "npm run build",
         "npm run pack"
       ],
+      "after:bump": "npx auto-changelog -p",
       "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
     },
     "github": {
@@ -55,6 +56,10 @@
         "./*.zip"
       ]
     }
+  },
+  "auto-changelog": {
+    "issueUrl": "https://goatlab.atlassian.net/browse/{id}",
+    "issuePattern": "[A-Z]+-d+"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.1.1",
