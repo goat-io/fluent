@@ -20,7 +20,7 @@
     "lint": "npx tslint -p ./tslint.json",
     "preversion": "npm run lint",
     "update:packages": "ncu -u && npm install",
-    "release": "dotenv release-it --no-npm.publish --ci",
+    "release": "dotenv release-it -- minor --no-npm.publish --ci",
     "release:minor": "dotenv release-it -- minor --no-npm.publish --ci",
     "release:mayor": "dotenv release-it -- mayor --no-npm.publish --ci "
   },
