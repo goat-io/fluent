@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.2.23",
+  "version": "0.3.0",
   "description": "Readable query Interface & API generator for JS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
