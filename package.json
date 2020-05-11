@@ -47,7 +47,6 @@
         "npm run build",
         "npm run pack"
       ],
-      "after:bump": "npx auto-changelog -p",
       "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
     },
     "github": {
