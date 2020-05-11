@@ -20,3 +20,4 @@ dist
 npm-debug.log
 .env
 mongodb-binaries
+@goatlabfluent.zip

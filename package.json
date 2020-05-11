@@ -19,10 +19,12 @@
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "npx tslint -p ./tslint.json",
     "update:packages": "ncu -u && npm install",
+    "pack": "npx npm-pack-zip",
     "version": "auto-changelog -p && git add CHANGELOG.md",
-    "release": "npx release-it minor --no-npm.publish --ci",
-    "release:minor": "dotenv-cli release-it -- minor --no-npm.publish --ci",
-    "release:mayor": "dotenv-cli release-it -- mayor --no-npm.publish --ci "
+    "release": "npx release-it patch --no-npm.publish --ci",
+    "release:patch": "npx release-it patch --no-npm.publish --ci",
+    "release:minor": "dotenv-cli release-it minor --no-npm.publish --ci",
+    "release:mayor": "dotenv-cli release-it mayor --no-npm.publish --ci "
   },
   "keywords": [
     "goat",
@@ -41,10 +43,19 @@
     "git": {
       "requireBranch": "master"
     },
+    "hooks": {
+      "before:init": [
+        "npm run lint",
+        "npm run build",
+        "npm test"
+      ],
+      "after:my-plugin:bump": "./bin/my-script.sh",
+      "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
+    },
     "github": {
       "release": true,
       "assets": [
-        "dist/*.zip"
+        "./*.zip"
       ]
     }
   },
@@ -144,6 +155,7 @@
     "auto-changelog": "^2.0.0",
     "dotenv-cli": "^3.1.0",
     "jest": "^26.0.1",
+    "npm-pack-zip": "^1.2.7",
     "prettier": "^2.0.5",
     "ts-jest": "^25.5.0",
     "tslint": "^6.1.2",
