@@ -1,9 +1,5 @@
-name: Test and Publish
-
-on:
-  release:
-    types: [published]
-
+name: Test
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,5 +27,3 @@ jobs:
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm run build
       - name: Testing Fluent
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm run test
-      - name: Publish to NPM
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm publish
