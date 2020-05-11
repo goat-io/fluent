@@ -20,9 +20,9 @@
     "lint": "npx tslint -p ./tslint.json",
     "update:packages": "ncu -u && npm install",
     "version": "auto-changelog -p && git add CHANGELOG.md",
-    "release": "npx dotenv release-it minor --no-npm.publish --ci",
-    "release:minor": "dotenv release-it -- minor --no-npm.publish --ci",
-    "release:mayor": "dotenv release-it -- mayor --no-npm.publish --ci "
+    "release": "npx release-it minor --no-npm.publish --ci",
+    "release:minor": "dotenv-cli release-it -- minor --no-npm.publish --ci",
+    "release:mayor": "dotenv-cli release-it -- mayor --no-npm.publish --ci "
   },
   "keywords": [
     "goat",
