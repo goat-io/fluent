@@ -17,13 +17,12 @@
     "tslint-check": "npx tslint-config-prettier-check ./tslint.json",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "update:packages": "ncu -u && npm install",
-    "version": "auto-changelog -p && git add CHANGELOG.md && git commit -m 'Changelog update' ",
     "build": "npx tsc",
     "pack": "npx npm-pack-zip",
-    "release": "npm run version && npx release-it patch --no-npm.publish --ci",
-    "release:patch": "npm run version && npx release-it patch --no-npm.publish --ci",
-    "release:minor": "npm run version && dotenv-cli release-it minor --no-npm.publish --ci",
-    "release:mayor": "npm run version && dotenv-cli release-it mayor --no-npm.publish --ci "
+    "release": "npx release-it patch --no-npm.publish --ci",
+    "release:patch": "npx release-it patch --no-npm.publish --ci",
+    "release:minor": "dotenv-cli release-it minor --no-npm.publish --ci",
+    "release:mayor": "dotenv-cli release-it mayor --no-npm.publish --ci "
   },
   "keywords": [
     "goat",
@@ -40,6 +39,7 @@
   },
   "release-it": {
     "git": {
+      "changelog": "npx auto-changelog --stdout --commit-limit false --unreleased --template https://raw.githubusercontent.com/release-it/release-it/master/templates/changelog-compact.hbs",
       "requireBranch": "master"
     },
     "hooks": {
@@ -47,7 +47,7 @@
         "npm run build",
         "npm run pack"
       ],
-      "after:my-plugin:bump": "./bin/my-script.sh",
+      "after:bump": "npx auto-changelog -p",
       "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
     },
     "github": {
