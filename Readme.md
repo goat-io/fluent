@@ -59,18 +59,27 @@ See the [open issues](https://github.com/github_username/repo/issues) for a list
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+We use a few tools to help with code styling, pre-commits, versioning, changelog and releases.
 
-## Release Process
+[Pretty-quick](https://github.com/azz/pretty-quick)
+[Husky](https://github.com/typicode/husky)
+[Auto-changelog](https://github.com/CookPete/auto-changelog)
+[Release-it](https://github.com/release-it/release-it)
+
+All of these should run out of the box with your dev dependencies
 
 1. If you have an issue assigned, please include the issue code/id in the beginning of you commits.
 2. Include the issue id also at the start of your PR message.
-3. All PRs will be merge directly into Master. (If test are green)
-4. Once we are ready to create a release, we will locally pull the latest master version and run the release process
+3. Fork the Project
+4. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+5. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+6. Push to the Branch (`git push origin feature/AmazingFeature`)
+7. Open a Pull Request
+
+## Release Process
+
+1. All PRs will be merge directly into Master. (If test are green)
+2. Once we are ready to create a release, we will locally pull the latest master version and run the release process
 
 If patch release
 
@@ -101,7 +110,7 @@ This will start the release scripts including:
 
 ## Continues Deployment
 
-Continues deployment is optional. We will trigger a deployment with every published relates. The equivalent trigger in Github Actions is:
+Continues deployment is optional. We will trigger a deployment with every published release. The equivalent trigger in Github Actions is:
 
 ```yml
 on:
