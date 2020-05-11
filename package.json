@@ -45,9 +45,7 @@
     },
     "hooks": {
       "before:init": [
-        "npm run lint",
-        "npm run build",
-        "npm test"
+        "npm run build"
       ],
       "after:my-plugin:bump": "./bin/my-script.sh",
       "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
