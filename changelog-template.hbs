@@ -29,4 +29,12 @@
 * {{subject}} ([`{{shorthash}}`]({{href}}))
 {{/commit-list}}
 
+
+{{#commit-list
+  commits
+  heading='### Other Changes'
+  exclude='(fix: )|(Fix: )|(break: )|(Break: ) (feature: )|(Feature: )'}}
+* {{subject}} ([`{{shorthash}}`]({{href}}))
+{{/commit-list}}
+
 {{/each}}
