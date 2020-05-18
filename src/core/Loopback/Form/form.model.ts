@@ -1,5 +1,5 @@
 import { Entity, model, property } from '@loopback/repository'
-import { ObjectID } from 'mongodb'
+import { Id } from '../../../Helpers/Id'
 import { Access } from './dto/Access-dtp.model'
 
 @model({
@@ -9,7 +9,7 @@ import { Access } from './dto/Access-dtp.model'
 })
 export class Form extends Entity {
   @property({
-    default: () => new ObjectID(),
+    default: () => Id.objectID(),
     id: true,
     mongodb: { dataType: 'ObjectID' },
     type: 'string'

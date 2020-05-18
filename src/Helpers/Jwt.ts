@@ -41,7 +41,7 @@ export const Jwt = (() => {
     let userProfile: UserProfile
 
     try {
-      const decodedToken = await verifyAsync(token, secret)
+      const decodedToken: any = await verifyAsync(token, secret)
 
       userProfile = Object.assign(
         { [securityId]: '', name: '' },
