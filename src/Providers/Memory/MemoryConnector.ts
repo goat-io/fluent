@@ -1,14 +1,21 @@
-import { BaseConnector, IDataElement, IGoatExtendedAttributes, GoatConnectorInterface } from '../../BaseConnector'
+import {
+  BaseConnector,
+  IDataElement,
+  GoatConnectorInterface,
+  GoatOutput
+} from '../../BaseConnector'
 import { Dates } from '../../Helpers/Dates'
 
-const db: any = []
+let db: any = []
 
-export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
+export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
+  extends BaseConnector<InputDTO, OutputDTO>
+  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   /**
    *
    */
-  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
-    let result: (T & IGoatExtendedAttributes)[] = db
+  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    let result: GoatOutput<InputDTO, OutputDTO>[] = db
     result = this.jsApplyOrderBy(result)
 
     const limit = this.limitNumber
@@ -27,7 +34,7 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
   /**
    *
    */
-  public async all(): Promise<(T & IGoatExtendedAttributes)[]> {
+  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
 
@@ -35,10 +42,15 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
    *
    * @param data
    */
-  public async insert(data: T) {
+  public async insert(
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const goatAttributes = this.getExtendedCreateAttributes()
 
-    const inserted: T & IGoatExtendedAttributes = { ...goatAttributes, ...data }
+    const inserted: GoatOutput<InputDTO, OutputDTO> = {
+      ...data,
+      ...goatAttributes
+    }
 
     db.push(inserted)
     return inserted
@@ -47,13 +59,13 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
    *
    * @param data
    */
-  public async insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]> {
-    const insertedElements: (T & IGoatExtendedAttributes)[] = []
+  public async insertMany(
+    data: InputDTO[]
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    const insertedElements: GoatOutput<InputDTO, OutputDTO>[] = []
 
     for (const element of data) {
-      const goatAttributes = this.getExtendedCreateAttributes()
-
-      const inserted: T & IGoatExtendedAttributes = { ...goatAttributes, ...element }
+      const inserted = { ...element, ...insertedElements }
 
       db.push(inserted)
       insertedElements.push(inserted)
@@ -66,9 +78,16 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
    * @param _id
    * @param data
    */
-  public async updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes> {
-    const dbIndex = db.findIndex((obj) => obj._id === _id)
-    db[dbIndex] = { ...db[dbIndex], ...data, ...{ modified: Dates.currentIsoString() } }
+  public async updateById(
+    _id: string,
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    const dbIndex = db.findIndex(obj => obj._id === _id)
+    db[dbIndex] = {
+      ...db[dbIndex],
+      ...data,
+      ...{ modified: Dates.currentIsoString() }
+    }
 
     return db[dbIndex]
   }
@@ -76,8 +95,8 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
    *
    * @param _id
    */
-  public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
-    const dbIndex = db.findIndex((obj) => obj._id === _id)
+  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    const dbIndex = db.findIndex(obj => obj._id === _id)
     return db[dbIndex]
   }
   /**
@@ -85,12 +104,18 @@ export class MemoryConnector<T = IDataElement> extends BaseConnector<T> implemen
    * @param _id
    */
   public async deleteById(_id: string): Promise<string> {
-    const dbIndex = db.findIndex((obj) => obj._id === _id)
+    const dbIndex = db.findIndex(obj => obj._id === _id)
     if (dbIndex > -1) {
-      const element: T & IGoatExtendedAttributes = JSON.parse(JSON.stringify(db[dbIndex]))
+      const element: GoatOutput<InputDTO, OutputDTO> = JSON.parse(
+        JSON.stringify(db[dbIndex])
+      )
       db.splice(dbIndex, 1)
       return element._id
     }
     throw new Error(`The element with id ${_id} was not found`)
+  }
+
+  public async clear(): Promise<void> {
+    db = []
   }
 }

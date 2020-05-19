@@ -7,7 +7,8 @@ import {
   BaseConnector,
   IDataElement,
   GoatConnectorInterface,
-  IGoatExtendedAttributes
+  IGoatExtendedAttributes,
+  GoatOutput
 } from '../../BaseConnector'
 
 import { Connection } from '../../Helpers/Connection'
@@ -29,8 +30,9 @@ const GoatExtenderAttributes = [
   '_ngram'
 ]
 
-export class FormioConnector<T = IDataElement> extends BaseConnector<T>
-  implements GoatConnectorInterface<T> {
+export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
+  extends BaseConnector<InputDTO, OutputDTO>
+  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private baseEndPoint: string = ''
   private authToken: string = ''
 
@@ -42,7 +44,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
   /**
    *
    */
-  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
+  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     const [error, result] = await to(this.httpGET())
 
     if (error) {
@@ -50,8 +52,8 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
       throw new Error('Error while getting submissions')
     }
 
-    const data: (T & IGoatExtendedAttributes)[] = result.data.map(r => {
-      const response: T & IGoatExtendedAttributes = {
+    const data: GoatOutput<InputDTO, OutputDTO>[] = result.data.map(r => {
+      const response: GoatOutput<InputDTO, OutputDTO> = {
         ...{
           _id: r._id,
           owner: r.owner,
@@ -72,21 +74,23 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
   /**
    *
    */
-  public async all(): Promise<(T & IGoatExtendedAttributes)[]> {
+  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
    *
    * @param paginator
    */
-  public async paginate(paginator: IPaginator): Promise<IPaginatedData<T>> {
+  public async paginate(
+    paginator: IPaginator
+  ): Promise<IPaginatedData<GoatOutput<InputDTO, OutputDTO>>> {
     const numberOfRows = await this.numberOfRows()
 
     this.offset((paginator.page - 1) * paginator.perPage).take(
       paginator.perPage
     )
 
-    const results: IPaginatedData<T> = {
+    const results: IPaginatedData<GoatOutput<InputDTO, OutputDTO>> = {
       data: await this.get(),
       current_page: paginator.page,
       first_page_url: '',
@@ -103,14 +107,16 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
    *
    * @param data
    */
-  public async insert(data: T): Promise<T & IGoatExtendedAttributes> {
+  public async insert(
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    const response: T & IGoatExtendedAttributes = {
+    const response: GoatOutput<InputDTO, OutputDTO> = {
       ...{
         _id: result.data._id,
         owner: result.data.owner,
@@ -127,13 +133,15 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
    *
    * @param data
    */
-  public async insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]> {
-    const insertedElements: (T & IGoatExtendedAttributes)[] = []
+  public async insertMany(
+    data: InputDTO[]
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    const insertedElements: GoatOutput<InputDTO, OutputDTO>[] = []
 
     for (const element of data) {
       const goatAttributes = this.getExtendedCreateAttributes()
 
-      const inserted: T & IGoatExtendedAttributes = await this.insert({
+      const inserted: GoatOutput<InputDTO, OutputDTO> = await this.insert({
         ...goatAttributes,
         ...element
       })
@@ -149,8 +157,8 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
    */
   public async updateById(
     _id: string,
-    data: T
-  ): Promise<T & IGoatExtendedAttributes> {
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     if (!_id) {
       throw new Error(
         'Formio connector error. Cannot update a Model without _id key'
@@ -166,7 +174,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    const response: T & IGoatExtendedAttributes = result.data
+    const response: GoatOutput<InputDTO, OutputDTO> = result.data
     return response
   }
   /**
@@ -216,7 +224,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
    *
    * @param _id
    */
-  public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
+  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const [error, data] = await to(this.where(this._keys._id, '=', _id).first())
 
     if (error) {
@@ -344,7 +352,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
    *
    * @param data
    */
-  private async httpPOST(data: T) {
+  private async httpPOST(data: InputDTO) {
     const url = this.getUrl()
     const headers = this.getHeaders()
     const isOnline = await Connection.isOnline()
@@ -359,7 +367,7 @@ export class FormioConnector<T = IDataElement> extends BaseConnector<T>
    * @param _id
    * @param data
    */
-  private async httpPUT(_id: string, data: T) {
+  private async httpPUT(_id: string, data: InputDTO) {
     const isOnline = await Connection.isOnline()
     const url = `${this.getUrl()}/${_id}`
     const headers = this.getHeaders()

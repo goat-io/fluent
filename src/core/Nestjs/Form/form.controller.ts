@@ -1,15 +1,19 @@
-import { Get, Controller, Param, Post, Body } from '@nestjs/common'
-import { ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger'
+import { Get, Controller, Param, Post, Body, Query } from '@nestjs/common'
+import { ApiTags, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger'
 import { FormService } from './form.service'
-import { Form } from './form.entity'
-import { FormDtoOut, FormDtoIn } from './form.dto'
-import { getModelSchemaRef } from '@loopback/rest'
+import { Form } from '../../Loopback/Form/form.model'
+import { FormDtoOut, FormDtoIn, FormDtoPaginated } from './form.dto'
+import { getModelSchemaRef, getFilterSchemaFor } from '@loopback/rest'
 import { Filter } from '@loopback/repository'
+import { GoatOutput } from '../../../BaseConnector'
 
 @ApiTags('Forms')
 @Controller('form')
 export class FormController {
-  constructor(private readonly forms: FormService) {}
+  private forms: FormService['model']
+  constructor(private readonly formRepository: FormService) {
+    this.forms = this.formRepository.model
+  }
   /**
    *
    * @param form
@@ -28,8 +32,10 @@ export class FormController {
     description: 'Form',
     type: FormDtoIn
   })
-  create(@Body() form: FormDtoIn): Promise<FormDtoOut> {
-    return this.forms.create(form)
+  async create(
+    @Body() form: FormDtoIn
+  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
+    return this.forms.insert(form)
   }
   /**
    *
@@ -54,13 +60,26 @@ export class FormController {
     description: 'Form',
     type: FormDtoIn
   })
-  createMany(@Body() forms: FormDtoIn[]): Promise<FormDtoOut[]> {
-    return this.forms.createMany(forms)
+  createMany(
+    @Body() forms: FormDtoIn[]
+  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>[]> {
+    return this.forms.insertMany(forms)
   }
   /**
    *
    */
   @Get()
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+    type: 'object',
+    schema: {
+      ...getFilterSchemaFor(Form),
+      ...{
+        type: 'object'
+      }
+    }
+  })
   @ApiResponse({
     status: 200,
     description: 'The forms found',
@@ -75,17 +94,68 @@ export class FormController {
     isArray: true,
     type: FormDtoOut
   })
-  find(@Param('filter') filter?: Filter<FormDtoOut>): Promise<FormDtoOut[]> {
-    return this.forms.findAll()
+  find(
+    @Query() filter: Filter<GoatOutput<FormDtoIn, FormDtoOut>>
+  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>[]> {
+    console.log(filter)
+    console.log(typeof filter)
+    return this.forms.all()
   }
 
+  /**
+   *
+   */
+  /*
+  @Get('/paginated')
+  @ApiQuery({
+    type: 'object',
+    required: false,
+    name: 'filter',
+    schema: getFilterSchemaFor(Form)
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: 'number'
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: 'number'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The forms found',
+    content: {
+      'application/json': {
+        schema: {
+          items: getModelSchemaRef(FormDtoPaginated)
+        }
+      }
+    },
+    type: FormDtoPaginated
+  })
+  findPaginated(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('filter') filter?: Filter<FormDtoOut>
+  ): Promise<FormDtoPaginated> {
+    limit = limit > 100 ? 100 : limit
+    return this.forms.paginate({
+      page,
+      limit
+    })
+  }
+  */
   @Get(':path')
   @ApiResponse({
     status: 200,
     description: 'The form found',
     type: FormDtoOut
   })
-  getFormByPath(@Param() params: any): Promise<FormDtoOut> {
-    return this.forms.findByPath(params.path)
+  getFormByPath(
+    @Param() params: any
+  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
+    return this.forms.where(this.forms._keys.path, '=', params.path).first()
   }
 }

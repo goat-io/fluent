@@ -22,24 +22,31 @@ export interface IGoatExtendedAttributes {
   roles: string[]
 }
 
-export interface GoatConnectorInterface<T> {
-  get(): Promise<(T & IGoatExtendedAttributes)[]>
-  all(): Promise<(T & IGoatExtendedAttributes)[]>
-  findById(_id: string): Promise<T & IGoatExtendedAttributes>
+export type GoatOutput<Input, Output> = Partial<Input> &
+  Partial<Output> &
+  Partial<IGoatExtendedAttributes>
+
+export interface GoatConnectorInterface<InputDTO, OutputDTO> {
+  get(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
+  all(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
+  findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>>
   // find(query: any): Promise<T[]>
   // findOne(): Promise<T>
   deleteById(_id: string): Promise<string>
   // softDelete(): Promise<T>
-  updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes>
-  insert(data: T): Promise<T & IGoatExtendedAttributes>
-  insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]>
-  // update(data: T): Promise<T & IGoatExtendedAttributes>
-  // updateOrCreate(data: T): Promise<T & IGoatExtendedAttributes>
+  updateById(
+    _id: string,
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>>
+  insert(data: InputDTO): Promise<GoatOutput<InputDTO, OutputDTO>>
+  insertMany(data: InputDTO[]): Promise<GoatOutput<InputDTO, OutputDTO>[]>
+  // update(data: T): Promise<T>
+  // updateOrCreate(data: T): Promise<T>
   // clear({ sure }: ISure): Promise<string[]>
   // findAndRemove(): Promise<T[]>
   // paginate(paginator: IPaginator): Promise<IPaginatedData<T>>
   // tableView(paginator: IPaginator): Promise<IPaginatedData<T>>
-  // raw(query: Filter): this
+  // raw(filter: Filter): this
 }
 
 export interface IDataElement {
@@ -63,8 +70,8 @@ type OperatorType =
   | 'endsWith'
   | 'contains'
 
-export abstract class BaseConnector<T> {
-  public _keys = typedPath<T & IGoatExtendedAttributes>()
+export abstract class BaseConnector<InputDTO, OutputDTO> {
+  public _keys = typedPath<InputDTO & OutputDTO & IGoatExtendedAttributes>()
   protected chainReference = []
   protected whereArray = []
   protected orWhereArray = []
@@ -88,6 +95,7 @@ export abstract class BaseConnector<T> {
       roles: []
     }
   }
+
   constructor() {
     this.chainReference = []
     this.whereArray = []
@@ -107,7 +115,7 @@ export abstract class BaseConnector<T> {
   /**
    *
    */
-  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
+  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     throw new Error('get() method not implemented')
   }
   /**
@@ -132,7 +140,7 @@ export abstract class BaseConnector<T> {
    *
    * @return {Object} First result
    */
-  public async first(): Promise<T & IGoatExtendedAttributes> {
+  public async first(): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const data = await this.get()
     if (!data[0]) {
       throw new Error('First could not find elements')
@@ -146,14 +154,14 @@ export abstract class BaseConnector<T> {
    * transforms it into a collection
    * @returns {Collection} Fluent Collection
    */
-  public async collect(): Promise<Collection<T>> {
+  public async collect(): Promise<Collection<GoatOutput<InputDTO, OutputDTO>>> {
     const data = await this.get()
 
     if (!Array.isArray(data)) {
       throw new Error('Collect method only accepts arrays of data')
     }
 
-    return new Collection<T>(data)
+    return new Collection<GoatOutput<InputDTO, OutputDTO>>(data)
   }
   /**
    * Adds the given columns to the SelectArray

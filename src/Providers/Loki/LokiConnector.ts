@@ -1,11 +1,19 @@
-import { BaseConnector, IDataElement, IGoatExtendedAttributes, GoatConnectorInterface } from '../../BaseConnector'
+import {
+  BaseConnector,
+  IDataElement,
+  IGoatExtendedAttributes,
+  GoatConnectorInterface,
+  GoatOutput
+} from '../../BaseConnector'
 import { Id } from '../../Helpers/Id'
 import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
 
-export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements GoatConnectorInterface<T> {
+export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
+  extends BaseConnector<InputDTO, OutputDTO>
+  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private name: string = 'baseModel'
 
   constructor(name: string) {
@@ -15,7 +23,7 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
   /**
    *
    */
-  public async get(): Promise<(T & IGoatExtendedAttributes)[]> {
+  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     const filterObject = this.prepareFilter()
 
     let data = await (await this.getModel())
@@ -33,7 +41,7 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
   /**
    *
    */
-  public async all(): Promise<(T & IGoatExtendedAttributes)[]> {
+  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -43,7 +51,9 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
    */
   public async deleteById(_id: string): Promise<string> {
     if (!_id) {
-      throw new Error('No id assign to remove().You must give and _id to delete')
+      throw new Error(
+        'No id assign to remove().You must give and _id to delete'
+      )
     }
 
     if (!_id.includes('_local')) {
@@ -58,9 +68,11 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
    *
    * @param _id
    */
-  public async findById(_id: string): Promise<T & IGoatExtendedAttributes> {
+  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     if (!_id) {
-      throw new Error('No id assign to remove().You must give and _id to delete')
+      throw new Error(
+        'No id assign to remove().You must give and _id to delete'
+      )
     }
 
     if (!_id.includes('_local')) {
@@ -68,7 +80,7 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
     }
 
     const model = await this.getModel()
-    const result: T & IGoatExtendedAttributes = await model.find({ _id })
+    const result: GoatOutput<InputDTO, OutputDTO> = await model.find({ _id })
     return result
   }
   /**
@@ -76,14 +88,19 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
    * @param  {Object, Array} element [description]
    * @return {[type]}         [description]
    */
-  public async insert(data: T): Promise<T & IGoatExtendedAttributes> {
+  public async insert(
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const _data = Objects.clone(data)
 
     const model = await this.getModel()
 
     const goatAttributes = this.getExtendedCreateAttributes()
 
-    const inserted: T & IGoatExtendedAttributes = { ...goatAttributes, ..._data }
+    const inserted: GoatOutput<InputDTO, OutputDTO> = {
+      ...goatAttributes,
+      ..._data
+    }
 
     model.insert(inserted)
 
@@ -93,13 +110,18 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
    *
    * @param data
    */
-  public async insertMany(data: T[]): Promise<(T & IGoatExtendedAttributes)[]> {
-    const insertedElements: (T & IGoatExtendedAttributes)[] = []
+  public async insertMany(
+    data: InputDTO[]
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    const insertedElements: GoatOutput<InputDTO, OutputDTO>[] = []
 
     for (const element of data) {
       const goatAttributes = this.getExtendedCreateAttributes()
 
-      const inserted: T & IGoatExtendedAttributes = await this.insert({ ...goatAttributes, ...element })
+      const inserted: GoatOutput<InputDTO, OutputDTO> = await this.insert({
+        ...goatAttributes,
+        ...element
+      })
 
       insertedElements.push(inserted)
     }
@@ -110,9 +132,14 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
    *
    * @param document
    */
-  public async updateById(_id: string, data: T): Promise<T & IGoatExtendedAttributes> {
+  public async updateById(
+    _id: string,
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     if (!_id) {
-      throw new Error('Loki connector error. Cannot update a Model without _id key')
+      throw new Error(
+        'Loki connector error. Cannot update a Model without _id key'
+      )
     }
     const model = await this.getModel()
 
@@ -120,7 +147,7 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
 
     const mod = { ...local, ...data, ...{ modified: Dates.currentIsoString() } }
 
-    const updated: T & IGoatExtendedAttributes = model.update(mod)
+    const updated: GoatOutput<InputDTO, OutputDTO> = model.update(mod)
 
     return updated
   }
@@ -168,11 +195,15 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
 
     // All first Level AND conditions
     if (this.whereArray.length > 0) {
-      this.whereArray.forEach((c) => {
+      this.whereArray.forEach(c => {
         const conditionToObject = {}
 
         if (c[0].includes('[')) {
-          throw new Error('Error in: "' + c[0] + '" "Where" close does not work with Array elements')
+          throw new Error(
+            'Error in: "' +
+              c[0] +
+              '" "Where" close does not work with Array elements'
+          )
         }
 
         conditionToObject[c[0]] = {}
@@ -181,7 +212,9 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
         conditionToObject[c[0]][lokiOperator] = c[2]
         if (lokiOperator.includes('$regex|')) {
           delete conditionToObject[c[0]][lokiOperator]
-          conditionToObject[c[0]].$regex = lokiOperator.replace('$regex|', '').replace('{{$var}}', c[2])
+          conditionToObject[c[0]].$regex = lokiOperator
+            .replace('$regex|', '')
+            .replace('{{$var}}', c[2])
         }
 
         andObject.$and.push(conditionToObject)
@@ -190,7 +223,7 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
     }
     // All second level OR conditions
     if (this.orWhereArray.length > 0) {
-      this.orWhereArray.forEach((c) => {
+      this.orWhereArray.forEach(c => {
         const conditionToObject = {}
 
         conditionToObject[c[0]] = {}
@@ -199,7 +232,9 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
         conditionToObject[c[0]][lokiOperator] = c[2]
         if (lokiOperator.includes('$regex|')) {
           delete conditionToObject[c[0]][lokiOperator]
-          conditionToObject[c[0]].$regex = lokiOperator.replace('$regex|', '').replace('{{$var}}', c[2])
+          conditionToObject[c[0]].$regex = lokiOperator
+            .replace('$regex|', '')
+            .replace('{{$var}}', c[2])
         }
 
         orObject.$or.push(conditionToObject)
@@ -236,7 +271,9 @@ export class LokiConnector<T = IDataElement> extends BaseConnector<T> implements
     const converted = Objects.get(() => lokiOperators[operator], undefined)
 
     if (!converted) {
-      throw new Error('The operator "' + operator + '" is not supported in Loki ')
+      throw new Error(
+        'The operator "' + operator + '" is not supported in Loki '
+      )
     }
     return converted
   }

@@ -1,9 +1,5 @@
 import { Filter } from '@loopback/repository'
 import to from 'await-to-js'
-import axios from 'axios'
-import dayjs from 'dayjs'
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
-import pluralize from 'pluralize'
 import {
   BaseConnector,
   IDataElement,
@@ -11,33 +7,55 @@ import {
   GoatConnectorInterface,
   GoatOutput
 } from '../../BaseConnector'
-import { Connection } from '../../Helpers/Connection'
 import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
-import { Objects } from '../../Helpers/Objects'
-import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
-dayjs.extend(isSameOrAfter)
+import { IPaginatedData, IPaginator, ISure } from '../types'
+import {
+  Repository,
+  Not,
+  LessThan,
+  LessThanOrEqual,
+  MoreThan,
+  MoreThanOrEqual,
+  Equal,
+  In,
+  Like,
+  IsNull,
+  FindManyOptions
+} from 'typeorm'
 
-interface ILoopbackConnector {
-  baseEndPoint: string
-  token?: string
+/*
+    
+      import {
+  paginate,
+  Pagination,
+  IPaginationOptions
+} from 'nestjs-typeorm-paginate'
+  async paginate(options: IPaginationOptions): Promise<Pagination<Form>> {
+        return paginate<Form>(this.forms, options)
+      }
+   */
+
+interface ITypeOrmConnector<T> {
+  repository: Repository<T>
 }
-export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
+
+export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   extends BaseConnector<InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
-  private baseEndPoint: string = ''
-  private authToken: string = ''
+  private repository: Repository<OutputDTO>
 
-  constructor({ baseEndPoint, token }: ILoopbackConnector) {
+  constructor({ repository }: ITypeOrmConnector<OutputDTO>) {
     super()
-    this.baseEndPoint = baseEndPoint
-    this.authToken = token
+    this.repository = repository
   }
   /**
    *
    */
   public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const [error, result]: any = await to(this.httpGET())
+    const query = this.getGeneratedQuery()
+    console.log(query)
+    const [error, result]: any = await to(this.repository.find(query))
 
     if (error) {
       if (error.response.status === 440) {
@@ -53,9 +71,13 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
     return this.jsApplySelect(result && result.data)
   }
-
-  public async getPaginated(): Promise<IPaginatedData<InputDTO>> {
-    const [error, response]: any = await to(this.httpGET())
+  /**
+   *
+   */
+  public async getPaginated(): Promise<
+    IPaginatedData<GoatOutput<InputDTO, OutputDTO>>
+  > {
+    const [error, response]: any = await to(this.get())
 
     if (error) {
       if (error.response.status === 440) {
@@ -69,7 +91,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
 
-    const results: IPaginatedData<InputDTO> = {
+    const results: IPaginatedData<OutputDTO> = {
       current_page: response[0].meta.currentPage,
       data: response[0].data,
       first_page_url: response[0].meta.firstPageUrl,
@@ -98,7 +120,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    */
   public async paginate(
     paginator: IPaginator
-  ): Promise<IPaginatedData<InputDTO>> {
+  ): Promise<IPaginatedData<GoatOutput<InputDTO, OutputDTO>>> {
     if (!paginator) {
       throw new Error('Paginator cannot be empty')
     }
@@ -126,12 +148,12 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   public async insert(
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, result] = await to(this.httpPOST(data))
+    const [error, result] = await to(this.repository.save(data))
 
     if (error) {
       throw new Error('Cannot insert data')
     }
-    return result.data
+    return result
   }
   /**
    *
@@ -140,20 +162,18 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   public async insertMany(
     data: InputDTO[]
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const insertedElements: GoatOutput<InputDTO, OutputDTO>[] = []
-
-    for (const element of data) {
-      const goatAttributes = this.getExtendedCreateAttributes()
-
-      const inserted: GoatOutput<InputDTO, OutputDTO> = await this.insert({
-        ...goatAttributes,
-        ...element
+    const [error, inserted] = await to(
+      this.repository.save(data, {
+        chunk: data.length / 1000
       })
+    )
 
-      insertedElements.push(inserted)
+    if (!error) {
+      console.log(error)
+      throw new Error('Could not insert all elements')
     }
 
-    return insertedElements
+    return inserted
   }
   /**
    *
@@ -172,13 +192,13 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       throw new Error('Formio connector error. Cannot update a local document')
     }
 
-    const [error, result] = await to(this.httpPUT(_id, data))
+    const [error, result] = await to(this.repository.update(_id, data))
 
     if (error) {
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    return result.data
+    return result.raw
   }
   /**
    *
@@ -190,43 +210,35 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
         'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
       )
     }
-    const promises = []
 
-    const [error, data] = await to(
-      this.select(this._keys._id).pluck(this._keys._id)
-    )
+    const [error, data] = await to(this.repository.clear())
 
     if (error) {
       console.log(error)
-      throw new Error('Cannot get remote Model')
+      throw new Error('Cannot Clear the model')
     }
-
-    data.forEach(_id => {
-      promises.push(this.httpDelete(_id))
-    })
-
-    return axios.all(promises)
+    return true
   }
   /**
    *
    * @param _id
    */
   public async deleteById(_id: string): Promise<string> {
-    const [error, removed] = await to(this.httpDelete(_id))
+    const [error, removed] = await to(this.repository.delete(_id))
 
     if (error) {
       console.log(error)
       throw new Error(`FormioConnector: Could not delete ${_id}`)
     }
 
-    return removed.data._id
+    return _id
   }
   /**
    *
    * @param _id
    */
   public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, data] = await to(this.where(this._keys._id, '=', _id).first())
+    const [error, data] = await to(this.repository.findOne({ where: { _id } }))
 
     if (error) {
       console.log(error)
@@ -235,31 +247,10 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
     return data
   }
-
-  public getUrl() {
-    const baseUrl = this.baseUrl()
-    return `${baseUrl}`
-  }
   /**
    *
    */
-  public getHeaders() {
-    const headers: any = {}
-    const token = this.authToken || this.getToken()
-
-    if (!token) {
-      return headers
-    }
-
-    const type = this.getTokenType(token)
-    headers[type] = token
-    headers.Authorization = `Bearer ${token}`
-    return headers
-  }
-  /**
-   *
-   */
-  public getPage() {
+  private getPage() {
     const page = 'page='
     if (this.paginator && this.paginator.page) {
       return page + this.paginator.page + '&'
@@ -271,14 +262,17 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    *
    * @param filter
    */
-  public getPaginatorLimit(filter) {
+  private getPaginatorLimit(filter) {
     if (this.paginator && this.paginator.perPage) {
       return { ...filter, limit: this.paginator.perPage }
     }
 
     return filter
   }
-  public getPopulate() {
+  /**
+   *
+   */
+  private getPopulate() {
     const populate = []
     this.populateArray.forEach(relation => {
       if (typeof relation === 'string') {
@@ -298,11 +292,12 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
     return populate
   }
-  public async httpGET() {
-    let filter: any = {}
-    let url = this.baseUrl()
-    const headers = this.getHeaders()
-    filter = await this.getFilters(filter)
+  /**
+   *
+   */
+  private getGeneratedQuery(): FindManyOptions {
+    let filter: FindManyOptions = {}
+    filter = this.getFilters(filter)
     filter = this.getLimit(filter)
     filter = this.getSkip(filter)
     filter = this.getSelect(filter)
@@ -312,81 +307,22 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     const populate = this.getPopulate()
 
     if (this.rawQuery) {
-      filter.related = populate || this.rawQuery.populate
-      filter.limit = filter.limit || this.rawQuery.limit
+      filter.relations = populate || this.rawQuery.populate
+      filter.take = filter.take || this.rawQuery.limit
       filter.skip = filter.skip || this.rawQuery.skip
       filter.order = filter.order || this.rawQuery.order
-      filter.fields = { ...filter.fields, ...this.rawQuery.fields }
-      const where = filter.where && filter.where.and ? filter.where.and[0] : {}
-      filter.where = { ...where, ...this.rawQuery.where }
+      filter.select = { ...filter.select, ...this.rawQuery.fields }
+      // const where = filter.where && filter.where.and ? filter.where.and[0] : {}
+      filter.where = { ...this.rawQuery.where }
     }
 
-    filter.where = {
-      ...filter.where,
-      ...{ deleted: null }
-    }
-
-    // Loopback replaces all / by camel case
-
-    if (this.baseEndPoint.includes('/')) {
-      this.baseEndPoint = this.baseEndPoint.replace('/', '')
-    }
-
-    // Looback replaces all singular words by plural
-    this.baseEndPoint = pluralize(this.baseEndPoint)
-    const remotePath = Objects.get(() => this.baseEndPoint, undefined)
-
-    // Always limit the amount of request
-    url = `${url}/${remotePath}?${page}filter=${encodeURI(
-      JSON.stringify(filter)
-    )}`
-
-    const isOnline = true || (await Connection.isOnline())
-
-    if (!isOnline) {
-      throw new Error(`Cannot make get request to ${url}.You are not online`)
-    }
-
-    return axios.get(url, { headers })
+    return filter
   }
-  public async httpPOST(data) {
-    const url = this.getUrl()
-    delete data.draft
-    delete data.redirect
-    delete data.syncError
-    delete data.trigger
-
-    const headers = this.getHeaders()
-    const isOnline = true || (await Connection.isOnline())
-
-    if (!isOnline) {
-      throw new Error(`Cannot make request post to ${url}.You are not online`)
-    }
-    return axios.post(url, data, { headers })
-  }
-  public async httpPUT(_id: string, data: InputDTO) {
-    const isOnline = true || (await Connection.isOnline())
-    const url = `${this.getUrl()}/${_id}`
-    const headers = this.getHeaders()
-
-    if (!isOnline) {
-      throw new Error(`Cannot make request post to ${url}.You are not online`)
-    }
-
-    return axios.put(url, data, { headers })
-  }
-  public httpDelete(_id) {
-    const headers = this.getHeaders()
-    const url = `${this.getUrl()}/${_id}`
-    return axios.delete(url, { headers })
-  }
-  public getTokenType(token) {
-    if (token.length > 32) {
-      return 'x-jwt-token'
-    }
-    return 'x-token'
-  }
-  public async getFilters(filters) {
+  /**
+   *
+   * @param filters
+   */
+  private getFilters(filters) {
     const filter = this.whereArray
 
     if (!filter || filter.length === 0) {
@@ -402,68 +338,89 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
       switch (operator) {
         case '=':
-          filters.where.and.push({ [element]: value })
+          filters.where.and.push({ [element]: Equal(value) })
           break
         case '!=':
-          filters.where.and.push({ [element]: { neq: value } })
+          filters.where.and.push({ [element]: Not(Equal(value)) })
           break
         case '>':
-          filters.where.and.push({ [element]: { gt: value } })
+          filters.where.and.push({ [element]: MoreThan(value) })
           break
         case '>=':
-          filters.where.and.push({ [element]: { gte: value } })
+          filters.where.and.push({ [element]: MoreThanOrEqual(value) })
           break
         case '<':
-          filters.where.and.push({ [element]: { lt: value } })
+          filters.where.and.push({ [element]: LessThan(value) })
           break
         case '<=':
-          filters.where.and.push({ [element]: { lte: value } })
+          filters.where.and.push({ [element]: LessThanOrEqual(value) })
           break
         case 'in':
-          filters.where.and.push({ [element]: { inq: value } })
+          filters.where.and.push({ [element]: In(value) })
           break
         case 'nin':
-          filters.where.and.push({ [element]: { nin: value } })
+          filters.where.and.push({ [element]: Not(In(value)) })
           break
         case 'exists':
-          filters.where.and.push({ [element]: { exists: true } })
+          filters.where.and.push({ [element]: Not(IsNull()) })
           break
         case '!exists':
-          filters.where.and.push({ [element]: { exists: false } })
+          filters.where.and.push({ [element]: IsNull() })
           break
         case 'regex':
-          filters.where.and.push({ [element]: { regexp: value } })
+          filters.where.and.push({
+            [element]: Like(value)
+          })
           break
       }
     })
 
     return filters
   }
-  public getOrderBy(filter) {
+  /**
+   *
+   * @param filter
+   */
+  // TODO order by can have more than 1 element
+  private getOrderBy(filter) {
     if (!this.orderByArray || this.orderByArray.length === 0) {
       return filter
     }
 
     return {
       ...filter,
-      order: `${this.orderByArray[0]} ${this.orderByArray[1].toUpperCase()}`
+      order: {
+        [this.orderByArray[0]]: this.orderByArray[1].toUpperCase()
+      }
     }
   }
-  public getLimit(filter) {
+  /**
+   *
+   * @param filter
+   */
+  private getLimit(filter) {
     if (!this.limitNumber || this.limitNumber === 0) {
       this.limitNumber = (this.rawQuery && this.rawQuery.limit) || 50
     }
 
-    return { ...filter, limit: this.limitNumber }
+    return { ...filter, take: this.limitNumber }
   }
-  public getSkip(filter) {
+  /**
+   *
+   * @param filter
+   */
+  private getSkip(filter) {
     if (!this.offsetNumber) {
       this.offsetNumber = (this.rawQuery && this.rawQuery.skip) || 0
     }
 
     return { ...filter, skip: this.offsetNumber }
   }
-  public getSelect(filter) {
+  /**
+   *
+   * @param filter
+   */
+  private getSelect(filter) {
     let select = this.selectArray
 
     select = select.map(s => {
@@ -480,45 +437,6 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       return filter
     }
 
-    const fields = {}
-
-    select.forEach(e => {
-      fields[e] = true
-    })
-
-    return { ...filter, fields }
-  }
-
-  private getToken() {
-    if (typeof localStorage === 'undefined') {
-      return
-    }
-    const token = localStorage.getItem('formioToken')
-    return token
-    /*
-      if (!token || this.getTokenType(token) === 'x-token') {
-        return token
-      }
-      
-      const decodedToken = jwtDecode(token);
-      const expDate = dayjs.unix(decodedToken.exp);
-      if (dayjs().isSameOrAfter(expDate)) {
-        Event.emit({
-          name: "GOAT:SESSION:EXPIRED",
-          data: expDate,
-          text: "Session expired"
-        });
-        throw new Error("Token has expired.");
-      }
-      */
-    return token
-  }
-  private baseUrl() {
-    if (!this.baseEndPoint) {
-      throw new Error(
-        `You did not provide a baseUrl for the Loopback connector`
-      )
-    }
-    return this.baseEndPoint.replace(/\/+$/, '')
+    return { ...filter, fields: select }
   }
 }
