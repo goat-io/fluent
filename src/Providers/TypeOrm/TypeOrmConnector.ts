@@ -54,7 +54,7 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    */
   public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     const query = this.getGeneratedQuery()
-    console.log(query)
+
     const [error, result]: any = await to(this.repository.find(query))
 
     if (error) {

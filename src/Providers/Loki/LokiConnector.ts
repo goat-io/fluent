@@ -11,7 +11,7 @@ import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
 
-export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
+export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   extends BaseConnector<InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private name: string = 'baseModel'
@@ -80,7 +80,9 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     }
 
     const model = await this.getModel()
-    const result: GoatOutput<InputDTO, OutputDTO> = await model.find({ _id })
+    const result: GoatOutput<InputDTO, OutputDTO> = await model.find({
+      _id
+    })
     return result
   }
   /**
@@ -145,7 +147,11 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
     const local = await model.findOne({ _id })
 
-    const mod = { ...local, ...data, ...{ modified: Dates.currentIsoString() } }
+    const mod = {
+      ...local,
+      ...data,
+      ...{ modified: Dates.currentIsoString() }
+    }
 
     const updated: GoatOutput<InputDTO, OutputDTO> = model.update(mod)
 
