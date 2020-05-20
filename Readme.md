@@ -108,9 +108,9 @@ This will start the release scripts including:
 - Release
 - Push
 
-## Continues Deployment
+## Continuous Deployment
 
-Continues deployment is optional. We will trigger a deployment with every published release. The equivalent trigger in Github Actions is:
+Continuous deployment is optional. We will trigger a deployment with every published release. The equivalent trigger in Github Actions is:
 
 ```yml
 on:
