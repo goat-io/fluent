@@ -10,7 +10,7 @@ export class Access {
   @Field(() => ID)
   _id: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   type?: string
 
@@ -21,30 +21,31 @@ export class Access {
 
 // tslint:disable-next-line: max-classes-per-file
 @Entity()
+@ObjectType()
 export class Form {
   @PrimaryGeneratedColumn('uuid')
   @ApiProperty()
   @Field(() => ID)
   _id: string
 
-  @Column('text')
+  @Column()
   @Index()
   @ApiProperty()
   path: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   title?: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   name?: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   type?: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   description?: string
 
@@ -52,19 +53,19 @@ export class Form {
   @ApiProperty({ type: [String] })
   tags?: string[]
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   display?: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   action?: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   owner: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   settings: number
 
@@ -72,23 +73,23 @@ export class Form {
   @ApiProperty()
   properties: number
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   machineName: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   created: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   deleted?: number
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   modified: string
 
-  @Column('text')
+  @Column()
   @ApiProperty()
   components?: string
 

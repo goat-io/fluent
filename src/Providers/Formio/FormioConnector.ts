@@ -13,7 +13,7 @@ import {
 
 import { Connection } from '../../Helpers/Connection'
 import { Event } from '../../Helpers/Event'
-import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
+import { IPaginatedData, IPaginator, ISure } from '../types'
 dayjs.extend(isSameOrAfter)
 
 interface IFormioConnector {

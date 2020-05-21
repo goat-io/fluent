@@ -1,63 +1,10 @@
-import { Fluent } from '../../Fluent'
 import { TypeOrmConnector } from './TypeOrmConnector'
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  Index,
-  ObjectIdColumn,
-  ObjectID
-} from 'typeorm'
-import { ApiProperty } from '@nestjs/swagger'
-import { Field, ID } from '@nestjs/graphql'
-import { Repository } from 'typeorm'
 import { createConnection } from 'typeorm'
 import { mongoMemory } from '../../core/Database/mongo.memory'
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
-// tslint:disable-next-line: max-classes-per-file
-@Entity()
-export class GoatEntityOut {
-  @ObjectIdColumn()
-  @ApiProperty()
-  @Field(() => ID)
-  _id: ObjectID
-
-  @Column('text')
-  @Index()
-  @ApiProperty()
-  name: string
-
-  @Column('int')
-  @ApiProperty()
-  age: number
-}
-
-@Entity()
-export class GoatEntityIn {
-  @Column('text')
-  @Index()
-  @ApiProperty()
-  name: string
-
-  @Column('int')
-  @ApiProperty()
-  age: number
-}
-
-const flock = [
-  {
-    age: 3,
-    name: 'Goatee'
-  },
-  {
-    age: 4,
-    name: 'GoaToHell'
-  },
-  {
-    age: 5,
-    name: 'Oh!MyGoat'
-  }
-]
+import { GoatEntityOut, GoatEntityIn } from '../test/goat.dto'
+import { GoatEntity } from '../test/goat.entity'
+import { flock } from '../test/flock'
 
 let GoatModel: TypeOrmConnector<GoatEntityIn, GoatEntityOut>
 let storedId: any
@@ -70,12 +17,12 @@ beforeAll(async done => {
     url: a.url,
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    entities: [GoatEntityOut],
+    entities: [GoatEntity],
     synchronize: true,
     logging: false
   })
 
-  const repository = connection.getRepository(GoatEntityOut)
+  const repository = connection.getRepository(GoatEntity)
 
   GoatModel = new TypeOrmConnector<GoatEntityIn, GoatEntityOut>({
     repository
