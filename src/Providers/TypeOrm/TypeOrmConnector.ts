@@ -3,7 +3,6 @@ import to from 'await-to-js'
 import {
   BaseConnector,
   IDataElement,
-  IGoatExtendedAttributes,
   GoatConnectorInterface,
   GoatOutput
 } from '../../BaseConnector'
@@ -58,18 +57,10 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     const [error, result]: any = await to(this.repository.find(query))
 
     if (error) {
-      if (error.response.status === 440) {
-        Event.emit('GOAT:SESSION:EXPIRED', {
-          data: error,
-          text: 'Session expired'
-        })
-
-        throw new Error(Errors(error, 'Session has expired.'))
-      }
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
 
-    return this.jsApplySelect(result && result.data)
+    return this.jsApplySelect(result)
   }
   /**
    *
@@ -151,6 +142,7 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     const [error, result] = await to(this.repository.save(data))
 
     if (error) {
+      console.log(error)
       throw new Error('Cannot insert data')
     }
     return result
@@ -164,11 +156,11 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     const [error, inserted] = await to(
       this.repository.save(data, {
-        chunk: data.length / 1000
+        chunk: data.length / 300
       })
     )
 
-    if (!error) {
+    if (error) {
       console.log(error)
       throw new Error('Could not insert all elements')
     }
@@ -185,20 +177,20 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     if (!_id) {
       throw new Error(
-        'Formio connector error. Cannot update a Model without _id key'
+        'TypeORM connector error. Cannot update a Model without _id key'
       )
     }
-    if (_id.includes('_local')) {
-      throw new Error('Formio connector error. Cannot update a local document')
-    }
 
-    const [error, result] = await to(this.repository.update(_id, data))
+    const [error, updated] = await to(this.repository.update(_id, data))
+    const [getError, result] = await to(this.repository.findByIds([_id]))
 
-    if (error) {
+    if (error || getError) {
       console.log(error)
-      throw new Error('Cannot insert data')
+      console.log(getError)
+      throw new Error('Cannot update data')
     }
-    return result.raw
+
+    return result[0]
   }
   /**
    *
