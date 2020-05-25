@@ -1,6 +1,20 @@
-# 0.3.9
+# 0.3.10
 
-[2020-05-12]
+[2020-05-25]
+
+### Other Changes
+
+- basic NestJS support ([`d424996`](https://github.com/goat-io/fluent/commit/d424996d248a4d26908a51d53170eb27fc5504aa))
+- TypeOrm connector tests ([`89a687c`](https://github.com/goat-io/fluent/commit/89a687cb014970120c96d6afaa74c61ba7619e0e))
+- Including TypeOrm Fluent connector ([`55da46f`](https://github.com/goat-io/fluent/commit/55da46f47797ce9d927a43815f7141d1e42e6c75))
+- testing sqlite ([`641e0c4`](https://github.com/goat-io/fluent/commit/641e0c41b88a6b8b560f37186e0f6ea8ecf631ba))
+- integrating random commit changelog ([`baec206`](https://github.com/goat-io/fluent/commit/baec2060aeb3572dbb29153d93c8b944f33248c5))
+- adding TypeOrm connector tests ([`0e01e59`](https://github.com/goat-io/fluent/commit/0e01e594b45b3b335f0ca4d671b18bbcf345c0f0))
+- change connector name for loki ([`e87b9b1`](https://github.com/goat-io/fluent/commit/e87b9b1cff2227363f4c17030f07ca3da8749cb6))
+- docs ([`10d720d`](https://github.com/goat-io/fluent/commit/10d720dcc4c627a5830a212d2100aa1248f81feb))
+- Sqlite test remove db ([`83efdc2`](https://github.com/goat-io/fluent/commit/83efdc28ae1596476ea929036648ab5af2c979db))
+- db ([`ce540e5`](https://github.com/goat-io/fluent/commit/ce540e5a66692d48bd563f51ef3fac9fb2a634f3))
+- folder permissions ([`23329eb`](https://github.com/goat-io/fluent/commit/23329eb8ad3a0d4dc2ea1b78af662e703fb41788))
 
 # 0.3.9
 
