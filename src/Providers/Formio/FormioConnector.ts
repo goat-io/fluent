@@ -14,6 +14,7 @@ import {
 import { Connection } from '../../Helpers/Connection'
 import { Event } from '../../Helpers/Event'
 import { IPaginatedData, IPaginator, ISure } from '../types'
+import { Filter } from '@loopback/repository'
 dayjs.extend(isSameOrAfter)
 
 interface IFormioConnector {
@@ -30,8 +31,11 @@ const GoatExtenderAttributes = [
   '_ngram'
 ]
 
-export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
-  extends BaseConnector<InputDTO, OutputDTO>
+export class LokiRNConnector<
+  ModelDTO = IDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = ModelDTO
+> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private baseEndPoint: string = ''
   private authToken: string = ''
@@ -63,18 +67,28 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
         },
         ...r.data
       }
+
       return response
     })
 
     let orderedResults = this.jsApplySelect(data)
     orderedResults = this.jsApplyOrderBy(orderedResults)
-
+    this.reset()
     return orderedResults
   }
   /**
    *
    */
   public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    return this.get()
+  }
+  /**
+   *
+   * @param filter
+   */
+  public async find(
+    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -100,7 +114,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       path: '',
       total: numberOfRows
     }
-
+    this.reset()
     return results
   }
   /**
@@ -126,7 +140,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       },
       ...result.data.data
     }
-
+    this.reset()
     return response
   }
   /**
@@ -148,7 +162,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
       insertedElements.push(inserted)
     }
-
+    this.reset()
     return insertedElements
   }
   /**
@@ -175,6 +189,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       throw new Error('Cannot insert data')
     }
     const response: GoatOutput<InputDTO, OutputDTO> = result.data
+    this.reset()
     return response
   }
   /**
@@ -183,6 +198,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    */
 
   public async truncate({ sure }: ISure) {
+    /*
     if (!sure || sure !== true) {
       throw new Error(
         'truncate() method will delete everything!, you must set the "sure" parameter "truncate({sure:true})" to continue'
@@ -204,6 +220,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     })
 
     return axios.all(promises)
+    */
   }
 
   /**
@@ -217,7 +234,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(error)
       throw new Error(`FormioConnector: Could not delete ${_id}`)
     }
-
+    this.reset()
     return removed.data
   }
   /**
@@ -225,13 +242,13 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    * @param _id
    */
   public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, data] = await to(this.where(this._keys._id, '=', _id).first())
+    const [error, data] = await to(this.first())
 
     if (error) {
       console.log(error)
       throw new Error('Find() could not get remote data')
     }
-
+    this.reset()
     return data
   }
   /**

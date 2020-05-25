@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import { createConnection, Schema } from 'mongoose'
-import { Log } from '../../Log/Logger'
+import { Log } from '../Log/Logger'
 
 export interface MemoryMongo {
   url: string

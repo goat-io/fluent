@@ -37,8 +37,12 @@ const getTimezoneString = (timeZone: TimeZones): NodeTimeZones => {
 
 export const NodeScheduler = (() => {
   const schedule = async (options: IJob) => {
-    const croneString = getCronString((options.repeat && options.repeat.cronTime) || RepeatEvery.never)
-    const timezoneString = getTimezoneString((options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm)
+    const croneString = getCronString(
+      (options.repeat && options.repeat.cronTime) || RepeatEvery.never
+    )
+    const timezoneString = getTimezoneString(
+      (options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm
+    )
 
     const jobDescription: IJobDescription = {
       data: options.data,

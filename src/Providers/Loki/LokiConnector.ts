@@ -5,20 +5,25 @@ import {
   GoatConnectorInterface,
   GoatOutput
 } from '../../BaseConnector'
-import { Id } from '../../Helpers/Id'
 import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
+import { Filter } from '@loopback/repository'
+import { Fluent } from '../../Fluent'
 
-export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
-  extends BaseConnector<InputDTO, OutputDTO>
+export class LokiConnector<
+  ModelDTO = IDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = ModelDTO
+> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private name: string = 'baseModel'
 
   constructor(name: string) {
     super()
     this.name = name
+    Fluent.model<ModelDTO>(name)
   }
   /**
    *
@@ -33,15 +38,24 @@ export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       .limit(this.limitNumber)
       .data()
 
-    data = this.jsApplySelect(data)
+    // data = this.jsApplySelect(data)
     data = this.jsApplyOrderBy(data)
-
+    this.reset()
     return data
   }
   /**
    *
    */
   public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    return this.get()
+  }
+  /**
+   *
+   * @param filter
+   */
+  public async find(
+    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -55,13 +69,9 @@ export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
         'No id assign to remove().You must give and _id to delete'
       )
     }
-
-    if (!_id.includes('_local')) {
-      throw new Error('You can`t delete non local submissions')
-    }
-
     const model = await this.getModel()
     await model.findAndRemove({ _id })
+    this.reset()
     return _id
   }
   /**
@@ -74,15 +84,11 @@ export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
         'No id assign to remove().You must give and _id to delete'
       )
     }
-
-    if (!_id.includes('_local')) {
-      throw new Error('You can`t delete non local submissions')
-    }
-
     const model = await this.getModel()
     const result: GoatOutput<InputDTO, OutputDTO> = await model.find({
       _id
     })
+    this.reset()
     return result
   }
   /**
@@ -105,7 +111,7 @@ export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     }
 
     model.insert(inserted)
-
+    this.reset()
     return inserted
   }
   /**
@@ -127,7 +133,7 @@ export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
       insertedElements.push(inserted)
     }
-
+    this.reset()
     return insertedElements
   }
   /**
@@ -154,7 +160,7 @@ export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     }
 
     const updated: GoatOutput<InputDTO, OutputDTO> = model.update(mod)
-
+    this.reset()
     return updated
   }
   /**
@@ -198,7 +204,6 @@ export class LokiConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     const andObject = { $and: [] }
     const orObject = { $or: [] }
     let globalFilter = {}
-
     // All first Level AND conditions
     if (this.whereArray.length > 0) {
       this.whereArray.forEach(c => {

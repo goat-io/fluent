@@ -1,6 +1,6 @@
 import AgendaCron from 'agenda'
 import { hostname } from 'os'
-import { For } from '../../../Helpers/For'
+import { For } from '../../Helpers/For'
 import { IJob, IJobDescription, RepeatEvery, TimeZones } from '../Job'
 const mongoConnectionString = process.env.MONGO_URL
 
@@ -79,29 +79,37 @@ export const Agenda = (() => {
    * @param options
    */
   const schedule = async (options: IJob) => {
-    const croneString = getCronString((options.repeat && options.repeat.cronTime) || RepeatEvery.never)
-    const timezoneString = getTimezoneString((options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm)
+    const croneString = getCronString(
+      (options.repeat && options.repeat.cronTime) || RepeatEvery.never
+    )
+    const timezoneString = getTimezoneString(
+      (options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm
+    )
 
     await startAgenda()
 
-    agenda.define(options.jobName, { lockLifetime: options.lockTime || 10000 }, async job => {
-      const jobDescription: IJobDescription = {
-        data: job.attrs.data,
-        id: String(job.attrs._id),
-        instance: job,
-        name: job.attrs.name
-      }
+    agenda.define(
+      options.jobName,
+      { lockLifetime: options.lockTime || 10000 },
+      async job => {
+        const jobDescription: IJobDescription = {
+          data: job.attrs.data,
+          id: String(job.attrs._id),
+          instance: job,
+          name: job.attrs.name
+        }
 
-      const [error] = await For.async(options.handle(jobDescription))
+        const [error] = await For.async(options.handle(jobDescription))
 
-      if (error) {
-        console.log('Could not process the job', job)
-      }
+        if (error) {
+          console.log('Could not process the job', job)
+        }
 
-      if (croneString === AgendaCronTimes.never) {
-        job.remove()
+        if (croneString === AgendaCronTimes.never) {
+          job.remove()
+        }
       }
-    })
+    )
 
     if (croneString === AgendaCronTimes.never) {
       return agenda.now(options.jobName, options.data)

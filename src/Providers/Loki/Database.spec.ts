@@ -30,7 +30,8 @@ it('Should start with no collections', () => {
     uniqueCollections[collection] = true
     uniqueCollections[dbCollections[index]] = true
   })
-  const areTheSame = Object.keys(uniqueCollections).length === expectedCollections.length
+  const areTheSame =
+    Object.keys(uniqueCollections).length === expectedCollections.length
 
   expect(areTheSame).toBe(true)
 })

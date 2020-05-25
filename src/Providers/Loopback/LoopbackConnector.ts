@@ -22,8 +22,11 @@ interface ILoopbackConnector {
   baseEndPoint: string
   token?: string
 }
-export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
-  extends BaseConnector<InputDTO, OutputDTO>
+export class LoopbackConnector<
+  ModelDTO = IDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = ModelDTO
+> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private baseEndPoint: string = ''
   private authToken: string = ''
@@ -51,7 +54,10 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
 
-    return this.jsApplySelect(result && result.data)
+    const data = this.jsApplySelect(result)
+    this.reset()
+
+    return data
   }
 
   public async getPaginated(): Promise<IPaginatedData<InputDTO>> {
@@ -84,12 +90,22 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       results.data = this.jsApplySelect(results.data)
       return results
     }
+    this.reset()
     return results
   }
   /**
    *
    */
   public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    return this.get()
+  }
+  /**
+   *
+   * @param filter
+   */
+  public async find(
+    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -105,7 +121,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     this.paginator = paginator
 
     const response = await this.getPaginated()
-
+    this.reset()
     return response
   }
   /**
@@ -131,6 +147,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     if (error) {
       throw new Error('Cannot insert data')
     }
+    this.reset()
     return result.data
   }
   /**
@@ -152,7 +169,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
       insertedElements.push(inserted)
     }
-
+    this.reset()
     return insertedElements
   }
   /**
@@ -178,6 +195,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(error)
       throw new Error('Cannot insert data')
     }
+    this.reset()
     return result.data
   }
   /**
@@ -185,6 +203,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    * @param param0
    */
   public async clear({ sure }: ISure) {
+    /*
     if (!sure || sure !== true) {
       throw new Error(
         'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
@@ -206,6 +225,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     })
 
     return axios.all(promises)
+    */
   }
   /**
    *
@@ -218,7 +238,7 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(error)
       throw new Error(`FormioConnector: Could not delete ${_id}`)
     }
-
+    this.reset()
     return removed.data._id
   }
   /**
@@ -226,13 +246,13 @@ export class LoopbackConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    * @param _id
    */
   public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, data] = await to(this.where(this._keys._id, '=', _id).first())
+    const [error, data] = await to(this.first())
 
     if (error) {
       console.log(error)
       throw new Error('FindById() could not get remote data')
     }
-
+    this.reset()
     return data
   }
 

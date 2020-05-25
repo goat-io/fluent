@@ -1,6 +1,6 @@
 import * as Bull from 'bull'
 import Redis from 'ioredis'
-import { For } from '../../../Helpers/For'
+import { For } from '../../Helpers/For'
 import { IJob, IJobDescription, RepeatEvery, TimeZones } from '../Job'
 
 export enum BullCronTimes {
@@ -69,12 +69,18 @@ export const BullScheduler = (() => {
    * @param options
    */
   const schedule = async (options: IJob) => {
-    const croneString = getCronString((options.repeat && options.repeat.cronTime) || RepeatEvery.never)
-    const timezoneString = getTimezoneString((options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm)
+    const croneString = getCronString(
+      (options.repeat && options.repeat.cronTime) || RepeatEvery.never
+    )
+    const timezoneString = getTimezoneString(
+      (options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm
+    )
 
     const queue = new Bull.default(options.jobName, opts)
 
-    let queueOptions: any = { repeat: { cron: croneString, tz: timezoneString } }
+    let queueOptions: any = {
+      repeat: { cron: croneString, tz: timezoneString }
+    }
 
     if (croneString === BullCronTimes.never) {
       queueOptions = {}

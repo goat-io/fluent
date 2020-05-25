@@ -8,7 +8,7 @@ import { flock } from '../test/flock'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
-let GoatModel: TypeOrmConnector<GoatEntityIn, GoatEntityOut>
+let GoatModel: TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>
 let storedId: any
 let tearDown: any
 
@@ -28,7 +28,7 @@ beforeAll(async done => {
 
   const repository = connection.getRepository(GoatEntity)
 
-  GoatModel = new TypeOrmConnector<GoatEntityIn, GoatEntityOut>({
+  GoatModel = new TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>({
     repository
   })
   done()

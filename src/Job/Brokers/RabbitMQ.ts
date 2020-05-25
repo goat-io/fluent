@@ -1,6 +1,14 @@
 import { Channel, connect, Connection, Options } from 'amqplib/callback_api'
-import { For } from '../../../Helpers/For'
-import { IDataMap, IJob, IJobDescription, IRepeat, RepeatEvery, Schedulers, TimeZones } from '../Job'
+import { For } from '../../Helpers/For'
+import {
+  IDataMap,
+  IJob,
+  IJobDescription,
+  IRepeat,
+  RepeatEvery,
+  Schedulers,
+  TimeZones
+} from '../Job'
 import { Agenda } from '../Schedulers/Agenda'
 import { BullScheduler } from '../Schedulers/Bull'
 import { BullMQScheduler } from '../Schedulers/BullMQ'
@@ -74,8 +82,10 @@ export const RabbitMQBroker = (() => {
    * @param options
    */
   const schedule = async (options: IJobScheduler) => {
-    const croneString = (options.repeat && options.repeat.cronTime) || RepeatEvery.never
-    const timezoneString = (options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm
+    const croneString =
+      (options.repeat && options.repeat.cronTime) || RepeatEvery.never
+    const timezoneString =
+      (options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm
     const type = options.scheduler
     await produce({ queueName: options.jobName, data: options.data })
 
@@ -85,7 +95,11 @@ export const RabbitMQBroker = (() => {
           schedule(options)
         },
         jobName: options.jobName,
-        repeat: { cronTime: croneString, runOnInit: false, timeZone: timezoneString }
+        repeat: {
+          cronTime: croneString,
+          runOnInit: false,
+          timeZone: timezoneString
+        }
       })
     }
 
@@ -95,7 +109,11 @@ export const RabbitMQBroker = (() => {
           schedule(options)
         },
         jobName: options.jobName,
-        repeat: { cronTime: croneString, runOnInit: false, timeZone: timezoneString }
+        repeat: {
+          cronTime: croneString,
+          runOnInit: false,
+          timeZone: timezoneString
+        }
       })
     }
 
@@ -105,7 +123,11 @@ export const RabbitMQBroker = (() => {
           schedule(options)
         },
         jobName: options.jobName,
-        repeat: { cronTime: croneString, runOnInit: false, timeZone: timezoneString }
+        repeat: {
+          cronTime: croneString,
+          runOnInit: false,
+          timeZone: timezoneString
+        }
       })
     }
 
@@ -115,7 +137,11 @@ export const RabbitMQBroker = (() => {
           schedule(options)
         },
         jobName: options.jobName,
-        repeat: { cronTime: croneString, runOnInit: false, timeZone: timezoneString }
+        repeat: {
+          cronTime: croneString,
+          runOnInit: false,
+          timeZone: timezoneString
+        }
       })
     }
   }
@@ -124,7 +150,11 @@ export const RabbitMQBroker = (() => {
    * @param queueName
    * @param data
    */
-  const produce = async ({ queueName, data, topic }: IRabbitMQProducer): Promise<Channel> => {
+  const produce = async ({
+    queueName,
+    data,
+    topic
+  }: IRabbitMQProducer): Promise<Channel> => {
     const connection = await connectToRabbitMQ()
     const channel = await createChannel(connection)
     const msg = JSON.stringify(data)
@@ -145,7 +175,12 @@ export const RabbitMQBroker = (() => {
    * @param queueName
    * @param handle
    */
-  const consume = async ({ queueName, handle, topics, exclusiveQueues }: IRabbitMQConsumer): Promise<Channel> => {
+  const consume = async ({
+    queueName,
+    handle,
+    topics,
+    exclusiveQueues
+  }: IRabbitMQConsumer): Promise<Channel> => {
     const [connectionError, connection] = await For.async(connectToRabbitMQ())
 
     if (connectionError) {

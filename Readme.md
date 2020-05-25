@@ -61,10 +61,10 @@ Contributions are what make the open source community such an amazing place to l
 
 We use a few tools to help with code styling, pre-commits, versioning, changelog and releases.
 
-[Pretty-quick](https://github.com/azz/pretty-quick)
-[Husky](https://github.com/typicode/husky)
-[Auto-changelog](https://github.com/CookPete/auto-changelog)
-[Release-it](https://github.com/release-it/release-it)
+- [Pretty-quick](https://github.com/azz/pretty-quick)
+- [Husky](https://github.com/typicode/husky)
+- [Auto-changelog](https://github.com/CookPete/auto-changelog)
+- [Release-it](https://github.com/release-it/release-it)
 
 All of these should run out of the box with your dev dependencies
 

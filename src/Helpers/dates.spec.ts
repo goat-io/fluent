@@ -22,7 +22,6 @@ it('currentDateObject - Should get the current date in dayjs Format', async () =
 
 it('currentDateObject - Should get the current date in dayjs Format', async () => {
   const date = Dates.parseUnixDate(22588659293)
-  console.log(date.toISOString())
 
   const sameOrAfter = Dates.isSameOrAfterNow(date)
 

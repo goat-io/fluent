@@ -6,7 +6,7 @@ import {
   GoatConnectorInterface,
   GoatOutput
 } from '../../BaseConnector'
-import { Errors } from '../../Helpers/Errors'
+
 import { Event } from '../../Helpers/Event'
 import { IPaginatedData, IPaginator, ISure } from '../types'
 import {
@@ -22,7 +22,7 @@ import {
   IsNull,
   FindManyOptions
 } from 'typeorm'
-
+import { Errors } from '../../Helpers/Errors'
 /*
     
       import {
@@ -37,16 +37,21 @@ import {
 
 interface ITypeOrmConnector<T> {
   repository: Repository<T>
+  outputKeys?: string[]
 }
 
-export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
-  extends BaseConnector<InputDTO, OutputDTO>
+export class TypeOrmConnector<
+  ModelDTO = IDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = InputDTO
+> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
-  private repository: Repository<OutputDTO>
+  private repository: Repository<ModelDTO>
 
-  constructor({ repository }: ITypeOrmConnector<OutputDTO>) {
+  constructor({ repository, outputKeys }: ITypeOrmConnector<ModelDTO>) {
     super()
     this.repository = repository
+    this.outputKeys = outputKeys || []
   }
   /**
    *
@@ -59,8 +64,9 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     if (error) {
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
-
-    return this.jsApplySelect(result)
+    const data = this.jsApplySelect(result)
+    this.reset()
+    return data
   }
   /**
    *
@@ -107,6 +113,29 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   }
   /**
    *
+   * @param filter
+   */
+  public async find(
+    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    this.selectArray = String(filter.fields).split(',')
+    this.limit(Number(filter.limit))
+    this.offset(Number(filter.offset))
+    this.skip(Number(filter.skip))
+    // this.repository.createQueryBuilder('model').w
+    const order: string[] = filter.order
+
+    if (order.length > 0) {
+      const firstOrder = String(order).split(',')[0].split(' ')
+      const orderB = [firstOrder[0], firstOrder[1], firstOrder[2] || 'string']
+      this.chainReference.push({ method: 'orderBy', orderB })
+      this.orderByArray = orderB
+    }
+
+    return this.get()
+  }
+  /**
+   *
    * @param paginator
    */
   public async paginate(
@@ -123,14 +152,14 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   }
   /**
    *
+   * Returns the TypeOrm Repository, you can use it
+   * form more complex queries and to get
+   * the TypeOrm query builder
+   *
    * @param query
    */
-  public raw(query: Filter): this {
-    if (!query) {
-      throw new Error('No query was received')
-    }
-    this.rawQuery = query
-    return this
+  public raw(): Repository<ModelDTO> {
+    return this.repository
   }
   /**
    *
@@ -142,9 +171,9 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     const [error, result] = await to(this.repository.save(data))
 
     if (error) {
-      console.log(error)
-      throw new Error('Cannot insert data')
+      return Promise.reject(Errors(error, 'Validation Error'))
     }
+    this.reset()
     return result
   }
   /**
@@ -164,7 +193,7 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(error)
       throw new Error('Could not insert all elements')
     }
-
+    this.reset()
     return inserted
   }
   /**
@@ -189,7 +218,7 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(getError)
       throw new Error('Cannot update data')
     }
-
+    this.reset()
     return result[0]
   }
   /**
@@ -209,6 +238,7 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(error)
       throw new Error('Cannot Clear the model')
     }
+    this.reset()
     return true
   }
   /**
@@ -222,7 +252,7 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(error)
       throw new Error(`FormioConnector: Could not delete ${_id}`)
     }
-
+    this.reset()
     return _id
   }
   /**
@@ -236,7 +266,7 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       console.log(error)
       throw new Error('FindById() could not get remote data')
     }
-
+    this.reset()
     return data
   }
   /**
@@ -314,60 +344,135 @@ export class TypeOrmConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    *
    * @param filters
    */
-  private getFilters(filters) {
-    const filter = this.whereArray
-
-    if (!filter || filter.length === 0) {
+  private getFilters(filters: FindManyOptions) {
+    const andFilters = this.whereArray
+    const oldFilters = this.orWhereArray
+    if (!andFilters || andFilters.length === 0) {
       return filters
     }
 
-    filters.where = { and: [] }
+    const Filters = { where: [{}] }
 
-    filter.forEach(condition => {
+    // Apply and conditions
+    andFilters.forEach(condition => {
       const element = condition[0]
       const operator = condition[1]
       const value = condition[2]
 
       switch (operator) {
         case '=':
-          filters.where.and.push({ [element]: Equal(value) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Equal(value) }
+          }
           break
         case '!=':
-          filters.where.and.push({ [element]: Not(Equal(value)) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Not(Equal(value)) }
+          }
           break
         case '>':
-          filters.where.and.push({ [element]: MoreThan(value) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: MoreThan(value) }
+          }
           break
         case '>=':
-          filters.where.and.push({ [element]: MoreThanOrEqual(value) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: MoreThanOrEqual(value) }
+          }
           break
         case '<':
-          filters.where.and.push({ [element]: LessThan(value) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: LessThan(value) }
+          }
           break
         case '<=':
-          filters.where.and.push({ [element]: LessThanOrEqual(value) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: LessThanOrEqual(value) }
+          }
           break
         case 'in':
-          filters.where.and.push({ [element]: In(value) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: In(value) }
+          }
           break
         case 'nin':
-          filters.where.and.push({ [element]: Not(In(value)) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Not(In(value)) }
+          }
           break
         case 'exists':
-          filters.where.and.push({ [element]: Not(IsNull()) })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Not(IsNull()) }
+          }
           break
         case '!exists':
-          filters.where.and.push({ [element]: IsNull() })
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: IsNull() }
+          }
           break
-        case 'regex':
-          filters.where.and.push({
-            [element]: Like(value)
-          })
+        case 'regexp':
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Like(value) }
+          }
           break
       }
     })
 
-    return filters
+    // Apply or conditions
+    oldFilters.forEach(condition => {
+      const element = condition[0]
+      const operator = condition[1]
+      const value = condition[2]
+
+      switch (operator) {
+        case '=':
+          Filters.where.push({ [element]: Equal(value) })
+          break
+        case '!=':
+          Filters.where.push({ [element]: Not(Equal(value)) })
+          break
+        case '>':
+          Filters.where.push({ [element]: MoreThan(value) })
+          break
+        case '>=':
+          Filters.where.push({ [element]: MoreThanOrEqual(value) })
+          break
+        case '<':
+          Filters.where.push({ [element]: LessThan(value) })
+          break
+        case '<=':
+          Filters.where.push({ [element]: LessThanOrEqual(value) })
+          break
+        case 'in':
+          Filters.where.push({ [element]: In(value) })
+          break
+        case 'nin':
+          Filters.where.push({ [element]: Not(In(value)) })
+          break
+        case 'exists':
+          Filters.where.push({ [element]: Not(IsNull()) })
+          break
+        case '!exists':
+          Filters.where.push({ [element]: IsNull() })
+          break
+        case 'regexp':
+          Filters.where.push({ [element]: Like(value) })
+          break
+      }
+    })
+
+    return Filters
   }
   /**
    *

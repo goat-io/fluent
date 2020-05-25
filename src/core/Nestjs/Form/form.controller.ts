@@ -1,4 +1,14 @@
-import { Get, Controller, Param, Post, Body, Query } from '@nestjs/common'
+import {
+  Get,
+  Controller,
+  Param,
+  Post,
+  Body,
+  Query,
+  HttpException,
+  HttpStatus,
+  BadRequestException
+} from '@nestjs/common'
 import { ApiTags, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger'
 import { FormService } from './form.service'
 import { Form } from '../../Loopback/Form/form.model'
@@ -6,6 +16,7 @@ import { FormDtoOut, FormDtoIn, FormDtoPaginated } from './form.dto'
 import { getModelSchemaRef, getFilterSchemaFor } from '@loopback/rest'
 import { Filter } from '@loopback/repository'
 import { GoatOutput } from '../../../BaseConnector'
+import to from 'await-to-js'
 
 @ApiTags('Forms')
 @Controller('form')
@@ -35,7 +46,13 @@ export class FormController {
   async create(
     @Body() form: FormDtoIn
   ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
-    return this.forms.insert(form)
+    const [error, response] = await to(this.forms.insert(form))
+
+    if (error) {
+      throw new BadRequestException(error)
+    }
+
+    return response
   }
   /**
    *
@@ -97,9 +114,7 @@ export class FormController {
   find(
     @Query() filter: Filter<GoatOutput<FormDtoIn, FormDtoOut>>
   ): Promise<GoatOutput<FormDtoIn, FormDtoOut>[]> {
-    console.log(filter)
-    console.log(typeof filter)
-    return this.forms.all()
+    return this.forms.find(filter)
   }
 
   /**

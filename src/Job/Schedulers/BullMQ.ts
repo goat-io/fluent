@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq'
 import Redis from 'ioredis'
-import { For } from '../../../Helpers/For'
+import { For } from '../../Helpers/For'
 import { IJob, IJobDescription, RepeatEvery, TimeZones, IDataMap } from '../Job'
 
 export enum BullCronTimes {
@@ -51,12 +51,18 @@ export const BullMQScheduler = (() => {
    * @param options
    */
   const schedule = async (options: IJob) => {
-    const croneString = getCronString((options.repeat && options.repeat.cronTime) || RepeatEvery.never)
-    const timezoneString = getTimezoneString((options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm)
+    const croneString = getCronString(
+      (options.repeat && options.repeat.cronTime) || RepeatEvery.never
+    )
+    const timezoneString = getTimezoneString(
+      (options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm
+    )
 
     const queue = new Queue(options.jobName, { connection })
 
-    let queueOptions: any = { repeat: { cron: croneString, tz: timezoneString } }
+    let queueOptions: any = {
+      repeat: { cron: croneString, tz: timezoneString }
+    }
 
     if (croneString === BullCronTimes.never) {
       queueOptions = {}
@@ -97,7 +103,10 @@ export const BullMQScheduler = (() => {
    * @param queueName
    * @param handle
    */
-  const consumer = async (queueName: string, handle: (job: IJobDescription) => Promise<void>): Promise<Worker> => {
+  const consumer = async (
+    queueName: string,
+    handle: (job: IJobDescription) => Promise<void>
+  ): Promise<Worker> => {
     const worker = new Worker(queueName, async job => {
       const jobDescription: IJobDescription = {
         data: job.data,

@@ -65,7 +65,10 @@ export const Objects = (() => {
    * @param ob
    * @param keyFactory
    */
-  const flatten = (ob: { [key: string]: any }, keyFactory: KeyFactory | null = null): { [key: string]: any } => {
+  const flatten = (
+    ob: { [key: string]: any },
+    keyFactory: KeyFactory | null = null
+  ): { [key: string]: any } => {
     if (keyFactory === null) {
       keyFactory = (previousKey, currentKey) => previousKey + '.' + currentKey
     }
@@ -89,32 +92,52 @@ export const Objects = (() => {
     return toReturn
   }
   /**
+   *
+   * @param obj
+   */
+  const isPlainObject = (obj: { [key: string]: any }) =>
+    !!obj && obj.constructor === {}.constructor
+  /**
+   *
+   * @param obj
+   */
+  const getNestedObject = (
+    obj: { [key: string]: any },
+    markNewObject: boolean
+  ) =>
+    Object.entries(obj).reduce((result, [prop, val]) => {
+      prop.split('.').reduce((nestedResult, prop, propIndex, propArray) => {
+        const lastProp = propIndex === propArray.length - 1
+        if (lastProp) {
+          nestedResult[prop] = isPlainObject(val)
+            ? getNestedObject(val, markNewObject)
+            : val
+        } else {
+          nestedResult[prop] =
+            nestedResult[prop] ||
+            (markNewObject
+              ? {
+                  isObject: true
+                }
+              : {})
+        }
+        return nestedResult[prop]
+      }, result)
+      return result
+    }, {})
+  /**
    * Opposite of the flatten method. Given a nested dot notation flatten object.
    * it will generate the corresponding nested object
    * @param obj
    */
-  const nest = (obj: { [key: string]: any }): { [key: string]: any } => {
+  const nest = (
+    obj: { [key: string]: any },
+    markNewObject?: boolean
+  ): { [key: string]: any } => {
     if (!obj) {
       return {}
     }
-    const isPlainObject = (obj: { [key: string]: any }) => !!obj && obj.constructor === {}.constructor
-    const getNestedObject = (obj: { [key: string]: any }) =>
-      Object.entries(obj).reduce((result, [prop, val]) => {
-        prop.split('.').reduce((nestedResult, prop, propIndex, propArray) => {
-          const lastProp = propIndex === propArray.length - 1
-          if (lastProp) {
-            nestedResult[prop] = isPlainObject(val) ? getNestedObject(val) : val
-          } else {
-            nestedResult[prop] = nestedResult[prop] || {
-              isObject: true
-            }
-          }
-          return nestedResult[prop]
-        }, result)
-        return result
-      }, {})
-
-    return getNestedObject(obj)
+    return getNestedObject(obj, markNewObject || false)
   }
   /**
    * Deep clones a JS object using JSON.parse. This method

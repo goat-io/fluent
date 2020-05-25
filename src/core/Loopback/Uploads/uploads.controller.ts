@@ -1,6 +1,12 @@
 import { inject } from '@loopback/core'
-import { post, Request, requestBody, Response, RestBindings } from '@loopback/rest'
-import { file, Providers, Upload } from '../../Uploads/Upload'
+import {
+  post,
+  Request,
+  requestBody,
+  Response,
+  RestBindings
+} from '@loopback/rest'
+import { file, Providers, Upload } from '../../../Uploads/Upload'
 
 const openAPITag = 'Uploads'
 export class FileUploadController {
@@ -29,7 +35,9 @@ export class FileUploadController {
     request: Request,
     @inject(RestBindings.Http.RESPONSE) response: Response
   ): Promise<object> {
-    const upload = await new Upload(Providers.Local, request, response).file({ folder: 'myfolder' })
+    const upload = await new Upload(Providers.Local, request, response).file({
+      folder: 'myfolder'
+    })
     return upload
   }
 }

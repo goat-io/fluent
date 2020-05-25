@@ -10,9 +10,13 @@ import { Objects } from '../../Helpers/Objects'
 import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
+import { Filter } from '@loopback/repository'
 
-export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
-  extends BaseConnector<InputDTO, OutputDTO>
+export class LokiRNConnector<
+  ModelDTO = IDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = ModelDTO
+> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private name: string = 'baseModel'
 
@@ -33,15 +37,24 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       .limit(this.limitNumber)
       .data()
 
-    data = this.jsApplySelect(data)
+    // data = this.jsApplySelect(data)
     data = this.jsApplyOrderBy(data)
-
+    this.reset()
     return data
   }
   /**
    *
    */
   public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    return this.get()
+  }
+  /**
+   *
+   * @param filter
+   */
+  public async find(
+    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -55,32 +68,28 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
         'No id assign to remove().You must give and _id to delete'
       )
     }
-
-    if (!_id.includes('_local')) {
-      throw new Error('You can`t delete non local submissions')
-    }
-
     const model = await this.getModel()
     await model.findAndRemove({ _id })
+    this.reset()
     return _id
   }
-
+  /**
+   *
+   * @param _id
+   */
   public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     if (!_id) {
       throw new Error(
         'No id assign to remove().You must give and _id to delete'
       )
     }
-
-    if (!_id.includes('_local')) {
-      throw new Error('You can`t delete non local submissions')
-    }
-
     const model = await this.getModel()
-    const result: GoatOutput<InputDTO, OutputDTO> = await model.find({ _id })
+    const result: GoatOutput<InputDTO, OutputDTO> = await model.find({
+      _id
+    })
+    this.reset()
     return result
   }
-
   /**
    * [insert description]
    * @param  {Object, Array} element [description]
@@ -101,7 +110,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     }
 
     model.insert(inserted)
-
+    this.reset()
     return inserted
   }
   /**
@@ -123,7 +132,7 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
       insertedElements.push(inserted)
     }
-
+    this.reset()
     return insertedElements
   }
   /**
@@ -143,10 +152,14 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
 
     const local = await model.findOne({ _id })
 
-    const mod = { ...local, ...data, ...{ modified: Dates.currentIsoString() } }
+    const mod = {
+      ...local,
+      ...data,
+      ...{ modified: Dates.currentIsoString() }
+    }
 
     const updated: GoatOutput<InputDTO, OutputDTO> = model.update(mod)
-
+    this.reset()
     return updated
   }
   /**
@@ -190,7 +203,6 @@ export class LokiRNConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     const andObject = { $and: [] }
     const orObject = { $or: [] }
     let globalFilter = {}
-
     // All first Level AND conditions
     if (this.whereArray.length > 0) {
       this.whereArray.forEach(c => {

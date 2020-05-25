@@ -92,6 +92,6 @@ export const getFormDataObject = (Form: FormioForm) => {
     }
   })
 
-  dataObject = Objects.clone(Objects.nest(dataObject))
+  dataObject = Objects.clone(Objects.nest(dataObject, true))
   return dataObject
 }

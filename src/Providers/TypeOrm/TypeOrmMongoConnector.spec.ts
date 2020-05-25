@@ -1,12 +1,12 @@
 import { TypeOrmConnector } from './TypeOrmConnector'
 import { createConnection } from 'typeorm'
-import { mongoMemory } from '../../core/Database/mongo.memory'
+import { mongoMemory } from '../../Database/mongo.memory'
 // jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 import { GoatEntityOut, GoatEntityIn } from '../test/goat.dto'
 import { GoatEntity } from '../test/goat.entity'
 import { flock } from '../test/flock'
 
-let GoatModel: TypeOrmConnector<GoatEntityIn, GoatEntityOut>
+let GoatModel: TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>
 let storedId: any
 
 beforeAll(async done => {
@@ -24,7 +24,7 @@ beforeAll(async done => {
 
   const repository = connection.getRepository(GoatEntity)
 
-  GoatModel = new TypeOrmConnector<GoatEntityIn, GoatEntityOut>({
+  GoatModel = new TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>({
     repository
   })
   done()

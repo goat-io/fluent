@@ -3,7 +3,11 @@ import { extname } from 'path'
 import { MulterConfiguration } from '../Upload'
 
 export const Google = (config: MulterConfiguration) => {
-  if (!process.env.GOOGLE_PROJECT_ID || !process.env.AZURE_ACCESS_KEY || !process.env.AZURE_ACCOUNT_NAME) {
+  if (
+    !process.env.GOOGLE_PROJECT_ID ||
+    !process.env.AZURE_ACCESS_KEY ||
+    !process.env.AZURE_ACCOUNT_NAME
+  ) {
     throw new Error('AWS access keys are missing')
   }
   return new multerGoogleStorage({

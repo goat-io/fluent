@@ -6,12 +6,12 @@ import { flock } from '../test/flock'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
-let GoatModel: TypeOrmConnector<GoatEntityIn, GoatEntityOut>
+let GoatModel: TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>
 
 beforeAll(async done => {
   const connection = await createConnection({
     type: 'sqlite',
-    database: './test.db',
+    database: './src/Providers/TypeOrm/test.db',
     entities: [GoatEntity],
     logging: false,
     synchronize: true
@@ -19,7 +19,7 @@ beforeAll(async done => {
 
   const repository = connection.getRepository(GoatEntity)
 
-  GoatModel = new TypeOrmConnector<GoatEntityIn, GoatEntityOut>({
+  GoatModel = new TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>({
     repository
   })
   done()
@@ -54,4 +54,31 @@ it('UpdateById - Should Update a single element', async () => {
     name: 'MyUpdatedGoat'
   })
   expect(data.name).toBe('MyUpdatedGoat')
+})
+
+it('Where - Should Filter elements', async () => {
+  await GoatModel.insertMany(flock)
+  const goats = await GoatModel.where(GoatModel._keys.name, '=', 'A').get()
+  expect(typeof goats).toBe('object')
+  expect(goats[0].name).toBe('A')
+})
+
+it('Where - Should Filter multiple Where clauses', async () => {
+  await GoatModel.insertMany(flock)
+  const goats = await GoatModel.where(GoatModel._keys.name, 'regexp', '%a%')
+    .andWhere(GoatModel._keys.age, '>', 3)
+    .get()
+  expect(typeof goats).toBe('object')
+  expect(goats[0].age > 3).toBe(true)
+})
+
+it('OrWhere - Should Filter multiple Where clauses', async () => {
+  await GoatModel.insertMany(flock)
+
+  const goats = await GoatModel.where(GoatModel._keys.age, '<', 3)
+    .orWhere(GoatModel._keys.age, '>', 30)
+    .get()
+
+  expect(typeof goats).toBe('object')
+  expect(goats[0].age > 3).toBe(true)
 })

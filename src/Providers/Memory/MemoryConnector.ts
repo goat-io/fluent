@@ -5,11 +5,15 @@ import {
   GoatOutput
 } from '../../BaseConnector'
 import { Dates } from '../../Helpers/Dates'
+import { Filter } from '@loopback/repository'
 
 let db: any = []
 
-export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
-  extends BaseConnector<InputDTO, OutputDTO>
+export class MemoryConnector<
+  ModelDTO = IDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = ModelDTO
+> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   /**
    *
@@ -28,7 +32,7 @@ export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     if (limit > 0) {
       result = result.slice(0, limit)
     }
-
+    this.reset()
     return result
   }
   /**
@@ -37,7 +41,15 @@ export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
   public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
-
+  /**
+   *
+   * @param filter
+   */
+  public async find(
+    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    return this.get()
+  }
   /**
    *
    * @param data
@@ -53,6 +65,7 @@ export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
     }
 
     db.push(inserted)
+    this.reset()
     return inserted
   }
   /**
@@ -71,6 +84,8 @@ export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       insertedElements.push(inserted)
     }
 
+    this.reset()
+
     return insertedElements
   }
   /**
@@ -88,7 +103,7 @@ export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
       ...data,
       ...{ modified: Dates.currentIsoString() }
     }
-
+    this.reset()
     return db[dbIndex]
   }
   /**
@@ -97,6 +112,7 @@ export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
    */
   public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const dbIndex = db.findIndex(obj => obj._id === _id)
+    this.reset()
     return db[dbIndex]
   }
   /**
@@ -110,12 +126,17 @@ export class MemoryConnector<InputDTO = IDataElement, OutputDTO = InputDTO>
         JSON.stringify(db[dbIndex])
       )
       db.splice(dbIndex, 1)
+      this.reset()
       return element._id
     }
     throw new Error(`The element with id ${_id} was not found`)
   }
 
   public async clear(): Promise<void> {
+    this.reset()
     db = []
+  }
+  public async raw(): Promise<void> {
+    throw new Error('Raw is not implemented for Memory Connector')
   }
 }

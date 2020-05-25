@@ -4,7 +4,7 @@ import { GoatEntityIn, GoatEntityOut } from '../test/goat.dto'
 let storedId: string = ''
 
 const GoatModel = (() => {
-  return new MemoryConnector<GoatEntityIn, GoatEntityOut>()
+  return new MemoryConnector<GoatEntityOut, GoatEntityIn, GoatEntityOut>()
 })()
 
 test('Get - Should  GET data', async () => {
