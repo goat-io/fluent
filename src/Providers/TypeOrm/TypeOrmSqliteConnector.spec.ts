@@ -3,12 +3,14 @@ import { createConnection } from 'typeorm'
 import { GoatEntityOut, GoatEntityIn } from '../test/goat.dto'
 import { GoatEntity } from '../test/goat.entity'
 import { flock } from '../test/flock'
+import { unlinkSync, writeFileSync } from 'fs'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
 let GoatModel: TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>
 
 beforeAll(async done => {
+  writeFileSync('./src/Providers/TypeOrm/test.db', '')
   const connection = await createConnection({
     type: 'sqlite',
     database: './src/Providers/TypeOrm/test.db',
@@ -27,6 +29,7 @@ beforeAll(async done => {
 
 afterAll(async () => {
   await GoatModel.clear({ sure: true })
+  unlinkSync('./src/Providers/TypeOrm/test.db')
 })
 
 test('Get - Should  GET data', async () => {
