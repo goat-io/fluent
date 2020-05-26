@@ -15,7 +15,7 @@
     "prebuild": "npx rimraf dist",
     "prestart": "npx rimraf dist",
     "predev": "npx rimraf dist",
-    "test": "npx jest",
+    "test": "npx jest --forceExit --detectOpenHandles",
     "dev": "npx tsc --watch",
     "tslint-check": "npx tslint-config-prettier-check ./tslint.json",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
