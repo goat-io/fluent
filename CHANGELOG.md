@@ -1,9 +1,18 @@
+# 0.3.12
+
+[2020-05-26]
+
+### Other Changes
+
+- TypeOrm find and Controller Filter support ([`a0167eb`](https://github.com/goat-io/fluent/commit/a0167ebceafd2389b218cde09bca1b186a54ddb9))
+
 # 0.3.11
 
 [2020-05-26]
 
 ### Other Changes
 
+- Release 0.3.11 ([`32f4abb`](https://github.com/goat-io/fluent/commit/32f4abb3b0539dd36157148d930ad055cd3db385))
 - adding detectOpenHandles ([`8e13651`](https://github.com/goat-io/fluent/commit/8e13651b0523b04e35b7704c4d8a61e95bcc4b46))
 
 # 0.3.10
