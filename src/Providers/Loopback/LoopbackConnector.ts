@@ -4,18 +4,19 @@ import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import pluralize from 'pluralize'
+import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
-  BaseConnector,
+  GoatOutput,
   IDataElement,
-  IGoatExtendedAttributes,
-  GoatConnectorInterface,
-  GoatOutput
-} from '../../BaseConnector'
+  IPaginatedData,
+  IPaginator,
+  ISure,
+  GoatFilter
+} from '../types'
 import { Connection } from '../../Helpers/Connection'
 import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
 import { Objects } from '../../Helpers/Objects'
-import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 dayjs.extend(isSameOrAfter)
 
 interface ILoopbackConnector {
@@ -104,7 +105,7 @@ export class LoopbackConnector<
    * @param filter
    */
   public async find(
-    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+    filter: GoatFilter
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }

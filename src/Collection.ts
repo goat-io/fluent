@@ -1,6 +1,5 @@
-import { IDataElement } from './BaseConnector'
 import { Objects } from './Helpers/Objects'
-import { Primitives } from './Providers/types'
+import { Primitives, IDataElement } from './Providers/types'
 import { typedPath, TypedPathWrapper } from 'typed-path'
 
 type Contains<T> = {

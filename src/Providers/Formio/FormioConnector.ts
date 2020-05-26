@@ -3,17 +3,18 @@ import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import jwtDecode from 'jwt-decode'
+import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
-  BaseConnector,
+  GoatOutput,
   IDataElement,
-  GoatConnectorInterface,
-  IGoatExtendedAttributes,
-  GoatOutput
-} from '../../BaseConnector'
+  ISure,
+  IPaginatedData,
+  IPaginator,
+  GoatFilter
+} from '../types'
 
 import { Connection } from '../../Helpers/Connection'
 import { Event } from '../../Helpers/Event'
-import { IPaginatedData, IPaginator, ISure } from '../types'
 import { Filter } from '@loopback/repository'
 dayjs.extend(isSameOrAfter)
 
@@ -87,7 +88,7 @@ export class LokiRNConnector<
    * @param filter
    */
   public async find(
-    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+    filter: GoatFilter
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }

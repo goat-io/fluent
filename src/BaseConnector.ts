@@ -6,81 +6,24 @@ import {
   IPaginatedData,
   IPaginator,
   ISure,
-  Primitives
+  Primitives,
+  GoatFilter
 } from './Providers/types'
 import { Id } from './Helpers/Id'
 import { Dates } from './Helpers/Dates'
 import { typedPath, TypedPathWrapper } from 'typed-path'
 import { keys } from 'ts-transformer-keys'
-
-export interface IGoatExtendedAttributes {
-  _id: string
-  created: string
-  updated: string
-  deleted?: string
-  owner?: string
-  _ngram?: string
-  roles: string[]
-}
-type Cons<H, T> = T extends readonly any[]
-  ? ((h: H, ...t: T) => void) extends (...r: infer R) => void
-    ? R
-    : never
-  : never
-
-type Prev = [
-  never,
-  0,
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15,
-  16,
-  17,
-  18,
-  19,
-  20,
-  ...0[]
-]
-
-export type Paths<T, D extends number = 10> = [D] extends [never]
-  ? never
-  : T extends object
-  ? {
-      [K in keyof T]-?:
-        | [K]
-        | (Paths<T[K], Prev[D]> extends infer P
-            ? P extends []
-              ? never
-              : Cons<K, P>
-            : never)
-    }[keyof T]
-  : []
-
-export type GoatOutput<Input, Output> = Partial<Input> &
-  Partial<Output> &
-  Partial<IGoatExtendedAttributes>
+import {
+  GoatOutput,
+  IGoatExtendedAttributes,
+  OperatorType
+} from './Providers/types'
 
 export interface GoatConnectorInterface<InputDTO, OutputDTO> {
   get(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
-  all(
-    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]>
+  all(filter: GoatFilter): Promise<GoatOutput<InputDTO, OutputDTO>[]>
   findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>>
-  find(
-    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]>
+  find(filter: GoatFilter): Promise<GoatOutput<InputDTO, OutputDTO>[]>
   // findOne(): Promise<T>
   deleteById(_id: string): Promise<string>
   // softDelete(): Promise<T>
@@ -98,27 +41,6 @@ export interface GoatConnectorInterface<InputDTO, OutputDTO> {
   // tableView(paginator: IPaginator): Promise<IPaginatedData<T>>
   // raw(): any
 }
-
-export interface IDataElement {
-  _id?: string
-  [key: string]: any
-}
-
-type OperatorType =
-  | '='
-  | '<'
-  | '>'
-  | '<='
-  | '>='
-  | '<>'
-  | '!='
-  | 'in'
-  | 'nin'
-  | 'like'
-  | 'regexp'
-  | 'startsWith'
-  | 'endsWith'
-  | 'contains'
 
 // tslint:disable-next-line: max-classes-per-file
 export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
@@ -504,7 +426,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.ownerId = undefined
     this.paginator = undefined
     this.rawQuery = undefined
-    this.outputKeys = []
   }
   /**
    *

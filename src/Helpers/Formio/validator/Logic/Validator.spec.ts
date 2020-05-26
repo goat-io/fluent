@@ -5,7 +5,7 @@ import { Form } from './tests/Forms/SingleNumerComponent'
 import { textForm } from './tests/Forms/SingleTextComponent'
 import { Validate, FormioValidationError } from '../Validate'
 import { For } from '../../../For'
-import { IDataElement } from '../../../../BaseConnector'
+import { IDataElement } from '../../../../Providers/types'
 import { ComplexNumberForm } from './tests/Forms/ComplexNumberComponent'
 // Start the MongoDB database before
 // calling all the tests

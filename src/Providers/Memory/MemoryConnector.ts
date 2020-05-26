@@ -1,9 +1,5 @@
-import {
-  BaseConnector,
-  IDataElement,
-  GoatConnectorInterface,
-  GoatOutput
-} from '../../BaseConnector'
+import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+import { GoatOutput, IDataElement, GoatFilter } from '../types'
 import { Dates } from '../../Helpers/Dates'
 import { Filter } from '@loopback/repository'
 
@@ -46,7 +42,7 @@ export class MemoryConnector<
    * @param filter
    */
   public async find(
-    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+    filter: GoatFilter
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }

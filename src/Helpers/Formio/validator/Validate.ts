@@ -1,7 +1,7 @@
 import { FormioForm } from '../types/FormioForm'
 import Form from './Form/Form'
 import Submission from './Submission/Submission'
-import { IDataElement } from '../../../BaseConnector'
+import { IDataElement } from '../../../Providers/types'
 import { Validator } from './Logic/Validator'
 import { For } from '../../For'
 
@@ -17,11 +17,14 @@ export interface FormioValidationError {
 }
 
 export const Validate = (() => {
-  const validate = (form: FormioForm, submissions: IDataElement[]): Promise<IDataElement[]> => {
+  const validate = (
+    form: FormioForm,
+    submissions: IDataElement[]
+  ): Promise<IDataElement[]> => {
     const _submissions: IDataElement[] = JSON.parse(JSON.stringify(submissions))
 
     return new Promise((resolve, reject) => {
-      Submission(form.path).then((model) => {
+      Submission(form.path).then(model => {
         const validation = new Validator(form, model)
         const validationPromises: Promise<any>[] = []
 
@@ -39,11 +42,14 @@ export const Validate = (() => {
         })
 
         Promise.all(validationPromises)
-          .then((res) => {
+          .then(res => {
             return resolve(res)
           })
-          .catch((e) => {
-            const errors: FormioValidationError = { name: e.name, details: e.details }
+          .catch(e => {
+            const errors: FormioValidationError = {
+              name: e.name,
+              details: e.details
+            }
             return reject(errors)
           })
       })
@@ -54,11 +60,19 @@ export const Validate = (() => {
     return validate(form, submissions)
   }
 
-  const submission = async (form: FormioForm, submission: IDataElement): Promise<IDataElement> => {
+  const submission = async (
+    form: FormioForm,
+    submission: IDataElement
+  ): Promise<IDataElement> => {
     const _submissions = [submission]
-    const [error, subs] = await For.async<IDataElement, any>(validate(form, _submissions))
+    const [error, subs] = await For.async<IDataElement, any>(
+      validate(form, _submissions)
+    )
     if (error) {
-      const errors: FormioValidationError = { name: error.name, details: error.details }
+      const errors: FormioValidationError = {
+        name: error.name,
+        details: error.details
+      }
       return Promise.reject(errors)
     }
     return subs[0]
@@ -113,7 +127,7 @@ export const Validate = (() => {
         .then((res: any) => {
           resolve(res)
         })
-        .catch((e) => {
+        .catch(e => {
           reject(e)
         })
     })

@@ -1,5 +1,4 @@
-import { IDataElement } from '../BaseConnector'
-import { Primitives } from '../Providers/types'
+import { IDataElement, Primitives } from '../Providers/types'
 
 export interface IEventOptions {
   data: IDataElement | Primitives
@@ -18,7 +17,10 @@ export const Event = (() => {
    *
    * @param param0
    */
-  const emit = (name: string, { data, text }: IEventOptions = { data: {}, text: '' }) => {
+  const emit = (
+    name: string,
+    { data, text }: IEventOptions = { data: {}, text: '' }
+  ) => {
     if (!name) {
       throw new Error('Event must have a name.')
     }

@@ -1,10 +1,9 @@
-import {
-  IDataElement,
-  BaseConnector,
-  IGoatExtendedAttributes
-} from './BaseConnector'
 import { Collection } from './Collection'
-import { Primitives } from './Providers/types'
+import {
+  Primitives,
+  IGoatExtendedAttributes,
+  IDataElement
+} from './Providers/types'
 import { TypedPathWrapper, typedPath } from 'typed-path'
 
 export interface _FLUENT_ {

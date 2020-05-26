@@ -1,6 +1,6 @@
 import pluralize from 'pluralize'
 import nGram from 'n-gram'
-import { IDataElement } from '../BaseConnector'
+import { IDataElement } from '../Providers/types'
 import { Objects } from './Objects'
 
 export interface INgramFromObject {

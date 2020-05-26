@@ -46,7 +46,10 @@ export class FormDtoIn extends OmitType(Form, [
   '_id',
   'created',
   'updated',
-  'deleted'
+  'deleted',
+  'access',
+  'submissionAccess',
+  'version'
 ] as const) {}
 /**
  *

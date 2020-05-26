@@ -5,18 +5,87 @@ import {
   Post,
   Body,
   Query,
-  HttpException,
-  HttpStatus,
-  BadRequestException
+  BadRequestException,
+  NotFoundException,
+  Delete,
+  Put
 } from '@nestjs/common'
-import { ApiTags, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger'
+import {
+  ApiTags,
+  ApiResponse,
+  ApiBody,
+  ApiQuery,
+  ApiParam
+} from '@nestjs/swagger'
 import { FormService } from './form.service'
-import { Form } from '../../Loopback/Form/form.model'
-import { FormDtoOut, FormDtoIn, FormDtoPaginated } from './form.dto'
-import { getModelSchemaRef, getFilterSchemaFor } from '@loopback/rest'
-import { Filter } from '@loopback/repository'
-import { GoatOutput } from '../../../BaseConnector'
+import { FormDtoOut, FormDtoIn, formOutKeys } from './form.dto'
+import { getModelSchemaRef, SchemaObject } from '@loopback/rest'
+import { Form as FormEntity } from './form.entity'
 import to from 'await-to-js'
+import { GoatFilter, GoatOutput } from 'Providers/types'
+import { For } from '../../../Helpers/For'
+
+const getGoatFilterSchema = (model: any, keys: string[]) => {
+  const schema: SchemaObject = {
+    title: model.name + 'Filter',
+    name: 'filter',
+    schema: {
+      offset: { type: 'integer', minimum: 0 },
+      limit: { type: 'integer', minimum: 1, example: 100 },
+      skip: { type: 'integer', minimum: 0 },
+      order: {
+        title: 'Form.Fields',
+        type: 'object',
+        properties: {
+          field: { type: 'string' },
+          asc: { type: 'boolean' },
+          type: { type: 'string' }
+        },
+        additionalProperties: false
+      },
+      where: {
+        title: 'Form.WhereFilter',
+        type: 'object',
+        style: 'deepObject',
+        explode: 'true',
+        properties: {
+          and: {
+            type: 'array',
+            items: {
+              type: 'array',
+              style: 'deepObject',
+              explode: 'true',
+              items: {
+                type: 'string'
+              }
+            }
+          },
+          or: {
+            type: 'array',
+            items: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            }
+          }
+        },
+        additionalProperties: false
+      },
+      fields: {
+        type: 'array',
+        items: {
+          type: 'string',
+          examples: keys
+        }
+      }
+    },
+    additionalProperties: false,
+    type: 'application/json'
+  }
+
+  return schema
+}
 
 @ApiTags('Forms')
 @Controller('form')
@@ -90,12 +159,7 @@ export class FormController {
     name: 'filter',
     required: false,
     type: 'object',
-    schema: {
-      ...getFilterSchemaFor(Form),
-      ...{
-        type: 'object'
-      }
-    }
+    schema: getGoatFilterSchema(FormEntity, formOutKeys)
   })
   @ApiResponse({
     status: 200,
@@ -112,7 +176,7 @@ export class FormController {
     type: FormDtoOut
   })
   find(
-    @Query() filter: Filter<GoatOutput<FormDtoIn, FormDtoOut>>
+    @Query('filter') filter: GoatFilter
   ): Promise<GoatOutput<FormDtoIn, FormDtoOut>[]> {
     return this.forms.find(filter)
   }
@@ -162,15 +226,112 @@ export class FormController {
     })
   }
   */
-  @Get(':path')
+  /**
+   *
+   * @param filter
+   */
+  @Get(':id')
   @ApiResponse({
     status: 200,
-    description: 'The form found',
+    description: 'The forms found',
+    content: {
+      'application/json': {
+        schema: {
+          items: getModelSchemaRef(FormDtoOut),
+          type: 'array'
+        }
+      }
+    },
+    isArray: true,
     type: FormDtoOut
   })
-  getFormByPath(
-    @Param() params: any
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: 'string'
+  })
+  async findById(
+    @Param('id') id: string
   ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
-    return this.forms.where(this.forms._keys.path, '=', params.path).first()
+    const [error, result] = await For.async(this.forms.findById(id))
+
+    if (error) {
+      throw new NotFoundException(error)
+    }
+
+    return result
+  }
+
+  @Delete(':id')
+  @ApiResponse({
+    status: 200,
+    description: 'The forms found',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'string'
+        }
+      }
+    },
+    isArray: true,
+    type: FormDtoOut
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: 'string'
+  })
+  async deleteById(@Param('id') id: string): Promise<string> {
+    const [error, result] = await For.async(this.forms.deleteById(id))
+
+    if (error) {
+      throw new NotFoundException(error)
+    }
+
+    return result
+  }
+
+  @Put(':id')
+  @ApiResponse({
+    status: 200,
+    description: 'The created form',
+    content: {
+      'application/json': { schema: getModelSchemaRef(FormDtoOut) }
+    },
+    isArray: true,
+    type: FormDtoOut
+  })
+  @ApiBody({
+    description: 'Form',
+    type: FormDtoIn
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: 'string'
+  })
+  async replaceById(
+    @Param('id') id: string,
+    @Body() form: FormDtoIn
+  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
+    const [error, result] = await For.async(this.forms.replaceById(id, form))
+
+    if (error) {
+      throw new NotFoundException(error)
+    }
+
+    return result
   }
 }
+
+/*
+// create
+// createMany
+replaceById
+updateById
+updateWhere
+countWhere
+// find
+// findById
+// deleteById
+*/

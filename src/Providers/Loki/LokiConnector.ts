@@ -1,12 +1,6 @@
-import {
-  BaseConnector,
-  IDataElement,
-  IGoatExtendedAttributes,
-  GoatConnectorInterface,
-  GoatOutput
-} from '../../BaseConnector'
+import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+import { GoatOutput, IDataElement, ISure, GoatFilter } from '../types'
 import { Objects } from '../../Helpers/Objects'
-import { IDeleted, IPaginatedData, IPaginator, ISure } from '../types'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
 import { Filter } from '@loopback/repository'
@@ -54,7 +48,7 @@ export class LokiConnector<
    * @param filter
    */
   public async find(
-    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+    filter: GoatFilter
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }

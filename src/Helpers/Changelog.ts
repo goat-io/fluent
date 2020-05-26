@@ -1,4 +1,4 @@
-import { IDataElement } from '../BaseConnector'
+import { IDataElement } from '../Providers/types'
 import diff from 'deep-diff'
 
 enum kind {

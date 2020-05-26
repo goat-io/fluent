@@ -1,14 +1,16 @@
-import { Filter } from '@loopback/repository'
 import to from 'await-to-js'
+import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
-  BaseConnector,
+  GoatOutput,
   IDataElement,
-  GoatConnectorInterface,
-  GoatOutput
-} from '../../BaseConnector'
+  IPaginatedData,
+  IPaginator,
+  ISure,
+  GoatFilter
+} from '../types'
 
 import { Event } from '../../Helpers/Event'
-import { IPaginatedData, IPaginator, ISure } from '../types'
+
 import {
   Repository,
   Not,
@@ -116,18 +118,32 @@ export class TypeOrmConnector<
    * @param filter
    */
   public async find(
-    filter: Filter<GoatOutput<InputDTO, OutputDTO>>
+    filter: GoatFilter = {}
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    this.selectArray = String(filter.fields).split(',')
-    this.limit(Number(filter.limit))
-    this.offset(Number(filter.offset))
-    this.skip(Number(filter.skip))
-    // this.repository.createQueryBuilder('model').w
-    const order: string[] = filter.order
+    const stringFilter: string = filter as string
 
-    if (order.length > 0) {
-      const firstOrder = String(order).split(',')[0].split(' ')
-      const orderB = [firstOrder[0], firstOrder[1], firstOrder[2] || 'string']
+    let parsedFilter: any = {}
+    try {
+      parsedFilter = JSON.parse(stringFilter)
+    } catch (error) {
+      parsedFilter = {}
+    }
+
+    this.selectArray = (parsedFilter && parsedFilter.fields) || []
+    this.whereArray =
+      (parsedFilter && parsedFilter.where && parsedFilter.where.and) || []
+    this.orWhereArray =
+      (parsedFilter && parsedFilter.where && parsedFilter.where.or) || []
+    this.limit((parsedFilter && parsedFilter.limit) || 100)
+    this.offset((parsedFilter && parsedFilter.offset) || 0)
+    this.skip((parsedFilter && parsedFilter.skip) || 0)
+
+    if (parsedFilter && parsedFilter.order) {
+      const orderB = [
+        parsedFilter.order.field,
+        parsedFilter.order.asc ? 'asc' : 'desc',
+        parsedFilter.order.type || 'string'
+      ]
       this.chainReference.push({ method: 'orderBy', orderB })
       this.orderByArray = orderB
     }
@@ -168,13 +184,17 @@ export class TypeOrmConnector<
   public async insert(
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, result] = await to(this.repository.save(data))
+    const [error, datum] = await to(this.repository.save(data))
 
     if (error) {
       return Promise.reject(Errors(error, 'Validation Error'))
     }
     this.reset()
-    return result
+    const result = this.jsApplySelect([datum]) as GoatOutput<
+      InputDTO,
+      OutputDTO
+    >[]
+    return result[0]
   }
   /**
    *
@@ -190,11 +210,15 @@ export class TypeOrmConnector<
     )
 
     if (error) {
-      console.log(error)
-      throw new Error('Could not insert all elements')
+      return Promise.reject(Errors(error, 'Could not insert all elements'))
     }
     this.reset()
-    return inserted
+
+    const result = this.jsApplySelect(inserted) as GoatOutput<
+      InputDTO,
+      OutputDTO
+    >[]
+    return result
   }
   /**
    *
@@ -223,6 +247,28 @@ export class TypeOrmConnector<
   }
   /**
    *
+   * @param _id
+   * @param data
+   */
+  public async replaceById(
+    _id: string,
+    data: InputDTO
+  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    const [getError, currenValue] = await to(this.repository.findOneOrFail(_id))
+
+    const newValue = { ...currenValue }
+
+    const [error, updated] = await to(this.repository.update(_id, data))
+
+    if (getError) {
+      return Promise.reject(Errors(getError, 'Entity not found'))
+    }
+
+    console.log('result', currenValue)
+    return {}
+  }
+  /**
+   *
    * @param param0
    */
   public async clear({ sure }: ISure) {
@@ -247,11 +293,10 @@ export class TypeOrmConnector<
    */
   public async deleteById(_id: string): Promise<string> {
     const [error, removed] = await to(this.repository.delete(_id))
-
     if (error) {
-      console.log(error)
-      throw new Error(`FormioConnector: Could not delete ${_id}`)
+      return Promise.reject(Errors(error, `Could not delete ${_id}`))
     }
+
     this.reset()
     return _id
   }
@@ -260,14 +305,19 @@ export class TypeOrmConnector<
    * @param _id
    */
   public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, data] = await to(this.repository.findOne({ where: { _id } }))
+    const [error, data] = await to(this.repository.findByIds([_id]))
 
     if (error) {
-      console.log(error)
-      throw new Error('FindById() could not get remote data')
+      return Promise.reject(Errors(error, 'Could not get data'))
     }
+    const result = this.jsApplySelect(data) as GoatOutput<InputDTO, OutputDTO>[]
     this.reset()
-    return data
+
+    if (result.length === 0) {
+      return Promise.reject(Errors(error, 'Entity not found'))
+    }
+
+    return result[0]
   }
   /**
    *
