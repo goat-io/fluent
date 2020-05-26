@@ -1,3 +1,11 @@
+# 0.3.11
+
+[2020-05-26]
+
+### Other Changes
+
+- adding detectOpenHandles ([`8e13651`](https://github.com/goat-io/fluent/commit/8e13651b0523b04e35b7704c4d8a61e95bcc4b46))
+
 # 0.3.10
 
 [2020-05-25]
@@ -10,11 +18,12 @@
 - testing sqlite ([`641e0c4`](https://github.com/goat-io/fluent/commit/641e0c41b88a6b8b560f37186e0f6ea8ecf631ba))
 - integrating random commit changelog ([`baec206`](https://github.com/goat-io/fluent/commit/baec2060aeb3572dbb29153d93c8b944f33248c5))
 - adding TypeOrm connector tests ([`0e01e59`](https://github.com/goat-io/fluent/commit/0e01e594b45b3b335f0ca4d671b18bbcf345c0f0))
+- Release 0.3.10 ([`92b9be6`](https://github.com/goat-io/fluent/commit/92b9be6972a8ca054075a2424631687a1011bdd1))
 - change connector name for loki ([`e87b9b1`](https://github.com/goat-io/fluent/commit/e87b9b1cff2227363f4c17030f07ca3da8749cb6))
 - docs ([`10d720d`](https://github.com/goat-io/fluent/commit/10d720dcc4c627a5830a212d2100aa1248f81feb))
 - Sqlite test remove db ([`83efdc2`](https://github.com/goat-io/fluent/commit/83efdc28ae1596476ea929036648ab5af2c979db))
-- db ([`ce540e5`](https://github.com/goat-io/fluent/commit/ce540e5a66692d48bd563f51ef3fac9fb2a634f3))
 - folder permissions ([`23329eb`](https://github.com/goat-io/fluent/commit/23329eb8ad3a0d4dc2ea1b78af662e703fb41788))
+- db ([`ce540e5`](https://github.com/goat-io/fluent/commit/ce540e5a66692d48bd563f51ef3fac9fb2a634f3))
 
 # 0.3.9
 
