@@ -27,8 +27,7 @@
     "release:minor": "npx release-it minor --no-npm.publish --ci",
     "release:mayor": "npx release-it mayor --no-npm.publish --ci ",
     "changelog": "npx auto-changelog --template changelog-template.hbs -p -u --commit-limit false",
-    "changelog-debug": "npx auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json",
-    "cm": "npx git-cz"
+    "changelog-debug": "npx auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "keywords": [
     "goat",
