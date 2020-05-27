@@ -39,7 +39,7 @@
   "husky": {
     "hooks": {
       "pre-commit": "pretty-quick --staged && npm test",
-      "prepare-commit-msg": "exec < /dev/tty && npx git-cz --hook || true",
+      "prepare-commit-msg": "exec < /dev/tty && npx git cz --hook",
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
       "pre-push": "npm run build"
     }
