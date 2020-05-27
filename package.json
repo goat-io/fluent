@@ -48,7 +48,10 @@
       "commitMessage": "ci: CI-1 [Release] v%s"
     },
     "git": {
-      "requireBranch": "master"
+      "requireBranch": "master",
+      "commitArgs": [
+        "--no-verify"
+      ]
     },
     "hooks": {
       "before:init": [
