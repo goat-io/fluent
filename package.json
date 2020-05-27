@@ -37,6 +37,18 @@
   ],
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "subject-case": [
+        2,
+        "never",
+        []
+      ]
+    }
+  },
   "husky": {
     "hooks": {
       "pre-commit": "pretty-quick --staged && npm test",
