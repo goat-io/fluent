@@ -1,3 +1,10 @@
+# 0.3.14
+[2020-05-27]
+
+### Other Changes
+
+* ci: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Move commitlint to package.json ([`63d8435`](https://github.com/goat-io/fluent/commit/63d84351c10ec3e45b4dd35c7b3051da62548976))
+
 # 0.3.13
 [2020-05-27]
 
@@ -5,29 +12,30 @@
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Enforcing commit message ([`50b0e9a`](https://github.com/goat-io/fluent/commit/50b0e9a737c25ab31b5be6b1c84e116251b60891))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Git commit hook ([`e34c363`](https://github.com/goat-io/fluent/commit/e34c363d8aae251d84dea5fe10c95b7d4ff85dc2))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Pre commit ([`d6bd378`](https://github.com/goat-io/fluent/commit/d6bd378505dd879b912c033e843199286062c0ec))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit 5 ([`5bdc3e2`](https://github.com/goat-io/fluent/commit/5bdc3e2489e75fda9159265e38545798b5301a37))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Enforce ([`0c0e1d8`](https://github.com/goat-io/fluent/commit/0c0e1d8e10012f3514908ee2c636bdc7415e93c2))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Skip husky on release ([`71ca478`](https://github.com/goat-io/fluent/commit/71ca4783258527724ec0025d1bc102ca381626b2))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add standard commit message to release ([`43c197a`](https://github.com/goat-io/fluent/commit/43c197af4b913217ca60643c49de947ae51de46a))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test 3 ([`29219f3`](https://github.com/goat-io/fluent/commit/29219f38261982fd1a2b0be1a4943fc306619073))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test ([`02af0c2`](https://github.com/goat-io/fluent/commit/02af0c27a3e4b95684ac3ce781e84f2ecc464c59))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Skip husky on release ([`71ca478`](https://github.com/goat-io/fluent/commit/71ca4783258527724ec0025d1bc102ca381626b2))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Enforce ([`0c0e1d8`](https://github.com/goat-io/fluent/commit/0c0e1d8e10012f3514908ee2c636bdc7415e93c2))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Pre commit ([`d6bd378`](https://github.com/goat-io/fluent/commit/d6bd378505dd879b912c033e843199286062c0ec))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Description ([`30262af`](https://github.com/goat-io/fluent/commit/30262af884ed510d4fe26e7b76ffeb043716a631))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test ([`02af0c2`](https://github.com/goat-io/fluent/commit/02af0c27a3e4b95684ac3ce781e84f2ecc464c59))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test 3 ([`29219f3`](https://github.com/goat-io/fluent/commit/29219f38261982fd1a2b0be1a4943fc306619073))
 
 ### Other Changes
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Enforcing commit message ([`50b0e9a`](https://github.com/goat-io/fluent/commit/50b0e9a737c25ab31b5be6b1c84e116251b60891))
+* Release 0.3.13 ([`b962964`](https://github.com/goat-io/fluent/commit/b9629642e43b28c687f1a57effca977cef220622))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Git commit hook ([`e34c363`](https://github.com/goat-io/fluent/commit/e34c363d8aae251d84dea5fe10c95b7d4ff85dc2))
 * message ([`0b081ad`](https://github.com/goat-io/fluent/commit/0b081adcc5f12e83690e86a558724339b447bff7))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Pre commit ([`d6bd378`](https://github.com/goat-io/fluent/commit/d6bd378505dd879b912c033e843199286062c0ec))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit 5 ([`5bdc3e2`](https://github.com/goat-io/fluent/commit/5bdc3e2489e75fda9159265e38545798b5301a37))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Enforce ([`0c0e1d8`](https://github.com/goat-io/fluent/commit/0c0e1d8e10012f3514908ee2c636bdc7415e93c2))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Skip husky on release ([`71ca478`](https://github.com/goat-io/fluent/commit/71ca4783258527724ec0025d1bc102ca381626b2))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add standard commit message to release ([`43c197a`](https://github.com/goat-io/fluent/commit/43c197af4b913217ca60643c49de947ae51de46a))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Skip husky on release ([`71ca478`](https://github.com/goat-io/fluent/commit/71ca4783258527724ec0025d1bc102ca381626b2))
 * hello ([`40bedce`](https://github.com/goat-io/fluent/commit/40bedceeb4f3771ea3b6ecb0442bef06b50596bb))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test 3 ([`29219f3`](https://github.com/goat-io/fluent/commit/29219f38261982fd1a2b0be1a4943fc306619073))
-* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test ([`02af0c2`](https://github.com/goat-io/fluent/commit/02af0c27a3e4b95684ac3ce781e84f2ecc464c59))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Enforce ([`0c0e1d8`](https://github.com/goat-io/fluent/commit/0c0e1d8e10012f3514908ee2c636bdc7415e93c2))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Pre commit ([`d6bd378`](https://github.com/goat-io/fluent/commit/d6bd378505dd879b912c033e843199286062c0ec))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Description ([`30262af`](https://github.com/goat-io/fluent/commit/30262af884ed510d4fe26e7b76ffeb043716a631))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test ([`02af0c2`](https://github.com/goat-io/fluent/commit/02af0c27a3e4b95684ac3ce781e84f2ecc464c59))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Commit test 3 ([`29219f3`](https://github.com/goat-io/fluent/commit/29219f38261982fd1a2b0be1a4943fc306619073))
 
 # 0.3.12
 [2020-05-26]
