@@ -27,7 +27,8 @@
     "release:minor": "npx release-it minor --no-npm.publish --ci",
     "release:mayor": "npx release-it mayor --no-npm.publish --ci ",
     "changelog": "npx auto-changelog --template changelog-template.hbs -p -u --commit-limit false",
-    "changelog-debug": "npx auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
+    "changelog-debug": "npx auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json",
+    "commit": "npx git-cz"
   },
   "keywords": [
     "goat",
@@ -38,6 +39,7 @@
   "license": "MIT",
   "husky": {
     "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
       "pre-commit": "pretty-quick --staged && npm test",
       "pre-push": "npm run build"
     }
@@ -79,6 +81,7 @@
     "@azure/storage-blob": "^12.1.1",
     "@databases/mysql-test": "^2.0.0",
     "@databases/sqlite": "^2.0.0",
+    "@digitalroute/cz-conventional-changelog-for-jira": "^4.1.4",
     "@hapi/joi": "^17.1.1",
     "@loopback/authentication": "^4.2.3",
     "@loopback/authorization": "^0.5.8",
@@ -195,6 +198,9 @@
     "verror": "^1.10.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^8.3.5",
+    "@commitlint/config-conventional": "^8.3.4",
+    "@commitlint/prompt-cli": "^8.3.5",
     "@types/agenda": "^2.0.7",
     "@types/amqplib": "^0.5.13",
     "@types/aws-sdk": "^2.7.0",
@@ -207,6 +213,11 @@
     "@types/node": "^14.0.1",
     "@types/passport-http": "^0.3.8",
     "auto-changelog": "^2.0.0",
+    "commitizen": "^4.1.2",
+    "commitlint-config-jira": "^1.4.1",
+    "commitlint-plugin-jira-rules": "^1.4.0",
+    "cz-conventional-changelog": "^3.2.0",
+    "cz-jira-smart-commit": "^3.0.0",
     "dotenv-cli": "^3.1.0",
     "jest": "^26.0.1",
     "npm-pack-zip": "^1.2.7",
@@ -216,5 +227,10 @@
     "tslint-config-prettier": "^1.18.0",
     "ttypescript": "^1.5.10",
     "typescript": "^3.9.2"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/@digitalroute/cz-conventional-changelog-for-jira"
+    }
   }
 }
