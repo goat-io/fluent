@@ -6,7 +6,7 @@
 {{#commit-list
   commits
   heading='### Features'
-  message='(feature: )|(Feature: )'
+  message='(feat: )|(Feature: )'
   exclude='(fix: )|(Fix: )|(break: )|(Break: )'}}
 * {{subject}} ([`{{shorthash}}`]({{href}}))
 {{/commit-list}}
@@ -16,7 +16,7 @@
   commits
   heading='### Fixes'
   message='(fix: )|(Fix: )'
-  exclude='(break: )|(Break: )|(Feature: )|(feature: )'}}
+  exclude='(break: )|(Break: )|(Feature: )|(feat: )'}}
 * {{subject}} ([`{{shorthash}}`]({{href}}))
 {{/commit-list}}
 
@@ -25,7 +25,7 @@
   commits
   heading='### Breaking changes'
   message='(break: )|(Break: )'
-  exclude='(fix: )|(Fix: )|(Feature: )|(feature: )'}}
+  exclude='(fix: )|(Fix: )|(Feat: )|(feat: )'}}
 * {{subject}} ([`{{shorthash}}`]({{href}}))
 {{/commit-list}}
 
@@ -33,7 +33,7 @@
 {{#commit-list
   commits
   heading='### Other Changes'
-  exclude='(fix: )|(Fix: )|(break: )|(Break: ) (feature: )|(Feature: )'}}
+  exclude='(fix: )|(Fix: )|(break: )|(Break: ) (feat: )|(Feat: )'}}
 * {{subject}} ([`{{shorthash}}`]({{href}}))
 {{/commit-list}}
 
