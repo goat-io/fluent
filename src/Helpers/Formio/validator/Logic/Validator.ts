@@ -22,7 +22,11 @@ export class Validator {
   private async: any
   private requests: any
 
-  constructor(private form: FormioForm, private model: any, private token?: any) {
+  constructor(
+    private form: FormioForm,
+    private model: any,
+    private token?: any
+  ) {
     this.model = model
     this.async = []
     this.requests = {}
@@ -39,20 +43,26 @@ export class Validator {
    * @param {Object} componentData
    *   The submission data corresponding to this component.
    */
-  buildSchema(schema: any, components: FormioComponent[], componentData: any, submission: any) {
+  buildSchema(
+    schema: any,
+    components: FormioComponent[],
+    componentData: any,
+    submission: any
+  ) {
     if (!Array.isArray(components)) {
       return schema
     }
     // Add a validator for each component in the form, with its componentData.
     /* eslint-disable max-statements */
-    components.forEach((component) => {
+    components.forEach(component => {
       let fieldValidator: any = null
 
       this.applyLogic(component, componentData, submission.data)
       this.calculateValue(component, componentData, submission.data)
 
       // The value is persistent if it doesn't say otherwise or explicitly says so.
-      const isPersistent: boolean = !component.hasOwnProperty('persistent') || component.persistent
+      const isPersistent: boolean =
+        !component.hasOwnProperty('persistent') || component.persistent
 
       let objectSchema
       const stringValidators: any = {
@@ -65,13 +75,20 @@ export class Validator {
       switch (component.type) {
         case 'form': {
           // Ensure each sub submission at least has an empty object or it won't validate.
-          _.update(componentData, `${component.key}.data`, (value: any) => (value ? value : {}))
+          _.update(componentData, `${component.key}.data`, (value: any) =>
+            value ? value : {}
+          )
 
           const subSubmission: any = _.get(componentData, component.key, {})
 
           // If this has already been submitted, then it has been validated.
-          if (!subSubmission._id && component.components) {
-            const formSchema: any = this.buildSchema({}, component.components, subSubmission, subSubmission)
+          if (!subSubmission.id && component.components) {
+            const formSchema: any = this.buildSchema(
+              {},
+              component.components,
+              subSubmission,
+              subSubmission
+            )
             fieldValidator = JoiX.object()
               .unknown(true)
               .keys({
@@ -92,7 +109,9 @@ export class Validator {
             submission
           )
 
-          fieldValidator = JoiX.array().items(JoiX.object().keys(objectSchema)).options({ stripUnknown: false })
+          fieldValidator = JoiX.array()
+            .items(JoiX.object().keys(objectSchema))
+            .options({ stripUnknown: false })
           break
         case 'container':
           objectSchema = this.buildSchema(
@@ -107,7 +126,12 @@ export class Validator {
         case 'fieldset':
         case 'panel':
         case 'well':
-          this.buildSchema(schema, component.components, componentData, submission)
+          this.buildSchema(
+            schema,
+            component.components,
+            componentData,
+            submission
+          )
           break
         case 'table':
           if (!Array.isArray(component.rows)) {
@@ -117,8 +141,13 @@ export class Validator {
             if (!Array.isArray(row)) {
               return
             }
-            row.forEach((column) => {
-              this.buildSchema(schema, column.components, componentData, submission)
+            row.forEach(column => {
+              this.buildSchema(
+                schema,
+                column.components,
+                componentData,
+                submission
+              )
             })
           })
           break
@@ -127,7 +156,12 @@ export class Validator {
             break
           }
           component.columns.forEach((column: any) => {
-            this.buildSchema(schema, column.components, componentData, submission)
+            this.buildSchema(
+              schema,
+              column.components,
+              componentData,
+              submission
+            )
           })
           break
         case 'textfield':
@@ -145,14 +179,22 @@ export class Validator {
                 _.isNumber(component.validate[name]) &&
                 component.validate[name] >= 0
               ) {
-                fieldValidator = fieldValidator[funcName](component.validate[name])
+                fieldValidator = fieldValidator[funcName](
+                  component.validate[name]
+                )
               }
             }
           }
           break
         case 'select':
           if (component.validate && component.validate.select) {
-            fieldValidator = JoiX.any().select(component, submission, this.token, this.async, this.requests)
+            fieldValidator = JoiX.any().select(
+              component,
+              submission,
+              this.token,
+              this.async,
+              this.requests
+            )
           }
           fieldValidator = fieldValidator || JoiX.any()
           break
@@ -173,8 +215,13 @@ export class Validator {
             }
 
             _.each(['min', 'max', 'greater', 'less'], (check: any) => {
-              if (component.validate.hasOwnProperty(check) && _.isNumber(component.validate[check])) {
-                fieldValidator = fieldValidator[check](component.validate[check])
+              if (
+                component.validate.hasOwnProperty(check) &&
+                _.isNumber(component.validate[check])
+              ) {
+                fieldValidator = fieldValidator[check](
+                  component.validate[check]
+                )
               }
             })
           }
@@ -200,7 +247,12 @@ export class Validator {
               )
               fieldValidator = JoiX.object().keys(objectSchema)
             } else {
-              this.buildSchema(schema, component.components, componentData, submission)
+              this.buildSchema(
+                schema,
+                component.components,
+                componentData,
+                submission
+              )
             }
           }
           fieldValidator = fieldValidator || JoiX.any()
@@ -208,7 +260,11 @@ export class Validator {
       }
       /* eslint-enable max-depth, valid-typeof */
 
-      if (component.key && component.key.indexOf('.') === -1 && component.validate) {
+      if (
+        component.key &&
+        component.key.indexOf('.') === -1 &&
+        component.validate
+      ) {
         // Add required validator.
         if (component.validate.required) {
           fieldValidator = fieldValidator.required().empty().disallow('', null)
@@ -237,7 +293,12 @@ export class Validator {
 
       // If the value must be unique.
       if (component.unique) {
-        fieldValidator = fieldValidator.distinct(component, submission, this.model, this.async)
+        fieldValidator = fieldValidator.distinct(
+          component,
+          submission,
+          this.model,
+          this.async
+        )
       }
 
       //  if multiple masks input, then data is object with 'value' field, and validation should be applied to that field
@@ -256,7 +317,10 @@ export class Validator {
       if (component.multiple) {
         // Allow(null) was added since some text fields have empty strings converted to null when multiple which then
         // throws an error on re-validation. Allowing null fixes the issue.
-        fieldValidator = JoiX.array().sparse().items(fieldValidator.allow(null)).options({ stripUnknown: false })
+        fieldValidator = JoiX.array()
+          .sparse()
+          .items(fieldValidator.allow(null))
+          .options({ stripUnknown: false })
         // If a multi-value is required, make sure there is at least one.
         if (component.validate && component.validate.required) {
           fieldValidator = fieldValidator.min(1).required()
@@ -265,7 +329,10 @@ export class Validator {
 
       // Only run validations for persistent fields.
       if (component.key && fieldValidator && isPersistent) {
-        schema[component.key] = fieldValidator.hidden(component, submission.data)
+        schema[component.key] = fieldValidator.hidden(
+          component,
+          submission.data
+        )
       }
     })
     /* eslint-enable max-statements */
@@ -279,7 +346,12 @@ export class Validator {
     }
 
     component.logic.forEach((logic: any) => {
-      const result: any = FormioUtils.checkTrigger(component, logic.trigger, row, data)
+      const result: any = FormioUtils.checkTrigger(
+        component,
+        logic.trigger,
+        row,
+        data
+      )
 
       if (result) {
         if (!Array.isArray(logic.actions)) {
@@ -288,7 +360,14 @@ export class Validator {
         logic.actions.forEach((action: any) => {
           switch (action.type) {
             case 'property':
-              FormioUtils.setActionProperty(component, action, row, data, component, result)
+              FormioUtils.setActionProperty(
+                component,
+                action,
+                row,
+                data,
+                component,
+                result
+              )
               break
             case 'value':
               try {
@@ -375,14 +454,21 @@ export class Validator {
 
     // Build the JoiX validation schema.
     let schema = {
-      // Start off with the _id key.
-      _id: JoiX.string().meta({ primaryKey: true })
+      // Start off with the id key.
+      id: JoiX.string().meta({ primaryKey: true })
     }
 
-    submission.form = this.form._id
+    submission.form = this.form.id
 
     // Create the validator schema.
-    schema = JoiX.object().keys(this.buildSchema(schema, this.form.components, submission.data, submission))
+    schema = JoiX.object().keys(
+      this.buildSchema(
+        schema,
+        this.form.components,
+        submission.data,
+        submission
+      )
+    )
 
     // Iterate the list of components one time to build the path map.
     const components: any = {}
@@ -424,9 +510,12 @@ export class Validator {
                 hidden: false
               }
               if (detail.type.includes('.hidden')) {
-                const component = components[detail.path.filter(isNaN).join('.')]
+                const component =
+                  components[detail.path.filter(isNaN).join('.')]
 
-                const clearOnHide = util.isBoolean(_.get(component, 'clearOnHide'))
+                const clearOnHide = util.isBoolean(
+                  _.get(component, 'clearOnHide')
+                )
                   ? util.boolean(_.get(component, 'clearOnHide'))
                   : true
 
@@ -441,7 +530,8 @@ export class Validator {
                   (result: any, key: any) => {
                     result.path.push(key)
 
-                    const component: any = components[result.path.filter(isNaN).join('.')]
+                    const component: any =
+                      components[result.path.filter(isNaN).join('.')]
 
                     // Form "data" keys don't have components.
                     if (component) {
@@ -449,12 +539,17 @@ export class Validator {
                         result.hidden ||
                         !checkConditional(
                           component,
-                          _.get(value, result.path.slice(0, result.path.length - 1)),
+                          _.get(
+                            value,
+                            result.path.slice(0, result.path.length - 1)
+                          ),
                           result.submission,
                           true
                         )
 
-                      const clearOnHide: any = util.isBoolean(_.get(component, 'clearOnHide'))
+                      const clearOnHide: any = util.isBoolean(
+                        _.get(component, 'clearOnHide')
+                      )
                         ? util.boolean(_.get(component, 'clearOnHide'))
                         : true
 

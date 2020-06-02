@@ -1,7 +1,7 @@
 {
   "name": "@goatlab/fluent",
   "version": "0.3.14",
-  "description": "Readable query Interface & API generator for JS and Node",
+  "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -33,7 +33,11 @@
     "goat",
     "fluent",
     "loopback",
-    "nestjs"
+    "nestjs",
+    "graphql",
+    "javascript",
+    "typescript",
+    "TS"
   ],
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
@@ -95,11 +99,15 @@
       "master"
     ]
   },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/@digitalroute/cz-conventional-changelog-for-jira"
+    }
+  },
   "dependencies": {
     "@azure/storage-blob": "^12.1.1",
     "@databases/mysql-test": "^2.0.0",
     "@databases/sqlite": "^2.0.0",
-    "@digitalroute/cz-conventional-changelog-for-jira": "^4.1.4",
     "@hapi/joi": "^17.1.1",
     "@loopback/authentication": "^4.2.3",
     "@loopback/authorization": "^0.5.8",
@@ -154,6 +162,9 @@
     "faker": "^4.1.0",
     "figlet": "^1.4.0",
     "file-type": "^14.4.0",
+    "firebase-admin": "^8.12.1",
+    "firebase-firestorm": "^2.0.5",
+    "fireorm": "^0.13.4",
     "formiojs": "^4.9.23",
     "fs-extra": "^9.0.0",
     "gradient-string": "^1.2.0",
@@ -219,6 +230,7 @@
     "@commitlint/cli": "^8.3.5",
     "@commitlint/config-conventional": "^8.3.4",
     "@commitlint/prompt-cli": "^8.3.5",
+    "@digitalroute/cz-conventional-changelog-for-jira": "^4.1.4",
     "@types/agenda": "^2.0.7",
     "@types/amqplib": "^0.5.13",
     "@types/aws-sdk": "^2.7.0",
@@ -232,8 +244,6 @@
     "@types/passport-http": "^0.3.8",
     "auto-changelog": "^2.0.0",
     "commitizen": "^4.1.2",
-    "commitlint-config-jira": "^1.4.1",
-    "commitlint-plugin-jira-rules": "^1.4.0",
     "cz-conventional-changelog": "^3.2.0",
     "cz-jira-smart-commit": "^3.0.0",
     "dotenv-cli": "^3.1.0",
@@ -245,10 +255,5 @@
     "tslint-config-prettier": "^1.18.0",
     "ttypescript": "^1.5.10",
     "typescript": "^3.9.2"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/@digitalroute/cz-conventional-changelog-for-jira"
-    }
   }
 }

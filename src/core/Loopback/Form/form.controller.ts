@@ -1,5 +1,11 @@
 import { intercept } from '@loopback/core'
-import { Count, CountSchema, Filter, repository, Where } from '@loopback/repository'
+import {
+  Count,
+  CountSchema,
+  Filter,
+  repository,
+  Where
+} from '@loopback/repository'
 import {
   del,
   get,
@@ -44,13 +50,13 @@ export class Form {
       content: {
         'application/json': {
           schema: getModelSchemaRef(FormModel, {
-            exclude: ['_id'],
+            exclude: ['id'],
             title: 'NewForm'
           })
         }
       }
     })
-    form: Omit<FormModel, '_id'>
+    form: Omit<FormModel, 'id'>
   ): Promise<FormModel> {
     return this.formRepository.create(form)
   }
@@ -92,10 +98,10 @@ export class Form {
   }
   /*
    * /PUT/
-   * Replace a Form by _id
+   * Replace a Form by id
    */
   @intercept(validateForm)
-  @put('/forms/{_id}', {
+  @put('/forms/{id}', {
     responses: {
       '204': {
         description: 'Form PUT success'
@@ -103,15 +109,18 @@ export class Form {
     },
     tags: [openAPITag]
   })
-  async replaceById(@param.path.string('_id') id: string, @requestBody() form: FormModel): Promise<void> {
+  async replaceById(
+    @param.path.string('id') id: string,
+    @requestBody() form: FormModel
+  ): Promise<void> {
     await this.formRepository.replaceById(id, form)
   }
   /*
    * /PATCH/
-   * Update a Form by _id
+   * Update a Form by id
    */
   @intercept(validateForm)
-  @patch('/forms/{_id}', {
+  @patch('/forms/{id}', {
     responses: {
       '204': {
         description: 'Form PATCH success'
@@ -119,7 +128,10 @@ export class Form {
     },
     tags: [openAPITag]
   })
-  async updateById(@param.path.string('_id') id: string, @requestBody() form: FormModel): Promise<void> {
+  async updateById(
+    @param.path.string('id') id: string,
+    @requestBody() form: FormModel
+  ): Promise<void> {
     await this.formRepository.replaceById(id, form)
   }
   /*
@@ -199,9 +211,9 @@ export class Form {
   }
   /*
    * /GET/
-   * Gets a specific Form by _id
+   * Gets a specific Form by id
    */
-  @get('/forms/{_id}', {
+  @get('/forms/{id}', {
     responses: {
       '200': {
         description: 'Form model instance',
@@ -217,7 +229,7 @@ export class Form {
     tags: [openAPITag]
   })
   async findById(
-    @param.path.string('_id') id: string,
+    @param.path.string('id') id: string,
     @param.query.object('filter', getFilterSchemaFor(FormModel))
     filter?: Filter<FormModel>
   ): Promise<FormModel> {
@@ -225,9 +237,9 @@ export class Form {
   }
   /*
    * /DELETE/
-   * Deletes a form by _id
+   * Deletes a form by id
    */
-  @del('/forms/{_id}', {
+  @del('/forms/{id}', {
     responses: {
       '204': {
         description: 'Form DELETE success'
@@ -235,7 +247,7 @@ export class Form {
     },
     tags: [openAPITag]
   })
-  async deleteById(@param.path.string('_id') id: string): Promise<void> {
+  async deleteById(@param.path.string('id') id: string): Promise<void> {
     await this.formRepository.deleteById(id)
   }
 }

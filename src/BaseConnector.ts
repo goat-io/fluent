@@ -19,16 +19,18 @@ import {
   OperatorType
 } from './Providers/types'
 
+import { ObjectID } from 'mongodb'
+
 export interface GoatConnectorInterface<InputDTO, OutputDTO> {
   get(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
   all(filter: GoatFilter): Promise<GoatOutput<InputDTO, OutputDTO>[]>
-  findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>>
+  findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>>
   find(filter: GoatFilter): Promise<GoatOutput<InputDTO, OutputDTO>[]>
   // findOne(): Promise<T>
-  deleteById(_id: string): Promise<string>
+  deleteById(id: string): Promise<string>
   // softDelete(): Promise<T>
   updateById(
-    _id: string,
+    id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>>
   insert(data: InputDTO): Promise<GoatOutput<InputDTO, OutputDTO>>
@@ -63,7 +65,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
     const date = Dates.currentIsoString()
     return {
-      _id: Id.objectID() + '_local',
+      id: Id.objectID() + '_local',
       updated: date,
       created: date,
       roles: []
@@ -335,9 +337,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
         const extract = Objects.getFromPath(element, attribute, undefined)
 
-        const value = Objects.get(() => extract.value, undefined)
+        let value = Objects.get(() => extract.value, undefined)
 
-        if (typeof value !== 'undefined') {
+        if (typeof value !== 'undefined' && value !== null) {
           if (
             typeof value === 'object' &&
             value.hasOwnProperty('data') &&
@@ -345,6 +347,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
           ) {
             newElement[extract.label] = value.data.name
           } else {
+            if (typeof value === 'object' && ObjectID.isValid(value)) {
+              value = new ObjectID(value).toString()
+            }
             newElement[extract.label] = value
           }
         }

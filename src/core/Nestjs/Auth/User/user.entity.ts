@@ -6,7 +6,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
 export class User {
   @Field(() => ID)
   @PrimaryGeneratedColumn('uuid')
-  _id!: string
+  id!: string
 
   @Column({ unique: true })
   email: string

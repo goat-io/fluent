@@ -15,7 +15,7 @@ export class Form extends Entity {
     type: 'string'
   })
   // tslint:disable-next-line: variable-name
-  public _id: string
+  public id: string
 
   @property({
     type: 'string'

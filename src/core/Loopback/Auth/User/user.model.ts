@@ -28,7 +28,7 @@ export class User extends Entity {
     id: true,
     type: 'string'
   })
-  _id: string
+  id: string
 
   @property({
     index: {

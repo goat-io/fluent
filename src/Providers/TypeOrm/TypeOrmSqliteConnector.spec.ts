@@ -1,5 +1,4 @@
-import { TypeOrmConnector } from './TypeOrmConnector'
-import { createConnection } from 'typeorm'
+import { TypeOrmConnector, createConnection } from './TypeOrmConnector'
 import { GoatEntityOut, GoatEntityIn } from '../test/goat.dto'
 import { GoatEntity } from '../test/goat.entity'
 import { flock } from '../test/flock'
@@ -22,7 +21,8 @@ beforeAll(async done => {
   const repository = connection.getRepository(GoatEntity)
 
   GoatModel = new TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>({
-    repository
+    repository,
+    isRelationalDB: true
   })
   done()
 })
@@ -39,7 +39,7 @@ test('Get - Should  GET data', async () => {
 
 test('Insert - Should  insert data', async () => {
   const a = await GoatModel.insert({ name: 'myGoat', age: 13 })
-  expect(typeof a._id).toBe('string')
+  expect(typeof a.id).toBe('string')
   expect(a.name).toBe('myGoat')
   expect(0).toBe(0)
 })
@@ -52,7 +52,7 @@ it('Create Multiple - Should insert Multiple elements', async () => {
 it('UpdateById - Should Update a single element', async () => {
   await GoatModel.insertMany(flock)
   const goats = await GoatModel.get()
-  const data = await GoatModel.updateById(goats[0]._id, {
+  const data = await GoatModel.updateById(goats[0].id, {
     age: 99,
     name: 'MyUpdatedGoat'
   })
@@ -71,6 +71,8 @@ it('Where - Should Filter multiple Where clauses', async () => {
   const goats = await GoatModel.where(GoatModel._keys.name, 'regexp', '%a%')
     .andWhere(GoatModel._keys.age, '>', 3)
     .get()
+
+  console.log(goats)
   expect(typeof goats).toBe('object')
   expect(goats[0].age > 3).toBe(true)
 })

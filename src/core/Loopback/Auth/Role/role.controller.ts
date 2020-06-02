@@ -1,4 +1,10 @@
-import { Count, CountSchema, Filter, repository, Where } from '@loopback/repository'
+import {
+  Count,
+  CountSchema,
+  Filter,
+  repository,
+  Where
+} from '@loopback/repository'
 import {
   del,
   get,
@@ -19,7 +25,10 @@ import { RoleRepository as RoleRepo } from './role.repository'
 
 const openAPITag: string = 'Roles'
 export class RoleController {
-  constructor(@repository(RoleRepo) public roleRepository: RoleRepo, @Auth.user() private AuthUser: UserProfile) {}
+  constructor(
+    @repository(RoleRepo) public roleRepository: RoleRepo,
+    @Auth.user() private AuthUser: UserProfile
+  ) {}
   /*
    * /POST/
    * Creates a new Role
@@ -91,10 +100,10 @@ export class RoleController {
   }
   /*
    * /PUT/
-   * Replace a Form by _id
+   * Replace a Form by id
    */
   // @intercept(validateForm)
-  @put('/roles/{_id}', {
+  @put('/roles/{id}', {
     responses: {
       '204': {
         description: 'Role PUT success'
@@ -102,15 +111,18 @@ export class RoleController {
     },
     tags: [openAPITag]
   })
-  public async replaceById(@param.path.string('_id') id: string, @requestBody() role: RoleModel): Promise<void> {
+  public async replaceById(
+    @param.path.string('id') id: string,
+    @requestBody() role: RoleModel
+  ): Promise<void> {
     await this.roleRepository.replaceById(id, role)
   }
   /*
    * /PATCH/
-   * Update a Role by _id
+   * Update a Role by id
    */
   // @intercept(validateSubmission)
-  @patch('/roles/{_id}', {
+  @patch('/roles/{id}', {
     responses: {
       '204': {
         description: 'Role PATCH success'
@@ -119,7 +131,7 @@ export class RoleController {
     tags: [openAPITag]
   })
   public async updateById(
-    @param.path.string('_id') id: string,
+    @param.path.string('id') id: string,
     @requestBody() RoleSubmission: RoleModel
   ): Promise<void> {
     await this.roleRepository.replaceById(id, RoleSubmission)
@@ -201,9 +213,9 @@ export class RoleController {
   }
   /*
    * /GET/
-   * Gets a specific Role by _id
+   * Gets a specific Role by id
    */
-  @get('/roles/{_id}', {
+  @get('/roles/{id}', {
     responses: {
       '200': {
         content: {
@@ -219,7 +231,7 @@ export class RoleController {
     tags: [openAPITag]
   })
   public async findById(
-    @param.path.string('_id') id: string,
+    @param.path.string('id') id: string,
     @param.query.object('filter', getFilterSchemaFor(RoleModel))
     filter?: Filter<RoleModel>
   ): Promise<RoleModel> {
@@ -227,9 +239,9 @@ export class RoleController {
   }
   /*
    * /DELETE/
-   * Deletes a Role by _id
+   * Deletes a Role by id
    */
-  @del('/roles/{_id}', {
+  @del('/roles/{id}', {
     responses: {
       '204': {
         description: 'Role DELETE success'
@@ -237,7 +249,7 @@ export class RoleController {
     },
     tags: [openAPITag]
   })
-  public async deleteById(@param.path.string('_id') id: string): Promise<void> {
+  public async deleteById(@param.path.string('id') id: string): Promise<void> {
     await this.roleRepository.deleteById(id)
   }
 }

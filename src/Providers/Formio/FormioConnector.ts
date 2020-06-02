@@ -24,7 +24,7 @@ interface IFormioConnector {
 }
 
 const GoatExtenderAttributes = [
-  '_id',
+  'id',
   'owner',
   'roles',
   'created',
@@ -60,7 +60,7 @@ export class LokiRNConnector<
     const data: GoatOutput<InputDTO, OutputDTO>[] = result.data.map(r => {
       const response: GoatOutput<InputDTO, OutputDTO> = {
         ...{
-          _id: r._id,
+          id: r.id,
           owner: r.owner,
           roles: r.roles,
           created: r.created,
@@ -133,7 +133,7 @@ export class LokiRNConnector<
     }
     const response: GoatOutput<InputDTO, OutputDTO> = {
       ...{
-        _id: result.data._id,
+        id: result.data.id,
         owner: result.data.owner,
         roles: result.data.roles,
         created: result.data.created,
@@ -171,19 +171,19 @@ export class LokiRNConnector<
    * @param data
    */
   public async updateById(
-    _id: string,
+    id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    if (!_id) {
+    if (!id) {
       throw new Error(
-        'Formio connector error. Cannot update a Model without _id key'
+        'Formio connector error. Cannot update a Model without id key'
       )
     }
-    if (_id.includes('_local')) {
+    if (id.includes('_local')) {
       throw new Error('Formio connector error. Cannot update a local document')
     }
 
-    const [error, result] = await to(this.httpPUT(_id, data))
+    const [error, result] = await to(this.httpPUT(id, data))
 
     if (error) {
       console.log(error)
@@ -208,7 +208,7 @@ export class LokiRNConnector<
     const promises = []
 
     const [error, data] = await to(
-      this.select(this._keys._id).pluck(this._keys._id)
+      this.select(this._keys.id).pluck(this._keys.id)
     )
 
     if (error) {
@@ -216,8 +216,8 @@ export class LokiRNConnector<
       throw new Error('Cannot get remote Model')
     }
 
-    data.forEach((_id: string) => {
-      promises.push(this.httpDelete(_id))
+    data.forEach((id: string) => {
+      promises.push(this.httpDelete(id))
     })
 
     return axios.all(promises)
@@ -226,23 +226,23 @@ export class LokiRNConnector<
 
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async deleteById(_id: string): Promise<string> {
-    const [error, removed] = await to(this.httpDelete(_id))
+  public async deleteById(id: string): Promise<string> {
+    const [error, removed] = await to(this.httpDelete(id))
 
     if (error) {
       console.log(error)
-      throw new Error(`FormioConnector: Could not delete ${_id}`)
+      throw new Error(`FormioConnector: Could not delete ${id}`)
     }
     this.reset()
     return removed.data
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const [error, data] = await to(this.first())
 
     if (error) {
@@ -382,12 +382,12 @@ export class LokiRNConnector<
   }
   /**
    *
-   * @param _id
+   * @param id
    * @param data
    */
-  private async httpPUT(_id: string, data: InputDTO) {
+  private async httpPUT(id: string, data: InputDTO) {
     const isOnline = await Connection.isOnline()
-    const url = `${this.getUrl()}/${_id}`
+    const url = `${this.getUrl()}/${id}`
     const headers = this.getHeaders()
 
     if (!isOnline) {
@@ -397,11 +397,11 @@ export class LokiRNConnector<
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  private httpDelete(_id: string) {
+  private httpDelete(id: string) {
     const headers = this.getHeaders()
-    const url = `${this.getUrl()}/${_id}`
+    const url = `${this.getUrl()}/${id}`
 
     return axios.delete(url, { headers })
   }

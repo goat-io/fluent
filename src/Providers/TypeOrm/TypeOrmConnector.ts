@@ -10,6 +10,7 @@ import {
 } from '../types'
 
 import { Event } from '../../Helpers/Event'
+import { ObjectId } from 'mongodb'
 
 import {
   Repository,
@@ -22,9 +23,14 @@ import {
   In,
   Like,
   IsNull,
-  FindManyOptions
+  FindManyOptions,
+  createConnection as connection,
+  ObjectID,
+  MongoRepository,
+  ObjectLiteral
 } from 'typeorm'
 import { Errors } from '../../Helpers/Errors'
+import { Objects } from '../../Helpers/Objects'
 /*
     
       import {
@@ -38,9 +44,25 @@ import { Errors } from '../../Helpers/Errors'
    */
 
 interface ITypeOrmConnector<T> {
-  repository: Repository<T>
-  outputKeys?: string[]
+  repository: Repository<T> | MongoRepository<T>
+  isRelationalDB?: boolean
 }
+
+export const getOutputKeys = (keys: ObjectLiteral) => {
+  const outputKeys = Object.keys(keys).filter(e => {
+    return ![
+      'deleted',
+      'access',
+      'submissionAccess',
+      'version',
+      '_ngram',
+      'form'
+    ].includes(e)
+  })
+  return outputKeys
+}
+
+export const createConnection = connection
 
 export class TypeOrmConnector<
   ModelDTO = IDataElement,
@@ -48,12 +70,15 @@ export class TypeOrmConnector<
   OutputDTO = InputDTO
 > extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
-  private repository: Repository<ModelDTO>
+  private repository: Repository<ModelDTO> | MongoRepository<ModelDTO>
+  private isRelationalDB: boolean
 
-  constructor({ repository, outputKeys }: ITypeOrmConnector<ModelDTO>) {
+  constructor({ repository, isRelationalDB }: ITypeOrmConnector<ModelDTO>) {
     super()
     this.repository = repository
-    this.outputKeys = outputKeys || []
+    this.outputKeys =
+      getOutputKeys(this.repository.metadata.propertiesMap) || []
+    this.isRelationalDB = isRelationalDB || false
   }
   /**
    *
@@ -121,7 +146,6 @@ export class TypeOrmConnector<
     filter: GoatFilter = {}
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     const stringFilter: string = filter as string
-
     let parsedFilter: any = {}
     try {
       parsedFilter = JSON.parse(stringFilter)
@@ -134,9 +158,12 @@ export class TypeOrmConnector<
       (parsedFilter && parsedFilter.where && parsedFilter.where.and) || []
     this.orWhereArray =
       (parsedFilter && parsedFilter.where && parsedFilter.where.or) || []
-    this.limit((parsedFilter && parsedFilter.limit) || 100)
-    this.offset((parsedFilter && parsedFilter.offset) || 0)
-    this.skip((parsedFilter && parsedFilter.skip) || 0)
+    this.limit(
+      (parsedFilter && (parsedFilter.limit || parsedFilter.take)) || 100
+    )
+    this.offset(
+      (parsedFilter && (parsedFilter.offset || parsedFilter.skip)) || 0
+    )
 
     if (parsedFilter && parsedFilter.order) {
       const orderB = [
@@ -189,11 +216,12 @@ export class TypeOrmConnector<
     if (error) {
       return Promise.reject(Errors(error, 'Validation Error'))
     }
-    this.reset()
+
     const result = this.jsApplySelect([datum]) as GoatOutput<
       InputDTO,
       OutputDTO
     >[]
+    this.reset()
     return result[0]
   }
   /**
@@ -225,47 +253,98 @@ export class TypeOrmConnector<
    * @param data
    */
   public async updateById(
-    _id: string,
+    id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    if (!_id) {
-      throw new Error(
-        'TypeORM connector error. Cannot update a Model without _id key'
-      )
+    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
+
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...data,
+          ...{ updated: new Date() }
+        }
+      : data
+
+    // const entity = this.repository.create(dataToInsert)
+
+    const [error, updated] = await to(this.repository.update(id, dataToInsert))
+    if (error) {
+      return Promise.reject(Errors(error, 'Could not update'))
     }
 
-    const [error, updated] = await to(this.repository.update(_id, data))
-    const [getError, result] = await to(this.repository.findByIds([_id]))
+    const [getError, dbResult] = await to(this.repository.findByIds([parsedId]))
 
-    if (error || getError) {
-      console.log(error)
-      console.log(getError)
-      throw new Error('Cannot update data')
+    if (getError) {
+      return Promise.reject(Errors(error, 'Entity not found'))
     }
+    const result = this.jsApplySelect(dbResult) as GoatOutput<
+      InputDTO,
+      OutputDTO
+    >[]
     this.reset()
     return result[0]
   }
   /**
    *
-   * @param _id
+   * PUT operation. All fields not included in the data
+   *  param will be set to null
+   *
+   * @param id
    * @param data
    */
   public async replaceById(
-    _id: string,
+    id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [getError, currenValue] = await to(this.repository.findOneOrFail(_id))
+    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
 
-    const newValue = { ...currenValue }
-
-    const [error, updated] = await to(this.repository.update(_id, data))
+    const [getError, value] = await to(this.repository.findOneOrFail(parsedId))
 
     if (getError) {
       return Promise.reject(Errors(getError, 'Entity not found'))
     }
 
-    console.log('result', currenValue)
-    return {}
+    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
+    Object.keys(flatValue).forEach(key => {
+      flatValue[key] = null
+    })
+
+    const nullObject = Objects.nest(flatValue)
+
+    const newValue = { ...nullObject, ...data }
+
+    delete newValue.id
+    delete newValue.created
+    delete newValue.updated
+
+    const entity = this.repository.create(newValue)
+
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...entity,
+          ...{ updated: new Date() }
+        }
+      : data
+
+    const [error] = await to(this.repository.update(id, dataToInsert))
+
+    if (error) {
+      return Promise.reject(Errors(error, 'Could not save'))
+    }
+
+    const [findError, val] = await to(this.repository.findOneOrFail(parsedId))
+
+    if (findError) {
+      return Promise.reject(Errors(findError, 'Entity not found'))
+    }
+
+    const returnValue = this.jsApplySelect([val]) as GoatOutput<
+      InputDTO,
+      OutputDTO
+    >[]
+    this.reset()
+
+    return returnValue[0]
   }
   /**
    *
@@ -289,23 +368,27 @@ export class TypeOrmConnector<
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async deleteById(_id: string): Promise<string> {
-    const [error, removed] = await to(this.repository.delete(_id))
+  public async deleteById(id: string): Promise<string> {
+    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
+
+    const [error, removed] = await to(this.repository.delete(parsedId))
     if (error) {
-      return Promise.reject(Errors(error, `Could not delete ${_id}`))
+      return Promise.reject(Errors(error, `Could not delete ${id}`))
     }
 
     this.reset()
-    return _id
+    return id
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, data] = await to(this.repository.findByIds([_id]))
+  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
+
+    const [error, data] = await to(this.repository.findByIds([parsedId]))
 
     if (error) {
       return Promise.reject(Errors(error, 'Could not get data'))
@@ -368,8 +451,11 @@ export class TypeOrmConnector<
    *
    */
   private getGeneratedQuery(): FindManyOptions {
-    let filter: FindManyOptions = {}
-    filter = this.getFilters(filter)
+    let filter: any = {}
+    filter = this.isRelationalDB
+      ? this.getFilters(filter)
+      : this.getMongoFilters(filter)
+
     filter = this.getLimit(filter)
     filter = this.getSkip(filter)
     filter = this.getSelect(filter)
@@ -396,7 +482,7 @@ export class TypeOrmConnector<
    */
   private getFilters(filters: FindManyOptions) {
     const andFilters = this.whereArray
-    const oldFilters = this.orWhereArray
+    const orFilters = this.orWhereArray
     if (!andFilters || andFilters.length === 0) {
       return filters
     }
@@ -480,7 +566,7 @@ export class TypeOrmConnector<
     })
 
     // Apply or conditions
-    oldFilters.forEach(condition => {
+    orFilters.forEach(condition => {
       const element = condition[0]
       const operator = condition[1]
       const value = condition[2]
@@ -518,6 +604,64 @@ export class TypeOrmConnector<
           break
         case 'regexp':
           Filters.where.push({ [element]: Like(value) })
+          break
+      }
+    })
+
+    return Filters
+  }
+  /**
+   *
+   * @param filter
+   */
+  public getMongoFilters(filters) {
+    const andFilters = this.whereArray
+    const orFilters = this.orWhereArray
+
+    if (!andFilters || andFilters.length === 0) {
+      return filters
+    }
+
+    const Filters = { where: { $and: [] } }
+
+    andFilters.forEach(condition => {
+      const element = condition[0]
+      const operator = condition[1]
+      const value = condition[2]
+
+      switch (operator) {
+        case '=':
+          Filters.where.$and.push({ [element]: { $eq: value } })
+          break
+        case '!=':
+          Filters.where.$and.push({ [element]: { $neq: value } })
+          break
+        case '>':
+          Filters.where.$and.push({ [element]: { $gt: value } })
+          break
+        case '>=':
+          Filters.where.$and.push({ [element]: { $gte: value } })
+          break
+        case '<':
+          Filters.where.$and.push({ [element]: { $lt: value } })
+          break
+        case '<=':
+          Filters.where.$and.push({ [element]: { $lte: value } })
+          break
+        case 'in':
+          Filters.where.$and.push({ [element]: { $in: value } })
+          break
+        case 'nin':
+          Filters.where.$and.push({ [element]: { $not: { $in: value } } })
+          break
+        case 'exists':
+          Filters.where.$and.push({ [element]: { $exists: true } })
+          break
+        case '!exists':
+          Filters.where.$and.push({ [element]: { $exists: false } })
+          break
+        case 'regex':
+          Filters.where.$and.push({ [element]: { $regex: value } })
           break
       }
     })
@@ -572,7 +716,7 @@ export class TypeOrmConnector<
 
     select = select.map(s => {
       s = s.split(' as ')[0]
-      s = s.includes('_id') ? '_id' : s
+      s = s.includes('id') ? 'id' : s
       return s
     })
 

@@ -94,7 +94,7 @@ export const Agenda = (() => {
       async job => {
         const jobDescription: IJobDescription = {
           data: job.attrs.data,
-          id: String(job.attrs._id),
+          id: String(job.attrs.id),
           instance: job,
           name: job.attrs.name
         }

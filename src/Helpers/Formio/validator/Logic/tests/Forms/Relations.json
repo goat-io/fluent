@@ -1,6 +1,6 @@
 [
   {
-    "_id": "5ccb6f508fb3ef631896d87d",
+    "id": "5ccb6f508fb3ef631896d87d",
     "type": "form",
     "tags": [],
     "owner": null,
@@ -65,7 +65,7 @@
     "modified": "2019-05-02T22:29:36.665Z"
   },
   {
-    "_id": "5d70d27477462637b737d03e",
+    "id": "5d70d27477462637b737d03e",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -145,7 +145,7 @@
     "machineName": "suopywgtyuabhru:customer1N"
   },
   {
-    "_id": "5d70d29306588ea15a6b13b2",
+    "id": "5d70d29306588ea15a6b13b2",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -209,12 +209,12 @@
           "project": "suopywgtyuabhru"
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "",
         "filter": "",
         "authenticate": false,
-        "template": "<span>{{ item._id }}</span>",
+        "template": "<span>{{ item.id }}</span>",
         "multiple": false,
         "protected": false,
         "unique": false,
@@ -227,7 +227,7 @@
         "tags": [],
         "conditional": { "show": "", "when": null, "eq": "" },
         "properties": {},
-        "searchField": "_id__regex"
+        "searchField": "id__regex"
       },
       {
         "autofocus": false,
@@ -270,7 +270,7 @@
     "machineName": "suopywgtyuabhru:order1N"
   },
   {
-    "_id": "5d70d33806588e3c9a6b13cf",
+    "id": "5d70d33806588e3c9a6b13cf",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -325,12 +325,12 @@
           "project": "suopywgtyuabhru"
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "",
         "filter": "",
         "authenticate": false,
-        "template": "<span>{{ item._id }}</span>",
+        "template": "<span>{{ item.id }}</span>",
         "multiple": true,
         "protected": false,
         "unique": false,
@@ -343,7 +343,7 @@
         "tags": [],
         "conditional": { "show": "", "when": null, "eq": "" },
         "properties": {},
-        "searchField": "_id__regex",
+        "searchField": "id__regex",
         "isNew": false
       },
       {
@@ -387,7 +387,7 @@
     "machineName": "suopywgtyuabhru:customer1NEmbedded"
   },
   {
-    "_id": "5d70d3998e9aff0a31f3c4fe",
+    "id": "5d70d3998e9aff0a31f3c4fe",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -476,7 +476,7 @@
     "machineName": "suopywgtyuabhru:order1NEmbedded"
   },
   {
-    "_id": "5d70d54006588eada86b142a",
+    "id": "5d70d54006588eada86b142a",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -536,12 +536,12 @@
               "project": "suopywgtyuabhru"
             },
             "dataSrc": "resource",
-            "valueProperty": "_id",
+            "valueProperty": "id",
             "defaultValue": "",
             "refreshOn": "",
             "filter": "",
             "authenticate": false,
-            "template": "<span>{{ item._id }}</span>",
+            "template": "<span>{{ item.id }}</span>",
             "multiple": false,
             "protected": false,
             "unique": false,
@@ -555,7 +555,7 @@
             "tags": [],
             "conditional": { "show": "", "when": null, "eq": "" },
             "properties": {},
-            "searchField": "_id__regex"
+            "searchField": "id__regex"
           }
         ],
         "tableView": true,
@@ -612,7 +612,7 @@
     "machineName": "suopywgtyuabhru:customer1NEmbeddedDg"
   },
   {
-    "_id": "5d70d8bb43315d71a05c1347",
+    "id": "5d70d8bb43315d71a05c1347",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -692,7 +692,7 @@
     "machineName": "suopywgtyuabhru:usersNm"
   },
   {
-    "_id": "5d70d8d63f1bee14d06355f6",
+    "id": "5d70d8d63f1bee14d06355f6",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -772,7 +772,7 @@
     "machineName": "suopywgtyuabhru:productsNm"
   },
   {
-    "_id": "5d70d8ec774626bd5337d15c",
+    "id": "5d70d8ec774626bd5337d15c",
     "type": "resource",
     "tags": [],
     "owner": "573cc203e35b990100f16c0a",
@@ -793,12 +793,12 @@
           "project": "suopywgtyuabhru"
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "",
         "filter": "",
         "authenticate": false,
-        "template": "<span>{{ item._id }}</span>",
+        "template": "<span>{{ item.id }}</span>",
         "multiple": false,
         "protected": false,
         "unique": false,
@@ -811,7 +811,7 @@
         "tags": [],
         "conditional": { "show": "", "when": null, "eq": "" },
         "properties": {},
-        "searchField": "_id__regex"
+        "searchField": "id__regex"
       },
       {
         "autofocus": false,
@@ -829,12 +829,12 @@
           "project": "suopywgtyuabhru"
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "",
         "filter": "",
         "authenticate": false,
-        "template": "<span>{{ item._id }}</span>",
+        "template": "<span>{{ item.id }}</span>",
         "multiple": false,
         "protected": false,
         "unique": false,
@@ -847,7 +847,7 @@
         "tags": [],
         "conditional": { "show": "", "when": null, "eq": "" },
         "properties": {},
-        "searchField": "_id__regex"
+        "searchField": "id__regex"
       },
       {
         "autofocus": false,

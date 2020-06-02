@@ -29,7 +29,7 @@ export class UsersService {
    * @param id
    */
   async findOne(id: string): Promise<User> {
-    return await this.users.findOne({ _id: id })
+    return await this.users.findOne({ id: id })
   }
   /**
    *
@@ -57,7 +57,7 @@ export class UsersService {
    * @param id
    */
   async deleteById(id: string): Promise<string> {
-    await this.users.delete({ _id: id })
+    await this.users.delete({ id: id })
     return id
   }
   /**
@@ -67,7 +67,7 @@ export class UsersService {
    */
   /*
   async updateById(id: string, user: UpdateUserInput): Promise<User> {
-    const inserted = await this.users.update({ _id: id }, user)
+    const inserted = await this.users.update({ id: id }, user)
     //return inserted
   }
   */

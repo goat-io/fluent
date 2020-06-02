@@ -7,52 +7,82 @@ import { template as lbTypes } from './templates/Loopback4/model/_typesProperty.
 import { template as lbModelBase } from './templates/Loopback4/model/baseModel.hbs'
 import { template as lbModelExtended } from './templates/Loopback4/model/model.hbs'
 
+import { template as lbFaker } from './templates/Loopback4/model/_fakeObject.hbs'
+
+import { template as nestTypes } from './templates/Nestjs/model/_typesProperty.hbs'
+import { template as nestModelBase } from './templates/Nestjs/model/baseModel.hbs'
+import { template as nestModelExtended } from './templates/Nestjs/model/model.hbs'
+
+import { template as nestFaker } from './templates/Nestjs/model/_fakeObject.hbs'
+
+import { template as dtoTemplate } from './templates/Nestjs/model/baseDto.hbs'
+
 const FrameworkTemplatesBaseModel = {
-  Loopback4: lbModelBase
+  Loopback4: lbModelBase,
+  Nestjs: nestModelBase
 }
 
 const FrameworkTemplatesModelExtended = {
-  Loopback4: lbModelExtended
+  Loopback4: lbModelExtended,
+  Nestjs: nestModelExtended
 }
 
 const FrameworkTypes = {
-  Loopback4: lbTypes
+  Loopback4: lbTypes,
+  Nestjs: nestTypes
 }
-export const generateModels = (Model: GoatModel, framework: SupportedFrameworks) => {
+
+const FrameworkFaker = {
+  Loopback4: lbFaker,
+  Nestjs: nestFaker
+}
+
+export const generateModels = (
+  Model: GoatModel,
+  framework: SupportedFrameworks
+) => {
   const datagrids = generateDatagrids(Model, framework)
   const objects = generateObject(Model, framework)
   const baseModel = generateBaseModel(Model, framework)
   const extendedModels = generateExtendedModel(Model, framework)
+  const generateDtoModel = generateDto(Model, framework)
 
   return {
+    baseDto: generateDtoModel,
     baseModels: [...datagrids, ...objects, baseModel],
     extendedModels
   }
 }
 
-const generateBaseModel = (Model, framework: SupportedFrameworks) => {
+const generateBaseModel = (
+  Model,
+  framework: SupportedFrameworks,
+  isChild?: boolean,
+  isArray?: boolean
+) => {
   const source = FrameworkTemplatesBaseModel[framework]
-
   const partial = FrameworkTypes[framework]
+  const partialFaker = FrameworkFaker[framework]
 
   registerPartial('typeProperty', partial)
+  registerPartial('fakerObject', partialFaker)
 
-  registerHelper('IfMetaNotProperty', function(element, options) {
+  registerHelper('IfMetaNotProperty', function (element, options) {
     if (metaProperties.includes(element)) {
       return
     }
     return options.fn(this)
   })
 
-  registerHelper('ifIsId', function(element, options) {
-    if (element === '_id') {
+  registerHelper('ifIsId', function (element, options) {
+    if (element === 'id') {
       return options.fn(this)
     }
     return
   })
 
-  registerHelper('ifIsNotId', function(element, options) {
-    if (element === '_id') {
+  registerHelper('ifIsNotId', function (element, options) {
+    if (element === 'id') {
       return
     }
     return options.fn(this)
@@ -66,11 +96,38 @@ const generateBaseModel = (Model, framework: SupportedFrameworks) => {
     }
   })
 
+  registerHelper('stringToFaker', (element, array, options) => {
+    if (element === 'string') {
+      return array
+        ? '[faker.random.word().split(" ")[0], faker.random.word().split(" ")[0], faker.random.word().split(" ")[0]]'
+        : 'faker.random.word().split(" ")[0]'
+    } else if (element === 'number') {
+      return array
+        ? '[faker.random.number(), faker.random.number(), faker.random.number()]'
+        : 'faker.random.number()'
+    } else if (element === 'boolean') {
+      return array
+        ? '[faker.random.boolean(), faker.random.boolean(), faker.random.boolean()]'
+        : 'faker.random.boolean()'
+    }
+  })
+
   const template = compile(source)
   Model.properties._Model = Model
+  Model.properties._Model.isChild = isChild
+  Model.properties._Model.isMain = !isChild
+  Model.properties._Model.isArray = isArray
   const result = template(Model.properties)
 
-  const filePath = join(`${Model.folderPath}/_base/models/${Model.name}-model.ts`)
+  const folderName =
+    framework === SupportedFrameworks.Loopback ? 'models' : 'entities'
+
+  const modelName =
+    framework === SupportedFrameworks.Loopback ? 'model' : 'entity'
+
+  const filePath = join(
+    `${Model.folderPath}/_base/${folderName}/${Model.name}-${modelName}.ts`
+  )
   // writeFileSync(filePath, result)
   return {
     file: result,
@@ -78,11 +135,19 @@ const generateBaseModel = (Model, framework: SupportedFrameworks) => {
   }
 }
 
-const generateExtendedModel = (Model: GoatModel, framework: SupportedFrameworks) => {
+const generateExtendedModel = (
+  Model: GoatModel,
+  framework: SupportedFrameworks
+) => {
+  const modelName =
+    framework === SupportedFrameworks.Loopback ? 'model' : 'entity'
+
   const sourceExtended = FrameworkTemplatesModelExtended[framework]
   const templateExtended = compile(sourceExtended)
   const resultExtended = templateExtended(Model.properties)
-  const filePathExtended = join(`${Model.folderPath}/${Model.name}.model.ts`)
+  const filePathExtended = join(
+    `${Model.folderPath}/${Model.name}.${modelName}.ts`
+  )
   // writeFileSync(filePathExtended, resultExtended)
   return {
     file: resultExtended,
@@ -90,14 +155,18 @@ const generateExtendedModel = (Model: GoatModel, framework: SupportedFrameworks)
   }
 }
 
-const generateDatagrids = (Model: GoatModel, framework: SupportedFrameworks) => {
+const generateDatagrids = (
+  Model: GoatModel,
+  framework: SupportedFrameworks
+) => {
   const datagrids: any = []
   Object.keys(Model.__datagrids).forEach(ModelName => {
     const model: any = {}
     model.name = ModelName
     model.properties = Model.__datagrids[ModelName]
     model.folderPath = Model.folderPath
-    datagrids.push(generateBaseModel(model, framework))
+    model.isDataGrid = true
+    datagrids.push(generateBaseModel(model, framework, true, true))
   })
   return datagrids
 }
@@ -109,7 +178,21 @@ const generateObject = (Model: GoatModel, framework: SupportedFrameworks) => {
     model.name = ModelName
     model.properties = Model.__objects[ModelName]
     model.folderPath = Model.folderPath
-    objects.push(generateBaseModel(model, framework))
+    objects.push(generateBaseModel(model, framework, true))
   })
   return objects
+}
+
+const generateDto = (Model: GoatModel, framework: SupportedFrameworks) => {
+  const source = dtoTemplate
+  const template = compile(source)
+  Model.properties._Model = Model
+  const result = template(Model.properties)
+
+  const filePath = join(`${Model.folderPath}/${Model.name}.dto.ts`)
+  // writeFileSync(filePath, result)
+  return {
+    file: result,
+    path: filePath
+  }
 }

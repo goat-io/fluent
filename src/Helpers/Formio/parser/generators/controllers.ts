@@ -4,15 +4,22 @@ import { GoatModel } from '../../types/GoatModel'
 import { SupportedFrameworks } from '../parse'
 import { template as lbController } from './templates/Loopback4/controller/baseController.hbs'
 import { template as lbControllerExtended } from './templates/Loopback4/controller/controller.hbs'
+import { template as nestController } from './templates/Nestjs/controller/baseController.hbs'
+import { template as nestControllerExtended } from './templates/Nestjs/controller/controller.hbs'
 
 const FrameworkTemplatesBaseController = {
-  Loopback4: lbController
+  Loopback4: lbController,
+  Nestjs: nestController
 }
 const FrameworkTemplatesControllerExtended = {
-  Loopback4: lbControllerExtended
+  Loopback4: lbControllerExtended,
+  Nestjs: nestControllerExtended
 }
 
-export const generateControllers = (Model: GoatModel, framework: SupportedFrameworks) => {
+export const generateControllers = (
+  Model: GoatModel,
+  framework: SupportedFrameworks
+) => {
   const source = FrameworkTemplatesBaseController[framework]
 
   const template = compile(source)
@@ -26,7 +33,9 @@ export const generateControllers = (Model: GoatModel, framework: SupportedFramew
   const sourceExtended = FrameworkTemplatesControllerExtended[framework]
   const templateExtended = compile(sourceExtended)
   const resultExtended = templateExtended(Model.properties)
-  const filePathExtended = join(`${Model.folderPath}/${Model.name}.controller.ts`)
+  const filePathExtended = join(
+    `${Model.folderPath}/${Model.name}.controller.ts`
+  )
   // writeFileSync(filePathExtended, resultExtended)
 
   return {

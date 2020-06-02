@@ -57,30 +57,26 @@ export class LokiConnector<
    * @param  {[type]} document [description]
    * @return {[type]}          [description]
    */
-  public async deleteById(_id: string): Promise<string> {
-    if (!_id) {
-      throw new Error(
-        'No id assign to remove().You must give and _id to delete'
-      )
+  public async deleteById(id: string): Promise<string> {
+    if (!id) {
+      throw new Error('No id assign to remove().You must give and id to delete')
     }
     const model = await this.getModel()
-    await model.findAndRemove({ _id })
+    await model.findAndRemove({ id })
     this.reset()
-    return _id
+    return id
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    if (!_id) {
-      throw new Error(
-        'No id assign to remove().You must give and _id to delete'
-      )
+  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    if (!id) {
+      throw new Error('No id assign to remove().You must give and id to delete')
     }
     const model = await this.getModel()
     const result: GoatOutput<InputDTO, OutputDTO> = await model.find({
-      _id
+      id
     })
     this.reset()
     return result
@@ -135,17 +131,17 @@ export class LokiConnector<
    * @param document
    */
   public async updateById(
-    _id: string,
+    id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    if (!_id) {
+    if (!id) {
       throw new Error(
-        'Loki connector error. Cannot update a Model without _id key'
+        'Loki connector error. Cannot update a Model without id key'
       )
     }
     const model = await this.getModel()
 
-    const local = await model.findOne({ _id })
+    const local = await model.findOne({ id })
 
     const mod = {
       ...local,

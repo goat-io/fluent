@@ -16,7 +16,10 @@ const testModel = (() => {
   const _keys = Fluent.model<IGoat>('myTestModel')
 
   const remote = (token?: string) => {
-    return new LoopbackConnector<IGoat>({ baseEndPoint: 'https://someEndpoint', token: token || authToken })
+    return new LoopbackConnector<IGoat>({
+      baseEndPoint: 'https://someEndpoint',
+      token: token || authToken
+    })
   }
 
   return Object.freeze({ remote, _keys })
@@ -40,8 +43,8 @@ describe('Given a FLUENT Remote Instance', () => {
       }
     })
 
-    expect(inserted._id).to.be.a('string')
-    expect(inserted2._id).to.be.a('string')
+    expect(inserted.id).to.be.a('string')
+    expect(inserted2.id).to.be.a('string')
   })
 
   it('Should get remote data', async () => {
@@ -280,7 +283,7 @@ describe('Given a FLUENT Remote Instance', () => {
     ;[error, data] = await to(
       testModel
         .remote({ token })
-        .select('_id')
+        .select('id')
         .get()
     )
 

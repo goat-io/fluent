@@ -27,8 +27,8 @@ it('Create Single - Should insert Data', async () => {
     name: 'Andres'
   })
 
-  expect(typeof inserted._id).toBe('string')
-  expect(typeof inserted2._id).toBe('string')
+  expect(typeof inserted.id).toBe('string')
+  expect(typeof inserted2.id).toBe('string')
   expect(inserted2.name).toBe('Andres')
 })
 
@@ -50,11 +50,11 @@ it('Create Multiple - Should insert Multiple elements', async () => {
 
   const insertedFlock = await GoatModel.insertMany(flock)
   expect(insertedFlock[0].name).toBe('Goatee')
-  storedId = insertedFlock[0]._id
+  storedId = insertedFlock[0].id
 })
 it('UpdateById - Should Update a single element', async () => {
   const goats = await GoatModel.get()
-  const data = await GoatModel.updateById(goats[3]._id, {
+  const data = await GoatModel.updateById(goats[3].id, {
     age: 99,
     name: 'MyUpdatedGoat'
   })
@@ -67,7 +67,7 @@ it('FindById - Should get the element by its Id', async () => {
     name: 'MyInsertedData'
   })
 
-  const goat = await GoatModel.findById(insertedGoat._id)
+  const goat = await GoatModel.findById(insertedGoat.id)
   expect(goat.name).toBe('MyInsertedData')
 })
 

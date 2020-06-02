@@ -17,14 +17,22 @@ const getSelectResources = (Form: FormioForm): FormioComponent[] => {
 }
 
 /**
- * Get the path of a form given it's _id
+ * Get the path of a form given it's id
  * @param param0
  */
-const getRelatedFormPathById = ({ Forms, _id }: { Forms: FormioForm[]; _id: string }): string => {
-  const form = Forms.find(f => String(f._id) === String(_id) || String(f.id) === String(_id))
+const getRelatedFormPathById = ({
+  Forms,
+  id
+}: {
+  Forms: FormioForm[]
+  id: string
+}): string => {
+  const form = Forms.find(
+    f => String(f.id) === String(id) || String(f.id) === String(id)
+  )
 
   if (!form) {
-    throw new Error(`The form ${_id} does not exist`)
+    throw new Error(`The form ${id} does not exist`)
   }
 
   return form.path
@@ -45,19 +53,30 @@ const createRelations = ({
 }) => {
   const baseRelation = {
     foreignKey: `${relatedComponent.path}`,
-    primaryKey: relatedComponent.valueProperty === '_id' ? '_id' : relatedComponent.valueProperty
+    primaryKey:
+      relatedComponent.valueProperty === 'id'
+        ? 'id'
+        : relatedComponent.valueProperty
   }
 
   return {
     inverseRelation: {
       ...baseRelation,
       name: formPath,
-      type: relatedComponent.inDataGrid ? 'hasManyEmbededDG' : relatedComponent.multiple ? 'hasManyEmbeded' : 'hasMany'
+      type: relatedComponent.inDataGrid
+        ? 'hasManyEmbededDG'
+        : relatedComponent.multiple
+        ? 'hasManyEmbeded'
+        : 'hasMany'
     },
     relation: {
       ...baseRelation,
       name: relatedPath,
-      type: relatedComponent.inDataGrid ? 'EmbedsManyDG' : relatedComponent.multiple ? 'EmbedsMany' : 'belongsTo'
+      type: relatedComponent.inDataGrid
+        ? 'EmbedsManyDG'
+        : relatedComponent.multiple
+        ? 'EmbedsMany'
+        : 'belongsTo'
     }
   }
 }
@@ -87,7 +106,7 @@ export const getRelations = (Forms: FormioForm[]) => {
 
       const relatedModelPath = getRelatedFormPathById({
         Forms,
-        _id: relatedField.data.resource
+        id: relatedField.data.resource
       })
 
       if (!relations[Form.path]) {
@@ -109,13 +128,19 @@ export const getRelations = (Forms: FormioForm[]) => {
       relations[relatedModelPath].push(createdRelations.inverseRelation)
     }
 
-    if (relationSelectComponents.length <= 1 || !relations[Form.path] || relations[Form.path].length <= 1) {
+    if (
+      relationSelectComponents.length <= 1 ||
+      !relations[Form.path] ||
+      relations[Form.path].length <= 1
+    ) {
       continue
     }
 
     // We dont want to include N to M relations
     // from previous iterations
-    const validRelations = relations[Form.path].filter(r => r.type !== 'belongsToMany')
+    const validRelations = relations[Form.path].filter(
+      r => r.type !== 'belongsToMany'
+    )
 
     // Define ManyToMany if needed
 

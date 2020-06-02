@@ -1,6 +1,6 @@
 import { Formio } from './Formio'
 const form = {
-  _id: '5d725d15d3d5a3c865b60325',
+  id: '5d725d15d3d5a3c865b60325',
   type: 'resource',
   components: [
     {

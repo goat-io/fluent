@@ -4,7 +4,7 @@ import { MulterConfiguration } from '../Upload'
 
 export const Google = (config: MulterConfiguration) => {
   if (
-    !process.env.GOOGLE_PROJECT_ID ||
+    !process.env.GOOGLE_PROJECTid ||
     !process.env.AZURE_ACCESS_KEY ||
     !process.env.AZURE_ACCOUNT_NAME
   ) {
@@ -13,7 +13,7 @@ export const Google = (config: MulterConfiguration) => {
   return new multerGoogleStorage({
     autoRetry: true,
     maxRetries: 3,
-    projectId: process.env.GOOGLE_PROJECT_ID,
+    projectId: process.env.GOOGLE_PROJECTid,
     filename: (req, file, cb) => {
       cb(null, config.fileName + extname(file.originalname))
     },

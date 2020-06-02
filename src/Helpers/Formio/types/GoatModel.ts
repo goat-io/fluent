@@ -1,5 +1,5 @@
 export interface GoatModel {
-  _id?: string
+  id?: string
   name: string
   path: string
   folderPath: string

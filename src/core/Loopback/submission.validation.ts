@@ -6,7 +6,7 @@ import { Errors } from '../../Helpers/Errors'
 import { Changelog } from '../../Helpers/Changelog'
 
 const goatExtendedValues = [
-  '_id',
+  'id',
   'owner',
   'roles',
   '_ngram',
@@ -35,8 +35,8 @@ export const validateSubmission = async (ctx: any, next) => {
   let submission = invocation.args[argsIndex]
 
   if (isPut || isPatch) {
-    const _id = ctx.args[0]
-    const currentValue = await targetClass.model_Repository.findById(_id)
+    const id = ctx.args[0]
+    const currentValue = await targetClass.model_Repository.findById(id)
     goatExtendedValues.forEach(key => {
       delete currentValue[key]
     })

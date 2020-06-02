@@ -1,5 +1,5 @@
 export interface IDataElement {
-  _id?: string
+  id?: string
   [key: string]: any
 }
 
@@ -31,7 +31,7 @@ export type Primitives = boolean | string | number
 export type PrimitivesArray = boolean[] | string[] | number[]
 
 export interface IGoatExtendedAttributes {
-  _id: string
+  id: string
   created: string
   updated: string
   deleted?: string

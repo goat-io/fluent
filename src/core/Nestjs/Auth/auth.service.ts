@@ -17,7 +17,7 @@ export class AuthService {
 
   async login(user: User): Promise<Token> {
     const payload = {
-      sub: user._id,
+      sub: user.id,
       user: cleanUserModel(user)
     }
     return {

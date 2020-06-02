@@ -95,7 +95,7 @@ test('Double character should return ngram', () => {
 })
 
 const simpleSubmission = {
-  _id: '12345asdasdf',
+  id: '12345asdasdf',
   data: {
     name: 'Pedro',
     lastName: 'Cabrera',

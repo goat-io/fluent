@@ -29,7 +29,8 @@ beforeAll(async done => {
   const repository = connection.getRepository(GoatEntity)
 
   GoatModel = new TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>({
-    repository
+    repository,
+    isRelationalDB: true
   })
   done()
 })
@@ -45,7 +46,7 @@ test('Get - Should  GET data', async () => {
 
 test('Insert - Should  insert data', async () => {
   const a = await GoatModel.insert({ name: 'myGoat', age: 13 })
-  expect(typeof a._id).toBe('string')
+  expect(typeof a.id).toBe('string')
   expect(a.name).toBe('myGoat')
   expect(0).toBe(0)
 })
@@ -53,13 +54,13 @@ test('Insert - Should  insert data', async () => {
 it('Create Multiple - Should insert Multiple elements', async () => {
   const insertedFlock = await GoatModel.insertMany(flock)
   expect(insertedFlock[0].name).toBe('Goatee')
-  storedId = insertedFlock[0]._id
+  storedId = insertedFlock[0].id
 })
 
 it('UpdateById - Should Update a single element', async () => {
   await GoatModel.insertMany(flock)
   const goats = await GoatModel.get()
-  const data = await GoatModel.updateById(goats[0]._id, {
+  const data = await GoatModel.updateById(goats[0].id, {
     age: 99,
     name: 'MyUpdatedGoat'
   })

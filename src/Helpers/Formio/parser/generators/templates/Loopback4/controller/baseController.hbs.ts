@@ -52,7 +52,7 @@ export class {{_Model.name}}Base {
         "application/json": {
           schema: getModelSchemaRef({{_Model.name}}Model, {
             title: "New{{_Model.name}}",
-            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
+            exclude: ["id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
           })
         }
       }
@@ -88,7 +88,7 @@ export class {{_Model.name}}Base {
         "application/json": {
           schema: {
             type: "array",
-            items: getModelSchemaRef({{_Model.name}}Model, {exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]})
+            items: getModelSchemaRef({{_Model.name}}Model, {exclude: ["id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]})
           }
         }
       }
@@ -99,10 +99,10 @@ export class {{_Model.name}}Base {
   }
   /*
    * /PUT/
-   * Replace a {{_Model.name}} by _id
+   * Replace a {{_Model.name}} by id
    */
   @intercept(validateSubmission)
-  @put("/{{_Model.path}}/{_id}", {
+  @put("/{{_Model.path}}/{id}", {
     responses: {
       "204": {
         description: "{{_Model.name}} PUT success"
@@ -111,13 +111,13 @@ export class {{_Model.name}}Base {
     tags: ["{{_Model.path}}"]
   })
   async replaceById(
-    @param.path.string("_id") id: string,
+    @param.path.string("id") id: string,
     @requestBody({
       content: {
         "application/json": {
           schema: getModelSchemaRef({{_Model.name}}Model, {
             title: "New{{_Model.name}}",
-            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
+            exclude: ["id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
           })
         }
       }
@@ -127,10 +127,10 @@ export class {{_Model.name}}Base {
   }
   /*
    * /PATCH/
-   * Update a {{_Model.name}} by _id
+   * Update a {{_Model.name}} by id
    */
   // @intercept(validateSubmission)
-  @patch("/{{_Model.path}}/{_id}", {
+  @patch("/{{_Model.path}}/{id}", {
     responses: {
       "204": {
         description: "{{_Model.name}} PATCH success"
@@ -139,13 +139,13 @@ export class {{_Model.name}}Base {
     tags: ["{{_Model.path}}"]
   })
   async updateById(
-    @param.path.string("_id") id: string,
+    @param.path.string("id") id: string,
     @requestBody({
       content: {
         "application/json": {
           schema: getModelSchemaRef({{_Model.name}}Model, {
             title: "New{{_Model.name}}",
-            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
+            exclude: ["id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
           })
         }
       }
@@ -173,7 +173,7 @@ export class {{_Model.name}}Base {
         "application/json": {
           schema: getModelSchemaRef({{_Model.name}}Model, {
             partial: true,
-            exclude: ["_id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
+            exclude: ["id", "form", "roles", "owner", "_ngram", "created", "modified", "deleted"]
           })
         }
       }
@@ -233,9 +233,9 @@ export class {{_Model.name}}Base {
   }
   /*
    * /GET/
-   * Gets a specific {{_Model.name}} by _id
+   * Gets a specific {{_Model.name}} by id
    */
-  @get("/{{_Model.path}}/{_id}", {
+  @get("/{{_Model.path}}/{id}", {
     responses: {
       "200": {
         description: "{{_Model.name}} model instance",
@@ -251,7 +251,7 @@ export class {{_Model.name}}Base {
     tags: ["{{_Model.path}}"]
   })
   async findById(
-    @param.path.string("_id") id: string,
+    @param.path.string("id") id: string,
     @param.query.object("filter", getFilterSchemaFor({{_Model.name}}Model))
     filter?: Filter<{{_Model.name}}Model>
   ): Promise<{{_Model.name}}Model> {
@@ -259,9 +259,9 @@ export class {{_Model.name}}Base {
   }
   /*
    * /DELETE/
-   * Deletes a {{_Model.name}} by _id
+   * Deletes a {{_Model.name}} by id
    */
-  @del("/{{_Model.path}}/{_id}", {
+  @del("/{{_Model.path}}/{id}", {
     responses: {
       "204": {
         description: "{{_Model.name}} DELETE success"
@@ -269,7 +269,7 @@ export class {{_Model.name}}Base {
     },
     tags: ["{{_Model.path}}"]
   })
-  async deleteById(@param.path.string("_id") id: string): Promise<void> {
+  async deleteById(@param.path.string("id") id: string): Promise<void> {
     await this.model_Repository.deleteById(id);
   }
 }`

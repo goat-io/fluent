@@ -41,7 +41,7 @@ it('Should insert Data', async () => {
     test: true
   })
 
-  expect(typeof data2._id).toBe('string')
+  expect(typeof data2.id).toBe('string')
   expect(data2.nestedTest.a[0]).toBe(5)
 })
 

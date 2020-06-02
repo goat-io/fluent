@@ -15,7 +15,7 @@ export class UserCredentials extends Entity {
     id: true,
     type: 'string'
   })
-  public _id: string
+  public id: string
 
   @property({
     required: true,
@@ -38,4 +38,5 @@ export interface UserCredentialsRelations {
   // describe navigational properties here
 }
 
-export type UserCredentialsWithRelations = UserCredentials & UserCredentialsRelations
+export type UserCredentialsWithRelations = UserCredentials &
+  UserCredentialsRelations

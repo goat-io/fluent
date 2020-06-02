@@ -17,7 +17,7 @@ export class UserRoleModel extends Entity {
     id: true,
     type: 'string'
   })
-  public _id: string
+  public id: string
 
   @belongsTo(() => User)
   public userId: string

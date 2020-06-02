@@ -169,7 +169,7 @@ test("Should return the valid Form", async () => {
   const [error, form] = await For.async<IDataElement, FormioValidationError>(Validate.form(_Form));
   expect(error).toBe(null);
   expect(typeof form).toBe("object");
-  expect(form._id).toBe("5d24e91176853baf2b663a60");
+  expect(form.id).toBe("5d24e91176853baf2b663a60");
 });
 */
 afterAll(() => {

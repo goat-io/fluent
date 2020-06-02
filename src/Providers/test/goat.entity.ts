@@ -7,6 +7,7 @@ import {
 } from 'typeorm'
 import { Field, ID, ObjectType } from '@nestjs/graphql'
 import { ApiProperty } from '@nestjs/swagger'
+import { Collection } from 'fireorm'
 
 @ObjectType()
 export class Breed {
@@ -22,12 +23,13 @@ export class Breed {
 // tslint:disable-next-line: max-classes-per-file
 @Entity()
 @ObjectType()
+@Collection('goat')
 export class GoatEntity {
   @PrimaryGeneratedColumn('uuid')
   @ObjectIdColumn()
   @ApiProperty()
   @Field(() => ID)
-  _id: string
+  id: string
 
   @Column()
   @Index()

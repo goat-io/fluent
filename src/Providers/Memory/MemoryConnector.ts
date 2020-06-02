@@ -86,14 +86,14 @@ export class MemoryConnector<
   }
   /**
    *
-   * @param _id
+   * @param id
    * @param data
    */
   public async updateById(
-    _id: string,
+    id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const dbIndex = db.findIndex(obj => obj._id === _id)
+    const dbIndex = db.findIndex(obj => obj.id === id)
     db[dbIndex] = {
       ...db[dbIndex],
       ...data,
@@ -104,28 +104,28 @@ export class MemoryConnector<
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const dbIndex = db.findIndex(obj => obj._id === _id)
+  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    const dbIndex = db.findIndex(obj => obj.id === id)
     this.reset()
     return db[dbIndex]
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async deleteById(_id: string): Promise<string> {
-    const dbIndex = db.findIndex(obj => obj._id === _id)
+  public async deleteById(id: string): Promise<string> {
+    const dbIndex = db.findIndex(obj => obj.id === id)
     if (dbIndex > -1) {
       const element: GoatOutput<InputDTO, OutputDTO> = JSON.parse(
         JSON.stringify(db[dbIndex])
       )
       db.splice(dbIndex, 1)
       this.reset()
-      return element._id
+      return element.id
     }
-    throw new Error(`The element with id ${_id} was not found`)
+    throw new Error(`The element with id ${id} was not found`)
   }
 
   public async clear(): Promise<void> {

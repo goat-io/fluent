@@ -8,7 +8,6 @@ export const Id = (() => {
   const objectID = (): string => {
     return new ObjectID().toString()
   }
-
   /**
    * Generate a UUID (version 4).
    *

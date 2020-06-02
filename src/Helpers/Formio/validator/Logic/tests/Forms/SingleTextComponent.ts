@@ -1,7 +1,7 @@
 // This is just  a simple text component
 export const textForm = (() => {
   return {
-    _id: '5d24e91176853baf2b663a60',
+    id: '5d24e91176853baf2b663a60',
     type: 'resource',
     tags: [],
     owner: '573cc203e35b990100f16c0a',
@@ -62,7 +62,11 @@ export const textForm = (() => {
     display: 'form',
     access: [
       {
-        roles: ['5c069517f137d96a8e76ce7b', '5c069517f137d953c476ce7c', '5c069517f137d9542f76ce7d'],
+        roles: [
+          '5c069517f137d96a8e76ce7b',
+          '5c069517f137d953c476ce7c',
+          '5c069517f137d9542f76ce7d'
+        ],
         type: 'read_all'
       }
     ],

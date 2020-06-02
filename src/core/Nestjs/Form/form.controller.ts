@@ -8,7 +8,8 @@ import {
   BadRequestException,
   NotFoundException,
   Delete,
-  Put
+  Put,
+  Patch
 } from '@nestjs/common'
 import {
   ApiTags,
@@ -18,74 +19,13 @@ import {
   ApiParam
 } from '@nestjs/swagger'
 import { FormService } from './form.service'
-import { FormDtoOut, FormDtoIn, formOutKeys } from './form.dto'
+import { FormDtoOut, FormDtoIn } from './form.dto'
 import { getModelSchemaRef, SchemaObject } from '@loopback/rest'
 import { Form as FormEntity } from './form.entity'
 import to from 'await-to-js'
 import { GoatFilter, GoatOutput } from 'Providers/types'
 import { For } from '../../../Helpers/For'
-
-const getGoatFilterSchema = (model: any, keys: string[]) => {
-  const schema: SchemaObject = {
-    title: model.name + 'Filter',
-    name: 'filter',
-    schema: {
-      offset: { type: 'integer', minimum: 0 },
-      limit: { type: 'integer', minimum: 1, example: 100 },
-      skip: { type: 'integer', minimum: 0 },
-      order: {
-        title: 'Form.Fields',
-        type: 'object',
-        properties: {
-          field: { type: 'string' },
-          asc: { type: 'boolean' },
-          type: { type: 'string' }
-        },
-        additionalProperties: false
-      },
-      where: {
-        title: 'Form.WhereFilter',
-        type: 'object',
-        style: 'deepObject',
-        explode: 'true',
-        properties: {
-          and: {
-            type: 'array',
-            items: {
-              type: 'array',
-              style: 'deepObject',
-              explode: 'true',
-              items: {
-                type: 'string'
-              }
-            }
-          },
-          or: {
-            type: 'array',
-            items: {
-              type: 'array',
-              items: {
-                type: 'string'
-              }
-            }
-          }
-        },
-        additionalProperties: false
-      },
-      fields: {
-        type: 'array',
-        items: {
-          type: 'string',
-          examples: keys
-        }
-      }
-    },
-    additionalProperties: false,
-    type: 'application/json'
-  }
-
-  return schema
-}
+import { getGoatFilterSchema } from '../../dtos/filterSchema'
 
 @ApiTags('Forms')
 @Controller('form')
@@ -159,7 +99,7 @@ export class FormController {
     name: 'filter',
     required: false,
     type: 'object',
-    schema: getGoatFilterSchema(FormEntity, formOutKeys)
+    schema: getGoatFilterSchema(FormEntity)
   })
   @ApiResponse({
     status: 200,
@@ -290,7 +230,11 @@ export class FormController {
 
     return result
   }
-
+  /**
+   *
+   * @param id
+   * @param form
+   */
   @Put(':id')
   @ApiResponse({
     status: 200,
@@ -322,16 +266,46 @@ export class FormController {
 
     return result
   }
+  /**
+   *
+   * @param id
+   * @param form
+   */
+  @Patch(':id')
+  @ApiResponse({
+    status: 200,
+    description: 'The created form',
+    content: {
+      'application/json': { schema: getModelSchemaRef(FormDtoOut) }
+    },
+    isArray: true,
+    type: FormDtoOut
+  })
+  @ApiBody({
+    description: 'Form',
+    type: FormDtoIn
+  })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: 'string'
+  })
+  async updateById(
+    @Param('id') id: string,
+    @Body() form: FormDtoIn
+  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
+    const [error, result] = await For.async(this.forms.replaceById(id, form))
+
+    if (error) {
+      throw new NotFoundException(error)
+    }
+
+    return result
+  }
 }
 
 /*
-// create
-// createMany
 replaceById
-updateById
 updateWhere
 countWhere
-// find
-// findById
-// deleteById
 */

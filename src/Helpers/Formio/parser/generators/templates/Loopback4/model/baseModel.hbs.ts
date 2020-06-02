@@ -19,7 +19,7 @@ export type {{_Model.name}}OriginalBaseModel = Omit<
   | "modified"
   | "deleted"
   | "created"
-  | "_id"
+  | "id"
   | "form"
   | "_ngram"
   | "roles"

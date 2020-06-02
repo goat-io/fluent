@@ -1,7 +1,7 @@
 import { getFormDataObject } from './getFormDataObject'
 
 const Form = {
-  _id: '5d725d15d3d5a3c865b60325',
+  id: '5d725d15d3d5a3c865b60325',
   type: 'resource',
   tags: [],
   owner: '573cc203e35b990100f16c0a',
@@ -268,7 +268,11 @@ const Form = {
   display: 'form',
   access: [
     {
-      roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+      roles: [
+        '5ccb6f508fb3ef6c4f96d878',
+        '5ccb6f508fb3ef48fb96d879',
+        '5ccb6f508fb3efe5f396d87a'
+      ],
       type: 'read_all'
     }
   ],

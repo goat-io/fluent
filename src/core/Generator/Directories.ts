@@ -1,12 +1,21 @@
 import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
-import { GoatModel } from '../../../Helpers/Formio/types/GoatModel'
+import { GoatModel } from '../../Helpers/Formio/types/GoatModel'
+import { SupportedFrameworks } from '../../Helpers/Formio/parser/parse'
 
-export const Directories = (Model: GoatModel, basePath: string) => {
+export const Directories = (
+  Model: GoatModel,
+  basePath: string,
+  framework: SupportedFrameworks
+) => {
   const folderName = Model.folderPath
   const directoryPath = join(basePath, `../src/${folderName}`)
   const base = join(basePath, `../src/${folderName}/_base`)
-  const models = join(basePath, `../src/${folderName}/_base/models`)
+
+  const modelString =
+    framework === SupportedFrameworks.Loopback ? 'models' : 'entities'
+
+  const models = join(basePath, `../src/${folderName}/_base/${modelString}`)
   const types = join(basePath, `../src/${folderName}/_base/types`)
 
   if (!existsSync(directoryPath)) {

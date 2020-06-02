@@ -6,7 +6,7 @@ import { FormioForm } from '../../../../types/FormioForm'
 export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
   return [
     {
-      _id: '5ccb6f508fb3ef631896d87d',
+      id: '5ccb6f508fb3ef631896d87d',
       type: 'form',
       tags: [],
       owner: null,
@@ -62,14 +62,16 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       name: 'userLogin',
       path: 'user/login',
       access: [{ roles: ['5ccb6f508fb3efe5f396d87a'], type: 'read_all' }],
-      submissionAccess: [{ roles: ['5ccb6f508fb3efe5f396d87a'], type: 'create_own' }],
+      submissionAccess: [
+        { roles: ['5ccb6f508fb3efe5f396d87a'], type: 'create_own' }
+      ],
       machineName: 'suopywgtyuabhru:userLogin',
       project: '5ccb6f508fb3ef72b796d877',
       created: '2019-05-02T22:29:36.663Z',
       modified: '2019-05-02T22:29:36.665Z'
     },
     {
-      _id: '5d70d27477462637b737d03e',
+      id: '5d70d27477462637b737d03e',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -130,7 +132,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],
@@ -145,7 +151,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       machineName: 'suopywgtyuabhru:customer1N'
     },
     {
-      _id: '5d70d29306588ea15a6b13b2',
+      id: '5d70d29306588ea15a6b13b2',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -209,12 +215,12 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
             project: 'suopywgtyuabhru'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
           authenticate: false,
-          template: '<span>{{ item._id }}</span>',
+          template: '<span>{{ item.id }}</span>',
           multiple: false,
           protected: false,
           unique: false,
@@ -227,7 +233,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -251,7 +257,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],
@@ -266,7 +276,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       machineName: 'suopywgtyuabhru:order1N'
     },
     {
-      _id: '5d70d33806588e3c9a6b13cf',
+      id: '5d70d33806588e3c9a6b13cf',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -321,12 +331,12 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
             project: 'suopywgtyuabhru'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
           authenticate: false,
-          template: '<span>{{ item._id }}</span>',
+          template: '<span>{{ item.id }}</span>',
           multiple: true,
           protected: false,
           unique: false,
@@ -339,7 +349,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex',
+          searchField: 'id__regex',
           isNew: false
         },
         {
@@ -364,7 +374,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],
@@ -379,7 +393,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       machineName: 'suopywgtyuabhru:customer1NEmbedded'
     },
     {
-      _id: '5d70d3998e9aff0a31f3c4fe',
+      id: '5d70d3998e9aff0a31f3c4fe',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -449,7 +463,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],
@@ -464,7 +482,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       machineName: 'suopywgtyuabhru:order1NEmbedded'
     },
     {
-      _id: '5d70d54006588eada86b142a',
+      id: '5d70d54006588eada86b142a',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -524,12 +542,12 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
                 project: 'suopywgtyuabhru'
               },
               dataSrc: 'resource',
-              valueProperty: '_id',
+              valueProperty: 'id',
               defaultValue: '',
               refreshOn: '',
               filter: '',
               authenticate: false,
-              template: '<span>{{ item._id }}</span>',
+              template: '<span>{{ item.id }}</span>',
               multiple: false,
               protected: false,
               unique: false,
@@ -543,7 +561,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
               tags: [],
               conditional: { show: '', when: null, eq: '' },
               properties: {},
-              searchField: '_id__regex'
+              searchField: 'id__regex'
             }
           ],
           tableView: true,
@@ -581,7 +599,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],
@@ -596,7 +618,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       machineName: 'suopywgtyuabhru:customer1NEmbeddedDg'
     },
     {
-      _id: '5d70d8bb43315d71a05c1347',
+      id: '5d70d8bb43315d71a05c1347',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -657,7 +679,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],
@@ -672,7 +698,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       machineName: 'suopywgtyuabhru:usersNm'
     },
     {
-      _id: '5d70d8d63f1bee14d06355f6',
+      id: '5d70d8d63f1bee14d06355f6',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -733,7 +759,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],
@@ -748,7 +778,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       machineName: 'suopywgtyuabhru:productsNm'
     },
     {
-      _id: '5d70d8ec774626bd5337d15c',
+      id: '5d70d8ec774626bd5337d15c',
       type: 'resource',
       tags: [],
       owner: '573cc203e35b990100f16c0a',
@@ -769,12 +799,12 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
             project: 'suopywgtyuabhru'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
           authenticate: false,
-          template: '<span>{{ item._id }}</span>',
+          template: '<span>{{ item.id }}</span>',
           multiple: false,
           protected: false,
           unique: false,
@@ -787,7 +817,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -805,12 +835,12 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
             project: 'suopywgtyuabhru'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
           authenticate: false,
-          template: '<span>{{ item._id }}</span>',
+          template: '<span>{{ item.id }}</span>',
           multiple: false,
           protected: false,
           unique: false,
@@ -823,7 +853,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -920,7 +950,11 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => {
       display: 'form',
       access: [
         {
-          roles: ['5ccb6f508fb3ef6c4f96d878', '5ccb6f508fb3ef48fb96d879', '5ccb6f508fb3efe5f396d87a'],
+          roles: [
+            '5ccb6f508fb3ef6c4f96d878',
+            '5ccb6f508fb3ef48fb96d879',
+            '5ccb6f508fb3efe5f396d87a'
+          ],
           type: 'read_all'
         }
       ],

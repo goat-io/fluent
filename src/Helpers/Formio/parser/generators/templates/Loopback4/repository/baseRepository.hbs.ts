@@ -5,7 +5,7 @@ import { MongoDataSource } from "@goatlab/fluent/dist/core/Loopback/datasources/
 
 export class {{_Model.name}}RepositoryBase extends DefaultCrudRepository<
   {{_Model.name}}Model,
-  typeof {{_Model.name}}Model.prototype._id
+  typeof {{_Model.name}}Model.prototype.id
 > {
   constructor(@inject("datasources.mongo") dataSource: MongoDataSource) {
     super({{_Model.name}}Model, dataSource);

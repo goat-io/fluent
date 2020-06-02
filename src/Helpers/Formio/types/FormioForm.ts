@@ -11,10 +11,13 @@ export interface FormioForm {
   action?: string
   tags?: string[]
   deleted?: number
+  machineName?: string
   access?: AccessType[]
   submissionAccess?: AccessType[]
   owner?: string
   components?: FormioComponent[]
   settings?: { [key: string]: any }
   properties?: { [key: string]: any }
+  create?: string
+  modified?: string
 }

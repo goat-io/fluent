@@ -22,25 +22,47 @@ export interface Credentials {
   password: string
 }
 
-export class UserRepository extends DefaultCrudRepository<User, typeof User.prototype._id> {
-  public readonly userCredentials: HasOneRepositoryFactory<UserCredentials, typeof User.prototype._id>
-  public readonly userRoles: HasManyRepositoryFactory<UserRoleModel, typeof UserRoleModel.prototype._id>
+export class UserRepository extends DefaultCrudRepository<
+  User,
+  typeof User.prototype.id
+> {
+  public readonly userCredentials: HasOneRepositoryFactory<
+    UserCredentials,
+    typeof User.prototype.id
+  >
+  public readonly userRoles: HasManyRepositoryFactory<
+    UserRoleModel,
+    typeof UserRoleModel.prototype.id
+  >
   constructor(
     @inject('datasources.mongo') protected datasource: juggler.DataSource,
     @repository.getter('UserCredentialsRepository')
-    protected userCredentialsRepositoryGetter: Getter<UserCredentialsRepository>,
+    protected userCredentialsRepositoryGetter: Getter<
+      UserCredentialsRepository
+    >,
     @repository.getter('UserRoleRepository')
     getUserRolesRepository: Getter<UserRoleRepository>
   ) {
     super(User, datasource)
-    this.userCredentials = this.createHasOneRepositoryFactoryFor('userCredentials', userCredentialsRepositoryGetter)
-    this.userRoles = this.createHasManyRepositoryFactoryFor('userRoles', getUserRolesRepository)
-    this.registerInclusionResolver('userRoles', this.userRoles.inclusionResolver)
+    this.userCredentials = this.createHasOneRepositoryFactoryFor(
+      'userCredentials',
+      userCredentialsRepositoryGetter
+    )
+    this.userRoles = this.createHasManyRepositoryFactoryFor(
+      'userRoles',
+      getUserRolesRepository
+    )
+    this.registerInclusionResolver(
+      'userRoles',
+      this.userRoles.inclusionResolver
+    )
   }
 
-  public async roles(userId: typeof User.prototype._id): Promise<UserWithRoles> {
+  public async roles(userId: typeof User.prototype.id): Promise<UserWithRoles> {
     const user: any = await this.findById(userId, {
-      include: [{ relation: 'userRoles', scope: { include: [{ relation: 'role' }] } }]
+      include: [
+        { relation: 'userRoles', scope: { include: [{ relation: 'role' }] } }
+      ]
     })
     user.roles = user.userRoles.map(r => r.role)
     delete user.userRoles
@@ -48,7 +70,9 @@ export class UserRepository extends DefaultCrudRepository<User, typeof User.prot
     return result
   }
 
-  public async findCredentials(userId: typeof User.prototype._id): Promise<UserCredentials | undefined> {
+  public async findCredentials(
+    userId: typeof User.prototype.id
+  ): Promise<UserCredentials | undefined> {
     try {
       return await this.userCredentials(userId).get()
     } catch (err) {
@@ -73,13 +97,16 @@ export class UserRepository extends DefaultCrudRepository<User, typeof User.prot
       throw new HttpErrors.Unauthorized(invalidCredentialsError)
     }
 
-    const credentialsFound = await this.findCredentials(foundUser._id)
+    const credentialsFound = await this.findCredentials(foundUser.id)
 
     if (!credentialsFound) {
       throw new HttpErrors.Unauthorized(invalidCredentialsError)
     }
 
-    const passwordMatched = await Hash.compare(credentials.password, credentialsFound.password)
+    const passwordMatched = await Hash.compare(
+      credentials.password,
+      credentialsFound.password
+    )
 
     if (!passwordMatched) {
       throw new HttpErrors.Unauthorized(invalidCredentialsError)
@@ -97,9 +124,11 @@ export class UserRepository extends DefaultCrudRepository<User, typeof User.prot
       userName = `${user.firstName}`
     }
     if (user.lastName) {
-      userName = user.firstName ? `${userName} ${user.lastName}` : `${user.lastName}`
+      userName = user.firstName
+        ? `${userName} ${user.lastName}`
+        : `${user.lastName}`
     }
-    return { [securityId]: user._id, name: userName, id: user._id }
+    return { [securityId]: user.id, name: userName, id: user.id }
   }
   /**
    *
@@ -111,7 +140,9 @@ export class UserRepository extends DefaultCrudRepository<User, typeof User.prot
     }
 
     if (!credentials.password || credentials.password.length < 8) {
-      throw new HttpErrors.UnprocessableEntity('password must be minimum 8 characters')
+      throw new HttpErrors.UnprocessableEntity(
+        'password must be minimum 8 characters'
+      )
     }
   }
 }

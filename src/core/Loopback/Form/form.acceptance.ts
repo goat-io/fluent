@@ -34,7 +34,7 @@ describe('Insert Forms', () => {
   it('[API] Should create Form', async () => {
     let countries = exampleForm.find((f: { path: string }) => f.path === 'countries')
 
-    countries._id = undefined
+    countries.id = undefined
     countries.owner = undefined
     countries.deleted = 0
     countries.components = JSON.stringify(countries.components)
@@ -52,7 +52,7 @@ describe('Insert Forms', () => {
       path: 'countries'
     })
     expect(typeof res.body[0].id).to.equal('undefined')
-    expect(typeof res.body[0]._id).to.equal('string')
+    expect(typeof res.body[0].id).to.equal('string')
   })
 
   let testId: string
@@ -60,12 +60,12 @@ describe('Insert Forms', () => {
   it('[API] Should create MANY Forms', async () => {
     let products = exampleForm.find((f: { path: string }) => f.path === 'specifications')
     let providers = exampleForm.find((f: { path: string }) => f.path === 'providers')
-    products._id = undefined
+    products.id = undefined
     products.owner = undefined
     products.deleted = 0
     products.components = JSON.stringify(products.components)
 
-    providers._id = undefined
+    providers.id = undefined
     providers.owner = undefined
     providers.deleted = 0
     providers.components = JSON.stringify(providers.components)
@@ -77,15 +77,15 @@ describe('Insert Forms', () => {
 
     expect(res.body.length).to.equal(2)
     expect(typeof res.body[0].id).to.equal('undefined')
-    expect(typeof res.body[0]._id).to.equal('string')
+    expect(typeof res.body[0].id).to.equal('string')
     expect(res.body[0].path).to.equal('specifications')
-    testId = res.body[0]._id
+    testId = res.body[0].id
   })
 
   it('Should get a form by id', async () => {
     const url = `/forms/${testId}`.trim()
     const res = await client.get(url).expect(200)
-    expect(res.body._id).to.equal(testId)
+    expect(res.body.id).to.equal(testId)
   })
 })
 */

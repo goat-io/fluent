@@ -4,16 +4,19 @@ import { Errors } from '../../../Helpers/Errors'
 import { Formio } from '../../../Helpers/Formio'
 import { Validate } from '../../../Helpers/Formio/validator/Validate'
 
-export const validateForm: Interceptor = async (ctx: InvocationContext, next: ValueOrPromise<any>) => {
+export const validateForm: Interceptor = async (
+  ctx: InvocationContext,
+  next: ValueOrPromise<any>
+) => {
   const method = ctx.methodName
   const isPatch = ['updateById'].includes(method)
   const argsIndex = ['replaceById', 'updateById'].includes(method) ? 1 : 0
   let submission = ctx.args[argsIndex]
 
   if (isPatch) {
-    const _id = ctx.args[0]
+    const id = ctx.args[0]
     const target: any = ctx.target
-    const form = await target.formRepository.findById(_id)
+    const form = await target.formRepository.findById(id)
     submission = { ...form, ...submission }
   }
 

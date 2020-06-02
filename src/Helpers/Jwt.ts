@@ -134,14 +134,14 @@ export const Jwt = (() => {
             email: 'ANONYMOUS',
             name: 'ANONYMOUS'
           },
-          _id: null
+          id: null
         }
         ctx.args.options = ctx.args.options || {}
         ctx.args.options.token = token
         ctx.args.options.validToken = tokenError ? false : true
         // ctx.args.options.user = tokenError
         //  ? anonymos
-        //  : await Auth.getUserById(decoded.user._id, app)
+        //  : await Auth.getUserById(decoded.user.id, app)
         next()
      
       })

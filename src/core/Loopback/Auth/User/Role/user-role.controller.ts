@@ -1,5 +1,13 @@
 import { Filter, repository } from '@loopback/repository'
-import { get, getFilterSchemaFor, getModelSchemaRef, HttpErrors, param, post, requestBody } from '@loopback/rest'
+import {
+  get,
+  getFilterSchemaFor,
+  getModelSchemaRef,
+  HttpErrors,
+  param,
+  post,
+  requestBody
+} from '@loopback/rest'
 import { UserProfile } from '@loopback/security'
 import { Auth } from '../../Auth'
 import { Role as RoleModel } from '../../Role/role.model'
@@ -11,7 +19,8 @@ import { UserRoleRepository } from './user-role.repository'
 const openAPITag: string = 'Users'
 export class UserRoleController {
   constructor(
-    @repository(UserRoleRepository) public userRoleRepository: UserRoleRepository,
+    @repository(UserRoleRepository)
+    public userRoleRepository: UserRoleRepository,
     @repository(RoleRepository) public roleRepository: RoleRepository,
     @repository(UserRepository) public userRepository: UserRepository,
     @Auth.user() private AuthUser: UserProfile
@@ -49,7 +58,11 @@ export class UserRoleController {
 
     const filterWhere = Object.assign({}, filter.where)
     delete filter.where
-    const findFilter = Object.assign({}, { where: { and: [{ _id: { inq: rolesIds } }, filterWhere] } }, filter)
+    const findFilter = Object.assign(
+      {},
+      { where: { and: [{ id: { inq: rolesIds } }, filterWhere] } },
+      filter
+    )
     return this.roleRepository.find(findFilter)
   }
   /*

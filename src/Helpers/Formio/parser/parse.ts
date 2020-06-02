@@ -62,24 +62,28 @@ export const parse = async (
   Form: FormioForm | FormioForm[],
   framework: SupportedFrameworks
 ): Promise<GoatParsedModel[]> => {
-  const formModels = await generateGoatModels(!Array.isArray(Form) ? [Form] : Form)
+  const formModels = await generateGoatModels(
+    !Array.isArray(Form) ? [Form] : Form
+  )
 
   if (Objects.isEmpty(formModels)) {
     throw new Error('Could not parse the given form')
   }
 
   const parsedResults: GoatParsedModel[] = []
-  const modules = loadedModules(formModels)
+  const modules = loadedModules(formModels, framework)
 
   formModels.forEach(formModel => {
     const types = generateTypes(formModel)
     const models = generateBaseModels(formModel, framework)
+    const module = loadedModules(formModel, framework)
     const repository = generateRepositories(formModel, framework)
     const controller = generateControllers(formModel, framework)
     const parsedModel: GoatParsedModel = {
       controller,
       model: formModel,
       models,
+      module,
       modules,
       repository,
       types

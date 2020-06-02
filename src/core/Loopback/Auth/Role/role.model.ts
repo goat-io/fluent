@@ -12,7 +12,7 @@ export class Role extends Entity {
     id: true,
     type: 'string'
   })
-  public _id: string
+  public id: string
 
   @property({
     type: 'string'

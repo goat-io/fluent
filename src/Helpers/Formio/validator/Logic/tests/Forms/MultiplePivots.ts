@@ -141,7 +141,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       path: 'user',
       access: [
         {
-          roles: ['5c7024bb3a36930018f4f463', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
+          roles: [
+            '5c7024bb3a36930018f4f463',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f461'
+          ],
           type: 'read_all'
         }
       ],
@@ -215,7 +219,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       path: 'admin',
       access: [
         {
-          roles: ['5c7024bb3a36930018f4f463', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
+          roles: [
+            '5c7024bb3a36930018f4f463',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f461'
+          ],
           type: 'read_all'
         }
       ],
@@ -328,7 +336,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -379,7 +391,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             project: 'project'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -398,7 +410,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
           conditional: { show: '', when: null, eq: '' },
           properties: {},
           lockKey: true,
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -519,7 +531,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -645,7 +661,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -699,7 +719,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             project: 'project'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -717,7 +737,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -776,7 +796,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -827,7 +851,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             project: 'project'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -845,7 +869,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -938,7 +962,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -1149,7 +1177,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -1365,7 +1397,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             project: 'project'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -1383,7 +1415,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -1401,7 +1433,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             project: 'project'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -1438,7 +1470,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             project: 'project'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -1457,7 +1489,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
           conditional: { show: '', when: null, eq: '' },
           properties: {},
           lockKey: true,
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -1475,7 +1507,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             project: 'project'
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -1493,7 +1525,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
           tags: [],
           conditional: { show: '', when: null, eq: '' },
           properties: {},
-          searchField: '_id__regex'
+          searchField: 'id__regex'
         },
         {
           autofocus: false,
@@ -1611,7 +1643,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
               { name: 'tools', groups: ['tools'] }
             ],
             extraPlugins: 'justify,font',
-            removeButtons: 'Cut,Copy,Paste,Underline,Subscript,Superscript,Scayt,About',
+            removeButtons:
+              'Cut,Copy,Paste,Underline,Subscript,Superscript,Scayt,About',
             uiColor: '#eeeeee',
             height: '400px',
             width: '100%',
@@ -1657,7 +1690,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -1969,7 +2006,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
               labelPosition: 'top',
               tags: [],
               properties: {},
-              calculateValue: "value = row.name.toLowerCase().split(' ').join('-');",
+              calculateValue:
+                "value = row.name.toLowerCase().split(' ').join('-');",
               lockKey: true,
               inputFormat: 'plain'
             },
@@ -2523,7 +2561,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
                       data: {
                         values: [{ value: '', label: '' }],
                         json: '',
-                        url: 'http://34.73.215.70:3001/form?title__ne=FAST_APP_PAGES&sort=title',
+                        url:
+                          'http://34.73.215.70:3001/form?title__ne=FAST_APP_PAGES&sort=title',
                         resource: '',
                         custom: '',
                         headers: [{ value: '', key: '' }],
@@ -2551,7 +2590,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
                       lockKey: true,
                       searchField: 'title__regex',
                       limit: '',
-                      customConditional: "show = !!(row.target === 'form' && row.internal !== true)"
+                      customConditional:
+                        "show = !!(row.target === 'form' && row.internal !== true)"
                     },
                     {
                       autofocus: false,
@@ -2590,7 +2630,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
                       conditional: { show: '', when: null, eq: '' },
                       properties: {},
                       lockKey: true,
-                      customConditional: "show = !!(row.target === 'form' && row.internal !== true)"
+                      customConditional:
+                        "show = !!(row.target === 'form' && row.internal !== true)"
                     },
                     {
                       autofocus: false,
@@ -2627,7 +2668,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
                       conditional: { show: '', when: null, eq: '' },
                       properties: {},
                       lockKey: true,
-                      customConditional: "show = !!(row.target === 'page' && row.internal !== true)"
+                      customConditional:
+                        "show = !!(row.target === 'page' && row.internal !== true)"
                     },
                     {
                       autofocus: false,
@@ -2890,7 +2932,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -2903,7 +2949,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f463', '5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
+          roles: [
+            '5c7024bb3a36930018f4f463',
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -3059,7 +3109,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -3072,7 +3126,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f463', '5c7024bb3a36930018f4f462'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f463',
+            '5c7024bb3a36930018f4f462'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -3463,7 +3521,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
                   valueProperty: '',
                   defaultValue: '',
                   refreshOn: 'level',
-                  filter: 'data.level={{data.level}}&data.industry={{data.industry}}',
+                  filter:
+                    'data.level={{data.level}}&data.industry={{data.industry}}',
                   authenticate: false,
                   template: '<span>{{ item.data.position}}</span>',
                   multiple: false,
@@ -3479,7 +3538,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
                   conditional: { show: '', when: null, eq: '' },
                   properties: {},
                   searchField: 'data.industry__regex',
-                  selectFields: '_id, data.position, data.level',
+                  selectFields: 'id, data.position, data.level',
                   clearOnRefresh: true,
                   limit: '200',
                   lockKey: true
@@ -4205,7 +4264,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
                     required: false,
                     minLength: '',
                     maxLength: '',
-                    pattern: '^$|^\\$?(\\d+|\\d{1,3}(\\.\\d{3})*)(,\\d+)?\\-?\\$?(\\d+|\\d{1,3}(\\.\\d{3})*)(,\\d+)?$',
+                    pattern:
+                      '^$|^\\$?(\\d+|\\d{1,3}(\\.\\d{3})*)(,\\d+)?\\-?\\$?(\\d+|\\d{1,3}(\\.\\d{3})*)(,\\d+)?$',
                     custom: '',
                     customPrivate: false,
                     customMessage: ''
@@ -4942,7 +5002,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
           conditional: { show: '', when: null, eq: '' },
           properties: {},
           event: 'nextClassification',
-          custom: "var event = new CustomEvent('nextClassification' );\n\ndocument.dispatchEvent(event);"
+          custom:
+            "var event = new CustomEvent('nextClassification' );\n\ndocument.dispatchEvent(event);"
         }
       ],
       title: 'Classification',
@@ -4952,7 +5013,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -5145,7 +5210,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -5240,7 +5309,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
         { roles: [], type: 'create_all' },
         { roles: [], type: 'read_own' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: [], type: 'update_own' },
@@ -5326,7 +5399,9 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       title: 'User Login',
       path: 'user/login',
       access: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'read_all' }],
-      submissionAccess: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }],
+      submissionAccess: [
+        { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }
+      ],
       machineName: 'userLogin',
       created: '2019-02-22T16:35:08.492Z',
       modified: '2019-02-22T16:35:08.495Z',
@@ -5407,7 +5482,9 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       title: 'User Register',
       path: 'userregister',
       access: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'read_all' }],
-      submissionAccess: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }],
+      submissionAccess: [
+        { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }
+      ],
       machineName: 'userRegister',
       created: '2019-02-22T16:35:08.499Z',
       modified: '2019-03-15T16:04:47.707Z',
@@ -5469,7 +5546,9 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       title: 'Admin Login',
       path: 'admin/login',
       access: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'read_all' }],
-      submissionAccess: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }],
+      submissionAccess: [
+        { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }
+      ],
       machineName: 'adminLogin',
       created: '2019-02-22T16:35:08.510Z',
       modified: '2019-02-22T16:35:08.513Z',
@@ -5607,7 +5686,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       path: 'jobpositions',
       access: [
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         }
       ],
@@ -5691,14 +5774,22 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       path: 'industries',
       access: [
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         }
       ],
       submissionAccess: [
         { roles: [], type: 'create_all' },
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         },
         { roles: ['5c7024bb3a36930018f4f461'], type: 'update_all' },
@@ -5787,7 +5878,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       path: 'jobpositions/levels',
       access: [
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         }
       ],
@@ -5832,7 +5927,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
             custom: ''
           },
           dataSrc: 'resource',
-          valueProperty: '_id',
+          valueProperty: 'id',
           defaultValue: '',
           refreshOn: '',
           filter: '',
@@ -5874,7 +5969,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => {
       path: 'adminassignment',
       access: [
         {
-          roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f463'],
+          roles: [
+            '5c7024bb3a36930018f4f461',
+            '5c7024bb3a36930018f4f462',
+            '5c7024bb3a36930018f4f463'
+          ],
           type: 'read_all'
         }
       ],

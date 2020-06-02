@@ -1,5 +1,12 @@
 import { repository } from '@loopback/repository'
-import { get, getModelSchemaRef, HttpErrors, param, post, requestBody } from '@loopback/rest'
+import {
+  get,
+  getModelSchemaRef,
+  HttpErrors,
+  param,
+  post,
+  requestBody
+} from '@loopback/rest'
 import { securityId, UserProfile } from '@loopback/security'
 import { omit, pick } from 'lodash'
 import { Hash } from '../../../../Helpers/Hash'
@@ -49,17 +56,23 @@ export class UserController {
     newUserRequest: NewUserRequest
   ): Promise<UserModel> {
     // ensure a valid email value and password value
-    this.userRepository.validateCredentials(pick(newUserRequest, ['email', 'password']))
+    this.userRepository.validateCredentials(
+      pick(newUserRequest, ['email', 'password'])
+    )
 
     // encrypt the password
     const password = await Hash.hash(newUserRequest.password)
 
     try {
       // create the new user
-      const savedUser = await this.userRepository.create(omit(newUserRequest, 'password'))
+      const savedUser = await this.userRepository.create(
+        omit(newUserRequest, 'password')
+      )
 
       // set the password
-      await this.userRepository.userCredentials(savedUser._id).create({ password })
+      await this.userRepository
+        .userCredentials(savedUser.id)
+        .create({ password })
 
       return savedUser
     } catch (error) {
@@ -88,7 +101,9 @@ export class UserController {
     tags: [openAPITag]
   })
   @Auth.authenticate(using.jwt)
-  public async findById(@param.path.string('userId') userId: string): Promise<UserModel> {
+  public async findById(
+    @param.path.string('userId') userId: string
+  ): Promise<UserModel> {
     return this.userRepository.findById(userId)
   }
 
@@ -168,7 +183,10 @@ export class UserController {
 
     const userProfile = this.userRepository.convertToUserProfile(user)
 
-    const token = await Jwt.generate(userProfile, { secret: jwtSecret, expiresIn: jwtDuration })
+    const token = await Jwt.generate(userProfile, {
+      secret: jwtSecret,
+      expiresIn: jwtDuration
+    })
 
     return { token }
   }

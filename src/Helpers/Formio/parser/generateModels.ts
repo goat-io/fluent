@@ -26,7 +26,7 @@ const findDataGrids = (components: FormioComponent[]) => {
 
     const dataObjects = getFormDataObject({ components: dataGrid.components })
 
-    Object.keys(dataObjects).forEach((dataObject) => {
+    Object.keys(dataObjects).forEach(dataObject => {
       if (dataObjects[dataObject].isObject) {
         dataObjects[dataObject].path = `${dataGridPath}_${dataObject}`
       }
@@ -74,7 +74,9 @@ const findObjects = (components: FormioComponent[]) => {
   return models
 }
 
-export const generateGoatModels = async (forms: FormioForm[]): Promise<GoatModel[]> => {
+export const generateGoatModels = async (
+  forms: FormioForm[]
+): Promise<GoatModel[]> => {
   const relations = getRelations(forms)
 
   const Models: GoatModel[] = []
@@ -89,7 +91,7 @@ export const generateGoatModels = async (forms: FormioForm[]): Promise<GoatModel
     Model.name = form.name
     const data = getFormDataObject(form)
 
-    Object.keys(data).forEach((attribute) => {
+    Object.keys(data).forEach(attribute => {
       Model.properties[attribute] = data[attribute]
     })
 
@@ -97,10 +99,10 @@ export const generateGoatModels = async (forms: FormioForm[]): Promise<GoatModel
 
     Model.mixins.Related.models = relations[form.path]
     // eslint-disable-next-line no-underscore-dangle
-    Model.mixins.FormSelection._id = form._id
+    Model.mixins.FormSelection.id = form.id
 
     Model.path = form.path
-    Model._id = form._id
+    Model.id = form.id
     Model.folderPath = `${form.path}`.split('/').join('__')
 
     const hasNGram = findComponents(form.components, {
@@ -112,10 +114,10 @@ export const generateGoatModels = async (forms: FormioForm[]): Promise<GoatModel
       Model.mixins.Search.enabled = true
       Model.mixins.Search.fullText = findComponents(form.components, {
         'properties.search': 'text'
-      }).map((f) => f.key)
+      }).map(f => f.key)
       Model.mixins.Search.nGram = findComponents(form.components, {
         'properties.search': 'fuzzy'
-      }).map((f) => f.key)
+      }).map(f => f.key)
     }
 
     Model.__datagrids = findDataGrids(form.components)

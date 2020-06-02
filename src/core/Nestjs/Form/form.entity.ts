@@ -10,59 +10,51 @@ import {
 } from 'typeorm'
 import { ApiProperty } from '@nestjs/swagger'
 import { Field, ID, ObjectType } from '@nestjs/graphql'
+import { Access } from '../../dtos/access.dto'
 import * as faker from 'faker'
-
-@ObjectType()
-export class Access {
-  @Column({ nullable: true })
-  @ApiProperty()
-  type?: string
-
-  @Column({ nullable: true, type: 'simple-array' })
-  @ApiProperty()
-  roles?: string[]
-}
+import { Collection } from 'fireorm'
 
 // tslint:disable-next-line: max-classes-per-file
 @Entity()
+@Collection()
 @ObjectType()
 export class Form {
   @PrimaryGeneratedColumn('uuid')
   @ApiProperty()
   @Field(() => ID)
-  _id: string
+  id: string
 
   @Column()
   @Index({ unique: true })
   @ApiProperty()
   path: string
 
-  @Column()
-  @ApiProperty()
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true, required: false })
   title?: string
 
-  @Column()
-  @ApiProperty()
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true, required: false })
   name?: string
 
-  @Column()
-  @ApiProperty()
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true, required: false })
   type?: string
 
-  @Column()
-  @ApiProperty()
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true, required: false })
   description?: string
 
-  @Column('simple-array')
-  @ApiProperty({ type: [String] })
+  @Column({ type: 'simple-array', nullable: true })
+  @ApiProperty({ type: [String], nullable: true, required: false })
   tags?: string[]
 
-  @Column()
-  @ApiProperty()
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true, required: false })
   display?: string
 
-  @Column()
-  @ApiProperty()
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true, required: false })
   action?: string
 
   @Column()
@@ -79,7 +71,7 @@ export class Form {
 
   @Column()
   @ApiProperty()
-  machineName: string
+  machineName?: string
 
   @CreateDateColumn()
   @ApiProperty()
@@ -97,22 +89,22 @@ export class Form {
   @ApiProperty()
   version: number
 
-  @Column()
-  @ApiProperty()
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true, required: false })
   components?: string
 
   @Column(type => Access)
-  @ApiProperty({ isArray: true, type: Access, nullable: true })
+  @ApiProperty({ isArray: true, type: Access, nullable: true, required: false })
   access?: Access[]
 
   @Column(type => Access)
-  @ApiProperty({ isArray: true, type: Access, nullable: true })
+  @ApiProperty({ isArray: true, type: Access, nullable: true, required: false })
   submissionAccess?: Access[]
 }
 
 export const fakeForm = (): Form => {
   return {
-    _id: faker.random.uuid(),
+    id: faker.random.uuid(),
     path: faker.name.firstName(),
     title: faker.name.firstName(),
     name: faker.name.firstName(),

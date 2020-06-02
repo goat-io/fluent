@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
-import { Repository } from 'typeorm'
 import { Form } from './form.entity'
-import { FormDtoIn, FormDtoOut, formOutKeys } from './form.dto'
+import { FormDtoIn, FormDtoOut } from './form.dto'
 import { TypeOrmConnector } from '../../../Providers/TypeOrm/TypeOrmConnector'
+import { Repository } from 'typeorm'
 
 @Injectable()
 export class FormService {
@@ -13,7 +13,7 @@ export class FormService {
   ) {
     this.model = new TypeOrmConnector<Form, FormDtoIn, FormDtoOut>({
       repository: this.forms,
-      outputKeys: formOutKeys
+      isRelationalDB: true
     })
   }
 }

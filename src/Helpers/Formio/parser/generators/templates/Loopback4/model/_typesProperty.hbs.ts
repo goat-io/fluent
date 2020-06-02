@@ -28,7 +28,7 @@ export const template = `{{#each this}}
   type: "string",
   default: () => () => Id.objectID()
 })
-_id: string;
+id: string;
 {{/ifIsId}}
 
 {{/each}}`

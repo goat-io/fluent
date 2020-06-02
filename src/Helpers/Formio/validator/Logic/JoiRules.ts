@@ -352,10 +352,10 @@ export const getRules = (type: any) => [
         /* eslint-disable  */
         !_.isString(value) &&
         value.hasOwnProperty('address_components') &&
-        value.hasOwnProperty('place_id')
+        value.hasOwnProperty('placeid')
       ) {
-        query[`${path}.place_id`] = {
-          $regex: new RegExp(`^${util.escapeRegExp(value.place_id)}$`),
+        query[`${path}.placeid`] = {
+          $regex: new RegExp(`^${util.escapeRegExp(value.placeid)}$`),
           $options: 'i'
         }
       }
@@ -387,9 +387,9 @@ export const getRules = (type: any) => [
             }
             if (
               result &&
-              result._id &&
-              submission._id &&
-              result._id.toString() === submission._id
+              result.id &&
+              submission.id &&
+              result.id.toString() === submission.id
             ) {
               // This matches the current submission which is allowed.
               return resolve(null)

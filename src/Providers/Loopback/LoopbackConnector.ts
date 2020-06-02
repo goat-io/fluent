@@ -55,7 +55,7 @@ export class LoopbackConnector<
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
 
-    const data = this.jsApplySelect(result)
+    const data = this.jsApplySelect(result.data)
     this.reset()
 
     return data
@@ -178,19 +178,19 @@ export class LoopbackConnector<
    * @param data
    */
   public async updateById(
-    _id: string,
+    id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    if (!_id) {
+    if (!id) {
       throw new Error(
-        'Formio connector error. Cannot update a Model without _id key'
+        'Formio connector error. Cannot update a Model without id key'
       )
     }
-    if (_id.includes('_local')) {
+    if (id.includes('_local')) {
       throw new Error('Formio connector error. Cannot update a local document')
     }
 
-    const [error, result] = await to(this.httpPUT(_id, data))
+    const [error, result] = await to(this.httpPUT(id, data))
 
     if (error) {
       console.log(error)
@@ -213,7 +213,7 @@ export class LoopbackConnector<
     const promises = []
 
     const [error, data] = await to(
-      this.select(this._keys._id).pluck(this._keys._id)
+      this.select(this._keys.id).pluck(this._keys.id)
     )
 
     if (error) {
@@ -221,8 +221,8 @@ export class LoopbackConnector<
       throw new Error('Cannot get remote Model')
     }
 
-    data.forEach(_id => {
-      promises.push(this.httpDelete(_id))
+    data.forEach(id => {
+      promises.push(this.httpDelete(id))
     })
 
     return axios.all(promises)
@@ -230,29 +230,33 @@ export class LoopbackConnector<
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async deleteById(_id: string): Promise<string> {
-    const [error, removed] = await to(this.httpDelete(_id))
+  public async deleteById(id: string): Promise<string> {
+    const [error, removed] = await to(this.httpDelete(id))
 
     if (error) {
       console.log(error)
-      throw new Error(`FormioConnector: Could not delete ${_id}`)
+      throw new Error(`FormioConnector: Could not delete ${id}`)
     }
     this.reset()
-    return removed.data._id
+    return removed.data.id
   }
   /**
    *
-   * @param _id
+   * @param id
    */
-  public async findById(_id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, data] = await to(this.first())
+  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    const url = this.baseUrl()
+    const headers = this.getHeaders()
+
+    const [error, httpCall] = await to(axios.get(`${url}/${id}`, { headers }))
 
     if (error) {
       console.log(error)
       throw new Error('FindById() could not get remote data')
     }
+    const data = httpCall.data
     this.reset()
     return data
   }
@@ -342,25 +346,17 @@ export class LoopbackConnector<
       filter.where = { ...where, ...this.rawQuery.where }
     }
 
-    filter.where = {
-      ...filter.where,
-      ...{ deleted: null }
-    }
-
     // Loopback replaces all / by camel case
 
-    if (this.baseEndPoint.includes('/')) {
-      this.baseEndPoint = this.baseEndPoint.replace('/', '')
-    }
+    // if (this.baseEndPoint.includes('/')) {
+    //   this.baseEndPoint = this.baseEndPoint.replace('/', '')
+    //  }
 
     // Looback replaces all singular words by plural
-    this.baseEndPoint = pluralize(this.baseEndPoint)
-    const remotePath = Objects.get(() => this.baseEndPoint, undefined)
+    // this.baseEndPoint = pluralize(this.baseEndPoint)
 
     // Always limit the amount of request
-    url = `${url}/${remotePath}?${page}filter=${encodeURI(
-      JSON.stringify(filter)
-    )}`
+    url = `${url}?${page}filter=${encodeURI(JSON.stringify(filter))}`
 
     const isOnline = true || (await Connection.isOnline())
 
@@ -370,6 +366,10 @@ export class LoopbackConnector<
 
     return axios.get(url, { headers })
   }
+  /**
+   *
+   * @param data
+   */
   public async httpPOST(data) {
     const url = this.getUrl()
     delete data.draft
@@ -385,9 +385,9 @@ export class LoopbackConnector<
     }
     return axios.post(url, data, { headers })
   }
-  public async httpPUT(_id: string, data: InputDTO) {
+  public async httpPUT(id: string, data: InputDTO) {
     const isOnline = true || (await Connection.isOnline())
-    const url = `${this.getUrl()}/${_id}`
+    const url = `${this.getUrl()}/${id}`
     const headers = this.getHeaders()
 
     if (!isOnline) {
@@ -396,9 +396,9 @@ export class LoopbackConnector<
 
     return axios.put(url, data, { headers })
   }
-  public httpDelete(_id) {
+  public httpDelete(id) {
     const headers = this.getHeaders()
-    const url = `${this.getUrl()}/${_id}`
+    const url = `${this.getUrl()}/${id}`
     return axios.delete(url, { headers })
   }
   public getTokenType(token) {
@@ -489,7 +489,7 @@ export class LoopbackConnector<
 
     select = select.map(s => {
       s = s.split(' as ')[0]
-      s = s.includes('_id') ? '_id' : s
+      s = s.includes('id') ? 'id' : s
       return s
     })
 
@@ -501,7 +501,7 @@ export class LoopbackConnector<
       return filter
     }
 
-    const fields = {}
+    const fields = []
 
     select.forEach(e => {
       fields[e] = true

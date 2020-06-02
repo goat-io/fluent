@@ -1,6 +1,6 @@
 [
   {
-    "_id": "5cf99e0490d44a00189ab93e",
+    "id": "5cf99e0490d44a00189ab93e",
     "type": "resource",
     "tags": [],
     "owner": "5cfe80f78e8fca001818c5a6",
@@ -128,7 +128,7 @@
     "display": "form"
   },
   {
-    "_id": "5cf99e0490d44a00189ab93f",
+    "id": "5cf99e0490d44a00189ab93f",
     "type": "resource",
     "tags": [],
     "owner": null,
@@ -204,7 +204,7 @@
     "modified": "2019-06-06T23:13:08.894Z"
   },
   {
-    "_id": "5cf99e0490d44a00189ab940",
+    "id": "5cf99e0490d44a00189ab940",
     "type": "resource",
     "tags": [],
     "owner": "5cf99f3790d44a00189ab952",
@@ -1432,7 +1432,7 @@
     "modified": "2019-06-10T16:28:40.291Z"
   },
   {
-    "_id": "5cf99e0590d44a00189ab941",
+    "id": "5cf99e0590d44a00189ab941",
     "type": "resource",
     "tags": [],
     "owner": "5cf9fad590d44a00189abaa0",
@@ -1995,7 +1995,7 @@
     "modified": "2019-06-07T05:49:10.015Z"
   },
   {
-    "_id": "5cf99e0590d44a00189ab942",
+    "id": "5cf99e0590d44a00189ab942",
     "type": "form",
     "tags": [],
     "owner": null,
@@ -2057,7 +2057,7 @@
     "modified": "2019-06-06T23:13:09.570Z"
   },
   {
-    "_id": "5cf99e0590d44a00189ab943",
+    "id": "5cf99e0590d44a00189ab943",
     "type": "form",
     "tags": [],
     "owner": null,
@@ -2128,7 +2128,7 @@
     "modified": "2019-06-06T23:13:09.610Z"
   },
   {
-    "_id": "5cf99e0590d44a00189ab944",
+    "id": "5cf99e0590d44a00189ab944",
     "type": "form",
     "tags": [],
     "owner": null,
@@ -2190,7 +2190,7 @@
     "modified": "2019-06-06T23:13:09.634Z"
   },
   {
-    "_id": "5cf99eb190d44a00189ab94f",
+    "id": "5cf99eb190d44a00189ab94f",
     "type": "resource",
     "tags": ["common"],
     "owner": "5cf99e0590d44a00189ab94d",
@@ -2349,7 +2349,7 @@
     "machineName": "countries"
   },
   {
-    "_id": "5cf9bbef90d44a00189ab958",
+    "id": "5cf9bbef90d44a00189ab958",
     "type": "resource",
     "tags": ["common"],
     "owner": "5cf99e0590d44a00189ab94d",
@@ -2369,7 +2369,7 @@
           "custom": ""
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "",
         "filter": "",
@@ -2387,7 +2387,7 @@
         "tags": [],
         "conditional": { "show": "", "when": null, "eq": "" },
         "properties": {},
-        "searchField": "_id__regex",
+        "searchField": "id__regex",
         "reference": true
       },
       {
@@ -2396,7 +2396,7 @@
         "tableView": false,
         "inputType": "text",
         "inputMask": "",
-        "label": "t_id",
+        "label": "tid",
         "key": "tId",
         "placeholder": "",
         "prefix": "",
@@ -2577,7 +2577,7 @@
     "machineName": "providers"
   },
   {
-    "_id": "5cf9bc6790d44a00189ab95a",
+    "id": "5cf9bc6790d44a00189ab95a",
     "type": "resource",
     "tags": ["common"],
     "owner": "5cf99e0590d44a00189ab94d",
@@ -2597,7 +2597,7 @@
           "custom": ""
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "",
         "filter": "filter={\"fields\":{\"id\":true,\"data\":true,\"data.name\":true,\"data.code\":true}}",
@@ -2701,7 +2701,7 @@
           "custom": ""
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "country",
         "filter": "filter={\"fields\":{\"id\":true,\"data\":true,\"data.name\":true,\"data.code\":true, \"data.country\":true}, \"related\": [\"countries\"]}",
@@ -2949,7 +2949,7 @@
     "machineName": "products"
   },
   {
-    "_id": "5cf9c3bd90d44a00189ab960",
+    "id": "5cf9c3bd90d44a00189ab960",
     "type": "resource",
     "tags": ["common"],
     "owner": "5cf99e0590d44a00189ab94d",
@@ -3009,7 +3009,7 @@
           "headers": [{ "value": "", "key": "" }]
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "",
         "filter": "filter={\"fields\":{\"id\":true,\"data\":true,\"data.name\":true,\"data.code\":true}}",
@@ -3067,7 +3067,7 @@
           "custom": ""
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "_ngram",
         "filter": "filter={\"fields\":{\"id\":true,\"data\":true,\"data.name\":true,\"data.code\":true, \"data.country\":true}, \"related\": [\"countries\"]}",
@@ -3124,7 +3124,7 @@
           "custom": ""
         },
         "dataSrc": "resource",
-        "valueProperty": "_id",
+        "valueProperty": "id",
         "defaultValue": "",
         "refreshOn": "_ngram",
         "filter": "filter={\"fields\":{\"id\":true,\"data\":true,\"data.description\":true,\"data.code\":true, \"data.country\":true, \"data.provider\":true}, \"related\": [\"countries\",\"providers\"]}",
@@ -3336,7 +3336,7 @@
             "project": "",
             "defaultValue": "",
             "template": "<span>{{ item.data.description }}</span>",
-            "selectFields": "_id, data.description, data.file.url",
+            "selectFields": "id, data.description, data.file.url",
             "searchFields": ["data.description__regex"],
             "multiple": false,
             "protected": false,
@@ -3422,7 +3422,7 @@
     "machineName": "specifications"
   },
   {
-    "_id": "5cf9c57f90d44a00189ab962",
+    "id": "5cf9c57f90d44a00189ab962",
     "type": "resource",
     "tags": ["common"],
     "owner": "5cf99e0590d44a00189ab94d",
@@ -3645,7 +3645,7 @@
     "machineName": "specficationSheets"
   },
   {
-    "_id": "5cfe88da8e8fca001818c5aa",
+    "id": "5cfe88da8e8fca001818c5aa",
     "type": "form",
     "tags": ["common"],
     "owner": "5cf99e0590d44a00189ab94d",
@@ -3748,7 +3748,7 @@
     "machineName": "multipleUpload"
   },
   {
-    "_id": "5d264d4ed7747e0018bf011f",
+    "id": "5d264d4ed7747e0018bf011f",
     "type": "resource",
     "tags": ["common"],
     "owner": "5cf99e0590d44a00189ab94d",

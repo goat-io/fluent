@@ -6,6 +6,7 @@ export interface TemplateFileType {
 }
 
 export interface ParsedModel {
+  baseDto: TemplateFileType
   baseModels: TemplateFileType[]
   extendedModels: TemplateFileType
 }
@@ -26,4 +27,5 @@ export interface GoatParsedModel {
   repository: ParsedRepository
   controller: ParsedController
   modules: TemplateFileType
+  module: TemplateFileType
 }

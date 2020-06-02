@@ -437,34 +437,34 @@ const Utils = {
   /**
    * Utility function to ensure the given id is always a BSON object.
    *
-   * @param _id {String|Object}
+   * @param id {String|Object}
    *   A mongo id as a string or object.
    *
    * @returns {Object}
    *   The mongo BSON id.
    */
-  idToBson(_id: any) {
+  idToBson(id: any) {
     try {
-      _id = _.isObject(_id) ? _id : mongoose.Types.ObjectId(_id)
+      id = _.isObject(id) ? id : mongoose.Types.ObjectId(id)
     } catch (e) {
-      debug.idToBson(`Unknown _id given: ${_id}, typeof: ${typeof _id}`)
-      _id = false
+      debug.idToBson(`Unknown id given: ${id}, typeof: ${typeof id}`)
+      id = false
     }
 
-    return _id
+    return id
   },
 
   /**
    * Utility function to ensure the given id is always a string object.
    *
-   * @param _id {String|Object}
+   * @param id {String|Object}
    *   A mongo id as a string or object.
    *
    * @returns {String}
    *   The mongo string id.
    */
-  idToString(_id: any) {
-    return _.isObject(_id) ? _id.toString() : _id
+  idToString(id: any) {
+    return _.isObject(id) ? id.toString() : id
   },
 
   /**
@@ -489,7 +489,7 @@ const Utils = {
       } else if (_.isObject(value)) {
         changed = Utils.ensureIds(value) || changed
       } else if (
-        (key === '_id' || key === 'form' || key === 'owner') &&
+        (key === 'id' || key === 'form' || key === 'owner') &&
         typeof value === 'string' &&
         ObjectID.isValid(value)
       ) {
@@ -517,7 +517,10 @@ const Utils = {
       (component: any, path: any) => {
         path = `data.${path}`
         if (component.protected) {
-          debug.removeProtectedFields('Removing protected field:', component.key)
+          debug.removeProtectedFields(
+            'Removing protected field:',
+            component.key
+          )
           modifyFields.push(deleteProp(path))
         } else if (component.type === 'signature' && action === 'index') {
           modifyFields.push((submission: any) => {
@@ -530,7 +533,9 @@ const Utils = {
     )
 
     // Iterate through each submission once.
-    submissions.forEach((submission: any) => modifyFields.forEach((modifyField: any) => modifyField(submission)))
+    submissions.forEach((submission: any) =>
+      modifyFields.forEach((modifyField: any) => modifyField(submission))
+    )
   },
 
   base64: {
@@ -574,8 +579,8 @@ const Utils = {
       machineName: { $regex: `^${document.machineName}[0-9]*$` },
       deleted: { $eq: null }
     }
-    if (document._id) {
-      query._id = { $ne: document._id }
+    if (document.id) {
+      query.id = { $ne: document.id }
     }
 
     model

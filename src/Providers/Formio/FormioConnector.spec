@@ -55,8 +55,8 @@ it('Should insert Data', async () => {
     age: 15
   })
 
-  expect(typeof inserted._id).toBe('string')
-  expect(typeof inserted2._id).toBe('string')
+  expect(typeof inserted.id).toBe('string')
+  expect(typeof inserted2.id).toBe('string')
   expect(inserted2.name).toBe('Andres')
 })
 
@@ -250,7 +250,7 @@ it('clear() should remove all records from the Model', async () => {
     throw new Error('Cannot get remote Model')
   }
 
-  const [error1, data1] = await to(testModel.remote().select(testModel._keys._id).get())
+  const [error1, data1] = await to(testModel.remote().select(testModel._keys.id).get())
 
   if (error1) {
     console.log(error)

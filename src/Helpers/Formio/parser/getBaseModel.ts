@@ -2,7 +2,7 @@ export interface IBaseModel {
   name: string
   path: string
   folderPath: string
-  _id?: string
+  id?: string
   __datagrids: { [key: string]: any }
   __objects: { [key: string]: any }
   [key: string]: any
@@ -13,7 +13,7 @@ export interface IBaseModel {
     }
   }
   properties?: {
-    _id?: { type: string; id: boolean; generated: boolean; required: boolean }
+    id?: { type: string; id: boolean; generated: boolean; required: boolean }
     owner?: {
       type: string
       required: boolean
@@ -31,23 +31,11 @@ export interface IBaseModel {
       type: string
       required: boolean
     }
-    created?: {
-      type: string
-      required: boolean
-    }
-    deleted?: {
-      type: string
-      required: boolean
-    }
-    modified?: {
-      type: string
-      required: boolean
-    }
     [key: string]: any
   }
   mixins: {
     FormSelection?: {
-      _id: string
+      id: string
     }
     Related?: {
       models: []
@@ -61,14 +49,14 @@ export interface IBaseModel {
 }
 
 export const baseModel: IBaseModel = {
-  _id: '',
+  id: '',
   folderPath: '',
   // tslint:disable-next-line: object-literal-sort-keys
   __datagrids: {},
   __objects: {},
   mixins: {
     FormSelection: {
-      _id: ''
+      id: ''
     },
     Related: {
       models: []
@@ -88,7 +76,7 @@ export const baseModel: IBaseModel = {
   },
   path: '',
   properties: {
-    _id: { type: 'string', id: true, generated: true, required: true },
+    id: { type: 'string', id: true, generated: true, required: true },
     owner: {
       required: false,
       type: 'string'
@@ -105,18 +93,6 @@ export const baseModel: IBaseModel = {
     form: {
       required: false,
       type: 'string'
-    },
-    created: {
-      type: 'string',
-      required: false
-    },
-    deleted: {
-      type: 'string',
-      required: false
-    },
-    modified: {
-      type: 'string',
-      required: false
     }
   }
   /*

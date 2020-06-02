@@ -12,7 +12,7 @@ export const Formio = (() => {
    * @param forms
    */
   const getFromJson = (forms): FormioForm[] => {
-    const Forms = forms.models.Form
+    const Forms = forms && forms.models && forms.models.Form
     const parsedForms = []
 
     Object.keys(Forms).forEach(formId => {
@@ -26,7 +26,7 @@ export const Formio = (() => {
     const tableCols = tableViewComponents(form)
     let cols = tableCols.map(o => `${o.path}`)
 
-    cols = [...cols, '_id', 'created', 'modified']
+    cols = [...cols, 'id', 'created', 'modified']
 
     return cols
   }
