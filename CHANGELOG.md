@@ -1,8 +1,24 @@
+# 0.3.15
+[2020-06-02]
+
+### Features
+
+* feat: [JIR-1](https://goatlab.atlassian.net/browse//JIR-1) -  Full TypeORM SQL and Nosql support ([`b5e4da7`](https://github.com/goat-io/fluent/commit/b5e4da711ca86dfacd7e4e39f447190382189fa3))
+
+### Fixes
+
+*  [JIR-1](https://goatlab.atlassian.net/browse//JIR-1) -  Agenda scheduler id ([`59481d1`](https://github.com/goat-io/fluent/commit/59481d12052f8b27396270ebde94fe39624453b2))
+
+### Other Changes
+
+* feat: [JIR-1](https://goatlab.atlassian.net/browse//JIR-1) -  Full TypeORM SQL and Nosql support ([`b5e4da7`](https://github.com/goat-io/fluent/commit/b5e4da711ca86dfacd7e4e39f447190382189fa3))
+
 # 0.3.14
 [2020-05-27]
 
 ### Other Changes
 
+* Release 0.3.14 ([`59fca04`](https://github.com/goat-io/fluent/commit/59fca046f1b074ce1d18498414db684530baa595))
 * ci: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Move commitlint to package.json ([`63d8435`](https://github.com/goat-io/fluent/commit/63d84351c10ec3e45b4dd35c7b3051da62548976))
 
 # 0.3.13
