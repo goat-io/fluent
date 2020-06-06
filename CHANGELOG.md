@@ -1,3 +1,20 @@
+# 0.3.16
+[2020-06-06]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add complex and RAW query support for Firebase ([`3eef76f`](https://github.com/goat-io/fluent/commit/3eef76f7778a63ea46218988d595b2e25460837b))
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Remove Dynamodb ([`cdcc805`](https://github.com/goat-io/fluent/commit/cdcc80549884fd748b8925ec997ab17c0a8416ba))
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add GOAT db to gitignore ([`0ac1470`](https://github.com/goat-io/fluent/commit/0ac1470e2f96968ac01b8ce6a00f9a8fac0be870))
+
+### Other Changes
+
+* Fix dependencies ([`1ead7bc`](https://github.com/goat-io/fluent/commit/1ead7bca66c40615f2a678356c415386a6c36621))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add complex and RAW query support for Firebase ([`3eef76f`](https://github.com/goat-io/fluent/commit/3eef76f7778a63ea46218988d595b2e25460837b))
+
 # 0.3.15
 [2020-06-02]
 
@@ -12,6 +29,7 @@
 ### Other Changes
 
 * feat: [JIR-1](https://goatlab.atlassian.net/browse//JIR-1) -  Full TypeORM SQL and Nosql support ([`b5e4da7`](https://github.com/goat-io/fluent/commit/b5e4da711ca86dfacd7e4e39f447190382189fa3))
+* Release 0.3.15 ([`17371bd`](https://github.com/goat-io/fluent/commit/17371bdd0df12cfc4becb74c7eafc772303263ec))
 
 # 0.3.14
 [2020-05-27]
