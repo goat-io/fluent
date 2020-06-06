@@ -61,6 +61,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected ownerId = undefined
   protected paginator = undefined
   protected rawQuery = undefined
+  protected getFirst = false
 
   protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
     const date = Dates.currentIsoString()
@@ -87,6 +88,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.paginator = undefined
     this.rawQuery = undefined
     this.outputKeys = []
+    this.getFirst = false
   }
 
   /**
@@ -118,7 +120,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @return {Object} First result
    */
   public async first(): Promise<GoatOutput<InputDTO, OutputDTO>> {
+    this.limit(1)
     const data = await this.get()
+
     if (!data[0]) {
       throw new Error('First could not find elements')
     }
@@ -431,6 +435,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.ownerId = undefined
     this.paginator = undefined
     this.rawQuery = undefined
+    this.getFirst = false
   }
   /**
    *

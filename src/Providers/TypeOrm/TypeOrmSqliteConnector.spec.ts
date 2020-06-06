@@ -72,7 +72,6 @@ it('Where - Should Filter multiple Where clauses', async () => {
     .andWhere(GoatModel._keys.age, '>', 3)
     .get()
 
-  console.log(goats)
   expect(typeof goats).toBe('object')
   expect(goats[0].age > 3).toBe(true)
 })

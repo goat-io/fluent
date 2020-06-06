@@ -26,11 +26,11 @@ import {
   FindManyOptions,
   createConnection as connection,
   ObjectID,
-  MongoRepository,
-  ObjectLiteral
+  MongoRepository
 } from 'typeorm'
 import { Errors } from '../../Helpers/Errors'
 import { Objects } from '../../Helpers/Objects'
+import { getOutputKeys } from '../outputKeys'
 /*
     
       import {
@@ -46,20 +46,6 @@ import { Objects } from '../../Helpers/Objects'
 interface ITypeOrmConnector<T> {
   repository: Repository<T> | MongoRepository<T>
   isRelationalDB?: boolean
-}
-
-export const getOutputKeys = (keys: ObjectLiteral) => {
-  const outputKeys = Object.keys(keys).filter(e => {
-    return ![
-      'deleted',
-      'access',
-      'submissionAccess',
-      'version',
-      '_ngram',
-      'form'
-    ].includes(e)
-  })
-  return outputKeys
 }
 
 export const createConnection = connection
@@ -356,6 +342,8 @@ export class TypeOrmConnector<
         'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
       )
     }
+
+    return
 
     const [error, data] = await to(this.repository.clear())
 

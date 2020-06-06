@@ -6,7 +6,10 @@ import { GoatEntityOut, GoatEntityIn } from '../test/goat.dto'
 import { GoatEntity } from '../test/goat.entity'
 import { flock } from '../test/flock'
 
+import { advancedTestSuite, TypeORMDataModel } from '../test/advancedTestSuite'
+
 let GoatModel: TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>
+let AdvanceModel: TypeOrmConnector<TypeORMDataModel>
 let storedId: any
 
 beforeAll(async done => {
@@ -17,7 +20,7 @@ beforeAll(async done => {
     url: a.url,
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    entities: [GoatEntity],
+    entities: [GoatEntity, TypeORMDataModel],
     synchronize: true,
     logging: false
   })
@@ -27,6 +30,13 @@ beforeAll(async done => {
   GoatModel = new TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>({
     repository
   })
+
+  const advancedRepo = connection.getRepository(TypeORMDataModel)
+
+  AdvanceModel = new TypeOrmConnector<TypeORMDataModel>({
+    repository: advancedRepo
+  })
+
   done()
 })
 

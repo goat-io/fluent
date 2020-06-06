@@ -11,123 +11,79 @@ import {
 
 import { Event } from '../../Helpers/Event'
 import { Id } from '../../Helpers/Id'
-import { getOutputKeys } from '../outputKeys'
-import { createConnection as connection, ObjectLiteral } from 'typeorm'
+
+import {
+  Repository,
+  Not,
+  LessThan,
+  LessThanOrEqual,
+  MoreThan,
+  MoreThanOrEqual,
+  Equal,
+  In,
+  Like,
+  IsNull,
+  FindManyOptions,
+  createConnection as connection,
+  ObjectID,
+  MongoRepository,
+  ObjectLiteral
+} from 'typeorm'
 import { Errors } from '../../Helpers/Errors'
 import { Objects } from '../../Helpers/Objects'
-import { BaseFirestoreRepository } from 'fireorm'
-import * as admin from 'firebase-admin'
-import { getRepository } from 'fireorm'
-import { OrderByDirection, FieldPath } from '@google-cloud/firestore'
+/*
+    
+      import {
+  paginate,
+  Pagination,
+  IPaginationOptions
+} from 'nestjs-typeorm-paginate'
+  async paginate(options: IPaginationOptions): Promise<Pagination<Form>> {
+        return paginate<Form>(this.forms, options)
+      }
+   */
 
-const db = admin.firestore()
-
-/**
- * Creates a repository from the given Entity
- * @param Entity
- */
-export const createFirebaseRepository = async Entity => {
-  const con = await createConnection({
-    type: 'sqlite',
-    database: 'goatModelGenerator',
-    entities: [Entity],
-    logging: false,
-    synchronize: true
+export const getOutputKeys = (keys: ObjectLiteral) => {
+  const outputKeys = Object.keys(keys).filter(e => {
+    return ![
+      'deleted',
+      'access',
+      'submissionAccess',
+      'version',
+      '_ngram',
+      'form'
+    ].includes(e)
   })
-
-  const typeOrmRepo = con.getRepository(Entity)
-  const repository = getRepository(Entity)
-  let name: string = ''
-  let path: string = ''
-
-  try {
-    const parsed = JSON.parse(JSON.stringify(repository))
-    name = parsed.colName
-    path = parsed.collectionPath
-  } catch (error) {
-    name = ''
-  }
-  return {
-    repository,
-    name,
-    path,
-    keys: typeOrmRepo.metadata.propertiesMap
-  }
-}
-/**
- * Create a sync version of the repository to
- * allow Jest to run it
- * @param Entity
- */
-export const MockCreateFirebaseRepository = Entity => {
-  const repository = getRepository(Entity)
-  let name: string = ''
-  let path: string = ''
-
-  try {
-    const parsed = JSON.parse(JSON.stringify(repository))
-    name = parsed.colName
-    path = parsed.collectionPath
-  } catch (error) {
-    name = ''
-  }
-  return {
-    repository,
-    name,
-    path,
-    keys: {} as ObjectLiteral
-  }
+  return outputKeys
 }
 
 export const createConnection = connection
 
-export interface IFirebaseConnector {
-  repository: BaseFirestoreRepository<any>
-  name: string
-  path: string
-  keys?: ObjectLiteral
-}
-
-export class FirebaseConnector<
+export class DynamoDBConnector<
   ModelDTO = IDataElement,
   InputDTO = ModelDTO,
   OutputDTO = InputDTO
 > extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
-  private repository: BaseFirestoreRepository<any>
-  private modelName: string
-  private modelPath: string
-  private collection: FirebaseFirestore.CollectionReference<ModelDTO>
+  private repository: BaseDynamoDBRepository<any>
 
-  constructor({ repository, name, path, keys }: IFirebaseConnector) {
+  constructor(repository: BaseDynamoDBRepository<any>) {
     super()
-    this.modelName = name
-    this.modelPath = path
     this.repository = repository
-    this.collection = db.collection(
-      name
-    ) as FirebaseFirestore.CollectionReference<ModelDTO>
-    this.outputKeys = getOutputKeys(keys) || []
+    this.outputKeys = false || []
   }
   /**
    *
    */
   public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const query = this.getGeneratedQuery()
+    // const query = this.getGeneratedQuery()
 
-    const [getError, snapshot] = await to(query.get())
+    const [error, result]: any = await to(this.repository.find())
 
-    if (getError) {
-      console.log(getError)
-      throw new Error(Errors(getError, 'Error while getting submissions'))
+    if (error) {
+      console.log(error)
+      throw new Error(Errors(error, 'Error while getting submissions'))
     }
-
-    const result = []
-
-    snapshot.forEach(doc => {
-      result.push(doc.data())
-    })
-
     const data = this.jsApplySelect(result)
     this.reset()
     return data
@@ -196,7 +152,7 @@ export class FirebaseConnector<
     this.orWhereArray =
       (parsedFilter && parsedFilter.where && parsedFilter.where.or) || []
     this.limit(
-      (parsedFilter && (parsedFilter.limit || parsedFilter.take)) || 20
+      (parsedFilter && (parsedFilter.limit || parsedFilter.take)) || 100
     )
     this.offset(
       (parsedFilter && (parsedFilter.offset || parsedFilter.skip)) || 0
@@ -232,14 +188,14 @@ export class FirebaseConnector<
   }
   /**
    *
-   * Returns the Firebase collection, you can use it
+   * Returns the TypeOrm Repository, you can use it
    * form more complex queries and to get
    * the TypeOrm query builder
    *
    * @param query
    */
-  public raw() {
-    return this.collection
+  public raw(): BaseDynamoDBRepository<any> {
+    return this.repository
   }
   /**
    *
@@ -252,7 +208,7 @@ export class FirebaseConnector<
     // const created = new Date()
     // const updated = new Date()
     // const version = 1
-    const [error, datum] = await to(this.repository.create({ id, ...data }))
+    const [error, datum] = await to(this.repository.create({ id, ...{ data } }))
 
     if (error) {
       console.log('error', error)
@@ -273,45 +229,10 @@ export class FirebaseConnector<
   public async insertMany(
     data: InputDTO[]
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const batch = []
-
-    data.forEach(d => {
-      const id = Id.objectID()
-      // const created = new Date()
-      // const updated = new Date()
-      // const version = 1
-      batch.push(this.repository.create({ id, ...d }))
-    })
-
-    const [error, inserted] = await to(Promise.all(batch))
-
-    if (error) {
-      return Promise.reject(Errors(error, 'Could not insert all elements'))
-    }
-
-    const result = this.jsApplySelect(inserted) as GoatOutput<
-      InputDTO,
-      OutputDTO
-    >[]
-    this.reset()
-
-    return result
-  }
-  /**
-   *
-   * @param data
-   */
-  public async batchInsert(
-    data: InputDTO[]
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     const batch = this.repository.createBatch()
 
     data.forEach(d => {
-      const id = Id.objectID()
-      // const created = new Date()
-      // const updated = new Date()
-      // const version = 1
-      batch.create({ id, ...d })
+      batch.create(d)
     })
 
     const [error, inserted] = await to(batch.commit())
@@ -319,13 +240,12 @@ export class FirebaseConnector<
     if (error) {
       return Promise.reject(Errors(error, 'Could not insert all elements'))
     }
+    this.reset()
 
     const result = this.jsApplySelect(inserted) as GoatOutput<
       InputDTO,
       OutputDTO
     >[]
-    this.reset()
-
     return result
   }
   /**
@@ -344,12 +264,12 @@ export class FirebaseConnector<
       return Promise.reject(Errors(getError, 'Entity not found'))
     }
 
-    const updateData = {
-      ...dbResult,
-      ...data /* ...{ updated: new Date() }*/
-    }
-
-    const [error, updated] = await to(this.repository.update(updateData))
+    const [error, updated] = await to(
+      this.repository.update({
+        ...data,
+        ...{ updated: new Date() }
+      })
+    )
 
     const result = this.jsApplySelect([updated]) as GoatOutput<
       InputDTO,
@@ -390,9 +310,14 @@ export class FirebaseConnector<
     delete newValue.created
     delete newValue.updated
 
-    const entity = { ...newValue /*...{ updated: new Date() }*/ }
+    const entity = this.repository.create(newValue)
 
-    const [error] = await to(this.repository.update(entity))
+    const [error] = await to(
+      this.repository.update({
+        ...entity,
+        ...{ updated: new Date() }
+      })
+    )
 
     if (error) {
       return Promise.reject(Errors(error, 'Could not save'))
@@ -422,14 +347,16 @@ export class FirebaseConnector<
         'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
       )
     }
+    /*
+    const [error, data] = await to(this.repository.clear())
 
-    const query = this.collection.orderBy('__name__').limit(300)
-
+    if (error) {
+      console.log(error)
+      throw new Error('Cannot Clear the model')
+    }
+    */
     this.reset()
-
-    return new Promise((resolve, reject) => {
-      this.deleteQueryBatch(db, query, 300, resolve, reject)
-    })
+    return true
   }
   /**
    *
@@ -515,140 +442,268 @@ export class FirebaseConnector<
   /**
    *
    */
-  private getGeneratedQuery(): FirebaseFirestore.Query {
-    let queryBuilder = this.getFilters()
+  private getGeneratedQuery(): FindManyOptions {
+    let filter: any = {}
+    filter = this.getFilters(filter)
 
-    const select = this.getSelect()
-    if (select.length > 0) {
-      queryBuilder = queryBuilder.select(...this.getSelect())
+    filter = this.getLimit(filter)
+    filter = this.getSkip(filter)
+    filter = this.getSelect(filter)
+    filter = this.getOrderBy(filter)
+    filter = this.getPaginatorLimit(filter)
+    const page = this.getPage()
+    const populate = this.getPopulate()
+
+    if (this.rawQuery) {
+      filter.relations = populate || this.rawQuery.populate
+      filter.take = filter.take || this.rawQuery.limit
+      filter.skip = filter.skip || this.rawQuery.skip
+      filter.order = filter.order || this.rawQuery.order
+      filter.select = { ...filter.select, ...this.rawQuery.fields }
+      // const where = filter.where && filter.where.and ? filter.where.and[0] : {}
+      filter.where = { ...this.rawQuery.where }
     }
 
-    const limit: number = this.getLimit()
-    if (limit > 0) {
-      queryBuilder = queryBuilder.limit(limit)
-    }
-
-    const skip = this.getSkip()
-
-    if (skip) {
-      queryBuilder = queryBuilder.offset(skip)
-    }
-
-    const order = this.getOrderBy()
-    if (order[0] && order[0] !== '') {
-      const fieldPath = new FieldPath(order[0] || '')
-      const orderByOrder = order[1] || 'desc'
-      queryBuilder = queryBuilder.orderBy(fieldPath, orderByOrder)
-    }
-
-    // filter = this.getPaginatorLimit(filter)
-    // const page = this.getPage()
-    // const populate = this.getPopulate()
-
-    return queryBuilder
+    return filter
   }
   /**
    *
    * @param filters
    */
-  private getFilters(): FirebaseFirestore.Query {
+  private getFilters(filters: FindManyOptions) {
     const andFilters = this.whereArray
     const orFilters = this.orWhereArray
-
     if (!andFilters || andFilters.length === 0) {
-      return this.collection
+      return filters
     }
 
-    let filterQuery: FirebaseFirestore.Query
+    const Filters = { where: [{}] }
 
     // Apply and conditions
-    andFilters.forEach((condition, index) => {
+    andFilters.forEach(condition => {
       const element = condition[0]
       const operator = condition[1]
       const value = condition[2]
 
-      if (index === 0) {
-        filterQuery = this.collection as FirebaseFirestore.Query
-      }
-
       switch (operator) {
         case '=':
-          filterQuery = filterQuery.where(element, operator, value)
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Equal(value) }
+          }
           break
         case '!=':
-          throw new Error('The != Operator cannot be used in Firabase')
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Not(Equal(value)) }
+          }
           break
         case '>':
-          filterQuery = filterQuery.where(element, operator, value)
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: MoreThan(value) }
+          }
           break
         case '>=':
-          filterQuery = filterQuery.where(element, operator, value)
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: MoreThanOrEqual(value) }
+          }
           break
         case '<':
-          filterQuery = filterQuery.where(element, operator, value)
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: LessThan(value) }
+          }
           break
         case '<=':
-          filterQuery = filterQuery.where(element, operator, value)
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: LessThanOrEqual(value) }
+          }
           break
         case 'in':
-          filterQuery = filterQuery.where(element, 'array-contains', value)
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: In(value) }
+          }
           break
         case 'nin':
-          throw new Error('The nin Operator cannot be used in Firabase')
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Not(In(value)) }
+          }
           break
         case 'exists':
-          throw new Error('The nin Operator cannot be used in Firabase')
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Not(IsNull()) }
+          }
           break
         case '!exists':
-          throw new Error('The !exists Operator cannot be used in Firabase')
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: IsNull() }
+          }
           break
         case 'regexp':
-          throw new Error('The regexp Operator cannot be used in Firabase')
+          Filters.where[0] = {
+            ...Filters.where[0],
+            ...{ [element]: Like(value) }
+          }
           break
       }
     })
 
-    return filterQuery
+    // Apply or conditions
+    orFilters.forEach(condition => {
+      const element = condition[0]
+      const operator = condition[1]
+      const value = condition[2]
+
+      switch (operator) {
+        case '=':
+          Filters.where.push({ [element]: Equal(value) })
+          break
+        case '!=':
+          Filters.where.push({ [element]: Not(Equal(value)) })
+          break
+        case '>':
+          Filters.where.push({ [element]: MoreThan(value) })
+          break
+        case '>=':
+          Filters.where.push({ [element]: MoreThanOrEqual(value) })
+          break
+        case '<':
+          Filters.where.push({ [element]: LessThan(value) })
+          break
+        case '<=':
+          Filters.where.push({ [element]: LessThanOrEqual(value) })
+          break
+        case 'in':
+          Filters.where.push({ [element]: In(value) })
+          break
+        case 'nin':
+          Filters.where.push({ [element]: Not(In(value)) })
+          break
+        case 'exists':
+          Filters.where.push({ [element]: Not(IsNull()) })
+          break
+        case '!exists':
+          Filters.where.push({ [element]: IsNull() })
+          break
+        case 'regexp':
+          Filters.where.push({ [element]: Like(value) })
+          break
+      }
+    })
+
+    return Filters
+  }
+  /**
+   *
+   * @param filter
+   */
+  public getMongoFilters(filters) {
+    const andFilters = this.whereArray
+    const orFilters = this.orWhereArray
+
+    if (!andFilters || andFilters.length === 0) {
+      return filters
+    }
+
+    const Filters = { where: { $and: [] } }
+
+    andFilters.forEach(condition => {
+      const element = condition[0]
+      const operator = condition[1]
+      const value = condition[2]
+
+      switch (operator) {
+        case '=':
+          Filters.where.$and.push({ [element]: { $eq: value } })
+          break
+        case '!=':
+          Filters.where.$and.push({ [element]: { $neq: value } })
+          break
+        case '>':
+          Filters.where.$and.push({ [element]: { $gt: value } })
+          break
+        case '>=':
+          Filters.where.$and.push({ [element]: { $gte: value } })
+          break
+        case '<':
+          Filters.where.$and.push({ [element]: { $lt: value } })
+          break
+        case '<=':
+          Filters.where.$and.push({ [element]: { $lte: value } })
+          break
+        case 'in':
+          Filters.where.$and.push({ [element]: { $in: value } })
+          break
+        case 'nin':
+          Filters.where.$and.push({
+            [element]: { $not: { $in: value } }
+          })
+          break
+        case 'exists':
+          Filters.where.$and.push({ [element]: { $exists: true } })
+          break
+        case '!exists':
+          Filters.where.$and.push({ [element]: { $exists: false } })
+          break
+        case 'regex':
+          Filters.where.$and.push({ [element]: { $regex: value } })
+          break
+      }
+    })
+
+    return Filters
   }
   /**
    *
    * @param filter
    */
   // TODO order by can have more than 1 element
-  private getOrderBy() {
+  private getOrderBy(filter) {
     if (!this.orderByArray || this.orderByArray.length === 0) {
-      return []
+      return filter
     }
 
-    return [this.orderByArray[0], this.orderByArray[1].toLowerCase()]
+    return {
+      ...filter,
+      order: {
+        [this.orderByArray[0]]: this.orderByArray[1].toUpperCase()
+      }
+    }
   }
   /**
    *
    * @param filter
    */
-  private getLimit() {
+  private getLimit(filter) {
     if (!this.limitNumber || this.limitNumber === 0) {
-      this.limitNumber = (this.rawQuery && this.rawQuery.limit) || 20
+      this.limitNumber = (this.rawQuery && this.rawQuery.limit) || 50
     }
 
-    return this.limitNumber
+    return { ...filter, take: this.limitNumber }
   }
   /**
    *
    * @param filter
    */
-  private getSkip() {
+  private getSkip(filter) {
     if (!this.offsetNumber) {
       this.offsetNumber = (this.rawQuery && this.rawQuery.skip) || 0
     }
 
-    return this.offsetNumber
+    return { ...filter, skip: this.offsetNumber }
   }
   /**
    *
    * @param filter
    */
-  private getSelect(): string[] {
+  private getSelect(filter) {
     let select = this.selectArray
 
     select = select.map(s => {
@@ -662,43 +717,9 @@ export class FirebaseConnector<
     }
 
     if (!select) {
-      return []
+      return filter
     }
 
-    return select
-  }
-
-  private deleteQueryBatch(db, query, batchSize, resolve, reject) {
-    query
-      .get()
-      .then(snapshot => {
-        // When there are no documents left, we are done
-        if (snapshot.size == 0) {
-          return 0
-        }
-
-        // Delete documents in a batch
-        const batch = db.batch()
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref)
-        })
-
-        return batch.commit().then(() => {
-          return snapshot.size
-        })
-      })
-      .then(numDeleted => {
-        if (numDeleted === 0) {
-          resolve()
-          return
-        }
-
-        // Recurse on the next process tick, to avoid
-        // exploding the stack.
-        process.nextTick(() => {
-          this.deleteQueryBatch(db, query, batchSize, resolve, reject)
-        })
-      })
-      .catch(reject)
+    return { ...filter, fields: select }
   }
 }

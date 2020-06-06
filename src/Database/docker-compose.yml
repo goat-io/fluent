@@ -1,0 +1,33 @@
+version: '3.1'
+services:
+  #######################################################
+  #  FireStore
+  #######################################################
+  firestore:
+    build:
+      context: ./Firebase
+      dockerfile: ./Dockerfile
+    ports:
+      - 5000:5000 # Firebase Hosting
+      - 5002:5001 # Cloud Functions
+      - 8080:8080 # Cloud Firestore
+      - 8085:8085 # Cloud Pub/Sub
+      - 9000:9000 # Realtime Database
+      - 4001:3000 # UI
+      - 4000:4000 # UI
+    command: 'firebase emulators:start --project test'
+    tty: true
+    restart: unless-stopped
+    networks:
+      - fire-network
+  dynamodb:
+    image: amazon/dynamodb-local
+    hostname: dynamodb-local
+    container_name: dynamodb-local
+    ports:
+      - '8042:8000'
+    networks:
+      - fire-network
+networks:
+  fire-network:
+    driver: bridge

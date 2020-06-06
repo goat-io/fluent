@@ -1,11 +1,20 @@
 {
-  "database": {},
-  "firestore": {},
   "emulators": {
     "firestore": {
+      "port": 8080,
       "host": "0.0.0.0"
     },
     "database": {
+      "port": 9000,
+      "host": "0.0.0.0"
+    },
+    "ui": {
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 4000
+    },
+    "pubsub": {
+      "port": "8085",
       "host": "0.0.0.0"
     }
   }
