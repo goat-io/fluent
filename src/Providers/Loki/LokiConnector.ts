@@ -1,5 +1,12 @@
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
-import { GoatOutput, IDataElement, ISure, GoatFilter } from '../types'
+import {
+  GoatOutput,
+  IDataElement,
+  ISure,
+  GoatFilter,
+  IPaginatedData,
+  IPaginator
+} from '../types'
 import { Objects } from '../../Helpers/Objects'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
@@ -51,6 +58,26 @@ export class LokiConnector<
     filter: GoatFilter
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     return this.get()
+  }
+  /**
+   *
+   * @param filter
+   */
+  public async paginate(
+    paginator: IPaginator
+  ): Promise<IPaginatedData<GoatOutput<InputDTO, OutputDTO>>> {
+    const results: IPaginatedData<OutputDTO> = {
+      current_page: 1,
+      data: [],
+      first_page_url: 'response[0].meta.firstPageUrl,',
+      next_page_url: 'response[0].meta.nextPageUrl',
+      path: 'response[0].meta.path',
+      per_page: 1,
+      prev_page_url: ' response[0].meta.previousPageUrl',
+      total: 10
+    }
+
+    return results
   }
   /**
    * [remove description]

@@ -1,7 +1,7 @@
 import { TypeOrmConnector } from './TypeOrmConnector'
 import { createConnection } from 'typeorm'
 import { mongoMemory } from '../../Database/mongo.memory'
-// jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 import { GoatEntityOut, GoatEntityIn } from '../test/goat.dto'
 import { GoatEntity } from '../test/goat.entity'
 import { flock } from '../test/flock'
@@ -11,13 +11,14 @@ import { advancedTestSuite, TypeORMDataModel } from '../test/advancedTestSuite'
 let GoatModel: TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>
 let AdvanceModel: TypeOrmConnector<TypeORMDataModel>
 let storedId: any
+let mongoConnection
 
 beforeAll(async done => {
-  const a = await mongoMemory.start()
+  mongoConnection = await mongoMemory.start()
 
   const connection = await createConnection({
     type: 'mongodb',
-    url: a.url,
+    url: mongoConnection.url,
     useNewUrlParser: true,
     useUnifiedTopology: true,
     entities: [GoatEntity, TypeORMDataModel],
@@ -38,6 +39,10 @@ beforeAll(async done => {
   })
 
   done()
+})
+
+afterAll(async () => {
+  await mongoConnection.instance.stop()
 })
 
 test('Get - Should  GET data', async () => {

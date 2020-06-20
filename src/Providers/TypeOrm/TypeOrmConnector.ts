@@ -44,11 +44,12 @@ import { getOutputKeys } from '../outputKeys'
    */
 
 interface ITypeOrmConnector<T> {
-  repository: Repository<T> | MongoRepository<T>
+  repository: Repository<T>
   isRelationalDB?: boolean
 }
 
 export const createConnection = connection
+export class GoatRepository<T> extends Repository<T> {}
 
 export class TypeOrmConnector<
   ModelDTO = IDataElement,
@@ -56,7 +57,7 @@ export class TypeOrmConnector<
   OutputDTO = InputDTO
 > extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
-  private repository: Repository<ModelDTO> | MongoRepository<ModelDTO>
+  private repository: Repository<ModelDTO>
   private isRelationalDB: boolean
 
   constructor({ repository, isRelationalDB }: ITypeOrmConnector<ModelDTO>) {

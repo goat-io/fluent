@@ -117,6 +117,8 @@ export class FirebaseConnector<
 
     const [getError, snapshot] = await to(query.get())
 
+    console.log(snapshot)
+
     if (getError) {
       console.log(getError)
       throw new Error(Errors(getError, 'Error while getting submissions'))
@@ -141,32 +143,22 @@ export class FirebaseConnector<
     const [error, response]: any = await to(this.get())
 
     if (error) {
-      if (error.response.status === 440) {
-        Event.emit('GOAT:SESSION:EXPIRED', {
-          data: error,
-          text: 'Session expired'
-        })
-
-        throw new Error(Errors(error, 'Session has expired.'))
-      }
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
 
+    const result = this.jsApplySelect(response)
+
     const results: IPaginatedData<OutputDTO> = {
-      current_page: response[0].meta.currentPage,
-      data: response[0].data,
-      first_page_url: response[0].meta.firstPageUrl,
-      next_page_url: response[0].meta.nextPageUrl,
-      path: response[0].meta.path,
-      per_page: response[0].meta.itemsPerPage,
-      prev_page_url: response[0].meta.previousPageUrl,
-      total: response[0].meta.totalItemCount
+      current_page: 1,
+      data: result,
+      first_page_url: 'response[0].meta.firstPageUrl,',
+      next_page_url: 'response[0].meta.nextPageUrl',
+      path: 'response[0].meta.path',
+      per_page: 1,
+      prev_page_url: ' response[0].meta.previousPageUrl',
+      total: 10
     }
 
-    if (results && results.data && this.selectArray.length > 0) {
-      results.data = this.jsApplySelect(results.data)
-      return results
-    }
     return results
   }
   /**

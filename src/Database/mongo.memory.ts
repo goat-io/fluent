@@ -1,4 +1,4 @@
-import { MongoMemoryServer } from 'mongodb-memory-server'
+import { MongoMemoryServer } from 'mongodb-memory-server-core'
 import { createConnection, Schema } from 'mongoose'
 import { Log } from '../Log/Logger'
 
