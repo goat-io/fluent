@@ -51,6 +51,7 @@ interface ITypeOrmConnector<T> {
 export const createConnection = connection
 export class GoatRepository<T> extends Repository<T> {}
 
+// tslint:disable-next-line: max-classes-per-file
 export class TypeOrmConnector<
   ModelDTO = IDataElement,
   InputDTO = ModelDTO,
@@ -702,6 +703,10 @@ export class TypeOrmConnector<
    */
   private getSelect(filter) {
     let select = this.selectArray
+
+    if (Object.keys(select).length === 0 && select.constructor === Object) {
+      select = ['']
+    }
 
     select = select.map(s => {
       s = s.split(' as ')[0]

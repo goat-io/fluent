@@ -18,21 +18,21 @@ import {
   ApiQuery,
   ApiParam
 } from '@nestjs/swagger'
-import { FormService } from './form.service'
-import { FormDtoOut, FormDtoIn } from './form.dto'
-import { getModelSchemaRef, SchemaObject } from '@loopback/rest'
-import { Form as FormEntity } from './form.entity'
+import { UsersService } from './users.service'
+import { UserDtoOut, UserDtoIn } from './users.dto'
+import { getModelSchemaRef } from '@loopback/rest'
+import { User as UserEntity } from './user.entity'
 import to from 'await-to-js'
 import { GoatFilter, GoatOutput } from 'Providers/types'
-import { For } from '../../../Helpers/For'
-import { getGoatFilterSchema } from '../../dtos/filterSchema'
+import { For } from '../../../../Helpers/For'
+import { getGoatFilterSchema } from '../../../dtos/filterSchema'
 
-@ApiTags('Forms')
-@Controller('forms')
-export class FormController {
-  private forms: FormService['model']
-  constructor(private readonly formRepository: FormService) {
-    this.forms = this.formRepository.model
+@ApiTags('Users')
+@Controller('users')
+export class UserController {
+  private users: UsersService['model']
+  constructor(private readonly userRepository: UsersService) {
+    this.users = this.userRepository.model
   }
   /**
    *
@@ -43,19 +43,19 @@ export class FormController {
     status: 200,
     description: 'The created form',
     content: {
-      'application/json': { schema: getModelSchemaRef(FormDtoOut) }
+      'application/json': { schema: getModelSchemaRef(UserDtoOut) }
     },
     isArray: true,
-    type: FormDtoOut
+    type: UserDtoOut
   })
   @ApiBody({
     description: 'Form',
-    type: FormDtoIn
+    type: UserDtoIn
   })
   async create(
-    @Body() form: FormDtoIn
-  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
-    const [error, response] = await to(this.forms.insert(form))
+    @Body() form: UserDtoIn
+  ): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
+    const [error, response] = await to(this.users.insert(form))
 
     if (error) {
       throw new BadRequestException(error)
@@ -74,22 +74,22 @@ export class FormController {
     content: {
       'application/json': {
         schema: {
-          items: getModelSchemaRef(FormDtoOut),
+          items: getModelSchemaRef(UserDtoOut),
           type: 'array'
         }
       }
     },
     isArray: true,
-    type: FormDtoOut
+    type: UserDtoOut
   })
   @ApiBody({
     description: 'Form',
-    type: FormDtoIn
+    type: UserDtoIn
   })
   createMany(
-    @Body() forms: FormDtoIn[]
-  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>[]> {
-    return this.forms.insertMany(forms)
+    @Body() forms: UserDtoIn[]
+  ): Promise<GoatOutput<UserDtoIn, UserDtoOut>[]> {
+    return this.users.insertMany(forms)
   }
   /**
    *
@@ -99,7 +99,7 @@ export class FormController {
     name: 'filter',
     required: false,
     type: 'object',
-    schema: getGoatFilterSchema(FormEntity)
+    schema: getGoatFilterSchema(UserEntity)
   })
   @ApiResponse({
     status: 200,
@@ -107,18 +107,18 @@ export class FormController {
     content: {
       'application/json': {
         schema: {
-          items: getModelSchemaRef(FormDtoOut),
+          items: getModelSchemaRef(UserDtoOut),
           type: 'array'
         }
       }
     },
     isArray: true,
-    type: FormDtoOut
+    type: UserDtoOut
   })
   find(
     @Query('filter') filter: GoatFilter
-  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>[]> {
-    return this.forms.find(filter)
+  ): Promise<GoatOutput<UserDtoIn, UserDtoOut>[]> {
+    return this.users.find(filter)
   }
 
   /**
@@ -157,10 +157,10 @@ export class FormController {
   findPaginated(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('filter') filter?: Filter<FormDtoOut>
+    @Query('filter') filter?: Filter<UserDtoOut>
   ): Promise<FormDtoPaginated> {
     limit = limit > 100 ? 100 : limit
-    return this.forms.paginate({
+    return this.users.paginate({
       page,
       limit
     })
@@ -177,13 +177,13 @@ export class FormController {
     content: {
       'application/json': {
         schema: {
-          items: getModelSchemaRef(FormDtoOut),
+          items: getModelSchemaRef(UserDtoOut),
           type: 'array'
         }
       }
     },
     isArray: true,
-    type: FormDtoOut
+    type: UserDtoOut
   })
   @ApiParam({
     name: 'id',
@@ -192,8 +192,8 @@ export class FormController {
   })
   async findById(
     @Param('id') id: string
-  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
-    const [error, result] = await For.async(this.forms.findById(id))
+  ): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
+    const [error, result] = await For.async(this.users.findById(id))
 
     if (error) {
       throw new NotFoundException(error)
@@ -214,7 +214,7 @@ export class FormController {
       }
     },
     isArray: true,
-    type: FormDtoOut
+    type: UserDtoOut
   })
   @ApiParam({
     name: 'id',
@@ -222,7 +222,7 @@ export class FormController {
     type: 'string'
   })
   async deleteById(@Param('id') id: string): Promise<string> {
-    const [error, result] = await For.async(this.forms.deleteById(id))
+    const [error, result] = await For.async(this.users.deleteById(id))
 
     if (error) {
       throw new NotFoundException(error)
@@ -240,14 +240,14 @@ export class FormController {
     status: 200,
     description: 'The created form',
     content: {
-      'application/json': { schema: getModelSchemaRef(FormDtoOut) }
+      'application/json': { schema: getModelSchemaRef(UserDtoOut) }
     },
     isArray: true,
-    type: FormDtoOut
+    type: UserDtoOut
   })
   @ApiBody({
     description: 'Form',
-    type: FormDtoIn
+    type: UserDtoIn
   })
   @ApiParam({
     name: 'id',
@@ -256,9 +256,9 @@ export class FormController {
   })
   async replaceById(
     @Param('id') id: string,
-    @Body() form: FormDtoIn
-  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
-    const [error, result] = await For.async(this.forms.replaceById(id, form))
+    @Body() form: UserDtoIn
+  ): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
+    const [error, result] = await For.async(this.users.replaceById(id, form))
 
     if (error) {
       throw new NotFoundException(error)
@@ -276,14 +276,14 @@ export class FormController {
     status: 200,
     description: 'The created form',
     content: {
-      'application/json': { schema: getModelSchemaRef(FormDtoOut) }
+      'application/json': { schema: getModelSchemaRef(UserDtoOut) }
     },
     isArray: true,
-    type: FormDtoOut
+    type: UserDtoOut
   })
   @ApiBody({
     description: 'Form',
-    type: FormDtoIn
+    type: UserDtoIn
   })
   @ApiParam({
     name: 'id',
@@ -292,9 +292,9 @@ export class FormController {
   })
   async updateById(
     @Param('id') id: string,
-    @Body() form: FormDtoIn
-  ): Promise<GoatOutput<FormDtoIn, FormDtoOut>> {
-    const [error, result] = await For.async(this.forms.replaceById(id, form))
+    @Body() form: UserDtoIn
+  ): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
+    const [error, result] = await For.async(this.users.replaceById(id, form))
 
     if (error) {
       throw new NotFoundException(error)

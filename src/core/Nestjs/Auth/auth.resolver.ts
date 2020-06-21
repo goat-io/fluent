@@ -1,11 +1,9 @@
-import { HttpException, HttpStatus } from '@nestjs/common'
+/* import { HttpException, HttpStatus } from '@nestjs/common'
 import { Args, Mutation, Resolver } from '@nestjs/graphql'
-import { UserInput } from './User/users.input'
+import { UserInput } from './User/users.dto'
 import { User } from './User/user.entity'
-
 import { AuthService } from './auth.service'
-import { Login } from './login.input'
-import { Token } from './token.model'
+import { Login, Token } from './auth.dto'
 
 @Resolver('Auth')
 export class AuthResolver {
@@ -29,3 +27,4 @@ export class AuthResolver {
     return user
   }
 }
+ */

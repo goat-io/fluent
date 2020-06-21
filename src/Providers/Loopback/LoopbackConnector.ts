@@ -190,7 +190,7 @@ export class LoopbackConnector<
       throw new Error('Formio connector error. Cannot update a local document')
     }
 
-    const [error, result] = await to(this.httpPUT(id, data))
+    const [error, result] = await to(this.httpPatch(id, data))
 
     if (error) {
       console.log(error)
@@ -396,6 +396,19 @@ export class LoopbackConnector<
 
     return axios.put(url, data, { headers })
   }
+
+  public async httpPatch(id: string, data: InputDTO) {
+    const isOnline = true || (await Connection.isOnline())
+    const url = `${this.getUrl()}/${id}`
+    const headers = this.getHeaders()
+
+    if (!isOnline) {
+      throw new Error(`Cannot make request post to ${url}.You are not online`)
+    }
+
+    return axios.patch(url, data, { headers })
+  }
+
   public httpDelete(id) {
     const headers = this.getHeaders()
     const url = `${this.getUrl()}/${id}`

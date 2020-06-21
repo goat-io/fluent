@@ -129,7 +129,6 @@ export const advancedTestSuite = Model => {
   it('Should get paginated data', async () => {
     await insertTestData()
     const data = await Model.paginate({ page: 1, perPage: 10 })
-    console.log(data)
     expect(true).toBe(true)
   })
 

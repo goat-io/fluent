@@ -117,8 +117,6 @@ export class FirebaseConnector<
 
     const [getError, snapshot] = await to(query.get())
 
-    console.log(snapshot)
-
     if (getError) {
       console.log(getError)
       throw new Error(Errors(getError, 'Error while getting submissions'))

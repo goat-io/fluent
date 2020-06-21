@@ -1,23 +1,61 @@
 import { Field, HideField, ID, ObjectType } from '@nestjs/graphql'
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
+import {
+  Entity,
+  Column,
+  ObjectIdColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  VersionColumn
+} from 'typeorm'
+import { ApiProperty } from '@nestjs/swagger'
 
 @ObjectType()
 @Entity()
 export class User {
+  @ObjectIdColumn()
+  @ApiProperty()
   @Field(() => ID)
-  @PrimaryGeneratedColumn('uuid')
-  id!: string
+  id: string
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: false, type: 'string' })
+  @ApiProperty({
+    nullable: false,
+    required: true
+  })
   email: string
 
   @HideField()
-  @Column('text')
+  @Column({ nullable: false, type: 'string' })
   password: string
 
-  @Column('text')
+  @Column({ nullable: true, type: 'string' })
+  @ApiProperty({
+    nullable: true,
+    required: false
+  })
   firstName?: string
 
-  @Column('text')
+  @Column({ nullable: true, type: 'string' })
+  @ApiProperty({
+    nullable: true,
+    required: false
+  })
   lastName?: string
+
+  @CreateDateColumn()
+  @ApiProperty()
+  created: Date
+
+  @UpdateDateColumn()
+  @ApiProperty()
+  updated: Date
+
+  @DeleteDateColumn()
+  @ApiProperty()
+  deleted: Date
+
+  @VersionColumn()
+  @ApiProperty()
+  version: number
 }

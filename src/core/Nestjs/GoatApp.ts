@@ -5,13 +5,15 @@ import { AccessControlModule } from 'nestjs-role-protected'
 import { HealthModule } from './Health/health.module'
 import { FormModule } from './Form/form.module'
 import { DatabaseModule } from './Database/database.module'
+import { EnvModule } from './Env/env.module'
 
 export const GoatModules = [
   FilesModule,
   UsersModule,
   DatabaseModule,
-  //AuthModule,
+  AuthModule,
   AccessControlModule,
   HealthModule,
-  FormModule
+  FormModule,
+  EnvModule
 ]

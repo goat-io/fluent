@@ -1,43 +1,31 @@
 import { Hash } from '../../../../Helpers/Hash'
 import { Injectable, Inject } from '@nestjs/common'
 import { Repository } from 'typeorm'
-import { UpdateUserInput, UserInput } from './users.input'
+import { UserDtoOut, UserDtoIn } from './users.dto'
 import { User } from './user.entity'
+import { TypeOrmConnector } from '../../../../Providers/TypeOrm/TypeOrmConnector'
+import { GoatOutput } from '../../../../Providers/types'
 
 @Injectable()
 export class UsersService {
+  public model: TypeOrmConnector<User, UserDtoIn, UserDtoOut>
+
   constructor(
     @Inject('USER_REPOSITORY')
     private users: Repository<User>
-  ) {}
-  /**
-   *
-   * @param input
-   */
-  async create(input: UserInput): Promise<User> {
-    const created = this.users.insert(input)
-    return
+  ) {
+    this.model = new TypeOrmConnector<User, UserDtoIn, UserDtoOut>({
+      repository: this.users
+    })
   }
-  /**
-   *
-   */
-  async findAll(): Promise<User[]> {
-    return await this.users.find()
-  }
-  /**
-   *
-   * @param id
-   */
-  async findOne(id: string): Promise<User> {
-    return await this.users.findOne({ id: id })
-  }
-  /**
-   *
-   * @param input
-   */
-  async validate(input: UserInput): Promise<User | null> {
+
+  async validate(
+    input: UserDtoIn
+  ): Promise<GoatOutput<UserDtoIn, UserDtoOut> | null> {
     const { email, password } = input
-    const user = await this.users.findOne({ email })
+    const user = await this.model
+      .where(this.model._keys.email, '=', email)
+      .first()
 
     if (!user) return null
 
@@ -49,26 +37,7 @@ export class UsersService {
    *
    * @param email
    */
-  async findByEmail(email: string): Promise<User> {
-    return await this.users.findOne({ email })
+  async findByEmail(email: string): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
+    return this.model.where(this.model._keys.email, '=', email).first()
   }
-  /**
-   *
-   * @param id
-   */
-  async deleteById(id: string): Promise<string> {
-    await this.users.delete({ id: id })
-    return id
-  }
-  /**
-   *
-   * @param id
-   * @param user
-   */
-  /*
-  async updateById(id: string, user: UpdateUserInput): Promise<User> {
-    const inserted = await this.users.update({ id: id }, user)
-    //return inserted
-  }
-  */
 }
