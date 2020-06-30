@@ -11,8 +11,7 @@ import * as faker from 'faker'
 export class FormDtoOut extends OmitType(Form, [
   'deleted',
   'access',
-  'submissionAccess',
-  'version'
+  'submissionAccess'
 ] as const) {}
 /**
  *
@@ -25,8 +24,7 @@ export class FormDtoIn extends OmitType(Form, [
   'updated',
   'deleted',
   'access',
-  'submissionAccess',
-  'version'
+  'submissionAccess'
 ] as const) {}
 /**
  *

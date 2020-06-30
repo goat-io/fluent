@@ -52,6 +52,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected whereArray = []
   protected orWhereArray = []
   protected selectArray = []
+  protected forceSelectArray = []
   protected orderByArray = []
   protected limitNumber: number = 0
   protected offsetNumber: number = 0
@@ -78,6 +79,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.whereArray = []
     this.orWhereArray = []
     this.selectArray = []
+    this.forceSelectArray = []
     this.orderByArray = []
     this.limitNumber = undefined
     this.offsetNumber = undefined
@@ -156,6 +158,28 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     this.chainReference.push({ method: 'select', args: columns })
     this.selectArray = this.selectArray
+      .concat(columns)
+      .filter((elem, pos, arr) => {
+        return arr.indexOf(elem) === pos
+      })
+
+    return this
+  }
+  /**
+   * Adds the given columns to the SelectArray
+   * to use as column filter for the data
+   *
+   * @param {Array|String} columns The columns to select
+   * @returns {Model} Fluent Model
+   */
+  public forceSelect(...columns: TypedPathWrapper<Primitives>[]) {
+    if (typeof module === 'undefined' || !module.exports) {
+      throw new Error('forceSelect cant be used in frontend')
+    }
+    columns = this.prepareInput(columns)
+
+    this.chainReference.push({ method: 'forceSelect', args: columns })
+    this.forceSelectArray = this.forceSelectArray
       .concat(columns)
       .filter((elem, pos, arr) => {
         return arr.indexOf(elem) === pos
@@ -324,11 +348,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const iterationArray =
       this.outputKeys.length === 0 && this.selectArray.length > 0
         ? this.selectArray
-        : this.outputKeys
+        : [...this.outputKeys, ...this.forceSelectArray]
 
     const compareArray =
       this.outputKeys.length === 0 && this.selectArray.length > 0
-        ? this.outputKeys
+        ? [...this.outputKeys, ...this.forceSelectArray]
         : this.selectArray
 
     return _data.map(element => {
@@ -426,6 +450,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.whereArray = []
     this.orWhereArray = []
     this.selectArray = []
+    this.forceSelectArray = []
     this.orderByArray = []
     this.limitNumber = undefined
     this.offsetNumber = undefined

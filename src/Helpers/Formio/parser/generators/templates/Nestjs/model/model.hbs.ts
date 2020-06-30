@@ -3,7 +3,7 @@ import {
   Entity,
 } from 'typeorm'
 
-@Entity()
+@Entity({name: '{{_Model.name}}'})
 export class {{_Model.name}}Entity extends {{_Model.name}}BaseEntity {}
 
 

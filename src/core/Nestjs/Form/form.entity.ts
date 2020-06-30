@@ -85,10 +85,6 @@ export class Form {
   @ApiProperty()
   deleted: Date
 
-  @VersionColumn()
-  @ApiProperty()
-  version: number
-
   @Column({ nullable: true })
   @ApiProperty({ nullable: true, required: false })
   components?: string
@@ -120,7 +116,6 @@ export const fakeForm = (): Form => {
     created: faker.date.recent(),
     updated: faker.date.recent(),
     deleted: faker.date.recent(),
-    version: faker.random.number(),
     components: '',
     access: [
       {

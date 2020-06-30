@@ -29,7 +29,8 @@ beforeAll(async done => {
   const repository = connection.getRepository(GoatEntity)
 
   GoatModel = new TypeOrmConnector<GoatEntity, GoatEntityIn, GoatEntityOut>({
-    repository
+    repository,
+    isMongoDB: true
   })
 
   const advancedRepo = connection.getRepository(TypeORMDataModel)

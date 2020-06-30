@@ -6,37 +6,50 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  VersionColumn
+  VersionColumn,
+  ObjectID,
+  Index,
+  PrimaryColumn
 } from 'typeorm'
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, ApiHideProperty } from '@nestjs/swagger'
+import { Collection } from 'fireorm'
 
 @ObjectType()
-@Entity()
+@Entity({ name: 'users' })
+@Collection()
 export class User {
-  @ObjectIdColumn()
   @ApiProperty()
   @Field(() => ID)
-  id: string
+  @Column({ type: 'string' })
+  @ObjectIdColumn()
+  @PrimaryColumn()
+  _id: string
 
-  @Column({ unique: true, nullable: false, type: 'string' })
+  @Column({ nullable: false })
   @ApiProperty({
     nullable: false,
     required: true
   })
+  @Index({ unique: true })
   email: string
 
   @HideField()
-  @Column({ nullable: false, type: 'string' })
-  password: string
+  @Column({ select: false })
+  @ApiProperty({
+    nullable: true,
+    required: false
+  })
+  @ApiHideProperty()
+  password?: string
 
-  @Column({ nullable: true, type: 'string' })
+  @Column({ nullable: true })
   @ApiProperty({
     nullable: true,
     required: false
   })
   firstName?: string
 
-  @Column({ nullable: true, type: 'string' })
+  @Column({ nullable: true })
   @ApiProperty({
     nullable: true,
     required: false

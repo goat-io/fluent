@@ -1,44 +1,40 @@
-import { InputType, PartialType } from '@nestjs/graphql'
-import { OmitType, ApiProperty } from '@nestjs/swagger'
-import { User } from './user.entity'
-import { Column } from 'typeorm'
+import { OmitType, PartialType, ApiProperty } from '@nestjs/swagger'
+import { Role } from './roles.entity'
+import { InputType } from '@nestjs/graphql'
+import { Column, Repository } from 'typeorm'
 import { IPaginationMeta, IPaginationLinks } from '../../../dtos/pagination.dto'
-
+import * as faker from 'faker'
 /**
  *
  */
 @InputType()
-export class UserDtoOut extends OmitType(User, [
-  'deleted',
-  'version'
-] as const) {}
+export class RoleDtoOut extends OmitType(Role, ['deleted'] as const) {}
 /**
  *
  */
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
-export class UserDtoIn extends OmitType(User, [
-  '_id',
+export class RoleDtoIn extends OmitType(Role, [
+  'id',
   'created',
   'updated',
-  'deleted',
-  'version'
+  'deleted'
 ] as const) {}
 /**
  *
  */
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
-export class UserDtoPatch extends PartialType(UserDtoIn) {}
+export class RoleDtoPatch extends PartialType(RoleDtoIn) {}
 /**
  *
  */
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
-export class UserDtoPaginated {
-  @Column(type => UserDtoOut)
-  @ApiProperty({ isArray: true, type: UserDtoOut })
-  items: UserDtoOut[]
+export class RoleDtoPaginated {
+  @Column(type => RoleDtoOut)
+  @ApiProperty({ isArray: true, type: RoleDtoOut })
+  items: RoleDtoOut[]
 
   @Column(type => IPaginationMeta)
   @ApiProperty({ type: IPaginationMeta })

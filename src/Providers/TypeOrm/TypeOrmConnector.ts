@@ -6,7 +6,8 @@ import {
   IPaginatedData,
   IPaginator,
   ISure,
-  GoatFilter
+  GoatFilter,
+  Primitives
 } from '../types'
 
 import { Event } from '../../Helpers/Event'
@@ -26,11 +27,12 @@ import {
   FindManyOptions,
   createConnection as connection,
   ObjectID,
-  MongoRepository
+  FindConditions
 } from 'typeorm'
 import { Errors } from '../../Helpers/Errors'
 import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
+import { TypedPathWrapper } from 'typed-path'
 /*
     
       import {
@@ -45,7 +47,7 @@ import { getOutputKeys } from '../outputKeys'
 
 interface ITypeOrmConnector<T> {
   repository: Repository<T>
-  isRelationalDB?: boolean
+  isMongoDB?: boolean
 }
 
 export const createConnection = connection
@@ -59,14 +61,15 @@ export class TypeOrmConnector<
 > extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private repository: Repository<ModelDTO>
-  private isRelationalDB: boolean
+  private isMongoDB: boolean
 
-  constructor({ repository, isRelationalDB }: ITypeOrmConnector<ModelDTO>) {
+  constructor({ repository, isMongoDB }: ITypeOrmConnector<ModelDTO>) {
     super()
     this.repository = repository
-    this.outputKeys =
-      getOutputKeys(this.repository.metadata.propertiesMap) || []
-    this.isRelationalDB = isRelationalDB || false
+
+    this.outputKeys = getOutputKeys(this.repository) || []
+
+    this.isMongoDB = isMongoDB || false
   }
   /**
    *
@@ -237,14 +240,14 @@ export class TypeOrmConnector<
     return result
   }
   /**
-   *
+   * PATCH operation
    * @param data
    */
   public async updateById(
     id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
+    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
@@ -253,9 +256,8 @@ export class TypeOrmConnector<
         }
       : data
 
-    // const entity = this.repository.create(dataToInsert)
-
     const [error, updated] = await to(this.repository.update(id, dataToInsert))
+
     if (error) {
       return Promise.reject(Errors(error, 'Could not update'))
     }
@@ -284,7 +286,7 @@ export class TypeOrmConnector<
     id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
+    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
 
     const [getError, value] = await to(this.repository.findOneOrFail(parsedId))
 
@@ -301,6 +303,7 @@ export class TypeOrmConnector<
 
     const newValue = { ...nullObject, ...data }
 
+    delete newValue._id
     delete newValue.id
     delete newValue.created
     delete newValue.updated
@@ -361,9 +364,9 @@ export class TypeOrmConnector<
    * @param id
    */
   public async deleteById(id: string): Promise<string> {
-    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
-
+    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
     const [error, removed] = await to(this.repository.delete(parsedId))
+
     if (error) {
       return Promise.reject(Errors(error, `Could not delete ${id}`))
     }
@@ -376,13 +379,14 @@ export class TypeOrmConnector<
    * @param id
    */
   public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isRelationalDB ? id : (new ObjectId(id) as ObjectID)
+    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
 
     const [error, data] = await to(this.repository.findByIds([parsedId]))
 
     if (error) {
       return Promise.reject(Errors(error, 'Could not get data'))
     }
+
     const result = this.jsApplySelect(data) as GoatOutput<InputDTO, OutputDTO>[]
     this.reset()
 
@@ -442,9 +446,9 @@ export class TypeOrmConnector<
    */
   private getGeneratedQuery(): FindManyOptions {
     let filter: any = {}
-    filter = this.isRelationalDB
-      ? this.getFilters(filter)
-      : this.getMongoFilters(filter)
+    filter = this.isMongoDB
+      ? this.getMongoFilters(filter)
+      : this.getFilters(filter)
 
     filter = this.getLimit(filter)
     filter = this.getSkip(filter)
@@ -642,7 +646,9 @@ export class TypeOrmConnector<
           Filters.where.$and.push({ [element]: { $in: value } })
           break
         case 'nin':
-          Filters.where.$and.push({ [element]: { $not: { $in: value } } })
+          Filters.where.$and.push({
+            [element]: { $not: { $in: value } }
+          })
           break
         case 'exists':
           Filters.where.$and.push({ [element]: { $exists: true } })

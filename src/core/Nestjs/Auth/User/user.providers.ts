@@ -1,10 +1,11 @@
 import { Connection } from 'typeorm'
 import { User } from './user.entity'
+import { createRepository } from '../../Database/createRepository'
 
 export const UserProviders = [
-  {
-    provide: 'USER_REPOSITORY',
-    useFactory: (connection: Connection) => connection.getRepository(User),
-    inject: ['MAIN_DATABASE']
-  }
+  createRepository({
+    connectionName: 'MAIN_DATABASE',
+    repositoryName: 'USER_REPOSITORY',
+    entity: User
+  })
 ]

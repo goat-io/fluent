@@ -51,7 +51,7 @@ export const createFirebaseRepository = async Entity => {
     repository,
     name,
     path,
-    keys: typeOrmRepo.metadata.propertiesMap
+    keys: [...['id', '_id'], ...getOutputKeys(typeOrmRepo)]
   }
 }
 /**
@@ -75,7 +75,7 @@ export const MockCreateFirebaseRepository = Entity => {
     repository,
     name,
     path,
-    keys: {} as ObjectLiteral
+    keys: []
   }
 }
 
@@ -84,8 +84,7 @@ export const createConnection = connection
 export interface IFirebaseConnector {
   repository: BaseFirestoreRepository<any>
   name: string
-  path: string
-  keys?: ObjectLiteral
+  keys?: string[]
 }
 
 export class FirebaseConnector<
@@ -95,19 +94,15 @@ export class FirebaseConnector<
 > extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private repository: BaseFirestoreRepository<any>
-  private modelName: string
-  private modelPath: string
   private collection: FirebaseFirestore.CollectionReference<ModelDTO>
 
-  constructor({ repository, name, path, keys }: IFirebaseConnector) {
+  constructor({ repository, keys, name }: IFirebaseConnector) {
     super()
-    this.modelName = name
-    this.modelPath = path
     this.repository = repository
     this.collection = db.collection(
       name
     ) as FirebaseFirestore.CollectionReference<ModelDTO>
-    this.outputKeys = getOutputKeys(keys) || []
+    this.outputKeys = keys || []
   }
   /**
    *
@@ -369,8 +364,11 @@ export class FirebaseConnector<
     }
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
+
     Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null
+      if (key !== 'id') {
+        flatValue[key] = null
+      }
     })
 
     const nullObject = Objects.nest(flatValue)
@@ -382,6 +380,7 @@ export class FirebaseConnector<
 
     const entity = { ...newValue /*...{ updated: new Date() }*/ }
 
+    console.log('newValue', newValue)
     const [error] = await to(this.repository.update(entity))
 
     if (error) {

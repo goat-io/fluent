@@ -1,5 +1,8 @@
+import { ObjectId } from 'mongodb'
+
 export interface IDataElement {
   id?: string
+  _id?: string
   [key: string]: any
 }
 
@@ -27,8 +30,8 @@ export interface IDeleted {
   deleted: number
 }
 
-export type Primitives = boolean | string | number
-export type PrimitivesArray = boolean[] | string[] | number[]
+export type Primitives = boolean | string | number | ObjectId
+export type PrimitivesArray = boolean[] | string[] | number[] | ObjectId[]
 
 export interface IGoatExtendedAttributes {
   id: string

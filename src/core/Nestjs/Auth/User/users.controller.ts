@@ -9,7 +9,11 @@ import {
   NotFoundException,
   Delete,
   Put,
-  Patch
+  Patch,
+  HttpException,
+  HttpStatus,
+  UseInterceptors,
+  ClassSerializerInterceptor
 } from '@nestjs/common'
 import {
   ApiTags,
@@ -26,6 +30,7 @@ import to from 'await-to-js'
 import { GoatFilter, GoatOutput } from 'Providers/types'
 import { For } from '../../../../Helpers/For'
 import { getGoatFilterSchema } from '../../../dtos/filterSchema'
+import { Hash } from '../../../../Helpers/Hash'
 
 @ApiTags('Users')
 @Controller('users')
@@ -41,7 +46,7 @@ export class UserController {
   @Post()
   @ApiResponse({
     status: 200,
-    description: 'The created form',
+    description: 'The created user',
     content: {
       'application/json': { schema: getModelSchemaRef(UserDtoOut) }
     },
@@ -49,47 +54,25 @@ export class UserController {
     type: UserDtoOut
   })
   @ApiBody({
-    description: 'Form',
+    description: 'User',
     type: UserDtoIn
   })
   async create(
-    @Body() form: UserDtoIn
+    @Body() newUserRequest: UserDtoIn
   ): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
-    const [error, response] = await to(this.users.insert(form))
+    let user = newUserRequest
 
-    if (error) {
-      throw new BadRequestException(error)
+    if (newUserRequest.password) {
+      const password = await Hash.hash(newUserRequest.password)
+      user = { ...user, password }
     }
 
-    return response
-  }
-  /**
-   *
-   * @param form
-   */
-  @Post('/createMany')
-  @ApiResponse({
-    status: 200,
-    description: 'The created forms',
-    content: {
-      'application/json': {
-        schema: {
-          items: getModelSchemaRef(UserDtoOut),
-          type: 'array'
-        }
-      }
-    },
-    isArray: true,
-    type: UserDtoOut
-  })
-  @ApiBody({
-    description: 'Form',
-    type: UserDtoIn
-  })
-  createMany(
-    @Body() forms: UserDtoIn[]
-  ): Promise<GoatOutput<UserDtoIn, UserDtoOut>[]> {
-    return this.users.insertMany(forms)
+    const result = await this.users.insert(user)
+
+    if (!result)
+      throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
+
+    return result
   }
   /**
    *
@@ -256,9 +239,16 @@ export class UserController {
   })
   async replaceById(
     @Param('id') id: string,
-    @Body() form: UserDtoIn
+    @Body() newUserRequest: UserDtoIn
   ): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
-    const [error, result] = await For.async(this.users.replaceById(id, form))
+    let user = newUserRequest
+
+    if (newUserRequest.password) {
+      const password = await Hash.hash(newUserRequest.password)
+      user = { ...user, password }
+    }
+
+    const [error, result] = await For.async(this.users.replaceById(id, user))
 
     if (error) {
       throw new NotFoundException(error)
@@ -292,9 +282,17 @@ export class UserController {
   })
   async updateById(
     @Param('id') id: string,
-    @Body() form: UserDtoIn
+    @Body() newUserRequest: UserDtoIn
   ): Promise<GoatOutput<UserDtoIn, UserDtoOut>> {
-    const [error, result] = await For.async(this.users.replaceById(id, form))
+    let user = newUserRequest
+
+    if (newUserRequest.password && newUserRequest.password !== '') {
+      const password = await Hash.hash(newUserRequest.password)
+
+      user = { ...newUserRequest, password }
+    }
+
+    const [error, result] = await For.async(this.users.updateById(id, user))
 
     if (error) {
       throw new NotFoundException(error)

@@ -12,8 +12,7 @@ export class FormService {
     private forms: Repository<Form>
   ) {
     this.model = new TypeOrmConnector<Form, FormDtoIn, FormDtoOut>({
-      repository: this.forms,
-      isRelationalDB: true
+      repository: this.forms
     })
   }
 }

@@ -6,14 +6,21 @@ import { HealthModule } from './Health/health.module'
 import { FormModule } from './Form/form.module'
 import { DatabaseModule } from './Database/database.module'
 import { EnvModule } from './Env/env.module'
+import { RoleModule } from './Auth/Role/roles.module'
 
-export const GoatModules = [
+const GoatModules = [
+  DatabaseModule,
   FilesModule,
   UsersModule,
-  DatabaseModule,
-  AuthModule,
+  RoleModule,
   AccessControlModule,
   HealthModule,
   FormModule,
   EnvModule
 ]
+
+if (process.env.AUTH_USE_JWT && String(process.env.AUTH_USE_JWT) === 'true') {
+  GoatModules.push(AuthModule)
+}
+
+export { GoatModules }
