@@ -1,3 +1,16 @@
+# 0.3.18
+[2020-07-13]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  JWT authentication ([`18f9020`](https://github.com/goat-io/fluent/commit/18f902008564671206571cccf3d9b7b1a917c078))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add firebase support ([`47495fb`](https://github.com/goat-io/fluent/commit/47495fb4907f20e866786fb8999fb4d32add6871))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  JWT authentication ([`18f9020`](https://github.com/goat-io/fluent/commit/18f902008564671206571cccf3d9b7b1a917c078))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add firebase support ([`47495fb`](https://github.com/goat-io/fluent/commit/47495fb4907f20e866786fb8999fb4d32add6871))
+
 # 0.3.17
 [2020-06-21]
 
@@ -9,6 +22,7 @@
 
 * chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update npm libraries ([`0c4a80a`](https://github.com/goat-io/fluent/commit/0c4a80ac908b2986a191f64a1fe3e99e0342ee10))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Env configuration ([`6bd5dac`](https://github.com/goat-io/fluent/commit/6bd5dacda2fb5588d2fd4d3f95e51517221c5922))
+* Release 0.3.17 ([`1b7c93b`](https://github.com/goat-io/fluent/commit/1b7c93b119f7e378199f93005b5c4fffde68bfd6))
 
 # 0.3.16
 [2020-06-06]
