@@ -1,9 +1,20 @@
+# 0.3.22
+[2020-07-13]
+
+### Other Changes
+
+* chore: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Update RN ([`c0ae216`](https://github.com/goat-io/fluent/commit/c0ae21631eebb338294e73fe2d8e15677058a659))
+
 # 0.3.21
 [2020-07-13]
 
 ### Fixes
 
 *  [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  moving all mongodb calls to Id ([`cbfa54f`](https://github.com/goat-io/fluent/commit/cbfa54f38cedabda32cd298e3d3124f1b2a0c9b8))
+
+### Other Changes
+
+* Release 0.3.21 ([`13a4fad`](https://github.com/goat-io/fluent/commit/13a4fadf85ff7849581504c0209864b22d3702ed))
 
 # 0.3.20
 [2020-07-13]
