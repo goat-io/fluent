@@ -6,7 +6,7 @@ import { UsersModule } from './User/users.module'
 
 // import { AuthResolver } from './auth.resolver'
 import { AuthService } from './auth.service'
-import { JwtStrategy } from './jwt.strategy'
+import { GoatStrategy } from './jwt.strategy'
 import { AuthController } from './auth.controller'
 
 @Module({
@@ -19,15 +19,15 @@ import { AuthController } from './auth.controller'
       useFactory: async (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET', process.env.JWT_SECRET),
         signOptions: {
-          expiresIn: 3600
+          expiresIn: 36000
         }
       }),
       inject: [ConfigService]
     }),
     UsersModule
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, GoatStrategy],
   controllers: [AuthController]
-  // providers: [AuthService, AuthResolver, JwtStrategy]
+  // providers: [AuthService, AuthResolver, GoatStrategy]
 })
 export class AuthModule {}

@@ -3,23 +3,19 @@ import {
   Post,
   Body,
   HttpException,
-  HttpStatus
+  HttpStatus,
+  Get
 } from '@nestjs/common'
-import { ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger'
+import { ApiTags, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { getModelSchemaRef } from '@loopback/rest'
 import { AuthDtoIn, AuthDtoOut } from './auth.dto'
-import to from 'await-to-js'
-import { Hash } from '../../../Helpers/Hash'
+import { Auth } from './Auth'
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authRepository: AuthService) {}
-  /**
-   *
-   * @param form
-   */
   @Post('/login')
   @ApiResponse({
     status: 200,
@@ -43,5 +39,24 @@ export class AuthController {
     const token = await this.authRepository.login(dbUser)
 
     return token
+  }
+
+  /**
+   *
+   * @param form
+   */
+
+  @Get('/me')
+  @Auth.authorize()
+  @ApiResponse({
+    status: 200,
+    description: 'The auth user',
+    content: {
+      'application/json': { schema: getModelSchemaRef(AuthDtoOut) }
+    },
+    type: String
+  })
+  async getUser(): Promise<string> {
+    return 'Hello world'
   }
 }

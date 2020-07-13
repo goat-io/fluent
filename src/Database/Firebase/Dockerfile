@@ -37,4 +37,6 @@ ENV PATH $PATH:~/gcloud/google-cloud-sdk/bin
 # First run will download the current .jar files for firebase
 RUN firebase emulators:exec --project test ls >> /dev/null
 
-EXPOSE 4000 8080 9000
+EXPOSE 4000 8080 8085 4400 4500 9000 5000 5002
+
+CMD firebase emulators:start --project ${FIRESTORE_PROJECT_NAME:-test}

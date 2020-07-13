@@ -31,10 +31,4 @@ export class AuthService {
   ): Promise<GoatOutput<UserDtoIn, UserDtoOut> | null> {
     return await this.userRepository.validate(UserInput)
   }
-
-  async validate({ id }): Promise<GoatOutput<UserDtoIn, UserDtoOut> | null> {
-    const user = await this.users.findById(id)
-    if (!user) throw Error('Authenticate validation error')
-    return user
-  }
 }
