@@ -1,9 +1,20 @@
+# 0.3.21
+[2020-07-13]
+
+### Fixes
+
+*  [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  moving all mongodb calls to Id ([`cbfa54f`](https://github.com/goat-io/fluent/commit/cbfa54f38cedabda32cd298e3d3124f1b2a0c9b8))
+
 # 0.3.20
 [2020-07-13]
 
 ### Fixes
 
 *  [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Remove mongo from types ([`5275e45`](https://github.com/goat-io/fluent/commit/5275e45871f48ffeaabd8d9a4700635b2a4ed3ed))
+
+### Other Changes
+
+* Release 0.3.20 ([`19cc48b`](https://github.com/goat-io/fluent/commit/19cc48b2786442e01758b73b53e70266478f877b))
 
 # 0.3.19
 [2020-07-13]
