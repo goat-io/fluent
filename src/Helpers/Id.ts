@@ -5,8 +5,15 @@ export const Id = (() => {
   /**
    *
    */
-  const objectID = (): string => {
+  const objectID = (id?: string | number | ObjectID): string => {
+    if (id) {
+      return new ObjectID(id).toString()
+    }
     return new ObjectID().toString()
+  }
+
+  const isValidObjectID = (id?: string | number | ObjectID): boolean => {
+    return ObjectID.isValid(id)
   }
   /**
    * Generate a UUID (version 4).
@@ -19,6 +26,7 @@ export const Id = (() => {
 
   return Object.freeze({
     objectID,
-    uuid
+    uuid,
+    isValidObjectID
   })
 })()

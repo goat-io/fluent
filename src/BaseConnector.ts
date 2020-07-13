@@ -12,14 +12,11 @@ import {
 import { Id } from './Helpers/Id'
 import { Dates } from './Helpers/Dates'
 import { typedPath, TypedPathWrapper } from 'typed-path'
-import { keys } from 'ts-transformer-keys'
 import {
   GoatOutput,
   IGoatExtendedAttributes,
   OperatorType
 } from './Providers/types'
-
-import { ObjectID } from 'mongodb'
 
 export interface GoatConnectorInterface<InputDTO, OutputDTO> {
   get(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
@@ -375,8 +372,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
           ) {
             newElement[extract.label] = value.data.name
           } else {
-            if (typeof value === 'object' && ObjectID.isValid(value)) {
-              value = new ObjectID(value).toString()
+            if (typeof value === 'object' && Id.isValidObjectID(value)) {
+              value = Id.objectID(value)
             }
             newElement[extract.label] = value
           }
