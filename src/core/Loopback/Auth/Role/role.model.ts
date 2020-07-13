@@ -8,7 +8,7 @@ import { Id } from '../../../../Helpers/Id'
 })
 export class Role extends Entity {
   @property({
-    default: () => Id.objectID(),
+    default: () => Id.objectIdString(),
     id: true,
     type: 'string'
   })

@@ -11,7 +11,7 @@ import { Id } from '../../../../../Helpers/Id'
 })
 export class UserCredentials extends Entity {
   @property({
-    default: () => Id.objectID(),
+    default: () => Id.objectIdString(),
     id: true,
     type: 'string'
   })

@@ -1,6 +1,5 @@
 /* eslint-disable global-require */
-const mongoose = require('mongoose')
-const { ObjectID } = require('mongodb')
+const { ObjectID } = require('bson')
 const _ = require('lodash')
 const nodeUrl = require('url')
 const Q = require('q')
@@ -267,7 +266,7 @@ const Utils = {
    */
   ObjectId(id: any) {
     try {
-      return _.isObject(id) ? id : mongoose.Types.ObjectId(id)
+      return _.isObject(id) ? id : ObjectID(id)
     } catch (e) {
       return id
     }
@@ -445,7 +444,7 @@ const Utils = {
    */
   idToBson(id: any) {
     try {
-      id = _.isObject(id) ? id : mongoose.Types.ObjectId(id)
+      id = _.isObject(id) ? id : ObjectID(id)
     } catch (e) {
       debug.idToBson(`Unknown id given: ${id}, typeof: ${typeof id}`)
       id = false

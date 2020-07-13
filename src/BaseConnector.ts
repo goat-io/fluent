@@ -62,7 +62,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
     const date = Dates.currentIsoString()
     return {
-      id: Id.objectID() + '_local',
+      id: Id.objectIdString() + '_local',
       updated: date,
       created: date,
       roles: []
@@ -371,7 +371,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
             newElement[extract.label] = value.data.name
           } else {
             if (typeof value === 'object' && Id.isValidObjectID(value)) {
-              value = Id.objectID(value)
+              value = Id.objectIdString(value)
             }
             newElement[extract.label] = value
           }

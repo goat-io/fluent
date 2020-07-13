@@ -72,6 +72,7 @@ it('UpdateById - Should Update a single element', async () => {
     age: 99,
     name: 'MyUpdatedGoat'
   })
+
   expect(data.name).toBe('MyUpdatedGoat')
 
   const data2 = await GoatModel.updateById(goats[0].id, {

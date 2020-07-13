@@ -1,18 +1,29 @@
-import { ObjectID } from 'bson'
+import ObjectID from 'bson-objectid'
+import { ObjectId } from 'mongodb'
 import { v4 } from 'uuid'
 
 export const Id = (() => {
   /**
    *
    */
-  const objectID = (id?: string | number | ObjectID): string => {
+  const objectID = (id?: string): ObjectId => {
+    if (id) {
+      return new ObjectId(id)
+    }
+    return new ObjectId()
+  }
+
+  /**
+   *
+   */
+  const objectIdString = (id?: string): string => {
     if (id) {
       return new ObjectID(id).toString()
     }
     return new ObjectID().toString()
   }
 
-  const isValidObjectID = (id?: string | number | ObjectID): boolean => {
+  const isValidObjectID = (id?: string): boolean => {
     return ObjectID.isValid(id)
   }
   /**
@@ -27,6 +38,7 @@ export const Id = (() => {
   return Object.freeze({
     objectID,
     uuid,
-    isValidObjectID
+    isValidObjectID,
+    objectIdString
   })
 })()

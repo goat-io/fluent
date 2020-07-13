@@ -13,7 +13,7 @@ import { User } from '../user.model'
 })
 export class UserRoleModel extends Entity {
   @property({
-    default: () => Id.objectID(),
+    default: () => Id.objectIdString(),
     id: true,
     type: 'string'
   })

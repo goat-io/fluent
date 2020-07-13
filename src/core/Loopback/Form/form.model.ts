@@ -9,7 +9,7 @@ import { Access } from './dto/Access-dtp.model'
 })
 export class Form extends Entity {
   @property({
-    default: () => Id.objectID(),
+    default: () => Id.objectIdString(),
     id: true,
     mongodb: { dataType: 'ObjectID' },
     type: 'string'

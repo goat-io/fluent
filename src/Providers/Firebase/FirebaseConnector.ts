@@ -233,7 +233,7 @@ export class FirebaseConnector<
   public async insert(
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const id = Id.objectID()
+    const id = Id.objectIdString()
     // const created = new Date()
     // const updated = new Date()
     // const version = 1
@@ -261,7 +261,7 @@ export class FirebaseConnector<
     const batch = []
 
     data.forEach(d => {
-      const id = Id.objectID()
+      const id = Id.objectIdString()
       // const created = new Date()
       // const updated = new Date()
       // const version = 1
@@ -292,7 +292,7 @@ export class FirebaseConnector<
     const batch = this.repository.createBatch()
 
     data.forEach(d => {
-      const id = Id.objectID()
+      const id = Id.objectIdString()
       // const created = new Date()
       // const updated = new Date()
       // const version = 1

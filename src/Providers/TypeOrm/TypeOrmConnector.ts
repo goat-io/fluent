@@ -11,8 +11,6 @@ import {
 } from '../types'
 
 import { Event } from '../../Helpers/Event'
-import { ObjectId } from 'mongodb'
-
 import {
   Repository,
   Not,
@@ -32,7 +30,7 @@ import {
 import { Errors } from '../../Helpers/Errors'
 import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
-import { TypedPathWrapper } from 'typed-path'
+import { Id } from '../../Helpers/Id'
 /*
     
       import {
@@ -247,7 +245,7 @@ export class TypeOrmConnector<
     id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB ? (Id.objectID(id) as ObjectID) : id
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
@@ -263,7 +261,7 @@ export class TypeOrmConnector<
     }
 
     const [getError, dbResult] = await to(this.repository.findByIds([parsedId]))
-
+    console.log('dbResult', dbResult)
     if (getError) {
       return Promise.reject(Errors(error, 'Entity not found'))
     }
@@ -286,7 +284,7 @@ export class TypeOrmConnector<
     id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB ? (Id.objectID(id) as ObjectID) : id
 
     const [getError, value] = await to(this.repository.findOneOrFail(parsedId))
 
@@ -364,7 +362,7 @@ export class TypeOrmConnector<
    * @param id
    */
   public async deleteById(id: string): Promise<string> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB ? (Id.objectID(id) as ObjectID) : id
     const [error, removed] = await to(this.repository.delete(parsedId))
 
     if (error) {
@@ -379,7 +377,7 @@ export class TypeOrmConnector<
    * @param id
    */
   public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB ? (Id.objectID(id) as ObjectID) : id
 
     const [error, data] = await to(this.repository.findByIds([parsedId]))
 
