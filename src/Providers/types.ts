@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb'
+import { ObjectID } from 'bson'
 
 export interface IDataElement {
   id?: string
@@ -30,8 +30,8 @@ export interface IDeleted {
   deleted: number
 }
 
-export type Primitives = boolean | string | number | ObjectId
-export type PrimitivesArray = boolean[] | string[] | number[] | ObjectId[]
+export type Primitives = boolean | string | number | ObjectID
+export type PrimitivesArray = boolean[] | string[] | number[] | ObjectID[]
 
 export interface IGoatExtendedAttributes {
   id: string

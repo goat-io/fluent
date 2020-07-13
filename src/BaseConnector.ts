@@ -7,16 +7,14 @@ import {
   IPaginator,
   ISure,
   Primitives,
-  GoatFilter
-} from './Providers/types'
-import { Id } from './Helpers/Id'
-import { Dates } from './Helpers/Dates'
-import { typedPath, TypedPathWrapper } from 'typed-path'
-import {
+  GoatFilter,
   GoatOutput,
   IGoatExtendedAttributes,
   OperatorType
 } from './Providers/types'
+import { Id } from './Helpers/Id'
+import { Dates } from './Helpers/Dates'
+import { typedPath, TypedPathWrapper } from 'typed-path'
 
 export interface GoatConnectorInterface<InputDTO, OutputDTO> {
   get(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
