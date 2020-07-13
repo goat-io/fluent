@@ -1,3 +1,10 @@
+# 0.3.20
+[2020-07-13]
+
+### Fixes
+
+*  [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Remove mongo from types ([`5275e45`](https://github.com/goat-io/fluent/commit/5275e45871f48ffeaabd8d9a4700635b2a4ed3ed))
+
 # 0.3.19
 [2020-07-13]
 
@@ -8,6 +15,7 @@
 ### Other Changes
 
 * feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Remove mongodb dependencies for main package ([`da21014`](https://github.com/goat-io/fluent/commit/da210144f02e4347bc6f371bfece889690c5fbd5))
+* Release 0.3.19 ([`725a858`](https://github.com/goat-io/fluent/commit/725a85877d31e613a96c73c6620d14c3ce5df15f))
 
 # 0.3.18
 [2020-07-13]
