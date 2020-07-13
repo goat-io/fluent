@@ -1,3 +1,14 @@
+# 0.3.19
+[2020-07-13]
+
+### Features
+
+* feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Remove mongodb dependencies for main package ([`da21014`](https://github.com/goat-io/fluent/commit/da210144f02e4347bc6f371bfece889690c5fbd5))
+
+### Other Changes
+
+* feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Remove mongodb dependencies for main package ([`da21014`](https://github.com/goat-io/fluent/commit/da210144f02e4347bc6f371bfece889690c5fbd5))
+
 # 0.3.18
 [2020-07-13]
 
@@ -10,6 +21,7 @@
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  JWT authentication ([`18f9020`](https://github.com/goat-io/fluent/commit/18f902008564671206571cccf3d9b7b1a917c078))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add firebase support ([`47495fb`](https://github.com/goat-io/fluent/commit/47495fb4907f20e866786fb8999fb4d32add6871))
+* Release 0.3.18 ([`d23b8b2`](https://github.com/goat-io/fluent/commit/d23b8b2b98d3d83ce2ec17a1a95805fe121ef35a))
 
 # 0.3.17
 [2020-06-21]
