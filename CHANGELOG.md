@@ -1,8 +1,20 @@
-# 0.3.22
-[2020-07-13]
+# 0.3.23
+[2020-07-14]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  remove mongodb dependency from Loopback Connector ([`eb790d2`](https://github.com/goat-io/fluent/commit/eb790d2769cbe5e4e561bc1ac1498d0bd650dd76))
 
 ### Other Changes
 
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  remove mongodb dependency from Loopback Connector ([`eb790d2`](https://github.com/goat-io/fluent/commit/eb790d2769cbe5e4e561bc1ac1498d0bd650dd76))
+
+# 0.3.22
+[2020-07-14]
+
+### Other Changes
+
+* Release 0.3.22 ([`a2707d8`](https://github.com/goat-io/fluent/commit/a2707d81d33b3cd777dd5c9579ae6e28d5629774))
 * chore: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Update RN ([`c0ae216`](https://github.com/goat-io/fluent/commit/c0ae21631eebb338294e73fe2d8e15677058a659))
 
 # 0.3.21
