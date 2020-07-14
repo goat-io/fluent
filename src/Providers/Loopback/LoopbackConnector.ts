@@ -3,7 +3,7 @@ import to from 'await-to-js'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
-import pluralize from 'pluralize'
+// import pluralize from 'pluralize'
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
   GoatOutput,
@@ -14,9 +14,9 @@ import {
   GoatFilter
 } from '../types'
 import { Connection } from '../../Helpers/Connection'
-import { Errors } from '../../Helpers/Errors'
+// import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
-import { Objects } from '../../Helpers/Objects'
+// import { Objects } from '../../Helpers/Objects'
 dayjs.extend(isSameOrAfter)
 
 interface ILoopbackConnector {
@@ -50,9 +50,10 @@ export class LoopbackConnector<
           text: 'Session expired'
         })
 
-        throw new Error(Errors(error, 'Session has expired.'))
+        // throw new Error(Errors(error, 'Session has expired.'))
+        throw new Error('Session has expired.')
       }
-      throw new Error(Errors(error, 'Error while getting submissions'))
+      throw new Error('Error while getting submissions')
     }
 
     const data = this.jsApplySelect(result.data)
@@ -71,9 +72,9 @@ export class LoopbackConnector<
           text: 'Session expired'
         })
 
-        throw new Error(Errors(error, 'Session has expired.'))
+        throw new Error('Session has expired.')
       }
-      throw new Error(Errors(error, 'Error while getting submissions'))
+      throw new Error('Error while getting submissions')
     }
 
     const results: IPaginatedData<InputDTO> = {

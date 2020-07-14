@@ -1,5 +1,6 @@
-import ObjectID from 'bson-objectid'
-import { ObjectId } from 'mongodb'
+// import ObjectId from 'bson-objectid'
+// import { ObjectId } from 'mongodb'
+import { ObjectId } from 'bson'
 import { v4 } from 'uuid'
 
 export const Id = (() => {
@@ -18,13 +19,13 @@ export const Id = (() => {
    */
   const objectIdString = (id?: string): string => {
     if (id) {
-      return new ObjectID(id).toString()
+      return new ObjectId(id).toString()
     }
-    return new ObjectID().toString()
+    return new ObjectId().toString()
   }
 
   const isValidObjectID = (id?: string): boolean => {
-    return ObjectID.isValid(id)
+    return ObjectId.isValid(id)
   }
   /**
    * Generate a UUID (version 4).
