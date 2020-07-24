@@ -1,3 +1,14 @@
+# 0.3.24
+[2020-07-24]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add Firebase JWT validation ([`6a94ae5`](https://github.com/goat-io/fluent/commit/6a94ae5741e7fa4fff83676278e0867b21df03c4))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add Firebase JWT validation ([`6a94ae5`](https://github.com/goat-io/fluent/commit/6a94ae5741e7fa4fff83676278e0867b21df03c4))
+
 # 0.3.23
 [2020-07-14]
 
@@ -8,6 +19,7 @@
 ### Other Changes
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  remove mongodb dependency from Loopback Connector ([`eb790d2`](https://github.com/goat-io/fluent/commit/eb790d2769cbe5e4e561bc1ac1498d0bd650dd76))
+* Release 0.3.23 ([`21db49f`](https://github.com/goat-io/fluent/commit/21db49fe4640b92eedda7df0b363b9494acee366))
 
 # 0.3.22
 [2020-07-14]
