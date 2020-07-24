@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common'
-import { JwtService } from '@nestjs/jwt'
 import { UserDtoIn, UserDtoOut } from './User/users.dto'
-import { User } from './User/user.entity'
-import { UsersService } from './User/users.service'
+
 import { AuthDtoOut } from './auth.dto'
 import { GoatOutput } from '../../../Providers/types'
+import { Injectable } from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
+import { User } from './User/user.entity'
+import { UsersService } from './User/users.service'
 
 @Injectable()
 export class AuthService {

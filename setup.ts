@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin'
+
 import { initialize } from 'fireorm'
 
 /*

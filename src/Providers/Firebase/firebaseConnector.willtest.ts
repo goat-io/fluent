@@ -2,12 +2,12 @@ import {
   FirebaseConnector,
   MockCreateFirebaseRepository
 } from './FirebaseConnector'
+import { GoatEntityIn, GoatEntityOut } from '../test/goat.dto'
+import { TypeORMDataModel, advancedTestSuite } from '../test/advancedTestSuite'
 
-import { advancedTestSuite, TypeORMDataModel } from '../test/advancedTestSuite'
+import { GoatEntity } from '../test/goat.entity'
 import { basicTestSuite } from '../test/basicTestSuite'
 
-import { GoatEntityOut, GoatEntityIn } from '../test/goat.dto'
-import { GoatEntity } from '../test/goat.entity'
 /*
 describe('Execute all basic test Suite', () => {
   const repository = MockCreateFirebaseRepository(GoatEntity)

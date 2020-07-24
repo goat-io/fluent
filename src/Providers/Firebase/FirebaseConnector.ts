@@ -1,24 +1,25 @@
-import to from 'await-to-js'
+import * as admin from 'firebase-admin'
+
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+import { FieldPath, OrderByDirection } from '@google-cloud/firestore'
 import {
+  GoatFilter,
   GoatOutput,
   IDataElement,
   IPaginatedData,
   IPaginator,
-  ISure,
-  GoatFilter
+  ISure
 } from '../types'
+import { ObjectLiteral, createConnection as connection } from 'typeorm'
 
+import { BaseFirestoreRepository } from 'fireorm'
+import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
 import { Id } from '../../Helpers/Id'
-import { getOutputKeys } from '../outputKeys'
-import { createConnection as connection, ObjectLiteral } from 'typeorm'
-import { Errors } from '../../Helpers/Errors'
 import { Objects } from '../../Helpers/Objects'
-import { BaseFirestoreRepository } from 'fireorm'
-import * as admin from 'firebase-admin'
+import { getOutputKeys } from '../outputKeys'
 import { getRepository } from 'fireorm'
-import { OrderByDirection, FieldPath } from '@google-cloud/firestore'
+import to from 'await-to-js'
 
 const db = admin.firestore()
 
