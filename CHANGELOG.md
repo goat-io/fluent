@@ -1,3 +1,18 @@
+# 0.3.26
+[2020-08-18]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`5fe9217`](https://github.com/goat-io/fluent/commit/5fe9217538fa6439bbd1bfb895511bc73930c39b))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update libraries ([`a383604`](https://github.com/goat-io/fluent/commit/a38360440dfb8eee2f0b97c6c6a0dc8c054d9119))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  fix deploy ([`46dcbba`](https://github.com/goat-io/fluent/commit/46dcbbae905a44b64757250a140708c95cebb01b))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`5fe9217`](https://github.com/goat-io/fluent/commit/5fe9217538fa6439bbd1bfb895511bc73930c39b))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update libraries ([`a383604`](https://github.com/goat-io/fluent/commit/a38360440dfb8eee2f0b97c6c6a0dc8c054d9119))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  fix deploy ([`46dcbba`](https://github.com/goat-io/fluent/commit/46dcbbae905a44b64757250a140708c95cebb01b))
+
 # 0.3.25
 [2020-08-18]
 
@@ -8,6 +23,7 @@
 ### Other Changes
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Basic relations for Providers ([`0cad8d4`](https://github.com/goat-io/fluent/commit/0cad8d49cf0668a8073b8209ca48893a51efd4da))
+* Release 0.3.25 ([`687e12f`](https://github.com/goat-io/fluent/commit/687e12f4e319f4f0fe9bff43a7935c5e110fd6f7))
 
 # 0.3.24
 [2020-07-24]
