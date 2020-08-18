@@ -1,3 +1,14 @@
+# 0.3.25
+[2020-08-18]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Basic relations for Providers ([`0cad8d4`](https://github.com/goat-io/fluent/commit/0cad8d49cf0668a8073b8209ca48893a51efd4da))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Basic relations for Providers ([`0cad8d4`](https://github.com/goat-io/fluent/commit/0cad8d49cf0668a8073b8209ca48893a51efd4da))
+
 # 0.3.24
 [2020-07-24]
 
@@ -8,6 +19,7 @@
 ### Other Changes
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add Firebase JWT validation ([`6a94ae5`](https://github.com/goat-io/fluent/commit/6a94ae5741e7fa4fff83676278e0867b21df03c4))
+* Release 0.3.24 ([`1185984`](https://github.com/goat-io/fluent/commit/11859840accbf4d5676ce54a22085e3be77d6993))
 
 # 0.3.23
 [2020-07-14]
