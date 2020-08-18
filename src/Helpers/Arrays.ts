@@ -12,7 +12,6 @@ export const Arrays = (() => {
     }
     return def
   }
-
   /**
    * Return the last element in an array.
    *
@@ -27,9 +26,21 @@ export const Arrays = (() => {
     }
     return def
   }
+  /**
+   *
+   * @param xs
+   * @param f
+   */
+  const groupBy = (xs, f) => {
+    return xs.reduce(
+      (r, v, i, a, k = f(v)) => ((r[k] || (r[k] = [])).push(v), r),
+      {}
+    )
+  }
 
   return Object.freeze({
     first,
-    last
+    last,
+    groupBy
   })
 })()

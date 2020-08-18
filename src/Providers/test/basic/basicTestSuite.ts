@@ -1,7 +1,11 @@
-import { flock } from './flock'
+import { flock } from '../flock'
 
 export const basicTestSuite = Model => {
   let storedId: any
+
+  beforeAll(() => {
+    Model = new Model()
+  })
 
   test('Get - Should  GET data', async () => {
     const storedGoats = await Model.get()

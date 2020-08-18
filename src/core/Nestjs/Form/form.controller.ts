@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger'
 import { FormService } from './form.service'
 import { FormDtoOut, FormDtoIn } from './form.dto'
-import { getModelSchemaRef, SchemaObject } from '@loopback/rest'
+import { getModelSchemaRef } from '@loopback/rest'
 import { Form as FormEntity } from './form.entity'
 import to from 'await-to-js'
 import { GoatFilter, GoatOutput } from 'Providers/types'

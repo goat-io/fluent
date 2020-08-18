@@ -1,7 +1,7 @@
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
-import { GoatOutput, IDataElement, GoatFilter } from '../types'
+import { GoatFilter, GoatOutput, IDataElement } from '../types'
+
 import { Dates } from '../../Helpers/Dates'
-import { Filter } from '@loopback/repository'
 
 let db: any = []
 

@@ -1,12 +1,28 @@
+import { GoatEntityIn, GoatEntityOut } from '../test/basic/goat.dto'
+
+import { GoatEntity } from '../test/basic/goat.entity'
 import { LokiConnector } from './LokiConnector'
-import {
-  advancedTestSuite,
-  DataModel,
-  TypeORMDataModel
-} from '../test/advancedTestSuite'
+import { TypeORMDataModel } from '../test/advanced/typeOrm.entity'
+import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
+import { basicTestSuite } from '../test/basic/basicTestSuite'
 
-const NormalClass = new LokiConnector<DataModel>('myModel')
-const TypeORMClass = new LokiConnector<TypeORMDataModel>('myModel2')
+class Goat extends LokiConnector<GoatEntity, GoatEntityIn, GoatEntityOut> {
+  constructor() {
+    super('myModel')
+  }
+}
 
-advancedTestSuite(NormalClass)
-advancedTestSuite(TypeORMClass)
+// tslint:disable-next-line: max-classes-per-file
+class Goat2 extends LokiConnector<TypeORMDataModel> {
+  constructor() {
+    super('myModel2')
+  }
+}
+
+describe('Execute all basic test Suite', () => {
+  basicTestSuite(Goat)
+})
+
+describe('Execute all advanced test Suite', () => {
+  advancedTestSuite(Goat2)
+})

@@ -15,7 +15,7 @@ export const template = `{{#each this}}
 {{else}}
 @Column({
   nullable: {{#if required}}false,{{else}}true,{{/if}}
-  type: "{{type}}"{{#if enum}}, 
+  {{#if enum}} 
   enum: [ {{#each enum}}"{{this}}",{{/each}} ]{{/if}}
 })
 @ApiProperty({
@@ -31,11 +31,8 @@ export const template = `{{#each this}}
 {{/IfMetaNotProperty}}
 {{/ifIsNotId}}
 {{#ifIsId @key}}
-// @PrimaryGeneratedColumn('uuid')
-@ObjectIdColumn()
-@ApiProperty()
-@Field(() => ID)
-id: string
+@Decorators.id()
+_id: string
 {{/ifIsId}}
 
 {{/each}}`

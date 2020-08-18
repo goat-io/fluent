@@ -5,14 +5,12 @@ import { EnvModule } from './Env/env.module'
 import { FilesModule } from './Uploads/files.module'
 import { FormModule } from './Form/form.module'
 import { HealthModule } from './Health/health.module'
-import { RoleModule } from './Auth/Role/roles.module'
 import { UsersModule } from './Auth/User/users.module'
 
 const GoatModules = [
   DatabaseModule,
   FilesModule,
-  UsersModule,
-  RoleModule,
+  // UsersModule,
   AccessControlModule,
   HealthModule,
   FormModule,
@@ -24,7 +22,7 @@ if (
   (process.env.AUTH_USE_FIREBASE &&
     String(process.env.AUTH_USE_FIREBASE) === 'true')
 ) {
-  GoatModules.push(AuthModule)
+  // GoatModules.push(AuthModule)
 }
 
 export { GoatModules }

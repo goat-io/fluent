@@ -1,7 +1,13 @@
 import * as admin from 'firebase-admin'
 
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
-import { FieldPath, OrderByDirection } from '@google-cloud/firestore'
+import { BaseFirestoreRepository, getRepository } from 'fireorm'
+import {
+  Connection,
+  ObjectLiteral,
+  createConnection as connection,
+  getRepository as getRepositoryTypeORM
+} from 'typeorm'
 import {
   GoatFilter,
   GoatOutput,
@@ -10,36 +16,41 @@ import {
   IPaginator,
   ISure
 } from '../types'
-import { ObjectLiteral, createConnection as connection } from 'typeorm'
 
-import { BaseFirestoreRepository } from 'fireorm'
 import { Errors } from '../../Helpers/Errors'
-import { Event } from '../../Helpers/Event'
+import { FieldPath } from '@google-cloud/firestore'
 import { Id } from '../../Helpers/Id'
 import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
-import { getRepository } from 'fireorm'
+import { loadRelations } from './relations/loadRelations'
 import to from 'await-to-js'
 
 const db = admin.firestore()
 
+export const createConnection = connection
 /**
  * Creates a repository from the given Entity
  * @param Entity
  */
-export const createFirebaseRepository = async Entity => {
-  const con = await createConnection({
-    type: 'sqlite',
-    database: 'goatModelGenerator',
-    entities: [Entity],
-    logging: false,
-    synchronize: true
-  })
-
-  const typeOrmRepo = con.getRepository(Entity)
+export const createFirebaseRepository = Entity => {
+  const typeOrmRepo = getRepositoryTypeORM(Entity, 'modelGenerator')
   const repository = getRepository(Entity)
   let name: string = ''
   let path: string = ''
+  const relations = {}
+
+  for (const relation of typeOrmRepo.metadata.relations) {
+    relations[relation.inverseEntityMetadata.givenTableName.toLowerCase()] = {
+      isOneToMany: relation.isOneToMany,
+      isManyToOne: relation.isManyToOne,
+      isManyToMany: relation.isManyToMany,
+      inverseSidePropertyPath: relation.inverseSidePropertyPath,
+      propertyPath: relation.propertyName,
+      entityName: relation.inverseEntityMetadata.name,
+      tableName: relation.inverseEntityMetadata.tableName,
+      targetClass: relation.inverseEntityMetadata.target
+    }
+  }
 
   try {
     const parsed = JSON.parse(JSON.stringify(repository))
@@ -52,42 +63,13 @@ export const createFirebaseRepository = async Entity => {
     repository,
     name,
     path,
-    keys: [...['id', '_id'], ...getOutputKeys(typeOrmRepo)]
+    keys: [...['id', '_id'], ...getOutputKeys(typeOrmRepo)],
+    relations
   }
 }
 /**
- * Create a sync version of the repository to
- * allow Jest to run it
- * @param Entity
+ *
  */
-export const MockCreateFirebaseRepository = Entity => {
-  const repository = getRepository(Entity)
-  let name: string = ''
-  let path: string = ''
-
-  try {
-    const parsed = JSON.parse(JSON.stringify(repository))
-    name = parsed.colName
-    path = parsed.collectionPath
-  } catch (error) {
-    name = ''
-  }
-  return {
-    repository,
-    name,
-    path,
-    keys: []
-  }
-}
-
-export const createConnection = connection
-
-export interface IFirebaseConnector {
-  repository: BaseFirestoreRepository<any>
-  name: string
-  keys?: string[]
-}
-
 export class FirebaseConnector<
   ModelDTO = IDataElement,
   InputDTO = ModelDTO,
@@ -97,19 +79,33 @@ export class FirebaseConnector<
   private repository: BaseFirestoreRepository<any>
   private collection: FirebaseFirestore.CollectionReference<ModelDTO>
 
-  constructor({ repository, keys, name }: IFirebaseConnector) {
+  constructor(Entity, relationQuery?: any) {
     super()
+    const { repository, keys, name, relations } = createFirebaseRepository(
+      Entity
+    )
+    this.relationQuery = relationQuery
     this.repository = repository
     this.collection = db.collection(
       name
     ) as FirebaseFirestore.CollectionReference<ModelDTO>
     this.outputKeys = keys || []
+    this.modelRelations = relations
   }
   /**
    *
    */
   public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const query = this.getGeneratedQuery()
+    let query = this.getGeneratedQuery()
+
+    if (this.relationQuery && this.relationQuery.data) {
+      const ids = this.relationQuery.data.map(d => d.id)
+      query = query.where(
+        this.relationQuery.relation.inverseSidePropertyPath,
+        'in',
+        ids
+      )
+    }
 
     const [getError, snapshot] = await to(query.get())
 
@@ -124,7 +120,10 @@ export class FirebaseConnector<
       result.push(doc.data())
     })
 
-    const data = this.jsApplySelect(result)
+    let data = this.jsApplySelect(result)
+
+    data = await loadRelations(data, this.relations, this.modelRelations)
+
     this.reset()
     return data
   }
@@ -235,6 +234,10 @@ export class FirebaseConnector<
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const id = Id.objectIdString()
+
+    if (false) {
+      console.log('We have  a created field')
+    }
     // const created = new Date()
     // const updated = new Date()
     // const version = 1
@@ -381,7 +384,6 @@ export class FirebaseConnector<
 
     const entity = { ...newValue /*...{ updated: new Date() }*/ }
 
-    console.log('newValue', newValue)
     const [error] = await to(this.repository.update(entity))
 
     if (error) {
@@ -448,6 +450,7 @@ export class FirebaseConnector<
     if (error) {
       return Promise.reject(Errors(error, 'Could not get data'))
     }
+
     const result = this.jsApplySelect(data) as GoatOutput<InputDTO, OutputDTO>[]
     this.reset()
 
@@ -534,7 +537,6 @@ export class FirebaseConnector<
     // filter = this.getPaginatorLimit(filter)
     // const page = this.getPage()
     // const populate = this.getPopulate()
-
     return queryBuilder
   }
   /**
@@ -563,7 +565,7 @@ export class FirebaseConnector<
 
       switch (operator) {
         case '=':
-          filterQuery = filterQuery.where(element, operator, value)
+          filterQuery = filterQuery.where(element, '==', value)
           break
         case '!=':
           throw new Error('The != Operator cannot be used in Firabase')
@@ -581,7 +583,7 @@ export class FirebaseConnector<
           filterQuery = filterQuery.where(element, operator, value)
           break
         case 'in':
-          filterQuery = filterQuery.where(element, 'array-contains', value)
+          filterQuery = filterQuery.where(element, 'in', value)
           break
         case 'nin':
           throw new Error('The nin Operator cannot be used in Firabase')

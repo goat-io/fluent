@@ -19,7 +19,7 @@ export class {{_Model.name}}DtoOut extends OmitType({{_Model.name}}Entity, [
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
 export class {{_Model.name}}DtoIn extends OmitType({{_Model.name}}Entity , [
-  'id',
+  '_id',
   'created',
   'updated',
   'deleted',

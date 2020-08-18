@@ -1,0 +1,1 @@
+const getRelatedModel = async Entity => {}

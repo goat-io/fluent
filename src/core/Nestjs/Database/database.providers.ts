@@ -10,8 +10,9 @@ export const Databases = [
         synchronize: true,
         logging: false,
         entities: [
+          __dirname + '/../Auth/Role/*.entity{.ts,.js}',
           __dirname + '/../Form/*.entity{.ts,.js}',
-          __dirname + '/../Auth/Role/*.entity{.ts,.js}'
+          __dirname + '/../Auth/User/*.entity{.ts,.js}'
         ]
       })
   }

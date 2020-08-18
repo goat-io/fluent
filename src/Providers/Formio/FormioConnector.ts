@@ -1,21 +1,21 @@
-import to from 'await-to-js'
-import axios from 'axios'
-import dayjs from 'dayjs'
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
-import jwtDecode from 'jwt-decode'
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
+  GoatFilter,
   GoatOutput,
   IDataElement,
-  ISure,
   IPaginatedData,
   IPaginator,
-  GoatFilter
+  ISure
 } from '../types'
 
 import { Connection } from '../../Helpers/Connection'
 import { Event } from '../../Helpers/Event'
-import { Filter } from '@loopback/repository'
+import axios from 'axios'
+import dayjs from 'dayjs'
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
+import jwtDecode from 'jwt-decode'
+import to from 'await-to-js'
+
 dayjs.extend(isSameOrAfter)
 
 interface IFormioConnector {

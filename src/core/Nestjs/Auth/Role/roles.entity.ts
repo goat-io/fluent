@@ -1,19 +1,23 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  Index,
-  UpdateDateColumn,
-  CreateDateColumn,
-  DeleteDateColumn
-} from 'typeorm'
-import { ApiProperty } from '@nestjs/swagger'
-import { Field, ID, ObjectType } from '@nestjs/graphql'
 import * as faker from 'faker'
+
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  Index,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
+} from 'typeorm'
+import { Field, ID, ObjectType } from '@nestjs/graphql'
+
+import { ApiProperty } from '@nestjs/swagger'
 import { Collection } from 'fireorm'
 
 // tslint:disable-next-line: max-classes-per-file
-@Entity()
+@Entity({ name: 'roles' })
 @Collection()
 @ObjectType()
 export class Role {
@@ -28,6 +32,7 @@ export class Role {
 
   @Column({ nullable: false })
   @ApiProperty({ nullable: false, required: true })
+  @Index({ unique: true })
   name: string
 
   @CreateDateColumn()

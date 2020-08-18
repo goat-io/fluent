@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common'
-import { RoleController } from './roles.controller'
-import { Role } from './roles.entity'
-import { RoleService } from './roles.service'
 import { Connection } from 'typeorm'
 import { DatabaseModule } from '../../Database/database.module'
+import { Module } from '@nestjs/common'
+import { Role } from './roles.entity'
+import { RoleController } from './roles.controller'
+import { RoleService } from './roles.service'
 
 @Module({
   imports: [DatabaseModule],

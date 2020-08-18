@@ -29,7 +29,7 @@ import { getGoatFilterSchema } from '@goatlab/fluent/dist/core/dtos/filterSchema
 
 
 @ApiTags('{{_Model.name}}')
-@Controller('{{_Model.name}}')
+@Controller('{{_Model.path}}')
 export class {{_Model.name}}BaseController {
   private {{_Model.name}}: {{_Model.name}}Service['model']
   constructor(private readonly {{_Model.name}}Repository: {{_Model.name}}Service) {

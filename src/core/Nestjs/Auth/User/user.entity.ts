@@ -1,28 +1,23 @@
-import { Field, HideField, ID, ObjectType } from '@nestjs/graphql'
+import { ApiHideProperty, ApiProperty } from '@nestjs/swagger'
 import {
-  Entity,
   Column,
-  ObjectIdColumn,
   CreateDateColumn,
-  UpdateDateColumn,
   DeleteDateColumn,
-  VersionColumn,
-  ObjectID,
+  Entity,
   Index,
-  PrimaryColumn
+  UpdateDateColumn,
+  VersionColumn
 } from 'typeorm'
-import { ApiProperty, ApiHideProperty } from '@nestjs/swagger'
+import { HideField, ObjectType } from '@nestjs/graphql'
+
 import { Collection } from 'fireorm'
+import { Decorators } from '../../Database/decorators'
 
 @ObjectType()
 @Entity({ name: 'users' })
 @Collection()
 export class User {
-  @ApiProperty()
-  @Field(() => ID)
-  @Column({ type: 'string' })
-  @ObjectIdColumn()
-  @PrimaryColumn()
+  @Decorators.id()
   _id: string
 
   @Column({ nullable: false })

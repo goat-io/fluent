@@ -1,12 +1,25 @@
+import { GoatEntityIn, GoatEntityOut } from '../test/basic/goat.dto'
+
+import { GoatEntity } from '../test/basic/goat.entity'
 import { MemoryConnector } from './MemoryConnector'
-import { GoatEntityIn, GoatEntityOut } from '../test/goat.dto'
+import { TypeORMDataModel } from '../test/advanced/typeOrm.entity'
+import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
+import { basicTestSuite } from '../test/basic/basicTestSuite'
 
-let storedId: string = ''
+class Goat extends MemoryConnector<GoatEntity, GoatEntityIn, GoatEntityOut> {}
 
-const GoatModel = (() => {
-  return new MemoryConnector<GoatEntityOut, GoatEntityIn, GoatEntityOut>()
-})()
+// tslint:disable-next-line: max-classes-per-file
+class Goat2 extends MemoryConnector<TypeORMDataModel> {}
 
+describe('Execute all basic test Suite', () => {
+  basicTestSuite(Goat)
+})
+
+describe('Execute all advanced test Suite', () => {
+  // advancedTestSuite(Goat2)
+})
+
+/*
 test('Get - Should  GET data', async () => {
   const storedGoats = await GoatModel.get()
   expect(Array.isArray(storedGoats)).toBe(true)
@@ -158,3 +171,4 @@ it('Offset/Limit - should restrict the results', async () => {
   expect(goats.length).toBe(1)
   expect(goats[0].name).toBe('Pedro')
 })
+*/

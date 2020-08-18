@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger'
 import { RoleService } from './roles.service'
 import { RoleDtoOut, RoleDtoIn } from './roles.dto'
-import { getModelSchemaRef, SchemaObject } from '@loopback/rest'
+import { getModelSchemaRef } from '@loopback/rest'
 import { Role as RoleEntity } from './roles.entity'
 import to from 'await-to-js'
 import { GoatFilter, GoatOutput } from 'Providers/types'

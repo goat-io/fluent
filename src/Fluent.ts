@@ -1,10 +1,12 @@
-import { Collection } from './Collection'
 import {
-  Primitives,
+  IDataElement,
   IGoatExtendedAttributes,
-  IDataElement
+  Primitives
 } from './Providers/types'
 import { TypedPathWrapper, typedPath } from 'typed-path'
+import { createConnection, getConnection } from 'typeorm'
+
+import { Collection } from './Collection'
 
 export interface _FLUENT_ {
   models?: {
@@ -73,6 +75,22 @@ export class Fluent {
 
     if (typeof global !== 'undefined' && global) {
       return global._FLUENT_
+    }
+  }
+
+  public static async start(Entities: any[]) {
+    try {
+      getConnection('modelGenerator')
+    } catch (error) {
+      await createConnection({
+        name: 'modelGenerator',
+        type: 'sqlite',
+        entities: Entities,
+        database: ':memory:',
+        logging: false,
+        synchronize: true,
+        dropSchema: true
+      })
     }
   }
 }

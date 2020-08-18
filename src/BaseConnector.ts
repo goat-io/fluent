@@ -1,20 +1,24 @@
-import { Filter } from '@loopback/repository'
-import { Collection } from './Collection'
-import { Objects } from './Helpers/Objects'
 import {
+  GoatFilter,
+  GoatOutput,
   IDeleted,
+  IGoatExtendedAttributes,
   IPaginatedData,
   IPaginator,
   ISure,
+  OperatorType,
   Primitives,
-  GoatFilter,
-  GoatOutput,
-  IGoatExtendedAttributes,
-  OperatorType
+  PrimitivesArray
 } from './Providers/types'
-import { Id } from './Helpers/Id'
+import { TypedPathWrapper, typedPath } from 'typed-path'
+
+import { Collection } from './Collection'
 import { Dates } from './Helpers/Dates'
-import { typedPath, TypedPathWrapper } from 'typed-path'
+import { Filter } from '@loopback/repository'
+import { Id } from './Helpers/Id'
+import { ObjectID } from 'typeorm'
+import { ObjectId } from 'mongodb'
+import { Objects } from './Helpers/Objects'
 
 export interface GoatConnectorInterface<InputDTO, OutputDTO> {
   get(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
@@ -58,6 +62,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected paginator = undefined
   protected rawQuery = undefined
   protected getFirst = false
+  protected relations = undefined
+  protected loadModels: boolean = false
+  protected relationQuery
+  protected modelRelations: any
+  protected isMongoDB: boolean
 
   protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
     const date = Dates.currentIsoString()
@@ -96,6 +105,14 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
   /**
    *
+   */
+  public async insertMany(
+    data: InputDTO[]
+  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    throw new Error('get() method not implemented')
+  }
+  /**
+   *
    * @param user
    */
   public owner(user: string) {
@@ -121,7 +138,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const data = await this.get()
 
     if (!data[0]) {
-      throw new Error('First could not find elements')
+      throw new Error(
+        'Your query had no results. First could not find elements'
+      )
     }
 
     return data[0]
@@ -223,7 +242,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   public where(
     path: TypedPathWrapper<Primitives>,
     operator: OperatorType,
-    value: Primitives
+    value: Primitives | PrimitivesArray
   ) {
     const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
@@ -456,7 +475,79 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.paginator = undefined
     this.rawQuery = undefined
     this.getFirst = false
+    this.relations = undefined
+    this.loadModels = false
+    this.relationQuery = undefined
   }
+  /**
+   *
+   */
+  public async load() {
+    const result = await this.get()
+
+    this.relationQuery = {
+      data: result,
+      relations: this.modelRelations
+    }
+
+    return this
+  }
+  /**
+   * Define which relations to load
+   * @param Entities
+   */
+  public with(entities: any) {
+    this.relations = entities
+    return this
+  }
+  /**
+   * Define which relations to load
+   * @param Entities
+   */
+  public async attach(data: InputDTO) {
+    if (!this.relationQuery.relation || !this.relationQuery.data) {
+      throw new Error('Attached can only be called as a related model')
+    }
+
+    if (this.relationQuery && this.relationQuery.data) {
+      const relatedData = this.relationQuery.data.map(d => {
+        return {
+          [this.relationQuery.relation.inverseSidePropertyPath]: this.isMongoDB
+            ? (new ObjectId(d.id) as ObjectID)
+            : d.id,
+          ...data
+        }
+      })
+
+      return this.insertMany(relatedData)
+    }
+  }
+  /**
+   *
+   */
+  protected hasMany<T>(Repository: T, relationName: string) {
+    if (this.relationQuery) {
+      this.relationQuery.relation = this.relationQuery.relations[relationName]
+    }
+
+    return Repository
+  }
+  /**
+   *
+   */
+  protected hasOne() {}
+  /**
+   *
+   */
+  protected belongsTo() {}
+  /**
+   *
+   */
+  protected belongsToMany() {}
+  /**
+   *
+   */
+  protected hasManyThrough() {}
   /**
    *
    * @param {*} input

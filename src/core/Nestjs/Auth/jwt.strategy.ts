@@ -1,10 +1,6 @@
 import * as admin from 'firebase-admin'
 
-import {
-  FirebaseAuthStrategy,
-  FirebaseUser,
-  UNAUTHORIZED
-} from '@tfarras/nestjs-firebase-auth'
+import { FirebaseUser, UNAUTHORIZED } from '@tfarras/nestjs-firebase-auth'
 
 import { ConfigService } from '@nestjs/config'
 import { ExtractJwt } from 'passport-jwt'
@@ -12,7 +8,6 @@ import { For } from '../../../Helpers/For'
 import { Injectable } from '@nestjs/common'
 import { PassportStrategy } from '@nestjs/passport'
 import { Strategy } from 'passport-strategy'
-import { User } from '../Auth/User/user.entity'
 
 @Injectable()
 export class GoatStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -22,30 +17,31 @@ export class GoatStrategy extends PassportStrategy(Strategy, 'jwt') {
     this.extractor = ExtractJwt.fromAuthHeaderAsBearerToken()
   }
   /**
-   * Custom logic for token validation
-   * @param payload
-   */
-  async validate(payload: FirebaseUser): Promise<FirebaseUser> {
-    // If we need to include additional validatoins to the token or user
-    return payload
-  }
-  /**
    * Authenticate the JWT either by using Firebase
-   * Token or the locally generated
+   * Token, the locally generated, Auth0 (soon)
    * @param req
    */
-  async authenticate(req: Request): Promise<void> {
+  async authenticate(req: any): Promise<void> {
     const idToken = this.extractor(req)
+
     if (!idToken) {
       this.fail(UNAUTHORIZED, 401)
       return
     }
 
     if (process.env.AUTH_USE_FIREBASE) {
-      console.log('validating with firebase')
-      this.firebaseValidation(idToken)
+      const user = this.firebaseValidation(idToken)
+      req.user = user
       return
     }
+  }
+  /**
+   * Custom logic for token validation
+   * @param payload
+   */
+  async validate(payload: FirebaseUser): Promise<FirebaseUser> {
+    // If we need to include additional validations to the token or user
+    return payload
   }
   /**
    * Perform token authentication using

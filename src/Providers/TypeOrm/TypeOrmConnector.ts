@@ -1,36 +1,37 @@
-import to from 'await-to-js'
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
+  Equal,
+  FindManyOptions,
+  In,
+  IsNull,
+  LessThan,
+  LessThanOrEqual,
+  Like,
+  MoreThan,
+  MoreThanOrEqual,
+  Not,
+  ObjectID,
+  Repository,
+  createConnection as connection,
+  getConnection
+} from 'typeorm'
+import {
+  GoatFilter,
   GoatOutput,
   IDataElement,
   IPaginatedData,
   IPaginator,
-  ISure,
-  GoatFilter,
-  Primitives
+  ISure
 } from '../types'
 
-import { Event } from '../../Helpers/Event'
-import {
-  Repository,
-  Not,
-  LessThan,
-  LessThanOrEqual,
-  MoreThan,
-  MoreThanOrEqual,
-  Equal,
-  In,
-  Like,
-  IsNull,
-  FindManyOptions,
-  createConnection as connection,
-  ObjectID,
-  FindConditions
-} from 'typeorm'
 import { Errors } from '../../Helpers/Errors'
+import { Event } from '../../Helpers/Event'
+import { ObjectId } from 'mongodb'
 import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
-import { ObjectId } from 'mongodb'
+import { loadRelations } from '../../Providers/Firebase/relations/loadRelations'
+import to from 'await-to-js'
+
 /*
     
       import {
@@ -43,13 +44,29 @@ import { ObjectId } from 'mongodb'
       }
    */
 
-interface ITypeOrmConnector<T> {
-  repository: Repository<T>
-  isMongoDB?: boolean
-}
-
 export const createConnection = connection
 export class GoatRepository<T> extends Repository<T> {}
+
+export const getRelations = typeOrmRepo => {
+  const relations = {}
+
+  for (const relation of typeOrmRepo.metadata.relations) {
+    relations[relation.inverseEntityMetadata.givenTableName.toLowerCase()] = {
+      isOneToMany: relation.isOneToMany,
+      isManyToOne: relation.isManyToOne,
+      isManyToMany: relation.isManyToMany,
+      inverseSidePropertyPath: relation.inverseSidePropertyPath,
+      propertyPath: relation.propertyName,
+      entityName: relation.inverseEntityMetadata.name,
+      tableName: relation.inverseEntityMetadata.tableName,
+      targetClass: relation.inverseEntityMetadata.target
+    }
+  }
+
+  return {
+    relations
+  }
+}
 
 // tslint:disable-next-line: max-classes-per-file
 export class TypeOrmConnector<
@@ -59,15 +76,24 @@ export class TypeOrmConnector<
 > extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private repository: Repository<ModelDTO>
-  private isMongoDB: boolean
 
-  constructor({ repository, isMongoDB }: ITypeOrmConnector<ModelDTO>) {
+  constructor(entity: any, connectionName?: string, relationQuery?: any) {
     super()
-    this.repository = repository
+
+    const con = getConnection(connectionName || 'default')
+
+    this.relationQuery = relationQuery
+
+    this.repository = con.getRepository(entity)
+
+    const { relations } = getRelations(this.repository)
+
+    this.modelRelations = relations
 
     this.outputKeys = getOutputKeys(this.repository) || []
 
-    this.isMongoDB = isMongoDB || false
+    this.isMongoDB =
+      this.repository.metadata.connection.driver.options.type === 'mongodb'
   }
   /**
    *
@@ -80,7 +106,10 @@ export class TypeOrmConnector<
     if (error) {
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
-    const data = this.jsApplySelect(result)
+    let data = this.jsApplySelect(result)
+
+    data = await loadRelations(data, this.relations, this.modelRelations)
+
     this.reset()
     return data
   }
@@ -203,6 +232,7 @@ export class TypeOrmConnector<
     const [error, datum] = await to(this.repository.save(data))
 
     if (error) {
+      console.log(error)
       return Promise.reject(Errors(error, 'Validation Error'))
     }
 
@@ -475,6 +505,17 @@ export class TypeOrmConnector<
   private getFilters(filters: FindManyOptions) {
     const andFilters = this.whereArray
     const orFilters = this.orWhereArray
+
+    if (this.relationQuery && this.relationQuery.data) {
+      const ids = this.relationQuery.data.map(d => d.id)
+
+      andFilters.push([
+        this.relationQuery.relation.inverseSidePropertyPath,
+        'in',
+        ids
+      ])
+    }
+
     if (!andFilters || andFilters.length === 0) {
       return filters
     }
@@ -489,74 +530,73 @@ export class TypeOrmConnector<
 
       switch (operator) {
         case '=':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: Equal(value) }
-          }
+          })
           break
         case '!=':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: Not(Equal(value)) }
-          }
+          })
           break
         case '>':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: MoreThan(value) }
-          }
+          })
           break
         case '>=':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: MoreThanOrEqual(value) }
-          }
+          })
           break
         case '<':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: LessThan(value) }
-          }
+          })
           break
         case '<=':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: LessThanOrEqual(value) }
-          }
+          })
           break
         case 'in':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: In(value) }
-          }
+          })
           break
         case 'nin':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: Not(In(value)) }
-          }
+          })
           break
         case 'exists':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: Not(IsNull()) }
-          }
+          })
           break
         case '!exists':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: IsNull() }
-          }
+          })
           break
         case 'regexp':
-          Filters.where[0] = {
+          Filters.where[0] = Objects.nest({
             ...Filters.where[0],
             ...{ [element]: Like(value) }
-          }
+          })
           break
       }
     })
-
     // Apply or conditions
     orFilters.forEach(condition => {
       const element = condition[0]
@@ -574,7 +614,10 @@ export class TypeOrmConnector<
           Filters.where.push({ [element]: MoreThan(value) })
           break
         case '>=':
-          Filters.where.push({ [element]: MoreThanOrEqual(value) })
+          // here
+          Filters.where.push(
+            Objects.nest({ [element]: MoreThanOrEqual(value) })
+          )
           break
         case '<':
           Filters.where.push({ [element]: LessThan(value) })
@@ -610,6 +653,18 @@ export class TypeOrmConnector<
     const andFilters = this.whereArray
     const orFilters = this.orWhereArray
 
+    if (this.relationQuery && this.relationQuery.data) {
+      const ids = this.relationQuery.data.map(
+        d => new ObjectId(d.id) as ObjectID
+      )
+
+      andFilters.push([
+        this.relationQuery.relation.inverseSidePropertyPath,
+        'in',
+        ids
+      ])
+    }
+
     if (!andFilters || andFilters.length === 0) {
       return filters
     }
@@ -617,9 +672,14 @@ export class TypeOrmConnector<
     const Filters = { where: { $and: [] } }
 
     andFilters.forEach(condition => {
-      const element = condition[0]
+      let element = condition[0]
       const operator = condition[1]
-      const value = condition[2]
+      let value = condition[2]
+
+      if (element === 'id') {
+        element = '_id'
+        value = new ObjectId(value) as ObjectID
+      }
 
       switch (operator) {
         case '=':

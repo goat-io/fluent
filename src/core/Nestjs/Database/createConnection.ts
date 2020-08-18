@@ -1,6 +1,6 @@
 import {
-  createConnection as typeORMCreateConnection,
-  Connection
+  Connection,
+  createConnection as typeORMCreateConnection
 } from 'typeorm'
 
 interface ICreateConnection {
@@ -35,7 +35,6 @@ export const createConnection = ({
     return {
       provide: connectionName,
       useFactory: async () => {
-        // createFirebaseRepository()
         return { type }
       }
     }

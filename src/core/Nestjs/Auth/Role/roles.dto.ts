@@ -1,9 +1,10 @@
-import { OmitType, PartialType, ApiProperty } from '@nestjs/swagger'
-import { Role } from './roles.entity'
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger'
+import { IPaginationLinks, IPaginationMeta } from '../../../dtos/pagination.dto'
+
+import { Column } from 'typeorm'
 import { InputType } from '@nestjs/graphql'
-import { Column, Repository } from 'typeorm'
-import { IPaginationMeta, IPaginationLinks } from '../../../dtos/pagination.dto'
-import * as faker from 'faker'
+import { Role } from './roles.entity'
+
 /**
  *
  */

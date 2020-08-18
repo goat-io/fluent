@@ -1,4 +1,3 @@
-import { Connection } from 'typeorm'
 import { User } from './user.entity'
 import { createRepository } from '../../Database/createRepository'
 

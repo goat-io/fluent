@@ -1,15 +1,15 @@
 export const template = `import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
   Index,
   UpdateDateColumn,
   CreateDateColumn,
   DeleteDateColumn,
-  VersionColumn,
-  ObjectIdColumn
+  VersionColumn
 } from 'typeorm'
+import { Collection } from 'fireorm'
 import { ApiProperty } from '@nestjs/swagger'
+import { Decorators } from '@goatlab/fluent/dist/core/Nestjs/Database/decorators'
 import { Field, ID, ObjectType } from '@nestjs/graphql'
 import * as faker from 'faker'
 import {Access} from "@goatlab/fluent/dist/core/dtos/access.dto"
@@ -17,6 +17,7 @@ import {Access} from "@goatlab/fluent/dist/core/dtos/access.dto"
 
 {{#if _Model.isMain}}
 @Entity()
+@Collection()
 {{/if}}
 @ObjectType()
 export class {{_Model.name}}BaseEntity {

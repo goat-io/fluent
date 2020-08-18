@@ -5,15 +5,12 @@ import {
   Post,
   Body,
   Query,
-  BadRequestException,
   NotFoundException,
   Delete,
   Put,
   Patch,
   HttpException,
-  HttpStatus,
-  UseInterceptors,
-  ClassSerializerInterceptor
+  HttpStatus
 } from '@nestjs/common'
 import {
   ApiTags,
@@ -26,7 +23,6 @@ import { UsersService } from './users.service'
 import { UserDtoOut, UserDtoIn } from './users.dto'
 import { getModelSchemaRef } from '@loopback/rest'
 import { User as UserEntity } from './user.entity'
-import to from 'await-to-js'
 import { GoatFilter, GoatOutput } from 'Providers/types'
 import { For } from '../../../../Helpers/For'
 import { getGoatFilterSchema } from '../../../dtos/filterSchema'
@@ -103,52 +99,6 @@ export class UserController {
   ): Promise<GoatOutput<UserDtoIn, UserDtoOut>[]> {
     return this.users.find(filter)
   }
-
-  /**
-   *
-   */
-  /*
-  @Get('/paginated')
-  @ApiQuery({
-    type: 'object',
-    required: false,
-    name: 'filter',
-    schema: getFilterSchemaFor(Form)
-  })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    type: 'number'
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: 'number'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'The forms found',
-    content: {
-      'application/json': {
-        schema: {
-          items: getModelSchemaRef(FormDtoPaginated)
-        }
-      }
-    },
-    type: FormDtoPaginated
-  })
-  findPaginated(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('filter') filter?: Filter<UserDtoOut>
-  ): Promise<FormDtoPaginated> {
-    limit = limit > 100 ? 100 : limit
-    return this.users.paginate({
-      page,
-      limit
-    })
-  }
-  */
   /**
    *
    * @param filter
@@ -303,7 +253,6 @@ export class UserController {
 }
 
 /*
-replaceById
 updateWhere
 countWhere
 */
