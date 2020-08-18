@@ -18,7 +18,7 @@ import { Decorators } from '../../Database/decorators'
 @Collection()
 export class User {
   @Decorators.id()
-  _id: string
+  id: string
 
   @Column({ nullable: false })
   @ApiProperty({
