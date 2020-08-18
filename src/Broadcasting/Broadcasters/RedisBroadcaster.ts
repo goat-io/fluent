@@ -1,4 +1,4 @@
-import Pusher from 'pusher-js/react-native'
+/*import Pusher from 'pusher-js/react-native'
 // import { BroadcasterInterface } from './BroadcasterInterface'
 
 interface IPusher {
@@ -47,4 +47,4 @@ export class RedisBroadcaster {
     this.channel.bind(this.channels.here, callback)
     return this
   }
-}
+}*/

@@ -1,4 +1,4 @@
-import Pusher from 'pusher-js/react-native'
+/*import Pusher from 'pusher-js/react-native'
 // import { BroadcasterInterface } from './BroadcasterInterface'
 
 interface IPusher {
@@ -91,3 +91,4 @@ export class PusherRNBroadcaster {
     this.instance.unsubscribe(channel)
   }
 }
+*/

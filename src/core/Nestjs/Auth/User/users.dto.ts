@@ -1,8 +1,9 @@
+import { ApiProperty, OmitType } from '@nestjs/swagger'
+import { IPaginationLinks, IPaginationMeta } from '../../../dtos/pagination.dto'
 import { InputType, PartialType } from '@nestjs/graphql'
-import { OmitType, ApiProperty } from '@nestjs/swagger'
-import { User } from './user.entity'
+
 import { Column } from 'typeorm'
-import { IPaginationMeta, IPaginationLinks } from '../../../dtos/pagination.dto'
+import { User } from './user.entity'
 
 /**
  *
@@ -18,7 +19,7 @@ export class UserDtoOut extends OmitType(User, [
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
 export class UserDtoIn extends OmitType(User, [
-  '_id',
+  'id',
   'created',
   'updated',
   'deleted',

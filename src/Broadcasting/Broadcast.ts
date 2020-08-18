@@ -1,4 +1,4 @@
-import { PusherRNBroadcaster } from './Broadcasters/PusherBroadcasterRN'
+/*import { PusherRNBroadcaster } from './Broadcasters/PusherBroadcasterRN'
 import { RedisBroadcaster } from './Broadcasters/RedisBroadcaster'
 
 export enum Broadcasters {
@@ -18,3 +18,4 @@ export class BroadCast {
     }
   }
 }
+*/
