@@ -153,7 +153,7 @@
     "bullmq": "^1.8.14",
     "chalk": "^4.1.0",
     "child_process": "^1.0.2",
-    "class-transformer": "^0.2.3",
+    "class-transformer": "^0.3.1",
     "cli-progress": "^3.8.2",
     "cluster": "^0.7.7",
     "colors": "^1.4.0",
