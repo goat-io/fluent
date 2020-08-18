@@ -1,9 +1,9 @@
-import { worker } from 'cluster'
-import { EventEmitter } from 'events'
 import { Agenda } from './Schedulers/Agenda'
-import { BullScheduler } from './Schedulers/Bull'
 import { BullMQScheduler } from './Schedulers/BullMQ'
+import { BullScheduler } from './Schedulers/Bull'
+import { EventEmitter } from 'events'
 import { NodeScheduler } from './Schedulers/Node'
+import { worker } from 'cluster'
 
 export enum TimeZones {
   EuropeStockholm = 'Europe/Stockholm'
@@ -61,7 +61,7 @@ export enum Schedulers {
   BULLMQ = 'bullmq',
   NODE = 'node'
 }
-
+// TODO test jobs
 export class Job {
   public static using(type: Schedulers.AGENDA): typeof Agenda
   public static using(type: Schedulers.BULL): typeof BullScheduler

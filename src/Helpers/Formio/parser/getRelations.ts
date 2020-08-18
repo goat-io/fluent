@@ -1,8 +1,8 @@
-import { combination } from 'js-combinatorics'
 import { Errors } from '../../Errors'
-import { findComponents } from '../findComponents'
 import { FormioComponent } from '../types/FormioComponent'
 import { FormioForm } from '../types/FormioForm'
+import { combination } from 'js-combinatorics'
+import { findComponents } from '../findComponents'
 /**
  * Get all select components for the given form.
  * @param Form
