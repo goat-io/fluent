@@ -1,3 +1,14 @@
+# 0.4.0
+[2020-10-03]
+
+### Features
+
+* feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Adding basic relation queries ([`5146503`](https://github.com/goat-io/fluent/commit/51465038de132f3cfd65df53738b253d5534eb53))
+
+### Other Changes
+
+* feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Adding basic relation queries ([`5146503`](https://github.com/goat-io/fluent/commit/51465038de132f3cfd65df53738b253d5534eb53))
+
 # 0.3.26
 [2020-08-18]
 
@@ -11,6 +22,7 @@
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`5fe9217`](https://github.com/goat-io/fluent/commit/5fe9217538fa6439bbd1bfb895511bc73930c39b))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update libraries ([`a383604`](https://github.com/goat-io/fluent/commit/a38360440dfb8eee2f0b97c6c6a0dc8c054d9119))
+* Release 0.3.26 ([`ecb9d07`](https://github.com/goat-io/fluent/commit/ecb9d07a9fbe458b1c29e75ac311cc363c254f97))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  fix deploy ([`46dcbba`](https://github.com/goat-io/fluent/commit/46dcbbae905a44b64757250a140708c95cebb01b))
 
 # 0.3.25
