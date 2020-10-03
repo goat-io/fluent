@@ -48,7 +48,9 @@ export const createFirebaseRepository = Entity => {
       propertyPath: relation.propertyName,
       entityName: relation.inverseEntityMetadata.name,
       tableName: relation.inverseEntityMetadata.tableName,
-      targetClass: relation.inverseEntityMetadata.target
+      targetClass: relation.inverseEntityMetadata.target,
+      joinColumns: relation.joinColumns,
+      inverseJoinColumns: relation.inverseJoinColumns
     }
   }
 
@@ -122,7 +124,13 @@ export class FirebaseConnector<
 
     let data = this.jsApplySelect(result)
 
-    data = await loadRelations(data, this.relations, this.modelRelations)
+    data = await loadRelations({
+      data,
+      relations: this.relations,
+      modelRelations: this.modelRelations,
+      provider: 'firebase',
+      self: this
+    })
 
     this.reset()
     return data
@@ -234,7 +242,7 @@ export class FirebaseConnector<
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const id = Id.objectIdString()
-
+    // TODO we have to change this to manage cases where created, updated or version fields are included in the respective models
     if (false) {
       console.log('We have  a created field')
     }

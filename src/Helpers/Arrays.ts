@@ -37,10 +37,55 @@ export const Arrays = (() => {
       {}
     )
   }
+  /**
+   *
+   * @param data
+   * @param size
+   */
+  const chunk = (data: any[], size: number) => {
+    const results: any[][] = []
+    const elements = [...data]
+
+    while (elements.length) {
+      results.push(elements.splice(0, size))
+    }
+
+    return results
+  }
+  /**
+   *
+   * @param data
+   */
+  const collapse = (data: any[][]) => {
+    const elements = [...data]
+    const results: any[] = []
+
+    elements.forEach(c => {
+      if (Array.isArray(c)) {
+        c.forEach(element => {
+          results.push(element)
+        })
+      } else {
+        results.push(c)
+      }
+    })
+
+    return results
+  }
+  /**
+   *
+   * @param data
+   */
+  const deDuplicate = (data: any[]) => {
+    return [...new Set(data)]
+  }
 
   return Object.freeze({
     first,
     last,
-    groupBy
+    groupBy,
+    chunk,
+    collapse,
+    deDuplicate
   })
 })()

@@ -1,8 +1,7 @@
-import { Column, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { JoinColumn, ManyToOne } from 'typeorm'
 
-import { Decorators } from '../../../core/Nestjs/Database/decorators'
-import { Field } from '@nestjs/graphql'
-import { UsersEntity } from './user.entity'
+import { Decorators } from '../../../../core/Nestjs/Database/decorators'
+import { UsersEntity } from '../user/user.entity'
 
 @Decorators.entity('cars')
 export class CarsEntity {

@@ -1,11 +1,15 @@
-import { CarsEntity } from '../../Providers/test/relations/car.entity'
+import { CarsEntity } from '../../Providers/test/relations/car/car.entity'
+import { CarsRepository } from '../../Providers/test/relations/car/car.repositoryFirebase'
+import { FirebaseRepository } from '../test/advanced/firebase.repository'
 import { Fluent } from '../../Fluent'
 import { GoatEntity } from '../test/basic/goat.entity'
 import { GoatEntityRepository } from './goat.repository'
+import { RoleEntity } from '../test/relations/roles/roles.entity'
+import { RoleRepository } from '../test/relations/roles/roles.repositoryFirebase'
+import { RolesUser } from '../test/relations/roles/roles_user.entity'
 import { TypeORMDataModel } from '../test/advanced/typeOrm.entity'
-import { TypeOrmRepository } from './typeOrm.repository'
-import { UserRepository } from '../test/relations/user.repository'
-import { UsersEntity } from '../../Providers/test/relations/user.entity'
+import { UserRepository } from '../test/relations/user/user.repositoryFirebase'
+import { UsersEntity } from '../test/relations/user/user.entity'
 import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
 import { relationsTestSuite } from '../test/relations/relationsTestsSuite'
@@ -13,7 +17,14 @@ import { relationsTestSuite } from '../test/relations/relationsTestsSuite'
 jest.setTimeout(3 * 60 * 1000)
 
 beforeAll(async () => {
-  await Fluent.start([GoatEntity, TypeORMDataModel, CarsEntity, UsersEntity])
+  await Fluent.models([
+    GoatEntity,
+    TypeORMDataModel,
+    CarsEntity,
+    UsersEntity,
+    RoleEntity,
+    RolesUser
+  ])
 })
 
 describe('Execute all basic test Suite', () => {
@@ -21,9 +32,9 @@ describe('Execute all basic test Suite', () => {
 })
 
 describe('Execute all advanced', () => {
-  advancedTestSuite(TypeOrmRepository)
+  advancedTestSuite(FirebaseRepository)
 })
 
 describe('Execute all relations test suite', () => {
-  relationsTestSuite(UserRepository)
+  relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })

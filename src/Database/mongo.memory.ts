@@ -1,6 +1,7 @@
-import { MongoMemoryServer } from 'mongodb-memory-server-core'
-import { createConnection, Schema } from 'mongoose'
+import { Schema, createConnection } from 'mongoose'
+
 import { Log } from '../Log/Logger'
+import { MongoMemoryServer } from 'mongodb-memory-server-core'
 
 export interface MemoryMongo {
   url: string
@@ -47,6 +48,7 @@ export const mongoMemory = (() => {
    * Starts a new MongoDB instance
    */
   const start = async (): Promise<MemoryMongo> => {
+    process.env.MONGOMS_DEBUG = '1'
     const mongoServer = new MongoMemoryServer()
     const url = await mongoServer.getConnectionString()
     const port = await mongoServer.getPort()

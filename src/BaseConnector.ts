@@ -66,7 +66,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected loadModels: boolean = false
   protected relationQuery
   protected modelRelations: any
-  protected isMongoDB: boolean
+  public isMongoDB: boolean
 
   protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
     const date = Dates.currentIsoString()
@@ -244,7 +244,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     operator: OperatorType,
     value: Primitives | PrimitivesArray
   ) {
-    const stringPath = path && path.$path
+    const stringPath = (path && path.$path) || path
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'where', chainedWhere })
 
@@ -264,7 +264,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   public andWhere(
     path: TypedPathWrapper<Primitives>,
     operator: OperatorType,
-    value: Primitives
+    value: Primitives | Primitives[]
   ) {
     const stringPath = path && path.$path
     const chainedWhere = [stringPath, operator, value]
@@ -498,11 +498,12 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public with(entities: any) {
     this.relations = entities
+
     return this
   }
   /**
-   * Define which relations to load
-   * @param Entities
+   *
+   * @param data
    */
   public async attach(data: InputDTO) {
     if (!this.relationQuery.relation || !this.relationQuery.data) {
@@ -523,31 +524,85 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     }
   }
   /**
-   *
+   * Associate a registry with Many to Many relation
+   * @param id
    */
-  protected hasMany<T>(Repository: T, relationName: string) {
-    if (this.relationQuery) {
-      this.relationQuery.relation = this.relationQuery.relations[relationName]
+  public associate(id: string) {
+    if (!this.relationQuery.relation || !this.relationQuery.data) {
+      throw new Error('Attached can only be called as a related model')
     }
 
-    return Repository
+    if (this.relationQuery && this.relationQuery.data) {
+      const relatedData = this.relationQuery.data.map(d => {
+        return {
+          [this.relationQuery.relation.joinColumns[0].propertyName]: this
+            .isMongoDB
+            ? (new ObjectId(d.id) as ObjectID)
+            : d.id,
+          [this.relationQuery.relation.inverseJoinColumns[0].propertyName]: this
+            .isMongoDB
+            ? (new ObjectId(id) as ObjectID)
+            : id
+        }
+      })
+
+      return this.relationQuery.pivot.insertMany(relatedData)
+    }
   }
   /**
    *
    */
-  protected hasOne() {}
+  protected hasMany<T>(Repository, relationName: string) {
+    if (this.relationQuery) {
+      this.relationQuery.relation = this.relationQuery.relations[relationName]
+    }
+    const newClass = new Repository(this.relationQuery) as T
+    this.reset()
+    return newClass
+  }
   /**
    *
    */
-  protected belongsTo() {}
+  // TODO implement hasOne
+  protected hasOne() {
+    throw new Error('Method not implemented')
+  }
   /**
    *
    */
-  protected belongsToMany() {}
+  protected belongsTo<T>(Repository, relationName: string) {
+    if (this.relationQuery) {
+      this.relationQuery.relation = this.relationQuery.relations[relationName]
+    }
+    const newClass = new Repository(this.relationQuery) as T
+    this.reset()
+    return newClass
+  }
   /**
    *
    */
-  protected hasManyThrough() {}
+  protected belongsToMany<T, R>(Repository, Pivot, relationName: string) {
+    this.relationQuery = !this.relationQuery
+      ? { pivot: new Pivot(this.relationQuery) as R }
+      : {
+          ...this.relationQuery,
+          ...{
+            pivot: new Pivot(this.relationQuery) as R,
+            relation: this.relationQuery.relations[relationName]
+          }
+        }
+
+    const newClass = new Repository(this.relationQuery) as T
+    this.reset()
+    return newClass
+  }
+  /**
+   *
+   */
+  // TODO implement hasManyThrough
+  protected hasManyThrough() {
+    throw new Error('Method not implemented')
+  }
   /**
    *
    * @param {*} input

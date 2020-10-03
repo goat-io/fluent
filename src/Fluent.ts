@@ -78,7 +78,7 @@ export class Fluent {
     }
   }
 
-  public static async start(Entities: any[]) {
+  public static async models(Entities: any[]) {
     try {
       getConnection('modelGenerator')
     } catch (error) {

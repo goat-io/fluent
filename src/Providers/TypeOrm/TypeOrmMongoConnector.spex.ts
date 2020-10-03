@@ -1,10 +1,14 @@
-import { CarsEntity } from '../test/relations/car.entity'
+import { CarsEntity } from '../test/relations/car/car.entity'
+import { CarsRepository } from '../test/relations/car/car.repositoryTypeOrm'
 import { GoatEntity } from '../test/basic/goat.entity'
 import { GoatRepository } from '../test/basic/goat.repository'
+import { RoleEntity } from '../test/relations/roles/roles.entity'
+import { RoleRepository } from '../test/relations/roles/roles.repositoryTypeOrm'
+import { RolesUser } from '../test/relations/roles/roles_user.entity'
 import { TypeORMDataModel } from '../test/advanced/typeOrm.entity'
 import { TypeOrmRepository } from '../test/advanced/typeOrm.repository'
-import { UserRepository } from '../test/relations/user.repositoryTypeOrm'
-import { UsersEntity } from '../test/relations/user.entity'
+import { UserRepository } from '../test/relations/user/user.repositoryTypeOrm'
+import { UsersEntity } from '../test/relations/user/user.entity'
 import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
 import { createConnection } from 'typeorm'
@@ -16,16 +20,23 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 let mongoConnection
 
 beforeAll(async done => {
-  process.env = Object.assign(process.env, { MAIN_DATABASE_TYPE: true })
   mongoConnection = await mongoMemory.start()
+
   await createConnection({
     type: 'mongodb',
     name: 'runningTest',
     url: mongoConnection.url,
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    entities: [GoatEntity, TypeORMDataModel, CarsEntity, UsersEntity],
-    synchronize: true,
+    entities: [
+      GoatEntity,
+      TypeORMDataModel,
+      CarsEntity,
+      UsersEntity,
+      RoleEntity,
+      RolesUser
+    ],
+    synchronize: false,
     logging: false
   })
 
@@ -45,5 +56,5 @@ describe('Execute all advanced test Suite', () => {
 })
 
 describe('Execute all relations test suite', () => {
-  relationsTestSuite(UserRepository)
+  relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })

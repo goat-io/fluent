@@ -1,10 +1,14 @@
-import { CarsEntity } from '../test/relations/car.entity'
+import { CarsEntity } from '../test/relations/car/car.entity'
+import { CarsRepository } from '../test/relations/car/car.repositoryTypeOrm'
 import { GoatEntity } from '../test/basic/goat.entity'
 import { GoatRepository } from '../test/basic/goat.repository'
+import { RoleEntity } from '../test/relations/roles/roles.entity'
+import { RoleRepository } from '../test/relations/roles/roles.repositoryTypeOrm'
+import { RolesUser } from '../test/relations/roles/roles_user.entity'
 import { TypeORMDataModel } from '../test/advanced/typeOrm.entity'
 import { TypeOrmRepository } from '../test/advanced/typeOrm.repository'
-import { UserRepository } from '../test/relations/user.repositoryTypeOrm'
-import { UsersEntity } from '../test/relations/user.entity'
+import { UserRepository } from '../test/relations/user/user.repositoryTypeOrm'
+import { UsersEntity } from '../test/relations/user/user.entity'
 import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
 import { createConnection } from 'typeorm'
@@ -21,11 +25,18 @@ beforeAll(async done => {
   await createConnection({
     type: 'mysql',
     name: 'runningTest',
-    database: 'mySchema',
-    username: 'root',
-    password: 'secret',
+    database: 'test-db',
+    username: 'test-user',
+    password: 'password',
     port: 3306,
-    entities: [GoatEntity, TypeORMDataModel, CarsEntity, UsersEntity],
+    entities: [
+      GoatEntity,
+      TypeORMDataModel,
+      CarsEntity,
+      UsersEntity,
+      RoleEntity,
+      RolesUser
+    ],
     synchronize: true,
     logging: false
   })
@@ -46,5 +57,5 @@ describe('Execute all advanced test Suite', () => {
 })
 
 describe('Execute all relations test suite', () => {
-  relationsTestSuite(UserRepository)
+  relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })

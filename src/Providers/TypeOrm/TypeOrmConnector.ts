@@ -59,7 +59,9 @@ export const getRelations = typeOrmRepo => {
       propertyPath: relation.propertyName,
       entityName: relation.inverseEntityMetadata.name,
       tableName: relation.inverseEntityMetadata.tableName,
-      targetClass: relation.inverseEntityMetadata.target
+      targetClass: relation.inverseEntityMetadata.target,
+      joinColumns: relation.joinColumns,
+      inverseJoinColumns: relation.inverseJoinColumns
     }
   }
 
@@ -76,10 +78,11 @@ export class TypeOrmConnector<
 > extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private repository: Repository<ModelDTO>
+  private connectionName: string
 
   constructor(entity: any, connectionName?: string, relationQuery?: any) {
     super()
-
+    this.connectionName = connectionName
     const con = getConnection(connectionName || 'default')
 
     this.relationQuery = relationQuery
@@ -108,7 +111,14 @@ export class TypeOrmConnector<
     }
     let data = this.jsApplySelect(result)
 
-    data = await loadRelations(data, this.relations, this.modelRelations)
+    data = await loadRelations({
+      data,
+      relations: this.relations,
+      modelRelations: this.modelRelations,
+      connectionName: this.connectionName,
+      provider: 'typeorm',
+      self: this
+    })
 
     this.reset()
     return data
@@ -678,7 +688,10 @@ export class TypeOrmConnector<
 
       if (element === 'id') {
         element = '_id'
-        value = new ObjectId(value) as ObjectID
+
+        value = Array.isArray(value)
+          ? value.map(v => new ObjectId(v) as ObjectID)
+          : (new ObjectId(value) as ObjectID)
       }
 
       switch (operator) {
