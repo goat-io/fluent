@@ -1,3 +1,10 @@
+# 0.4.2
+[2020-10-04]
+
+### Other Changes
+
+* ci: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix CI ([`cd31774`](https://github.com/goat-io/fluent/commit/cd31774a7efd2d4dfb8a7267ead411814ec3389b))
+
 # 0.4.1
 [2020-10-04]
 
@@ -9,6 +16,7 @@
 ### Other Changes
 
 * docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Adding LICENSE ([`61be88e`](https://github.com/goat-io/fluent/commit/61be88ec7478614ab0a22157da30e1c30c9e4bb6))
+* Release 0.4.1 ([`60dacc6`](https://github.com/goat-io/fluent/commit/60dacc6a196fee2f15941825168ac907284984b5))
 * docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Change link to docs ([`321478f`](https://github.com/goat-io/fluent/commit/321478f71fe4829f575512a0982da991b029c9ea))
 
 # 0.4.0
