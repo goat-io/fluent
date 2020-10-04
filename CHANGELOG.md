@@ -1,3 +1,16 @@
+# 0.4.1
+[2020-10-04]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Security ([`f03f9ff`](https://github.com/goat-io/fluent/commit/f03f9ff8ac74f858387d57765d9efe7ab6819836))
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Remove DB ([`289974c`](https://github.com/goat-io/fluent/commit/289974ca4bd921b1a8a2b3a8e46cce4406958680))
+
+### Other Changes
+
+* docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Adding LICENSE ([`61be88e`](https://github.com/goat-io/fluent/commit/61be88ec7478614ab0a22157da30e1c30c9e4bb6))
+* docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Change link to docs ([`321478f`](https://github.com/goat-io/fluent/commit/321478f71fe4829f575512a0982da991b029c9ea))
+
 # 0.4.0
 [2020-10-03]
 
@@ -8,6 +21,7 @@
 ### Other Changes
 
 * feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Adding basic relation queries ([`5146503`](https://github.com/goat-io/fluent/commit/51465038de132f3cfd65df53738b253d5534eb53))
+* Release 0.4.0 ([`48f6d48`](https://github.com/goat-io/fluent/commit/48f6d481d99c4dce0dc58fafef904abf704dc567))
 
 # 0.3.26
 [2020-08-18]
