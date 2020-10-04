@@ -11,16 +11,18 @@ import {
 */
 import {
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   ObjectIdColumn,
-  PrimaryColumn,
-  PrimaryGeneratedColumn
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+  VersionColumn
 } from 'typeorm'
 import { Field, HideField, ID, ObjectType } from '@nestjs/graphql'
 
 import { Collection } from 'fireorm'
 import { Primitives } from '../../../Providers/types'
-import { Strings } from '../../../Helpers/Strings'
 import { applyDecorators } from '@nestjs/common'
 
 interface PropertyInterface {
@@ -157,6 +159,45 @@ export const Decorators = (() => {
       })
     )
   }
+  /**
+   *
+   * @param e
+   */
+  const created = (e?: any): PropertyDecorator => {
+    return applyDecorators(CreateDateColumn(), ApiProperty())
+  }
+  /**
+   *
+   * @param e
+   */
+  const updated = (e?: any): PropertyDecorator => {
+    return applyDecorators(UpdateDateColumn(), ApiProperty())
+  }
+  /**
+   *
+   * @param e
+   */
+  const deleted = (e?: any): PropertyDecorator => {
+    return applyDecorators(DeleteDateColumn(), ApiProperty())
+  }
+  /**
+   *
+   * @param e
+   */
+  const version = (e?: any): PropertyDecorator => {
+    return applyDecorators(VersionColumn(), ApiProperty())
+  }
 
-  return Object.freeze({ id, entity, property, embed, array, Enum })
+  return Object.freeze({
+    id,
+    entity,
+    property,
+    embed,
+    array,
+    Enum,
+    created,
+    updated,
+    version,
+    deleted
+  })
 })()

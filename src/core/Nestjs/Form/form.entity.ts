@@ -1,92 +1,62 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  Index,
-  UpdateDateColumn,
-  CreateDateColumn,
-  DeleteDateColumn,
-  VersionColumn
-} from 'typeorm'
-import { ApiProperty } from '@nestjs/swagger'
-import { Field, ID, ObjectType } from '@nestjs/graphql'
-import { Access } from '../../dtos/access.dto'
 import * as faker from 'faker'
-import { Collection } from 'fireorm'
 
-// tslint:disable-next-line: max-classes-per-file
-@Entity()
-@Collection()
-@ObjectType()
+import { Access } from '../../dtos/access.dto'
+import { ApiProperty } from '@nestjs/swagger'
+import { Column } from 'typeorm'
+import { Decorators } from '../Database/decorators'
+
+@Decorators.entity('Form')
 export class Form {
-  @PrimaryGeneratedColumn('uuid')
-  @ApiProperty()
-  @Field(() => ID)
+  @Decorators.id()
   id: string
 
-  @Column()
-  @Index({ unique: true })
-  @ApiProperty()
+  @Decorators.property({ unique: true })
   path: string
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   title?: string
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   name?: string
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   type?: string
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   description?: string
 
   @Column({ type: 'simple-array', nullable: true })
   @ApiProperty({ type: [String], nullable: true, required: false })
   tags?: string[]
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   display?: string
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   action?: string
 
-  @Column()
-  @ApiProperty()
+  @Decorators.property({ required: true })
   owner: string
 
-  @Column()
-  @ApiProperty()
+  @Decorators.property({ required: true })
   settings: number
 
-  @Column('int')
-  @ApiProperty()
+  @Decorators.property({ required: true })
   properties: number
 
-  @Column()
-  @ApiProperty()
+  @Decorators.property({ required: false })
   machineName?: string
 
-  @CreateDateColumn()
-  @ApiProperty()
+  @Decorators.created()
   created: Date
 
-  @UpdateDateColumn()
-  @ApiProperty()
+  @Decorators.updated()
   updated: Date
 
-  @DeleteDateColumn()
-  @ApiProperty()
+  @Decorators.deleted()
   deleted: Date
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   components?: string
 
   @Column(type => Access)

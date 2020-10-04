@@ -11,8 +11,6 @@ export class FormService {
     @Inject('FORM_REPOSITORY')
     private forms: Repository<Form>
   ) {
-    this.model = new TypeOrmConnector<Form, FormDtoIn, FormDtoOut>({
-      repository: this.forms
-    })
+    this.model = new TypeOrmConnector<Form, FormDtoIn, FormDtoOut>(Form)
   }
 }

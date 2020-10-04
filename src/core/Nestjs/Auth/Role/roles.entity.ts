@@ -1,50 +1,25 @@
 import * as faker from 'faker'
 
-import {
-  Column,
-  CreateDateColumn,
-  DeleteDateColumn,
-  Entity,
-  Index,
-  JoinTable,
-  ManyToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn
-} from 'typeorm'
-import { Field, ID, ObjectType } from '@nestjs/graphql'
+import { Decorators } from '../../../Nestjs/Database/decorators'
 
-import { ApiProperty } from '@nestjs/swagger'
-import { Collection } from 'fireorm'
-
-// tslint:disable-next-line: max-classes-per-file
-@Entity({ name: 'roles' })
-@Collection()
-@ObjectType()
+@Decorators.entity('roles')
 export class Role {
-  @PrimaryGeneratedColumn('uuid')
-  @ApiProperty()
-  @Field(() => ID)
+  @Decorators.id()
   id: string
 
-  @Column({ nullable: true })
-  @ApiProperty({ nullable: true, required: false })
+  @Decorators.property({ required: false })
   description?: string
 
-  @Column({ nullable: false })
-  @ApiProperty({ nullable: false, required: true })
-  @Index({ unique: true })
+  @Decorators.property({ required: true, unique: true })
   name: string
 
-  @CreateDateColumn()
-  @ApiProperty()
+  @Decorators.created()
   created: Date
 
-  @UpdateDateColumn()
-  @ApiProperty()
+  @Decorators.updated()
   updated: Date
 
-  @DeleteDateColumn()
-  @ApiProperty()
+  @Decorators.deleted()
   deleted: Date
 }
 

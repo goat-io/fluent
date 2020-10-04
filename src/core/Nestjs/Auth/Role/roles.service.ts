@@ -11,8 +11,6 @@ export class RoleService {
     @Inject('Role_REPOSITORY')
     private Roles: Repository<Role>
   ) {
-    this.model = new TypeOrmConnector<Role, RoleDtoIn, RoleDtoOut>({
-      repository: this.Roles
-    })
+    this.model = new TypeOrmConnector<Role, RoleDtoIn, RoleDtoOut>(Role)
   }
 }

@@ -7,12 +7,11 @@ export const Databases = [
       await createConnection({
         type: 'sqlite',
         database: 'src/goat.db',
-        synchronize: true,
+        synchronize: false,
         logging: false,
         entities: [
           __dirname + '/../Auth/Role/*.entity{.ts,.js}',
-          __dirname + '/../Form/*.entity{.ts,.js}',
-          __dirname + '/../Auth/User/*.entity{.ts,.js}'
+          __dirname + '/../Form/*.entity{.ts,.js}'
         ]
       })
   }

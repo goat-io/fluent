@@ -6,6 +6,7 @@ import {
   Connection,
   ObjectLiteral,
   createConnection as connection,
+  getConnection,
   getRepository as getRepositoryTypeORM
 } from 'typeorm'
 import {
@@ -73,10 +74,11 @@ export const createFirebaseRepository = Entity => {
  *
  */
 export class FirebaseConnector<
-  ModelDTO = IDataElement,
-  InputDTO = ModelDTO,
-  OutputDTO = InputDTO
-> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
+    ModelDTO = IDataElement,
+    InputDTO = ModelDTO,
+    OutputDTO = InputDTO
+  >
+  extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private repository: BaseFirestoreRepository<any>
   private collection: FirebaseFirestore.CollectionReference<ModelDTO>
