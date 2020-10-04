@@ -1,8 +1,21 @@
+# 0.4.3
+[2020-10-04]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix LB auth ([`bbf8776`](https://github.com/goat-io/fluent/commit/bbf87765ca200dbe39d8021fa1af081ea24b13f4))
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Remove typed dynamo ([`565eca3`](https://github.com/goat-io/fluent/commit/565eca3c383ffabea3650882e5ff0d2709841121))
+
+### Other Changes
+
+* chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`c08d1ac`](https://github.com/goat-io/fluent/commit/c08d1ac3cb36cf55057a0dc077247c6a9634961c))
+
 # 0.4.2
 [2020-10-04]
 
 ### Other Changes
 
+* Release 0.4.2 ([`4fe8155`](https://github.com/goat-io/fluent/commit/4fe8155ae00be64e5edb0994892afebb9cf56071))
 * ci: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix CI ([`cd31774`](https://github.com/goat-io/fluent/commit/cd31774a7efd2d4dfb8a7267ead411814ec3389b))
 
 # 0.4.1
