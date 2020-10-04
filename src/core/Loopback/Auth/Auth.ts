@@ -1,8 +1,15 @@
-import { authenticate as lbauthenticate } from '@loopback/authentication'
-import { AuthorizationMetadata, authorize as lbauthorize } from '@loopback/authorization'
-import { inject } from '@loopback/core'
-import { SecurityBindings } from '@loopback/security'
+import {
+  AuthenticationMetadata,
+  authenticate as lbauthenticate
+} from '@loopback/authentication'
+import {
+  AuthorizationMetadata,
+  authorize as lbauthorize
+} from '@loopback/authorization'
+
 import { OPERATION_SECURITY_SPEC } from './providers/jwt/jwt.security'
+import { SecurityBindings } from '@loopback/security'
+import { inject } from '@loopback/core'
 
 export enum using {
   jwt = 'jwt'
@@ -20,7 +27,10 @@ export const Auth = (() => {
    * @param strategy
    * @param options
    */
-  const authenticate = (strategy: using, options?: object) => {
+  const authenticate = (
+    strategy: using,
+    options?: string | AuthenticationMetadata
+  ) => {
     return lbauthenticate(strategy, options)
   }
   /**
