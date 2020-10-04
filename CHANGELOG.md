@@ -1,3 +1,10 @@
+# 0.4.4
+[2020-10-04]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix new Decorator and Connector pattern ([`f79503c`](https://github.com/goat-io/fluent/commit/f79503c0ff3301b876354d7973231c25baa1b07d))
+
 # 0.4.3
 [2020-10-04]
 
@@ -9,6 +16,7 @@
 ### Other Changes
 
 * chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`c08d1ac`](https://github.com/goat-io/fluent/commit/c08d1ac3cb36cf55057a0dc077247c6a9634961c))
+* Release 0.4.3 ([`232e5ea`](https://github.com/goat-io/fluent/commit/232e5eab1627de5c9e2b56a23106d856446b4a83))
 
 # 0.4.2
 [2020-10-04]
