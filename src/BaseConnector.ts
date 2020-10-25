@@ -514,7 +514,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       const relatedData = this.relationQuery.data.map(d => {
         return {
           [this.relationQuery.relation.inverseSidePropertyPath]: this.isMongoDB
-            ? (new ObjectId(d.id) as ObjectID)
+            ? ((new ObjectId(d.id) as unknown) as ObjectID)
             : d.id,
           ...data
         }
@@ -537,11 +537,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         return {
           [this.relationQuery.relation.joinColumns[0].propertyName]: this
             .isMongoDB
-            ? (new ObjectId(d.id) as ObjectID)
+            ? ((new ObjectId(d.id) as unknown) as ObjectID)
             : d.id,
           [this.relationQuery.relation.inverseJoinColumns[0].propertyName]: this
             .isMongoDB
-            ? (new ObjectId(id) as ObjectID)
+            ? ((new ObjectId(id) as unknown) as ObjectID)
             : id
         }
       })
