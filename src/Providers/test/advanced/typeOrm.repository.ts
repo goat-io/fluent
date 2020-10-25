@@ -3,6 +3,6 @@ import { TypeOrmConnector } from '../../TypeOrm/TypeOrmConnector'
 
 export class TypeOrmRepository extends TypeOrmConnector<TypeORMDataModel> {
   constructor(relations?: any) {
-    super(TypeORMDataModel, 'runningTest')
+    super(TypeORMDataModel, relations, 'runningTest')
   }
 }

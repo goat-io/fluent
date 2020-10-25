@@ -1,51 +1,31 @@
-export const template = `import {
-  Entity,
-  Column,
-  Index,
-  UpdateDateColumn,
-  CreateDateColumn,
-  DeleteDateColumn,
-  VersionColumn
-} from 'typeorm'
-import { Collection } from 'fireorm'
-import { ApiProperty } from '@nestjs/swagger'
-import { Decorators } from '@goatlab/fluent/dist/core/Nestjs/Database/decorators'
-import { Field, ID, ObjectType } from '@nestjs/graphql'
+export const template = `import { Decorators } from '@goatlab/fluent/dist/core/Nestjs/Database/decorators'
 import * as faker from 'faker'
 import {Access} from "@goatlab/fluent/dist/core/dtos/access.dto"
 {{#each this}}{{#if isDatagrid}}import { {{dgPath}}BaseEntity, {{dgPath}}BaseEntityFaker } from "./{{dgPath}}-entity";\n{{/if}}{{#if isObject}}import { {{path}}BaseEntity, {{path}}BaseEntityFaker } from "./{{path}}-entity";\n{{/if}}{{/each}}
 
 {{#if _Model.isMain}}
-@Entity()
-@Collection()
+@Decorators.entity('{{_Model.name}}')
 {{/if}}
-@ObjectType()
 export class {{_Model.name}}BaseEntity {
   {{> typeProperty}}
 
   {{#if _Model.isMain}}
-  @CreateDateColumn()
-  @ApiProperty()
+  @Decorators.created()
   created: Date
 
-  @UpdateDateColumn()
-  @ApiProperty()
+  @Decorators.updated()
   updated: Date
 
-  @DeleteDateColumn()
-  @ApiProperty()
+  @Decorators.deleted()
   deleted: Date
 
-  @VersionColumn()
-  @ApiProperty()
+  @Decorators.version()
   version: number
 
-  @Column(type => Access)
-  @ApiProperty({ isArray: true, type: Access, nullable: true, required: false })
+  @Decorators.embedArray(Access, {required: false})
   access?: Access[]
 
-  @Column(type => Access)
-  @ApiProperty({ isArray: true, type: Access, nullable: true, required: false })
+  @Decorators.embedArray(Access, {required: false})
   submissionAccess?: Access[]
   {{/if}}
 }

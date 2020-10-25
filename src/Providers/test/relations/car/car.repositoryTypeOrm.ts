@@ -5,7 +5,7 @@ import { UserRepository } from '../user/user.repositoryTypeOrm'
 
 export class CarsRepository extends TypeOrmConnector<CarsEntity, CarsEntityIn> {
   constructor(relationQuery?: any) {
-    super(CarsEntity, 'runningTest', relationQuery)
+    super(CarsEntity, relationQuery, 'runningTest')
   }
 
   public user = () => {

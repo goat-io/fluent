@@ -14,7 +14,10 @@ export class CarsEntity {
   @Decorators.property({ required: true })
   userId?: string
 
-  @ManyToOne(() => UsersEntity, user => user.cars)
-  @JoinColumn({ name: 'userId' })
+  @Decorators.belongsTo({
+    entity: () => UsersEntity,
+    inverse: user => user.cars,
+    pivotColumnName: 'userId'
+  })
   user?: UsersEntity
 }

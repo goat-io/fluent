@@ -12,8 +12,8 @@ import {
   Not,
   ObjectID,
   Repository,
-  createConnection as connection,
-  getConnection
+  getConnection,
+  getRepository
 } from 'typeorm'
 import {
   GoatFilter,
@@ -44,7 +44,6 @@ import to from 'await-to-js'
       }
    */
 
-export const createConnection = connection
 export class GoatRepository<T> extends Repository<T> {}
 
 export const getRelations = typeOrmRepo => {
@@ -72,22 +71,25 @@ export const getRelations = typeOrmRepo => {
 
 // tslint:disable-next-line: max-classes-per-file
 export class TypeOrmConnector<
-  ModelDTO = IDataElement,
-  InputDTO = ModelDTO,
-  OutputDTO = InputDTO
-> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
+    ModelDTO = IDataElement,
+    InputDTO = ModelDTO,
+    OutputDTO = InputDTO
+  >
+  extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private repository: Repository<ModelDTO>
   private connectionName: string
 
-  constructor(entity: any, connectionName?: string, relationQuery?: any) {
+  constructor(entity: any, relationQuery?: any, connectionName?: string) {
     super()
     this.connectionName = connectionName
-    const con = getConnection(connectionName || 'default')
+
+    this.repository = getRepository(
+      entity,
+      connectionName || '_goat_model_generator'
+    )
 
     this.relationQuery = relationQuery
-
-    this.repository = con.getRepository(entity)
 
     const { relations } = getRelations(this.repository)
 

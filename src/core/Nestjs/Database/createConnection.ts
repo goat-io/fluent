@@ -11,8 +11,7 @@ interface ICreateConnection {
   port?: number
   connectionName: string
   databaseName?: string
-  entitiesPath?: string[]
-  serviceAccountPath?: string
+  entitiesPath?: string[] | any[]
 }
 
 export interface IConnectionFactory {
@@ -28,8 +27,7 @@ export const createConnection = ({
   port,
   databaseName,
   entitiesPath,
-  connectionName,
-  serviceAccountPath
+  connectionName
 }: ICreateConnection) => {
   if (type === 'firebase') {
     return {
@@ -41,10 +39,11 @@ export const createConnection = ({
   }
   return {
     provide: connectionName,
-    useFactory: () => {
+    useFactory: async () => {
       return {
         type,
-        connection: typeORMCreateConnection({
+        connection: await typeORMCreateConnection({
+          name: connectionName,
           type,
           username,
           password,
@@ -53,10 +52,7 @@ export const createConnection = ({
           database: databaseName,
           useNewUrlParser: type === 'mongodb' ? true : undefined,
           useUnifiedTopology: type === 'mongodb' ? true : undefined,
-          entities: [
-            ...entitiesPath,
-            `${__dirname}/../Auth/User/*.entity{.ts,.js}`
-          ]
+          entities: [...entitiesPath]
         })
       }
     }

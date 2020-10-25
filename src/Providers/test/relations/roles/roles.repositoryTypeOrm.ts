@@ -6,7 +6,7 @@ import { UserRepository } from '../user/user.repositoryTypeOrm'
 
 export class RoleRepository extends TypeOrmConnector<RoleEntity, RoleEntityIn> {
   constructor(relations?: any) {
-    super(RoleEntity, 'runningTest', relations)
+    super(RoleEntity, relations, 'runningTest')
   }
 
   public users = () => {

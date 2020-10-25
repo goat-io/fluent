@@ -17,16 +17,9 @@ export class {{_Model.name}}ServiceBase {
     private repositoryConnector: IRepository<{{_Model.name}}Entity| any>
   ) {
     if (repositoryConnector.type === 'firebase') {
-      this.model = new FirebaseConnector<{{_Model.name}}Entity, {{_Model.name}}DtoIn, {{_Model.name}}DtoOut>({
-        repository: repositoryConnector.repository.repository,
-        keys: repositoryConnector.repository.keys,
-        name: repositoryConnector.repository.name
-      })
+      this.model = new FirebaseConnector<{{_Model.name}}Entity, {{_Model.name}}DtoIn, {{_Model.name}}DtoOut>({{_Model.name}}Entity)
       return
     }
-    this.model = new TypeOrmConnector<{{_Model.name}}Entity, {{_Model.name}}DtoIn, {{_Model.name}}DtoOut>({
-      repository: this.repositoryConnector.repository,
-      isMongoDB: this.repositoryConnector.type === 'mongodb'
-    })
+    this.model = new TypeOrmConnector<{{_Model.name}}Entity, {{_Model.name}}DtoIn, {{_Model.name}}DtoOut>({{_Model.name}}Entity)
   }
 }`

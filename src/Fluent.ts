@@ -80,10 +80,10 @@ export class Fluent {
 
   public static async models(Entities: any[]) {
     try {
-      getConnection('modelGenerator')
+      getConnection('_goat_model_generator')
     } catch (error) {
       await createConnection({
-        name: 'modelGenerator',
+        name: '_goat_model_generator',
         type: 'sqlite',
         entities: Entities,
         database: ':memory:',

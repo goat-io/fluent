@@ -14,8 +14,14 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany as ManyToManyTypeOrm,
+  ManyToOne,
   ObjectIdColumn,
+  OneToMany,
   PrimaryGeneratedColumn,
+  RelationOptions,
   UpdateDateColumn,
   VersionColumn
 } from 'typeorm'
@@ -35,6 +41,27 @@ interface EnumProperty {
   enum: any[]
   default?: Primitives
 }
+
+export declare type ObjectTypeI<T> = new () => T
+
+interface ManyToManyInterface<T> {
+  entity: (type?: any) => ObjectTypeI<T>
+  joinTableName: string
+  foreignKey: string
+  inverseForeignKey: string
+}
+
+interface BelongsToInterface<T> {
+  entity: (type?: any) => ObjectTypeI<T>
+  inverse: string | ((object: T) => any)
+  pivotColumnName: string
+}
+
+interface hasManyInterface<T> {
+  entity: (type?: any) => ObjectTypeI<T>
+  inverse: string | ((object: T) => any)
+}
+
 export const Decorators = (() => {
   /**
    *
@@ -118,19 +145,36 @@ export const Decorators = (() => {
   }
   /**
    *
-   * @param params
+   * @param e
    */
-  const array = (params?: PropertyInterface): PropertyDecorator => {
+  const embedArray = (
+    e: any,
+    params?: PropertyInterface
+  ): PropertyDecorator => {
     return applyDecorators(
-      // Attribute(),
-      Column({
-        type: 'simple-array',
-        nullable: !!!params.required
-      }) as PropertyDecorator,
+      Column(type => e) as PropertyDecorator,
       ApiProperty({
-        // type: [Number],
+        isArray: true,
+        type: e,
         nullable: !!!params.required,
         required: !!params.required
+      })
+    )
+  }
+  /**
+   *
+   * @param params
+   */
+  const array = (e: any, params?: PropertyInterface): PropertyDecorator => {
+    return applyDecorators(
+      Column({
+        type: 'simple-array',
+        nullable: !!!params?.required
+      }) as PropertyDecorator,
+      ApiProperty({
+        type: [e],
+        nullable: !!!params?.required,
+        required: !!params?.required
       })
     )
   }
@@ -188,16 +232,57 @@ export const Decorators = (() => {
     return applyDecorators(VersionColumn(), ApiProperty())
   }
 
+  function belongsToMany<T>({
+    // tslint:disable-next-line: no-shadowed-variable
+    entity,
+    joinTableName,
+    foreignKey,
+    inverseForeignKey
+  }: ManyToManyInterface<T>): PropertyDecorator {
+    return applyDecorators(
+      ManyToManyTypeOrm(entity),
+      JoinTable({
+        name: joinTableName,
+        joinColumns: [{ name: foreignKey }],
+        inverseJoinColumns: [{ name: inverseForeignKey }]
+      })
+    )
+  }
+
+  function belongsTo<T>({
+    // tslint:disable-next-line: no-shadowed-variable
+    entity,
+    inverse,
+    pivotColumnName
+  }: BelongsToInterface<T>): PropertyDecorator {
+    return applyDecorators(
+      ManyToOne(entity, inverse),
+      JoinColumn({ name: pivotColumnName })
+    )
+  }
+
+  function hasMany<T>({
+    // tslint:disable-next-line: no-shadowed-variable
+    entity,
+    inverse
+  }: hasManyInterface<T>): PropertyDecorator {
+    return applyDecorators(OneToMany(entity, inverse))
+  }
+
   return Object.freeze({
     id,
     entity,
     property,
     embed,
+    embedArray,
     array,
     Enum,
     created,
     updated,
     version,
-    deleted
+    deleted,
+    belongsToMany,
+    hasMany,
+    belongsTo
   })
 })()

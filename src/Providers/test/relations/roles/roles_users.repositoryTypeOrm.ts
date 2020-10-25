@@ -7,6 +7,6 @@ export class RoleUsersRepository extends TypeOrmConnector<
   RoleUserEntityIn
 > {
   constructor(relations?: any) {
-    super(RolesUser, 'runningTest', relations)
+    super(RolesUser, relations, 'runningTest')
   }
 }

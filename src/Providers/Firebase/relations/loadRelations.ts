@@ -1,5 +1,5 @@
 import { Arrays } from '../../../Helpers/Arrays'
-import { FirebaseConnector } from '../FirebaseConnector'
+// import { FirebaseConnector } from '../FirebaseConnector'
 import { ObjectID } from 'typeorm'
 import { ObjectId } from 'mongodb'
 import { Primitives } from '../../../Providers/types'
@@ -31,18 +31,30 @@ export const loadRelations = async ({
   for (const relation of Object.keys(relations)) {
     if (modelRelations[relation]) {
       const relationModel = modelRelations[relation]
+      let firebaseConnector: any
+      if (provider === 'firebase') {
+        firebaseConnector = require('../FirebaseConnector').FirebaseConnector
+      }
+
+      // We need to load the model directly from the connector itself
+
       const Model =
-        provider === 'typeorm'
+        typeof self[relation] === 'function'
+          ? self[relation]()
+          : provider === 'typeorm'
           ? new TypeOrmConnector(
               relationModel.targetClass,
-              connectionName || 'default'
+              undefined,
+              connectionName || 'LOCAL_DB'
             )
-          : new FirebaseConnector(relationModel.targetClass)
+          : new firebaseConnector(relationModel.targetClass)
 
       if (relationModel.isOneToMany) {
         const ids = Arrays.deDuplicate(
           data.map(d =>
-            Model.isMongoDB ? (new ObjectId(d.id) as ObjectID) : d.id
+            Model.isMongoDB
+              ? ((new ObjectId(d.id) as unknown) as ObjectID)
+              : d.id
           )
         )
         const chunks = Arrays.chunk(ids, chunkSize)
@@ -101,7 +113,9 @@ export const loadRelations = async ({
       } else if (relationModel.isManyToMany) {
         const ids = Arrays.deDuplicate(
           data.map(d =>
-            Model.isMongoDB ? (new ObjectId(d.id) as ObjectID) : d.id
+            Model.isMongoDB
+              ? ((new ObjectId(d.id) as unknown) as ObjectID)
+              : d.id
           )
         )
         const chunks = Arrays.chunk(ids, chunkSize)
@@ -129,6 +143,7 @@ export const loadRelations = async ({
         }
 
         const pivotResults = Arrays.collapse(await Promise.all(promises))
+
         const uniquePivotIds = pivotResults.map(
           p => p[relationModel.inverseJoinColumns[0].propertyName]
         )

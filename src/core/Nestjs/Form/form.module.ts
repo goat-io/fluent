@@ -1,20 +1,9 @@
-import { Module } from '@nestjs/common'
 import { FormController } from './form.controller'
-import { Form } from './form.entity'
 import { FormService } from './form.service'
-import { Connection } from 'typeorm'
-import { DatabaseModule } from '../Database/database.module'
+import { Module } from '@nestjs/common'
 
 @Module({
-  imports: [DatabaseModule],
-  providers: [
-    {
-      provide: 'FORM_REPOSITORY',
-      useFactory: (connection: Connection) => connection.getRepository(Form),
-      inject: ['SQLITE3']
-    },
-    FormService
-  ],
+  providers: [FormService],
   controllers: [FormController]
 })
 export class FormModule {}

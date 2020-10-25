@@ -34,14 +34,17 @@ export class UsersEntity {
   @Decorators.embed(Family)
   breed?: Family
 
-  @OneToMany(type => CarsEntity, car => car.userId)
+  @Decorators.hasMany({
+    entity: () => CarsEntity,
+    inverse: cars => cars.userId
+  })
   cars?: CarsEntity[]
 
-  @ManyToMany(type => RoleEntity, role => role.users)
-  @JoinTable({
-    name: 'roles_users',
-    joinColumns: [{ name: 'userId' }],
-    inverseJoinColumns: [{ name: 'roleId' }]
+  @Decorators.belongsToMany({
+    entity: () => RoleEntity,
+    joinTableName: 'roles_users',
+    foreignKey: 'userId',
+    inverseForeignKey: 'roleId'
   })
   roles?: RoleEntity[]
 }

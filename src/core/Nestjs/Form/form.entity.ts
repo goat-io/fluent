@@ -5,7 +5,7 @@ import { ApiProperty } from '@nestjs/swagger'
 import { Column } from 'typeorm'
 import { Decorators } from '../Database/decorators'
 
-@Decorators.entity('Form')
+@Decorators.entity('form')
 export class Form {
   @Decorators.id()
   id: string

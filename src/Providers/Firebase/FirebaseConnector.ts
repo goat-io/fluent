@@ -34,7 +34,7 @@ export const createConnection = connection
  * @param Entity
  */
 export const createFirebaseRepository = Entity => {
-  const typeOrmRepo = getRepositoryTypeORM(Entity, 'modelGenerator')
+  const typeOrmRepo = getRepositoryTypeORM(Entity, '_goat_model_generator')
   const repository = getRepository(Entity)
   let name: string = ''
   let path: string = ''
@@ -125,6 +125,7 @@ export class FirebaseConnector<
     })
 
     let data = this.jsApplySelect(result)
+    const self = this as any
 
     data = await loadRelations({
       data,

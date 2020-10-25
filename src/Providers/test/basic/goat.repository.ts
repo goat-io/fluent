@@ -9,6 +9,6 @@ export class GoatRepository extends TypeOrmConnector<
   GoatEntityOut
 > {
   constructor(relations?: any) {
-    super(GoatEntity, 'runningTest')
+    super(GoatEntity, relations, 'runningTest')
   }
 }

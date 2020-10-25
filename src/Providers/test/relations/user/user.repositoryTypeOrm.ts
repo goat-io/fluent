@@ -10,7 +10,7 @@ export class UserRepository extends TypeOrmConnector<
   UsersEntityIn
 > {
   constructor(relations?: any) {
-    super(UsersEntity, 'runningTest', relations)
+    super(UsersEntity, relations, 'runningTest')
   }
 
   public cars = () => {

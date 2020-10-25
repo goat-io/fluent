@@ -7,7 +7,7 @@ export const template = `{{#each this}}
 {{/IfMetaNotProperty}}
 {{/ifIsNotId}}
 {{#ifIsId @key}}
-_id: faker.random.uuid(),
+id: faker.random.uuid(),
 {{/ifIsId}}
 
 {{/each}}`

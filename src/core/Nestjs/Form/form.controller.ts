@@ -30,9 +30,9 @@ import { getGoatFilterSchema } from '../../dtos/filterSchema'
 @ApiTags('Forms')
 @Controller('forms')
 export class FormController {
-  private forms: FormService['model']
+  private forms: FormService
   constructor(private readonly formRepository: FormService) {
-    this.forms = this.formRepository.model
+    this.forms = new FormService()
   }
   /**
    *
