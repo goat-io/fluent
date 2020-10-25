@@ -287,7 +287,9 @@ export class TypeOrmConnector<
     id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB
+      ? ((new ObjectId(id) as unknown) as ObjectID)
+      : id
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
@@ -326,7 +328,9 @@ export class TypeOrmConnector<
     id: string,
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB
+      ? ((new ObjectId(id) as unknown) as ObjectID)
+      : id
 
     const [getError, value] = await to(this.repository.findOneOrFail(parsedId))
 
@@ -404,7 +408,9 @@ export class TypeOrmConnector<
    * @param id
    */
   public async deleteById(id: string): Promise<string> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB
+      ? ((new ObjectId(id) as unknown) as ObjectID)
+      : id
     const [error, removed] = await to(this.repository.delete(parsedId))
 
     if (error) {
@@ -419,7 +425,9 @@ export class TypeOrmConnector<
    * @param id
    */
   public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const parsedId = this.isMongoDB ? (new ObjectId(id) as ObjectID) : id
+    const parsedId = this.isMongoDB
+      ? ((new ObjectId(id) as unknown) as ObjectID)
+      : id
 
     const [error, data] = await to(this.repository.findByIds([parsedId]))
 
@@ -667,7 +675,7 @@ export class TypeOrmConnector<
 
     if (this.relationQuery && this.relationQuery.data) {
       const ids = this.relationQuery.data.map(
-        d => new ObjectId(d.id) as ObjectID
+        d => (new ObjectId(d.id) as unknown) as ObjectID
       )
 
       andFilters.push([
@@ -692,8 +700,8 @@ export class TypeOrmConnector<
         element = '_id'
 
         value = Array.isArray(value)
-          ? value.map(v => new ObjectId(v) as ObjectID)
-          : (new ObjectId(value) as ObjectID)
+          ? value.map(v => (new ObjectId(v) as unknown) as ObjectID)
+          : ((new ObjectId(value) as unknown) as ObjectID)
       }
 
       switch (operator) {
