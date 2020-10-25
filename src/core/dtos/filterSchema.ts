@@ -55,8 +55,8 @@ export const getGoatFilterSchema = (model: any, keys?: string[]) => {
         }
       }
     },
-    additionalProperties: false,
-    type: 'application/json'
+    additionalProperties: false
+    // type: 'application/json'
   }
 
   return schema
