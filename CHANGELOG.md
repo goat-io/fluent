@@ -1,9 +1,30 @@
+# 0.4.5
+[2020-10-25]
+
+### Features
+
+* feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Adding Model Relations ([`7690484`](https://github.com/goat-io/fluent/commit/7690484d4f2b10c5dde7f852320d55867bb9276a))
+
+### Fixes
+
+*  [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Fix object id convertion ([`3f4163b`](https://github.com/goat-io/fluent/commit/3f4163b222717248c30a56338697de218d108261))
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix Object ID ([`5a499a1`](https://github.com/goat-io/fluent/commit/5a499a183e06c6ad6e4a86d6277ed26f28069f54))
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  compilation problem ([`90c225b`](https://github.com/goat-io/fluent/commit/90c225b5528037406e382ae0efc55400c0eb5ae6))
+
+### Other Changes
+
+* feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Adding Model Relations ([`7690484`](https://github.com/goat-io/fluent/commit/7690484d4f2b10c5dde7f852320d55867bb9276a))
+
 # 0.4.4
 [2020-10-04]
 
 ### Fixes
 
 *  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix new Decorator and Connector pattern ([`f79503c`](https://github.com/goat-io/fluent/commit/f79503c0ff3301b876354d7973231c25baa1b07d))
+
+### Other Changes
+
+* Release 0.4.4 ([`e37d720`](https://github.com/goat-io/fluent/commit/e37d720b2a6472d45ab84d0e55a35f72ca326ffc))
 
 # 0.4.3
 [2020-10-04]
