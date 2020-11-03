@@ -46,7 +46,16 @@ npm install --global @goatlab/fluent
 
 To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.1.0/fluent/fluent)
 
-<!-- ROADMAP -->
+<!--
+
+Packages that we need to replace
+npm-pack-zip
+@commitlint/prompt-cli
+formiojs
+react-native
+multer-google-storage
+nestjs-typed-dynamodb
+-->
 
 ## Roadmap
 

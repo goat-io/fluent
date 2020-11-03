@@ -17,7 +17,6 @@ import { Dates } from './Helpers/Dates'
 import { Filter } from '@loopback/repository'
 import { Id } from './Helpers/Id'
 import { ObjectID } from 'typeorm'
-import { ObjectId } from 'mongodb'
 import { Objects } from './Helpers/Objects'
 
 export interface GoatConnectorInterface<InputDTO, OutputDTO> {
@@ -514,7 +513,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       const relatedData = this.relationQuery.data.map(d => {
         return {
           [this.relationQuery.relation.inverseSidePropertyPath]: this.isMongoDB
-            ? ((new ObjectId(d.id) as unknown) as ObjectID)
+            ? ((Id.objectID(d.id) as unknown) as ObjectID)
             : d.id,
           ...data
         }
@@ -537,11 +536,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         return {
           [this.relationQuery.relation.joinColumns[0].propertyName]: this
             .isMongoDB
-            ? ((new ObjectId(d.id) as unknown) as ObjectID)
+            ? ((Id.objectID(d.id) as unknown) as ObjectID)
             : d.id,
           [this.relationQuery.relation.inverseJoinColumns[0].propertyName]: this
             .isMongoDB
-            ? ((new ObjectId(id) as unknown) as ObjectID)
+            ? ((Id.objectID(id) as unknown) as ObjectID)
             : id
         }
       })

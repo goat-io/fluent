@@ -1,7 +1,6 @@
 import { Arrays } from '../../../Helpers/Arrays'
-// import { FirebaseConnector } from '../FirebaseConnector'
+import { Id } from '../../../Helpers/Id'
 import { ObjectID } from 'typeorm'
-import { ObjectId } from 'mongodb'
 import { Primitives } from '../../../Providers/types'
 import { TypeOrmConnector } from '../../../Providers/TypeOrm/TypeOrmConnector'
 import { TypedPathWrapper } from 'typed-path'
@@ -53,7 +52,7 @@ export const loadRelations = async ({
         const ids = Arrays.deDuplicate(
           data.map(d =>
             Model.isMongoDB
-              ? ((new ObjectId(d.id) as unknown) as ObjectID)
+              ? ((Id.objectID(d.id) as unknown) as ObjectID)
               : d.id
           )
         )
@@ -114,7 +113,7 @@ export const loadRelations = async ({
         const ids = Arrays.deDuplicate(
           data.map(d =>
             Model.isMongoDB
-              ? ((new ObjectId(d.id) as unknown) as ObjectID)
+              ? ((Id.objectID(d.id) as unknown) as ObjectID)
               : d.id
           )
         )

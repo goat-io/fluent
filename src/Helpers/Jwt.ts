@@ -1,5 +1,6 @@
-import { securityId, UserProfile } from '@loopback/security'
+import { UserProfile, securityId } from '@loopback/security'
 import { sign, verify as verifyAsync } from 'jsonwebtoken'
+
 import { Errors } from '../Helpers/Errors'
 
 enum algorithms {
@@ -29,35 +30,19 @@ export const Jwt = (() => {
    * Given a JWT return a userProfile
    * @param token
    */
-  const verify = async (
-    token: string,
-    secret: string
-  ): Promise<UserProfile> => {
+  const verify = async (token: string, secret: string): Promise<any> => {
     if (!token) {
       const errors = Errors(null, `Error verifying token : 'token' is null`)
       throw new Error(errors)
     }
 
-    let userProfile: UserProfile
-
     try {
-      const decodedToken: any = await verifyAsync(token, secret)
-
-      userProfile = Object.assign(
-        { [securityId]: '', name: '' },
-        {
-          id: decodedToken.id,
-          [securityId]: decodedToken.id,
-          name: decodedToken.name,
-          email: decodedToken.email,
-          roles: decodedToken.roles || []
-        }
-      )
+      const decodedToken = await verifyAsync(token, secret)
+      return decodedToken
     } catch (error) {
       const errors = Errors(error, `Error verifying token : ${error.message}`)
       throw new Error(errors)
     }
-    return userProfile
   }
 
   /**
@@ -67,10 +52,10 @@ export const Jwt = (() => {
    * @param jwtOptions
    */
   const generate = async (
-    userProfile: UserProfile,
+    payload: any,
     jwtOptions: JwtOptions
   ): Promise<string> => {
-    if (!userProfile) {
+    if (!payload) {
       const errors = Errors(
         null,
         'Error generating token : userProfile is null'
@@ -78,16 +63,9 @@ export const Jwt = (() => {
       throw new Error(errors)
     }
 
-    const userInfoForToken = {
-      email: userProfile.email,
-      id: userProfile[securityId],
-      name: userProfile.name,
-      roles: userProfile.roles
-    }
-
     let token: string
     try {
-      token = await sign(userInfoForToken, jwtOptions.secret, {
+      token = await sign(payload, jwtOptions.secret, {
         expiresIn: jwtOptions.expiresIn,
         algorithm: jwtOptions.algorithm || algorithms.HS256
       })

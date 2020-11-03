@@ -50,7 +50,7 @@ export const mongoMemory = (() => {
   const start = async (): Promise<MemoryMongo> => {
     process.env.MONGOMS_DEBUG = '1'
     const mongoServer = new MongoMemoryServer()
-    const url = await mongoServer.getConnectionString()
+    const url = await mongoServer.getUri()
     const port = await mongoServer.getPort()
     const dbName = await mongoServer.getDbName()
 

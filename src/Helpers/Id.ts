@@ -1,5 +1,3 @@
-// import ObjectId from 'bson-objectid'
-// import { ObjectId } from 'mongodb'
 import { ObjectId } from 'bson'
 import { v4 } from 'uuid'
 

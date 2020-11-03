@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config'
 import { ExtractJwt } from 'passport-jwt'
 import { For } from '../../../Helpers/For'
 import { Injectable } from '@nestjs/common'
+import { Jwt } from '../../../Helpers/Jwt'
 import { PassportStrategy } from '@nestjs/passport'
 import { Strategy } from 'passport-strategy'
 
@@ -29,11 +30,22 @@ export class GoatStrategy extends PassportStrategy(Strategy, 'jwt') {
       return
     }
 
-    if (process.env.AUTH_USE_FIREBASE) {
+    if (process.env.AUTH_USE_FIREBASE === 'true') {
       const user = this.firebaseValidation(idToken)
       req.user = user
       return
     }
+
+    const [decodeError, decodedToken] = await For.async(
+      Jwt.verify(idToken, process.env.AUTH_JWT_SECRET)
+    )
+
+    if (decodeError) {
+      this.fail(UNAUTHORIZED, 401)
+    }
+
+    req.user = decodedToken
+    this.success(decodedToken)
   }
   /**
    * Custom logic for token validation

@@ -26,6 +26,7 @@ import {
 
 import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
+import { Id } from '../../Helpers/Id'
 import { ObjectId } from 'mongodb'
 import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
@@ -675,7 +676,7 @@ export class TypeOrmConnector<
 
     if (this.relationQuery && this.relationQuery.data) {
       const ids = this.relationQuery.data.map(
-        d => (new ObjectId(d.id) as unknown) as ObjectID
+        d => (Id.objectID(d.id) as unknown) as ObjectID
       )
 
       andFilters.push([
@@ -700,8 +701,8 @@ export class TypeOrmConnector<
         element = '_id'
 
         value = Array.isArray(value)
-          ? value.map(v => (new ObjectId(v) as unknown) as ObjectID)
-          : ((new ObjectId(value) as unknown) as ObjectID)
+          ? value.map(v => (Id.objectID(v) as unknown) as ObjectID)
+          : ((Id.objectID(value) as unknown) as ObjectID)
       }
 
       switch (operator) {
