@@ -1,3 +1,10 @@
+# 0.4.6
+[2020-11-03]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  remove mongodb dependency from Id ([`4949570`](https://github.com/goat-io/fluent/commit/4949570fc7ced498e5483cc01aa19b324ac75567))
+
 # 0.4.5
 [2020-10-25]
 
@@ -14,6 +21,7 @@
 ### Other Changes
 
 * feat: [FLUENT-2](https://goatlab.atlassian.net/browse//FLUENT-2) -  Adding Model Relations ([`7690484`](https://github.com/goat-io/fluent/commit/7690484d4f2b10c5dde7f852320d55867bb9276a))
+* Release 0.4.5 ([`76cbd75`](https://github.com/goat-io/fluent/commit/76cbd7515032fb0904c50e46fe3ada5ccbf28241))
 
 # 0.4.4
 [2020-10-04]
