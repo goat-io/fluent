@@ -1,3 +1,10 @@
+# 0.4.8
+[2020-11-19]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix compile ([`bbb133b`](https://github.com/goat-io/fluent/commit/bbb133b9da5f577d5f5c1a04b743d34e2dbd2aa5))
+
 # 0.4.7
 [2020-11-19]
 
@@ -9,6 +16,7 @@
 
 * chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Version up ([`360a6b1`](https://github.com/goat-io/fluent/commit/360a6b1a2a6fb7eef56d538852f78c7040fca404))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  ForceID firebase ([`a7d1c30`](https://github.com/goat-io/fluent/commit/a7d1c303c7efcd104690c7a7a2ab28fb7bcb9f74))
+* Release 0.4.7 ([`a178912`](https://github.com/goat-io/fluent/commit/a178912d9432fb8905323e63199a2108e439a2fa))
 
 # 0.4.6
 [2020-11-03]
