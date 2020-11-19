@@ -1,9 +1,25 @@
+# 0.4.7
+[2020-11-19]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  ForceID firebase ([`a7d1c30`](https://github.com/goat-io/fluent/commit/a7d1c303c7efcd104690c7a7a2ab28fb7bcb9f74))
+
+### Other Changes
+
+* chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Version up ([`360a6b1`](https://github.com/goat-io/fluent/commit/360a6b1a2a6fb7eef56d538852f78c7040fca404))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  ForceID firebase ([`a7d1c30`](https://github.com/goat-io/fluent/commit/a7d1c303c7efcd104690c7a7a2ab28fb7bcb9f74))
+
 # 0.4.6
 [2020-11-03]
 
 ### Fixes
 
 *  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  remove mongodb dependency from Id ([`4949570`](https://github.com/goat-io/fluent/commit/4949570fc7ced498e5483cc01aa19b324ac75567))
+
+### Other Changes
+
+* Release 0.4.6 ([`421dc12`](https://github.com/goat-io/fluent/commit/421dc12e67fdc853988b0810901186148e0aa720))
 
 # 0.4.5
 [2020-10-25]
