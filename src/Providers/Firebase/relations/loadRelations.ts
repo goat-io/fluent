@@ -170,7 +170,7 @@ export const loadRelations = async ({
         const groupedRelated = Arrays.groupBy(relatedResults, r => r.id)
 
         data.forEach(d => {
-          groupedPivot[d.id].forEach(gp => {
+          groupedPivot[d.id]?.forEach(gp => {
             d[relationModel.propertyPath] =
               groupedRelated[
                 gp[relationModel.inverseJoinColumns[0].propertyName]

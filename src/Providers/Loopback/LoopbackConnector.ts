@@ -1,41 +1,47 @@
-import { Filter } from '@loopback/repository'
-import to from 'await-to-js'
-import axios from 'axios'
-import dayjs from 'dayjs'
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 // import pluralize from 'pluralize'
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
+  GoatFilter,
   GoatOutput,
   IDataElement,
   IPaginatedData,
   IPaginator,
-  ISure,
-  GoatFilter
+  ISure
 } from '../types'
+
 import { Connection } from '../../Helpers/Connection'
 // import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
+import { Filter } from '@loopback/repository'
+import axios from 'axios'
+import dayjs from 'dayjs'
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
+import to from 'await-to-js'
+
 // import { Objects } from '../../Helpers/Objects'
 dayjs.extend(isSameOrAfter)
 
 interface ILoopbackConnector {
   baseEndPoint: string
   token?: string
+  setToken?: () => Promise<string>
 }
 export class LoopbackConnector<
-  ModelDTO = IDataElement,
-  InputDTO = ModelDTO,
-  OutputDTO = ModelDTO
-> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
+    ModelDTO = IDataElement,
+    InputDTO = ModelDTO,
+    OutputDTO = ModelDTO
+  >
+  extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private baseEndPoint: string = ''
   private authToken: string = ''
+  private setToken: () => Promise<string>
 
-  constructor({ baseEndPoint, token }: ILoopbackConnector) {
+  constructor({ baseEndPoint, token, setToken }: ILoopbackConnector) {
     super()
     this.baseEndPoint = baseEndPoint
     this.authToken = token
+    this.setToken = setToken
   }
   /**
    *
@@ -44,16 +50,7 @@ export class LoopbackConnector<
     const [error, result]: any = await to(this.httpGET())
 
     if (error) {
-      if (error.response.status === 440) {
-        Event.emit('GOAT:SESSION:EXPIRED', {
-          data: error,
-          text: 'Session expired'
-        })
-
-        // throw new Error(Errors(error, 'Session has expired.'))
-        throw new Error('Session has expired.')
-      }
-      throw new Error('Error while getting submissions')
+      throw error
     }
 
     const data = this.jsApplySelect(result.data)
@@ -66,15 +63,7 @@ export class LoopbackConnector<
     const [error, response]: any = await to(this.httpGET())
 
     if (error) {
-      if (error.response.status === 440) {
-        Event.emit('GOAT:SESSION:EXPIRED', {
-          data: error,
-          text: 'Session expired'
-        })
-
-        throw new Error('Session has expired.')
-      }
-      throw new Error('Error while getting submissions')
+      throw error
     }
 
     const results: IPaginatedData<InputDTO> = {
@@ -269,9 +258,12 @@ export class LoopbackConnector<
   /**
    *
    */
-  public getHeaders() {
+  public async getHeaders() {
     const headers: any = {}
-    const token = this.authToken || this.getToken()
+    const token =
+      (this.setToken && (await this.setToken())) ||
+      this.authToken ||
+      this.getToken()
 
     if (!token) {
       return headers

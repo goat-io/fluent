@@ -242,20 +242,17 @@ export class FirebaseConnector<
    * @param data
    */
   public async insert(
-    data: InputDTO
+    data: InputDTO,
+    forcedId?: string | number
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const id = Id.objectIdString()
+    const id = forcedId || Id.objectIdString()
     // TODO we have to change this to manage cases where created, updated or version fields are included in the respective models
-    if (false) {
-      console.log('We have  a created field')
-    }
     // const created = new Date()
     // const updated = new Date()
     // const version = 1
     const [error, datum] = await to(this.repository.create({ id, ...data }))
 
     if (error) {
-      console.log('error', error)
       return Promise.reject(Errors(error, 'Validation Error'))
     }
 
@@ -271,7 +268,8 @@ export class FirebaseConnector<
    * @param data
    */
   public async insertMany(
-    data: InputDTO[]
+    data: InputDTO[],
+    forcedId?: string | number
   ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
     const batch = []
 
