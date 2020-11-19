@@ -52,9 +52,7 @@ export class Fluent {
   /**
    *
    */
-  public static model<T = IDataElement>(
-    name: string
-  ): TypedPathWrapper<T & IGoatExtendedAttributes> {
+  public static model<T = IDataElement>(name: string): any {
     this.registerModel<T & IGoatExtendedAttributes>(name)
     return typedPath<T & IGoatExtendedAttributes>()
   }

@@ -64,7 +64,7 @@ export const loadRelations = async ({
           const results = await Model.andWhere(
             Model._keys[
               relationModel.inverseSidePropertyPath
-            ] as TypedPathWrapper<Primitives>,
+            ] as TypedPathWrapper<Primitives, Primitives>,
             'in',
             relatedIds
           ).get()
@@ -92,7 +92,7 @@ export const loadRelations = async ({
         const promises = []
         for (const relatedIds of chunks) {
           const results = await Model.andWhere(
-            Model._keys.id as TypedPathWrapper<Primitives>,
+            Model._keys.id as TypedPathWrapper<Primitives, Primitives>,
             'in',
             relatedIds
           ).get()
@@ -132,6 +132,7 @@ export const loadRelations = async ({
           const results = await pivotRepository
             .where(
               relationModel.joinColumns[0].propertyName as TypedPathWrapper<
+                Primitives,
                 Primitives
               >,
               'in',
@@ -152,7 +153,7 @@ export const loadRelations = async ({
         const relationPromises = []
         for (const relatedIds of relationChunks) {
           const results = await Model.andWhere(
-            Model._keys.id as TypedPathWrapper<Primitives>,
+            Model._keys.id as TypedPathWrapper<Primitives, Primitives>,
             'in',
             relatedIds
           ).get()

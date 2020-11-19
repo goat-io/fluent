@@ -231,7 +231,7 @@
     "socket.io-redis": "^5.4.0",
     "sqlite3": "^5.0.0",
     "ts-transformer-keys": "^0.4.2",
-    "typed-path": "^2.0.2",
+    "typed-path": "^2.1.0",
     "typeorm": "^0.2.29",
     "uuid": "^8.3.1",
     "verror": "^1.10.0"

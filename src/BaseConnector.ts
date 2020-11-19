@@ -166,7 +166,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param {Array|String} columns The columns to select
    * @returns {Model} Fluent Model
    */
-  public select(...columns: TypedPathWrapper<Primitives>[]) {
+  public select(...columns: TypedPathWrapper<Primitives, Primitives>[]) {
     columns = this.prepareInput(columns)
 
     this.chainReference.push({ method: 'select', args: columns })
@@ -185,7 +185,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param {Array|String} columns The columns to select
    * @returns {Model} Fluent Model
    */
-  public forceSelect(...columns: TypedPathWrapper<Primitives>[]) {
+  public forceSelect(...columns: TypedPathWrapper<Primitives, Primitives>[]) {
     if (typeof module === 'undefined' || !module.exports) {
       throw new Error('forceSelect cant be used in frontend')
     }
@@ -239,11 +239,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns {Model} Fluent Model
    */
   public where(
-    path: TypedPathWrapper<Primitives>,
+    path: TypedPathWrapper<Primitives, Primitives>,
     operator: OperatorType,
     value: Primitives | PrimitivesArray
   ) {
-    const stringPath = (path && path.$path) || path
+    const stringPath = path.toString()
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'where', chainedWhere })
 
@@ -261,11 +261,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns {Model} Fluent Model
    */
   public andWhere(
-    path: TypedPathWrapper<Primitives>,
+    path: TypedPathWrapper<Primitives, Primitives>,
     operator: OperatorType,
     value: Primitives | Primitives[]
   ) {
-    const stringPath = path && path.$path
+    const stringPath = path.toString()
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'andWhere', chainedWhere })
 
@@ -280,11 +280,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns {Model} Fluent Model
    */
   public orWhere(
-    path: TypedPathWrapper<Primitives>,
+    path: TypedPathWrapper<Primitives, Primitives>,
     operator: OperatorType,
     value: Primitives
   ) {
-    const stringPath = path && path.$path
+    const stringPath = path.toString()
     const chainedWhere = [stringPath, operator, value]
     this.chainReference.push({ method: 'orWhere', chainedWhere })
     this.orWhereArray.push(chainedWhere)
@@ -315,13 +315,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param {String} keyPath The path to the key
    * @returns {Array}
    */
-  public async pluck(path: TypedPathWrapper<Primitives>): Promise<string[]> {
-    const stringPath = path && path.$path
+  public async pluck(
+    path: TypedPathWrapper<Primitives, Primitives>
+  ): Promise<string[]> {
+    const stringPath = path.toString()
     this.chainReference.push({ method: 'pluck', args: stringPath })
     const data = await this.get()
 
     const result: string[] = data.map(e => {
-      const extracted = Objects.getFromPath(e, stringPath, undefined)
+      const extracted = Objects.getFromPath(e, String(stringPath), undefined)
 
       if (typeof extracted.value !== 'undefined') {
         return extracted.value
@@ -334,11 +336,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param {*} args
    */
   public orderBy(
-    path: TypedPathWrapper<Primitives>,
+    path: TypedPathWrapper<Primitives, Primitives>,
     order: 'asc' | 'desc' = 'desc',
     orderType: 'string' | 'number' | 'date' = 'string'
   ) {
-    const stringPath = path && path.$path
+    const stringPath = path.toString()
     const orderB = [stringPath, order, orderType]
     this.chainReference.push({ method: 'orderBy', orderB })
     this.orderByArray = orderB
@@ -606,11 +608,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    *
    * @param {*} input
    */
-  private prepareInput(columns: TypedPathWrapper<Primitives>[]) {
+  private prepareInput(columns: TypedPathWrapper<Primitives, Primitives>[]) {
     let cols = []
 
     columns.forEach(col => {
-      cols = cols.concat(col.$path.trim())
+      cols = cols.concat(col.toString().trim())
     })
 
     cols.filter((elem, pos, arr) => {

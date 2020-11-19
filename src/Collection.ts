@@ -1,10 +1,11 @@
+import { IDataElement, Primitives } from './Providers/types'
+import { TypedPathWrapper, typedPath } from 'typed-path'
+
 import { Objects } from './Helpers/Objects'
-import { Primitives, IDataElement } from './Providers/types'
-import { typedPath, TypedPathWrapper } from 'typed-path'
 
 type Contains<T> = {
   value?: Primitives
-  path?: TypedPathWrapper<Primitives>
+  path?: TypedPathWrapper<Primitives, Primitives>
   Fx?(element: T, index: number): boolean
 }
 
@@ -35,7 +36,7 @@ export class Collection<T = IDataElement | Primitives> {
    * @param  {String}  path Path of the key
    * @return function
    */
-  public avg(path?: TypedPathWrapper<Primitives>) {
+  public avg(path?: TypedPathWrapper<Primitives, Primitives>) {
     return this.average(path)
   }
   /**
@@ -44,8 +45,8 @@ export class Collection<T = IDataElement | Primitives> {
    * @param  {String}  path Path of the key
    * @return static
    */
-  public average(path?: TypedPathWrapper<Primitives>): number {
-    const stringPath = path && path.$path
+  public average(path?: TypedPathWrapper<Primitives, Primitives>): number {
+    const stringPath = path && path.toString()
     const data = [...this.data]
     const sum: number = Number(
       data.reduce((acc: number, element) => {
@@ -186,7 +187,7 @@ export class Collection<T = IDataElement | Primitives> {
       }
 
       if (element instanceof Object) {
-        const stringPath = contains.path && contains.path.$path
+        const stringPath = contains.path && contains.path.toString()
         const extract = Objects.getFromPath(element, stringPath, undefined)
         if (extract.value) {
           return extract.value === contains.value
