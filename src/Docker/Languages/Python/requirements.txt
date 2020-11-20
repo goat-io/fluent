@@ -68,7 +68,7 @@ mccabe==0.6.1
 mistune==0.8.4
 nbconvert==5.6.1  # Updated from 5.4.1
 nbformat==5.0.5  # Updated from 4.4.0
-notebook==6.0.3  # Updated from 5.7.4
+notebook==6.1.5  # Updated from 5.7.4
 numpy==1.18.2  # Updated from 1.17.2
 pandas==1.0.3  # Updated from 0.25.1
 pandocfilters==1.4.2
