@@ -135,7 +135,7 @@
     "@nestjs/passport": "^7.1.0",
     "@nestjs/platform-fastify": "^7.5.1",
     "@nestjs/platform-socket.io": "^7.5.1",
-    "@nestjs/swagger": "^4.6.1",
+    "@nestjs/swagger": "^4.7.2",
     "@nestjs/terminus": "^7.0.1",
     "@nestjs/testing": "^7.5.1",
     "@nestjs/typeorm": "^7.1.4",
