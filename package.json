@@ -148,7 +148,7 @@
     "apollo-server-fastify": "^2.19.0",
     "await-to-js": "^2.1.1",
     "aws-sdk": "^2.784.0",
-    "axios": "^0.21.0",
+    "axios": "^0.21.1",
     "bcryptjs": "^2.4.3",
     "bson": "^4.2.0",
     "bson-objectid": "^1.3.1",
