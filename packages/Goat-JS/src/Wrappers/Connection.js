@@ -14,7 +14,7 @@ let Connection = (() => {
       Event.emit({
         name: "GOAT:CONNECTION:ONLINE",
         data: online,
-        text: "Application is now online"
+        text: "Application is now online",
       });
     }
   }
@@ -25,7 +25,7 @@ let Connection = (() => {
       Event.emit({
         name: "GOAT:CONNECTION:OFFLINE",
         data: online,
-        text: "Application is now offline"
+        text: "Application is now offline",
       });
     }
   }
@@ -37,36 +37,29 @@ let Connection = (() => {
   function initEventListeners() {
     Event.listen({
       name: "online",
-      callback: function() {
+      callback: function () {
         console.log("App is now online");
         setOnline();
-      }
+      },
     });
     Event.listen({
       name: "offline",
-      callback: function() {
+      callback: function () {
         console.log("App is now offline");
         setOffline();
-      }
+      },
     });
   }
 
   function isOnline() {
     return new Promise((resolve, reject) => {
-      axios
-        .get("https://yesno.wtf/api")
-        .then(function(res) {
-          resolve(true);
-        })
-        .catch(function(err) {
-          resolve(false);
-        });
+      resolve(true);
     });
   }
 
   return Object.freeze({
     isOnline,
-    initEventListeners
+    initEventListeners,
   });
 })();
 

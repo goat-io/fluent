@@ -1,5 +1,5 @@
-import stampit from "@stamp/it";
 import Privatize from "@stamp/privatize";
+import stampit from "@stamp/it";
 
 export default stampit({
   properties: {
@@ -8,15 +8,15 @@ export default stampit({
       remote: {
         path: undefined,
         token: undefined,
-        pullForm: false
+        pullForm: false,
       },
       local: {
-        connector: "loki"
+        connector: "loki",
       },
       merge: {
-        connector: "formio-loki"
-      }
-    }
+        connector: "formio-loki",
+      },
+    },
   },
   methods: {
     /**
@@ -66,7 +66,7 @@ export default stampit({
       // If the model assigns specific one
       if (this.config && this.config[type] && this.config[type].connector) {
         const Lcon = connectors.find(
-          c => c.name === this.config[type].connector
+          (c) => c.name === this.config[type].connector
         );
 
         if (Lcon instanceof Object) return Lcon;
@@ -74,12 +74,12 @@ export default stampit({
 
       // If connectorName is specified
       if (connectorName) {
-        const Lcon = connectors.find(c => c.name === connectorName);
+        const Lcon = connectors.find((c) => c.name === connectorName);
 
         if (Lcon instanceof Object) return Lcon;
       }
 
-      const base = connectors.find(c => c.default);
+      const base = connectors.find((c) => c.default);
 
       if (base instanceof Object) return base;
 
@@ -93,7 +93,7 @@ export default stampit({
       token = undefined,
       pullForm = undefined,
       connectorName = undefined,
-      path = undefined
+      path = undefined,
     } = {}) {
       const FLUENT = this.getFluentConfig();
       const connectors =
@@ -111,7 +111,9 @@ export default stampit({
         connectorName || false
       );
 
-      this.config.remote.token = token || this.config.remote.token;
+      this.config.remote.token =
+        token ||
+        (this.config && this.config.remote && this.config.remote.token);
       this.config.remote.path = path || this.config.remote.path;
 
       if (pullForm) {
@@ -121,7 +123,7 @@ export default stampit({
       if (remoteConnector) {
         return remoteConnector.connector({
           remoteConnection: this.config.remote,
-          connector: remoteConnector
+          connector: remoteConnector,
         });
       }
 
@@ -151,7 +153,7 @@ export default stampit({
       if (localConnector)
         return localConnector.connector({
           name: this.name,
-          connector: localConnector
+          connector: localConnector,
         });
 
       throw new Error(
@@ -182,13 +184,13 @@ export default stampit({
           local,
           remote,
           name: this.name,
-          connector: mergeConnector
+          connector: mergeConnector,
         });
       }
 
       throw new Error(
         "No default merge connector found. Please assign one as your default in Fluent.config"
       );
-    }
-  }
+    },
+  },
 }).compose(Privatize);
