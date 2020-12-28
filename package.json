@@ -110,7 +110,7 @@
   },
   "dependencies": {
     "@aws/dynamodb-data-mapper": "^0.7.3",
-    "@azure/storage-blob": "^12.2.1",
+    "@azure/storage-blob": "^12.3.0",
     "@databases/mysql-test": "^2.0.0",
     "@databases/sqlite": "^2.0.0",
     "@hapi/joi": "^17.1.1",
