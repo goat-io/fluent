@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common'
-import { HealthController } from './health.controller'
 import { DNSHealthIndicator, HealthCheckService } from '@nestjs/terminus'
-// import { TypegooseModule } from 'nestjs-typegoose'
+
+import { HealthController } from './health.controller'
+import { Module } from '@nestjs/common'
 import { TerminusModule } from '@nestjs/terminus'
 
 @Module({

@@ -43,7 +43,7 @@ export class GoatStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (decodeError) {
       this.fail(UNAUTHORIZED, 401)
     }
-
+    console.log('req', decodedToken)
     req.user = decodedToken
     this.success(decodedToken)
   }

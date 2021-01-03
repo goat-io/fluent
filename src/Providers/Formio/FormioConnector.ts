@@ -33,10 +33,11 @@ const GoatExtenderAttributes = [
 ]
 
 export class LokiRNConnector<
-  ModelDTO = IDataElement,
-  InputDTO = ModelDTO,
-  OutputDTO = ModelDTO
-> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
+    ModelDTO = IDataElement,
+    InputDTO = ModelDTO,
+    OutputDTO = ModelDTO
+  >
+  extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
   private baseEndPoint: string = ''
   private authToken: string = ''
@@ -292,7 +293,7 @@ export class LokiRNConnector<
       return token
     }
 
-    const decodedToken = jwtDecode(token)
+    const decodedToken = jwtDecode<any>(token)
     const expDate = dayjs.unix(decodedToken.exp)
     if (dayjs().isSameOrAfter(expDate)) {
       Event.emit('GOAT:SESSION:EXPIRED', {

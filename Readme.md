@@ -32,7 +32,7 @@
 
 A TS library to give you wrapper Fluent methods for API and general App building. It takes care of all the heavy work so you can focus on creating amazing ideas.
 
-Fluent will help you develop faster in any Framework
+Fluent helps teams develop faster in any Framework
 
 ### Installing
 
