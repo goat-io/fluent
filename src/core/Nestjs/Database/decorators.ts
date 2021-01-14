@@ -107,7 +107,7 @@ export const Decorators = (() => {
    * @param params
    */
   const property = (params?: PropertyInterface): PropertyDecorator => {
-    if (params.hidden) {
+    if (params && params.hidden) {
       return applyDecorators(
         HideField(),
         Column({

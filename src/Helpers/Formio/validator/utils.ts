@@ -4,9 +4,9 @@ const _ = require('lodash')
 const nodeUrl = require('url')
 const Q = require('q')
 
-import formioUtils from 'formiojs/utils'
 import deleteProp from 'delete-property'
 import { errorCodes } from './error-codes'
+import formioUtils from 'formiojs/utils'
 
 const debug = {
   idToBson: require('debug')('formio:util:idToBson'),
