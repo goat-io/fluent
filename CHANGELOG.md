@@ -1,9 +1,33 @@
+# 0.4.9
+[2021-01-14]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  pulling from master ([`21294f6`](https://github.com/goat-io/fluent/commit/21294f6542463be259ac332c0a8f158079763313))
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update packages ([`97633fb`](https://github.com/goat-io/fluent/commit/97633fbb08912469657d01d505d8bdff447ffa54))
+*  upgrade @nestjs/graphql from 7.7.0 to 7.8.1 ([`cb8ae51`](https://github.com/goat-io/fluent/commit/cb8ae515e8de28982f1b590c406d26668df0b194))
+*  package.json & package-lock.json to reduce vulnerabilities ([`a69cd0d`](https://github.com/goat-io/fluent/commit/a69cd0da7b9882738b036f97d721899325f672b4))
+*  upgrade mongoose from 5.10.11 to 5.10.13 ([`2974289`](https://github.com/goat-io/fluent/commit/2974289bc230924d442adbf4c2ca6f036466d625))
+*  upgrade @nestjs/swagger from 4.6.1 to 4.7.2 ([`3a3ce75`](https://github.com/goat-io/fluent/commit/3a3ce75e4bddd5af74ce0283287d863426760ed5))
+*  upgrade dayjs from 1.9.4 to 1.9.6 ([`7824722`](https://github.com/goat-io/fluent/commit/7824722b429fcdaacc48528901206064b6437824))
+*  upgrade aws-sdk from 2.784.0 to 2.789.0 ([`d03e45c`](https://github.com/goat-io/fluent/commit/d03e45c2b9d7cdcc2bee5bb057f34fa321ca999c))
+
+### Other Changes
+
+* chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies and set dev deps ([`e0f6953`](https://github.com/goat-io/fluent/commit/e0f6953eb61e6e8fc4086884349f4436457daca8))
+* chore(deps): Bump notebook in /src/Docker/Languages/Python ([`104d27f`](https://github.com/goat-io/fluent/commit/104d27f19fd7609acb789823448c088974c54030))
+* chore(deps): Bump cryptography in /src/Docker/Languages/Python ([`b1a2061`](https://github.com/goat-io/fluent/commit/b1a20618949ed6d9c46e62bad29b4f28ea60f3f1))
+
 # 0.4.8
-[2020-11-19]
+[2020-11-20]
 
 ### Fixes
 
 *  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix compile ([`bbb133b`](https://github.com/goat-io/fluent/commit/bbb133b9da5f577d5f5c1a04b743d34e2dbd2aa5))
+
+### Other Changes
+
+* Release 0.4.8 ([`94e9814`](https://github.com/goat-io/fluent/commit/94e981492f4926ddbd46bc902b8c6283cedce439))
 
 # 0.4.7
 [2020-11-19]
