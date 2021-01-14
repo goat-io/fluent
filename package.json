@@ -109,9 +109,6 @@
     }
   },
   "dependencies": {
-    "@aws/dynamodb-data-mapper": "^0.7.3",
-    "@azure/storage-blob": "^12.3.0",
-    "@hapi/joi": "^17.1.1",
     "@loopback/authentication": "^7.0.5",
     "@loopback/authorization": "^0.7.5",
     "@loopback/boot": "^3.1.2",
@@ -138,6 +135,9 @@
     "@nestjs/testing": "^7.6.5",
     "@nestjs/typeorm": "^7.1.5",
     "@nestjs/websockets": "^7.6.5",
+    "@aws/dynamodb-data-mapper": "^0.7.3",
+    "@azure/storage-blob": "^12.3.0",
+    "@hapi/joi": "^17.1.1",
     "@tfarras/nestjs-firebase-auth": "^1.0.0",
     "agenda": "^3.1.0",
     "amqplib": "^0.6.0",
@@ -176,7 +176,6 @@
     "inquirer": "^7.3.3",
     "ioredis": "^4.19.4",
     "isemail": "^3.2.0",
-    "jest-environment-node": "^26.6.2",
     "jwks-rsa": "^1.12.2",
     "jwt-decode": "^3.1.2",
     "lodash": "^4.17.20",
@@ -208,12 +207,10 @@
     "passport-strategy": "^1.0.0",
     "pluralize": "^8.0.0",
     "portfinder": "^1.0.28",
-    "pretty-quick": "^3.1.0",
     "pusher-js": "^7.0.2",
     "q": "^1.5.1",
     "qs": "^6.9.5",
     "ramda": "^0.27.1",
-    "react-native": "^0.63.4",
     "reflect-metadata": "^0.1.13",
     "rfdc": "^1.1.4",
     "rimraf": "^3.0.2",
@@ -229,8 +226,13 @@
     "delete-property": "0.0.4",
     "js-combinatorics": "0.6.1"
   },
-  "devDependencies": {
+  "peerDependencies": {
     "sqlite3": "^5.0.1",
+    "react-native": "^0.63.4"
+  },
+  "devDependencies": {
+    "jest-environment-node": "^26.6.2",
+    "pretty-quick": "^3.1.0",
     "mysql": "^2.18.1",
     "husky": "^4.3.7",
     "@databases/mysql-test": "^3.0.0",
@@ -262,7 +264,6 @@
     "ts-jest": "^26.4.4",
     "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
-    "ttypescript": "^1.5.12",
     "typescript": "^4.1.3"
   }
 }
