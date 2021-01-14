@@ -1,5 +1,16 @@
-# 0.4.9
+# 0.4.10
 [2021-01-14]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Dev dependencies ([`18433fd`](https://github.com/goat-io/fluent/commit/18433fd48808f277cf489fa02b4b1fb3cb4f9538))
+
+### Other Changes
+
+* refactor: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Dev dependencies ([`6f96800`](https://github.com/goat-io/fluent/commit/6f9680061635a3adc339d2ee75ba3c5a71a91c47))
+
+# 0.4.9
+[2021-01-13]
 
 ### Fixes
 
@@ -14,6 +25,7 @@
 
 ### Other Changes
 
+* Release 0.4.9 ([`5835345`](https://github.com/goat-io/fluent/commit/5835345f0f051723bdac934e572b6031f941721d))
 * chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies and set dev deps ([`e0f6953`](https://github.com/goat-io/fluent/commit/e0f6953eb61e6e8fc4086884349f4436457daca8))
 * chore(deps): Bump notebook in /src/Docker/Languages/Python ([`104d27f`](https://github.com/goat-io/fluent/commit/104d27f19fd7609acb789823448c088974c54030))
 * chore(deps): Bump cryptography in /src/Docker/Languages/Python ([`b1a2061`](https://github.com/goat-io/fluent/commit/b1a20618949ed6d9c46e62bad29b4f28ea60f3f1))
