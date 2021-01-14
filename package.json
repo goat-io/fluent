@@ -224,11 +224,9 @@
     "verror": "^1.10.0",
     "joi": "14.3.1",
     "delete-property": "0.0.4",
-    "js-combinatorics": "0.6.1"
-  },
-  "peerDependencies": {
-    "sqlite3": "^5.0.1",
-    "react-native": "^0.63.4"
+    "js-combinatorics": "0.6.1",
+    "react-native": "^0.63.4",
+    "sqlite3": "^5.0.1"
   },
   "devDependencies": {
     "jest-environment-node": "^26.6.2",
