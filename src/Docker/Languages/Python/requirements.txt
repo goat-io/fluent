@@ -3,7 +3,7 @@ attrs==19.3.0  # Updated from 19.2.0
 Automat==20.2.0  # Updated from 0.7.0
 cffi==1.14.0  # Updated from 1.12.3
 constantly==15.1.0
-cryptography==3.2  # Updated from 2.7
+cryptography==3.3.2  # Updated from 2.7
 cssselect==1.1.0
 enum34==1.1.10  # Updated from 1.1.6
 #functools32==3.2.3.post2
