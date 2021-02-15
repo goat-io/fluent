@@ -125,7 +125,6 @@ export class FirebaseConnector<
     })
 
     let data = this.jsApplySelect(result)
-    const self = this as any
 
     data = await loadRelations({
       data,
@@ -577,7 +576,7 @@ export class FirebaseConnector<
           filterQuery = filterQuery.where(element, '==', value)
           break
         case '!=':
-          throw new Error('The != Operator cannot be used in Firabase')
+          filterQuery = filterQuery.where(element, '!=', value)
           break
         case '>':
           filterQuery = filterQuery.where(element, operator, value)
@@ -593,6 +592,9 @@ export class FirebaseConnector<
           break
         case 'in':
           filterQuery = filterQuery.where(element, 'in', value)
+          break
+        case 'array-contains':
+          filterQuery = filterQuery.where(element, 'array-contains', value)
           break
         case 'nin':
           throw new Error('The nin Operator cannot be used in Firabase')

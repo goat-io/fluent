@@ -67,6 +67,7 @@ export const Objects = (() => {
    */
   const flatten = (
     ob: { [key: string]: any },
+    includeBaseKeys?: boolean,
     keyFactory: KeyFactory | null = null
   ): { [key: string]: any } => {
     if (keyFactory === null) {
@@ -82,6 +83,9 @@ export const Objects = (() => {
         for (const x in flatObject) {
           if (!flatObject.hasOwnProperty(x)) {
             continue
+          }
+          if (includeBaseKeys) {
+            toReturn[i] = 'true'
           }
           toReturn[keyFactory(i, x)] = flatObject[x]
         }

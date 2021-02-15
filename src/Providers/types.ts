@@ -58,6 +58,7 @@ export type OperatorType =
   | 'startsWith'
   | 'endsWith'
   | 'contains'
+  | 'array-contains'
 
 export type GoatOutput<Input, Output> = Partial<Input> &
   Partial<Output> &

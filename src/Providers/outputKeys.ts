@@ -11,14 +11,10 @@ export const getOutputKeys = (repository: Repository<any>) => {
 
   const keys = repository.metadata.propertiesMap
 
-  const flatKeys = Objects.flatten(keys)
-  const exclude = [
-    ...excludedCols,
-    ...['deleted', 'access', 'submissionAccess', 'version', '_ngram', 'form']
-  ]
+  const flatKeys = Objects.flatten(keys, true)
 
   const outputKeys = Object.keys(flatKeys).filter(e => {
-    return !exclude.includes(e)
+    return !excludedCols.includes(e)
   })
   return outputKeys
 }
