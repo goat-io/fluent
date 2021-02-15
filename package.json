@@ -171,7 +171,7 @@
     "fs-extra": "^9.0.1",
     "gradient-string": "^1.2.0",
     "graphql": "^15.4.0",
-    "handlebars": "^4.7.6",
+    "handlebars": "^4.7.7",
     "http-errors": "^1.8.0",
     "inquirer": "^7.3.3",
     "ioredis": "^4.19.4",
