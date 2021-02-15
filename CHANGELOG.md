@@ -1,3 +1,14 @@
+# 0.4.11
+[2021-02-15]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add array contains support ([`ebd1dd2`](https://github.com/goat-io/fluent/commit/ebd1dd2cf6292f52ceb094bcc9d72be3b8fd15b0))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add array contains support ([`ebd1dd2`](https://github.com/goat-io/fluent/commit/ebd1dd2cf6292f52ceb094bcc9d72be3b8fd15b0))
+
 # 0.4.10
 [2021-01-14]
 
@@ -8,6 +19,7 @@
 ### Other Changes
 
 * refactor: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Dev dependencies ([`6f96800`](https://github.com/goat-io/fluent/commit/6f9680061635a3adc339d2ee75ba3c5a71a91c47))
+* Release 0.4.10 ([`1c73730`](https://github.com/goat-io/fluent/commit/1c737303be3a893158b3fd18666eae882990c504))
 
 # 0.4.9
 [2021-01-13]
