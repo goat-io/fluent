@@ -90,7 +90,7 @@ PyYAML==5.3.1  # Updated from 4.2b1
 pyzmq==19.0.0  # Updated from 17.1.2
 qtconsole==4.7.3  # Updated from 4.4.3
 requests==2.23.0  # Updated from 2.21.0
-rsa==4.0  # Updated from 3.4.2
+rsa==4.1  # Updated from 3.4.2
 s3transfer==0.3.3  # Updated from 0.1.13
 semantic-version==2.8.4  # Updated from 2.5.0
 Send2Trash==1.5.0
