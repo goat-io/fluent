@@ -167,7 +167,7 @@
     "file-type": "^16.2.0",
     "firebase-admin": "^9.4.2",
     "fireorm": "^0.17.2",
-    "formiojs": "^4.12.4",
+    "formiojs": "^4.13.0",
     "fs-extra": "^9.0.1",
     "gradient-string": "^1.2.0",
     "graphql": "^15.4.0",
