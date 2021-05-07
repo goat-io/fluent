@@ -1,5 +1,14 @@
+# 0.5.0
+[2021-05-07]
+
+### Other Changes
+
+* refactor dependencies ([`8347db8`](https://github.com/goat-io/fluent/commit/8347db8007ab1fd6a3ed40b7cfc1732832537d47))
+* compatibility libraries ([`871ce25`](https://github.com/goat-io/fluent/commit/871ce256de0b0cf632e1c22ee985d0c66e072ed2))
+* readme ([`a0907e6`](https://github.com/goat-io/fluent/commit/a0907e68e5a8ce9dace935ec3951e599b3cdca52))
+
 # 0.4.11
-[2021-02-15]
+[2021-02-14]
 
 ### Features
 
@@ -8,6 +17,7 @@
 ### Other Changes
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add array contains support ([`ebd1dd2`](https://github.com/goat-io/fluent/commit/ebd1dd2cf6292f52ceb094bcc9d72be3b8fd15b0))
+* Release 0.4.11 ([`28bbe9c`](https://github.com/goat-io/fluent/commit/28bbe9cfd353d3c91ce6a2220224c3ed383c47ae))
 
 # 0.4.10
 [2021-01-14]
