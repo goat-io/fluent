@@ -1,8 +1,8 @@
 import { Errors } from '../../Errors'
 import { FormioComponent } from '../types/FormioComponent'
 import { FormioForm } from '../types/FormioForm'
-import { combination } from 'js-combinatorics'
 import { findComponents } from '../findComponents'
+import { Combination } from '../../Combinations'
 /**
  * Get all select components for the given form.
  * @param Form
@@ -143,10 +143,9 @@ export const getRelations = (Forms: FormioForm[]) => {
     )
 
     // Define ManyToMany if needed
+    const combinations = (new Combination(validRelations, 2)).bitwiseIterator()
 
-    const combinations = combination(validRelations, 2)
-
-    combinations.forEach((c: any) => {
+    for (const c of combinations) {
       const model = c[0]
       const relatedModel = c[1]
       // Define Relation
@@ -173,7 +172,8 @@ export const getRelations = (Forms: FormioForm[]) => {
 
       relations[model.name].push(relation)
       relations[relatedModel.name].push(inverseRelation)
-    })
+  }
+
   }
   return relations
 }

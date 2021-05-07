@@ -1,4 +1,3 @@
-import { requestBody } from '@loopback/rest'
 import { Request, RequestHandler, Response } from 'express'
 import { existsSync, mkdirSync } from 'fs'
 import * as multer from 'multer'
@@ -21,18 +20,6 @@ export interface MulterConfiguration {
   fileKey?: string
   maxFileSize?: number
 }
-
-export const file = () =>
-  requestBody({
-    content: {
-      'multipart/form-data': {
-        schema: { type: 'object' },
-        'x-parser': 'stream'
-      }
-    },
-    description: 'multipart/form-data value.',
-    required: true
-  })
 
 export class Upload {
   private storageProvider: Providers

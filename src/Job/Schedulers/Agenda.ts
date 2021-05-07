@@ -45,7 +45,7 @@ const agenda = new AgendaCron(
     defaultLockLifetime: 600000,
     lockLimit: 0,
     maxConcurrency: 20,
-    processEvery: 1000
+    processEvery: "1000"
   },
   err => {
     if (err) {

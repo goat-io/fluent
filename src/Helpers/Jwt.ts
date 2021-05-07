@@ -1,6 +1,4 @@
-import { UserProfile, securityId } from '@loopback/security'
 import { sign, verify as verifyAsync } from 'jsonwebtoken'
-
 import { Errors } from '../Helpers/Errors'
 
 enum algorithms {

@@ -2,10 +2,11 @@
   "compilerOptions": {
     "target": "es2015",
     "module": "commonjs",
+    "allowJs": true,
     "removeComments": true,
     "declaration": true,
     "strict": false,
-    "types": ["node", "jest"],
+    "types": ["jest","node"],
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,

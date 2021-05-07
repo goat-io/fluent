@@ -16,10 +16,6 @@ export class Collection<T = IDataElement | Primitives> {
   /**
    *
    */
-
-  /**
-   *
-   */
   public get() {
     return this.data
   }

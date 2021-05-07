@@ -1,4 +1,5 @@
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger'
+/* eslint-disable @typescript-eslint/no-empty-function */
 /*
 import {
   Attribute,
@@ -21,15 +22,13 @@ import {
   ObjectIdColumn,
   OneToMany,
   PrimaryGeneratedColumn,
-  RelationOptions,
   UpdateDateColumn,
   VersionColumn
 } from 'typeorm'
 import { Field, HideField, ID, ObjectType } from '@nestjs/graphql'
-
 import { Collection } from 'fireorm'
 import { Primitives } from '../../../Providers/types'
-import { applyDecorators } from '@nestjs/common'
+import { applyDecorators } from '../applyDecorators'
 
 interface PropertyInterface {
   required?: boolean

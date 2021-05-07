@@ -14,7 +14,6 @@ import { TypedPathWrapper, typedPath } from 'typed-path'
 
 import { Collection } from './Collection'
 import { Dates } from './Helpers/Dates'
-import { Filter } from '@loopback/repository'
 import { Id } from './Helpers/Id'
 import { ObjectID } from 'typeorm'
 import { Objects } from './Helpers/Objects'

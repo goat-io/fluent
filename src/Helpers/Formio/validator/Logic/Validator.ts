@@ -4,7 +4,6 @@ import util from '../utils'
 const FormioUtils = require('formiojs/utils').default
 const moment = require('moment')
 import { Errors } from '../../../Errors'
-
 import { FormioForm } from '../../types/FormioForm'
 import { checkConditional } from './conditionalCheck'
 import { JoiX } from './JoiExtended'

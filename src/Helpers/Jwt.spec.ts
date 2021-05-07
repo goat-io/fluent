@@ -1,6 +1,6 @@
 import { For } from './For'
 import { Jwt } from './Jwt'
-import { securityId } from '@loopback/security'
+export declare const securityId: unique symbol;
 const validJWT =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7Il9pZCI6IjVjNzQxZWFiNzY1MDU1MDAxODMyYWVmMSJ9LCJmb3JtIjp7Il9pZCI6IjVjNzAyNGJiM2EzNjkzMDAxOGY0ZjQ2NCJ9LCJpYXQiOjE1Njg3NDUzMzIsImV4cCI6MTU2ODc1OTczMn0.LtD4j-AuU7TQX_fbbB85P_2mWEcCYZfRwGKdibJvKG8'
 const validSecret = 'CHANGEME'

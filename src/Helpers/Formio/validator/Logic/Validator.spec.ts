@@ -1,6 +1,4 @@
 process.env.NODE_ENV = 'test'
-// import mongoose from 'mongoose'
-// import { mongoMemory } from '../../../../core/Database/mongo.memory'
 import { Form } from './tests/Forms/SingleNumerComponent'
 import { textForm } from './tests/Forms/SingleTextComponent'
 import { Validate, FormioValidationError } from '../Validate'

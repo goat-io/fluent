@@ -1,5 +1,4 @@
 import * as admin from 'firebase-admin'
-
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import { BaseFirestoreRepository, getRepository } from 'fireorm'
 import {
@@ -17,7 +16,6 @@ import {
   IPaginator,
   ISure
 } from '../types'
-
 import { Errors } from '../../Helpers/Errors'
 import { FieldPath } from '@google-cloud/firestore'
 import { Id } from '../../Helpers/Id'
@@ -57,8 +55,8 @@ export const createFirebaseRepository = Entity => {
 
   try {
     const parsed = JSON.parse(JSON.stringify(repository))
-    name = parsed.colName
-    path = parsed.collectionPath
+    name = parsed.colMetadata.name
+    path = parsed.path
   } catch (error) {
     name = ''
   }

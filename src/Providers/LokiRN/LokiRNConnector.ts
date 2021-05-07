@@ -1,10 +1,8 @@
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import { GoatOutput, IDataElement, ISure, GoatFilter } from '../types'
-
 import { Objects } from '../../Helpers/Objects'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
-import { Filter } from '@loopback/repository'
 
 export class LokiRNConnector<
   ModelDTO = IDataElement,

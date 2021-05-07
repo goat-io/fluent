@@ -3,7 +3,7 @@ import {
   IGoatExtendedAttributes,
   Primitives
 } from './Providers/types'
-import { TypedPathWrapper, typedPath } from 'typed-path'
+import { typedPath } from 'typed-path'
 import { createConnection, getConnection } from 'typeorm'
 
 import { Collection } from './Collection'

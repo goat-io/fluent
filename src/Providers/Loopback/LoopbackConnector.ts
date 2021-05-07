@@ -1,4 +1,3 @@
-// import pluralize from 'pluralize'
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import {
   GoatFilter,
@@ -8,18 +7,15 @@ import {
   IPaginator,
   ISure
 } from '../types'
-
 import { Connection } from '../../Helpers/Connection'
-// import { Errors } from '../../Helpers/Errors'
-import { Event } from '../../Helpers/Event'
-import { Filter } from '@loopback/repository'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import to from 'await-to-js'
 
-// import { Objects } from '../../Helpers/Objects'
 dayjs.extend(isSameOrAfter)
+
+
 
 interface ILoopbackConnector {
   baseEndPoint: string
@@ -119,7 +115,7 @@ export class LoopbackConnector<
    *
    * @param query
    */
-  public raw(query: Filter): this {
+  public raw(query: any): this {
     if (!query) {
       throw new Error('No query was received')
     }

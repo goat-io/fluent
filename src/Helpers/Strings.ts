@@ -1,5 +1,5 @@
 import pluralize from 'pluralize'
-import nGram from 'n-gram'
+import { nGram } from "./Ngram"
 import { IDataElement } from '../Providers/types'
 import { Objects } from './Objects'
 

@@ -10,7 +10,6 @@ import {
 import { Objects } from '../../Helpers/Objects'
 import { Database } from './Database'
 import { Dates } from '../../Helpers/Dates'
-import { Filter } from '@loopback/repository'
 import { Fluent } from '../../Fluent'
 
 export class LokiConnector<
