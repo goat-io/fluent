@@ -226,7 +226,14 @@
     "delete-property": "0.0.4",
     "js-combinatorics": "0.6.1",
     "react-native": "^0.63.4",
-    "sqlite3": "^5.0.1"
+    "sqlite3": "^5.0.1",
+    "@stamp/compose": "^1.0.2",
+    "@stamp/it": "^1.1.0",
+    "@stamp/privatize": "^1.0.3",
+    "stampit": "^4.2.0",
+    "btoa": "^1.2.1",
+    "md5": "^2.2.1",
+    "bluebird": "^3.5.3"
   },
   "devDependencies": {
     "jest-environment-node": "^26.6.2",
