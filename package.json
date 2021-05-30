@@ -143,7 +143,7 @@
     "faker": "^5.5.3",
     "figlet": "^1.5.0",
     "firebase-admin": "^9.7.0",
-    "fireorm": "^0.20.0",
+    "fireorm": "^0.22.0",
     "formiojs": "^4.13.1",
     "graphql": "^15.5.0",
     "handlebars": "^4.7.7",
