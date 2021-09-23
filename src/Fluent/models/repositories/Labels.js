@@ -1,6 +1,6 @@
-import Utilities from "utilities";
-import Translation from "models/Translation";
-import Pages from "models/Pages";
+import Utilities from "../../utilities";
+import Translation from "../../models/Translation";
+import Pages from "../../models/Pages";
 
 class FormLabels {
   /**

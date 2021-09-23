@@ -14,13 +14,12 @@ import Configuration from "./Fluent/models/Configuration";
 import Translation from "./Fluent/models/Translation";
 import Import from "./Fluent/repositories/Submission/Import";
 import User from "./Fluent/models/User";
-import OfflinePlugin from "./Fluent/offlinePlugin/offlinePlugin";
 import Role from "./Fluent/models/Role";
 import Hash from "./Fluent/repositories/Submission/Hash";
 import Sync from "./Fluent/repositories/Database/Sync";
 import Schedule from "./Fluent/repositories/Schedule";
 import Utilities from "./Fluent/utilities";
-import { loopbackGetPlugin } from 'Helpers/Formio/plugin/loopbackGetPlugin';
+import { loopbackGetPlugin } from './Helpers/Formio/plugin/loopbackGetPlugin';
 
 export {
   Schedule,
@@ -38,7 +37,6 @@ export {
   Translation,
   Import,
   User,
-  OfflinePlugin,
   Role,
   Hash,
   Sync,

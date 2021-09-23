@@ -1,7 +1,8 @@
-import Utilities from "utilities";
+import Utilities from "../utilities";
 import { Fluent } from "../fluent";
 import Configuration from "./Configuration";
 import dayjs from "dayjs";
+import isoLanguages from '../resources/isoLanguages.json'
 
 export default Fluent.model({
   properties: {
@@ -63,7 +64,7 @@ export default Fluent.model({
      *
      */
     getIsoLanguages() {
-      return require("resources/isoLanguages.json");
+      return isoLanguages;
     },
     /**
      *

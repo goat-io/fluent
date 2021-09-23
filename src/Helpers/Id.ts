@@ -1,5 +1,6 @@
 import { ObjectId } from 'bson'
 import { v4 } from 'uuid'
+import { nanoid } from 'nanoid'
 
 export const Id = (() => {
   /**
@@ -34,10 +35,13 @@ export const Id = (() => {
     return v4()
   }
 
+  const nanoId = (size : number = 21) : string => nanoid(size)
+
   return Object.freeze({
     objectID,
     uuid,
     isValidObjectID,
-    objectIdString
+    objectIdString,
+    nanoId
   })
 })()

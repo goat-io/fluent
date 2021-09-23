@@ -1,6 +1,6 @@
 import { Fluent } from "../fluent";
-import Utilities from "utilities";
-import Connection from "Wrappers/Connection";
+import Utilities from "../utilities";
+import Connection from "../Wrappers/Connection";
 import to from "await-to-js";
 import dayjs from "dayjs";
 

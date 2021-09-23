@@ -12,22 +12,24 @@ import { UsersEntity } from '../test/relations/user/user.entity'
 import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
 import { createConnection } from 'typeorm'
-import { mongoMemory } from '../../Database/mongo.memory'
+/*
+import getDatabase from '@databases/mysql-test'
 import { relationsTestSuite } from '../test/relations/relationsTestsSuite'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
-let mongoConnection
+let tearDown: any
 
 beforeAll(async done => {
-  mongoConnection = await mongoMemory.start()
-
+  const { databaseURL, kill } = await getDatabase()
+  tearDown = kill
   await createConnection({
-    type: 'mongodb',
+    type: 'mysql',
     name: 'runningTest',
-    url: mongoConnection.url,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+    database: 'test-db',
+    username: 'test-user',
+    password: 'password',
+    port: 3306,
     entities: [
       GoatEntity,
       TypeORMDataModel,
@@ -36,15 +38,15 @@ beforeAll(async done => {
       RoleEntity,
       RolesUser
     ],
-    synchronize: false,
+    synchronize: true,
     logging: false
   })
 
   done()
 })
 
-afterAll(async () => {
-  await mongoConnection.instance.stop()
+afterAll(() => {
+  return tearDown()
 })
 
 describe('Execute all basic test Suite', () => {
@@ -58,3 +60,4 @@ describe('Execute all advanced test Suite', () => {
 describe('Execute all relations test suite', () => {
   relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })
+*/

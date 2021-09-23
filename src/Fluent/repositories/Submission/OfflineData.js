@@ -1,8 +1,8 @@
-import Connection from "Wrappers/Connection";
-import Submission from "models/Submission";
-import Event from "Wrappers/Event";
-import Scheduler from "repositories/Database/Scheduler";
-import Form from "models/Form";
+import Connection from "../../Wrappers/Connection";
+import Submission from "../../models/Submission";
+import Event from "../../Wrappers/Event";
+import Scheduler from "../../repositories/Database/Scheduler";
+import Form from "../../models/Form";
 import to from "await-to-js";
 
 let OfflineData = (() => {

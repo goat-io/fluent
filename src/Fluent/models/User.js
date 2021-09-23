@@ -1,6 +1,6 @@
 import axios from "axios";
 import Configuration from "./Configuration";
-import Utilities from "utilities";
+import Utilities from "../utilities";
 import { Fluent } from "../fluent";
 import Connection from "../Wrappers/Connection";
 import to from "await-to-js";
@@ -68,5 +68,13 @@ export default Fluent.model({
         data: credentials,
       });
     },
+    async loopbackLogin({ credentials }) {
+      let url = (await Configuration.local().first()).LOOPBACK_URL;
+      delete credentials.username
+      return axios.post(`${url}users/login`, {
+        email: credentials.email,
+        password: credentials.password
+      });
+    }
   },
 })();

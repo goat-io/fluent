@@ -3,7 +3,7 @@ import Event from "../../Wrappers/Event";
 
 let ErrorHandler = (() => {
   const parse = async error => {
-    switch (error.response.status) {
+    switch (error.response && error.response.status) {
       case 400:
         console.log("Bad request");
         Event.emit({
@@ -20,7 +20,7 @@ let ErrorHandler = (() => {
         });
         break;
       default:
-        console.log(error);
+        throw error
         break;
     }
   };

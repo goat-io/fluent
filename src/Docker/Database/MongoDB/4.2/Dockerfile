@@ -1,4 +1,4 @@
-FROM mongo:latest
+FROM mongo:4.2
 
 LABEL maintainer="Ignacio Cabrera <cabrerabywaters@gmail.com>"
 

@@ -1,0 +1,27 @@
+version: '3.1'
+services:
+  #######################################################
+  #  FireStore
+  #######################################################
+  firestore:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 5000:5000 # Firebase Hosting
+      - 5002:5001 # Cloud Functions
+      - 8080:8080 # Cloud Firestore
+      - 8085:8085 # Cloud Pub/Sub
+      - 9099:9099 # Firebase Auth
+      - 9000:9000 # Realtime Database
+      - 4500:4500
+      - 4400:4400
+      - 4001:3000 # UI
+      - 4000:4000 # UI
+    tty: true
+    restart: unless-stopped
+    networks:
+      - fire-network
+networks:
+  fire-network:
+    driver: bridge

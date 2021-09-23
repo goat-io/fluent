@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import Utilities from "utilities";
+import Utilities from "../utilities";
 import { Fluent } from "../fluent";
 import Labels from "./repositories/Labels";
 import Configuration from "./Configuration";
@@ -17,6 +17,12 @@ export default Fluent.model({
   methods: {
     getModel({ path }) {
       return Fluent.model({
+        init({path}) {
+          this.path = path;
+          this.config = {
+            remote: { path },
+          };
+        },
         properties: {
           config: {
             remote: { path },

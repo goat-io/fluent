@@ -43,11 +43,7 @@ export class LoopbackConnector<
    *
    */
   public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const [error, result]: any = await to(this.httpGET())
-
-    if (error) {
-      throw error
-    }
+    const result: any = await this.httpGET()
 
     const data = this.jsApplySelect(result.data)
     this.reset()

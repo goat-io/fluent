@@ -1,4 +1,4 @@
-import Utilities from 'utilities';
+import Utilities from '../../utilities';
 import Form from '../Form';
 
 let Columns = class {

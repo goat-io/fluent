@@ -30,7 +30,7 @@ export default stampit({
     this.paginator = undefined;
     this.rawQuery = undefined;
   },
-  properties: {
+  props: {
     operators: [
       "=",
       "<",

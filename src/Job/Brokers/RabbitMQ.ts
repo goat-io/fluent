@@ -67,11 +67,7 @@ interface IJobScheduler {
  *
  */
 const connectToRabbitMQ = async () => {
-  const [error, connection] = await For.async(connectToMQ())
-  if (error) {
-    console.log('error', error)
-    throw new Error('Cannot connect to RabbitMQ')
-  }
+  const connection = await connectToMQ()
 
   return connection
 }
@@ -181,18 +177,8 @@ export const RabbitMQBroker = (() => {
     topics,
     exclusiveQueues
   }: IRabbitMQConsumer): Promise<Channel> => {
-    const [connectionError, connection] = await For.async(connectToRabbitMQ())
-
-    if (connectionError) {
-      console.log(connectionError)
-      throw new Error('Could not connect to RabbitMQ')
-    }
-    const [channelError, channel] = await For.async(createChannel(connection))
-
-    if (channelError) {
-      console.log(channelError)
-      throw new Error('Could not create the RabbitMQ channel')
-    }
+    const connection = await connectToRabbitMQ()
+    const channel = await createChannel(connection)
 
     if (!topics) {
       topics = ['default']

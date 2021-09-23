@@ -1,8 +1,8 @@
-import User from 'models/User';
-import Auth from 'repositories/Auth/Auth';
-import Submission from 'models/Submission';
-import OfflineData from 'repositories/Submission/OfflineData';
-import Scheduler from 'repositories/Database/Scheduler';
+import User from '../../models/User';
+import Auth from '../../repositories/Auth/Auth';
+import Submission from '../../models/Submission';
+import OfflineData from '../../repositories/Submission/OfflineData';
+import Scheduler from '../../repositories/Database/Scheduler';
 
 let Sync = class {
   /**
