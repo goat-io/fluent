@@ -1,5 +1,5 @@
-import { CarsEntity } from '../../Providers/test/relations/car/car.entity'
-import { CarsRepository } from '../../Providers/test/relations/car/car.repositoryFirebase'
+import { CarsEntity } from '../test/relations/car/car.entity'
+import { CarsRepository } from '../test/relations/car/car.repositoryFirebase'
 import { FirebaseRepository } from '../test/advanced/firebase.repository'
 import { Fluent } from '../../Fluent'
 import { GoatEntity } from '../test/basic/goat.entity'
