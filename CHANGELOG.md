@@ -1,14 +1,20 @@
-# 0.5.0
-[2021-05-07]
+# 0.5.2
+[2021-09-23]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix pre push hook ([`ce8b8ee`](https://github.com/goat-io/fluent/commit/ce8b8eeee7fb9702cf046ed359771ecb94b7f438))
 
 ### Other Changes
 
-* refactor dependencies ([`8347db8`](https://github.com/goat-io/fluent/commit/8347db8007ab1fd6a3ed40b7cfc1732832537d47))
-* compatibility libraries ([`871ce25`](https://github.com/goat-io/fluent/commit/871ce256de0b0cf632e1c22ee985d0c66e072ed2))
-* readme ([`a0907e6`](https://github.com/goat-io/fluent/commit/a0907e68e5a8ce9dace935ec3951e599b3cdca52))
+* add Fireabse ([`40fc92d`](https://github.com/goat-io/fluent/commit/40fc92d49fe84208fe81349b4cd60089fae732ec))
+* add Firebase docker ([`659dc68`](https://github.com/goat-io/fluent/commit/659dc68016c1447fc637092f8cce116322a8162c))
+* rename bypass tests ([`a7fe354`](https://github.com/goat-io/fluent/commit/a7fe354406c2d60f49c31b5e5f627fe56fb0143c))
+* fix build ([`507bf28`](https://github.com/goat-io/fluent/commit/507bf28e796b97581a36965b4d28f7c5def83b47))
+* momentary bypass failing tests ([`4b86718`](https://github.com/goat-io/fluent/commit/4b86718dc1f67aea1c324a393bbd0847736d6701))
 
-# 0.4.11
-[2021-02-14]
+# 0.5.0
+[2021-05-08]
 
 ### Features
 
@@ -16,7 +22,11 @@
 
 ### Other Changes
 
+* refactor dependencies ([`8347db8`](https://github.com/goat-io/fluent/commit/8347db8007ab1fd6a3ed40b7cfc1732832537d47))
+* compatibility libraries ([`871ce25`](https://github.com/goat-io/fluent/commit/871ce256de0b0cf632e1c22ee985d0c66e072ed2))
+* readme ([`a0907e6`](https://github.com/goat-io/fluent/commit/a0907e68e5a8ce9dace935ec3951e599b3cdca52))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add array contains support ([`ebd1dd2`](https://github.com/goat-io/fluent/commit/ebd1dd2cf6292f52ceb094bcc9d72be3b8fd15b0))
+* Release 0.5.0 ([`55595c3`](https://github.com/goat-io/fluent/commit/55595c3634619dde7a14af9ea3cf734016e93f47))
 * Release 0.4.11 ([`28bbe9c`](https://github.com/goat-io/fluent/commit/28bbe9cfd353d3c91ce6a2220224c3ed383c47ae))
 
 # 0.4.10
