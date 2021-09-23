@@ -128,6 +128,7 @@
     "await-to-js": "^3.0.0",
     "aws-sdk": "^2.903.0",
     "axios": "^0.21.1",
+    "axios-logger": "^2.5.0",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.7.2",
     "bson": "^4.3.0",
@@ -188,7 +189,8 @@
     "typed-path": "^2.2.2",
     "typeorm": "^0.2.32",
     "uuid": "^8.3.2",
-    "verror": "^1.10.0"
+    "verror": "^1.10.0",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
