@@ -1,3 +1,16 @@
+# 0.5.3
+[2021-09-23]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Axios, Numbers and Logger ([`fdfbe90`](https://github.com/goat-io/fluent/commit/fdfbe90c45fb4f246f0cca5690c7520bf3b5b1fd))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Change Axios for GOT ([`fa586c8`](https://github.com/goat-io/fluent/commit/fa586c8065463dcbfbd4dcc65be651a22c79632e))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Axios, Numbers and Logger ([`fdfbe90`](https://github.com/goat-io/fluent/commit/fdfbe90c45fb4f246f0cca5690c7520bf3b5b1fd))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Change Axios for GOT ([`fa586c8`](https://github.com/goat-io/fluent/commit/fa586c8065463dcbfbd4dcc65be651a22c79632e))
+
 # 0.5.2
 [2021-09-23]
 
@@ -9,6 +22,7 @@
 
 * add Fireabse ([`40fc92d`](https://github.com/goat-io/fluent/commit/40fc92d49fe84208fe81349b4cd60089fae732ec))
 * add Firebase docker ([`659dc68`](https://github.com/goat-io/fluent/commit/659dc68016c1447fc637092f8cce116322a8162c))
+* Release 0.5.2 ([`6ea15f0`](https://github.com/goat-io/fluent/commit/6ea15f02da58e203a53e62ecd9dee48d1859919c))
 * rename bypass tests ([`a7fe354`](https://github.com/goat-io/fluent/commit/a7fe354406c2d60f49c31b5e5f627fe56fb0143c))
 * fix build ([`507bf28`](https://github.com/goat-io/fluent/commit/507bf28e796b97581a36965b4d28f7c5def83b47))
 * momentary bypass failing tests ([`4b86718`](https://github.com/goat-io/fluent/commit/4b86718dc1f67aea1c324a393bbd0847736d6701))
