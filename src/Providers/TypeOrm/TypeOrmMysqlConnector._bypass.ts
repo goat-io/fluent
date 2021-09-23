@@ -12,6 +12,7 @@ import { UsersEntity } from '../test/relations/user/user.entity'
 import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
 import { createConnection } from 'typeorm'
+/*
 import getDatabase from '@databases/mysql-test'
 import { relationsTestSuite } from '../test/relations/relationsTestsSuite'
 
@@ -59,3 +60,4 @@ describe('Execute all advanced test Suite', () => {
 describe('Execute all relations test suite', () => {
   relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })
+*/
