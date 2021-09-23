@@ -3,7 +3,7 @@ import 'babel-polyfill';
 import chai from 'chai';
 
 import Configutation from './Configuration';
-import Form from 'models/Form';
+import Form from '../models/Form';
 chai.expect();
 const expect = chai.expect;
 

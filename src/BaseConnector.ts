@@ -353,7 +353,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns {Array} Formatted data with the selected columns
    */
   protected jsApplySelect(data) {
-    let _data = Array.isArray(data) ? [...data] : [data]
+    const _data = Array.isArray(data) ? [...data] : [data]
 
     if (this.selectArray.length <= 0 && this.outputKeys.length <= 0) {
       return _data

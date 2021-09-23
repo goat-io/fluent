@@ -14,7 +14,7 @@ export default Interface.compose({
     getToken() {
       if (typeof localStorage === "undefined") return;
       const token = localStorage.getItem("formioToken");
-      if (!token || this.getTokenType(token) === "x-token") return token;
+      if (!token || this.getTokenType(token) === "x-jwt-token") return token;
 
       const decodedToken = jwtDecode(token);
       const expDate = dayjs.unix(decodedToken.exp);
@@ -48,7 +48,7 @@ export default Interface.compose({
       [error, result] = await to(this.httpGET());
 
       if (error) {
-        if (error.response.status === 440) {
+        if (error.response && error.response.status === 440) {
           Event.emit({
             name: "GOAT:SESSION:EXPIRED",
             data: error,
@@ -56,7 +56,7 @@ export default Interface.compose({
           });
           throw new Error("Session has expired.");
         }
-        throw new Error("Error while getting submissions");
+        throw error;
       }
 
       if (
@@ -97,11 +97,8 @@ export default Interface.compose({
       return this;
     },
     async insert(data) {
-      let [error, result] = await to(this.httpPOST(data));
+      const result = await this.httpPOST(data);
 
-      if (error) {
-        throw new Error("Cannot insert data");
-      }
       return result.data;
     },
     async tableView(paginator) {
@@ -145,12 +142,8 @@ export default Interface.compose({
         );
       }
 
-      let [error, result] = await to(this.httpPUT(data));
+      let result = await this.httpPUT(data);
 
-      if (error) {
-        console.log(error);
-        throw new Error("Cannot insert data");
-      }
       return result.data;
     },
     /* async clear({ sure } = {}) {
@@ -174,16 +167,10 @@ export default Interface.compose({
 
       return axios.all(promises);
     }, */
-    /* async remove(_id) {
-      let [error, removed] = await to(this.httpDelete(_id));
-
-      if (error) {
-        console.log(error);
-        throw new Error(`FormioConnector: Could not delete ${_id}`);
-      }
-
+    async remove(_id) {
+      const removed = await this.httpDelete(_id);
       return removed;
-    }, */
+    }, 
     /* async find(_id) {
       if (typeof _id !== "string") {
         throw new Error(
@@ -204,7 +191,7 @@ export default Interface.compose({
       return data;
     }, */
     async getForm(baseUrl, path) {
-      let Config = Fluent.model({
+      let Form = Fluent.model({
         properties: {
           name: "Form",
           config: {
@@ -215,7 +202,8 @@ export default Interface.compose({
           }
         }
       })();
-      const form = await Config.local()
+
+      const form = await Form.local()
         .where("data.path", "=", path)
         .first();
       return form.data;
@@ -375,12 +363,11 @@ export default Interface.compose({
 
       return axios.put(url, data, { headers });
     },
-    /* httpDelete(_id) {
+    httpDelete(_id) {
       let headers = this.getHeaders();
       let url = `${this.getUrl()}/${_id}`;
-
       return axios.delete(url, { headers });
-    }, */
+    }, 
     getTokenType(token) {
       if (token.length > 32) {
         return "x-jwt-token";
@@ -488,6 +475,11 @@ export default Interface.compose({
       });
 
       return { ...filter, fields };
+    },
+    getRequest(url){
+      const headers = this.getHeaders();
+      let baseUrl = this.baseUrl();
+      return axios.get(`${baseUrl}${url}`, { headers });
     }
   }
 });

@@ -1,4 +1,3 @@
-import to from "await-to-js";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import jwtDecode from "jwt-decode";
@@ -15,7 +14,7 @@ export default Interface.compose({
     getToken() {
       if (typeof localStorage === "undefined") return;
       const token = localStorage.getItem("formioToken");
-      if (!token || this.getTokenType(token) === "x-token") return token;
+      if (!token || this.getTokenType(token) === "x-jwt-token") return token;
 
       const decodedToken = jwtDecode(token);
       const expDate = dayjs.unix(decodedToken.exp);
@@ -43,15 +42,8 @@ export default Interface.compose({
       if (this.ownerId) {
         this.andWhere("owner", "=", this.ownerId);
       }
-      let error;
-      let result;
 
-      [error, result] = await to(this.httpGET());
-
-      if (error) {
-        console.log(error);
-        throw new Error("Error while getting submissions");
-      }
+      let result = await this.httpGET()
 
       result = this.jsApplySelect(result && result.data);
       result = this.jsApplyOrderBy(result);
@@ -102,8 +94,6 @@ export default Interface.compose({
         rowsNumber: numberOfRows,
       };
 
-      console.log("paginator", results);
-
       return results;
     },
     async insert(data, options) {
@@ -111,12 +101,8 @@ export default Interface.compose({
         return this.ArrayInsert(data, options);
       }
 
-      let [error, result] = await to(this.httpPOST(data));
+      const result = await this.httpPOST(data)
 
-      if (error) {
-        // console.log(error);
-        throw new Error("Cannot insert data");
-      }
       return result.data;
     },
     async update(data) {
@@ -131,12 +117,8 @@ export default Interface.compose({
         );
       }
 
-      let [error, result] = await to(this.httpPUT(data));
+      const result = await this.httpPUT(data);
 
-      if (error) {
-        console.log(error);
-        throw new Error("Cannot insert data");
-      }
       return result.data;
     },
     async clear({ sure } = {}) {
@@ -147,12 +129,7 @@ export default Interface.compose({
       }
       let promises = [];
 
-      let [error, data] = await to(this.select("_id").pluck("_id"));
-
-      if (error) {
-        console.log(error);
-        throw new Error("Cannot get remote Model");
-      }
+      const data = await this.select("_id").pluck("_id");
 
       data.forEach((_id) => {
         promises.push(this.httpDelete(_id));
@@ -161,12 +138,7 @@ export default Interface.compose({
       return axios.all(promises);
     },
     async remove(_id) {
-      let [error, removed] = await to(this.httpDelete(_id));
-
-      if (error) {
-        console.log(error);
-        throw new Error(`FormioConnector: Could not delete ${_id}`);
-      }
+      const removed = await this.httpDelete(_id);
 
       return removed;
     },
@@ -180,12 +152,7 @@ export default Interface.compose({
             '"'
         );
       }
-      let [error, data] = await to(this.where("_id", "=", _id).first());
-
-      if (error) {
-        console.log(error);
-        throw new Error("Find() could not get remote data");
-      }
+      const data = await this.where("_id", "=", _id).first()
 
       return data;
     },

@@ -4,20 +4,19 @@ import Connection from "./Wrappers/Connection";
 import Event from "./Wrappers/Event";
 import Moment from "./repositories/Date/moment";
 import SocketsInterface from "./repositories/Sockets/SocketsInterface";
-import Form from "models/Form";
-import Pages from "models/Pages";
-import Submission from "models/Submission";
-import ParallelSurvey from "repositories/Submission/ParallelSurvey";
+import Form from "./models/Form";
+import Pages from "./models/Pages";
+import Submission from "./models/Submission";
+import ParallelSurvey from "./repositories/Submission/ParallelSurvey";
 import Configuration from "./models/Configuration";
-import Translation from "models/Translation";
-import Import from "repositories/Submission/Import";
-import User from "models/User";
-import OfflinePlugin from "offlinePlugin/offlinePlugin";
-import Role from "models/Role";
-import Hash from "repositories/Submission/Hash";
-import Sync from "repositories/Database/Sync";
-import Schedule from "repositories/Schedule";
-import Utilities from "utilities";
+import Translation from "./models/Translation";
+import Import from "./repositories/Submission/Import";
+import User from "./models/User";
+import Role from "./models/Role";
+import Hash from "./repositories/Submission/Hash";
+import Sync from "./repositories/Database/Sync";
+import Schedule from "./repositories/Schedule";
+import Utilities from "./utilities";
 
 export {
   Schedule,
@@ -35,7 +34,6 @@ export {
   Translation,
   Import,
   User,
-  OfflinePlugin,
   Role,
   Hash,
   Sync,

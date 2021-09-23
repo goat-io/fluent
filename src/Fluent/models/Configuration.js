@@ -1,5 +1,5 @@
 import { Fluent } from "../fluent";
-import Utilities from "utilities";
+import Utilities from "../utilities";
 import dayjs from "dayjs";
 // TODO We still have to figure out how to solve the problem of
 // The CONFIG URL and FLUENT_URL changing on APP sync
@@ -86,12 +86,4 @@ export default Fluent.model({
       return Utilities.get(() => config.fastUpdated, 0);
     },
   },
-})
-  .compose(Fluent.privatize)
-  .privatizeMethods(
-    "setOnlineConfig",
-    "setOfflineConfig",
-    "getConfigDate",
-    "assingGlobalVariable",
-    "getRemote"
-  )();
+})();

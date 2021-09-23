@@ -110,7 +110,6 @@ export default AuthInterface.compose({
           })
           // If there are errors
           .catch((error) => {
-            console.log("There was an error over here!");
             reject(error);
           });
       });

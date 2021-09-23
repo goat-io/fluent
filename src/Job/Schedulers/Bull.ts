@@ -47,28 +47,28 @@ const getRedisInstance = () => {
   })
 }
 
-const client = getRedisInstance()
-const subscriber = getRedisInstance()
-
-const opts = {
-  createClient(type) {
-    switch (type) {
-      case 'client':
-        return client
-      case 'subscriber':
-        return subscriber
-      default:
-        return getRedisInstance()
-    }
-  }
-}
-
 export const BullScheduler = (() => {
   /**
    *
    * @param options
    */
   const schedule = async (options: IJob) => {
+    const client = getRedisInstance()
+    const subscriber = getRedisInstance()
+
+    const opts = {
+      createClient(type) {
+        switch (type) {
+          case 'client':
+            return client
+          case 'subscriber':
+            return subscriber
+          default:
+            return getRedisInstance()
+        }
+      }
+    }
+
     const croneString = getCronString(
       (options.repeat && options.repeat.cronTime) || RepeatEvery.never
     )

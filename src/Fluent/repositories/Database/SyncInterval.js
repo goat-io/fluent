@@ -1,5 +1,5 @@
 import Sync from './Sync';
-import Utilities from 'utilities';
+import Utilities from '../../utilities';
 
 let SyncInterval = (() => {
   async function set (milliseconds) {

@@ -87,8 +87,8 @@ export const Strings = (() => {
    * @param  string  $end
    * @return string
    */
-  const limit = (value, limit = 100, end = '...') => {
-    return `${value.substring(0, limit).trim()}${end}`
+  const limit = (value, lim = 100, end = '...') => {
+    return `${value.substring(0, lim).trim()}${end}`
   }
 
   /**
@@ -164,7 +164,7 @@ export const Strings = (() => {
   /**
    *
    * Given an Object It generates de corresponding nGram for
-   * each attribute one.
+   * each attribute.
    *
    * @param {Object} param
    * @param {Array} param.fullTextFields Fields to add as full text

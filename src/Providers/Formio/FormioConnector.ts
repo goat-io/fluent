@@ -289,7 +289,7 @@ export class LokiRNConnector<
     }
     const token = localStorage.getItem('formioToken')
 
-    if (!token || this.getTokenType(token) === 'x-token') {
+    if (!token || this.getTokenType(token) === 'x-jwt-token') {
       return token
     }
 

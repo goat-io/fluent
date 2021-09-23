@@ -12,7 +12,6 @@ import { UsersEntity } from '../test/relations/user/user.entity'
 import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
 import { createConnection } from 'typeorm'
-import { mongoMemory } from '../../Database/mongo.memory'
 import { relationsTestSuite } from '../test/relations/relationsTestsSuite'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
@@ -20,7 +19,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 let mongoConnection
 
 beforeAll(async done => {
-  mongoConnection = await mongoMemory.start()
+  mongoConnection = ''
 
   await createConnection({
     type: 'mongodb',

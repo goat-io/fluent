@@ -1,4 +1,4 @@
-import Utilities from "utilities";
+import Utilities from "../utilities";
 
 let Schedule = (() => {
   let _every = 0;

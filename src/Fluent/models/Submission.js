@@ -1,7 +1,7 @@
-import Auth from "repositories/Auth/Auth";
+import Auth from "../repositories/Auth/Auth";
 import dayjs from "dayjs";
-import Utilities from "utilities";
-import Form from "models/Form";
+import Utilities from "../utilities";
+import Form from "../models/Form";
 import { Fluent } from "../fluent";
 import Columns from "./repositories/Columns";
 import to from "await-to-js";
@@ -14,16 +14,7 @@ export default Fluent.model({
       remote: undefined,
     },
   },
-  init({ path }) {
-    this.path = path;
-    this.config = {
-      remote: { path },
-    };
-  },
   methods: {
-    async form() {
-      // return this.belongTo('Form', 'path', 'path');
-    },
     async getUnsync() {
       let unsynced = (
         await this.local()
@@ -320,9 +311,7 @@ export default Fluent.model({
       });
       return groups[0];
     },
-
     async removeFromGroup(submission) {},
-
     async assingToGroup(submissionId, groupId) {
       let group = await this.local().getGroup(groupId[0]);
       let submission = await this.local().get(submissionId);

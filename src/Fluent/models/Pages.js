@@ -1,7 +1,6 @@
 import { Fluent } from "../fluent";
-import Utilities from "utilities";
+import Utilities from "../utilities";
 import Configuration from "./Configuration";
-import to from "await-to-js";
 import dayjs from "dayjs";
 
 export default Fluent.model({
@@ -9,7 +8,7 @@ export default Fluent.model({
     name: "Pages",
     config: {
       remote: {
-        path: "fast-app-pages",
+        path: "ui-pages",
         token: undefined,
       },
     },
@@ -76,12 +75,7 @@ export default Fluent.model({
      */
     async setOnline() {
       let localPages = await this.local().first();
-      let [error, pages] = await to(this.remote().limit(9999999).get());
-
-      if (error) {
-        console.log(error);
-        throw new Error("Could not get remote Pages.");
-      }
+      let pages = await this.remote().limit(9999999).get()
 
       // Check if pages follows new or legacy format
       if (!pages[0].data.hasOwnProperty("pages")) {

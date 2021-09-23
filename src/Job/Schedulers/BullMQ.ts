@@ -37,20 +37,20 @@ const getTimezoneString = (timeZone: TimeZones): BullTimeZones => {
   return BullTimeZones[timeZone]
 }
 
-const connection = new Redis({
-  db: 0,
-  family: 4, // 4 (IPv4) or 6 (IPv6)
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  password: process.env.REDIS_PASSWORD || undefined,
-  port: Number(process.env.REDIS_PORT) || 6379
-})
-
 export const BullMQScheduler = (() => {
   /**
    *
    * @param options
    */
   const schedule = async (options: IJob) => {
+    const connection = new Redis({
+      db: 0,
+      family: 4, // 4 (IPv4) or 6 (IPv6)
+      host: process.env.REDIS_HOST || '127.0.0.1',
+      password: process.env.REDIS_PASSWORD || undefined,
+      port: Number(process.env.REDIS_PORT) || 6379
+    })
+
     const croneString = getCronString(
       (options.repeat && options.repeat.cronTime) || RepeatEvery.never
     )
@@ -92,6 +92,14 @@ export const BullMQScheduler = (() => {
    * @param data
    */
   const producer = async (queueName: string, data: IDataMap) => {
+    const connection = new Redis({
+      db: 0,
+      family: 4, // 4 (IPv4) or 6 (IPv6)
+      host: process.env.REDIS_HOST || '127.0.0.1',
+      password: process.env.REDIS_PASSWORD || undefined,
+      port: Number(process.env.REDIS_PORT) || 6379
+    })
+
     const queue = new Queue(queueName, { connection })
     const queueOptions = {}
     await queue.add(queueName, data, queueOptions)
