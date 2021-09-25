@@ -1,3 +1,10 @@
+# 0.5.4
+[2021-09-25]
+
+### Other Changes
+
+* chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`423ea0a`](https://github.com/goat-io/fluent/commit/423ea0adf4c39df48ca9792eff1cc4fd84a1bf04))
+
 # 0.5.3
 [2021-09-23]
 
@@ -10,6 +17,7 @@
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Axios, Numbers and Logger ([`fdfbe90`](https://github.com/goat-io/fluent/commit/fdfbe90c45fb4f246f0cca5690c7520bf3b5b1fd))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Change Axios for GOT ([`fa586c8`](https://github.com/goat-io/fluent/commit/fa586c8065463dcbfbd4dcc65be651a22c79632e))
+* Release 0.5.3 ([`2881e0e`](https://github.com/goat-io/fluent/commit/2881e0eccaedde66c724ab6b14d9e551f41bb221))
 
 # 0.5.2
 [2021-09-23]
