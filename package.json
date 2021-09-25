@@ -190,7 +190,7 @@
     "shelljs": "^0.8.4",
     "stampit": "4.3.1",
     "typed-path": "^2.2.2",
-    "typeorm": "^0.2.32",
+    "typeorm": "^0.2.37",
     "uuid": "^8.3.2",
     "verror": "^1.10.0",
     "winston": "^3.3.3"
