@@ -1,5 +1,4 @@
 import { GoatEntityIn, GoatEntityOut } from './goat.dto'
-
 import { GoatEntity } from './goat.entity'
 import { TypeOrmConnector } from '../../TypeOrm/TypeOrmConnector'
 

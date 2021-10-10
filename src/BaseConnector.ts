@@ -131,14 +131,12 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    *
    * @return {Object} First result
    */
-  public async first(): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async first(): Promise<GoatOutput<InputDTO, OutputDTO> | null> {
     this.limit(1)
     const data = await this.get()
 
     if (!data[0]) {
-      throw new Error(
-        'Your query had no results. First could not find elements'
-      )
+      return null
     }
 
     return data[0]
@@ -514,7 +512,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       const relatedData = this.relationQuery.data.map(d => {
         return {
           [this.relationQuery.relation.inverseSidePropertyPath]: this.isMongoDB
-            ? ((Id.objectID(d.id) as unknown) as ObjectID)
+            ? (Id.objectID(d.id) as unknown as ObjectID)
             : d.id,
           ...data
         }
@@ -537,11 +535,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         return {
           [this.relationQuery.relation.joinColumns[0].propertyName]: this
             .isMongoDB
-            ? ((Id.objectID(d.id) as unknown) as ObjectID)
+            ? (Id.objectID(d.id) as unknown as ObjectID)
             : d.id,
           [this.relationQuery.relation.inverseJoinColumns[0].propertyName]: this
             .isMongoDB
-            ? ((Id.objectID(id) as unknown) as ObjectID)
+            ? (Id.objectID(id) as unknown as ObjectID)
             : id
         }
       })
