@@ -1,9 +1,21 @@
+# 0.5.5
+[2021-10-10]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  First() should not throw ([`6368785`](https://github.com/goat-io/fluent/commit/63687854ae10ab6295c69fb1efb78b113715bc2c))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  First() should not throw ([`6368785`](https://github.com/goat-io/fluent/commit/63687854ae10ab6295c69fb1efb78b113715bc2c))
+
 # 0.5.4
 [2021-09-25]
 
 ### Other Changes
 
 * chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`423ea0a`](https://github.com/goat-io/fluent/commit/423ea0adf4c39df48ca9792eff1cc4fd84a1bf04))
+* Release 0.5.4 ([`72de9fa`](https://github.com/goat-io/fluent/commit/72de9fa69ed350453ae546cde905dd9e2161ce18))
 
 # 0.5.3
 [2021-09-23]
