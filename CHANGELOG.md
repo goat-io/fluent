@@ -1,9 +1,43 @@
+# 0.5.6
+[2021-10-10]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  fix 5.5 ([`cb46e64`](https://github.com/goat-io/fluent/commit/cb46e64557bf7714420595a0156e123ed35366af))
+
+### Fixes
+
+*  upgrade formiojs from 4.13.1 to 4.13.5 ([`9c3d656`](https://github.com/goat-io/fluent/commit/9c3d6564b2f4b82094242b8a18f2689a37d02496))
+*  upgrade @azure/storage-blob from 12.5.0 to 12.7.0 ([`94e331b`](https://github.com/goat-io/fluent/commit/94e331b3b1ef15319ec5a1fbeaf3e76b1d7badfb))
+*  upgrade typeorm from 0.2.32 to 0.2.37 ([`d2cf9a7`](https://github.com/goat-io/fluent/commit/d2cf9a719fe972b418b20b5cd5e45a17be51f7b2))
+*  upgrade bull from 3.22.5 to 3.29.1 ([`c590bc8`](https://github.com/goat-io/fluent/commit/c590bc841cd52cbf4e68d0690a23ffb20a7914b6))
+*  upgrade aws-sdk from 2.906.0 to 2.982.0 ([`a8fca85`](https://github.com/goat-io/fluent/commit/a8fca851c18517edbba84d97fcd77eb2f962db6f))
+*  upgrade nestjs-typeorm-paginate from 2.4.1 to 2.6.2 ([`e117413`](https://github.com/goat-io/fluent/commit/e117413bd0148e68c5d3c7beaf5f9157431dab46))
+*  upgrade ioredis from 4.27.2 to 4.27.9 ([`61df0dc`](https://github.com/goat-io/fluent/commit/61df0dccd5410770559755a1564828f141ca8333))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  fix 5.5 ([`cb46e64`](https://github.com/goat-io/fluent/commit/cb46e64557bf7714420595a0156e123ed35366af))
+
+# 0.5.5
+[2021-10-10]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  First() should not throw ([`6368785`](https://github.com/goat-io/fluent/commit/63687854ae10ab6295c69fb1efb78b113715bc2c))
+
+### Other Changes
+
+* Release 0.5.5 ([`23e7612`](https://github.com/goat-io/fluent/commit/23e7612e62192100114d2de7bc1ad92933f84561))
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  First() should not throw ([`6368785`](https://github.com/goat-io/fluent/commit/63687854ae10ab6295c69fb1efb78b113715bc2c))
+
 # 0.5.4
 [2021-09-25]
 
 ### Other Changes
 
 * chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`423ea0a`](https://github.com/goat-io/fluent/commit/423ea0adf4c39df48ca9792eff1cc4fd84a1bf04))
+* Release 0.5.4 ([`72de9fa`](https://github.com/goat-io/fluent/commit/72de9fa69ed350453ae546cde905dd9e2161ce18))
 
 # 0.5.3
 [2021-09-23]
