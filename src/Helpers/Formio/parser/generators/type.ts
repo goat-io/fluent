@@ -1,4 +1,4 @@
-import { compile, registerHelper, registerPartial } from 'handlebars'
+import Handlebars from 'handlebars'
 import { join } from 'path'
 import { GoatModel } from '../../types/GoatModel'
 import { metaProperties } from './metaProperties'
@@ -34,8 +34,8 @@ const generateType = (Model: any) => {
   const source = jstypes
   const partial = typesProperty
 
-  registerPartial('typeProperty', partial)
-  registerHelper('IfNotMetaProperty', function(element, options) {
+  Handlebars.registerPartial('typeProperty', partial)
+  Handlebars.registerHelper('IfNotMetaProperty', function (element, options) {
     if (metaProperties.includes(element)) {
       return
     }
@@ -43,7 +43,7 @@ const generateType = (Model: any) => {
     return options.fn(this)
   })
 
-  registerHelper('getDatagrids', (element, options) => {
+  Handlebars.registerHelper('getDatagrids', (element, options) => {
     const datagrid = []
     Object.keys(element).forEach(property => {
       if (!metaProperties.includes(property)) {
@@ -55,7 +55,7 @@ const generateType = (Model: any) => {
     return options.fn(datagrid)
   })
 
-  registerHelper('getDatagrid', (element, options) => {
+  Handlebars.registerHelper('getDatagrid', (element, options) => {
     let datagrid = { path: '../' }
     Object.keys(element).forEach(property => {
       if (!metaProperties.includes(property)) {
@@ -67,7 +67,7 @@ const generateType = (Model: any) => {
     return options.fn(datagrid)
   })
 
-  const template = compile(source)
+  const template = Handlebars.compile(source)
   Model.properties._Model = Model
   const result = template(Model.properties)
 

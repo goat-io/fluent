@@ -1,4 +1,4 @@
-import { compile, registerHelper, registerPartial } from 'handlebars'
+import Handlebars from 'handlebars'
 import { join } from 'path'
 import { GoatModel } from '../../types/GoatModel'
 import { SupportedFrameworks } from '../parse'
@@ -64,31 +64,31 @@ const generateBaseModel = (
   const partial = FrameworkTypes[framework]
   const partialFaker = FrameworkFaker[framework]
 
-  registerPartial('typeProperty', partial)
-  registerPartial('fakerObject', partialFaker)
+  Handlebars.registerPartial('typeProperty', partial)
+  Handlebars.registerPartial('fakerObject', partialFaker)
 
-  registerHelper('IfMetaNotProperty', function (element, options) {
+  Handlebars.registerHelper('IfMetaNotProperty', function (element, options) {
     if (metaProperties.includes(element)) {
       return
     }
     return options.fn(this)
   })
 
-  registerHelper('ifIsId', function (element, options) {
+  Handlebars.registerHelper('ifIsId', function (element, options) {
     if (element === 'id') {
       return options.fn(this)
     }
     return
   })
 
-  registerHelper('ifIsNotId', function (element, options) {
+  Handlebars.registerHelper('ifIsNotId', function (element, options) {
     if (element === 'id') {
       return
     }
     return options.fn(this)
   })
 
-  registerHelper('stringToJsType', (element, options) => {
+  Handlebars.registerHelper('stringToJsType', (element, options) => {
     if (element === 'string') {
       return 'String'
     } else if (element === 'number') {
@@ -96,7 +96,7 @@ const generateBaseModel = (
     }
   })
 
-  registerHelper('stringToFaker', (element, array, options) => {
+  Handlebars.registerHelper('stringToFaker', (element, array, options) => {
     if (element === 'string') {
       return array
         ? '[faker.random.word().split(" ")[0], faker.random.word().split(" ")[0], faker.random.word().split(" ")[0]]'
@@ -112,7 +112,7 @@ const generateBaseModel = (
     }
   })
 
-  const template = compile(source)
+  const template = Handlebars.compile(source)
   Model.properties._Model = Model
   Model.properties._Model.isChild = isChild
   Model.properties._Model.isMain = !isChild
@@ -143,7 +143,7 @@ const generateExtendedModel = (
     framework === SupportedFrameworks.Loopback ? 'model' : 'entity'
 
   const sourceExtended = FrameworkTemplatesModelExtended[framework]
-  const templateExtended = compile(sourceExtended)
+  const templateExtended = Handlebars.compile(sourceExtended)
   const resultExtended = templateExtended(Model.properties)
   const filePathExtended = join(
     `${Model.folderPath}/${Model.name}.${modelName}.ts`
@@ -185,7 +185,7 @@ const generateObject = (Model: GoatModel, framework: SupportedFrameworks) => {
 
 const generateDto = (Model: GoatModel, framework: SupportedFrameworks) => {
   const source = dtoTemplate
-  const template = compile(source)
+  const template = Handlebars.compile(source)
   Model.properties._Model = Model
   const result = template(Model.properties)
 

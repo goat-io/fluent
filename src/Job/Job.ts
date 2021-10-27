@@ -3,7 +3,7 @@ import { BullMQScheduler } from './Schedulers/BullMQ'
 import { BullScheduler } from './Schedulers/Bull'
 import { EventEmitter } from 'events'
 import { NodeScheduler } from './Schedulers/Node'
-import { worker } from 'cluster'
+import Worker from 'cluster'
 
 export enum TimeZones {
   EuropeStockholm = 'Europe/Stockholm'
@@ -81,7 +81,7 @@ export class Job {
   }
 
   public static worker() {
-    return worker
+    return Worker
   }
 
   public static setMaxListeners(listeners: number) {

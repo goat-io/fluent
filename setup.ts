@@ -1,26 +1,9 @@
 import { FirebaseInit } from './src/Providers/Firebase/FirebaseInit'
 import { join } from 'path'
 
+const path = join(__dirname, './fluent-service-account.json')
+
 FirebaseInit({
   databaseName: 'fluent-cd90c',
-  serviceAccountPath: join(__dirname, './fluent-service-account.json')
+  serviceAccountPath: path
 })
-/*
-
- if (false) {
-    // process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080'
-    admin.initializeApp({
-      projectId: 'fluent',
-      credential: admin.credential.applicationDefault()
-    })
-  }
-const serviceAccount = {
-  projectId: process.env.FIRESTORE_PROJECT_ID,
-  databaseUrl: process.env.FIREBASE_DATABASE_URL,
-  privateKey: Buffer.from(
-    process.env.FIRESTORE_PRIVATE_KEY_BASE_64,
-    'base64'
-  ).toString('ascii'),
-  clientEmail: process.env.FIRESTORE_CLIENT_EMAIL
-}
-*/

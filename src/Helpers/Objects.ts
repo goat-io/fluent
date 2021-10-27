@@ -191,7 +191,7 @@ export const Objects = (() => {
 
     for (const k in obj) {
       if (obj[k] === null) {
-        isArray ? obj.splice(k, 1) : delete obj[k]
+        isArray ? obj.splice(Number(k), 1) : delete obj[k]
       } else if (typeof obj[k] === 'object') {
         deleteNulls(obj[k])
       }

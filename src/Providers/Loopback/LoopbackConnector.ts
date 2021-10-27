@@ -15,8 +15,6 @@ import to from 'await-to-js'
 
 dayjs.extend(isSameOrAfter)
 
-
-
 interface ILoopbackConnector {
   baseEndPoint: string
   token?: string
@@ -28,7 +26,8 @@ export class LoopbackConnector<
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
+  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+{
   private baseEndPoint: string = ''
   private authToken: string = ''
   private setToken: () => Promise<string>
@@ -230,7 +229,7 @@ export class LoopbackConnector<
    */
   public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const url = this.baseUrl()
-    const headers = this.getHeaders()
+    const headers = await this.getHeaders()
 
     const [error, httpCall] = await to(axios.get(`${url}/${id}`, { headers }))
 
@@ -250,8 +249,8 @@ export class LoopbackConnector<
   /**
    *
    */
-  public async getHeaders() {
-    const headers: any = {}
+  public async getHeaders(): Promise<Record<string, any>> {
+    const headers: Record<string, any> = {}
     const token =
       (this.setToken && (await this.setToken())) ||
       this.authToken ||
@@ -311,7 +310,7 @@ export class LoopbackConnector<
   public async httpGET() {
     let filter: any = {}
     let url = this.baseUrl()
-    const headers = this.getHeaders()
+    const headers = await this.getHeaders()
     filter = await this.getFilters(filter)
     filter = this.getLimit(filter)
     filter = this.getSkip(filter)
@@ -362,7 +361,7 @@ export class LoopbackConnector<
     delete data.syncError
     delete data.trigger
 
-    const headers = this.getHeaders()
+    const headers = await this.getHeaders()
     const isOnline = true || (await Connection.isOnline())
 
     if (!isOnline) {
@@ -373,7 +372,7 @@ export class LoopbackConnector<
   public async httpPUT(id: string, data: InputDTO) {
     const isOnline = true || (await Connection.isOnline())
     const url = `${this.getUrl()}/${id}`
-    const headers = this.getHeaders()
+    const headers = await this.getHeaders()
 
     if (!isOnline) {
       throw new Error(`Cannot make request post to ${url}.You are not online`)
@@ -385,7 +384,7 @@ export class LoopbackConnector<
   public async httpPatch(id: string, data: InputDTO) {
     const isOnline = true || (await Connection.isOnline())
     const url = `${this.getUrl()}/${id}`
-    const headers = this.getHeaders()
+    const headers = await this.getHeaders()
 
     if (!isOnline) {
       throw new Error(`Cannot make request post to ${url}.You are not online`)
@@ -394,11 +393,12 @@ export class LoopbackConnector<
     return axios.patch(url, data, { headers })
   }
 
-  public httpDelete(id) {
-    const headers = this.getHeaders()
+  public async httpDelete(id) {
+    const headers = await this.getHeaders()
     const url = `${this.getUrl()}/${id}`
     return axios.delete(url, { headers })
   }
+
   public getTokenType(token) {
     if (token.length > 32) {
       return 'x-jwt-token'

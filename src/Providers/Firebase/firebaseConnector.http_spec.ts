@@ -1,3 +1,5 @@
+// npx jest -i src/Providers/Firebase/firebaseConnector.spec.ts
+
 import { CarsEntity } from '../test/relations/car/car.entity'
 import { CarsRepository } from '../test/relations/car/car.repositoryFirebase'
 import { FirebaseRepository } from '../test/advanced/firebase.repository'

@@ -1,7 +1,6 @@
 const VError = require('verror')
 const createError = require('http-errors')
 import { Log } from '../Log/Logger'
-// import gLog from "./gLogs";
 
 export const Errors = (cause: any, message: any, info?: any) => {
   const stackableError: any = new VError(

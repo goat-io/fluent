@@ -13,18 +13,28 @@ export const FirebaseInit = ({
   port,
   databaseName,
   serviceAccountPath
-}: ICreateConnection) => {
+}: ICreateConnection): void => {
+  if (admin.apps.length) {
+    return
+  }
   if (host && port) {
     process.env.FIRESTORE_EMULATOR_HOST = `${host}:${port}`
   }
+
   const serviceAccount = require(serviceAccountPath)
-  const app = admin.initializeApp({
+
+  admin.initializeApp({
     projectId: databaseName,
     credential: serviceAccountPath
       ? admin.credential.cert(serviceAccount)
       : admin.credential.applicationDefault()
   })
 
-  const firestore = app.firestore()
-  fireorm.initialize(firestore)
+  const fireStore = admin.firestore()
+  fireStore.settings({ ignoreUndefinedProperties: true })
+  fireorm.initialize(fireStore)
+
+  if (!fireStore) {
+    throw new Error('Could not initialize FireStore')
+  }
 }

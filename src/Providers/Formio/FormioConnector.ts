@@ -38,7 +38,8 @@ export class LokiRNConnector<
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
+  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+{
   private baseEndPoint: string = ''
   private authToken: string = ''
 
@@ -114,7 +115,7 @@ export class LokiRNConnector<
       next_page_url: '',
       per_page: paginator.perPage,
       path: '',
-      total: numberOfRows
+      total: Number(numberOfRows)
     }
     this.reset()
     return results

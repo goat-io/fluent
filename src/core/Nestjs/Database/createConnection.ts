@@ -1,3 +1,5 @@
+import { join } from 'path'
+import { FirebaseInit } from '../../../Providers/Firebase/FirebaseInit'
 import {
   Connection,
   createConnection as typeORMCreateConnection
@@ -30,6 +32,19 @@ export const createConnection = ({
   connectionName
 }: ICreateConnection) => {
   if (type === 'firebase') {
+    if (process.env.DATABASE_FIREBASE_NAME) {
+      try {
+        FirebaseInit({
+          host: process.env.DATABASE_FIREBASE_HOST || undefined,
+          port: Number(process.env.DATABASE_FIREBASE_PORT) || undefined,
+          databaseName: process.env.DATABASE_FIREBASE_NAME,
+          serviceAccountPath: process.env.DATABASE_FIREBASE_SERVICE_ACCOUNT_PATH
+        })
+      } catch (error) {
+        throw error
+      }
+    }
+
     return {
       provide: connectionName,
       useFactory: async () => {
