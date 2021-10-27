@@ -1,3 +1,14 @@
+# 0.5.7
+[2021-10-27]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update firebase init ([`f345132`](https://github.com/goat-io/fluent/commit/f3451328bdbaa533447b15b723e6ab2151f39713))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update firebase init ([`f345132`](https://github.com/goat-io/fluent/commit/f3451328bdbaa533447b15b723e6ab2151f39713))
+
 # 0.5.6
 [2021-10-10]
 
@@ -17,6 +28,7 @@
 
 ### Other Changes
 
+* Release 0.5.6 ([`a022f72`](https://github.com/goat-io/fluent/commit/a022f727fca9d85bf3668d31cd4a7a550ee81a58))
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  fix 5.5 ([`cb46e64`](https://github.com/goat-io/fluent/commit/cb46e64557bf7714420595a0156e123ed35366af))
 
 # 0.5.5
