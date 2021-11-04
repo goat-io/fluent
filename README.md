@@ -20,7 +20,7 @@
     <a href="https://docs.goatlab.io/#/0.4.x/fluent/fluent"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/goat-io/fluent/repo">View Demo</a>
+    <a href="https://codesandbox.io/s/goat-nestjs-tytmv?file=/src/main.ts">View Demo</a>
     ·
     <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
     ·
