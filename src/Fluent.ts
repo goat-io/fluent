@@ -4,7 +4,7 @@ import {
   Primitives
 } from './Providers/types'
 import { typedPath } from 'typed-path'
-import { createConnection, getConnection } from 'typeorm'
+import { Connection, createConnection, getConnection } from 'typeorm'
 
 import { Collection } from './Collection'
 
@@ -76,11 +76,11 @@ export class Fluent {
     }
   }
 
-  public static async models(Entities: any[]) {
+  public static async models(Entities: any[]): Promise<Connection> {
     try {
-      getConnection('_goat_model_generator')
+      return getConnection('_goat_model_generator')
     } catch (error) {
-      await createConnection({
+      return await createConnection({
         name: '_goat_model_generator',
         type: 'sqlite',
         entities: Entities,

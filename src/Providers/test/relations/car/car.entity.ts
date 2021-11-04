@@ -1,6 +1,6 @@
 import { JoinColumn, ManyToOne } from 'typeorm'
 
-import { Decorators } from '../../../../core/Nestjs/Database/decorators'
+import { Decorators } from '../../../../core/database/decorators'
 import { UsersEntity } from '../user/user.entity'
 
 @Decorators.entity('cars')

@@ -1,8 +1,4 @@
-/*import {
-  MulterAzureStorage,
-  MASNameResolver,
-  MulterInFile
-} from 'multer-azure-blob-storage'
+import { MulterAzureStorage, MASNameResolver } from 'multer-azure-blob-storage'
 import { extname } from 'path'
 import { MulterConfiguration } from '../Upload'
 
@@ -34,4 +30,3 @@ export const Azure = (config: MulterConfiguration) => {
     urlExpirationTime: 60
   })
 }
-*/

@@ -3,7 +3,7 @@ import * as faker from 'faker'
 import { Access } from '../../dtos/access.dto'
 import { ApiProperty } from '@nestjs/swagger'
 import { Column } from 'typeorm'
-import { Decorators } from '../Database/decorators'
+import { Decorators } from '../../database/decorators'
 
 @Decorators.entity('form')
 export class Form {

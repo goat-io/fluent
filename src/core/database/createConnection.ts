@@ -1,8 +1,9 @@
 import { join } from 'path'
-import { FirebaseInit } from '../../../Providers/Firebase/FirebaseInit'
+import { FirebaseInit } from '../../Providers/Firebase/FirebaseInit'
 import {
   Connection,
-  createConnection as typeORMCreateConnection
+  createConnection as typeORMCreateConnection,
+  getConnection
 } from 'typeorm'
 
 interface ICreateConnection {
@@ -14,6 +15,7 @@ interface ICreateConnection {
   connectionName: string
   databaseName?: string
   entitiesPath?: string[] | any[]
+  synchronize?: boolean
 }
 
 export interface IConnectionFactory {
@@ -29,7 +31,8 @@ export const createConnection = ({
   port,
   databaseName,
   entitiesPath,
-  connectionName
+  connectionName,
+  synchronize
 }: ICreateConnection) => {
   if (type === 'firebase') {
     if (process.env.DATABASE_FIREBASE_NAME) {
@@ -55,9 +58,11 @@ export const createConnection = ({
   return {
     provide: connectionName,
     useFactory: async () => {
-      return {
-        type,
-        connection: await typeORMCreateConnection({
+      let connection: Connection | undefined
+      try {
+        connection = getConnection('connectionName')
+      } catch (error) {
+        connection = await typeORMCreateConnection({
           name: connectionName,
           type,
           username,
@@ -67,8 +72,14 @@ export const createConnection = ({
           database: databaseName,
           useNewUrlParser: type === 'mongodb' ? true : undefined,
           useUnifiedTopology: type === 'mongodb' ? true : undefined,
-          entities: [...entitiesPath]
+          entities: [...entitiesPath],
+          synchronize
         })
+      }
+
+      return {
+        type,
+        connection
       }
     }
   }

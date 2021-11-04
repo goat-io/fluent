@@ -1,4 +1,4 @@
-import { Decorators } from '../../../core/Nestjs/Database/decorators'
+import { Decorators } from '../../../core/database/decorators'
 
 // tslint:disable-next-line: max-classes-per-file
 export class FurtherNested {

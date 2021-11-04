@@ -116,6 +116,9 @@
   "dependencies": {
     "@apollo/gateway": "^0.42.3",
     "@azure/storage-blob": "^12.8.0",
+    "@loopback/core": "^2.18.0",
+    "@loopback/repository": "^3.7.3",
+    "@loopback/rest": "^10.1.0",
     "@nestjs/common": "^8.1.2",
     "@nestjs/core": "^8.1.2",
     "@nestjs/graphql": "^9.1.1",
