@@ -491,6 +491,30 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     return this
   }
   /**
+   *
+   * @returns
+   */
+  public async loadFirst() {
+    const result = await this.first()
+
+    this.relationQuery = {
+      data: result,
+      relations: this.modelRelations
+    }
+
+    return this
+  }
+  /**
+   * Gets the loaded data so we dont have to
+   * call the main model twice
+   * @returns
+   */
+  public getLoadedData():
+    | GoatOutput<InputDTO, OutputDTO>[]
+    | GoatOutput<InputDTO, OutputDTO> {
+    return this.relationQuery.data
+  }
+  /**
    * Define which relations to load
    * @param Entities
    */

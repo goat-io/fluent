@@ -1,5 +1,30 @@
+# 0.5.9
+[2021-11-04]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  fix release ([`b389287`](https://github.com/goat-io/fluent/commit/b3892871bc0bde3daa1fb9f709c1a9159144da9e))
+
+### Other Changes
+
+* Create codeql-analysis.yml ([`ed55202`](https://github.com/goat-io/fluent/commit/ed552021623226cb89eadc460c6809a512dacaf8))
+* Update codeql-analysis.yml ([`9abd1c1`](https://github.com/goat-io/fluent/commit/9abd1c12e050b36dc13226950c690e9cd10be081))
+* chore(deps): Bump scrapy in /src/Docker/Languages/Python ([`c0b4e87`](https://github.com/goat-io/fluent/commit/c0b4e8753984bf930f99e51d2884806a9d67d6a0))
+
+# 0.5.8
+[2021-11-04]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Clean up relationship models ([`7ece259`](https://github.com/goat-io/fluent/commit/7ece259c8c0b61cab912177ec931e225dbc2cddd))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Clean up relationship models ([`7ece259`](https://github.com/goat-io/fluent/commit/7ece259c8c0b61cab912177ec931e225dbc2cddd))
+* Release 0.5.8 ([`bf61524`](https://github.com/goat-io/fluent/commit/bf615242c65483b226baf7286b43e0d4af1a6a6e))
+
 # 0.5.7
-[2021-10-27]
+[2021-10-26]
 
 ### Features
 
@@ -8,6 +33,7 @@
 ### Other Changes
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update firebase init ([`f345132`](https://github.com/goat-io/fluent/commit/f3451328bdbaa533447b15b723e6ab2151f39713))
+* Release 0.5.7 ([`ee43d2a`](https://github.com/goat-io/fluent/commit/ee43d2adf32fda05dd4e6c2d87b1f27f1ddbdd47))
 
 # 0.5.6
 [2021-10-10]

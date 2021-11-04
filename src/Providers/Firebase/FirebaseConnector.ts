@@ -2,10 +2,7 @@ import * as admin from 'firebase-admin'
 import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
 import { BaseFirestoreRepository, getRepository } from 'fireorm'
 import {
-  Connection,
-  ObjectLiteral,
   createConnection as connection,
-  getConnection,
   getRepository as getRepositoryTypeORM
 } from 'typeorm'
 import {
@@ -16,13 +13,11 @@ import {
   IPaginator,
   ISure
 } from '../types'
-import { Errors } from '../../Helpers/Errors'
 import { FieldPath } from '@google-cloud/firestore'
 import { Id } from '../../Helpers/Id'
 import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
 import { loadRelations } from './relations/loadRelations'
-import to from 'await-to-js'
 
 const db = admin.firestore()
 
@@ -77,15 +72,15 @@ export class FirebaseConnector<
     OutputDTO = InputDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
+  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+{
   private repository: BaseFirestoreRepository<any>
   private collection: FirebaseFirestore.CollectionReference<ModelDTO>
 
   constructor(Entity, relationQuery?: any) {
     super()
-    const { repository, keys, name, relations } = createFirebaseRepository(
-      Entity
-    )
+    const { repository, keys, name, relations } =
+      createFirebaseRepository(Entity)
     this.relationQuery = relationQuery
     this.repository = repository
     this.collection = db.collection(
@@ -109,12 +104,7 @@ export class FirebaseConnector<
       )
     }
 
-    const [getError, snapshot] = await to(query.get())
-
-    if (getError) {
-      console.log(getError)
-      throw new Error(Errors(getError, 'Error while getting submissions'))
-    }
+    const snapshot = await query.get()
 
     const result = []
 
@@ -141,11 +131,7 @@ export class FirebaseConnector<
   public async getPaginated(): Promise<
     IPaginatedData<GoatOutput<InputDTO, OutputDTO>>
   > {
-    const [error, response]: any = await to(this.get())
-
-    if (error) {
-      throw new Error(Errors(error, 'Error while getting submissions'))
-    }
+    const response: any = await this.get()
 
     const result = this.jsApplySelect(response)
 
@@ -247,11 +233,7 @@ export class FirebaseConnector<
     // const created = new Date()
     // const updated = new Date()
     // const version = 1
-    const [error, datum] = await to(this.repository.create({ id, ...data }))
-
-    if (error) {
-      return Promise.reject(Errors(error, 'Validation Error'))
-    }
+    const datum = await this.repository.create({ id, ...data })
 
     const result = this.jsApplySelect([datum]) as GoatOutput<
       InputDTO,
@@ -278,11 +260,7 @@ export class FirebaseConnector<
       batch.push(this.repository.create({ id, ...d }))
     })
 
-    const [error, inserted] = await to(Promise.all(batch))
-
-    if (error) {
-      return Promise.reject(Errors(error, 'Could not insert all elements'))
-    }
+    const inserted = await Promise.all(batch)
 
     const result = this.jsApplySelect(inserted) as GoatOutput<
       InputDTO,
@@ -309,11 +287,7 @@ export class FirebaseConnector<
       batch.create({ id, ...d })
     })
 
-    const [error, inserted] = await to(batch.commit())
-
-    if (error) {
-      return Promise.reject(Errors(error, 'Could not insert all elements'))
-    }
+    const inserted = await batch.commit()
 
     const result = this.jsApplySelect(inserted) as GoatOutput<
       InputDTO,
@@ -333,18 +307,14 @@ export class FirebaseConnector<
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const parsedId = id
 
-    const [getError, dbResult] = await to(this.repository.findById(parsedId))
-
-    if (getError) {
-      return Promise.reject(Errors(getError, 'Entity not found'))
-    }
+    const dbResult = await this.repository.findById(parsedId)
 
     const updateData = {
       ...dbResult,
       ...data /* ...{ updated: new Date() }*/
     }
 
-    const [error, updated] = await to(this.repository.update(updateData))
+    const updated = await this.repository.update(updateData)
 
     const result = this.jsApplySelect([updated]) as GoatOutput<
       InputDTO,
@@ -367,11 +337,7 @@ export class FirebaseConnector<
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const parsedId = id
 
-    const [getError, value] = await to(this.repository.findById(parsedId))
-
-    if (getError) {
-      return Promise.reject(Errors(getError, 'Entity not found'))
-    }
+    const value = await this.repository.findById(parsedId)
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
 
@@ -390,17 +356,9 @@ export class FirebaseConnector<
 
     const entity = { ...newValue /*...{ updated: new Date() }*/ }
 
-    const [error] = await to(this.repository.update(entity))
+    await this.repository.update(entity)
 
-    if (error) {
-      return Promise.reject(Errors(error, 'Could not save'))
-    }
-
-    const [findError, val] = await to(this.repository.findById(parsedId))
-
-    if (findError) {
-      return Promise.reject(Errors(findError, 'Entity not found'))
-    }
+    const val = await this.repository.findById(parsedId)
 
     const returnValue = this.jsApplySelect([val]) as GoatOutput<
       InputDTO,
@@ -436,10 +394,7 @@ export class FirebaseConnector<
   public async deleteById(id: string): Promise<string> {
     const parsedId = id
 
-    const [error, removed] = await to(this.repository.delete(parsedId))
-    if (error) {
-      return Promise.reject(Errors(error, `Could not delete ${id}`))
-    }
+    await this.repository.delete(parsedId)
 
     this.reset()
     return id
@@ -451,17 +406,13 @@ export class FirebaseConnector<
   public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const parsedId = id
 
-    const [error, data] = await to(this.repository.findById(parsedId))
-
-    if (error) {
-      return Promise.reject(Errors(error, 'Could not get data'))
-    }
+    const data = await this.repository.findById(parsedId)
 
     const result = this.jsApplySelect(data) as GoatOutput<InputDTO, OutputDTO>[]
     this.reset()
 
     if (result.length === 0) {
-      return Promise.reject(Errors(error, 'Entity not found'))
+      return Promise.reject(new Error('Entity not found'))
     }
 
     return result[0]

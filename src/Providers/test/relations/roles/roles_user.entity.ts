@@ -1,4 +1,4 @@
-import { Decorators } from '../../../../core/Nestjs/Database/decorators'
+import { Decorators } from '../../../../core/database/decorators'
 
 @Decorators.entity('roles_users')
 export class RolesUser {

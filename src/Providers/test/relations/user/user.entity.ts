@@ -6,7 +6,7 @@ import {
 } from 'typeorm'
 
 import { CarsEntity } from '../car/car.entity'
-import { Decorators } from '../../../../core/Nestjs/Database/decorators'
+import { Decorators } from '../../../../core/database/decorators'
 import { Field } from '@nestjs/graphql'
 import { RoleEntity } from '../roles/roles.entity'
 import { RolesUser } from '../roles/roles_user.entity'

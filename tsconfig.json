@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "es2020",
     "module": "commonjs",
     "allowJs": true,
     "removeComments": true,
     "declaration": true,
     "strict": false,
-    "types": ["jest","node"],
+    "types": ["jest", "node"],
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
@@ -15,7 +16,11 @@
     "outDir": "./dist",
     "baseUrl": "./src",
     "incremental": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "pretty": true,
+    "newLine": "lf",
+    "importHelpers": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts", "dist"]

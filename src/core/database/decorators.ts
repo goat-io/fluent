@@ -27,8 +27,8 @@ import {
 } from 'typeorm'
 import { Field, HideField, ID, ObjectType } from '@nestjs/graphql'
 import { Collection } from 'fireorm'
-import { Primitives } from '../../../Providers/types'
-import { applyDecorators } from '../applyDecorators'
+import { Primitives } from '../../Providers/types'
+import { applyDecorators } from '../Nestjs/applyDecorators'
 
 interface PropertyInterface {
   required?: boolean

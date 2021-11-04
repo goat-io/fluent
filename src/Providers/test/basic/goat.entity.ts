@@ -1,4 +1,4 @@
-import { Decorators } from '../../../core/Nestjs/Database/decorators'
+import { Decorators } from '../../../core/database/decorators'
 import { ObjectType } from '@nestjs/graphql'
 
 @ObjectType()
