@@ -17,7 +17,7 @@
   <p align="center">
     Readable query Interface & API generator
     <br />
-    <a href="https://docs.goatlab.io/#/0.4.x/fluent/fluent"><strong>Explore the docs »</strong></a>
+    <a href="https://docs.goatlab.io/#/0.5.x/fluent/fluent"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://codesandbox.io/s/goat-nestjs-tytmv?file=/src/main.ts">View Demo</a>
