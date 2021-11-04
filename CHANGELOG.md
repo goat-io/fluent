@@ -1,5 +1,16 @@
+# 0.5.8
+[2021-11-04]
+
+### Features
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Clean up relationship models ([`7ece259`](https://github.com/goat-io/fluent/commit/7ece259c8c0b61cab912177ec931e225dbc2cddd))
+
+### Other Changes
+
+* feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Clean up relationship models ([`7ece259`](https://github.com/goat-io/fluent/commit/7ece259c8c0b61cab912177ec931e225dbc2cddd))
+
 # 0.5.7
-[2021-10-27]
+[2021-10-26]
 
 ### Features
 
@@ -8,6 +19,7 @@
 ### Other Changes
 
 * feat: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update firebase init ([`f345132`](https://github.com/goat-io/fluent/commit/f3451328bdbaa533447b15b723e6ab2151f39713))
+* Release 0.5.7 ([`ee43d2a`](https://github.com/goat-io/fluent/commit/ee43d2adf32fda05dd4e6c2d87b1f27f1ddbdd47))
 
 # 0.5.6
 [2021-10-10]
