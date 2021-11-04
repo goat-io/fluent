@@ -18,7 +18,6 @@ import { Id } from '../../Helpers/Id'
 import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
 import { loadRelations } from './relations/loadRelations'
-import { Log } from '../../Log/Logger'
 
 const db = admin.firestore()
 

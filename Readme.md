@@ -30,10 +30,27 @@
 
 # Goat - Fluent
 
-A TS library to give you wrapper Fluent methods for API and general App building. It takes care of all the heavy work so you can focus on creating amazing ideas.
+Fluent query interface for Multiple database types and helpers for fast API generation and general App building.
 
-Fluent helps teams develop faster in any Framework
+## Supported Databases
 
+1. Firebase**
+2. MongoDB*
+3. Mysql*
+4. MariaDB*
+5. SQLite*
+6. Postgres*
+7. CockroachDB*
+8. Microsoft SQL Server*
+9. Oracle*
+10. SAP Hana*
+11. sql.js*
+12. LokiJS
+13. In-memory
+
+Wrapper for TypeORM *
+
+Wrapper for firebase-admin and fireorm **
 ### Installing
 
 To install this package in your project, you can use the following command within your terminal.
