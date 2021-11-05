@@ -1,14 +1,9 @@
-import md5 from 'md5';
-import Configuration from '../../models/Configuration';
+import { Hash as pHash } from '../../../Helpers/Hash'
 
 let Hash = class {
-  static async string (string) {
-    let config = await Configuration.local().first();
-    let hashed = '';
-
-    hashed = md5(string, config.MD5_KEY);
-    return hashed;
+  static async string(string) {
+    hashed = pHash(string)
   }
-};
+}
 
-export default Hash;
+export default Hash
