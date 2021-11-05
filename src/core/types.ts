@@ -5,23 +5,13 @@ import { ObjectTypeOptions } from './Nestjs/types/object-type.decorator'
 import { ApiProperty as NEstJSApiProperty } from './Nestjs/types/decorators/api-property.decorator'
 import { OmitType as NEstJSOmitType } from './Nestjs/types/omit-type'
 import { ApiHideProperty as NEstApiHideProperty } from './Nestjs/types/decorators/api-hide-property.decorator'
-import { SchemaObject as NESTSchemaObject } from './Nestjs/types/interfaces/open-api-spec.interface'
 import { jsonToSchemaObject, SchemaRef } from './Loopback/json-to-schema'
 import { getJsonSchemaRef, JsonSchemaOptions } from './Loopback/build-schema'
+import { SchemaObject as LBSchemaObject } from 'openapi3-ts'
 
-export function NestInputType(
-  nameOrOptions?: string | InputTypeOptions,
-  inputTypeOptions?: InputTypeOptions
-): ClassDecorator {
-  return target => {}
-}
+import { InputType as NestInputType } from './Nestjs/types/decorators/input-type.decorator'
 
-export function NestObjectType(
-  nameOrOptions?: string | ObjectTypeOptions,
-  objectTypeOptions?: ObjectTypeOptions
-): ClassDecorator {
-  return target => {}
-}
+import { ObjectType as NestObjectType } from './Nestjs/types/object-type.decorator'
 
 export function LBgetModelSchemaRef<T extends object>(
   modelCtor: Function & { prototype: T },
@@ -39,7 +29,7 @@ export const PartialType = NestjsPartialType
 export const Column = TypeORMColumn
 export const getModelSchemaRef = LBgetModelSchemaRef
 export const ObjectType = NestObjectType
-export type SchemaObject = NESTSchemaObject
+export type SchemaObject = LBSchemaObject
 
 export function HideField(): PropertyDecorator {
   // tslint:disable-next-line: no-empty

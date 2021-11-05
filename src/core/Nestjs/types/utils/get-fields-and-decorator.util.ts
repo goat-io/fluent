@@ -12,6 +12,7 @@ import { TypeMetadataStorage } from '../type-metadata.storage'
 
 export function getFieldsAndDecoratorForType<T>(objType: Type<T>) {
   const classType = Reflect.getMetadata(CLASS_TYPE_METADATA, objType)
+
   if (!classType) {
     throw new UnableToFindFieldsError(objType.name)
   }

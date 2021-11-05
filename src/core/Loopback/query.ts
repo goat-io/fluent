@@ -2,7 +2,7 @@
 // Node module: @loopback/filter
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
-
+// tslint:disable: max-classes-per-file
 import assert from 'assert'
 type AnyObject = Record<string, any>
 
@@ -622,6 +622,7 @@ export class FilterBuilder<MT extends object = AnyObject> {
         this.filter.order = this.filter.order!.concat(order)
         return this
       }
+      // tslint:disable-next-line: forin
       for (const i in order) {
         this.filter.order!.push(`${i} ${order[i]}`)
       }
