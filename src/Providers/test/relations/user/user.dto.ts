@@ -1,5 +1,4 @@
-import { InputType, OmitType } from '@nestjs/graphql'
-
+import { InputType, OmitType } from '../../../../core/types'
 import { UsersEntity } from '../user/user.entity'
 
 @InputType()

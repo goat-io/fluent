@@ -1,9 +1,12 @@
-import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger'
+import {
+  ApiProperty,
+  OmitType,
+  InputType,
+  Column,
+  PartialType
+} from '../../../core/types'
 import { IPaginationLinks, IPaginationMeta } from '../../dtos/pagination.dto'
-
-import { Column } from 'typeorm'
 import { Form } from './form.entity'
-import { InputType } from '@nestjs/graphql'
 
 /**
  *

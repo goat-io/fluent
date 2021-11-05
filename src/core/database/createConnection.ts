@@ -1,4 +1,3 @@
-import { join } from 'path'
 import { FirebaseInit } from '../../Providers/Firebase/FirebaseInit'
 import {
   Connection,
@@ -16,6 +15,7 @@ interface ICreateConnection {
   databaseName?: string
   entitiesPath?: string[] | any[]
   synchronize?: boolean
+  logging?: boolean
 }
 
 export interface IConnectionFactory {
@@ -32,7 +32,8 @@ export const createConnection = ({
   databaseName,
   entitiesPath,
   connectionName,
-  synchronize
+  synchronize,
+  logging
 }: ICreateConnection) => {
   if (type === 'firebase') {
     if (process.env.DATABASE_FIREBASE_NAME) {
@@ -73,7 +74,8 @@ export const createConnection = ({
           useNewUrlParser: type === 'mongodb' ? true : undefined,
           useUnifiedTopology: type === 'mongodb' ? true : undefined,
           entities: [...entitiesPath],
-          synchronize
+          synchronize,
+          logging
         })
       }
 

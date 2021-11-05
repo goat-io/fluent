@@ -12,7 +12,6 @@ import {
   Not,
   ObjectID,
   Repository,
-  getConnection,
   getRepository
 } from 'typeorm'
 import {
@@ -23,7 +22,6 @@ import {
   IPaginator,
   ISure
 } from '../types'
-
 import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
 import { Id } from '../../Helpers/Id'
@@ -77,7 +75,8 @@ export class TypeOrmConnector<
     OutputDTO = InputDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
+  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+{
   private repository: Repository<ModelDTO>
   private connectionName: string
 
@@ -289,7 +288,7 @@ export class TypeOrmConnector<
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const parsedId = this.isMongoDB
-      ? ((new ObjectId(id) as unknown) as ObjectID)
+      ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
     const dataToInsert = this.outputKeys.includes('updated')
@@ -330,7 +329,7 @@ export class TypeOrmConnector<
     data: InputDTO
   ): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const parsedId = this.isMongoDB
-      ? ((new ObjectId(id) as unknown) as ObjectID)
+      ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
     const [getError, value] = await to(this.repository.findOneOrFail(parsedId))
@@ -410,7 +409,7 @@ export class TypeOrmConnector<
    */
   public async deleteById(id: string): Promise<string> {
     const parsedId = this.isMongoDB
-      ? ((new ObjectId(id) as unknown) as ObjectID)
+      ? (new ObjectId(id) as unknown as ObjectID)
       : id
     const [error, removed] = await to(this.repository.delete(parsedId))
 
@@ -427,7 +426,7 @@ export class TypeOrmConnector<
    */
   public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
     const parsedId = this.isMongoDB
-      ? ((new ObjectId(id) as unknown) as ObjectID)
+      ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
     const [error, data] = await to(this.repository.findByIds([parsedId]))
@@ -676,7 +675,7 @@ export class TypeOrmConnector<
 
     if (this.relationQuery && this.relationQuery.data) {
       const ids = this.relationQuery.data.map(
-        d => (Id.objectID(d.id) as unknown) as ObjectID
+        d => Id.objectID(d.id) as unknown as ObjectID
       )
 
       andFilters.push([
@@ -701,8 +700,8 @@ export class TypeOrmConnector<
         element = '_id'
 
         value = Array.isArray(value)
-          ? value.map(v => (Id.objectID(v) as unknown) as ObjectID)
-          : ((Id.objectID(value) as unknown) as ObjectID)
+          ? value.map(v => Id.objectID(v) as unknown as ObjectID)
+          : (Id.objectID(value) as unknown as ObjectID)
       }
 
       switch (operator) {

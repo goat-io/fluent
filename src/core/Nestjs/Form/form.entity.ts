@@ -1,8 +1,6 @@
 import * as faker from 'faker'
-
 import { Access } from '../../dtos/access.dto'
-import { ApiProperty } from '@nestjs/swagger'
-import { Column } from 'typeorm'
+import { ApiProperty, Column } from '../../../core/types'
 import { Decorators } from '../../database/decorators'
 
 @Decorators.entity('form')

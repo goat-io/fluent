@@ -1,6 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger'
-import { Column } from 'typeorm'
-import { InputType } from '@nestjs/graphql'
+import { ApiProperty, InputType, Column } from '../../core/types'
+
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
 export class IPaginationMeta {

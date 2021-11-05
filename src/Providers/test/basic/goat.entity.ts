@@ -1,5 +1,5 @@
+import { ObjectType } from '../../../core/types'
 import { Decorators } from '../../../core/database/decorators'
-import { ObjectType } from '@nestjs/graphql'
 
 @ObjectType()
 export class Breed {

@@ -1,6 +1,4 @@
-import { ObjectType } from '@nestjs/graphql'
-import { ApiProperty } from '@nestjs/swagger'
-import { Column } from 'typeorm'
+import { ApiProperty, ObjectType, Column } from '../../core/types'
 
 @ObjectType()
 export class Access {

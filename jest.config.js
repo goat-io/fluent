@@ -1,5 +1,6 @@
 module.exports = {
   preset: 'ts-jest',
+  testRunner: 'jasmine2',
   testEnvironment: 'node',
   setupFiles: ['dotenv/config', './setup.ts'],
   // setupFilesAfterEnv: ['./fluentSetup.ts'],

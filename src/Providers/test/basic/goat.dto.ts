@@ -1,5 +1,5 @@
 import { GoatEntity } from './goat.entity'
-import { InputType, OmitType } from '@nestjs/graphql'
+import { InputType, OmitType } from '../../../core/types'
 
 @InputType()
 export class GoatEntityOut extends OmitType(GoatEntity, [] as const) {}

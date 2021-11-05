@@ -1,3 +1,4 @@
+// npx jest -i ./src/Providers/TypeOrm/TypeOrmSqliteConnector.spec.ts
 import { CarsEntity } from '../test/relations/car/car.entity'
 import { CarsRepository } from '../test/relations/car/car.repositoryTypeOrm'
 import { GoatEntity } from '../test/basic/goat.entity'
@@ -11,17 +12,17 @@ import { UserRepository } from '../test/relations/user/user.repositoryTypeOrm'
 import { UsersEntity } from '../test/relations/user/user.entity'
 import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
-import { createConnection } from 'typeorm'
+import { createConnection } from '../../core/database/createConnection'
 import { relationsTestSuite } from '../test/relations/relationsTestsSuite'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
 beforeAll(async done => {
   await createConnection({
-    name: 'runningTest',
+    connectionName: 'runningTest',
     type: 'sqlite',
-    database: ':memory:',
-    entities: [
+    databaseName: ':memory:',
+    entitiesPath: [
       GoatEntity,
       TypeORMDataModel,
       CarsEntity,
@@ -31,7 +32,7 @@ beforeAll(async done => {
     ],
     logging: false,
     synchronize: true
-  })
+  }).useFactory()
 
   done()
 })

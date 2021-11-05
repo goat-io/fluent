@@ -1,5 +1,4 @@
-import { InputType, OmitType } from '@nestjs/graphql'
-
+import { InputType, OmitType } from '../../../../core/types'
 import { CarsEntity } from './car.entity'
 
 @InputType()
