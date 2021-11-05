@@ -1,3 +1,13 @@
+# 0.5.10
+[2021-11-05]
+
+### Other Changes
+
+* refactor: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Remove major loopback,nestjs & graphql dependencies ([`d141314`](https://github.com/goat-io/fluent/commit/d14131494fcfd7f241504bd33e54cd6f1de22969))
+* docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add db support to readme ([`4b3e2f2`](https://github.com/goat-io/fluent/commit/4b3e2f2bd3bcd6d711dd468f340d1efb7c4cb80c))
+* docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add demo ([`ed6baa8`](https://github.com/goat-io/fluent/commit/ed6baa8988316688524c3219f680ae486091c036))
+* docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix docs link ([`fb805da`](https://github.com/goat-io/fluent/commit/fb805da19ce02e68de15e81799ee150496ace496))
+
 # 0.5.9
 [2021-11-04]
 
@@ -8,6 +18,7 @@
 ### Other Changes
 
 * Create codeql-analysis.yml ([`ed55202`](https://github.com/goat-io/fluent/commit/ed552021623226cb89eadc460c6809a512dacaf8))
+* Release 0.5.9 ([`79c5947`](https://github.com/goat-io/fluent/commit/79c594708256224328f5ef62e0a6bc59e5922033))
 * Update codeql-analysis.yml ([`9abd1c1`](https://github.com/goat-io/fluent/commit/9abd1c12e050b36dc13226950c690e9cd10be081))
 * chore(deps): Bump scrapy in /src/Docker/Languages/Python ([`c0b4e87`](https://github.com/goat-io/fluent/commit/c0b4e8753984bf930f99e51d2884806a9d67d6a0))
 
