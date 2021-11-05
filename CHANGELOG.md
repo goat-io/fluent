@@ -1,3 +1,10 @@
+# 0.5.11
+[2021-11-05]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix security alerts ([`65981f8`](https://github.com/goat-io/fluent/commit/65981f892f555bc76c523db2eddbb1f19bcaf55d))
+
 # 0.5.10
 [2021-11-05]
 
@@ -6,6 +13,7 @@
 * refactor: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Remove major loopback,nestjs & graphql dependencies ([`d141314`](https://github.com/goat-io/fluent/commit/d14131494fcfd7f241504bd33e54cd6f1de22969))
 * docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add db support to readme ([`4b3e2f2`](https://github.com/goat-io/fluent/commit/4b3e2f2bd3bcd6d711dd468f340d1efb7c4cb80c))
 * docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Add demo ([`ed6baa8`](https://github.com/goat-io/fluent/commit/ed6baa8988316688524c3219f680ae486091c036))
+* Release 0.5.10 ([`3e1ca64`](https://github.com/goat-io/fluent/commit/3e1ca6400156c79be01f5690daf0057ad4d92fca))
 * docs: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix docs link ([`fb805da`](https://github.com/goat-io/fluent/commit/fb805da19ce02e68de15e81799ee150496ace496))
 
 # 0.5.9
