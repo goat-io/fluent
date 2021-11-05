@@ -1,3 +1,10 @@
+# 0.5.13
+[2021-11-05]
+
+### Other Changes
+
+* chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`a3a65fd`](https://github.com/goat-io/fluent/commit/a3a65fd1ebdb3d2a79ead8a5b7774280d6ffbbd2))
+
 # 0.5.12
 [2021-11-05]
 
@@ -5,6 +12,7 @@
 
 * refactor: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Remove md5 dependencies ([`e6c47d2`](https://github.com/goat-io/fluent/commit/e6c47d25b62a5c8a6551c30e8420035a903cee97))
 * Release 0.5.11 ([`85df72b`](https://github.com/goat-io/fluent/commit/85df72bfc3fb94bc391b7ca6765fdb9154c9f33a))
+* Release 0.5.12 ([`a2f151b`](https://github.com/goat-io/fluent/commit/a2f151b281a63f3a26282b8e53ba52beae8e8b04))
 
 # 0.5.11
 [2021-11-05]
