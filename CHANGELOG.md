@@ -1,9 +1,20 @@
 # 0.5.11
 [2021-11-05]
 
+### Other Changes
+
+* refactor: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Remove md5 dependencies ([`e6c47d2`](https://github.com/goat-io/fluent/commit/e6c47d25b62a5c8a6551c30e8420035a903cee97))
+
+# 0.5.11
+[2021-11-05]
+
 ### Fixes
 
 *  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix security alerts ([`65981f8`](https://github.com/goat-io/fluent/commit/65981f892f555bc76c523db2eddbb1f19bcaf55d))
+
+### Other Changes
+
+* Release 0.5.11 ([`2efc54a`](https://github.com/goat-io/fluent/commit/2efc54ab6c133d2688f47be25b5a0f782a57fffe))
 
 # 0.5.10
 [2021-11-05]
