@@ -1,9 +1,17 @@
+# 0.5.14
+[2021-11-05]
+
+### Fixes
+
+*  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix objectType ([`8be9e0a`](https://github.com/goat-io/fluent/commit/8be9e0acea3c6ded3292461a667bea821732aad4))
+
 # 0.5.13
 [2021-11-05]
 
 ### Other Changes
 
 * chore: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Update dependencies ([`a3a65fd`](https://github.com/goat-io/fluent/commit/a3a65fd1ebdb3d2a79ead8a5b7774280d6ffbbd2))
+* Release 0.5.13 ([`9d183a2`](https://github.com/goat-io/fluent/commit/9d183a2a47a1c411581a02be27adfbca4c27002b))
 
 # 0.5.12
 [2021-11-05]
