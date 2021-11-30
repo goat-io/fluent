@@ -124,7 +124,7 @@
     "ajv": "^8.6.3",
     "amqplib": "^0.8.0",
     "await-to-js": "^3.0.0",
-    "aws-sdk": "^2.1022.0",
+    "aws-sdk": "^2.1024.0",
     "axios": "^0.24.0",
     "axios-logger": "^2.5.0",
     "axios-retry": "^3.2.4",
