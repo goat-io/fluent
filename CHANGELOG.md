@@ -1,9 +1,32 @@
+# 0.5.16
+[2021-12-14]
+
+### Fixes
+
+*  [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Fix attach method for single values ([`940de40`](https://github.com/goat-io/fluent/commit/940de40400683cda9dd41201edaa521b66f6005a))
+
+# 0.5.15
+[2021-12-06]
+
+### Features
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Fix lb3 model generator ([`4d1c678`](https://github.com/goat-io/fluent/commit/4d1c67874a2be6a48e876bfe6d2c46365729a075))
+
+### Other Changes
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Fix lb3 model generator ([`4d1c678`](https://github.com/goat-io/fluent/commit/4d1c67874a2be6a48e876bfe6d2c46365729a075))
+* Release 0.5.15 ([`7d67c75`](https://github.com/goat-io/fluent/commit/7d67c757dcce98d2bcd38dd2801b3d269061b96b))
+
 # 0.5.14
 [2021-11-05]
 
 ### Fixes
 
 *  [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Fix objectType ([`8be9e0a`](https://github.com/goat-io/fluent/commit/8be9e0acea3c6ded3292461a667bea821732aad4))
+
+### Other Changes
+
+* Release 0.5.14 ([`eb141fd`](https://github.com/goat-io/fluent/commit/eb141fd8623a7095f2163b3cf9093681bb5b8e2e))
 
 # 0.5.13
 [2021-11-05]

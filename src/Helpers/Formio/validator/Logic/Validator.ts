@@ -170,6 +170,7 @@ export class Validator {
             fieldValidator = JoiX.object()
           } else {
             fieldValidator = JoiX.string().allow('')
+            // tslint:disable-next-line: forin
             for (const name in stringValidators) {
               const funcName = stringValidators[name]
               if (

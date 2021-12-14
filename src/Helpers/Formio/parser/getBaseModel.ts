@@ -7,6 +7,7 @@ export interface IBaseModel {
   __objects: { [key: string]: any }
   [key: string]: any
   options?: {
+    validateUpsert: boolean
     strictObjectIDCoercion: boolean
     mongodb: {
       collection: string
@@ -45,12 +46,25 @@ export interface IBaseModel {
       fullText: string[]
       nGram: string[]
     }
+    Paginator?: {
+      limit: number
+    }
+    Jwt?: boolean
+    Distinct?: boolean
+    Insert?: boolean
+    Aggregate?: boolean
+  }
+  indexes?: {
+    [key: string]: any
   }
 }
 
 export const baseModel: IBaseModel = {
   id: '',
+  name: '',
   folderPath: '',
+  base: 'PersistedModel',
+  idInjection: false,
   // tslint:disable-next-line: object-literal-sort-keys
   __datagrids: {},
   __objects: {},
@@ -65,10 +79,17 @@ export const baseModel: IBaseModel = {
       enabled: false,
       fullText: [],
       nGram: []
-    }
+    },
+    Paginator: {
+      limit: 10
+    },
+    Jwt: true,
+    Distinct: true,
+    Insert: true,
+    Aggregate: true
   },
-  name: '',
   options: {
+    validateUpsert: true,
     mongodb: {
       collection: 'submissions'
     },
@@ -94,28 +115,30 @@ export const baseModel: IBaseModel = {
       required: false,
       type: 'string'
     }
-  }
-  /*
-    indexes: {
-      roles: {
-        keys: { "_meta.roles": 1 }
-      },
-      form: {
-        keys: { "_meta.form": 1 }
-      },
-      "access.id": {
-        keys: { "_meta.access.id": 1 }
-      },
-      owner: {
-        keys: { "_meta.owner": 1 }
-      },
-      created: {
-        keys: { "_meta.created": 1 }
-      },
-      modified: {
-        keys: { "_meta.modified": 1 }
-      },
-      search_text: { "_meta._ngram": "text" }
+  },
+  excludeBaseProperties: [],
+  validations: [],
+  relations: {},
+  acls: [],
+  methods: {},
+  indexes: {
+    roles_1: {
+      keys: { roles: 1 }
+    },
+    form_1: {
+      keys: { form: 1 }
+    },
+    'access.id_1': {
+      keys: { 'access.id': 1 }
+    },
+    owner_1: {
+      keys: { owner: 1 }
+    },
+    created_1: {
+      keys: { created: 1 }
+    },
+    modified_1: {
+      keys: { modified: 1 }
     }
-    */
+  }
 }
