@@ -1,9 +1,24 @@
+# 0.5.17
+[2021-12-20]
+
+### Features
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  fix associate with single loaded values ([`1ae5d3b`](https://github.com/goat-io/fluent/commit/1ae5d3b1c43c8ae9aefd1b0d10a2e93f3711793d))
+
+### Other Changes
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  fix associate with single loaded values ([`1ae5d3b`](https://github.com/goat-io/fluent/commit/1ae5d3b1c43c8ae9aefd1b0d10a2e93f3711793d))
+
 # 0.5.16
 [2021-12-14]
 
 ### Fixes
 
 *  [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Fix attach method for single values ([`940de40`](https://github.com/goat-io/fluent/commit/940de40400683cda9dd41201edaa521b66f6005a))
+
+### Other Changes
+
+* Release 0.5.16 ([`a4aabad`](https://github.com/goat-io/fluent/commit/a4aabada4d31f7b6d142c75e63763078af94da8b))
 
 # 0.5.15
 [2021-12-06]
