@@ -559,7 +559,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     }
 
     if (this.relationQuery && this.relationQuery.data) {
-      const relatedData = this.relationQuery.data.map(d => {
+      const D = Array.isArray(this.relationQuery.data)
+        ? this.relationQuery.data
+        : [this.relationQuery.data]
+
+      const relatedData = D.map(d => {
         return {
           [this.relationQuery.relation.joinColumns[0].propertyName]: this
             .isMongoDB
