@@ -126,8 +126,6 @@
     "await-to-js": "^3.0.0",
     "aws-sdk": "^2.1022.0",
     "axios": "^0.24.0",
-    "axios-logger": "^2.5.0",
-    "axios-retry": "^3.2.4",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.7.2",
     "bson": "^4.5.4",

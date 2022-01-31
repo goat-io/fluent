@@ -28,14 +28,18 @@ export const Jwt = (() => {
    * Given a JWT return a userProfile
    * @param token
    */
-  const verify = async (token: string, secret: string): Promise<any> => {
+  const verify = async (
+    token: string,
+    secret: string,
+    options?: any
+  ): Promise<any> => {
     if (!token) {
       const errors = Errors(null, `Error verifying token : 'token' is null`)
       throw new Error(errors)
     }
 
     try {
-      const decodedToken = await verifyAsync(token, secret)
+      const decodedToken = await verifyAsync(token, secret, options)
       return decodedToken
     } catch (error) {
       const errors = Errors(error, `Error verifying token : ${error.message}`)

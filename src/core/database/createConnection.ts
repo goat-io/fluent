@@ -37,16 +37,12 @@ export const createConnection = ({
 }: ICreateConnection) => {
   if (type === 'firebase') {
     if (process.env.DATABASE_FIREBASE_NAME) {
-      try {
-        FirebaseInit({
-          host: process.env.DATABASE_FIREBASE_HOST || undefined,
-          port: Number(process.env.DATABASE_FIREBASE_PORT) || undefined,
-          databaseName: process.env.DATABASE_FIREBASE_NAME,
-          serviceAccountPath: process.env.DATABASE_FIREBASE_SERVICE_ACCOUNT_PATH
-        })
-      } catch (error) {
-        throw error
-      }
+      FirebaseInit({
+        host: process.env.DATABASE_FIREBASE_HOST || undefined,
+        port: Number(process.env.DATABASE_FIREBASE_PORT) || undefined,
+        databaseName: process.env.DATABASE_FIREBASE_NAME,
+        serviceAccountPath: process.env.DATABASE_FIREBASE_SERVICE_ACCOUNT_PATH
+      })
     }
 
     return {
@@ -56,6 +52,7 @@ export const createConnection = ({
       }
     }
   }
+
   return {
     provide: connectionName,
     useFactory: async () => {
