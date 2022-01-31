@@ -1,3 +1,14 @@
+# 0.5.18
+[2022-01-31]
+
+### Features
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Add JWT options ([`50a44a6`](https://github.com/goat-io/fluent/commit/50a44a61409dcd7a528f7699ab8d5006e2e58772))
+
+### Other Changes
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Add JWT options ([`50a44a6`](https://github.com/goat-io/fluent/commit/50a44a61409dcd7a528f7699ab8d5006e2e58772))
+
 # 0.5.17
 [2021-12-20]
 
@@ -7,6 +18,7 @@
 
 ### Other Changes
 
+* Release 0.5.17 ([`81106e0`](https://github.com/goat-io/fluent/commit/81106e090e6ecf0c70fbc445f9e27892f0e910cd))
 * feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  fix associate with single loaded values ([`1ae5d3b`](https://github.com/goat-io/fluent/commit/1ae5d3b1c43c8ae9aefd1b0d10a2e93f3711793d))
 
 # 0.5.16
