@@ -148,7 +148,7 @@
     "figlet": "^1.5.2",
     "firebase-admin": "^10.0.0",
     "fireorm": "^0.23.0",
-    "formiojs": "^4.13.8",
+    "formiojs": "^4.14.2",
     "got": "^11.8.2",
     "graphql": "^16.0.1",
     "handlebars": "^4.7.7",
