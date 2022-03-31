@@ -187,7 +187,7 @@
     "stampit": "4.3.2",
     "ts-morph": "^12.2.0",
     "typed-path": "^2.2.3",
-    "typeorm": "^0.2.38",
+    "typeorm": "^0.2.45",
     "uuid": "^8.3.2",
     "verror": "^1.10.1",
     "winston": "^3.3.3"
