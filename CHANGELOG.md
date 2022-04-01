@@ -1,3 +1,22 @@
+# 0.5.19
+[2022-04-01]
+
+### Features
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Update dependencies and TypeOrm latest ([`659c83b`](https://github.com/goat-io/fluent/commit/659c83b244e0ac2d997430823db942a83afd7d64))
+
+### Fixes
+
+*  src/Docker/Languages/Python/requirements.txt to reduce vulnerabilities ([`209ff93`](https://github.com/goat-io/fluent/commit/209ff9365e22fe08b0509795dd96c6aebf13a29f))
+*  src/Docker/Languages/Python/requirements.txt to reduce vulnerabilities ([`d791706`](https://github.com/goat-io/fluent/commit/d791706a78bc317aa157c28bbeb9da1427027a6f))
+
+### Other Changes
+
+* feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Update dependencies and TypeOrm latest ([`659c83b`](https://github.com/goat-io/fluent/commit/659c83b244e0ac2d997430823db942a83afd7d64))
+* ci: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Use yarn instead of npm ([`6435645`](https://github.com/goat-io/fluent/commit/64356459ec8516a2a4997375ae7fc5a888706e06))
+* ci: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Replace npm for yarn ([`2a5d409`](https://github.com/goat-io/fluent/commit/2a5d40920449749a021a953bc12d5b7e38d56fcb))
+* chore(deps): Bump twisted in /src/Docker/Languages/Python ([`93c8b04`](https://github.com/goat-io/fluent/commit/93c8b0466869fbedc1b4c37f3c9fbc9cbe17007a))
+
 # 0.5.18
 [2022-01-31]
 
@@ -8,6 +27,7 @@
 ### Other Changes
 
 * feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Add JWT options ([`50a44a6`](https://github.com/goat-io/fluent/commit/50a44a61409dcd7a528f7699ab8d5006e2e58772))
+* Release 0.5.18 ([`247c0d7`](https://github.com/goat-io/fluent/commit/247c0d787d61d065e8086fbe947b6566224cc97b))
 
 # 0.5.17
 [2021-12-20]
