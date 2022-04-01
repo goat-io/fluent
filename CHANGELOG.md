@@ -1,3 +1,10 @@
+# 0.5.20
+[2022-04-01]
+
+### Other Changes
+
+* ci: fix yarn cache ([`8d1dd25`](https://github.com/goat-io/fluent/commit/8d1dd25cbb2ca2848cd80cbf806d3b27c8bb0aa6))
+
 # 0.5.19
 [2022-04-01]
 
@@ -14,6 +21,7 @@
 
 * feat: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Update dependencies and TypeOrm latest ([`659c83b`](https://github.com/goat-io/fluent/commit/659c83b244e0ac2d997430823db942a83afd7d64))
 * ci: [FLUENT-001](https://goatlab.atlassian.net/browse//FLUENT-001) -  Use yarn instead of npm ([`6435645`](https://github.com/goat-io/fluent/commit/64356459ec8516a2a4997375ae7fc5a888706e06))
+* Release 0.5.19 ([`a1a5e19`](https://github.com/goat-io/fluent/commit/a1a5e19d1ee718362bb80bb2858ca7cbb2ee5d49))
 * ci: [FLUENT-1](https://goatlab.atlassian.net/browse//FLUENT-1) -  Replace npm for yarn ([`2a5d409`](https://github.com/goat-io/fluent/commit/2a5d40920449749a021a953bc12d5b7e38d56fcb))
 * chore(deps): Bump twisted in /src/Docker/Languages/Python ([`93c8b04`](https://github.com/goat-io/fluent/commit/93c8b0466869fbedc1b4c37f3c9fbc9cbe17007a))
 
