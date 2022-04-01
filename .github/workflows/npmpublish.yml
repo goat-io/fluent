@@ -10,31 +10,29 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Cache node modules
-        uses: actions/cache@v1
+        uses: actions/cache@v3
+        id: yarn-cache
         env:
-          cache-name: fluent-cache-modules
           NPM_TOKEN: ${{ secrets.GOATLAB_NPM_TOKEN }}
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+            ${{ runner.os }}-yarn-
+
       - name: Config npm secret token
         run: echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
-      - name: Config NPM cache
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm config set cache ~/.npm && npm config set cache-min 9999999
+
       - name: Installing Fluent´s Dependencies
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm install
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && yarn
       - name: Write key file
         env:
           AUTH: ${{ secrets.FLUENT_SERVICE_ACCOUNT_BASE64 }}
         run: |
           echo "$AUTH" | base64 --decode > /home/runner/work/fluent/fluent/fluent-service-account.json
       - name: Building Fluent
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm run build
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && yarn build
       - name: Testing Fluent
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm run test
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && yarn test
       - name: Publish to NPM
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && npm publish
