@@ -1,11 +1,11 @@
 import pluralize from 'pluralize'
-import { nGram } from "./Ngram"
-import { IDataElement } from '../Providers/types'
+import { nGram } from './Ngram'
+import { BaseDataElement } from '../Providers/types'
 import { Objects } from './Objects'
 
 export interface INgramFromObject {
   fields: string[]
-  object: IDataElement
+  object: BaseDataElement
 }
 
 export const Strings = (() => {

@@ -1,7 +1,7 @@
 import { Objects } from '../Objects'
 import { eachComponent } from './eachComponent'
 import { FormioComponent } from './types/FormioComponent'
-import { IDataElement } from '../../Providers/types'
+import { BaseDataElement } from '../../Providers/types'
 /**
  *
  * @param component
@@ -29,7 +29,7 @@ const matchComponent = (component: any, query: any) => {
  */
 export const findComponents = (
   components: FormioComponent[],
-  query: IDataElement
+  query: BaseDataElement
 ): FormioComponent[] => {
   const results = []
 

@@ -1,4 +1,7 @@
-import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+/**
+ * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
+ */
+import { BaseConnector, FluentConnectorInterface } from '../../BaseConnector'
 import {
   Equal,
   FindManyOptions,
@@ -12,15 +15,18 @@ import {
   Not,
   ObjectID,
   Repository,
-  getRepository
+  getRepository,
+  DataSource,
+  DeepPartial,
+  FindOptionsWhere
 } from 'typeorm'
 import {
-  GoatFilter,
-  GoatOutput,
-  IDataElement,
-  IPaginatedData,
-  IPaginator,
-  ISure
+  Filter,
+  DaoOutput,
+  BaseDataElement,
+  PaginatedData,
+  Paginator,
+  Sure
 } from '../types'
 import { Errors } from '../../Helpers/Errors'
 import { Event } from '../../Helpers/Event'
@@ -30,24 +36,12 @@ import { Objects } from '../../Helpers/Objects'
 import { getOutputKeys } from '../outputKeys'
 import { loadRelations } from '../../Providers/Firebase/relations/loadRelations'
 import to from 'await-to-js'
-
-/*
-    
-      import {
-  paginate,
-  Pagination,
-  IPaginationOptions
-} from 'nestjs-typeorm-paginate'
-  async paginate(options: IPaginationOptions): Promise<Pagination<Form>> {
-        return paginate<Form>(this.forms, options)
-      }
-   */
+import { modelGeneratorDataSource } from '../../Fluent'
 
 export class GoatRepository<T> extends Repository<T> {}
 
 export const getRelations = typeOrmRepo => {
   const relations = {}
-
   for (const relation of typeOrmRepo.metadata.relations) {
     relations[relation.inverseEntityMetadata.givenTableName.toLowerCase()] = {
       isOneToMany: relation.isOneToMany,
@@ -70,12 +64,12 @@ export const getRelations = typeOrmRepo => {
 
 // tslint:disable-next-line: max-classes-per-file
 export class TypeOrmConnector<
-    ModelDTO = IDataElement,
+    ModelDTO = BaseDataElement,
     InputDTO = ModelDTO,
     OutputDTO = InputDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
 {
   private repository: Repository<ModelDTO>
   private connectionName: string
@@ -84,10 +78,11 @@ export class TypeOrmConnector<
     super()
     this.connectionName = connectionName
 
-    this.repository = getRepository(
-      entity,
-      connectionName || '_goat_model_generator'
-    )
+    if (!modelGeneratorDataSource.isInitialized) {
+      throw new Error('Fluent model generator data source is not initialized')
+    }
+
+    this.repository = modelGeneratorDataSource.getRepository(entity)
 
     this.relationQuery = relationQuery
 
@@ -103,7 +98,7 @@ export class TypeOrmConnector<
   /**
    *
    */
-  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const query = this.getGeneratedQuery()
 
     const [error, result]: any = await to(this.repository.find(query))
@@ -129,7 +124,7 @@ export class TypeOrmConnector<
    *
    */
   public async getPaginated(): Promise<
-    IPaginatedData<GoatOutput<InputDTO, OutputDTO>>
+    PaginatedData<DaoOutput<InputDTO, OutputDTO>>
   > {
     const [error, response]: any = await to(this.get())
 
@@ -145,7 +140,7 @@ export class TypeOrmConnector<
       throw new Error(Errors(error, 'Error while getting submissions'))
     }
 
-    const results: IPaginatedData<OutputDTO> = {
+    const results: PaginatedData<OutputDTO> = {
       current_page: response[0].meta.currentPage,
       data: response[0].data,
       first_page_url: response[0].meta.firstPageUrl,
@@ -165,7 +160,7 @@ export class TypeOrmConnector<
   /**
    *
    */
-  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -173,8 +168,8 @@ export class TypeOrmConnector<
    * @param filter
    */
   public async find(
-    filter: GoatFilter = {}
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    filter: Filter = {}
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const stringFilter: string = filter as string
     let parsedFilter: any = {}
     try {
@@ -212,8 +207,8 @@ export class TypeOrmConnector<
    * @param paginator
    */
   public async paginate(
-    paginator: IPaginator
-  ): Promise<IPaginatedData<GoatOutput<InputDTO, OutputDTO>>> {
+    paginator: Paginator
+  ): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
     if (!paginator) {
       throw new Error('Paginator cannot be empty')
     }
@@ -235,20 +230,15 @@ export class TypeOrmConnector<
     return this.repository
   }
   /**
-   *
+   * Insert the model to the database.
    * @param data
    */
-  public async insert(
-    data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
-    const [error, datum] = await to(this.repository.save(data))
+  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
+    const datum = await this.repository.save(
+      data as unknown as DeepPartial<ModelDTO>
+    )
 
-    if (error) {
-      console.log(error)
-      return Promise.reject(Errors(error, 'Validation Error'))
-    }
-
-    const result = this.jsApplySelect([datum]) as GoatOutput<
+    const result = this.jsApplySelect([datum]) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -261,9 +251,9 @@ export class TypeOrmConnector<
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const [error, inserted] = await to(
-      this.repository.save(data, {
+      this.repository.save(data as unknown as DeepPartial<ModelDTO>, {
         chunk: data.length / 300
       })
     )
@@ -273,7 +263,7 @@ export class TypeOrmConnector<
     }
     this.reset()
 
-    const result = this.jsApplySelect(inserted) as GoatOutput<
+    const result = this.jsApplySelect(inserted) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -286,7 +276,7 @@ export class TypeOrmConnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
@@ -304,12 +294,16 @@ export class TypeOrmConnector<
       return Promise.reject(Errors(error, 'Could not update'))
     }
 
-    const [getError, dbResult] = await to(this.repository.findByIds([parsedId]))
+    const [getError, dbResult] = await to(
+      this.repository.findBy({
+        id: In([parsedId])
+      } as unknown as FindOptionsWhere<ModelDTO>)
+    )
 
     if (getError) {
       return Promise.reject(Errors(error, 'Entity not found'))
     }
-    const result = this.jsApplySelect(dbResult) as GoatOutput<
+    const result = this.jsApplySelect(dbResult) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -327,18 +321,17 @@ export class TypeOrmConnector<
   public async replaceById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
-    const [getError, value] = await to(this.repository.findOneOrFail(parsedId))
-
-    if (getError) {
-      return Promise.reject(Errors(getError, 'Entity not found'))
-    }
+    const value = await this.repository.findOneOrFail({
+      where: { id: parsedId } as unknown as FindOptionsWhere<ModelDTO>
+    })
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
+
     Object.keys(flatValue).forEach(key => {
       flatValue[key] = null
     })
@@ -352,11 +345,9 @@ export class TypeOrmConnector<
     delete newValue.created
     delete newValue.updated
 
-    const entity = this.repository.create(newValue)
-
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
-          ...entity,
+          ...data,
           ...{ updated: new Date() }
         }
       : data
@@ -367,13 +358,19 @@ export class TypeOrmConnector<
       return Promise.reject(Errors(error, 'Could not save'))
     }
 
-    const [findError, val] = await to(this.repository.findOneOrFail(parsedId))
+    const [findError, val] = await to(
+      this.repository.findOneOrFail({
+        where: {
+          id: parsedId
+        } as unknown as FindOptionsWhere<ModelDTO>
+      })
+    )
 
     if (findError) {
       return Promise.reject(Errors(findError, 'Entity not found'))
     }
 
-    const returnValue = this.jsApplySelect([val]) as GoatOutput<
+    const returnValue = this.jsApplySelect([val]) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -385,7 +382,7 @@ export class TypeOrmConnector<
    *
    * @param param0
    */
-  public async clear({ sure }: ISure) {
+  public async clear({ sure }: Sure) {
     if (!sure || sure !== true) {
       throw new Error(
         'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
@@ -411,11 +408,8 @@ export class TypeOrmConnector<
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
-    const [error, removed] = await to(this.repository.delete(parsedId))
 
-    if (error) {
-      return Promise.reject(Errors(error, `Could not delete ${id}`))
-    }
+    const removed = this.repository.delete(parsedId)
 
     this.reset()
     return id
@@ -424,23 +418,17 @@ export class TypeOrmConnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
-    const [error, data] = await to(this.repository.findByIds([parsedId]))
+    const data = await this.repository.findBy({
+      id: In([parsedId])
+    } as unknown as FindOptionsWhere<ModelDTO>)
 
-    if (error) {
-      return Promise.reject(Errors(error, 'Could not get data'))
-    }
-
-    const result = this.jsApplySelect(data) as GoatOutput<InputDTO, OutputDTO>[]
+    const result = this.jsApplySelect(data) as DaoOutput<InputDTO, OutputDTO>[]
     this.reset()
-
-    if (result.length === 0) {
-      return Promise.reject(Errors(error, 'Entity not found'))
-    }
 
     return result[0]
   }

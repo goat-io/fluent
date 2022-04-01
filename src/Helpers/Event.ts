@@ -1,7 +1,7 @@
-import { IDataElement, Primitives } from '../Providers/types'
+import { BaseDataElement, Primitives } from '../Providers/types'
 
-export interface IEventOptions {
-  data: IDataElement | Primitives
+export interface EventOptions {
+  data: BaseDataElement | Primitives
   text: string
 }
 export const Event = (() => {
@@ -19,7 +19,7 @@ export const Event = (() => {
    */
   const emit = (
     name: string,
-    { data, text }: IEventOptions = { data: {}, text: '' }
+    { data, text }: EventOptions = { data: {}, text: '' }
   ) => {
     if (!name) {
       throw new Error('Event must have a name.')

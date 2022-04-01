@@ -1,3 +1,4 @@
+import 'reflect-metadata'
 import { FirebaseInit } from './src/Providers/Firebase/FirebaseInit'
 import { join } from 'path'
 

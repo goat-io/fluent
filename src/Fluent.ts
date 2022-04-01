@@ -1,11 +1,10 @@
 import {
-  IDataElement,
-  IGoatExtendedAttributes,
+  BaseDataElement,
+  BaseDaoExtendedAttributes,
   Primitives
 } from './Providers/types'
 import { typedPath } from 'typed-path'
-import { Connection, createConnection, getConnection } from 'typeorm'
-
+import { DataSource } from 'typeorm'
 import { Collection } from './Collection'
 
 export interface _FLUENT_ {
@@ -38,7 +37,7 @@ if (global && !global._FLUENT_) {
 }
 
 export class Fluent {
-  private static registerModel<T = IDataElement>(name?: string) {
+  private static registerModel<T = BaseDataElement>(name?: string) {
     if (!name || name === 'baseModel') {
       return
     }
@@ -52,15 +51,15 @@ export class Fluent {
   /**
    *
    */
-  public static model<T = IDataElement>(name: string): any {
-    this.registerModel<T & IGoatExtendedAttributes>(name)
-    return typedPath<T & IGoatExtendedAttributes>()
+  public static model<T = BaseDataElement>(name: string): any {
+    this.registerModel<T & BaseDaoExtendedAttributes>(name)
+    return typedPath<T & BaseDaoExtendedAttributes>()
   }
   /**
    *
    * @param args
    */
-  public static collect<T = IDataElement | Primitives>(
+  public static collect<T = BaseDataElement | Primitives>(
     data: T[]
   ): Collection<T> {
     return new Collection<T>(data)
@@ -76,19 +75,22 @@ export class Fluent {
     }
   }
 
-  public static async models(Entities: any[]): Promise<Connection> {
-    try {
-      return getConnection('_goat_model_generator')
-    } catch (error) {
-      return await createConnection({
-        name: '_goat_model_generator',
-        type: 'sqlite',
-        entities: Entities,
-        database: ':memory:',
-        logging: false,
-        synchronize: true,
-        dropSchema: true
-      })
+  public static async models(Entities: any[]): Promise<DataSource> {
+    modelGeneratorDataSource.setOptions({ entities: Entities })
+    if (modelGeneratorDataSource.isInitialized) {
+      return modelGeneratorDataSource
     }
+    await modelGeneratorDataSource.initialize()
+
+    return modelGeneratorDataSource
   }
 }
+
+export const modelGeneratorDataSource = new DataSource({
+  name: '_goat_model_generator',
+  type: 'sqlite',
+  database: ':memory:',
+  logging: false,
+  synchronize: true,
+  dropSchema: true
+})

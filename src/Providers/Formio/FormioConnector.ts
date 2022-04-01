@@ -1,11 +1,11 @@
-import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+import { BaseConnector, FluentConnectorInterface } from '../../BaseConnector'
 import {
-  GoatFilter,
-  GoatOutput,
-  IDataElement,
-  IPaginatedData,
-  IPaginator,
-  ISure
+  Filter,
+  DaoOutput,
+  BaseDataElement,
+  PaginatedData,
+  Paginator,
+  Sure
 } from '../types'
 
 import { Connection } from '../../Helpers/Connection'
@@ -33,12 +33,12 @@ const GoatExtenderAttributes = [
 ]
 
 export class LokiRNConnector<
-    ModelDTO = IDataElement,
+    ModelDTO = BaseDataElement,
     InputDTO = ModelDTO,
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
 {
   private baseEndPoint: string = ''
   private authToken: string = ''
@@ -51,7 +51,7 @@ export class LokiRNConnector<
   /**
    *
    */
-  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const [error, result] = await to(this.httpGET())
 
     if (error) {
@@ -59,8 +59,8 @@ export class LokiRNConnector<
       throw new Error('Error while getting submissions')
     }
 
-    const data: GoatOutput<InputDTO, OutputDTO>[] = result.data.map(r => {
-      const response: GoatOutput<InputDTO, OutputDTO> = {
+    const data: DaoOutput<InputDTO, OutputDTO>[] = result.data.map(r => {
+      const response: DaoOutput<InputDTO, OutputDTO> = {
         ...{
           id: r.id,
           owner: r.owner,
@@ -82,16 +82,14 @@ export class LokiRNConnector<
   /**
    *
    */
-  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
    *
    * @param filter
    */
-  public async find(
-    filter: GoatFilter
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -99,15 +97,15 @@ export class LokiRNConnector<
    * @param paginator
    */
   public async paginate(
-    paginator: IPaginator
-  ): Promise<IPaginatedData<GoatOutput<InputDTO, OutputDTO>>> {
+    paginator: Paginator
+  ): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
     const numberOfRows = await this.numberOfRows()
 
     this.offset((paginator.page - 1) * paginator.perPage).take(
       paginator.perPage
     )
 
-    const results: IPaginatedData<GoatOutput<InputDTO, OutputDTO>> = {
+    const results: PaginatedData<DaoOutput<InputDTO, OutputDTO>> = {
       data: await this.get(),
       current_page: paginator.page,
       first_page_url: '',
@@ -124,16 +122,14 @@ export class LokiRNConnector<
    *
    * @param data
    */
-  public async insert(
-    data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    const response: GoatOutput<InputDTO, OutputDTO> = {
+    const response: DaoOutput<InputDTO, OutputDTO> = {
       ...{
         id: result.data.id,
         owner: result.data.owner,
@@ -152,13 +148,13 @@ export class LokiRNConnector<
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const insertedElements: GoatOutput<InputDTO, OutputDTO>[] = []
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+    const insertedElements: DaoOutput<InputDTO, OutputDTO>[] = []
 
     for (const element of data) {
       const goatAttributes = this.getExtendedCreateAttributes()
 
-      const inserted: GoatOutput<InputDTO, OutputDTO> = await this.insert({
+      const inserted: DaoOutput<InputDTO, OutputDTO> = await this.insert({
         ...goatAttributes,
         ...element
       })
@@ -175,7 +171,7 @@ export class LokiRNConnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     if (!id) {
       throw new Error(
         'Formio connector error. Cannot update a Model without id key'
@@ -191,7 +187,7 @@ export class LokiRNConnector<
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    const response: GoatOutput<InputDTO, OutputDTO> = result.data
+    const response: DaoOutput<InputDTO, OutputDTO> = result.data
     this.reset()
     return response
   }
@@ -200,7 +196,7 @@ export class LokiRNConnector<
    * @param param0
    */
 
-  public async truncate({ sure }: ISure) {
+  public async truncate({ sure }: Sure) {
     /*
     if (!sure || sure !== true) {
       throw new Error(
@@ -244,7 +240,7 @@ export class LokiRNConnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const [error, data] = await to(this.first())
 
     if (error) {

@@ -14,22 +14,25 @@ import { advancedTestSuite } from '../test/advanced/advancedTestSuite'
 import { basicTestSuite } from '../test/basic/basicTestSuite'
 import { createConnection } from '../../core/database/createConnection'
 import { relationsTestSuite } from '../test/relations/relationsTestsSuite'
+import { Fluent } from '../../Fluent'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
 beforeAll(async done => {
+  const entities = [
+    GoatEntity,
+    TypeORMDataModel,
+    CarsEntity,
+    UsersEntity,
+    RoleEntity,
+    RolesUser
+  ]
+  await Fluent.models(entities)
   await createConnection({
     connectionName: 'runningTest',
     type: 'sqlite',
     databaseName: ':memory:',
-    entitiesPath: [
-      GoatEntity,
-      TypeORMDataModel,
-      CarsEntity,
-      UsersEntity,
-      RoleEntity,
-      RolesUser
-    ],
+    entitiesPath: entities,
     logging: false,
     synchronize: true
   }).useFactory()

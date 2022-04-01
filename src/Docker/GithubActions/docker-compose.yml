@@ -1,0 +1,12 @@
+version: '3'
+services:
+  runner:
+    build: .
+    environment:
+      - RUNNER_NAME_PREFIX=github-runner
+      - ACCESS_TOKEN=ghp_ELoqy5RPPk1lZ1BSGGmXXZ7GCebz19sfDD
+      - RUNNER_WORKDIR=/tmp/workbench
+      - RUNNER_SCOPE=org
+      - ORG_NAME=gealium
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

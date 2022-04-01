@@ -1,17 +1,17 @@
 import * as admin from 'firebase-admin'
-import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+import { BaseConnector, FluentConnectorInterface } from '../../BaseConnector'
 import { BaseFirestoreRepository, getRepository } from 'fireorm'
 import {
   createConnection as connection,
   getRepository as getRepositoryTypeORM
 } from 'typeorm'
 import {
-  GoatFilter,
-  GoatOutput,
-  IDataElement,
-  IPaginatedData,
-  IPaginator,
-  ISure
+  Filter,
+  DaoOutput,
+  BaseDataElement,
+  PaginatedData,
+  Paginator,
+  Sure
 } from '../types'
 import { FieldPath } from '@google-cloud/firestore'
 import { Id } from '../../Helpers/Id'
@@ -67,12 +67,12 @@ export const createFirebaseRepository = Entity => {
  *
  */
 export class FirebaseConnector<
-    ModelDTO = IDataElement,
+    ModelDTO = BaseDataElement,
     InputDTO = ModelDTO,
     OutputDTO = InputDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
 {
   private repository: BaseFirestoreRepository<any>
   private collection: FirebaseFirestore.CollectionReference<ModelDTO>
@@ -92,7 +92,7 @@ export class FirebaseConnector<
   /**
    *
    */
-  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     let query = this.getGeneratedQuery()
 
     if (this.relationQuery && this.relationQuery.data) {
@@ -129,13 +129,13 @@ export class FirebaseConnector<
    *
    */
   public async getPaginated(): Promise<
-    IPaginatedData<GoatOutput<InputDTO, OutputDTO>>
+    PaginatedData<DaoOutput<InputDTO, OutputDTO>>
   > {
     const response: any = await this.get()
 
     const result = this.jsApplySelect(response)
 
-    const results: IPaginatedData<OutputDTO> = {
+    const results: PaginatedData<OutputDTO> = {
       current_page: 1,
       data: result,
       first_page_url: 'response[0].meta.firstPageUrl,',
@@ -151,7 +151,7 @@ export class FirebaseConnector<
   /**
    *
    */
-  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -159,8 +159,8 @@ export class FirebaseConnector<
    * @param filter
    */
   public async find(
-    filter: GoatFilter = {}
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+    filter: Filter = {}
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const stringFilter: string = filter as string
     let parsedFilter: any = {}
     try {
@@ -198,8 +198,8 @@ export class FirebaseConnector<
    * @param paginator
    */
   public async paginate(
-    paginator: IPaginator
-  ): Promise<IPaginatedData<GoatOutput<InputDTO, OutputDTO>>> {
+    paginator: Paginator
+  ): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
     if (!paginator) {
       throw new Error('Paginator cannot be empty')
     }
@@ -227,7 +227,7 @@ export class FirebaseConnector<
   public async insert(
     data: InputDTO,
     forcedId?: string | number
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const id = forcedId || Id.objectIdString()
     // TODO we have to change this to manage cases where created, updated or version fields are included in the respective models
     // const created = new Date()
@@ -235,7 +235,7 @@ export class FirebaseConnector<
     // const version = 1
     const datum = await this.repository.create({ id, ...data })
 
-    const result = this.jsApplySelect([datum]) as GoatOutput<
+    const result = this.jsApplySelect([datum]) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -249,7 +249,7 @@ export class FirebaseConnector<
   public async insertMany(
     data: InputDTO[],
     forcedId?: string | number
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const batch = []
 
     data.forEach(d => {
@@ -262,7 +262,7 @@ export class FirebaseConnector<
 
     const inserted = await Promise.all(batch)
 
-    const result = this.jsApplySelect(inserted) as GoatOutput<
+    const result = this.jsApplySelect(inserted) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -276,7 +276,7 @@ export class FirebaseConnector<
    */
   public async batchInsert(
     data: InputDTO[]
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const batch = this.repository.createBatch()
 
     data.forEach(d => {
@@ -289,7 +289,7 @@ export class FirebaseConnector<
 
     const inserted = await batch.commit()
 
-    const result = this.jsApplySelect(inserted) as GoatOutput<
+    const result = this.jsApplySelect(inserted) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -304,7 +304,7 @@ export class FirebaseConnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const parsedId = id
 
     const dbResult = await this.repository.findById(parsedId)
@@ -316,7 +316,7 @@ export class FirebaseConnector<
 
     const updated = await this.repository.update(updateData)
 
-    const result = this.jsApplySelect([updated]) as GoatOutput<
+    const result = this.jsApplySelect([updated]) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -334,7 +334,7 @@ export class FirebaseConnector<
   public async replaceById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const parsedId = id
 
     const value = await this.repository.findById(parsedId)
@@ -360,7 +360,7 @@ export class FirebaseConnector<
 
     const val = await this.repository.findById(parsedId)
 
-    const returnValue = this.jsApplySelect([val]) as GoatOutput<
+    const returnValue = this.jsApplySelect([val]) as DaoOutput<
       InputDTO,
       OutputDTO
     >[]
@@ -372,7 +372,7 @@ export class FirebaseConnector<
    *
    * @param param0
    */
-  public async clear({ sure }: ISure) {
+  public async clear({ sure }: Sure) {
     if (!sure || sure !== true) {
       throw new Error(
         'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
@@ -403,12 +403,12 @@ export class FirebaseConnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const parsedId = id
 
     const data = await this.repository.findById(parsedId)
 
-    const result = this.jsApplySelect(data) as GoatOutput<InputDTO, OutputDTO>[]
+    const result = this.jsApplySelect(data) as DaoOutput<InputDTO, OutputDTO>[]
     this.reset()
 
     if (result.length === 0) {

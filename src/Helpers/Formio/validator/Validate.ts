@@ -1,7 +1,7 @@
 import { FormioForm } from '../types/FormioForm'
 import Form from './Form/Form'
 import Submission from './Submission/Submission'
-import { IDataElement } from '../../../Providers/types'
+import { BaseDataElement } from '../../../Providers/types'
 import { Validator } from './Logic/Validator'
 import { For } from '../../For'
 
@@ -9,7 +9,7 @@ interface FormioError {
   message: string
   path: string[]
   type: string
-  context: IDataElement
+  context: BaseDataElement
 }
 export interface FormioValidationError {
   name: string
@@ -19,9 +19,11 @@ export interface FormioValidationError {
 export const Validate = (() => {
   const validate = (
     form: FormioForm,
-    submissions: IDataElement[]
-  ): Promise<IDataElement[]> => {
-    const _submissions: IDataElement[] = JSON.parse(JSON.stringify(submissions))
+    submissions: BaseDataElement[]
+  ): Promise<BaseDataElement[]> => {
+    const _submissions: BaseDataElement[] = JSON.parse(
+      JSON.stringify(submissions)
+    )
 
     return new Promise((resolve, reject) => {
       Submission(form.path).then(model => {
@@ -56,16 +58,16 @@ export const Validate = (() => {
     })
   }
 
-  const submissions = (form: FormioForm, submissions: IDataElement[]) => {
+  const submissions = (form: FormioForm, submissions: BaseDataElement[]) => {
     return validate(form, submissions)
   }
 
   const submission = async (
     form: FormioForm,
-    submission: IDataElement
-  ): Promise<IDataElement> => {
+    submission: BaseDataElement
+  ): Promise<BaseDataElement> => {
     const _submissions = [submission]
-    const [error, subs] = await For.async<IDataElement, any>(
+    const [error, subs] = await For.async<BaseDataElement, any>(
       validate(form, _submissions)
     )
     if (error) {

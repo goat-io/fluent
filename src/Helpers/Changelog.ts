@@ -1,4 +1,4 @@
-import { IDataElement } from '../Providers/types'
+import { BaseDataElement } from '../Providers/types'
 import diff from 'deep-diff'
 
 enum kind {
@@ -9,8 +9,8 @@ enum kind {
 }
 
 export interface IChangelogInput {
-  previous: IDataElement
-  current: IDataElement
+  previous: BaseDataElement
+  current: BaseDataElement
   author: string
 }
 

@@ -1,12 +1,12 @@
 import { ObjectID } from 'bson'
 
-export interface IDataElement {
+export interface BaseDataElement {
   id?: string
   _id?: string
   [key: string]: any
 }
 
-export interface IPaginatedData<T> {
+export interface PaginatedData<T> {
   current_page: number
   data: T[]
   first_page_url: string
@@ -17,23 +17,23 @@ export interface IPaginatedData<T> {
   total: number
 }
 
-export interface IPaginator {
+export interface Paginator {
   page: number
   perPage
 }
 
-export interface ISure {
+export interface Sure {
   sure: boolean
 }
 
-export interface IDeleted {
+export interface Deleted {
   deleted: number
 }
 
 export type Primitives = boolean | string | number | ObjectID
 export type PrimitivesArray = boolean[] | string[] | number[] | ObjectID[]
 
-export interface IGoatExtendedAttributes {
+export interface BaseDaoExtendedAttributes {
   id: string
   created: string
   updated: string
@@ -43,7 +43,7 @@ export interface IGoatExtendedAttributes {
   roles: string[]
 }
 
-export type OperatorType =
+export type LogicOperator =
   | '='
   | '<'
   | '>'
@@ -60,15 +60,14 @@ export type OperatorType =
   | 'contains'
   | 'array-contains'
 
-export type GoatOutput<Input, Output> = Partial<Input> &
+export type DaoOutput<Input, Output> = Partial<Input> &
   Partial<Output> &
-  Partial<IGoatExtendedAttributes>
+  Partial<BaseDaoExtendedAttributes>
 
-export type GoatWhere = [string, OperatorType, Primitives]
+export type WhereClause = [string, LogicOperator, Primitives]
 
-export type GoatFilter = {
+export type Filter = {
   fields?: string[]
-  // include:,
   limit?: number
   offset?: number
   order?: {
@@ -78,8 +77,8 @@ export type GoatFilter = {
   }
   skip?: number
   where?: {
-    and?: GoatWhere[]
-    or?: GoatWhere[]
+    and?: WhereClause[]
+    or?: WhereClause[]
   }
 }
 

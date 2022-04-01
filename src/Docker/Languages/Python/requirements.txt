@@ -10,7 +10,7 @@ enum34==1.1.10  # Updated from 1.1.6
 hyperlink==19.0.0
 incremental==17.5.0
 ipaddress==1.0.23  # Updated from 1.0.22
-lxml==4.6.3  # Updated from 4.4.1
+lxml==4.6.5  # Updated from 4.4.1
 parsel==1.5.2
 pyasn1==0.4.8  # Updated from 0.4.7
 pyasn1-modules==0.2.8  # Updated from 0.2.6
@@ -50,7 +50,7 @@ docutils==0.16  # Updated from 0.14
 entrypoints==0.3
 idna==2.9  # Updated from 2.8
 ipykernel==5.2.1  # Updated from 5.1.0
-ipython==7.13.0  # Updated from 7.2.0
+ipython==7.16.3  # Updated from 7.2.0
 ipython-genutils==0.2.0
 ipywidgets==7.5.1  # Updated from 7.4.2
 isort==4.3.21  # Updated from 4.3.4
@@ -65,11 +65,11 @@ jupyter-core==4.6.3  # Updated from 4.4.0
 lazy-object-proxy==1.4.3  # Updated from 1.3.1
 MarkupSafe==1.1.1  # Updated from 1.1.0
 mccabe==0.6.1
-mistune==0.8.4
+mistune==2.0.1
 nbconvert==5.6.1  # Updated from 5.4.1
 nbformat==5.0.5  # Updated from 4.4.0
 notebook==6.4.1  # Updated from 5.7.4
-numpy==1.18.2  # Updated from 1.17.2
+numpy==1.22.2  # Updated from 1.17.2
 pandas==1.0.3  # Updated from 0.25.1
 pandocfilters==1.4.2
 parso==0.7.0  # Updated from 0.3.4

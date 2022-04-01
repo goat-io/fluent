@@ -1,11 +1,7 @@
 import { FirebaseInit } from '../../Providers/Firebase/FirebaseInit'
-import {
-  Connection,
-  createConnection as typeORMCreateConnection,
-  getConnection
-} from 'typeorm'
+import { DataSource } from 'typeorm'
 
-interface ICreateConnection {
+interface ConnectionOptions {
   type: 'mongodb' | 'firebase' | 'sqlite' | 'mysql'
   username?: string
   password?: string
@@ -18,9 +14,9 @@ interface ICreateConnection {
   logging?: boolean
 }
 
-export interface IConnectionFactory {
+export interface FluentConnectionFactory {
   type: 'mongodb' | 'firebase' | 'sqlite' | 'mysql'
-  connection?: Connection
+  connection?: DataSource
 }
 
 export const createConnection = ({
@@ -34,7 +30,7 @@ export const createConnection = ({
   connectionName,
   synchronize,
   logging
-}: ICreateConnection) => {
+}: ConnectionOptions) => {
   if (type === 'firebase') {
     if (process.env.DATABASE_FIREBASE_NAME) {
       FirebaseInit({
@@ -56,25 +52,29 @@ export const createConnection = ({
   return {
     provide: connectionName,
     useFactory: async () => {
-      let connection: Connection | undefined
-      try {
-        connection = getConnection('connectionName')
-      } catch (error) {
-        connection = await typeORMCreateConnection({
-          name: connectionName,
+      const dataSource = new DataSource({
+        name: connectionName,
+        type,
+        username,
+        password,
+        host,
+        port,
+        database: databaseName,
+        useNewUrlParser: type === 'mongodb' ? true : undefined,
+        useUnifiedTopology: type === 'mongodb' ? true : undefined,
+        entities: [...entitiesPath],
+        synchronize,
+        logging
+      })
+
+      if (dataSource.isInitialized) {
+        return {
           type,
-          username,
-          password,
-          host,
-          port,
-          database: databaseName,
-          useNewUrlParser: type === 'mongodb' ? true : undefined,
-          useUnifiedTopology: type === 'mongodb' ? true : undefined,
-          entities: [...entitiesPath],
-          synchronize,
-          logging
-        })
+          connection: dataSource
+        }
       }
+
+      const connection = await dataSource.initialize()
 
       return {
         type,

@@ -1,4 +1,4 @@
-import { IDataElement, Primitives } from './Providers/types'
+import { BaseDataElement, Primitives } from './Providers/types'
 import { TypedPathWrapper, typedPath } from 'typed-path'
 
 import { Objects } from './Helpers/Objects'
@@ -9,7 +9,7 @@ type Contains<T> = {
   Fx?(element: T, index: number): boolean
 }
 
-export class Collection<T = IDataElement | Primitives> {
+export class Collection<T = BaseDataElement | Primitives> {
   public _keys = typedPath<T>()
 
   public constructor(private data: T[]) {}

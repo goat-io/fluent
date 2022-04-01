@@ -1,12 +1,12 @@
 import {
-  GoatFilter,
-  GoatOutput,
-  IDeleted,
-  IGoatExtendedAttributes,
-  IPaginatedData,
-  IPaginator,
-  ISure,
-  OperatorType,
+  Filter,
+  DaoOutput,
+  Deleted,
+  BaseDaoExtendedAttributes,
+  PaginatedData,
+  Paginator,
+  Sure,
+  LogicOperator,
   Primitives,
   PrimitivesArray
 } from './Providers/types'
@@ -18,20 +18,20 @@ import { Id } from './Helpers/Id'
 import { ObjectID } from 'typeorm'
 import { Objects } from './Helpers/Objects'
 
-export interface GoatConnectorInterface<InputDTO, OutputDTO> {
-  get(): Promise<GoatOutput<InputDTO, OutputDTO>[]>
-  all(filter: GoatFilter): Promise<GoatOutput<InputDTO, OutputDTO>[]>
-  findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>>
-  find(filter: GoatFilter): Promise<GoatOutput<InputDTO, OutputDTO>[]>
+export interface FluentConnectorInterface<InputDTO, OutputDTO> {
+  get(): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+  all(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+  findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>>
+  find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]>
   // findOne(): Promise<T>
   deleteById(id: string): Promise<string>
   // softDelete(): Promise<T>
   updateById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>>
-  insert(data: InputDTO): Promise<GoatOutput<InputDTO, OutputDTO>>
-  insertMany(data: InputDTO[]): Promise<GoatOutput<InputDTO, OutputDTO>[]>
+  ): Promise<DaoOutput<InputDTO, OutputDTO>>
+  insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>>
+  insertMany(data: InputDTO[]): Promise<DaoOutput<InputDTO, OutputDTO>[]>
   // update(data: T): Promise<T>
   // updateOrCreate(data: T): Promise<T>
   // clear({ sure }: ISure): Promise<string[]>
@@ -66,7 +66,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected modelRelations: any
   public isMongoDB: boolean
 
-  protected getExtendedCreateAttributes = (): IGoatExtendedAttributes => {
+  protected getExtendedCreateAttributes = (): BaseDaoExtendedAttributes => {
     const date = Dates.currentIsoString()
     return {
       id: Id.objectIdString() + '_local',
@@ -98,7 +98,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   /**
    *
    */
-  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     throw new Error('get() method not implemented')
   }
   /**
@@ -106,7 +106,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     throw new Error('get() method not implemented')
   }
   /**
@@ -131,7 +131,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    *
    * @return {Object} First result
    */
-  public async first(): Promise<GoatOutput<InputDTO, OutputDTO> | null> {
+  public async first(): Promise<DaoOutput<InputDTO, OutputDTO> | null> {
     this.limit(1)
     const data = await this.get()
 
@@ -147,14 +147,14 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * transforms it into a collection
    * @returns {Collection} Fluent Collection
    */
-  public async collect(): Promise<Collection<GoatOutput<InputDTO, OutputDTO>>> {
+  public async collect(): Promise<Collection<DaoOutput<InputDTO, OutputDTO>>> {
     const data = await this.get()
 
     if (!Array.isArray(data)) {
       throw new Error('Collect method only accepts arrays of data')
     }
 
-    return new Collection<GoatOutput<InputDTO, OutputDTO>>(data)
+    return new Collection<DaoOutput<InputDTO, OutputDTO>>(data)
   }
   /**
    * Adds the given columns to the SelectArray
@@ -237,7 +237,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public where(
     path: TypedPathWrapper<Primitives, Primitives>,
-    operator: OperatorType,
+    operator: LogicOperator,
     value: Primitives | PrimitivesArray
   ) {
     const stringPath = path.toString()
@@ -259,7 +259,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public andWhere(
     path: TypedPathWrapper<Primitives, Primitives>,
-    operator: OperatorType,
+    operator: LogicOperator,
     value: Primitives | Primitives[]
   ) {
     const stringPath = path.toString()
@@ -278,7 +278,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public orWhere(
     path: TypedPathWrapper<Primitives, Primitives>,
-    operator: OperatorType,
+    operator: LogicOperator,
     value: Primitives
   ) {
     const stringPath = path.toString()
@@ -510,8 +510,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns
    */
   public getLoadedData():
-    | GoatOutput<InputDTO, OutputDTO>[]
-    | GoatOutput<InputDTO, OutputDTO> {
+    | DaoOutput<InputDTO, OutputDTO>[]
+    | DaoOutput<InputDTO, OutputDTO> {
     return this.relationQuery.data
   }
   /**

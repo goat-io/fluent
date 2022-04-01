@@ -1,11 +1,11 @@
-import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+import { BaseConnector, FluentConnectorInterface } from '../../BaseConnector'
 import {
-  GoatOutput,
-  IDataElement,
-  ISure,
-  GoatFilter,
-  IPaginatedData,
-  IPaginator
+  DaoOutput,
+  BaseDataElement,
+  Sure,
+  Filter,
+  PaginatedData,
+  Paginator
 } from '../types'
 import { Objects } from '../../Helpers/Objects'
 import { Database } from './Database'
@@ -13,11 +13,13 @@ import { Dates } from '../../Helpers/Dates'
 import { Fluent } from '../../Fluent'
 
 export class LokiConnector<
-  ModelDTO = IDataElement,
-  InputDTO = ModelDTO,
-  OutputDTO = ModelDTO
-> extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>> {
+    ModelDTO = BaseDataElement,
+    InputDTO = ModelDTO,
+    OutputDTO = ModelDTO
+  >
+  extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
+  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
+{
   private name: string = 'baseModel'
 
   constructor(name: string) {
@@ -28,7 +30,7 @@ export class LokiConnector<
   /**
    *
    */
-  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const filterObject = this.prepareFilter()
 
     let data = await (await this.getModel())
@@ -46,16 +48,14 @@ export class LokiConnector<
   /**
    *
    */
-  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
    *
    * @param filter
    */
-  public async find(
-    filter: GoatFilter
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -63,9 +63,9 @@ export class LokiConnector<
    * @param filter
    */
   public async paginate(
-    paginator: IPaginator
-  ): Promise<IPaginatedData<GoatOutput<InputDTO, OutputDTO>>> {
-    const results: IPaginatedData<OutputDTO> = {
+    paginator: Paginator
+  ): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
+    const results: PaginatedData<OutputDTO> = {
       current_page: 1,
       data: [],
       first_page_url: 'response[0].meta.firstPageUrl,',
@@ -96,12 +96,12 @@ export class LokiConnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
     if (!id) {
       throw new Error('No id assign to remove().You must give and id to delete')
     }
     const model = await this.getModel()
-    const result: GoatOutput<InputDTO, OutputDTO> = await model.find({
+    const result: DaoOutput<InputDTO, OutputDTO> = await model.find({
       id
     })
     this.reset()
@@ -112,16 +112,14 @@ export class LokiConnector<
    * @param  {Object, Array} element [description]
    * @return {[type]}         [description]
    */
-  public async insert(
-    data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const _data = Objects.clone(data)
 
     const model = await this.getModel()
 
     const goatAttributes = this.getExtendedCreateAttributes()
 
-    const inserted: GoatOutput<InputDTO, OutputDTO> = {
+    const inserted: DaoOutput<InputDTO, OutputDTO> = {
       ...goatAttributes,
       ..._data
     }
@@ -136,13 +134,13 @@ export class LokiConnector<
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const insertedElements: GoatOutput<InputDTO, OutputDTO>[] = []
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+    const insertedElements: DaoOutput<InputDTO, OutputDTO>[] = []
 
     for (const element of data) {
       const goatAttributes = this.getExtendedCreateAttributes()
 
-      const inserted: GoatOutput<InputDTO, OutputDTO> = await this.insert({
+      const inserted: DaoOutput<InputDTO, OutputDTO> = await this.insert({
         ...goatAttributes,
         ...element
       })
@@ -159,7 +157,7 @@ export class LokiConnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     if (!id) {
       throw new Error(
         'Loki connector error. Cannot update a Model without id key'
@@ -175,7 +173,7 @@ export class LokiConnector<
       ...{ modified: Dates.currentIsoString() }
     }
 
-    const updated: GoatOutput<InputDTO, OutputDTO> = model.update(mod)
+    const updated: DaoOutput<InputDTO, OutputDTO> = model.update(mod)
     this.reset()
     return updated
   }
@@ -208,7 +206,7 @@ export class LokiConnector<
    *
    * @param {*} param0
    */
-  public async clear({ sure }: ISure) {
+  public async clear({ sure }: Sure) {
     const model = await this.getModel()
 
     return model.clear({ removeIndices: true })

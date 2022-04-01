@@ -2,7 +2,9 @@ import { Got } from './Got'
 
 const got = Got({
   prefixUrl: 'https://yesno.wtf/',
-  retry: 3
+  retry: {
+    limit: 3
+  }
 })
 
 it('It should get data', async () => {

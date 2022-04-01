@@ -21,11 +21,13 @@ export const FirebaseInit = ({
     process.env.FIRESTORE_EMULATOR_HOST = `${host}:${port}`
   }
 
-  const serviceAccount = require(serviceAccountPath)
+  const serviceAccount = serviceAccountPath
+    ? require(serviceAccountPath)
+    : undefined
 
   admin.initializeApp({
     projectId: databaseName,
-    credential: serviceAccountPath
+    credential: serviceAccount
       ? admin.credential.cert(serviceAccount)
       : admin.credential.applicationDefault()
   })

@@ -1,10 +1,9 @@
-import got, { HTTPError } from 'got'
-import type { Options, BeforeErrorHook } from 'got'
+import type { ExtendOptions, BeforeErrorHook } from 'got'
+const got = require('got')
 
-export function Got(opt: Options = {}) {
+export function Got(opt?: ExtendOptions) {
   return got.extend({
-    timeout: 90000,
-    ...opt,
+    ...(opt || {}),
     hooks: {
       ...opt.hooks,
       beforeError: [...(opt.hooks?.beforeError || []), ParseErrorHook()]
@@ -14,7 +13,7 @@ export function Got(opt: Options = {}) {
 
 function ParseErrorHook(): BeforeErrorHook {
   return error => {
-    if (error instanceof HTTPError) {
+    if (error instanceof got.HTTPError) {
       const { statusCode } = error.response
       const { method, url } = error.options
 

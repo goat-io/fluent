@@ -1,11 +1,11 @@
-import { BaseConnector, GoatConnectorInterface } from '../../BaseConnector'
+import { BaseConnector, FluentConnectorInterface } from '../../BaseConnector'
 import {
-  GoatFilter,
-  GoatOutput,
-  IDataElement,
-  IPaginatedData,
-  IPaginator,
-  ISure
+  Filter,
+  DaoOutput,
+  BaseDataElement,
+  PaginatedData,
+  Paginator,
+  Sure
 } from '../types'
 import { Connection } from '../../Helpers/Connection'
 import axios from 'axios'
@@ -21,12 +21,12 @@ interface ILoopbackConnector {
   setToken?: () => Promise<string>
 }
 export class LoopbackConnector<
-    ModelDTO = IDataElement,
+    ModelDTO = BaseDataElement,
     InputDTO = ModelDTO,
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements GoatConnectorInterface<InputDTO, GoatOutput<InputDTO, OutputDTO>>
+  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
 {
   private baseEndPoint: string = ''
   private authToken: string = ''
@@ -41,7 +41,7 @@ export class LoopbackConnector<
   /**
    *
    */
-  public async get(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     const result: any = await this.httpGET()
 
     const data = this.jsApplySelect(result.data)
@@ -50,14 +50,14 @@ export class LoopbackConnector<
     return data
   }
 
-  public async getPaginated(): Promise<IPaginatedData<InputDTO>> {
+  public async getPaginated(): Promise<PaginatedData<InputDTO>> {
     const [error, response]: any = await to(this.httpGET())
 
     if (error) {
       throw error
     }
 
-    const results: IPaginatedData<InputDTO> = {
+    const results: PaginatedData<InputDTO> = {
       current_page: response[0].meta.currentPage,
       data: response[0].data,
       first_page_url: response[0].meta.firstPageUrl,
@@ -78,16 +78,14 @@ export class LoopbackConnector<
   /**
    *
    */
-  public async all(): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
    *
    * @param filter
    */
-  public async find(
-    filter: GoatFilter
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
+  public async find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     return this.get()
   }
   /**
@@ -95,8 +93,8 @@ export class LoopbackConnector<
    * @param paginator
    */
   public async paginate(
-    paginator: IPaginator
-  ): Promise<IPaginatedData<InputDTO>> {
+    paginator: Paginator
+  ): Promise<PaginatedData<InputDTO>> {
     if (!paginator) {
       throw new Error('Paginator cannot be empty')
     }
@@ -121,9 +119,7 @@ export class LoopbackConnector<
    *
    * @param data
    */
-  public async insert(
-    data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
@@ -138,13 +134,13 @@ export class LoopbackConnector<
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<GoatOutput<InputDTO, OutputDTO>[]> {
-    const insertedElements: GoatOutput<InputDTO, OutputDTO>[] = []
+  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+    const insertedElements: DaoOutput<InputDTO, OutputDTO>[] = []
 
     for (const element of data) {
       const goatAttributes = this.getExtendedCreateAttributes()
 
-      const inserted: GoatOutput<InputDTO, OutputDTO> = await this.insert({
+      const inserted: DaoOutput<InputDTO, OutputDTO> = await this.insert({
         ...goatAttributes,
         ...element
       })
@@ -161,7 +157,7 @@ export class LoopbackConnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
     if (!id) {
       throw new Error(
         'Formio connector error. Cannot update a Model without id key'
@@ -184,7 +180,7 @@ export class LoopbackConnector<
    *
    * @param param0
    */
-  public async clear({ sure }: ISure) {
+  public async clear({ sure }: Sure) {
     /*
     if (!sure || sure !== true) {
       throw new Error(
@@ -227,7 +223,7 @@ export class LoopbackConnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<GoatOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
     const url = this.baseUrl()
     const headers = await this.getHeaders()
 

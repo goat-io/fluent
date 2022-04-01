@@ -1,6 +1,6 @@
 import { Fluent } from './Fluent'
 
-interface IGoat {
+interface Goat {
   name: string
   age: number
   breed?: {
@@ -14,7 +14,7 @@ const goats = [
   { name: 'Michael', age: 40, breed: { family: 'The Goatee`s', members: 30 } }
 ]
 
-const Goats = Fluent.collect<IGoat>(goats)
+const Goats = Fluent.collect<Goat>(goats)
 
 it('All - Should return the original array', () => {
   expect(Goats.all()[0].name).toBe('Johnny')
@@ -69,12 +69,16 @@ it('Concat - Should return both arrays', () => {
 
 it('Contains - Should verify presence of', () => {
   expect(Goats.contains({ value: 'Johnny', path: Goats._keys.name })).toBe(true)
-  expect(Goats.contains({ value: 'Johnny 2', path: Goats._keys.name })).toBe(false)
-  expect(Goats.contains({ value: 'The Goatee`s', path: Goats._keys.breed.family })).toBe(true)
+  expect(Goats.contains({ value: 'Johnny 2', path: Goats._keys.name })).toBe(
+    false
+  )
+  expect(
+    Goats.contains({ value: 'The Goatee`s', path: Goats._keys.breed.family })
+  ).toBe(true)
 
   expect(
     Goats.contains({
-      Fx: (goat) => {
+      Fx: goat => {
         return goat.age === 30
       }
     })
@@ -88,7 +92,7 @@ it('Contains - Should verify presence of', () => {
 
   expect(
     Fluent.collect(['A', 'B', 'C']).contains({
-      Fx: (element) => {
+      Fx: element => {
         return element === 'D'
       }
     })
@@ -96,7 +100,7 @@ it('Contains - Should verify presence of', () => {
 
   expect(
     Fluent.collect(['A', 'B', 'C']).contains({
-      Fx: (element) => {
+      Fx: element => {
         return element === 'A'
       }
     })
