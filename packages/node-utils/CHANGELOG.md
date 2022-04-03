@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.4
+
+### Patch Changes
+
+- Fix export
+
 ## 0.7.3
 
 ### Patch Changes
