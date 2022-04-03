@@ -1,4 +1,4 @@
-import { Firebase } from 'Firebase'
+import { Firebase } from './Firebase'
 import { FirebaseConnector } from './FirebaseConnector'
 import { FirebaseInit } from './FirebaseInit'
 
