@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.10
+
+### Patch Changes
+
+- force bump
+
 ## 0.6.9
 
 ### Patch Changes
