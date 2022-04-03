@@ -2,7 +2,7 @@ import { ApiProperty, InputType, Column } from '../types'
 
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
-export class IPaginationMeta {
+export class PaginationMeta {
   @Column('number')
   @ApiProperty()
   itemCount: number
@@ -26,7 +26,7 @@ export class IPaginationMeta {
 
 // tslint:disable-next-line: max-classes-per-file
 @InputType()
-export class IPaginationLinks {
+export class PaginationLinks {
   @Column('text')
   @ApiProperty()
   first?: string

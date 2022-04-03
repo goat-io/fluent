@@ -35,6 +35,8 @@ import type { SchemaObject } from './core/types'
 import { createConnection } from './core/database/createConnection'
 import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
 import { loadRelations } from './loadRelations'
+import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
+
 export {
   BaseConnector,
   Collection,
@@ -53,7 +55,9 @@ export {
   ObjectType,
   HideField,
   TypeOrmConnector,
-  loadRelations
+  loadRelations,
+  PaginationLinks,
+  PaginationMeta
 }
 
 export type {
