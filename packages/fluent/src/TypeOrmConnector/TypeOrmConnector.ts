@@ -20,12 +20,9 @@ import {
 import { ObjectId } from 'mongodb'
 import { Ids, Objects } from '@goatlab/js-utils'
 import { loadRelations } from '../loadRelations'
-import {
-  modelGeneratorDataSource,
-  FluentConnectorInterface,
-  BaseConnector,
-  getOutputKeys
-} from '../index'
+import {BaseConnector, FluentConnectorInterface} from '../BaseConnector'
+import {modelGeneratorDataSource} from '../generatorDatasource'
+import {getOutputKeys} from '../outputKeys'
 import type {
   Filter,
   DaoOutput,
@@ -33,7 +30,7 @@ import type {
   PaginatedData,
   Paginator,
   Sure
-} from '../index'
+} from '../types'
 
 export class GoatRepository<T> extends Repository<T> {}
 
