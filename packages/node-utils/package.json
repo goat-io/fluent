@@ -1,0 +1,157 @@
+{
+  "name": "@goatlab/node-utils",
+  "version": "0.7.0",
+  "description": "Readable query Interface & API generator for TS and Node",
+  "homepage": "https://docs.goatlab.io",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "./dist/**/*"
+  ],
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "prestart": "rimraf dist",
+    "predev": "rimraf dist",
+    "test": "jest --forceExit",
+    "dev": "tsc --watch",
+    "lint": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "update:packages": "npm-check-updates -u && yarn",
+    "serve": "tsc -w",
+    "build": "tsc",
+    "pack": "npm-pack-zip",
+    "release": "release-it patch --no-npm.publish --ci",
+    "release:patch": "release-it patch --no-npm.publish --ci",
+    "release:minor": "release-it minor --no-npm.publish --ci",
+    "release:major": "release-it major --no-npm.publish --ci ",
+    "rc": "release-it --no-npm.publish --ci --preRelease=rc",
+    "rc:patch": "release-it patch --no-npm.publish --ci --preRelease=rc",
+    "rc:minor": "release-it minor --no-npm.publish --ci --preRelease=rc",
+    "rc:major": "release-it major --no-npm.publish --ci --preRelease=rc",
+    "changelog": "auto-changelog --template changelog-template.hbs -p -u --commit-limit false",
+    "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
+  },
+  "keywords": [
+    "typescript",
+    "TS"
+  ],
+  "author": "ignacio.cabrera@goatlab.io",
+  "license": "MIT",
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "subject-case": [
+        2,
+        "never",
+        []
+      ]
+    }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged && npm test",
+      "commit-msg": "exec < /dev/tty && git cz --hook || true && commitlint -E HUSKY_GIT_PARAMS",
+      "pre-push": "npm run build"
+    }
+  },
+  "release-it": {
+    "src": {
+      "commitMessage": "ci: CI-1 [Release] v%s"
+    },
+    "git": {
+      "requireBranch": "master",
+      "commitArgs": [
+        "--no-verify"
+      ]
+    },
+    "hooks": {
+      "before:init": [
+        "npm run build",
+        "npm run pack"
+      ],
+      "after:bump": "npm run changelog",
+      "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
+    },
+    "github": {
+      "release": true,
+      "assets": [
+        "./*.zip"
+      ]
+    }
+  },
+  "auto-changelog": {
+    "commitLimit": false,
+    "unreleased": true,
+    "issueUrl": "https://goatlab.atlassian.net/browse/{id}",
+    "replaceText": {
+      "[Ff]eature:": "",
+      "[Ff]ix:": "",
+      "[Bb]reak:": "",
+      "([A-Z]+-\\d+)": "[$1](https://goatlab.atlassian.net/browse//$1) - "
+    },
+    "includeBranch": [
+      "master"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/@digitalroute/cz-conventional-changelog-for-jira"
+    },
+    "mongodbMemoryServer": {
+      "version": "latest"
+    }
+  },
+  "dependencies": {
+    "@goatlab/js-utils": "^0.7.0",
+    "child_process": "^1.0.2",
+    "cli-progress": "^3.10.0",
+    "colors": "^1.4.0",
+    "commander": "^9.1.0",
+    "dockerode": "^3.3.1",
+    "figlet": "^1.5.2",
+    "fs": "^0.0.1-security",
+    "http-errors": "^2.0.0",
+    "inquirer": "^8.2.2",
+    "jsonwebtoken": "^8.5.1",
+    "ora": "^6.1.0",
+    "path": "^0.12.7",
+    "rimraf": "^3.0.2",
+    "shelljs": "^0.8.5",
+    "verror": "^1.10.1",
+    "winston": "^3.6.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^16.2.3",
+    "@commitlint/config-conventional": "^16.2.1",
+    "@commitlint/prompt-cli": "^16.2.3",
+    "@digitalroute/cz-conventional-changelog-for-jira": "^7.2.1",
+    "@types/jest": "^27.4.1",
+    "@types/node": "^17.0.23",
+    "auto-changelog": "^2.4.0",
+    "commitizen": "^4.2.4",
+    "cz-conventional-changelog": "^3.3.0",
+    "cz-jira-smart-commit": "^3.0.0",
+    "dotenv-cli": "^5.1.0",
+    "eslint": "^8.5.0",
+    "husky": "^7.0.4",
+    "jest": "^27.5.1",
+    "jest-environment-node": "^27.5.1",
+    "npm-pack-zip": "^1.3.0",
+    "prettier": "^2.6.1",
+    "pretty-quick": "^3.1.3",
+    "release-it": "^14.13.1",
+    "ts-jest": "^27.1.4",
+    "ts-node": "^10.7.0",
+    "turbo": "^1.1.10",
+    "typescript": "^4.6.3"
+  },
+  "engines": {
+    "node": ">=14.16.0"
+  }
+}
