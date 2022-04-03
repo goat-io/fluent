@@ -1,9 +1,10 @@
 {
   "extends": "@goatlab/tsconfig/base.json",
   "include": ["src"],
-  "exclude": ["dist"],
+  "exclude": ["src/**/*.spec.*"],
   "compilerOptions": {
+    "declaration": true,
     "outDir": "./dist",
-    "baseUrl": "./src"
+    "rootDir": "./src"
   }
 }
