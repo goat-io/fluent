@@ -8,7 +8,7 @@
     "moduleResolution": "node",
     "allowJs": true,
     "sourceMap": false,
-    "declaration": false,
+    "declaration": true,
     "removeComments": true,
     "strict": false,
     "types": ["jest", "node"],

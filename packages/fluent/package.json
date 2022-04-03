@@ -63,14 +63,14 @@
   },
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/**/*.d.ts",
+  "files": [
+    "dist"
+  ],
   "private": false,
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "./dist/**/*"
-  ],
   "keywords": [
     "goat",
     "fluent",

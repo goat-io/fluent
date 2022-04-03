@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.3
+
+### Patch Changes
+
+- cc5056c: Export types
+
 ## 0.7.2
 
 ### Patch Changes
