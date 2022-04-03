@@ -1,16 +1,16 @@
 {
   "name": "@goatlab/js-utils",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/**/*.d.ts",
   "private": false,
   "publishConfig": {
     "access": "public"
   },
   "files": [
-    "./dist/**/*"
+    "dist"
   ],
   "scripts": {
     "prebuild": "rimraf dist",
