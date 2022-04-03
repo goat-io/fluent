@@ -1,9 +1,9 @@
 {
   "name": "@goatlab/fluent-firebase",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Readable query Interface & API generator for TS and Node",
   "dependencies": {
-    "@goatlab/fluent": "^0.6.1"
+    "@goatlab/fluent": "^0.6.5"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
@@ -56,13 +56,13 @@
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "private": false,
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "./dist/**/*"
-  ],
   "keywords": [
     "typescript",
     "TS"

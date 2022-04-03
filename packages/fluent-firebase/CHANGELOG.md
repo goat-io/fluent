@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.6.2
+
+### Patch Changes
+
+- Improve export
+- Updated dependencies
+  - @goatlab/fluent@0.6.5
+
 ## 0.6.1
 
 ### Patch Changes

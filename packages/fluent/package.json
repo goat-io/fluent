@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.6.2",
+  "version": "0.6.5",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "prebuild": "rimraf dist",
@@ -63,7 +63,7 @@
   },
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
-  "types": "dist/**/*.d.ts",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],

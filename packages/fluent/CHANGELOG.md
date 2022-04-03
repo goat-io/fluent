@@ -1,5 +1,23 @@
 # 0.5.20
 
+## 0.6.5
+
+### Patch Changes
+
+- Improve export
+
+## 0.6.4
+
+### Patch Changes
+
+- Remove tests from dist
+
+## 0.6.3
+
+### Patch Changes
+
+- Export types
+
 ## 0.6.2
 
 ### Patch Changes
