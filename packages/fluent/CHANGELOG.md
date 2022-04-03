@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.11
+
+### Patch Changes
+
+- Fix Date import
+
 ## 0.6.10
 
 ### Patch Changes
