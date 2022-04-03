@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.9
+
+### Patch Changes
+
+- Export Access class
+
 ## 0.6.8
 
 ### Patch Changes

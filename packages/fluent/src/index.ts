@@ -1,10 +1,14 @@
-import { BaseConnector } from './BaseConnector'
-import type { FluentConnectorInterface } from './BaseConnector'
-import { Collection } from '@goatlab/js-utils'
-import { Fluent } from './Fluent'
-import { modelGeneratorDataSource } from './generatorDatasource'
-import { getOutputKeys } from './outputKeys'
-import { Decorators } from './core/database/decorators'
+import {
+  ApiHideProperty,
+  ApiProperty,
+  Column,
+  HideField,
+  InputType,
+  ObjectType,
+  OmitType,
+  PartialType,
+  getModelSchemaRef
+} from './core/types'
 import type {
   BaseDaoExtendedAttributes,
   BaseDataElement,
@@ -20,44 +24,43 @@ import type {
   Sure,
   WhereClause
 } from './types'
-import {
-  ApiProperty,
-  ApiHideProperty,
-  OmitType,
-  InputType,
-  PartialType,
-  Column,
-  getModelSchemaRef,
-  ObjectType,
-  HideField
-} from './core/types'
-import type { SchemaObject } from './core/types'
-import { createConnection } from './core/database/createConnection'
-import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
-import { loadRelations } from './loadRelations'
 import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
 
+import { Access } from './core/dtos/access.dto'
+import { BaseConnector } from './BaseConnector'
+import { Collection } from '@goatlab/js-utils'
+import { Decorators } from './core/database/decorators'
+import { Fluent } from './Fluent'
+import type { FluentConnectorInterface } from './BaseConnector'
+import type { SchemaObject } from './core/types'
+import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
+import { createConnection } from './core/database/createConnection'
+import { getOutputKeys } from './outputKeys'
+import { loadRelations } from './loadRelations'
+import { modelGeneratorDataSource } from './generatorDatasource'
+
 export {
+  Access,
+  ApiHideProperty,
+  ApiProperty,
   BaseConnector,
   Collection,
+  Column,
   createConnection,
   Decorators,
   Fluent,
-  getOutputKeys,
-  modelGeneratorDataSource,
-  ApiProperty,
-  ApiHideProperty,
-  OmitType,
-  InputType,
-  PartialType,
-  Column,
   getModelSchemaRef,
-  ObjectType,
+  getOutputKeys,
   HideField,
-  TypeOrmConnector,
+  InputType,
   loadRelations,
+  modelGeneratorDataSource,
+  ObjectType,
+  OmitType,
   PaginationLinks,
-  PaginationMeta
+  PaginationMeta,
+  PartialType,
+  TypeOrmConnector
 }
 
 export type {
