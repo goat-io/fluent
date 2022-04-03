@@ -25,3 +25,7 @@ goatModelGenerator
 GOAT
 fluent-service-account.json
 GOAT~
+.turbo
+build/**
+dist/**
+.next/**

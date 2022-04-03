@@ -1,0 +1,9 @@
+{
+  "extends": "@goatlab/tsconfig/base.json",
+  "include": ["src"],
+  "exclude": ["dist", "src/Formio/validator/Logic/tests/Forms/*"],
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./src"
+  }
+}
