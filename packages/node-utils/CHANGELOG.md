@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 0.7.0
+
+### Minor Changes
+
+- Monorepo
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes

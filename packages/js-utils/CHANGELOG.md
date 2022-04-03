@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.0
+
+### Minor Changes
+
+- Monorepo
+
 ## 0.6.0
 
 ### Minor Changes

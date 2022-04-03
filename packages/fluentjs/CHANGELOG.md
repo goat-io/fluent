@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.0
+
+### Minor Changes
+
+- Monorepo
+
 [2022-04-01]
 
 ### Other Changes

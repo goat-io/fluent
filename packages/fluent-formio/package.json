@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-formio",
-  "version": "0.5.20",
+  "version": "0.6.0",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -108,7 +108,7 @@
     }
   },
   "dependencies": {
-    "@goatlab/fluent": "^0.5.20"
+    "@goatlab/fluent": "^0.6.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",

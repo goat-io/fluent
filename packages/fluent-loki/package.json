@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-loki",
-  "version": "0.5.20",
+  "version": "0.6.0",
   "scripts": {
     "prebuild": "rimraf dist",
     "prestart": "rimraf dist",
@@ -25,7 +25,7 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/fluent": "^0.5.20"
+    "@goatlab/fluent": "^0.6.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
