@@ -1,5 +1,21 @@
 # 0.5.20
 
+## 0.6.13
+
+### Patch Changes
+
+- Fix dependencies for firebase admin
+- Updated dependencies
+  - @goatlab/js-utils@0.7.7
+
+## 0.6.12
+
+### Patch Changes
+
+- Fix deps
+- Updated dependencies
+  - @goatlab/js-utils@0.7.6
+
 ## 0.6.11
 
 ### Patch Changes

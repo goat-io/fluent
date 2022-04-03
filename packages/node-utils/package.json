@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-utils",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -108,7 +108,7 @@
     }
   },
   "dependencies": {
-    "@goatlab/js-utils": "^0.7.1",
+    "@goatlab/js-utils": "^0.7.7",
     "child_process": "^1.0.2",
     "cli-progress": "^3.10.0",
     "colors": "^1.4.0",

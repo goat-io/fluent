@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.6.6
+
+### Patch Changes
+
+- Fix dependencies for firebase admin
+- Updated dependencies
+  - @goatlab/fluent@0.6.13
+
 ## 0.6.5
 
 ### Patch Changes

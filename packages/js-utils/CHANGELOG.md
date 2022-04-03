@@ -1,5 +1,23 @@
 # 0.5.20
 
+## 0.7.7
+
+### Patch Changes
+
+- Fix dependencies for firebase admin
+
+## 0.7.6
+
+### Patch Changes
+
+- Fix deps
+
+## 0.7.5
+
+### Patch Changes
+
+- Add missing dependencies
+
 ## 0.7.4
 
 ### Patch Changes

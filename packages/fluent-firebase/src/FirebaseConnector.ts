@@ -1,6 +1,5 @@
 import * as admin from 'firebase-admin'
 import { BaseFirestoreRepository, getRepository } from 'fireorm'
-import { DataSource as datasource } from 'typeorm'
 import { FieldPath } from '@google-cloud/firestore'
 import type {
   Filter,
@@ -18,10 +17,6 @@ import {
   modelGeneratorDataSource
 } from '@goatlab/fluent'
 import { Objects, Ids } from '@goatlab/js-utils'
-
-const db = admin.firestore()
-
-export const DataSource = datasource
 /**
  * Creates a repository from the given Entity
  * @param Entity
@@ -83,7 +78,7 @@ export class FirebaseConnector<
       createFirebaseRepository(Entity)
     this.relationQuery = relationQuery
     this.repository = repository
-    this.collection = db.collection(
+    this.collection = admin.firestore().collection(
       name
     ) as FirebaseFirestore.CollectionReference<ModelDTO>
     this.outputKeys = keys || []
@@ -396,7 +391,7 @@ export class FirebaseConnector<
     this.reset()
 
     return new Promise((resolve, reject) => {
-      this.deleteQueryBatch(db, query, 300, resolve, reject)
+      this.deleteQueryBatch(admin.firestore(), query, 300, resolve, reject)
     })
   }
 
