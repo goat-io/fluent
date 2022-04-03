@@ -139,7 +139,7 @@
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "private": true,
+  "private": false,
   "publishConfig": {
     "access": "public"
   },
