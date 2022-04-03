@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/dates",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "prebuild": "rimraf dist",
@@ -68,7 +68,7 @@
     "access": "public"
   },
   "files": [
-    "./dist/**/*"
+    "dist"
   ],
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
