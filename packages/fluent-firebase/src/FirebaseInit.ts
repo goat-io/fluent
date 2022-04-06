@@ -5,14 +5,14 @@ interface ConnectionOptions {
   host?: string
   port?: number
   databaseName?: string
-  serviceAccountPath?: string
+  serviceAccount?: string
 }
 
 export const FirebaseInit = ({
   host,
   port,
   databaseName,
-  serviceAccountPath
+  serviceAccount
 }: ConnectionOptions): void => {
   if (admin.apps.length) {
     return
@@ -20,10 +20,6 @@ export const FirebaseInit = ({
   if (host && port) {
     process.env.FIRESTORE_EMULATOR_HOST = `${host}:${port}`
   }
-
-  const serviceAccount = serviceAccountPath
-    ? require(serviceAccountPath)
-    : undefined
 
   admin.initializeApp({
     projectId: databaseName,

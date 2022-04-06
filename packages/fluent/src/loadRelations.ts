@@ -31,7 +31,7 @@ export const loadRelations = async ({
       const relationModel = modelRelations[relation]
       let firebaseConnector: any
       if (provider === 'firebase') {
-        firebaseConnector = require('../FirebaseConnector').FirebaseConnector
+        firebaseConnector = require('@goatlab/fluent-firebase').FirebaseConnector
       }
 
       // We need to load the model directly from the connector itself
