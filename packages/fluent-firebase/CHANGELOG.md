@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.7
+
+### Patch Changes
+
+- Update firebase init
+
 ## 0.6.6
 
 ### Patch Changes
