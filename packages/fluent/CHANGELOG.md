@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.6.14
+
+### Patch Changes
+
+- Re publish builds
+- Updated dependencies
+  - @goatlab/dates@0.6.3
+  - @goatlab/js-utils@0.7.8
+
 ## 0.6.13
 
 ### Patch Changes

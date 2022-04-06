@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.5.21
+
+### Patch Changes
+
+- Re publish builds
+
 [2022-04-01]
 
 ### Other Changes

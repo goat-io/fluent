@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.8
+
+### Patch Changes
+
+- Re publish builds
+
 ## 0.7.7
 
 ### Patch Changes

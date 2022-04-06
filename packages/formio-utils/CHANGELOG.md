@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.6.2
+
+### Patch Changes
+
+- Re publish builds
+- Updated dependencies
+  - @goatlab/fluent@0.6.14
+  - @goatlab/node-utils@0.7.5
+
 ## 0.6.1
 
 ### Patch Changes
