@@ -36,6 +36,8 @@ import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
 import { getOutputKeys } from './outputKeys'
 import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
+import {Cache} from './cache'
+
 export { DataSource } from 'typeorm'
 export {
   Access,
@@ -57,7 +59,8 @@ export {
   PaginationLinks,
   PaginationMeta,
   PartialType,
-  TypeOrmConnector
+  TypeOrmConnector,
+  Cache
 }
 
 export type {
