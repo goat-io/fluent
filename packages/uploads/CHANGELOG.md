@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.5.22
+
+### Patch Changes
+
+- Update TypeOrm base connector
+
 ## 0.5.21
 
 ### Patch Changes

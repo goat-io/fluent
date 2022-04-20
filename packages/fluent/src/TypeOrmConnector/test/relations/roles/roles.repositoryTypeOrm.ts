@@ -3,10 +3,11 @@ import { RoleEntityIn } from './role.dto'
 import { RoleUsersRepository } from './roles_users.repositoryTypeOrm'
 import { TypeOrmConnector } from '../../../TypeOrmConnector'
 import { UserRepository } from '../user/user.repositoryTypeOrm'
+import { MemoryDataSource } from '../../memoryDataSource'
 
 export class RoleRepository extends TypeOrmConnector<RoleEntity, RoleEntityIn> {
   constructor(relations?: any) {
-    super(RoleEntity, relations, 'runningTest')
+    super(RoleEntity, MemoryDataSource, relations)
   }
 
   public users = () =>

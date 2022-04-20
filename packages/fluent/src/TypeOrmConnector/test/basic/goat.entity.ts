@@ -1,5 +1,5 @@
 import { ObjectType } from '../../../core/types'
-import { Decorators } from '../../../core/database/decorators'
+import { Decorators } from '../../../decorators'
 
 @ObjectType()
 export class Breed {

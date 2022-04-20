@@ -1,4 +1,4 @@
-import { Decorators } from '../../../core/database/decorators'
+import { Decorators } from '../../../decorators'
 
 // tslint:disable-next-line: max-classes-per-file
 export class FurtherNested {

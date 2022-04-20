@@ -1,4 +1,4 @@
-import { Decorators } from '../../../../core/database/decorators'
+import { Decorators } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
 
 @Decorators.entity('cars')

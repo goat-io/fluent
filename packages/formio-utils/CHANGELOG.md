@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.6.3
+
+### Patch Changes
+
+- Update TypeOrm base connector
+- Updated dependencies
+  - @goatlab/fluent@0.6.15
+  - @goatlab/node-utils@0.7.6
+
 ## 0.6.2
 
 ### Patch Changes

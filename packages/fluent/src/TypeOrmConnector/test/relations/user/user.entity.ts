@@ -1,5 +1,5 @@
 import { CarsEntity } from '../car/car.entity'
-import { Decorators } from '../../../../core/database/decorators'
+import { Decorators } from '../../../../decorators'
 import { RoleEntity } from '../roles/roles.entity'
 
 export class Family {

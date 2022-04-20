@@ -19,7 +19,7 @@ import { relationsTestSuite } from './test/relations/relationsTestsSuite'
 jest.setTimeout(3 * 60 * 1000)
 
 beforeAll(async () => {
-  await Fluent.models([
+  await Fluent.initialize([],[
     GoatEntity,
     TypeORMDataModel,
     CarsEntity,

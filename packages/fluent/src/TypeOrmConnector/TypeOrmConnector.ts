@@ -20,9 +20,8 @@ import {
 import { ObjectId } from 'mongodb'
 import { Ids, Objects } from '@goatlab/js-utils'
 import { loadRelations } from '../loadRelations'
-import {BaseConnector, FluentConnectorInterface} from '../BaseConnector'
-import {modelGeneratorDataSource} from '../generatorDatasource'
-import {getOutputKeys} from '../outputKeys'
+import { BaseConnector, FluentConnectorInterface } from '../BaseConnector'
+import { getOutputKeys } from '../outputKeys'
 import type {
   Filter,
   DaoOutput,
@@ -31,8 +30,8 @@ import type {
   Paginator,
   Sure
 } from '../types'
-
-export class GoatRepository<T> extends Repository<T> {}
+import { DataSource } from 'typeorm'
+import { modelGeneratorDataSource } from '../generatorDatasource'
 
 export const getRelations = typeOrmRepo => {
   const relations = {}
@@ -50,7 +49,6 @@ export const getRelations = typeOrmRepo => {
       inverseJoinColumns: relation.inverseJoinColumns
     }
   }
-
   return {
     relations
   }
@@ -66,26 +64,19 @@ export class TypeOrmConnector<
   implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
 {
   private repository: Repository<ModelDTO>
+  private dataSource: DataSource
 
-  private connectionName: string
-
-  constructor(entity: any, relationQuery?: any, connectionName?: string) {
+  constructor(entity: any, dataSource: DataSource, relationQuery?: any) {
     super()
-    this.connectionName = connectionName
-
-    if (!modelGeneratorDataSource.isInitialized) {
-      throw new Error('Fluent model generator data source is not initialized')
-    }
-
-    this.repository = modelGeneratorDataSource.getRepository(entity)
-
+    this.dataSource = dataSource
     this.relationQuery = relationQuery
-
-    const { relations } = getRelations(this.repository)
+    this.repository = this.dataSource.getRepository(entity)
+    const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
+    const { relations } = getRelations(relationShipBuilder)
 
     this.modelRelations = relations
 
-    this.outputKeys = getOutputKeys(this.repository) || []
+    this.outputKeys = getOutputKeys(relationShipBuilder) || []
 
     this.isMongoDB =
       this.repository.metadata.connection.driver.options.type === 'mongodb'
@@ -105,7 +96,7 @@ export class TypeOrmConnector<
       data,
       relations: this.relations,
       modelRelations: this.modelRelations,
-      connectionName: this.connectionName,
+      dataSource: this.dataSource,
       provider: 'typeorm',
       self: this
     })

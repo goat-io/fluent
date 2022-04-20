@@ -26,7 +26,7 @@ export class LokiConnector<
   constructor(name: string) {
     super()
     this.name = name
-    Fluent.model<ModelDTO>(name)
+    // Fluent.model<ModelDTO>(name)
   }
 
   /**

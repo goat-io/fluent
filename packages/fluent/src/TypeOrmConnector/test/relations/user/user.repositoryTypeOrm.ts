@@ -4,13 +4,14 @@ import { RoleUsersRepository } from '../roles/roles_users.repositoryTypeOrm'
 import { TypeOrmConnector } from '../../../TypeOrmConnector'
 import { UsersEntity } from './user.entity'
 import { UsersEntityIn } from './user.dto'
+import { MemoryDataSource } from '../../memoryDataSource'
 
 export class UserRepository extends TypeOrmConnector<
   UsersEntity,
   UsersEntityIn
 > {
   constructor(relations?: any) {
-    super(UsersEntity, relations, 'runningTest')
+    super(UsersEntity, MemoryDataSource, relations)
   }
 
   public cars = () => this.hasMany<CarsRepository>(CarsRepository, 'cars')

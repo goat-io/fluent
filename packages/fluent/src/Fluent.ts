@@ -74,13 +74,20 @@ export class Fluent {
     }
   }
 
-  public static async models(Entities: any[]): Promise<DataSource> {
+  public static async initialize(
+    dataSources: DataSource[],
+    Entities: any[]
+  ): Promise<void> {
+    
     modelGeneratorDataSource.setOptions({ entities: Entities })
-    if (modelGeneratorDataSource.isInitialized) {
-      return modelGeneratorDataSource
+    if (!modelGeneratorDataSource.isInitialized) {
+      await modelGeneratorDataSource.initialize()
     }
-    await modelGeneratorDataSource.initialize()
-
-    return modelGeneratorDataSource
+    
+    for (const dataSource of dataSources) {
+      if (!dataSource.isInitialized) {
+        await dataSource.initialize()
+      }
+    }
   }
 }

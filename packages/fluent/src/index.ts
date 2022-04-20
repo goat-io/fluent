@@ -25,20 +25,18 @@ import type {
   WhereClause
 } from './types'
 import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
-
 import { Access } from './core/dtos/access.dto'
 import { BaseConnector } from './BaseConnector'
 import { Collection } from '@goatlab/js-utils'
-import { Decorators } from './core/database/decorators'
+import { Decorators } from './decorators'
 import { Fluent } from './Fluent'
 import type { FluentConnectorInterface } from './BaseConnector'
 import type { SchemaObject } from './core/types'
 import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
-import { createConnection } from './core/database/createConnection'
 import { getOutputKeys } from './outputKeys'
 import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
-
+export { DataSource } from 'typeorm'
 export {
   Access,
   ApiHideProperty,
@@ -46,7 +44,6 @@ export {
   BaseConnector,
   Collection,
   Column,
-  createConnection,
   Decorators,
   Fluent,
   getModelSchemaRef,

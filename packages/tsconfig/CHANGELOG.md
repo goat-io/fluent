@@ -1,5 +1,11 @@
 # @goatlab/tsconfig
 
+## 0.0.6
+
+### Patch Changes
+
+- Update TypeOrm base connector
+
 ## 0.0.5
 
 ### Patch Changes

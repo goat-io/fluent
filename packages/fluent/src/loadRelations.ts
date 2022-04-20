@@ -1,4 +1,4 @@
-import { ObjectID } from 'typeorm'
+import { DataSource, ObjectID } from 'typeorm'
 import { TypedPathWrapper } from 'typed-path'
 import { Arrays, Ids } from '@goatlab/js-utils'
 import type { Primitives } from './types'
@@ -8,7 +8,7 @@ interface RelationshipLoader {
   data: any[]
   relations: any
   modelRelations: any
-  connectionName?: string
+  dataSource?: DataSource
   provider?: 'typeorm' | 'firebase'
   self: any
 }
@@ -16,7 +16,7 @@ export const loadRelations = async ({
   data,
   relations,
   modelRelations,
-  connectionName,
+  dataSource,
   provider,
   self
 }: RelationshipLoader): Promise<any[]> => {
@@ -42,8 +42,7 @@ export const loadRelations = async ({
           : provider === 'typeorm'
           ? new TypeOrmConnector(
               relationModel.targetClass,
-              undefined,
-              connectionName || 'LOCAL_DB'
+              dataSource
             )
           : new firebaseConnector(relationModel.targetClass)
 

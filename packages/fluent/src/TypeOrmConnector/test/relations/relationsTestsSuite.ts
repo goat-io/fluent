@@ -66,7 +66,7 @@ export const relationsTestSuite = (Model, BelongsToModel, ManyToManyModel) => {
     expect(searchCar2.length === 0).toBe(true)
   })
 
-  test('Query related model - BelongTo', async () => {
+  test('Query related model - BelongsTo', async () => {
     const insertedUser = await Model.insert({
       name: 'testUser',
       age: 20

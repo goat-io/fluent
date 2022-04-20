@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.6.14",
+  "version": "0.6.15",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "prebuild": "rimraf dist",
@@ -26,8 +26,8 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/dates": "^0.6.3",
-    "@goatlab/js-utils": "^0.7.8",
+    "@goatlab/dates": "^0.6.4",
+    "@goatlab/js-utils": "^0.7.9",
     "@loopback/metadata": "^4.1.2",
     "assert": "^2.0.0",
     "bson": "^4.6.2",

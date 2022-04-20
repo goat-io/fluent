@@ -1,6 +1,7 @@
 import { GoatEntityIn, GoatEntityOut } from './goat.dto'
 import { GoatEntity } from './goat.entity'
 import { TypeOrmConnector } from '../../TypeOrmConnector'
+import { MemoryDataSource } from '../memoryDataSource'
 
 export class GoatRepository extends TypeOrmConnector<
   GoatEntity,
@@ -8,6 +9,6 @@ export class GoatRepository extends TypeOrmConnector<
   GoatEntityOut
 > {
   constructor(relations?: any) {
-    super(GoatEntity, relations, 'runningTest')
+    super(GoatEntity, MemoryDataSource ,relations)
   }
 }

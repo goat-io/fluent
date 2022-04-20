@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.6.15
+
+### Patch Changes
+
+- Update TypeOrm base connector
+- Updated dependencies
+  - @goatlab/dates@0.6.4
+  - @goatlab/js-utils@0.7.9
+
 ## 0.6.14
 
 ### Patch Changes

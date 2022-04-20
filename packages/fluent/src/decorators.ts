@@ -15,10 +15,15 @@ import {
 } from 'typeorm'
 import { Collection } from 'fireorm'
 import { GraphQLID } from 'graphql'
-import { ApiProperty, HideField, ObjectType, ApiHideProperty } from '../types'
-import { Primitives } from '../../types'
-import { applyDecorators } from '../Nestjs/applyDecorators'
-import { Field } from '../Nestjs/types/decorators/field.decorator'
+import {
+  ApiProperty,
+  HideField,
+  ObjectType,
+  ApiHideProperty
+} from './core/types'
+import { Primitives } from './types'
+import { applyDecorators } from './core/Nestjs/applyDecorators'
+import { Field } from './core/Nestjs/types/decorators/field.decorator'
 
 interface PropertyInterface {
   required?: boolean
