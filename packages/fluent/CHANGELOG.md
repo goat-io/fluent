@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.17
+
+### Patch Changes
+
+- Fix relationship loaders to use services
+
 ## 0.6.16
 
 ### Patch Changes

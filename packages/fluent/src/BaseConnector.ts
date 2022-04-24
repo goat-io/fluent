@@ -17,18 +17,26 @@ import { Objects, Ids, Collection } from '@goatlab/js-utils'
 
 export interface FluentConnectorInterface<InputDTO, OutputDTO> {
   get(): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+
   all(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+
   findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>>
+
   find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+
   // findOne(): Promise<T>
   deleteById(id: string): Promise<string>
+
   // softDelete(): Promise<T>
   updateById(
     id: string,
     data: InputDTO
   ): Promise<DaoOutput<InputDTO, OutputDTO>>
+
   insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>>
+
   insertMany(data: InputDTO[]): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+
   // update(data: T): Promise<T>
   // updateOrCreate(data: T): Promise<T>
   // clear({ sure }: ISure): Promise<string[]>
@@ -149,7 +157,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
   /**
    * Executes the Get() method and
-   * returns its first result
+   * returns it's first result
    *
    * @return {Object} First result
    */
@@ -192,15 +200,17 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     this.chainReference.push({ method: 'select', args: columns })
     this.selectArray = this.selectArray
-      .concat(columns)
-      .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
+    .concat(columns)
+    .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
 
     return this
   }
 
   /**
    * Adds the given columns to the SelectArray
-   * to use as column filter for the data
+   * even if the columns are marked as hidden
+   * This allows to use hidden columns as filters for the
+   * data
    *
    * @param {Array|String} columns The columns to select
    * @returns {Model} Fluent Model
@@ -213,8 +223,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     this.chainReference.push({ method: 'forceSelect', args: columns })
     this.forceSelectArray = this.forceSelectArray
-      .concat(columns)
-      .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
+    .concat(columns)
+    .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
 
     return this
   }
@@ -360,7 +370,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * Order results by specific conditions
+   *  when querying the database
    * @param {*} args
    */
   public orderBy(
@@ -432,7 +443,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * Order the results once they have already
+   * been pulled from the data source
    * @param {*} data
    */
   protected jsApplyOrderBy(data) {
@@ -486,7 +498,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * Sets all connector parameters back to the
+   * default state
    */
   protected reset() {
     this.chainReference = []
@@ -510,7 +523,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * Loads the all elements of the model to be used
+   * as relation Data, when querying related models
    */
   public async load() {
     const result = await this.get()
@@ -524,8 +538,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
-   * @returns
+   * Loads the first element of the model to be used
+   * as relation Data, when querying related models
+   * @returns this
    */
   public async loadFirst() {
     const result = await this.first()
@@ -539,8 +554,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   * Gets the loaded data so we dont have to
-   * call the main model twice
+   * Gets the loaded data, when calling the load()
+   * method, to avoid calling the main model twice
    * @returns
    */
   public getLoadedData():
@@ -550,17 +565,22 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   * Define which relations to load
-   * @param Entities
+   * Loads related models.
+   * Receives an object with relationship name keys
+   * and the target repository as value
+   *
+   * i.e: {roles : RoleService}
+   * @param entities
    */
-  public with(entities: any) {
+  public with(entities: { [key: string]: any }[]) {
     this.relations = entities
 
     return this
   }
 
   /**
-   *
+   * Attach Many-to-Many relationship.
+   * Attach a model to the parent.
    * @param data
    */
   public async attach(data: InputDTO) {
@@ -614,7 +634,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * One-to-Many relationship
+   * To be used in the "parent" entity (One)
    */
   protected hasMany<T>(Repository, relationName: string) {
     if (this.relationQuery) {
@@ -626,7 +647,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * One-to-One model relationship
    */
   // TODO implement hasOne
   protected hasOne() {
@@ -634,7 +655,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * Inverse One-to-Many relationship
+   * To be used in the "children" entity (Many)
    */
   protected belongsTo<T>(Repository, relationName: string) {
     if (this.relationQuery) {
@@ -646,18 +668,19 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   /**
-   *
+   * Many-to-Many relationship
+   * To be used in both of the Related models (excluding pivot)
    */
   protected belongsToMany<T, R>(Repository, Pivot, relationName: string) {
     this.relationQuery = !this.relationQuery
       ? { pivot: new Pivot(this.relationQuery) as R }
       : {
-          ...this.relationQuery,
-          ...{
-            pivot: new Pivot(this.relationQuery) as R,
-            relation: this.relationQuery.relations[relationName]
-          }
+        ...this.relationQuery,
+        ...{
+          pivot: new Pivot(this.relationQuery) as R,
+          relation: this.relationQuery.relations[relationName]
         }
+      }
 
     const newClass = new Repository(this.relationQuery) as T
     this.reset()
