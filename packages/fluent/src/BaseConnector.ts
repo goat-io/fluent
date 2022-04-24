@@ -572,7 +572,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * i.e: {roles : RoleService}
    * @param entities
    */
-  public with(entities: { [key: string]: any }[]) {
+  public with(entities: any) {
     this.relations = entities
 
     return this
@@ -600,7 +600,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         ...data
       }))
 
-      return this.insertMany(relatedData)
+      return await this.insertMany(relatedData)
     }
   }
 
