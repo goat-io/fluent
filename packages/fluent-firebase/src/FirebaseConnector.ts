@@ -10,20 +10,21 @@ import type {
   Sure
 } from '@goatlab/fluent'
 import {
-  BaseConnector,
+  BaseConnector, DataSource,
   FluentConnectorInterface,
   getOutputKeys,
-  loadRelations,
-  modelGeneratorDataSource
+  loadRelations
 } from '@goatlab/fluent'
 import { Objects, Ids } from '@goatlab/js-utils'
 /**
  * Creates a repository from the given Entity
  * @param Entity
+ * @param dataSource
  */
-export const createFirebaseRepository = Entity => {
-  const typeOrmRepo = modelGeneratorDataSource.getRepository(Entity)
+export const createFirebaseRepository = (Entity, dataSource: DataSource) => {
+  const typeOrmRepo = dataSource.getRepository(Entity)
   const repository = getRepository(Entity)
+
   let name = ''
   let path = ''
   const relations = {}
@@ -70,12 +71,13 @@ export class FirebaseConnector<
   implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
 {
   private repository: BaseFirestoreRepository<any>
-  private collection: FirebaseFirestore.CollectionReference<ModelDTO>
 
-  constructor(Entity, relationQuery?: any) {
+  private readonly collection: FirebaseFirestore.CollectionReference<ModelDTO>
+
+  constructor(Entity, dataSource: DataSource, relationQuery?: any) {
     super()
     const { repository, keys, name, relations } =
-      createFirebaseRepository(Entity)
+      createFirebaseRepository(Entity, dataSource)
     this.relationQuery = relationQuery
     this.repository = repository
     this.collection = admin.firestore().collection(

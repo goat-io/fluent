@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.10
+
+### Patch Changes
+
+- Change Model Generator Strategy for Firebase connector
+
 ## 0.6.9
 
 ### Patch Changes
