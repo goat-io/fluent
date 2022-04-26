@@ -49,18 +49,16 @@ export const advancedTestSuite = Model => {
 
   it('pluck() should return a single array', async () => {
     await insertTestData(Model)
-    const data = await Model.pluck(Model._keys.test)
+    const data = await Model.pluck(keys=> keys.test)
     expect(typeof data[0]).toBe('boolean')
   })
 
   it('orderBy() should order results desc', async () => {
     await insertTestData(Model)
     const forms = await Model.select(
-      Model._keys.test,
-      Model._keys.nestedTest.b.c,
-      Model._keys.order
+      keys => [keys.test, keys.nestedTest.b.c, keys.order]
     )
-      .orderBy(Model._keys.order, 'desc')
+      .orderBy(keys => keys.order, 'desc')
       .get()
     expect(forms[0].order).toBe(3)
     expect(forms[0].nestedTest.b.c).toBe(true)
@@ -69,11 +67,9 @@ export const advancedTestSuite = Model => {
   it('orderBy() should order results asc', async () => {
     await insertTestData(Model)
     const forms = await Model.select(
-      Model._keys.test,
-      Model._keys.nestedTest.b.c,
-      Model._keys.order
+      keys => [keys.test, keys.nestedTest.b.c, keys.order]
     )
-      .orderBy(Model._keys.order, 'asc')
+      .orderBy(keys => keys.order, 'asc')
       .get()
 
     expect(forms[0].order).toBe(1)
@@ -81,8 +77,8 @@ export const advancedTestSuite = Model => {
 
   it('orderBy() should order by Dates with Select()', async () => {
     await insertTestData(Model)
-    const forms = await Model.select(Model._keys.created, Model._keys.order)
-      .orderBy(Model._keys.created, 'asc', 'date')
+    const forms = await Model.select( keys => [keys.created, keys.order])
+      .orderBy(keys => keys.created, 'asc', 'date')
       .get()
 
     expect(forms[0].order).toBe(3)
@@ -90,24 +86,25 @@ export const advancedTestSuite = Model => {
 
   it('orderBy() should order by Dates without Select()', async () => {
     await insertTestData(Model)
-    const forms = await Model.orderBy(Model._keys.created, 'asc', 'date').get()
+    const forms = await Model.orderBy(keys => keys.created, 'asc', 'date').get()
 
     expect(forms[0].order).toBe(3)
   })
 
   it('limit() should limit the amount of results', async () => {
     await insertTestData(Model)
-    const forms = await Model.select(Model._keys.created, Model._keys.order)
-      .orderBy(Model._keys.created, 'asc', 'date')
+    const forms = await Model.select(keys => [keys.created, keys.order])
+      .orderBy(keys => keys.created, 'asc', 'date')
       .limit(2)
       .get()
+    console.log('FOOORMS LENGTH', forms[0])
     expect(forms.length > 0).toBe(true)
     expect(forms.length <= 2).toBe(true)
   })
 
   it('offset() should start at the given position', async () => {
     await insertTestData(Model)
-    const forms = await Model.select(Model._keys.created, Model._keys.order)
+    const forms = await Model.select(keys => [keys.created, keys.order])
       .offset(1)
       .limit(1)
       .get()
@@ -117,8 +114,10 @@ export const advancedTestSuite = Model => {
 
   it('where() should filter the data', async () => {
     await insertTestData(Model)
-    const forms = await Model.where(Model._keys.nestedTest.c, '>=', 3).get()
+
+    const forms = await Model.where(keys => keys.nestedTest.c, '>=', 3).get()
     expect(forms.length > 0).toBe(true)
+
     forms.forEach(form => {
       expect(form.nestedTest.c >= 3).toBe(true)
     })
@@ -127,8 +126,8 @@ export const advancedTestSuite = Model => {
   it('first() should take the first result from data', async () => {
     await insertTestData(Model)
 
-    const form = await Model.select(Model._keys.nestedTest.c, Model._keys.id)
-      .where(Model._keys.nestedTest.c, '>=', 3)
+    const form = await Model.select(keys => [keys.nestedTest.c, keys.id])
+      .where(keys => keys.nestedTest.c, '>=', 3)
       .first()
     expect(typeof form.nestedTest.c).toBe('number')
   })

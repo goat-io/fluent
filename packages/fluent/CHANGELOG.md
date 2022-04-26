@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.19
+
+### Patch Changes
+
+- Fix related model querying
+
 ## 0.6.18
 
 ### Patch Changes

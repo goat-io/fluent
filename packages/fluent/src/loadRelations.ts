@@ -10,40 +10,44 @@ interface RelationshipLoader {
   dataSource?: DataSource
   provider?: 'typeorm' | 'firebase'
   self: any
+  returnPivot?: boolean
 }
+
 export const loadRelations = async ({
-  data,
-  relations,
-  modelRelations,
-  dataSource,
-  provider,
-  self
-}: RelationshipLoader): Promise<any[]> => {
+                                      data,
+                                      relations,
+                                      modelRelations,
+                                      provider,
+                                      self,
+                                      returnPivot
+                                    }: RelationshipLoader): Promise<any[]> => {
   if (!relations) {
     return data
   }
 
   // Firebase has a 10 query limit
   const chunkSize = provider === 'typeorm' ? 100 : 10
+
   for (const relation of Object.keys(relations)) {
+
     if (modelRelations[relation]) {
+
       const relationModel = modelRelations[relation]
       const Model = new relations[relation]()
 
       if (relationModel.isOneToMany) {
-        const ids = Arrays.deDuplicate(
-          data.map(d =>
-            Model.isMongoDB ? (Ids.objectID(d.id) as unknown as ObjectID) : d.id
-          )
-        )
-        const chunks = Arrays.chunk(ids, chunkSize)
+        const ids = new Set(data.map(d =>
+          Model.isMongoDB ? (Ids.objectID(d.id) as unknown as ObjectID) : d.id
+        ))
+        const chunks = Arrays.chunk(Array.from(ids), chunkSize)
         // TODO we can make this calls at the same time...no need to wait for each one
         const promises = []
+
         for (const relatedIds of chunks) {
           const results = await Model.andWhere(
-            Model._keys[
+            keys => keys[
               relationModel.inverseSidePropertyPath
-            ] as TypedPathWrapper<Primitives, Primitives>,
+              ],
             'in',
             relatedIds
           ).get()
@@ -71,7 +75,7 @@ export const loadRelations = async ({
         const promises = []
         for (const relatedIds of chunks) {
           const results = await Model.andWhere(
-            Model._keys.id as TypedPathWrapper<Primitives, Primitives>,
+            keys => keys.id,
             'in',
             relatedIds
           ).get()
@@ -107,15 +111,12 @@ export const loadRelations = async ({
         const promises = []
         for (const pivotIds of chunks) {
           const results = await pivotRepository
-            .where(
-              relationModel.joinColumns[0].propertyName as TypedPathWrapper<
-                Primitives,
-                Primitives
-              >,
-              'in',
-              pivotIds
-            )
-            .get()
+          .where(
+            k => k[relationModel.joinColumns[0].propertyName],
+            'in',
+            pivotIds
+          )
+          .get()
 
           promises.push(results)
         }
@@ -131,7 +132,7 @@ export const loadRelations = async ({
         const relationPromises = []
         for (const relatedIds of relationChunks) {
           const results = await Model.andWhere(
-            Model._keys.id as TypedPathWrapper<Primitives, Primitives>,
+            keys => keys.id,
             'in',
             relatedIds
           ).get()
@@ -139,9 +140,14 @@ export const loadRelations = async ({
           relationPromises.push(results)
         }
 
-        const relatedResults = Arrays.collapse(
+        let relatedResults = Arrays.collapse(
           await Promise.all(relationPromises)
         )
+        const pivotInverseKey = relationModel.inverseJoinColumns[0].propertyName
+        relatedResults = relatedResults.map(r => {
+
+          return {...r, pivot: pivotResults.find(p => p[pivotInverseKey] === r.id)}
+        })
 
         const groupedPivot = Arrays.groupBy(
           pivotResults,
@@ -154,7 +160,7 @@ export const loadRelations = async ({
             d[relationModel.propertyPath] =
               groupedRelated[
                 gp[relationModel.inverseJoinColumns[0].propertyName]
-              ]
+                ]
           })
         })
       }

@@ -1,8 +1,12 @@
-export const relationsTestSuite = (Model, BelongsToModel, ManyToManyModel) => {
+let Model
+let BelongsToModel
+let ManyToManyModel
+// User, Cars, Roles
+export const relationsTestSuite = (ModelF, BelongsToModelF, ManyToManyModelF) => {
   beforeAll(() => {
-    Model = new Model()
-    BelongsToModel = new BelongsToModel()
-    ManyToManyModel = new ManyToManyModel()
+    Model = new ModelF()
+    BelongsToModel = new BelongsToModelF()
+    ManyToManyModel = new ManyToManyModelF()
   })
 
   test('Attach - OneToMany - Should  insert data', async () => {
@@ -14,7 +18,7 @@ export const relationsTestSuite = (Model, BelongsToModel, ManyToManyModel) => {
     expect(typeof insertedUser.id).toBe('string')
 
     const user = await Model.where(
-      Model.cars()._keys.id,
+      keys => keys.id,
       '=',
       insertedUser.id
     ).load()
@@ -33,40 +37,40 @@ export const relationsTestSuite = (Model, BelongsToModel, ManyToManyModel) => {
 
     expect(typeof insertedUser.id).toBe('string')
 
-    const user1 = await Model.where(Model._keys.id, '=', insertedUser.id).load()
+    const user1 = await Model.where(keys => keys.id, '=', insertedUser.id).load()
 
     const cars = await user1.cars().attach({ name: 'My new car' })
 
     expect(Array.isArray(cars)).toBe(true)
 
     const searchUserWithRelation = await Model.where(
-      Model._keys.id,
+      keys => keys.id,
       '=',
       insertedUser.id
     )
-      .with({ cars: true })
-      .get()
+    .with({ cars: BelongsToModelF })
+    .get()
 
     expect(Array.isArray(searchUserWithRelation[0].cars)).toBe(true)
     expect(searchUserWithRelation[0].cars.length > 0).toBe(true)
 
     const searchCar = await user1
-      .cars()
-      .where(Model.cars()._keys.name, '=', 'My new car')
-      .get()
+    .cars()
+    .where(keys => keys.name, '=', 'My new car')
+    .get()
 
     expect(Array.isArray(searchCar)).toBe(true)
     expect(searchCar.length > 0).toBe(true)
 
     const searchCar2 = await user1
-      .cars()
-      .where(Model.cars()._keys.name, '=', 'My.......')
-      .get()
+    .cars()
+    .where(keys => keys.name, '=', 'My.......')
+    .get()
     expect(Array.isArray(searchCar2)).toBe(true)
     expect(searchCar2.length === 0).toBe(true)
   })
 
-  test('Query related model - BelongsTo', async () => {
+  test('Query related model - BelongTo', async () => {
     const insertedUser = await Model.insert({
       name: 'testUser',
       age: 20
@@ -75,13 +79,15 @@ export const relationsTestSuite = (Model, BelongsToModel, ManyToManyModel) => {
     expect(typeof insertedUser.id).toBe('string')
 
     const user1 = await Model.where(
-      Model.cars()._keys.id,
+      keys => keys.id,
       '=',
       insertedUser.id
     ).load()
 
     await user1.cars().attach({ name: 'My new car' })
-    const results = await BelongsToModel.with({ users: true }).get()
+
+    const results = await BelongsToModel.with({ user: ModelF }).get()
+
     expect(Array.isArray(results)).toBe(true)
     expect(results.length > 0).toBe(true)
     expect(typeof results[0].user.name).toBe('string')
@@ -99,21 +105,21 @@ export const relationsTestSuite = (Model, BelongsToModel, ManyToManyModel) => {
       name: 'Administrator'
     })
 
-    const user = await Model.where(Model._keys.id, '=', insertedUser.id).load()
+    const user = await Model.where(keys => keys.id, '=', insertedUser.id).load()
 
     const associated = await user.roles().associate(adminRole.id)
     expect(associated[0].userId).toBe(insertedUser.id)
     expect(associated[0].roleId).toBe(adminRole.id)
 
     const searchUserWithRelation = await Model.where(
-      Model._keys.id,
+      keys => keys.id,
       '=',
       insertedUser.id
     )
-      .with({
-        roles: true
-      })
-      .get()
+    .with({
+      roles: ManyToManyModelF
+    })
+    .get()
 
     expect(Array.isArray(searchUserWithRelation[0].roles)).toBe(true)
     expect(searchUserWithRelation[0].roles.length > 0).toBe(true)
@@ -121,14 +127,14 @@ export const relationsTestSuite = (Model, BelongsToModel, ManyToManyModel) => {
 
     // Query the opposite relation
     const roles = await ManyToManyModel.where(
-      ManyToManyModel._keys.name,
+      keys => keys.name,
       '=',
       'Administrator'
     )
-      .with({
-        users: true
-      })
-      .get()
+    .with({
+      users: ModelF
+    })
+    .get()
 
     expect(Array.isArray(roles)).toBe(true)
     expect(roles.length > 0).toBe(true)

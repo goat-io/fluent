@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.6.11
+
+### Patch Changes
+
+- Fix related model querying
+- Updated dependencies
+  - @goatlab/fluent@0.6.19
+
 ## 0.6.10
 
 ### Patch Changes

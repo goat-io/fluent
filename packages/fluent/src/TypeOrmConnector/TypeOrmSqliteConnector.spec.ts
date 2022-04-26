@@ -23,7 +23,7 @@ describe('Execute all basic test Suite', () => {
 })
 
 describe('Execute all advanced test Suite', () => {
-  advancedTestSuite(TypeOrmRepository)
+ advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {

@@ -16,6 +16,7 @@ import {
   loadRelations
 } from '@goatlab/fluent'
 import { Objects, Ids } from '@goatlab/js-utils'
+
 /**
  * Creates a repository from the given Entity
  * @param Entity
@@ -30,7 +31,7 @@ export const createFirebaseRepository = (Entity, dataSource: DataSource) => {
   const relations = {}
 
   for (const relation of typeOrmRepo.metadata.relations) {
-    relations[relation.inverseEntityMetadata.givenTableName.toLowerCase()] = {
+    relations[relation.propertyName] = {
       isOneToMany: relation.isOneToMany,
       isManyToOne: relation.isManyToOne,
       isManyToMany: relation.isManyToMany,
@@ -59,17 +60,15 @@ export const createFirebaseRepository = (Entity, dataSource: DataSource) => {
     relations
   }
 }
+
 /**
  *
  */
-export class FirebaseConnector<
-    ModelDTO = BaseDataElement,
-    InputDTO = ModelDTO,
-    OutputDTO = InputDTO
-  >
+export class FirebaseConnector<ModelDTO = BaseDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = InputDTO>
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
-{
+  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>> {
   private repository: BaseFirestoreRepository<any>
 
   private readonly collection: FirebaseFirestore.CollectionReference<ModelDTO>
@@ -92,14 +91,40 @@ export class FirebaseConnector<
    */
   public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
     let query = this.getGeneratedQuery()
-
-    if (this.relationQuery && this.relationQuery.data) {
+     let pivotData : any[] = []
+    if (this.relationQuery && this.relationQuery.data && this.relationQuery.relation) {
       const ids = this.relationQuery.data.map(d => d.id)
-      query = query.where(
-        this.relationQuery.relation.inverseSidePropertyPath,
-        'in',
-        ids
-      )
+
+      if (this.relationQuery?.relation?.isManyToMany) {
+        const pivotForeignKey = this.relationQuery.relation.joinColumns[0].propertyName
+        const pivotInverseKey = this.relationQuery.relation.inverseJoinColumns[0].propertyName
+        const {pivot} = this.relationQuery
+
+        pivotData = await pivot.where(key => key[pivotForeignKey], "in", ids).get()
+        if(!pivotData.length) {
+          return []
+        }
+        const inverseIds = [...new Set(pivotData.map(d => d[pivotInverseKey]))]
+
+        if(!inverseIds.length) {
+          return []
+        }
+
+        if(inverseIds.length) {
+          query = query.where(
+            "id",
+            'in',
+            inverseIds
+          )
+        }
+      } else {
+        query = query.where(
+          this.relationQuery.relation.inverseSidePropertyPath,
+          'in',
+          ids
+        )
+      }
+
     }
 
     const snapshot = await query.get()
@@ -111,14 +136,21 @@ export class FirebaseConnector<
     })
 
     let data = this.jsApplySelect(result)
-
     data = await loadRelations({
       data,
       relations: this.relations,
       modelRelations: this.modelRelations,
       provider: 'firebase',
-      self: this
+      self: this,
+      returnPivot: Boolean(this.relationQuery?.returnPivot)
     })
+
+    if(pivotData.length && this.relationQuery?.returnPivot) {
+      const pivotInverseKey = this.relationQuery.relation.inverseJoinColumns[0].propertyName
+      data = data.map(d => {
+        return {...d, pivot: pivotData.find(p => p[pivotInverseKey] === d.id)}
+      })
+    }
 
     this.reset()
     return data
@@ -127,9 +159,7 @@ export class FirebaseConnector<
   /**
    *
    */
-  public async getPaginated(): Promise<
-    PaginatedData<DaoOutput<InputDTO, OutputDTO>>
-  > {
+  public async getPaginated(): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
     const response: any = await this.get()
 
     const result = this.jsApplySelect(response)
@@ -239,10 +269,8 @@ export class FirebaseConnector<
     // const version = 1
     const datum = await this.repository.create({ id, ...data })
 
-    const result = this.jsApplySelect([datum]) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const result = this.jsApplySelect([datum]) as DaoOutput<InputDTO,
+      OutputDTO>[]
     this.reset()
     return result[0]
   }
@@ -267,10 +295,8 @@ export class FirebaseConnector<
 
     const inserted = await Promise.all(batch)
 
-    const result = this.jsApplySelect(inserted) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const result = this.jsApplySelect(inserted) as DaoOutput<InputDTO,
+      OutputDTO>[]
     this.reset()
 
     return result
@@ -295,10 +321,8 @@ export class FirebaseConnector<
 
     const inserted = await batch.commit()
 
-    const result = this.jsApplySelect(inserted) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const result = this.jsApplySelect(inserted) as DaoOutput<InputDTO,
+      OutputDTO>[]
     this.reset()
 
     return result
@@ -323,10 +347,8 @@ export class FirebaseConnector<
 
     const updated = await this.repository.update(updateData)
 
-    const result = this.jsApplySelect([updated]) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const result = this.jsApplySelect([updated]) as DaoOutput<InputDTO,
+      OutputDTO>[]
     this.reset()
     return result[0]
   }
@@ -368,10 +390,8 @@ export class FirebaseConnector<
 
     const val = await this.repository.findById(parsedId)
 
-    const returnValue = this.jsApplySelect([val]) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const returnValue = this.jsApplySelect([val]) as DaoOutput<InputDTO,
+      OutputDTO>[]
     this.reset()
 
     return returnValue[0]
@@ -423,10 +443,25 @@ export class FirebaseConnector<
     this.reset()
 
     if (result.length === 0) {
-      return Promise.reject(new Error('Entity not found'))
+      return null
     }
 
     return result[0]
+  }
+
+  public async findByIds(ids: string[]): Promise<DaoOutput<InputDTO, OutputDTO>[] | null> {
+    const data = await this.raw().where('id', 'in', ids).get()
+    if (data.empty) {
+      return null
+    }
+    const res = []
+    data.forEach(doc => {
+      res.push(doc.data())
+    })
+    const results = this.jsApplySelect(res) as DaoOutput<InputDTO, OutputDTO>[]
+    this.reset()
+
+    return results
   }
 
   /**
@@ -642,33 +677,33 @@ export class FirebaseConnector<
 
   private deleteQueryBatch(db, query, batchSize, resolve, reject) {
     query
-      .get()
-      .then(snapshot => {
-        // When there are no documents left, we are done
-        if (snapshot.size == 0) {
-          return 0
-        }
+    .get()
+    .then(snapshot => {
+      // When there are no documents left, we are done
+      if (snapshot.size == 0) {
+        return 0
+      }
 
-        // Delete documents in a batch
-        const batch = db.batch()
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref)
-        })
-
-        return batch.commit().then(() => snapshot.size)
+      // Delete documents in a batch
+      const batch = db.batch()
+      snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref)
       })
-      .then(numDeleted => {
-        if (numDeleted === 0) {
-          resolve()
-          return
-        }
 
-        // Recurse on the next process tick, to avoid
-        // exploding the stack.
-        process.nextTick(() => {
-          this.deleteQueryBatch(db, query, batchSize, resolve, reject)
-        })
+      return batch.commit().then(() => snapshot.size)
+    })
+    .then(numDeleted => {
+      if (numDeleted === 0) {
+        resolve()
+        return
+      }
+
+      // Recurse on the next process tick, to avoid
+      // exploding the stack.
+      process.nextTick(() => {
+        this.deleteQueryBatch(db, query, batchSize, resolve, reject)
       })
-      .catch(reject)
+    })
+    .catch(reject)
   }
 }

@@ -36,7 +36,7 @@ import { modelGeneratorDataSource } from '../generatorDatasource'
 export const getRelations = typeOrmRepo => {
   const relations = {}
   for (const relation of typeOrmRepo.metadata.relations) {
-    relations[relation.inverseEntityMetadata.givenTableName.toLowerCase()] = {
+    relations[relation.propertyName] = {
       isOneToMany: relation.isOneToMany,
       isManyToOne: relation.isManyToOne,
       isManyToMany: relation.isManyToMany,
@@ -55,16 +55,14 @@ export const getRelations = typeOrmRepo => {
 }
 
 // tslint:disable-next-line: max-classes-per-file
-export class TypeOrmConnector<
-    ModelDTO = BaseDataElement,
-    InputDTO = ModelDTO,
-    OutputDTO = InputDTO
-  >
+export class TypeOrmConnector<ModelDTO = BaseDataElement,
+  InputDTO = ModelDTO,
+  OutputDTO = InputDTO>
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
-{
-  private repository: Repository<ModelDTO>
-  private dataSource: DataSource
+  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>> {
+  private readonly repository: Repository<ModelDTO>
+
+  private readonly dataSource: DataSource
 
   constructor(entity: any, dataSource: DataSource, relationQuery?: any) {
     super()
@@ -108,9 +106,7 @@ export class TypeOrmConnector<
   /**
    *
    */
-  public async getPaginated(): Promise<
-    PaginatedData<DaoOutput<InputDTO, OutputDTO>>
-  > {
+  public async getPaginated(): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
     const response: any = await this.get()
 
     const results: PaginatedData<OutputDTO> = {
@@ -216,10 +212,9 @@ export class TypeOrmConnector<
       data as unknown as DeepPartial<ModelDTO>
     )
 
-    const result = this.jsApplySelect([datum]) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const result = this.jsApplySelect([datum]) as DaoOutput<InputDTO,
+      OutputDTO>[]
+
     this.reset()
     return result[0]
   }
@@ -237,13 +232,9 @@ export class TypeOrmConnector<
         chunk: data.length / 300
       }
     )
-
     this.reset()
-
-    const result = this.jsApplySelect(inserted) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const result = this.jsApplySelect(inserted) as DaoOutput<InputDTO,
+      OutputDTO>[]
     return result
   }
 
@@ -261,21 +252,19 @@ export class TypeOrmConnector<
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
+        ...data,
+        ...{ updated: new Date() }
+      }
       : data
 
-    const updated = await this.repository.update(id, dataToInsert)
+    await this.repository.update(id, dataToInsert)
 
     const dbResult = await this.repository.findBy({
       id: In([parsedId])
     } as unknown as FindOptionsWhere<ModelDTO>)
 
-    const result = this.jsApplySelect(dbResult) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const result = this.jsApplySelect(dbResult) as DaoOutput<InputDTO,
+      OutputDTO>[]
     this.reset()
     return result[0]
   }
@@ -317,9 +306,9 @@ export class TypeOrmConnector<
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
+        ...data,
+        ...{ updated: new Date() }
+      }
       : data
 
     await this.repository.update(id, dataToInsert)
@@ -330,10 +319,9 @@ export class TypeOrmConnector<
       } as unknown as FindOptionsWhere<ModelDTO>
     })
 
-    const returnValue = this.jsApplySelect([val]) as DaoOutput<
-      InputDTO,
-      OutputDTO
-    >[]
+    const returnValue = this.jsApplySelect([val]) as DaoOutput<InputDTO,
+      OutputDTO>[]
+
     this.reset()
 
     return returnValue[0]
@@ -350,10 +338,7 @@ export class TypeOrmConnector<
       )
     }
 
-    return
-
-    const data = await this.repository.clear()
-
+    await this.repository.clear()
     this.reset()
     return true
   }
@@ -367,8 +352,7 @@ export class TypeOrmConnector<
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
-    const removed = this.repository.delete(parsedId)
-
+    await this.repository.delete(parsedId)
     this.reset()
     return id
   }
@@ -388,8 +372,25 @@ export class TypeOrmConnector<
 
     const result = this.jsApplySelect(data) as DaoOutput<InputDTO, OutputDTO>[]
     this.reset()
-
     return result[0]
+  }
+
+  /**
+   *
+   * @param ids
+   */
+  public async findByIds(ids: string[]): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+    const parsedIds = [...ids]
+    if (this.isMongoDB) {
+      parsedIds.map(id => (new ObjectId(id) as unknown as ObjectID))
+    }
+
+    const data = await this.repository.findBy({
+      id: In(parsedIds)
+    } as unknown as FindOptionsWhere<ModelDTO>)
+
+    const result = this.jsApplySelect(data) as DaoOutput<InputDTO, OutputDTO>[]
+    return result
   }
 
   /**

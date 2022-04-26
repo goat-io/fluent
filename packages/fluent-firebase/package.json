@@ -1,9 +1,9 @@
 {
   "name": "@goatlab/fluent-firebase",
-  "version": "0.6.10",
+  "version": "0.6.11",
   "description": "Readable query Interface & API generator for TS and Node",
   "dependencies": {
-    "@goatlab/fluent": "^0.6.18",
+    "@goatlab/fluent": "^0.6.19",
     "@google-cloud/firestore": "^4.15.1",
     "firebase-admin": "^10.0.2",
     "fireorm": "^0.23.3",
