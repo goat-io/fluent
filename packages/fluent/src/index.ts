@@ -10,7 +10,6 @@ import {
   getModelSchemaRef
 } from './core/types'
 import type {
-  BaseDaoExtendedAttributes,
   BaseDataElement,
   DaoOutput,
   Deleted,
@@ -64,7 +63,6 @@ export {
 }
 
 export type {
-  BaseDaoExtendedAttributes,
   BaseDataElement,
   DaoOutput,
   Deleted,

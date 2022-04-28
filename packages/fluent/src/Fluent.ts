@@ -1,6 +1,6 @@
 import { typedPath } from 'typed-path'
 import { DataSource } from 'typeorm'
-import { BaseDataElement, BaseDaoExtendedAttributes, Primitives } from './types'
+import { BaseDataElement, Primitives } from './types'
 import { Collection } from '@goatlab/js-utils'
 import { modelGeneratorDataSource } from './generatorDatasource'
 
@@ -50,8 +50,8 @@ export class Fluent {
    *
    */
   public static model<T = BaseDataElement>(name: string): any {
-    this.registerModel<T & BaseDaoExtendedAttributes>(name)
-    return typedPath<T & BaseDaoExtendedAttributes>()
+    this.registerModel<T>(name)
+    return typedPath<T>()
   }
 
   /**

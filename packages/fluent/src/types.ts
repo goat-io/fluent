@@ -33,16 +33,6 @@ export interface Deleted {
 export type Primitives = boolean | string | number | ObjectID
 export type PrimitivesArray = boolean[] | string[] | number[] | ObjectID[]
 
-export interface BaseDaoExtendedAttributes {
-  id: string
-  created: string
-  updated: string
-  deleted?: string
-  owner?: string
-  _ngram?: string
-  roles: string[]
-}
-
 export type LogicOperator =
   | '='
   | '<'
@@ -60,9 +50,7 @@ export type LogicOperator =
   | 'contains'
   | 'array-contains'
 
-export type DaoOutput<Input, Output> = Partial<Input> &
-  Partial<Output> &
-  Partial<BaseDaoExtendedAttributes>
+export type DaoOutput<Input, Output> = {id: string} & Input | {id: string} & Output
 
 export type WhereClause = [string, LogicOperator, Primitives]
 

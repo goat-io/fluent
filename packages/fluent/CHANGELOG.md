@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.20
+
+### Patch Changes
+
+- Improve DaoOutput definition
+
 ## 0.6.19
 
 ### Patch Changes

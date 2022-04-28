@@ -1,11 +1,9 @@
 import { TypedPathWrapper, typedPath } from 'typed-path'
 import { ObjectID } from 'typeorm'
-import { Dates } from '@goatlab/dates'
 import { Objects, Ids, Collection } from '@goatlab/js-utils'
 import {
   Filter,
   DaoOutput,
-  BaseDaoExtendedAttributes,
   LogicOperator,
   Primitives,
   PrimitivesArray
@@ -90,16 +88,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected modelRelations: any
 
   public isMongoDB: boolean
-
-  protected getExtendedCreateAttributes = (): BaseDaoExtendedAttributes => {
-    const date = Dates.currentIsoString()
-    return {
-      id: `${Ids.objectIdString()}_local`,
-      updated: date,
-      created: date,
-      roles: []
-    }
-  }
 
   constructor() {
     this.chainReference = []
@@ -637,13 +625,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     const updateQueries = []
     const insertQueries = []
+
     for (const related of relatedData) {
       const exists = existingData.find(d => d.id === related.id)
+
       if (exists) {
         updateQueries.push(this.updateById(exists.id, {
           ...exists,
           [foreignKeyName]: related[foreignKeyName]
-        } as InputDTO))
+        } as unknown as InputDTO))
       } else {
         insertQueries.push(related)
       }

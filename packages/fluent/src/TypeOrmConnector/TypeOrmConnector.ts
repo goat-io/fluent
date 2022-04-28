@@ -109,7 +109,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   public async getPaginated(): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
     const response: any = await this.get()
 
-    const results: PaginatedData<OutputDTO> = {
+    const results: PaginatedData<DaoOutput<InputDTO, OutputDTO>> = {
       current_page: response[0].meta.currentPage,
       data: response[0].data,
       first_page_url: response[0].meta.firstPageUrl,
