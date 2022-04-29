@@ -164,7 +164,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
 
     const result = this.jsApplySelect(response)
 
-    const results: PaginatedData<OutputDTO> = {
+    const results: PaginatedData<DaoOutput<InputDTO, OutputDTO>> = {
       current_page: 1,
       data: result,
       first_page_url: 'response[0].meta.firstPageUrl,',

@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.13
+
+### Patch Changes
+
+- Update fluent
+
 ## 0.6.12
 
 ### Patch Changes
