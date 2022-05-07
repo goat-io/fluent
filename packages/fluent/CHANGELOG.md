@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.21
+
+### Patch Changes
+
+- Fix many to many relations and class validation
+
 ## 0.6.20
 
 ### Patch Changes

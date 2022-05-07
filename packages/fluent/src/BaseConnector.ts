@@ -8,7 +8,9 @@ import {
   Primitives,
   PrimitivesArray
 } from './types'
-
+import {  plainToInstance } from 'class-transformer'
+import { validate, ValidationError } from 'class-validator'
+export type Newable<T> = { new (...args: any[]): T; };
 
 export interface FluentConnectorInterface<InputDTO, OutputDTO> {
   get(): Promise<DaoOutput<InputDTO, OutputDTO>[]>
@@ -756,5 +758,26 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     cols.filter((elem, pos, arr) => arr.indexOf(elem) === pos)
 
     return cols
+  }
+
+  async validateInput(
+    validationClass: { new(): ModelDTO },
+    input: InputDTO,
+  ): Promise<{errors: ValidationError[] | null
+    result: Awaited<InputDTO>}> {
+    const validationOptions = {
+      whitelist: true,
+      skipMissingProperties: false,
+      forbidUnknownValues: true,
+      stopAtFirstError: false,
+    }
+  
+    const instance = plainToInstance(validationClass, { ...input })  
+    const errors = await validate(instance as any, validationOptions)
+
+    return {
+      errors: errors && errors.length ? errors : null,
+      result: errors && errors.length ? (undefined as any) : instance,
+    }
   }
 }

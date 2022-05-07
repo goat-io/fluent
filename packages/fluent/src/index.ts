@@ -36,6 +36,7 @@ import { getOutputKeys } from './outputKeys'
 import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
 import {Cache} from './cache'
+import { ValidationError } from 'class-validator'
 
 export { DataSource } from 'typeorm'
 export {
@@ -62,6 +63,11 @@ export {
   Cache
 }
 
+interface ValidatedInput<T> {
+  errors: ValidationError[] | null
+  result: Awaited<T>
+}
+
 export type {
   BaseDataElement,
   DaoOutput,
@@ -76,5 +82,6 @@ export type {
   PrimitivesArray,
   Sure,
   WhereClause,
-  SchemaObject
+  SchemaObject,
+  ValidatedInput
 }

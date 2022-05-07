@@ -14,13 +14,13 @@ interface RelationshipLoader {
 }
 
 export const loadRelations = async ({
-                                      data,
-                                      relations,
-                                      modelRelations,
-                                      provider,
-                                      self,
-                                      returnPivot
-                                    }: RelationshipLoader): Promise<any[]> => {
+  data,
+  relations,
+  modelRelations,
+  provider,
+  self,
+  returnPivot
+}: RelationshipLoader): Promise<any[]> => {
   if (!relations) {
     return data
   }
@@ -29,25 +29,23 @@ export const loadRelations = async ({
   const chunkSize = provider === 'typeorm' ? 100 : 10
 
   for (const relation of Object.keys(relations)) {
-
     if (modelRelations[relation]) {
-
       const relationModel = modelRelations[relation]
       const Model = new relations[relation]()
 
       if (relationModel.isOneToMany) {
-        const ids = new Set(data.map(d =>
-          Model.isMongoDB ? (Ids.objectID(d.id) as unknown as ObjectID) : d.id
-        ))
+        const ids = new Set(
+          data.map(d =>
+            Model.isMongoDB ? (Ids.objectID(d.id) as unknown as ObjectID) : d.id
+          )
+        )
         const chunks = Arrays.chunk(Array.from(ids), chunkSize)
         // TODO we can make this calls at the same time...no need to wait for each one
         const promises = []
 
         for (const relatedIds of chunks) {
           const results = await Model.andWhere(
-            keys => keys[
-              relationModel.inverseSidePropertyPath
-              ],
+            keys => keys[relationModel.inverseSidePropertyPath],
             'in',
             relatedIds
           ).get()
@@ -98,6 +96,7 @@ export const loadRelations = async ({
             Model.isMongoDB ? (Ids.objectID(d.id) as unknown as ObjectID) : d.id
           )
         )
+
         const chunks = Arrays.chunk(ids, chunkSize)
 
         if (relationModel.joinColumns.length === 0) {
@@ -111,12 +110,12 @@ export const loadRelations = async ({
         const promises = []
         for (const pivotIds of chunks) {
           const results = await pivotRepository
-          .where(
-            k => k[relationModel.joinColumns[0].propertyName],
-            'in',
-            pivotIds
-          )
-          .get()
+            .where(
+              k => k[relationModel.joinColumns[0].propertyName],
+              'in',
+              pivotIds
+            )
+            .get()
 
           promises.push(results)
         }
@@ -128,6 +127,7 @@ export const loadRelations = async ({
         )
 
         const relationChunks = Arrays.chunk(uniquePivotIds, chunkSize)
+
         // Get relationship table results from
         const relationPromises = []
         for (const relatedIds of relationChunks) {
@@ -143,24 +143,33 @@ export const loadRelations = async ({
         let relatedResults = Arrays.collapse(
           await Promise.all(relationPromises)
         )
+
         const pivotInverseKey = relationModel.inverseJoinColumns[0].propertyName
         relatedResults = relatedResults.map(r => {
-
-          return {...r, pivot: pivotResults.find(p => p[pivotInverseKey] === r.id)}
+          return {
+            ...r,
+            pivot: pivotResults.find(p => p[pivotInverseKey] === r.id)
+          }
         })
 
         const groupedPivot = Arrays.groupBy(
           pivotResults,
           r => r[relationModel.joinColumns[0].propertyName]
         )
+
         const groupedRelated = Arrays.groupBy(relatedResults, r => r.id)
 
         data.forEach(d => {
           groupedPivot[d.id]?.forEach(gp => {
-            d[relationModel.propertyPath] =
-              groupedRelated[
+            if (!d[relationModel.propertyPath]) {
+              d[relationModel.propertyPath] = []
+            }
+            d[relationModel.propertyPath] = [
+              ...d[relationModel.propertyPath],
+              ...groupedRelated[
                 gp[relationModel.inverseJoinColumns[0].propertyName]
-                ]
+              ]
+            ]
           })
         })
       }
