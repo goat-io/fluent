@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.22
+
+### Patch Changes
+
+- V up
+
 ## 0.6.21
 
 ### Patch Changes
