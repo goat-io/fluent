@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/queue",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -13,6 +13,7 @@
     "./dist/**/*"
   ],
   "scripts": {
+    "install-p": "yarn",
     "prebuild": "rimraf dist",
     "prestart": "rimraf dist",
     "predev": "rimraf dist",
@@ -108,7 +109,7 @@
     }
   },
   "dependencies": {
-    "@goatlab/js-utils": "^0.7.9",
+    "@goatlab/js-utils": "^0.7.10",
     "agenda": "^4.2.1",
     "amqplib": "^0.8.0",
     "bull": "^4.8.1",

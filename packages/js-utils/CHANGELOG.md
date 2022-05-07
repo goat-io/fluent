@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.10
+
+### Patch Changes
+
+- Upadate dependencies
+
 ## 0.7.9
 
 ### Patch Changes

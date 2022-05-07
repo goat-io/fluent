@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.6.14
+
+### Patch Changes
+
+- Upadate dependencies
+- Updated dependencies
+  - @goatlab/fluent@0.6.23
+
 ## 0.6.13
 
 ### Patch Changes

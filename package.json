@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "install": "turbo run install-p",
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "test": "turbo run test",

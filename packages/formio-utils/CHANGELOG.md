@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.6.4
+
+### Patch Changes
+
+- Upadate dependencies
+- Updated dependencies
+  - @goatlab/fluent@0.6.23
+  - @goatlab/node-utils@0.7.7
+
 ## 0.6.3
 
 ### Patch Changes

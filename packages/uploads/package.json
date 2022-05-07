@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/uploads",
-  "version": "0.5.22",
+  "version": "0.5.23",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -13,6 +13,7 @@
     "./dist/**/*"
   ],
   "scripts": {
+    "install-p": "yarn",
     "prebuild": "rimraf dist",
     "prestart": "rimraf dist",
     "predev": "rimraf dist",

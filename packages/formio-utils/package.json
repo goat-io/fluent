@@ -1,8 +1,9 @@
 {
   "name": "@goatlab/formio-utils",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
+    "install-p": "yarn",
     "prebuild": "rimraf dist",
     "prestart": "rimraf dist",
     "predev": "rimraf dist",
@@ -26,8 +27,8 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/fluent": "^0.6.15",
-    "@goatlab/node-utils": "^0.7.6",
+    "@goatlab/fluent": "*",
+    "@goatlab/node-utils": "*",
     "bson": "^4.6.2",
     "delete-property": "^0.0.4",
     "formiojs": "^4.14.5",
