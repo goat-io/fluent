@@ -1,5 +1,11 @@
 # @goatlab/tsconfig
 
+## 0.0.7
+
+### Patch Changes
+
+- Publish tsconfig
+
 ## 0.0.6
 
 ### Patch Changes
