@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.7.8
+
+### Patch Changes
+
+- Remove OutputDao
+- Updated dependencies
+  - @goatlab/js-utils@0.7.11
+
 ## 0.7.7
 
 ### Patch Changes

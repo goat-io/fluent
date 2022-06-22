@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-memory",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "install-p": "yarn",
@@ -27,7 +27,7 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/fluent": "0.6.23"
+    "@goatlab/fluent": "0.6.24"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",

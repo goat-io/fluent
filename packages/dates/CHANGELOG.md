@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.6
+
+### Patch Changes
+
+- Remove OutputDao
+
 ## 0.6.5
 
 ### Patch Changes

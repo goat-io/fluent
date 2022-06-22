@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.6.5
+
+### Patch Changes
+
+- Remove OutputDao
+- Updated dependencies
+  - @goatlab/fluent@0.6.24
+  - @goatlab/node-utils@0.7.8
+
 ## 0.6.4
 
 ### Patch Changes
