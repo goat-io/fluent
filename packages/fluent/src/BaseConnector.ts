@@ -1,38 +1,28 @@
 import { TypedPathWrapper, typedPath } from 'typed-path'
 import { ObjectID } from 'typeorm'
 import { Objects, Ids, Collection } from '@goatlab/js-utils'
-import {
-  Filter,
-  DaoOutput,
-  LogicOperator,
-  Primitives,
-  PrimitivesArray
-} from './types'
-import {  plainToInstance } from 'class-transformer'
+import { Filter, LogicOperator, Primitives, PrimitivesArray } from './types'
+import { plainToInstance } from 'class-transformer'
 import { validate, ValidationError } from 'class-validator'
-export type Newable<T> = { new (...args: any[]): T; };
 
 export interface FluentConnectorInterface<InputDTO, OutputDTO> {
-  get(): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+  get(): Promise<OutputDTO[]>
 
-  all(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+  all(filter: Filter): Promise<OutputDTO[]>
 
-  findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>>
+  findById(id: string): Promise<OutputDTO>
 
-  findByIds(id: string[]): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+  findByIds(id: string[]): Promise<OutputDTO[]>
 
-  find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+  find(filter: Filter): Promise<OutputDTO[]>
 
   deleteById(id: string): Promise<string>
 
-  updateById(
-    id: string,
-    data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>>
+  updateById(id: string, data: InputDTO): Promise<OutputDTO>
 
-  insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>>
+  insert(data: InputDTO): Promise<OutputDTO>
 
-  insertMany(data: InputDTO[]): Promise<DaoOutput<InputDTO, OutputDTO>[]>
+  insertMany(data: InputDTO[]): Promise<OutputDTO[]>
 
   // update(data: T): Promise<T>
   // updateOrCreate(data: T): Promise<T>
@@ -110,27 +100,25 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.getFirst = false
   }
 
-  public async findByIds(ids: string[]): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async findByIds(ids: string[]): Promise<OutputDTO[]> {
     throw new Error('findByIds() method not implemented')
   }
 
   /**
    *
    */
-  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<OutputDTO[]> {
     throw new Error('get() method not implemented')
   }
 
   /**
    *
    */
-  public async insertMany(
-    data: InputDTO[]
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
     throw new Error('get() method not implemented')
   }
 
-  public async updateById(id: string, data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
     throw new Error('get() method not implemented')
   }
 
@@ -158,7 +146,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    *
    * @return {Object} First result
    */
-  public async first(): Promise<DaoOutput<InputDTO, OutputDTO> | null> {
+  public async first(): Promise<OutputDTO | null> {
     this.limit(1)
     const data = await this.get()
 
@@ -175,14 +163,14 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * transforms it into a collection
    * @returns {Collection} Fluent Collection
    */
-  public async collect(): Promise<Collection<DaoOutput<InputDTO, OutputDTO>>> {
+  public async collect(): Promise<Collection<OutputDTO>> {
     const data = await this.get()
 
     if (!Array.isArray(data)) {
       throw new Error('Collect method only accepts arrays of data')
     }
 
-    return new Collection<DaoOutput<InputDTO, OutputDTO>>(data)
+    return new Collection<OutputDTO>(data)
   }
 
   /**
@@ -192,8 +180,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns {Model} Fluent Model
    * @param paths
    */
-  public select(paths: (p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-  ) => TypedPathWrapper<string, Record<never, never>>[] | TypedPathWrapper<string[], Record<never, never>[]>) {
+  public select(
+    paths: (
+      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
+    ) =>
+      | TypedPathWrapper<string, Record<never, never>>[]
+      | TypedPathWrapper<string[], Record<never, never>[]>
+  ) {
     const arrCols = paths(this.generatedKeyPath)
     const cols = arrCols.map(c => c.toString())
 
@@ -201,8 +194,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     this.chainReference.push({ method: 'select', args: columns })
     this.selectArray = this.selectArray
-    .concat(columns)
-    .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
+      .concat(columns)
+      .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
     return this
   }
 
@@ -215,8 +208,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns {Model} Fluent Model
    * @param paths
    */
-  public forceSelect(paths: (p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-  ) => TypedPathWrapper<string, Record<never, never>>[] | TypedPathWrapper<string[], Record<never, never>[]>) {
+  public forceSelect(
+    paths: (
+      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
+    ) =>
+      | TypedPathWrapper<string, Record<never, never>>[]
+      | TypedPathWrapper<string[], Record<never, never>[]>
+  ) {
     if (typeof module === 'undefined' || !module.exports) {
       throw new Error('forceSelect cant be used in frontend')
     }
@@ -227,8 +225,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     this.chainReference.push({ method: 'forceSelect', args: columns })
     this.forceSelectArray = this.forceSelectArray
-    .concat(columns)
-    .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
+      .concat(columns)
+      .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
 
     return this
   }
@@ -277,9 +275,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param value
    */
   public where(
-    path:
-      (p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-      ) => TypedPathWrapper<string, Record<never, never>> | TypedPathWrapper<string[], Record<never, never>>,
+    path: (
+      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
+    ) =>
+      | TypedPathWrapper<string, Record<never, never>>
+      | TypedPathWrapper<string[], Record<never, never>>,
     operator: LogicOperator,
     value: Primitives | PrimitivesArray
   ) {
@@ -306,8 +306,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param value
    */
   public andWhere(
-    path: (p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) => TypedPathWrapper<string, Record<never, never>> | TypedPathWrapper<string[], Record<never, never>>,
+    path: (
+      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
+    ) =>
+      | TypedPathWrapper<string, Record<never, never>>
+      | TypedPathWrapper<string[], Record<never, never>>,
     operator: LogicOperator,
     value: Primitives | Primitives[]
   ) {
@@ -330,8 +333,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param value
    */
   public orWhere(
-    path: (p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) => TypedPathWrapper<string, Record<never, never>> | TypedPathWrapper<string[], Record<never, never>>,
+    path: (
+      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
+    ) =>
+      | TypedPathWrapper<string, Record<never, never>>
+      | TypedPathWrapper<string[], Record<never, never>>,
     operator: LogicOperator,
     value: Primitives
   ) {
@@ -371,8 +377,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param path
    */
   public async pluck(
-    path: (p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) => TypedPathWrapper<string, Record<never, never>> | TypedPathWrapper<string[], Record<never, never>>
+    path: (
+      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
+    ) =>
+      | TypedPathWrapper<string, Record<never, never>>
+      | TypedPathWrapper<string[], Record<never, never>>
   ): Promise<string[]> {
     const stringP = path(this.generatedKeyPath)
     const stringPath = stringP.toString()
@@ -397,8 +406,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param orderType
    */
   public orderBy(
-    path: (p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) => TypedPathWrapper<string, Record<never, never>> | TypedPathWrapper<string[], Record<never, never>>,
+    path: (
+      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
+    ) =>
+      | TypedPathWrapper<string, Record<never, never>>
+      | TypedPathWrapper<string[], Record<never, never>>,
     order: 'asc' | 'desc' = 'desc',
     orderType: 'string' | 'number' | 'date' = 'string'
   ) {
@@ -582,9 +594,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * method, to avoid calling the main model twice
    * @returns
    */
-  public getLoadedData():
-    | DaoOutput<InputDTO, OutputDTO>[]
-    | DaoOutput<InputDTO, OutputDTO> {
+  public getLoadedData(): OutputDTO[] | OutputDTO {
     return this.relationQuery.data
   }
 
@@ -607,7 +617,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * Attach a model to the parent.
    * @param data
    */
-  public async attach(data: InputDTO | DaoOutput<InputDTO, OutputDTO>): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async attach(data: InputDTO | OutputDTO): Promise<OutputDTO[]> {
     if (!this.relationQuery.relation || !this.relationQuery.data) {
       throw new Error('Attached can only be called as a related model')
     }
@@ -629,17 +639,20 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const insertQueries = []
 
     for (const related of relatedData) {
-      const exists = existingData.find(d => d.id === related.id)
+      const exists = existingData.find(
+        (d: { id: string } & OutputDTO) => d.id === related.id
+      ) as { id: string } & OutputDTO
 
       if (exists) {
-        updateQueries.push(this.updateById(exists.id, {
-          ...exists,
-          [foreignKeyName]: related[foreignKeyName]
-        } as unknown as InputDTO))
+        updateQueries.push(
+          this.updateById(exists.id, {
+            ...exists,
+            [foreignKeyName]: related[foreignKeyName]
+          } as unknown as InputDTO)
+        )
       } else {
         insertQueries.push(related)
       }
-
     }
     const updateResult = await Promise.all(updateQueries)
     const insertedResult = await this.insertMany(insertQueries)
@@ -661,8 +674,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       : [this.relationQuery.data]
 
     const relatedData = D.map(d => ({
-      [this.relationQuery.relation.joinColumns[0].propertyName]: this
-        .isMongoDB
+      [this.relationQuery.relation.joinColumns[0].propertyName]: this.isMongoDB
         ? (Ids.objectID(d.id) as unknown as ObjectID)
         : d.id,
       [this.relationQuery.relation.inverseJoinColumns[0].propertyName]: this
@@ -672,7 +684,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     }))
 
     return this.relationQuery.pivot.insertMany(relatedData)
-
   }
 
   /**
@@ -717,12 +728,12 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.relationQuery = !this.relationQuery
       ? { pivot: new Pivot(this.relationQuery) as R }
       : {
-        ...this.relationQuery,
-        ...{
-          pivot: new Pivot(this.relationQuery) as R,
-          relation: this.relationQuery.relations[relationName]
+          ...this.relationQuery,
+          ...{
+            pivot: new Pivot(this.relationQuery) as R,
+            relation: this.relationQuery.relations[relationName]
+          }
         }
-      }
 
     const newClass = new Repository(this.relationQuery) as T
     this.reset()
@@ -730,8 +741,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   public withPivot() {
-
-    if(this.relationQuery?.pivot) {
+    if (this.relationQuery?.pivot) {
       this.relationQuery.returnPivot = true
     }
     return this
@@ -761,23 +771,22 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   async validateInput(
-    validationClass: { new(): ModelDTO },
-    input: InputDTO,
-  ): Promise<{errors: ValidationError[] | null
-    result: Awaited<InputDTO>}> {
+    validationClass: { new (): ModelDTO },
+    input: InputDTO
+  ): Promise<{ errors: ValidationError[] | null; result: Awaited<InputDTO> }> {
     const validationOptions = {
       whitelist: true,
       skipMissingProperties: false,
       forbidUnknownValues: true,
-      stopAtFirstError: false,
+      stopAtFirstError: false
     }
-  
-    const instance = plainToInstance(validationClass, { ...input })  
+
+    const instance = plainToInstance(validationClass, { ...input })
     const errors = await validate(instance as any, validationOptions)
 
     return {
       errors: errors && errors.length ? errors : null,
-      result: errors && errors.length ? (undefined as any) : instance,
+      result: errors && errors.length ? (undefined as any) : instance
     }
   }
 }

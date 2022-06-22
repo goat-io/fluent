@@ -43,7 +43,8 @@
     "openapi3-ts": "^2.0.2",
     "reflect-metadata": "^0.1.13",
     "typed-path": "^2.2.3",
-    "typeorm": "^0.3.4"
+    "typeorm": "^0.3.4",
+    "zod": "^3.17.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",

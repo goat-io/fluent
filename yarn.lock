@@ -914,26 +914,6 @@
   resolved "https://registry.yarnpkg.com/@formio/vanilla-text-mask/-/vanilla-text-mask-5.1.1.tgz#2bd690a34b0e191b7f23a589ff1c2497564307de"
   integrity sha512-7MhrbMypySPi7RLchg0ys7HnS3Wqddbq/btAijKB1nA94TE7AOOLhpZJWcNm3kOlX0Y3nHfoavj/HP7vsvF34Q==
 
-"@goatlab/fluent@0.6.15":
-  version "0.6.15"
-  resolved "https://registry.yarnpkg.com/@goatlab/fluent/-/fluent-0.6.15.tgz#73bda7bbe27f1203337d02a13cedd6eefdfd6c8c"
-  integrity sha512-OCs5eD7k1AAlNXt1+9ZhiQ85x9Npr3kXuOLxjG/yjrWKC1dKw1b3oj8Gtz2Myt0pnp5EYNGSh93jxp9MmUl6cA==
-  dependencies:
-    "@goatlab/dates" "^0.6.4"
-    "@goatlab/js-utils" "^0.7.9"
-    "@loopback/metadata" "^4.1.2"
-    assert "^2.0.0"
-    bson "^4.6.2"
-    debug "^4.3.4"
-    fireorm "^0.23.3"
-    graphql "^16.3.0"
-    lodash "^4.17.21"
-    mongodb "^4.4.1"
-    openapi3-ts "^2.0.2"
-    reflect-metadata "^0.1.13"
-    typed-path "^2.2.3"
-    typeorm "^0.3.4"
-
 "@google-cloud/common@^0.17.0":
   version "0.17.0"
   resolved "https://registry.yarnpkg.com/@google-cloud/common/-/common-0.17.0.tgz#8ef558750db481fc10a13757a49479ab9a1c8c07"
@@ -12049,3 +12029,8 @@ zip-stream@^1.1.0:
     compress-commons "^1.2.0"
     lodash "^4.8.0"
     readable-stream "^2.0.0"
+
+zod@^3.17.3:
+  version "3.17.3"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.17.3.tgz#86abbc670ff0063a4588d85a4dcc917d6e4af2ba"
+  integrity sha512-4oKP5zvG6GGbMlqBkI5FESOAweldEhSOZ6LI6cG+JzUT7ofj1ZOC0PJudpQOpT1iqOFpYYtX5Pw0+o403y4bcg==

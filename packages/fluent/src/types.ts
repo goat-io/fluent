@@ -50,8 +50,6 @@ export type LogicOperator =
   | 'contains'
   | 'array-contains'
 
-export type DaoOutput<Input, Output> = {id: string} & Input | {id: string} & Output
-
 export type WhereClause = [string, LogicOperator, Primitives]
 
 export type Filter = {
