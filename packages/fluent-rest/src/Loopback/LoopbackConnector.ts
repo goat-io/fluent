@@ -4,7 +4,6 @@ import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import to from 'await-to-js'
 import type {
   Filter,
-  DaoOutput,
   BaseDataElement,
   PaginatedData,
   Paginator,
@@ -25,7 +24,7 @@ export class LoopbackConnector<
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
+  implements FluentConnectorInterface<InputDTO, OutputDTO>
 {
   private baseEndPoint = ''
 
@@ -43,7 +42,7 @@ export class LoopbackConnector<
   /**
    *
    */
-  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<OutputDTO[]> {
     const result: any = await this.httpGET()
 
     const data = this.jsApplySelect(result.data)
@@ -81,7 +80,7 @@ export class LoopbackConnector<
   /**
    *
    */
-  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -89,7 +88,7 @@ export class LoopbackConnector<
    *
    * @param filter
    */
-  public async find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async find(filter: Filter): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -126,7 +125,7 @@ export class LoopbackConnector<
    *
    * @param data
    */
-  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async insert(data: InputDTO): Promise<OutputDTO> {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
@@ -142,14 +141,11 @@ export class LoopbackConnector<
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
-    const insertedElements: DaoOutput<InputDTO, OutputDTO>[] = []
+  ): Promise<OutputDTO[]> {
+    const insertedElements: OutputDTO[] = []
 
     for (const element of data) {
-      const goatAttributes = this.getExtendedCreateAttributes()
-
-      const inserted: DaoOutput<InputDTO, OutputDTO> = await this.insert({
-        ...goatAttributes,
+      const inserted: OutputDTO = await this.insert({
         ...element
       })
 
@@ -166,7 +162,7 @@ export class LoopbackConnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     if (!id) {
       throw new Error(
         'Formio connector error. Cannot update a Model without id key'
@@ -235,7 +231,7 @@ export class LoopbackConnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<OutputDTO> {
     const url = this.baseUrl()
     const headers = await this.getHeaders()
 

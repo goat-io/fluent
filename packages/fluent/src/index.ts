@@ -11,7 +11,6 @@ import {
 } from './core/types'
 import type {
   BaseDataElement,
-  DaoOutput,
   Deleted,
   Filter,
   LogicOperator,
@@ -70,7 +69,6 @@ interface ValidatedInput<T> {
 
 export type {
   BaseDataElement,
-  DaoOutput,
   Deleted,
   Filter,
   FluentConnectorInterface,

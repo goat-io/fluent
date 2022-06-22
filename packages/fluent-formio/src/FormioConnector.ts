@@ -6,7 +6,6 @@ import to from 'await-to-js'
 import { Events } from '@goatlab/js-utils'
 import type {
   Filter,
-  DaoOutput,
   BaseDataElement,
   PaginatedData,
   Paginator,
@@ -36,7 +35,7 @@ export class Formioconnector<
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
+  implements FluentConnectorInterface<InputDTO, OutputDTO>
 {
   private baseEndPoint = ''
 
@@ -51,7 +50,7 @@ export class Formioconnector<
   /**
    *
    */
-  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<OutputDTO[]> {
     const [error, result] = await to(this.httpGET())
 
     if (error) {
@@ -59,8 +58,8 @@ export class Formioconnector<
       throw new Error('Error while getting submissions')
     }
 
-    const data: DaoOutput<InputDTO, OutputDTO>[] = result.data.map(r => {
-      const response: DaoOutput<InputDTO, OutputDTO> = {
+    const data: OutputDTO[] = result.data.map(r => {
+      const response: OutputDTO = {
         ...{
           id: r.id,
           owner: r.owner,
@@ -83,7 +82,7 @@ export class Formioconnector<
   /**
    *
    */
-  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -91,7 +90,7 @@ export class Formioconnector<
    *
    * @param filter
    */
-  public async find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async find(filter: Filter): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -101,14 +100,14 @@ export class Formioconnector<
    */
   public async paginate(
     paginator: Paginator
-  ): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
+  ): Promise<PaginatedData<OutputDTO>> {
     const numberOfRows = await this.numberOfRows()
 
     this.offset((paginator.page - 1) * paginator.perPage).take(
       paginator.perPage
     )
 
-    const results: PaginatedData<DaoOutput<InputDTO, OutputDTO>> = {
+    const results: PaginatedData<OutputDTO> = {
       data: await this.get(),
       current_page: paginator.page,
       first_page_url: '',
@@ -126,14 +125,14 @@ export class Formioconnector<
    *
    * @param data
    */
-  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async insert(data: InputDTO): Promise<OutputDTO> {
     const [error, result] = await to(this.httpPOST(data))
 
     if (error) {
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    const response: DaoOutput<InputDTO, OutputDTO> = {
+    const response: OutputDTO = {
       ...{
         id: result.data.id,
         owner: result.data.owner,
@@ -153,14 +152,11 @@ export class Formioconnector<
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
-    const insertedElements: DaoOutput<InputDTO, OutputDTO>[] = []
+  ): Promise<OutputDTO[]> {
+    const insertedElements: OutputDTO[] = []
 
     for (const element of data) {
-      const goatAttributes = this.getExtendedCreateAttributes()
-
-      const inserted: DaoOutput<InputDTO, OutputDTO> = await this.insert({
-        ...goatAttributes,
+      const inserted: OutputDTO = await this.insert({
         ...element
       })
 
@@ -177,7 +173,7 @@ export class Formioconnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     if (!id) {
       throw new Error(
         'Formio connector error. Cannot update a Model without id key'
@@ -193,7 +189,7 @@ export class Formioconnector<
       console.log(error)
       throw new Error('Cannot insert data')
     }
-    const response: DaoOutput<InputDTO, OutputDTO> = result.data
+    const response: OutputDTO = result.data
     this.reset()
     return response
   }
@@ -247,7 +243,7 @@ export class Formioconnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<OutputDTO> {
     const [error, data] = await to(this.first())
 
     if (error) {

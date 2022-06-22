@@ -3,7 +3,6 @@ import { BaseFirestoreRepository, getRepository } from 'fireorm'
 import { FieldPath } from '@google-cloud/firestore'
 import type {
   Filter,
-  DaoOutput,
   BaseDataElement,
   PaginatedData,
   Paginator,
@@ -68,7 +67,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   InputDTO = ModelDTO,
   OutputDTO = InputDTO>
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>> {
+  implements FluentConnectorInterface<InputDTO, OutputDTO> {
   private repository: BaseFirestoreRepository<any>
 
   private readonly collection: FirebaseFirestore.CollectionReference<ModelDTO>
@@ -89,7 +88,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   /**
    *
    */
-  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<OutputDTO[]> {
     let query = this.getGeneratedQuery()
      let pivotData : any[] = []
     if (this.relationQuery && this.relationQuery.data && this.relationQuery.relation) {
@@ -159,12 +158,12 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   /**
    *
    */
-  public async getPaginated(): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
+  public async getPaginated(): Promise<PaginatedData<OutputDTO>> {
     const response: any = await this.get()
 
     const result = this.jsApplySelect(response)
 
-    const results: PaginatedData<DaoOutput<InputDTO, OutputDTO>> = {
+    const results: PaginatedData<OutputDTO> = {
       current_page: 1,
       data: result,
       first_page_url: 'response[0].meta.firstPageUrl,',
@@ -181,7 +180,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   /**
    *
    */
-  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -191,7 +190,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
    */
   public async find(
     filter: Filter = {}
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<OutputDTO[]> {
     const stringFilter: string = filter as string
     let parsedFilter: any = {}
     try {
@@ -231,7 +230,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
    */
   public async paginate(
     paginator: Paginator
-  ): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
+  ): Promise<PaginatedData<OutputDTO>> {
     if (!paginator) {
       throw new Error('Paginator cannot be empty')
     }
@@ -261,7 +260,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   public async insert(
     data: InputDTO,
     forcedId?: string | number
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     const id = forcedId || Ids.objectIdString()
     // TODO we have to change this to manage cases where created, updated or version fields are included in the respective models
     // const created = new Date()
@@ -269,8 +268,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
     // const version = 1
     const datum = await this.repository.create({ id, ...data })
 
-    const result = this.jsApplySelect([datum]) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const result = this.jsApplySelect([datum]) as OutputDTO[]
     this.reset()
     return result[0]
   }
@@ -282,7 +280,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   public async insertMany(
     data: InputDTO[],
     forcedId?: string | number
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<OutputDTO[]> {
     const batch = []
 
     data.forEach(d => {
@@ -295,8 +293,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
 
     const inserted = await Promise.all(batch)
 
-    const result = this.jsApplySelect(inserted) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const result = this.jsApplySelect(inserted) as OutputDTO[]
     this.reset()
 
     return result
@@ -308,7 +305,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
    */
   public async batchInsert(
     data: InputDTO[]
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<OutputDTO[]> {
     const batch = this.repository.createBatch()
 
     data.forEach(d => {
@@ -321,8 +318,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
 
     const inserted = await batch.commit()
 
-    const result = this.jsApplySelect(inserted) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const result = this.jsApplySelect(inserted) as OutputDTO[]
     this.reset()
 
     return result
@@ -335,7 +331,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     const parsedId = id
 
     const dbResult = await this.repository.findById(parsedId)
@@ -347,8 +343,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
 
     const updated = await this.repository.update(updateData)
 
-    const result = this.jsApplySelect([updated]) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const result = this.jsApplySelect([updated]) as OutputDTO[]
     this.reset()
     return result[0]
   }
@@ -364,7 +359,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
   public async replaceById(
     id: string,
     data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     const parsedId = id
 
     const value = await this.repository.findById(parsedId)
@@ -390,8 +385,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
 
     const val = await this.repository.findById(parsedId)
 
-    const returnValue = this.jsApplySelect([val]) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const returnValue = this.jsApplySelect([val]) as OutputDTO[]
     this.reset()
 
     return returnValue[0]
@@ -434,12 +428,12 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
    *
    * @param id
    */
-  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<OutputDTO> {
     const parsedId = id
 
     const data = await this.repository.findById(parsedId)
 
-    const result = this.jsApplySelect(data) as DaoOutput<InputDTO, OutputDTO>[]
+    const result = this.jsApplySelect(data) as OutputDTO[]
     this.reset()
 
     if (result.length === 0) {
@@ -449,7 +443,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
     return result[0]
   }
 
-  public async findByIds(ids: string[]): Promise<DaoOutput<InputDTO, OutputDTO>[] | null> {
+  public async findByIds(ids: string[]): Promise<OutputDTO[] | null> {
     const data = await this.raw().where('id', 'in', ids).get()
     if (data.empty) {
       return null
@@ -458,7 +452,7 @@ export class FirebaseConnector<ModelDTO = BaseDataElement,
     data.forEach(doc => {
       res.push(doc.data())
     })
-    const results = this.jsApplySelect(res) as DaoOutput<InputDTO, OutputDTO>[]
+    const results = this.jsApplySelect(res) as OutputDTO[]
     this.reset()
 
     return results

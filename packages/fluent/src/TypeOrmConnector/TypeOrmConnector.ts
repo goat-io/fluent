@@ -24,7 +24,6 @@ import { BaseConnector, FluentConnectorInterface } from '../BaseConnector'
 import { getOutputKeys } from '../outputKeys'
 import type {
   Filter,
-  DaoOutput,
   BaseDataElement,
   PaginatedData,
   Paginator,
@@ -59,7 +58,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   InputDTO = ModelDTO,
   OutputDTO = InputDTO>
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>> {
+  implements FluentConnectorInterface<InputDTO, OutputDTO> {
   private readonly repository: Repository<ModelDTO>
 
   private readonly dataSource: DataSource
@@ -83,7 +82,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   /**
    *
    */
-  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async get(): Promise<OutputDTO[]> {
     const query = this.getGeneratedQuery()
 
     const result: any = await this.repository.find(query)
@@ -106,10 +105,10 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   /**
    *
    */
-  public async getPaginated(): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
+  public async getPaginated(): Promise<PaginatedData<OutputDTO>> {
     const response: any = await this.get()
 
-    const results: PaginatedData<DaoOutput<InputDTO, OutputDTO>> = {
+    const results: PaginatedData<OutputDTO> = {
       current_page: response[0].meta.currentPage,
       data: response[0].data,
       first_page_url: response[0].meta.firstPageUrl,
@@ -130,7 +129,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   /**
    *
    */
-  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -140,7 +139,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
    */
   public async find(
     filter: Filter = {}
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<OutputDTO[]> {
     const stringFilter: string = filter as string
     let parsedFilter: any = {}
     try {
@@ -180,7 +179,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
    */
   public async paginate(
     paginator: Paginator
-  ): Promise<PaginatedData<DaoOutput<InputDTO, OutputDTO>>> {
+  ): Promise<PaginatedData<OutputDTO>> {
     if (!paginator) {
       throw new Error('Paginator cannot be empty')
     }
@@ -207,13 +206,12 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
    * Insert the model to the database.
    * @param data
    */
-  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async insert(data: InputDTO): Promise<OutputDTO> {
     const datum = await this.repository.save(
       data as unknown as DeepPartial<ModelDTO>
     )
 
-    const result = this.jsApplySelect([datum]) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const result = this.jsApplySelect([datum]) as OutputDTO[]
 
     this.reset()
     return result[0]
@@ -225,7 +223,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  ): Promise<OutputDTO[]> {
     const inserted = await this.repository.save(
       data as unknown as DeepPartial<ModelDTO>,
       {
@@ -233,8 +231,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
       }
     )
     this.reset()
-    const result = this.jsApplySelect(inserted) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const result = this.jsApplySelect(inserted) as OutputDTO[]
     return result
   }
 
@@ -245,7 +242,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
@@ -263,8 +260,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
       id: In([parsedId])
     } as unknown as FindOptionsWhere<ModelDTO>)
 
-    const result = this.jsApplySelect(dbResult) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const result = this.jsApplySelect(dbResult) as OutputDTO[]
     this.reset()
     return result[0]
   }
@@ -280,7 +276,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   public async replaceById(
     id: string,
     data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
@@ -319,8 +315,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
       } as unknown as FindOptionsWhere<ModelDTO>
     })
 
-    const returnValue = this.jsApplySelect([val]) as DaoOutput<InputDTO,
-      OutputDTO>[]
+    const returnValue = this.jsApplySelect([val]) as OutputDTO[]
 
     this.reset()
 
@@ -361,7 +356,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
    *
    * @param id
    */
-  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<OutputDTO> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
@@ -370,7 +365,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
       id: In([parsedId])
     } as unknown as FindOptionsWhere<ModelDTO>)
 
-    const result = this.jsApplySelect(data) as DaoOutput<InputDTO, OutputDTO>[]
+    const result = this.jsApplySelect(data) as OutputDTO[]
     this.reset()
     return result[0]
   }
@@ -379,7 +374,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
    *
    * @param ids
    */
-  public async findByIds(ids: string[]): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async findByIds(ids: string[]): Promise<OutputDTO[]> {
     const parsedIds = [...ids]
     if (this.isMongoDB) {
       parsedIds.map(id => (new ObjectId(id) as unknown as ObjectID))
@@ -389,7 +384,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
       id: In(parsedIds)
     } as unknown as FindOptionsWhere<ModelDTO>)
 
-    const result = this.jsApplySelect(data) as DaoOutput<InputDTO, OutputDTO>[]
+    const result = this.jsApplySelect(data) as OutputDTO[]
     return result
   }
 

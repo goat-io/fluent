@@ -1,5 +1,5 @@
 import { BaseConnector, FluentConnectorInterface } from '@goatlab/fluent'
-import type { Filter, DaoOutput, BaseDataElement } from '@goatlab/fluent'
+import type { Filter, BaseDataElement } from '@goatlab/fluent'
 import { Dates } from '@goatlab/dates'
 
 let db: any = []
@@ -10,13 +10,13 @@ export class MemoryConnector<
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, DaoOutput<InputDTO, OutputDTO>>
+  implements FluentConnectorInterface<InputDTO, OutputDTO>
 {
   /**
    *
    */
-  public async get(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
-    let result: DaoOutput<InputDTO, OutputDTO>[] = db
+  public async get(): Promise<OutputDTO[]> {
+    let result: OutputDTO[] = db
     result = this.jsApplyOrderBy(result)
 
     const limit = this.limitNumber
@@ -36,7 +36,7 @@ export class MemoryConnector<
   /**
    *
    */
-  public async all(): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async all(): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -44,7 +44,7 @@ export class MemoryConnector<
    *
    * @param filter
    */
-  public async find(filter: Filter): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
+  public async find(filter: Filter): Promise<OutputDTO[]> {
     return this.get()
   }
 
@@ -52,17 +52,14 @@ export class MemoryConnector<
    *
    * @param data
    */
-  public async insert(data: InputDTO): Promise<DaoOutput<InputDTO, OutputDTO>> {
-    const goatAttributes = this.getExtendedCreateAttributes()
-
-    const inserted: DaoOutput<InputDTO, OutputDTO> = {
-      ...data,
-      ...goatAttributes
+  public async insert(data: InputDTO): Promise<OutputDTO> {
+    const inserted: InputDTO = {
+      ...data
     }
 
     db.push(inserted)
     this.reset()
-    return inserted
+    return inserted as unknown as OutputDTO
   }
 
   /**
@@ -71,8 +68,8 @@ export class MemoryConnector<
    */
   public async insertMany(
     data: InputDTO[]
-  ): Promise<DaoOutput<InputDTO, OutputDTO>[]> {
-    const insertedElements: DaoOutput<InputDTO, OutputDTO>[] = []
+  ): Promise<OutputDTO[]> {
+    const insertedElements: InputDTO[] = []
 
     for (const element of data) {
       const inserted = { ...element, ...insertedElements }
@@ -83,7 +80,7 @@ export class MemoryConnector<
 
     this.reset()
 
-    return insertedElements
+    return insertedElements as unknown as OutputDTO[]
   }
 
   /**
@@ -94,7 +91,7 @@ export class MemoryConnector<
   public async updateById(
     id: string,
     data: InputDTO
-  ): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  ): Promise<OutputDTO> {
     const dbIndex = db.findIndex(obj => obj.id === id)
     db[dbIndex] = {
       ...db[dbIndex],
@@ -109,7 +106,7 @@ export class MemoryConnector<
    *
    * @param id
    */
-  public async findById(id: string): Promise<DaoOutput<InputDTO, OutputDTO>> {
+  public async findById(id: string): Promise<OutputDTO> {
     const dbIndex = db.findIndex(obj => obj.id === id)
     this.reset()
     return db[dbIndex]
@@ -122,7 +119,7 @@ export class MemoryConnector<
   public async deleteById(id: string): Promise<string> {
     const dbIndex = db.findIndex(obj => obj.id === id)
     if (dbIndex > -1) {
-      const element: DaoOutput<InputDTO, OutputDTO> = JSON.parse(
+      const element: {id: string} & OutputDTO = JSON.parse(
         JSON.stringify(db[dbIndex])
       )
       db.splice(dbIndex, 1)
