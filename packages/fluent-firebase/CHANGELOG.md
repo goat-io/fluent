@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.6.16
+
+### Patch Changes
+
+- Update fluent version
+
 ## 0.6.15
 
 ### Patch Changes
