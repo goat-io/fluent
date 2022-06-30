@@ -165,7 +165,7 @@
     "loki-react-native-asyncstorage-adapter": "^1.0.1",
     "lokijs": "^1.5.12",
     "memory-cache": "^0.2.0",
-    "moment": "^2.29.1",
+    "moment": "^2.29.2",
     "mongoose": "^6.2.9",
     "multer": "^1.4.4",
     "multer-azure-blob-storage": "^1.1.0",
