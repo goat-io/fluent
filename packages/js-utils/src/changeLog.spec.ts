@@ -60,6 +60,6 @@ test('Should get advanced Array diffs', () => {
   expect(changelog[1].kind).toBe('ARRAY-EDITED')
   expect(changelog[1].path[0]).toBe('data')
   expect(changelog[1].path[1]).toBe('children')
-  expect(changelog[1].item.kind).toBe('NEW')
-  expect(changelog[1].item.new).toBe('c')
+  expect(changelog[1].item?.kind).toBe('NEW')
+  expect(changelog[1].item?.new).toBe('c')
 })

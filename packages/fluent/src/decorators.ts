@@ -56,12 +56,12 @@ interface hasManyInterface<T> {
   inverse: string | ((object: T) => any)
 }
 
-export const Decorators = (() => {
+export class DecoratorsClass {
   /**
    *
    * @param spec
    */
-  const id = (isMongo?: boolean): PropertyDecorator => {
+  public id(isMongo?: boolean): PropertyDecorator {
     isMongo = false
 
     if (process.env.MAIN_DATABASE_TYPE === 'mongodb' || isMongo) {
@@ -87,7 +87,7 @@ export const Decorators = (() => {
    *
    * @param name
    */
-  const entity = (name: string): ClassDecorator => {
+  public entity(name: string): ClassDecorator {
     // TODO implement pascal case for this
     const PascalCase = name
     return applyDecorators(
@@ -100,7 +100,7 @@ export const Decorators = (() => {
    *
    * @param params
    */
-  const property = (params?: PropertyInterface): PropertyDecorator => {
+  public property(params?: PropertyInterface): PropertyDecorator {
     if (params && params.hidden) {
       return applyDecorators(
         HideField(),
@@ -130,18 +130,20 @@ export const Decorators = (() => {
    *
    * @param e
    */
-  const embed = (e: any): PropertyDecorator =>
-    applyDecorators(
+  public embed(e: any): PropertyDecorator {
+    return applyDecorators(
       Column(type => e) as PropertyDecorator,
       ApiProperty({ type: e })
       // Attribute({ memberType: dynamoEmbed(e) })
     )
+  }
+
   /**
    *
    * @param e
    */
-  const embedArray = (e: any, params?: PropertyInterface): PropertyDecorator =>
-    applyDecorators(
+  public embedArray(e: any, params?: PropertyInterface): PropertyDecorator {
+    return applyDecorators(
       Column(type => e) as PropertyDecorator,
       ApiProperty({
         isArray: true,
@@ -150,12 +152,14 @@ export const Decorators = (() => {
         required: !!params.required
       })
     )
+  }
+
   /**
    *
    * @param params
    */
-  const array = (e: any, params?: PropertyInterface): PropertyDecorator =>
-    applyDecorators(
+  public stringArray(e: any, params?: PropertyInterface): PropertyDecorator {
+    return applyDecorators(
       Column({
         type: 'simple-array',
         nullable: !params?.required
@@ -166,16 +170,15 @@ export const Decorators = (() => {
         required: !!params?.required
       })
     )
+  }
+
   /**
    *
    * @param e
    * @param params
    */
-  const Enum = (
-    e: EnumProperty,
-    params?: PropertyInterface
-  ): PropertyDecorator =>
-    applyDecorators(
+  public Enum(e: EnumProperty, params?: PropertyInterface): PropertyDecorator {
+    return applyDecorators(
       // Attribute(),
       Column({
         type: 'enum',
@@ -190,33 +193,41 @@ export const Decorators = (() => {
         required: !!params.required
       })
     )
-  /**
-   *
-   * @param e
-   */
-  const created = (e?: any): PropertyDecorator =>
-    applyDecorators(CreateDateColumn(), ApiProperty())
-  /**
-   *
-   * @param e
-   */
-  const updated = (e?: any): PropertyDecorator =>
-    applyDecorators(UpdateDateColumn(), ApiProperty())
-  /**
-   *
-   * @param e
-   */
-  const deleted = (e?: any): PropertyDecorator =>
-    applyDecorators(DeleteDateColumn(), ApiProperty())
-  /**
-   *
-   * @param e
-   */
-  const version = (e?: any): PropertyDecorator =>
-    applyDecorators(VersionColumn(), ApiProperty())
+  }
 
-  function belongsToMany<T>({
-    // tslint:disable-next-line: no-shadowed-variable
+  /**
+   *
+   * @param e
+   */
+  public created(e?: any): PropertyDecorator {
+    return applyDecorators(CreateDateColumn(), ApiProperty())
+  }
+
+  /**
+   *
+   * @param e
+   */
+  public updated(e?: any): PropertyDecorator {
+    return applyDecorators(UpdateDateColumn(), ApiProperty())
+  }
+
+  /**
+   *
+   * @param e
+   */
+  public deleted(e?: any): PropertyDecorator {
+    return applyDecorators(DeleteDateColumn(), ApiProperty())
+  }
+
+  /**
+   *
+   * @param e
+   */
+  public version(e?: any): PropertyDecorator {
+    return applyDecorators(VersionColumn(), ApiProperty())
+  }
+
+  public belongsToMany<T>({
     entity,
     joinTableName,
     foreignKey,
@@ -232,8 +243,7 @@ export const Decorators = (() => {
     )
   }
 
-  function belongsTo<T>({
-    // tslint:disable-next-line: no-shadowed-variable
+  public belongsTo<T>({
     entity,
     inverse,
     pivotColumnName
@@ -244,28 +254,12 @@ export const Decorators = (() => {
     )
   }
 
-  function hasMany<T>({
-    // tslint:disable-next-line: no-shadowed-variable
+  public hasMany<T>({
     entity,
     inverse
   }: hasManyInterface<T>): PropertyDecorator {
     return applyDecorators(OneToMany(entity, inverse))
   }
+}
 
-  return Object.freeze({
-    id,
-    entity,
-    property,
-    embed,
-    embedArray,
-    array,
-    Enum,
-    created,
-    updated,
-    version,
-    deleted,
-    belongsToMany,
-    hasMany,
-    belongsTo
-  })
-})()
+export const Decorators = new DecoratorsClass()

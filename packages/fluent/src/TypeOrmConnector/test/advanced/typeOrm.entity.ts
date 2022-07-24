@@ -1,26 +1,29 @@
+import { z } from 'zod'
 import { Decorators } from '../../../decorators'
 
-// tslint:disable-next-line: max-classes-per-file
+
 export class FurtherNested {
-  @Decorators.property({ required: true })
+  @Decorators.property({ required: false })
   c: boolean
 
-  @Decorators.array({ required: true })
-  d: number[]
+  @Decorators.stringArray({ required: true })
+  d: string[]
 }
 
-// tslint:disable-next-line: max-classes-per-file
-export class Nested {
-  @Decorators.array({ required: true })
-  a: number[]
 
-  @Decorators.property({ required: true })
+export class Nested {
+  // Array can only be string in SQLite
+  @Decorators.stringArray({ required: true })
+  a: string[]
+
+  // Non array props of a optional nested object cannot be required
+  @Decorators.property({ required: false })
   c: number
 
   @Decorators.embed(FurtherNested)
   b?: FurtherNested
 }
-// tslint:disable-next-line: max-classes-per-file
+
 @Decorators.entity('numbers')
 export class TypeORMDataModel {
   @Decorators.id()
@@ -30,7 +33,11 @@ export class TypeORMDataModel {
   created?: string
 
   @Decorators.embed(Nested)
-  nestedTest?: Nested
+  nestedTest?: Nested | undefined
+
+
+  @Decorators.embed(Nested)
+  nonNullNested: Nested
 
   @Decorators.property({ required: false })
   order?: number
@@ -38,3 +45,26 @@ export class TypeORMDataModel {
   @Decorators.property({ required: true })
   test: boolean
 }
+
+export const FurtherNestedSchema = z.object({
+  c: z.boolean(),
+  d: z.string().array()
+})
+
+export const NestedSchema = z.object({
+  a: z.string().array(),
+  c: z.number(),
+  b: FurtherNestedSchema.optional()
+})
+
+export const TypeORMDataModelSchema = z.object({
+  id: z.string().optional(),
+  created: z.string().optional(),
+  order: z.number().optional(),
+  nestedTest: NestedSchema.optional(),
+  nonNullNested: NestedSchema,
+  test: z.boolean()
+})
+
+
+export type TypeORMDataModelInputSchema = z.infer<typeof TypeORMDataModelSchema>

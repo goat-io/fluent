@@ -105,6 +105,8 @@ const simpleSubmission = {
 }
 
 const fuzzy = ['data.name', 'data.lastName']
+const expectedNgram =
+  'P Pe Ped edr dro Pedr edro Pedro C Ca Cab abr bre rer era Cabr abre brer rera Cabre abrer brera Cabrer abrera Cabrera'
 
 test('Should Generate Ngram from array Submission', () => {
   const generatedNgram = Strings.ngramFromObject({
@@ -112,7 +114,14 @@ test('Should Generate Ngram from array Submission', () => {
     object: simpleSubmission
   })
 
-  expect(generatedNgram).toBe(
-    'P Pe Ped edr dro Pedr edro Pedro C Ca Cab abr bre rer era Cabr abre brer rera Cabre abrer brera Cabrer abrera Cabrera'
-  )
+  expect(generatedNgram).toBe(expectedNgram)
+})
+
+test('Should Generate Ngram from array', () => {
+  const generatedNgram = Strings.ngramFromArray([
+    simpleSubmission.data.name,
+    simpleSubmission.data.lastName
+  ])
+
+  expect(generatedNgram).toBe(expectedNgram)
 })

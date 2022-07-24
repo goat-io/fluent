@@ -19,13 +19,24 @@ beforeAll(async done => {
 })
 
 describe('Execute all basic test Suite', () => {
-  basicTestSuite(GoatRepository)
+  // basicTestSuite(GoatRepository)
 })
 
-describe('Execute all advanced test Suite', () => {
- advancedTestSuite(TypeOrmRepository)
+describe('Execute all advanced test Suite', async () => {
+  const a = new TypeOrmRepository()
+
+  const b = await a.findMany({
+    select: {
+      created: true,
+      order: true,
+      test: true,
+      nonNullNested: {c: true},
+      nestedTest: { c: true, a: true, b: { c: true, d: true } }
+    }
+  })
+  advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {
-  relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
+  //relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })

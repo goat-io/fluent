@@ -1,3 +1,5 @@
+import { TypeORMDataModelInputSchema, TypeORMDataModelSchema } from "./typeOrm.entity"
+
 export const advancedTestSuite = Model => {
   beforeAll(() => {
     try {
@@ -11,18 +13,19 @@ export const advancedTestSuite = Model => {
     await Repository.insert({
       created: '2018-12-03',
       nestedTest: {
-        a: [6, 5, 4],
-        b: { c: true, d: [2, 1, 0] },
+        a: ["6", "5", "4"],
+        b: { c: true, d: ["2", "1", "0"] },
         c: 4
       },
       order: 1,
       test: true
     })
+    
     await Repository.insert({
       created: '2017-12-03',
       nestedTest: {
-        a: [3, 2, 1],
-        b: { c: true, d: [1, 1, 0] },
+        a: ["3", "2", "1"],
+        b: { c: true, d: ["1", "1", "0"] },
         c: 3
       },
       order: 2,
@@ -31,28 +34,45 @@ export const advancedTestSuite = Model => {
     await Repository.insert({
       created: '2016-12-03',
       nestedTest: {
-        a: [0, -1, -2],
-        b: { c: true, d: [0, 1, 0] },
+        a: ["0", "-1", "-2"],
+        b: { c: true, d: ["0", "1", "0"] },
         c: 2
       },
       order: 3,
       test: false
     })
+    
   }
 
   it('Should get local data', async () => {
     await insertTestData(Model)
-    const data = await Model.all()
+    const data =  await Model.findMany()
     expect(Array.isArray(data)).toBe(true)
     expect(typeof data[0].nestedTest.b.c).toBe('boolean')
   })
 
   it('pluck() should return a single array', async () => {
     await insertTestData(Model)
-    const data = await Model.pluck(keys=> keys.test)
+    const data = await Model.pluck({test: true})
     expect(typeof data[0]).toBe('boolean')
   })
 
+  it('limit() should limit the amount of results', async () => {
+    await insertTestData(Model)
+    const forms = await Model.findMany({
+      select: {
+        created: true,
+        order: true
+      },
+      limit: 2,
+      orderBy: [{created: 'asc'}]
+    }) 
+    
+    expect(forms.length > 0).toBe(true)
+    expect(forms.length <= 2).toBe(true)
+  })
+
+  /*
   it('orderBy() should order results desc', async () => {
     await insertTestData(Model)
     const forms = await Model.select(
@@ -91,16 +111,7 @@ export const advancedTestSuite = Model => {
     expect(forms[0].order).toBe(3)
   })
 
-  it('limit() should limit the amount of results', async () => {
-    await insertTestData(Model)
-    const forms = await Model.select(keys => [keys.created, keys.order])
-      .orderBy(keys => keys.created, 'asc', 'date')
-      .limit(2)
-      .get()
-    console.log('FOOORMS LENGTH', forms[0])
-    expect(forms.length > 0).toBe(true)
-    expect(forms.length <= 2).toBe(true)
-  })
+ 
 
   it('offset() should start at the given position', async () => {
     await insertTestData(Model)

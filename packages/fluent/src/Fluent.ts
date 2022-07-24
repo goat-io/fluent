@@ -1,6 +1,6 @@
 import { typedPath } from 'typed-path'
 import { DataSource } from 'typeorm'
-import { BaseDataElement, Primitives } from './types'
+import { AnyObject, Primitives } from './types'
 import { Collection } from '@goatlab/js-utils'
 import { modelGeneratorDataSource } from './generatorDatasource'
 
@@ -34,7 +34,7 @@ if (global && !global._FLUENT_) {
 }
 
 export class Fluent {
-  private static registerModel<T = BaseDataElement>(name?: string) {
+  private static registerModel<T = AnyObject>(name?: string) {
     if (!name || name === 'baseModel') {
       return
     }
@@ -49,7 +49,7 @@ export class Fluent {
   /**
    *
    */
-  public static model<T = BaseDataElement>(name: string): any {
+  public static model<T = AnyObject>(name: string): any {
     this.registerModel<T>(name)
     return typedPath<T>()
   }
@@ -58,7 +58,7 @@ export class Fluent {
    *
    * @param args
    */
-  public static collect<T = BaseDataElement | Primitives>(
+  public static collect<T = AnyObject | Primitives>(
     data: T[]
   ): Collection<T> {
     return new Collection<T>(data)

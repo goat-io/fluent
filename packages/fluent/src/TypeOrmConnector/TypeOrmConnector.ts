@@ -1,3 +1,5 @@
+import { Primitives } from './../../../js-utils/src/types'
+import { LogicOperator, PrimitivesArray, QueryOutput } from './../types'
 /**
  * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
  */
@@ -23,14 +25,15 @@ import { loadRelations } from '../loadRelations'
 import { BaseConnector, FluentConnectorInterface } from '../BaseConnector'
 import { getOutputKeys } from '../outputKeys'
 import type {
-  Filter,
-  BaseDataElement,
+  AnyObject,
+  FluentQuery,
   PaginatedData,
   Paginator,
-  Sure
+  QueryInsert
 } from '../types'
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
+import { z } from 'zod'
 
 export const getRelations = typeOrmRepo => {
   const relations = {}
@@ -53,20 +56,40 @@ export const getRelations = typeOrmRepo => {
   }
 }
 
-// tslint:disable-next-line: max-classes-per-file
-export class TypeOrmConnector<ModelDTO = BaseDataElement,
-  InputDTO = ModelDTO,
-  OutputDTO = InputDTO>
+export interface TypeOrmConnectorParams<Input, Output> {
+  entity: any
+  dataSource: DataSource
+  inputSchema: z.ZodType<Input>
+  outputSchema?: z.ZodType<Output>
+  relationQuery?: any
+}
+export class TypeOrmConnector<
+    ModelDTO = AnyObject,
+    InputDTO = ModelDTO,
+    OutputDTO = InputDTO
+  >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, OutputDTO> {
+  implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
+{
   private readonly repository: Repository<ModelDTO>
 
   private readonly dataSource: DataSource
 
-  constructor(entity: any, dataSource: DataSource, relationQuery?: any) {
+  private readonly inputSchema: z.ZodType<InputDTO>
+
+  private readonly outputSchema: z.ZodType<OutputDTO> | undefined
+
+  constructor({
+    entity,
+    dataSource,
+    inputSchema,
+    outputSchema
+  }: TypeOrmConnectorParams<InputDTO, OutputDTO>) {
     super()
     this.dataSource = dataSource
-    this.relationQuery = relationQuery
+    this.inputSchema = inputSchema
+    this.outputSchema =
+      outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
     this.repository = this.dataSource.getRepository(entity)
     const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
     const { relations } = getRelations(relationShipBuilder)
@@ -80,114 +103,38 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
   }
 
   /**
-   *
+   * Insert the data object into the database.
+   * @param data
    */
-  public async get(): Promise<OutputDTO[]> {
-    const query = this.getGeneratedQuery()
+  public async insert(data: InputDTO): Promise<OutputDTO> {
+    // Validate Input
+    const validatedData = this.inputSchema.parse(data)
 
-    const result: any = await this.repository.find(query)
-
-    let data = this.jsApplySelect(result)
-
-    data = await loadRelations({
-      data,
-      relations: this.relations,
-      modelRelations: this.modelRelations,
-      dataSource: this.dataSource,
-      provider: 'typeorm',
-      self: this
-    })
-
-    this.reset()
-    return data
-  }
-
-  /**
-   *
-   */
-  public async getPaginated(): Promise<PaginatedData<OutputDTO>> {
-    const response: any = await this.get()
-
-    const results: PaginatedData<OutputDTO> = {
-      current_page: response[0].meta.currentPage,
-      data: response[0].data,
-      first_page_url: response[0].meta.firstPageUrl,
-      next_page_url: response[0].meta.nextPageUrl,
-      path: response[0].meta.path,
-      per_page: response[0].meta.itemsPerPage,
-      prev_page_url: response[0].meta.previousPageUrl,
-      total: response[0].meta.totalItemCount
-    }
-
-    if (results && results.data && this.selectArray.length > 0) {
-      results.data = this.jsApplySelect(results.data)
-      return results
-    }
-    return results
-  }
-
-  /**
-   *
-   */
-  public async all(): Promise<OutputDTO[]> {
-    return this.get()
-  }
-
-  /**
-   *
-   * @param filter
-   */
-  public async find(
-    filter: Filter = {}
-  ): Promise<OutputDTO[]> {
-    const stringFilter: string = filter as string
-    let parsedFilter: any = {}
-    try {
-      parsedFilter = JSON.parse(stringFilter)
-    } catch (error) {
-      parsedFilter = {}
-    }
-
-    this.selectArray = (parsedFilter && parsedFilter.fields) || []
-    this.whereArray =
-      (parsedFilter && parsedFilter.where && parsedFilter.where.and) || []
-    this.orWhereArray =
-      (parsedFilter && parsedFilter.where && parsedFilter.where.or) || []
-    this.limit(
-      (parsedFilter && (parsedFilter.limit || parsedFilter.take)) || 100
-    )
-    this.offset(
-      (parsedFilter && (parsedFilter.offset || parsedFilter.skip)) || 0
+    // Only Way to Skip the DeepPartial requirement from TypeORm
+    const datum = await this.repository.save(
+      validatedData as unknown as DeepPartial<ModelDTO>
     )
 
-    if (parsedFilter && parsedFilter.order) {
-      const orderB = [
-        parsedFilter.order.field,
-        parsedFilter.order.asc ? 'asc' : 'desc',
-        parsedFilter.order.type || 'string'
-      ]
-      this.chainReference.push({ method: 'orderBy', orderB })
-      this.orderByArray = orderB
-    }
-
-    return this.get()
+    // Validate Output
+    return this.outputSchema.parse(
+      this.clearEmpties(Objects.deleteNulls(datum))
+    )
   }
 
-  /**
-   *
-   * @param paginator
-   */
-  public async paginate(
-    paginator: Paginator
-  ): Promise<PaginatedData<OutputDTO>> {
-    if (!paginator) {
-      throw new Error('Paginator cannot be empty')
-    }
-    this.paginator = paginator
+  public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
+    const validatedData = this.inputSchema.array().parse(data)
 
-    const response = await this.getPaginated()
+    //
+    const inserted = await this.repository.save(
+      validatedData as unknown as DeepPartial<ModelDTO[]>,
+      {
+        chunk: data.length / 300
+      }
+    )
 
-    return response
+    return this.outputSchema
+      .array()
+      .parse(inserted.map(d => this.clearEmpties(Objects.deleteNulls(d))))
   }
 
   /**
@@ -202,67 +149,293 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
     return this.repository
   }
 
-  /**
-   * Insert the model to the database.
-   * @param data
-   */
-  public async insert(data: InputDTO): Promise<OutputDTO> {
-    const datum = await this.repository.save(
-      data as unknown as DeepPartial<ModelDTO>
-    )
-
-    const result = this.jsApplySelect([datum]) as OutputDTO[]
-
-    this.reset()
-    return result[0]
+  public async findMany<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>[]> {
+    const found = await this.repository.find(this.generateTypeOrmQuery(query))
+    // Validate Output against schema
+    return this.outputSchema
+      .array()
+      .parse(
+        found.map(d => this.clearEmpties(Objects.deleteNulls(d)))
+      ) as QueryOutput<T, ModelDTO, OutputDTO>[]
   }
 
-  /**
-   *
-   * @param data
-   */
-  public async insertMany(
-    data: InputDTO[]
-  ): Promise<OutputDTO[]> {
-    const inserted = await this.repository.save(
-      data as unknown as DeepPartial<ModelDTO>,
-      {
-        chunk: data.length / 300
+  private generateTypeOrmQuery(query?: FluentQuery<ModelDTO>): FindManyOptions {
+    let filter: FindManyOptions = {}
+
+    filter.where = this.isMongoDB ? {} : this.getTypeOrmWhere(query?.where)
+
+    filter.take = query?.limit
+    filter.skip = query?.offset
+    filter.select = query?.select
+    filter.order = this.getOrderBy(query?.orderBy)
+
+    // TODO: we will bring the full relation Object, we should be able to filter down properties
+    filter.relations = Object.keys(query?.include || {})
+
+    // filter = this.getPaginatorLimit(filter)
+    // const page = this.getPage()
+
+    return filter
+  }
+
+  private getTypeOrmWhere(
+    where?: FluentQuery<ModelDTO>['where']
+  ): FindManyOptions['where'] {
+    /*
+    TODO: related Searches
+    if (this.relationQuery && this.relationQuery.data) {
+      const ids = this.relationQuery.data.map(d => d.id)
+
+      andFilters.push([
+        this.relationQuery.relation.inverseSidePropertyPath,
+        'in',
+        ids
+      ])
+    }
+    */
+
+    if (!where || Object.keys(where).length === 0) {
+      return {}
+    }
+
+    // Every element of the array is an OR
+    const Filters = { where: [{}] }
+
+    const orConditions = this.extractConditions(where['OR'])
+    const andConditions = this.extractConditions(where['AND'])
+
+    const copy = Objects.clone(where)
+    if (!!copy['AND']) {
+      delete copy['AND']
+    }
+
+    if (!!copy['OR']) {
+      delete copy['OR']
+    }
+
+    const rootLevelConditions = this.extractConditions([copy])
+
+    for (const condition of andConditions) {
+      const { element, operator, value } = condition
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Equal(value) }
+          })
+          break
+        case LogicOperator.isNot:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Not(Equal(value)) }
+          })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: MoreThan(value) }
+          })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: MoreThanOrEqual(value) }
+          })
+          break
+        case LogicOperator.lessThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: LessThan(value) }
+          })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: LessThanOrEqual(value) }
+          })
+          break
+        case LogicOperator.in:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: In(value as string[]) }
+          })
+          break
+        case LogicOperator.notIn:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Not(In(value as string[])) }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Not(IsNull()) }
+          })
+          break
+        case LogicOperator.notExists:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: IsNull() }
+          })
+          break
+        case LogicOperator.regexp:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Like(value) }
+          })
+          break
       }
-    )
-    this.reset()
-    const result = this.jsApplySelect(inserted) as OutputDTO[]
-    return result
+    }
+
+    for (const condition of rootLevelConditions) {
+      const { element, operator, value } = condition
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Equal(value) }
+          })
+          break
+        case LogicOperator.isNot:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Not(Equal(value)) }
+          })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: MoreThan(value) }
+          })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: MoreThanOrEqual(value) }
+          })
+          break
+        case LogicOperator.lessThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: LessThan(value) }
+          })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: LessThanOrEqual(value) }
+          })
+          break
+        case LogicOperator.in:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: In(value as string[]) }
+          })
+          break
+        case LogicOperator.notIn:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Not(In(value as string[])) }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Not(IsNull()) }
+          })
+          break
+        case LogicOperator.notExists:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: IsNull() }
+          })
+          break
+        case LogicOperator.regexp:
+          Filters.where[0] = Objects.nest({
+            ...Filters.where[0],
+            ...{ [element]: Like(value) }
+          })
+          break
+      }
+    }
+
+    for (const condition of orConditions) {
+      const { element, operator, value } = condition
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where.push({ [element]: Equal(value) })
+          break
+        case LogicOperator.isNot:
+          Filters.where.push({ [element]: Not(Equal(value)) })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where.push({ [element]: MoreThan(value) })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where.push({ [element]: MoreThanOrEqual(value) })
+          break
+        case LogicOperator.lessThan:
+          Filters.where.push({ [element]: LessThan(value) })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where.push({ [element]: LessThanOrEqual(value) })
+          break
+        case LogicOperator.in:
+          Filters.where.push({ [element]: In(value as string[]) })
+          break
+        case LogicOperator.notIn:
+          Filters.where.push({ [element]: Not(In(value as string[])) })
+          break
+        case LogicOperator.exists:
+          Filters.where.push({ [element]: Not(IsNull()) })
+          break
+        case LogicOperator.notExists:
+          Filters.where.push({ [element]: IsNull() })
+          break
+        case LogicOperator.regexp:
+          Filters.where.push({ [element]: Like(value) })
+          break
+      }
+    }
+
+    return Filters.where
   }
 
   /**
    * PATCH operation
    * @param data
    */
-  public async updateById(
-    id: string,
-    data: InputDTO
-  ): Promise<OutputDTO> {
+  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
-        ...data,
-        ...{ updated: new Date() }
-      }
+          ...data,
+          ...{ updated: new Date() }
+        }
       : data
 
-    await this.repository.update(id, dataToInsert)
+    const validatedData = this.inputSchema.parse(dataToInsert)
 
-    const dbResult = await this.repository.findBy({
-      id: In([parsedId])
-    } as unknown as FindOptionsWhere<ModelDTO>)
+    await this.repository.update(id, validatedData)
 
-    const result = this.jsApplySelect(dbResult) as OutputDTO[]
-    this.reset()
-    return result[0]
+    const dbResult = await this.repository.findOneOrFail({
+      where: {
+        id: parsedId
+      } as unknown as FindOptionsWhere<ModelDTO>
+    })
+
+    // Validate Output
+    return this.outputSchema.parse(
+      this.clearEmpties(Objects.deleteNulls(dbResult))
+    )
   }
 
   /**
@@ -273,10 +446,7 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
    * @param id
    * @param data
    */
-  public async replaceById(
-    id: string,
-    data: InputDTO
-  ): Promise<OutputDTO> {
+  public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
@@ -302,12 +472,14 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
-        ...data,
-        ...{ updated: new Date() }
-      }
+          ...data,
+          ...{ updated: new Date() }
+        }
       : data
 
-    await this.repository.update(id, dataToInsert)
+    const validatedData = this.inputSchema.parse(dataToInsert)
+
+    await this.repository.update(id, validatedData)
 
     const val = await this.repository.findOneOrFail({
       where: {
@@ -315,310 +487,15 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
       } as unknown as FindOptionsWhere<ModelDTO>
     })
 
-    const returnValue = this.jsApplySelect([val]) as OutputDTO[]
-
-    this.reset()
-
-    return returnValue[0]
-  }
-
-  /**
-   *
-   * @param param0
-   */
-  public async clear({ sure }: Sure) {
-    if (!sure || sure !== true) {
-      throw new Error(
-        'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
-      )
-    }
-
-    await this.repository.clear()
-    this.reset()
-    return true
-  }
-
-  /**
-   *
-   * @param id
-   */
-  public async deleteById(id: string): Promise<string> {
-    const parsedId = this.isMongoDB
-      ? (new ObjectId(id) as unknown as ObjectID)
-      : id
-
-    await this.repository.delete(parsedId)
-    this.reset()
-    return id
-  }
-
-  /**
-   *
-   * @param id
-   */
-  public async findById(id: string): Promise<OutputDTO> {
-    const parsedId = this.isMongoDB
-      ? (new ObjectId(id) as unknown as ObjectID)
-      : id
-
-    const data = await this.repository.findBy({
-      id: In([parsedId])
-    } as unknown as FindOptionsWhere<ModelDTO>)
-
-    const result = this.jsApplySelect(data) as OutputDTO[]
-    this.reset()
-    return result[0]
-  }
-
-  /**
-   *
-   * @param ids
-   */
-  public async findByIds(ids: string[]): Promise<OutputDTO[]> {
-    const parsedIds = [...ids]
-    if (this.isMongoDB) {
-      parsedIds.map(id => (new ObjectId(id) as unknown as ObjectID))
-    }
-
-    const data = await this.repository.findBy({
-      id: In(parsedIds)
-    } as unknown as FindOptionsWhere<ModelDTO>)
-
-    const result = this.jsApplySelect(data) as OutputDTO[]
-    return result
-  }
-
-  /**
-   *
-   */
-  private getPage() {
-    const page = 'page='
-    if (this.paginator && this.paginator.page) {
-      return `${page + this.paginator.page}&`
-    }
-
-    return ''
+    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
   }
 
   /**
    *
    * @param filter
    */
-  private getPaginatorLimit(filter) {
-    if (this.paginator && this.paginator.perPage) {
-      return { ...filter, limit: this.paginator.perPage }
-    }
-
-    return filter
-  }
-
-  /**
-   *
-   */
-  private getPopulate() {
-    const populate = []
-    this.populateArray.forEach(relation => {
-      if (typeof relation === 'string') {
-        populate.push({ relation })
-      } else if (Array.isArray(relation)) {
-        relation.forEach(nestedRelation => {
-          if (typeof nestedRelation === 'string') {
-            populate.push({ relation: nestedRelation })
-          } else if (typeof nestedRelation === 'object') {
-            populate.push(nestedRelation)
-          }
-        })
-      } else if (typeof relation === 'object') {
-        populate.push(relation)
-      }
-    })
-
-    return populate
-  }
-
-  /**
-   *
-   */
-  private getGeneratedQuery(): FindManyOptions {
-    let filter: any = {}
-    filter = this.isMongoDB
-      ? this.getMongoFilters(filter)
-      : this.getFilters(filter)
-
-    filter = this.getLimit(filter)
-    filter = this.getSkip(filter)
-    filter = this.getSelect(filter)
-    filter = this.getOrderBy(filter)
-    filter = this.getPaginatorLimit(filter)
-    const page = this.getPage()
-    const populate = this.getPopulate()
-
-    if (this.rawQuery) {
-      filter.relations = populate || this.rawQuery.populate
-      filter.take = filter.take || this.rawQuery.limit
-      filter.skip = filter.skip || this.rawQuery.skip
-      filter.order = filter.order || this.rawQuery.order
-      filter.select = { ...filter.select, ...this.rawQuery.fields }
-      // const where = filter.where && filter.where.and ? filter.where.and[0] : {}
-      filter.where = { ...this.rawQuery.where }
-    }
-
-    return filter
-  }
-
-  /**
-   *
-   * @param filters
-   */
-  private getFilters(filters: FindManyOptions) {
-    const andFilters = this.whereArray
-    const orFilters = this.orWhereArray
-
-    if (this.relationQuery && this.relationQuery.data) {
-      const ids = this.relationQuery.data.map(d => d.id)
-
-      andFilters.push([
-        this.relationQuery.relation.inverseSidePropertyPath,
-        'in',
-        ids
-      ])
-    }
-
-    if (!andFilters || andFilters.length === 0) {
-      return filters
-    }
-
-    const Filters = { where: [{}] }
-
-    // Apply and conditions
-    andFilters.forEach(condition => {
-      const element = condition[0]
-      const operator = condition[1]
-      const value = condition[2]
-
-      switch (operator) {
-        case '=':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Equal(value) }
-          })
-          break
-        case '!=':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(Equal(value)) }
-          })
-          break
-        case '>':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: MoreThan(value) }
-          })
-          break
-        case '>=':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: MoreThanOrEqual(value) }
-          })
-          break
-        case '<':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: LessThan(value) }
-          })
-          break
-        case '<=':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: LessThanOrEqual(value) }
-          })
-          break
-        case 'in':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: In(value) }
-          })
-          break
-        case 'nin':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(In(value)) }
-          })
-          break
-        case 'exists':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(IsNull()) }
-          })
-          break
-        case '!exists':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: IsNull() }
-          })
-          break
-        case 'regexp':
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Like(value) }
-          })
-          break
-      }
-    })
-    // Apply or conditions
-    orFilters.forEach(condition => {
-      const element = condition[0]
-      const operator = condition[1]
-      const value = condition[2]
-
-      switch (operator) {
-        case '=':
-          Filters.where.push({ [element]: Equal(value) })
-          break
-        case '!=':
-          Filters.where.push({ [element]: Not(Equal(value)) })
-          break
-        case '>':
-          Filters.where.push({ [element]: MoreThan(value) })
-          break
-        case '>=':
-          // here
-          Filters.where.push(
-            Objects.nest({ [element]: MoreThanOrEqual(value) })
-          )
-          break
-        case '<':
-          Filters.where.push({ [element]: LessThan(value) })
-          break
-        case '<=':
-          Filters.where.push({ [element]: LessThanOrEqual(value) })
-          break
-        case 'in':
-          Filters.where.push({ [element]: In(value) })
-          break
-        case 'nin':
-          Filters.where.push({ [element]: Not(In(value)) })
-          break
-        case 'exists':
-          Filters.where.push({ [element]: Not(IsNull()) })
-          break
-        case '!exists':
-          Filters.where.push({ [element]: IsNull() })
-          break
-        case 'regexp':
-          Filters.where.push({ [element]: Like(value) })
-          break
-      }
-    })
-
-    return Filters
-  }
-
-  /**
-   *
-   * @param filter
-   */
-  public getMongoFilters(filters) {
+  /*
+  public getTypeOrmMongoWhere(where: FluentQuery<ModelDTO>['where']) : FindManyOptions['where'] {
     const andFilters = this.whereArray
     const orFilters = this.orWhereArray
 
@@ -695,73 +572,233 @@ export class TypeOrmConnector<ModelDTO = BaseDataElement,
     return Filters
   }
 
+  // /**
+  //  *
+  //  */
+  // public async get(): Promise<OutputDTO[]> {
+  //   const query = this.generateTypeOrmQuery()
+
+  //   const result: any = await this.repository.find(query)
+
+  //   let data = this.jsApplySelect(result)
+
+  //   data = await loadRelations({
+  //     data,
+  //     relations: this.relations,
+  //     modelRelations: this.modelRelations,
+  //     dataSource: this.dataSource,
+  //     provider: 'typeorm',
+  //     self: this
+  //   })
+  //   return data
+  // }
+
+  // private async PostProcessResults() {}
+
+  // public async requireById(
+  //   id: string,
+  //   select?: FluentQuery<ModelDTO>['select'],
+  //   include?: FluentQuery<ModelDTO>['include']
+  // ): Promise<OutputDTO> {
+  //   const query = {
+  //     where: {
+  //       id,
+  //       limit: 1
+  //     },
+  //     select,
+  //     include
+  //   } as FluentQuery<ModelDTO>
+
+  //   const generatedQuery = this.generateTypeOrmQuery(query)
+  //   const result: any = await this.repository.find(generatedQuery)
+  //   let data = this.jsApplySelect(result)
+
+  //   if (!data[0]) {
+  //     throw new Error('')
+  //   }
+
+  //   return data[0] || null
+  // }
+
+  // /**
+  //  *
+  //  */
+  // public async getPaginated(): Promise<PaginatedData<OutputDTO>> {
+  //   const response: any = await this.get()
+
+  //   const results: PaginatedData<OutputDTO> = {
+  //     current_page: response[0].meta.currentPage,
+  //     data: response[0].data,
+  //     first_page_url: response[0].meta.firstPageUrl,
+  //     next_page_url: response[0].meta.nextPageUrl,
+  //     path: response[0].meta.path,
+  //     per_page: response[0].meta.itemsPerPage,
+  //     prev_page_url: response[0].meta.previousPageUrl,
+  //     total: response[0].meta.totalItemCount
+  //   }
+
+  //   if (results && results.data && this.selectArray.length > 0) {
+  //     results.data = this.jsApplySelect(results.data)
+  //     return results
+  //   }
+  //   return results
+  // }
+
+  // /**
+  //  *
+  //  */
+  // public async all(): Promise<OutputDTO[]> {
+  //   return this.get()
+  // }
+
+  // /**
+  //  *
+  //  * @param paginator
+  //  */
+  // public async paginate(
+  //   paginator: Paginator
+  // ): Promise<PaginatedData<OutputDTO>> {
+  //   if (!paginator) {
+  //     throw new Error('Paginator cannot be empty')
+  //   }
+  //   this.paginator = paginator
+
+  //   const response = await this.getPaginated()
+
+  //   return response
+  // }
+
+  // /**
+  //  *
+  //  * Returns the TypeOrm Repository, you can use it
+  //  * form more complex queries and to get
+  //  * the TypeOrm query builder
+  //  *
+  //  * @param query
+  //  */
+  // public raw(): Repository<ModelDTO> {
+  //   return this.repository
+  // }
+
+  // /**
+  //  *
+  //  * @param data
+  //  */
+  // public async insertMany(data: QueryInsert<InputDTO>[]): Promise<OutputDTO[]> {
+  //   const inserted = await this.repository.save(
+  //     data as unknown as DeepPartial<ModelDTO>,
+  //     {
+  //       chunk: data.length / 300
+  //     }
+  //   )
+  //   this.reset()
+  //   const result = this.jsApplySelect(inserted) as OutputDTO[]
+  //   return result
+  // }
+
+  // /**
+  //  *
+  //  * @param param0
+  //  */
+  // public async clear(): Promise<boolean> {
+  //   await this.repository.clear()
+  //   return true
+  // }
+
+  // /**
+  //  *
+  //  * @param id
+  //  */
+  // public async deleteById(id: string): Promise<string> {
+  //   const parsedId = this.isMongoDB
+  //     ? (new ObjectId(id) as unknown as ObjectID)
+  //     : id
+
+  //   await this.repository.delete(parsedId)
+  //   this.reset()
+  //   return id
+  // }
+
+  // /**
+  //  *
+  //  * @param id
+  //  */
+  // public async findById(id: string): Promise<OutputDTO> {
+  //   const parsedId = this.isMongoDB
+  //     ? (new ObjectId(id) as unknown as ObjectID)
+  //     : id
+
+  //   const data = await this.repository.findBy({
+  //     id: In([parsedId])
+  //   } as unknown as FindOptionsWhere<ModelDTO>)
+
+  //   const result = this.jsApplySelect(data) as OutputDTO[]
+  //   this.reset()
+  //   return result[0]
+  // }
+
+  // /**
+  //  *
+  //  * @param ids
+  //  */
+  // public async findByIds(ids: string[]): Promise<OutputDTO[]> {
+  //   const parsedIds = [...ids]
+  //   if (this.isMongoDB) {
+  //     parsedIds.map(id => new ObjectId(id) as unknown as ObjectID)
+  //   }
+
+  //   const data = await this.repository.findBy({
+  //     id: In(parsedIds)
+  //   } as unknown as FindOptionsWhere<ModelDTO>)
+
+  //   const result = this.jsApplySelect(data) as OutputDTO[]
+  //   return result
+  // }
+
+  /**
+   *
+   */
+  private getPage() {
+    const page = 'page='
+    if (this.paginator && this.paginator.page) {
+      return `${page + this.paginator.page}&`
+    }
+
+    return ''
+  }
+
+  /**
+   *
+   * @param filter
+   */
+  private getPaginatorLimit(filter) {
+    if (this.paginator && this.paginator.perPage) {
+      return { ...filter, limit: this.paginator.perPage }
+    }
+
+    return filter
+  }
+
   /**
    *
    * @param filter
    */
   // TODO order by can have more than 1 element
-  private getOrderBy(filter) {
-    if (!this.orderByArray || this.orderByArray.length === 0) {
-      return filter
+  private getOrderBy(orderBy: FluentQuery<ModelDTO>['orderBy']) {
+    if (!orderBy || orderBy.length === 0) {
+      return {}
     }
 
-    return {
-      ...filter,
-      order: {
-        [this.orderByArray[0]]: this.orderByArray[1].toUpperCase()
+    const order = {}
+
+    for (const orderElement of orderBy) {
+      const flattenOrder = Objects.flatten(orderElement)
+
+      for (const k of Object.keys(flattenOrder)) {
+        order[k] = flattenOrder[k]
       }
     }
-  }
 
-  /**
-   *
-   * @param filter
-   */
-  private getLimit(filter) {
-    if (!this.limitNumber || this.limitNumber === 0) {
-      this.limitNumber = (this.rawQuery && this.rawQuery.limit) || 50
-    }
-
-    return { ...filter, take: this.limitNumber }
-  }
-
-  /**
-   *
-   * @param filter
-   */
-  private getSkip(filter) {
-    if (!this.offsetNumber) {
-      this.offsetNumber = (this.rawQuery && this.rawQuery.skip) || 0
-    }
-
-    return { ...filter, skip: this.offsetNumber }
-  }
-
-  /**
-   *
-   * @param filter
-   */
-  private getSelect(filter) {
-    let select = this.selectArray
-
-    if (Object.keys(select).length === 0 && select.constructor === Object) {
-      select = ['']
-    }
-
-    select = select.map(s => {
-      s = s.split(' as ')[0]
-      s = s.includes('id') ? 'id' : s
-      return s
-    })
-
-    if (select.find(e => e.startsWith('data.'))) {
-      select.unshift('data')
-    }
-
-    if (!select) {
-      return filter
-    }
-
-    return { ...filter, fields: select }
+    return Objects.nest(order)
   }
 }

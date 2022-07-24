@@ -7,11 +7,6 @@ export const basicTestSuite = Model => {
     Model = new Model()
   })
 
-  test('Get - Should  GET data', async () => {
-    const storedGoats = await Model.get()
-    expect(Array.isArray(storedGoats)).toBe(true)
-  })
-
   test('Insert - Should  insert data', async () => {
     const a = await Model.insert({ name: 'myGoat', age: 13 })
     expect(typeof a.id).toBe('string')
@@ -25,9 +20,18 @@ export const basicTestSuite = Model => {
     storedId = insertedFlock[0].id
   })
 
+  test('findMany - Should  GET data', async () => {
+    await Model.insertMany(flock)
+    const storedGoats = await Model.findMany()
+
+    expect(Array.isArray(storedGoats)).toBe(true)
+    expect(typeof storedGoats[0].id).toBe('string')
+  })
+
   it('UpdateById - Should Update a single element', async () => {
     await Model.insertMany(flock)
-    const goats = await Model.get()
+    const goats = await Model.findMany()
+
     const data = await Model.updateById(goats[0].id, {
       age: 99,
       name: 'MyUpdatedGoat'
@@ -38,11 +42,12 @@ export const basicTestSuite = Model => {
 
   it('ReplaceById - Should Update a single element', async () => {
     await Model.insertMany(flock)
-    const goats = await Model.get()
-    const data = await Model.updateById(goats[0].id, {
-      name: 'MyUpdatedGoat'
+    const goats = await Model.findMany()
+    const data = await Model.replaceById(goats[0].id, {
+      age: 2,
+      name: 'MyReplacedGoat'
     })
-    expect(data.name).toBe('MyUpdatedGoat')
+    expect(data.name).toBe('MyReplacedGoat')
     expect(data.id).toBe(goats[0].id)
   })
 }

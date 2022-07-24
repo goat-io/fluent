@@ -10,17 +10,13 @@ import {
   getModelSchemaRef
 } from './core/types'
 import type {
-  BaseDataElement,
+  AnyObject,
   Deleted,
-  Filter,
   LogicOperator,
   PaginatedData,
   Paginator,
-  Paths,
   Primitives,
   PrimitivesArray,
-  Sure,
-  WhereClause
 } from './types'
 import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
 import { Access } from './core/dtos/access.dto'
@@ -68,18 +64,14 @@ interface ValidatedInput<T> {
 }
 
 export type {
-  BaseDataElement,
+  AnyObject as BaseDataElement,
   Deleted,
-  Filter,
   FluentConnectorInterface,
   LogicOperator,
   PaginatedData,
   Paginator,
-  Paths,
   Primitives,
   PrimitivesArray,
-  Sure,
-  WhereClause,
   SchemaObject,
   ValidatedInput
 }

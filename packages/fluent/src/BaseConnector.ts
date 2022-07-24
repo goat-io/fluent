@@ -1,29 +1,23 @@
-import { TypedPathWrapper, typedPath } from 'typed-path'
 import { ObjectID } from 'typeorm'
 import { Objects, Ids, Collection } from '@goatlab/js-utils'
-import { Filter, LogicOperator, Primitives, PrimitivesArray } from './types'
-import { plainToInstance } from 'class-transformer'
-import { validate, ValidationError } from 'class-validator'
+import {
+  FluentQuery,
+  LogicOperator,
+  Primitives,
+  PrimitivesArray,
+  QueryFieldSelector,
+  QueryOutput
+} from './types'
 
-export interface FluentConnectorInterface<InputDTO, OutputDTO> {
-  get(): Promise<OutputDTO[]>
-
-  all(filter: Filter): Promise<OutputDTO[]>
-
-  findById(id: string): Promise<OutputDTO>
-
-  findByIds(id: string[]): Promise<OutputDTO[]>
-
-  find(filter: Filter): Promise<OutputDTO[]>
-
-  deleteById(id: string): Promise<string>
-
-  updateById(id: string, data: InputDTO): Promise<OutputDTO>
-
+export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
+  //findById(id: string): Promise<OutputDTO | null>
+  //findByIds(id: string[]): Promise<OutputDTO[] | null>
+  //requireById(id: string): Promise<OutputDTO>
+  findMany<T extends FluentQuery<ModelDTO>>(query?: T): Promise<QueryOutput<T,ModelDTO, OutputDTO>[]>
+  //deleteById(id: string): Promise<string>
+  //updateById(id: string, data: InputDTO): Promise<OutputDTO>
   insert(data: InputDTO): Promise<OutputDTO>
-
   insertMany(data: InputDTO[]): Promise<OutputDTO[]>
-
   // update(data: T): Promise<T>
   // updateOrCreate(data: T): Promise<T>
   // clear({ sure }: ISure): Promise<string[]>
@@ -37,43 +31,15 @@ export interface FluentConnectorInterface<InputDTO, OutputDTO> {
 
 // tslint:disable-next-line: max-classes-per-file
 export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
-  public generatedKeyPath = typedPath<ModelDTO & InputDTO & OutputDTO>()
-
   protected outputKeys: string[]
-
-  protected chainReference = []
-
-  protected whereArray = []
-
-  protected orWhereArray = []
-
-  protected selectArray = []
-
-  protected forceSelectArray = []
-
-  protected orderByArray = []
-
-  protected limitNumber = 0
-
-  protected offsetNumber = 0
-
-  protected populateArray = []
 
   protected chunk = null
 
   protected pullSize = null
 
-  protected ownerId = undefined
-
   protected paginator = undefined
 
   protected rawQuery = undefined
-
-  protected getFirst = false
-
-  protected relations = undefined
-
-  protected loadModels = false
 
   protected relationQuery
 
@@ -82,35 +48,16 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   public isMongoDB: boolean
 
   constructor() {
-    this.chainReference = []
-    this.whereArray = []
-    this.orWhereArray = []
-    this.selectArray = []
-    this.forceSelectArray = []
-    this.orderByArray = []
-    this.limitNumber = undefined
-    this.offsetNumber = undefined
-    this.populateArray = []
     this.chunk = null
     this.pullSize = null
-    this.ownerId = undefined
     this.paginator = undefined
     this.rawQuery = undefined
     this.outputKeys = []
-    this.getFirst = false
   }
 
   public async findByIds(ids: string[]): Promise<OutputDTO[]> {
     throw new Error('findByIds() method not implemented')
   }
-
-  /**
-   *
-   */
-  public async get(): Promise<OutputDTO[]> {
-    throw new Error('get() method not implemented')
-  }
-
   /**
    *
    */
@@ -122,33 +69,19 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     throw new Error('get() method not implemented')
   }
 
-  /**
-   *
-   * @param user
-   */
-  public owner(user: string) {
-    this.chainReference.push({ method: 'owner', args: user })
-    this.ownerId = user
-    return this
+  public async findMany(query: FluentQuery<ModelDTO>): Promise<OutputDTO[]> {
+    throw new Error('findMany() method not implemented')
   }
-
-  /**
-   *
-   * @param user
-   */
-  public own(user: string) {
-    return this.owner(user)
-  }
-
   /**
    * Executes the Get() method and
    * returns it's first result
    *
    * @return {Object} First result
    */
-  public async first(): Promise<OutputDTO | null> {
-    this.limit(1)
-    const data = await this.get()
+  public async findFirst(
+    query: FluentQuery<ModelDTO>
+  ): Promise<OutputDTO | null> {
+    const data = await this.findMany(query)
 
     if (!data[0]) {
       return null
@@ -156,219 +89,22 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     return data[0]
   }
-
   /**
    *
    * Gets the data in the current query and
    * transforms it into a collection
    * @returns {Collection} Fluent Collection
    */
-  public async collect(): Promise<Collection<OutputDTO>> {
-    const data = await this.get()
+  public async collect(
+    query: FluentQuery<ModelDTO>
+  ): Promise<Collection<OutputDTO>> {
+    const data = await this.findMany(query)
 
     if (!Array.isArray(data)) {
-      throw new Error('Collect method only accepts arrays of data')
+      return new Collection<OutputDTO>([data])
     }
 
     return new Collection<OutputDTO>(data)
-  }
-
-  /**
-   * Adds the given columns to the SelectArray
-   * to use as column filter for the data
-   *
-   * @returns {Model} Fluent Model
-   * @param paths
-   */
-  public select(
-    paths: (
-      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) =>
-      | TypedPathWrapper<string, Record<never, never>>[]
-      | TypedPathWrapper<string[], Record<never, never>[]>
-  ) {
-    const arrCols = paths(this.generatedKeyPath)
-    const cols = arrCols.map(c => c.toString())
-
-    const columns = this.prepareInput(cols)
-
-    this.chainReference.push({ method: 'select', args: columns })
-    this.selectArray = this.selectArray
-      .concat(columns)
-      .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
-    return this
-  }
-
-  /**
-   * Adds the given columns to the SelectArray
-   * even if the columns are marked as hidden
-   * This allows to use hidden columns as filters for the
-   * data
-   *
-   * @returns {Model} Fluent Model
-   * @param paths
-   */
-  public forceSelect(
-    paths: (
-      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) =>
-      | TypedPathWrapper<string, Record<never, never>>[]
-      | TypedPathWrapper<string[], Record<never, never>[]>
-  ) {
-    if (typeof module === 'undefined' || !module.exports) {
-      throw new Error('forceSelect cant be used in frontend')
-    }
-    const arrCols = paths(this.generatedKeyPath)
-    const cols = arrCols.map(c => c.toString())
-
-    const columns = this.prepareInput(cols)
-
-    this.chainReference.push({ method: 'forceSelect', args: columns })
-    this.forceSelectArray = this.forceSelectArray
-      .concat(columns)
-      .filter((elem, pos, arr) => arr.indexOf(elem) === pos)
-
-    return this
-  }
-
-  /**
-   *  Sets the offset number for
-   *  the given query
-   *
-   * @param {int} offset The given offset
-   * @returns {Model} Fluent Model
-   */
-  public offset(offset: number) {
-    this.chainReference.push({ method: 'offset', args: offset })
-    this.offsetNumber = offset
-    return this
-  }
-
-  /**
-   *  Sets the relations to be
-   *  loaded with the query
-   *
-   * @param {int} offset The given offset
-   * @returns {Model} Fluent Model
-   */
-  public populate(...relations) {
-    this.chainReference.push({ method: 'relations', args: relations })
-    this.populateArray = relations
-    return this
-  }
-
-  /**
-   *  Alias for the offset methods
-   *
-   * @param {int} offset the given offset
-   */
-  public skip(offset: number) {
-    return this.offset(offset)
-  }
-
-  /**
-   *  Adds where filters to the query
-   *  whereArray
-   * @returns {Model} Fluent Model
-   * @param path
-   * @param operator
-   * @param value
-   */
-  public where(
-    path: (
-      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) =>
-      | TypedPathWrapper<string, Record<never, never>>
-      | TypedPathWrapper<string[], Record<never, never>>,
-    operator: LogicOperator,
-    value: Primitives | PrimitivesArray
-  ) {
-    // eslint-disable-next-line no-underscore-dangle
-    const stringP = path(this.generatedKeyPath)
-    const stringPath = stringP.toString()
-    const chainedWhere = [stringPath, operator, value]
-    this.chainReference.push({ method: 'where', chainedWhere })
-
-    this.whereArray = []
-
-    this.whereArray.push(chainedWhere)
-
-    return this
-  }
-
-  /**
-   * Pushes where filters with AND condition
-   * to the whereArray
-   *
-   * @returns {Model} Fluent Model
-   * @param path
-   * @param operator
-   * @param value
-   */
-  public andWhere(
-    path: (
-      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) =>
-      | TypedPathWrapper<string, Record<never, never>>
-      | TypedPathWrapper<string[], Record<never, never>>,
-    operator: LogicOperator,
-    value: Primitives | Primitives[]
-  ) {
-    const stringP = path(this.generatedKeyPath)
-    const stringPath = stringP.toString()
-    const chainedWhere = [stringPath, operator, value]
-    this.chainReference.push({ method: 'andWhere', chainedWhere })
-
-    this.whereArray.push(chainedWhere)
-    return this
-  }
-
-  /**
-   * Pushes where filter with OR condition
-   * to the orWhereArray
-   *
-   * @returns {Model} Fluent Model
-   * @param path
-   * @param operator
-   * @param value
-   */
-  public orWhere(
-    path: (
-      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) =>
-      | TypedPathWrapper<string, Record<never, never>>
-      | TypedPathWrapper<string[], Record<never, never>>,
-    operator: LogicOperator,
-    value: Primitives
-  ) {
-    const stringP = path(this.generatedKeyPath)
-    const stringPath = stringP.toString()
-    const chainedWhere = [stringPath, operator, value]
-    this.chainReference.push({ method: 'orWhere', chainedWhere })
-    this.orWhereArray.push(chainedWhere)
-    return this
-  }
-
-  /**
-   * Limits the number of results for the
-   * given query
-   * @param {int} limit limit number
-   * @returns {Model} Fluent Model
-   */
-  public limit(limit: number) {
-    this.chainReference.push({ method: 'limit', args: limit })
-    this.limitNumber = limit
-    return this
-  }
-
-  /**
-   * Alias for the limit method
-   *
-   * @param {*} limit limit number
-   * @returns {Model} Fluent Model
-   */
-  public take(limit: number) {
-    return this.limit(limit)
   }
 
   /**
@@ -377,19 +113,14 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param path
    */
   public async pluck(
-    path: (
-      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) =>
-      | TypedPathWrapper<string, Record<never, never>>
-      | TypedPathWrapper<string[], Record<never, never>>
-  ): Promise<string[]> {
-    const stringP = path(this.generatedKeyPath)
-    const stringPath = stringP.toString()
-    this.chainReference.push({ method: 'pluck', args: stringPath })
-    const data = await this.get()
+    path: QueryFieldSelector<ModelDTO>,
+    query?: FluentQuery<ModelDTO>
+  ): Promise<Primitives[]> {
+    const data = await this.findMany(query)
+    const paths = Object.keys(Objects.flatten(path))
 
     const result: string[] = data.map(e => {
-      const extracted = Objects.getFromPath(e, String(stringPath), undefined)
+      const extracted = Objects.getFromPath(e, String(paths[0]), undefined)
 
       if (typeof extracted.value !== 'undefined') {
         return extracted.value
@@ -397,221 +128,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     })
     return result
   }
-
-  /**
-   * Order results by specific conditions
-   *  when querying the database
-   * @param path
-   * @param order
-   * @param orderType
-   */
-  public orderBy(
-    path: (
-      p: TypedPathWrapper<ModelDTO & InputDTO & OutputDTO, Record<never, never>>
-    ) =>
-      | TypedPathWrapper<string, Record<never, never>>
-      | TypedPathWrapper<string[], Record<never, never>>,
-    order: 'asc' | 'desc' = 'desc',
-    orderType: 'string' | 'number' | 'date' = 'string'
-  ) {
-    const stringP = path(this.generatedKeyPath)
-    const stringPath = stringP.toString()
-    const orderB = [stringPath, order, orderType]
-    this.chainReference.push({ method: 'orderBy', orderB })
-    this.orderByArray = orderB
-    return this
-  }
-
-  /**
-   * Maps the given Data to show only those fields
-   * explicitly detailed on the Select function
-   *
-   * @param {Array} data Data from local or remote DB
-   * @returns {Array} Formatted data with the selected columns
-   */
-  protected jsApplySelect(data) {
-    const _data = Array.isArray(data) ? [...data] : [data]
-
-    if (this.selectArray.length <= 0 && this.outputKeys.length <= 0) {
-      return _data
-    }
-
-    const iterationArray =
-      this.outputKeys.length === 0 && this.selectArray.length > 0
-        ? this.selectArray
-        : [...this.outputKeys, ...this.forceSelectArray]
-
-    const compareArray =
-      this.outputKeys.length === 0 && this.selectArray.length > 0
-        ? [...this.outputKeys, ...this.forceSelectArray]
-        : this.selectArray
-
-    return _data.map(element => {
-      const newElement = {}
-
-      iterationArray.forEach(attribute => {
-        if (compareArray.length > 0 && !compareArray.includes(attribute)) {
-          return undefined
-        }
-
-        const extract = Objects.getFromPath(element, attribute, undefined)
-
-        let value = Objects.get(() => extract.value, undefined)
-
-        if (typeof value !== 'undefined' && value !== null) {
-          if (
-            typeof value === 'object' &&
-            value.hasOwnProperty('data') &&
-            value.data.hasOwnProperty('name')
-          ) {
-            newElement[extract.label] = value.data.name
-          } else {
-            if (typeof value === 'object' && Ids.isValidObjectID(value)) {
-              value = Ids.objectIdString(value)
-            }
-            newElement[extract.label] = value
-          }
-        }
-      })
-
-      return Objects.nest(newElement)
-    })
-  }
-
-  /**
-   * Order the results once they have already
-   * been pulled from the data source
-   * @param {*} data
-   */
-  protected jsApplyOrderBy(data) {
-    let _data = [...data]
-
-    if (this.orderByArray.length === 0) {
-      return _data
-    }
-    const field = this.orderByArray[0]
-
-    if (
-      this.selectArray.length > 0 &&
-      (field.includes('.') || field.includes('['))
-    ) {
-      throw new Error(
-        `Cannot orderBy nested attribute "${field}" when using Select. You must rename the attribute`
-      )
-    }
-
-    const order = this.orderByArray[1]
-    let type = this.orderByArray[2]
-
-    if (!type) {
-      type = 'string'
-    }
-
-    _data = _data.sort((a, b) => {
-      const A = Objects.getFromPath(a, field, undefined).value
-      const B = Objects.getFromPath(b, field, undefined).value
-
-      if (typeof A === 'undefined' || typeof B === 'undefined') {
-        throw new Error(
-          `Cannot order by property "${field}" not all values have this property`
-        )
-      }
-      // For default order and numbers
-      if (type.includes('string') || type.includes('number')) {
-        if (order === 'asc') {
-          return A > B ? 1 : A < B ? -1 : 0
-        }
-        return A > B ? -1 : A < B ? 1 : 0
-      }
-      if (type.includes('date')) {
-        if (order === 'asc') {
-          return new Date(A).getTime() - new Date(B).getTime()
-        }
-        return new Date(B).getTime() - new Date(A).getTime()
-      }
-    })
-    return _data
-  }
-
-  /**
-   * Sets all connector parameters back to the
-   * default state
-   */
-  protected reset() {
-    this.chainReference = []
-    this.whereArray = []
-    this.orWhereArray = []
-    this.selectArray = []
-    this.forceSelectArray = []
-    this.orderByArray = []
-    this.limitNumber = undefined
-    this.offsetNumber = undefined
-    this.populateArray = []
-    this.chunk = null
-    this.pullSize = null
-    this.ownerId = undefined
-    this.paginator = undefined
-    this.rawQuery = undefined
-    this.getFirst = false
-    this.relations = undefined
-    this.loadModels = false
-    this.relationQuery = undefined
-  }
-
-  /**
-   * Loads the all elements of the model to be used
-   * as relation Data, when querying related models
-   */
-  public async load() {
-    const result = await this.get()
-
-    this.relationQuery = {
-      data: result,
-      relations: this.modelRelations
-    }
-
-    return this
-  }
-
-  /**
-   * Loads the first element of the model to be used
-   * as relation Data, when querying related models
-   * @returns this
-   */
-  public async loadFirst() {
-    const result = await this.first()
-
-    this.relationQuery = {
-      data: result,
-      relations: this.modelRelations
-    }
-
-    return this
-  }
-
-  /**
-   * Gets the loaded data, when calling the load()
-   * method, to avoid calling the main model twice
-   * @returns
-   */
-  public getLoadedData(): OutputDTO[] | OutputDTO {
-    return this.relationQuery.data
-  }
-
-  /**
-   * Loads related models.
-   * Receives an object with relationship name keys
-   * and the target repository as value
-   *
-   * i.e: {roles : RoleService}
-   * @param entities
-   */
-  public with(entities: any) {
-    this.relations = entities
-
-    return this
-  }
-
   /**
    * Attach One-to-Many relationship.
    * Attach a model to the parent.
@@ -695,7 +211,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       this.relationQuery.relation = this.relationQuery.relations[relationName]
     }
     const newClass = new Repository(this.relationQuery) as T
-    this.reset()
     return newClass
   }
 
@@ -716,7 +231,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       this.relationQuery.relation = this.relationQuery.relations[relationName]
     }
     const newClass = new Repository(this.relationQuery) as T
-    this.reset()
     return newClass
   }
 
@@ -736,7 +250,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         }
 
     const newClass = new Repository(this.relationQuery) as T
-    this.reset()
+
     return newClass
   }
 
@@ -754,39 +268,83 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     throw new Error('Method not implemented')
   }
 
-  /**
-   *
-   * @param {*} input
-   */
-  private prepareInput(columns: TypedPathWrapper<Primitives, Primitives>[]) {
-    let cols = []
+  public clearEmpties(o) {
+    for (var k in o) {
+      if (!o[k] || typeof o[k] !== 'object') {
+        continue // If null or not an object, skip to the next iteration
+      }
 
-    columns.forEach(col => {
-      cols = cols.concat(col.toString().trim())
-    })
-
-    cols.filter((elem, pos, arr) => arr.indexOf(elem) === pos)
-
-    return cols
+      // The property is an object
+      if (Object.keys(o[k]).length === 0) {
+        delete o[k] // The object had no properties, so delete that property
+      }
+      return o
+    }
   }
 
-  async validateInput(
-    validationClass: { new (): ModelDTO },
-    input: InputDTO
-  ): Promise<{ errors: ValidationError[] | null; result: Awaited<InputDTO> }> {
-    const validationOptions = {
-      whitelist: true,
-      skipMissingProperties: false,
-      forbidUnknownValues: true,
-      stopAtFirstError: false
+  public isAnyObject(val: any): boolean {
+    return typeof val === 'object' && !Array.isArray(val) && val !== null
+  }
+
+  public extractConditions(conditions: FluentQuery<ModelDTO>['where'][]) {
+    const accumulatedClauses: {
+      operator: LogicOperator
+      element: string
+      value: Primitives | PrimitivesArray
+    }[] = []
+
+    if (!conditions) {
+      return accumulatedClauses
     }
 
-    const instance = plainToInstance(validationClass, { ...input })
-    const errors = await validate(instance as any, validationOptions)
+    for (const clause of conditions) {
+      for (const el of Object.keys(clause)) {
+        const value = clause[el]
 
-    return {
-      errors: errors && errors.length ? errors : null,
-      result: errors && errors.length ? (undefined as any) : instance
+        if (this.isAnyObject(value)) {
+          const initialKey = el
+          const flatten = Objects.flatten(value)
+
+          for (const key of Object.keys(flatten)) {
+            if (LogicOperator[key]) {
+              accumulatedClauses.push({
+                operator: LogicOperator[key],
+                element: `${initialKey}`,
+                value: flatten[key]
+              })
+            } else if (key.includes('.')) {
+              const op = key.split('.').slice(-1).pop()
+
+              if (LogicOperator[op]) {
+                accumulatedClauses.push({
+                  operator: LogicOperator[op],
+                  element: `${initialKey}.${key.replace(`.${op}`, '')}`,
+                  value: flatten[key]
+                })
+              } else {
+                accumulatedClauses.push({
+                  operator: LogicOperator.equals,
+                  element: `${initialKey}.${key}`,
+                  value: flatten[key]
+                })
+              }
+            } else {
+              accumulatedClauses.push({
+                operator: LogicOperator.equals,
+                element: `${initialKey}.${key}`,
+                value: flatten[key]
+              })
+            }
+          }
+        } else {
+          accumulatedClauses.push({
+            operator: LogicOperator.equals,
+            element: el,
+            value
+          })
+        }
+      }
     }
+    return accumulatedClauses
   }
 }

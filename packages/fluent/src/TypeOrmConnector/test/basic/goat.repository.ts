@@ -1,14 +1,16 @@
-import { GoatEntityIn, GoatEntityOut } from './goat.dto'
-import { GoatEntity } from './goat.entity'
+import { GoatEntity, GoatInputSchema, GoatSchema } from './goat.entity'
 import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { MemoryDataSource } from '../memoryDataSource'
 
 export class GoatRepository extends TypeOrmConnector<
   GoatEntity,
-  GoatEntityIn,
-  GoatEntityOut
+  GoatInputSchema
 > {
-  constructor(relations?: any) {
-    super(GoatEntity, MemoryDataSource ,relations)
+  constructor() {
+    super({
+      entity: GoatEntity,
+      dataSource: MemoryDataSource,
+      inputSchema: GoatSchema
+    })
   }
 }

@@ -132,7 +132,7 @@ export const Strings = (() => {
    * @param {string} text
    * @returns {string} generated nGram
    */
-  const ngram = (text: string) => {
+  const ngram = (text?: string) => {
     if (!text || text === 'undefined ') {
       return ''
     }
@@ -160,7 +160,7 @@ export const Strings = (() => {
    * @param {Array} param.fullTextFields Fields to add as full text
    * @param {Array} param.fields Fields to add as fuzzy search
    * @param {Array || Object} param.submissions description
-   * @returns {Array} Submissions with nGram
+   * @returns {String} Submissions with nGram
    */
   const ngramFromObject = ({ fields, object }: NgramFromObject): string => {
     const submission = JSON.parse(JSON.stringify(object))
@@ -168,6 +168,34 @@ export const Strings = (() => {
     const fullNGramString = fields.reduce((r, field) => {
       const text = Objects.getFromPath(submission, field, '')
       const nGramText = ngram(text.value)
+      r = `${r} ${nGramText}`
+      return r
+    }, '')
+
+    let ngramString = `${fullNGramString}`
+      .replace(/undefined/g, '')
+      .replace(/\s\s+/g, ' ')
+      .trim()
+
+    ngramString = ngramString
+      .split(' ')
+      .filter((item, i, allItems) => i === allItems.indexOf(item))
+      .join(' ')
+
+    return ngramString
+  }
+  /**
+   *
+   * Given an Array of Strings it generates de corresponding nGram for
+   * each element.
+   *
+   * @param {Object} param
+   * @param {Array} param Strings to generate ngram from
+   * @returns {String} generated nGram string
+   */
+  const ngramFromArray = (texts: string[]): string => {
+    const fullNGramString = texts.reduce((r, text) => {
+      const nGramText = Strings.ngram(text)
       r = `${r} ${nGramText}`
       return r
     }, '')
@@ -196,6 +224,7 @@ export const Strings = (() => {
     slug,
     snake,
     ngram,
-    ngramFromObject
+    ngramFromObject,
+    ngramFromArray
   })
 })()
