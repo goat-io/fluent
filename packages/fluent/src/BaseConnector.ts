@@ -13,7 +13,9 @@ export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   //findById(id: string): Promise<OutputDTO | null>
   //findByIds(id: string[]): Promise<OutputDTO[] | null>
   //requireById(id: string): Promise<OutputDTO>
-  findMany<T extends FluentQuery<ModelDTO>>(query?: T): Promise<QueryOutput<T,ModelDTO, OutputDTO>[]>
+  findMany<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>>
   //deleteById(id: string): Promise<string>
   //updateById(id: string, data: InputDTO): Promise<OutputDTO>
   insert(data: InputDTO): Promise<OutputDTO>
@@ -69,7 +71,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     throw new Error('get() method not implemented')
   }
 
-  public async findMany(query: FluentQuery<ModelDTO>): Promise<OutputDTO[]> {
+  public async findMany<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
     throw new Error('findMany() method not implemented')
   }
   /**
@@ -79,9 +83,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @return {Object} First result
    */
   public async findFirst(
-    query: FluentQuery<ModelDTO>
+    query?: FluentQuery<ModelDTO>
   ): Promise<OutputDTO | null> {
-    const data = await this.findMany(query)
+    const data = await this.findMany({ ...query, limit: 1 })
 
     if (!data[0]) {
       return null
@@ -119,7 +123,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const data = await this.findMany(query)
     const paths = Object.keys(Objects.flatten(path))
 
-    const result: string[] = data.map(e => {
+    const result: string[] = (data as any).map(e => {
       const extracted = Objects.getFromPath(e, String(paths[0]), undefined)
 
       if (typeof extracted.value !== 'undefined') {
@@ -151,8 +155,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     const existingData = await this.findByIds(relatedData.map(r => r.id))
 
-    const updateQueries = []
-    const insertQueries = []
+    const updateQueries: any[] = []
+    const insertQueries: any[] = []
 
     for (const related of relatedData) {
       const exists = existingData.find(
@@ -268,18 +272,22 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     throw new Error('Method not implemented')
   }
 
-  public clearEmpties(o) {
-    for (var k in o) {
-      if (!o[k] || typeof o[k] !== 'object') {
-        continue // If null or not an object, skip to the next iteration
-      }
-
-      // The property is an object
-      if (Object.keys(o[k]).length === 0) {
-        delete o[k] // The object had no properties, so delete that property
-      }
-      return o
-    }
+  public clearEmpties(object) {
+    Object
+        .entries(object)
+        .forEach(([k, v]) => {
+            if (v && typeof v === 'object') {
+                this.clearEmpties(v);
+            }
+            if (v && typeof v === 'object' && !Object.keys(v).length || v === null || v === undefined) {
+                if (Array.isArray(object)) {
+                    object.splice(Number(k), 1);
+                } else {
+                    delete object[k];
+                }
+            }
+        });
+    return object;
   }
 
   public isAnyObject(val: any): boolean {
@@ -298,6 +306,9 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     }
 
     for (const clause of conditions) {
+      if (!clause) {
+        continue
+      }
       for (const el of Object.keys(clause)) {
         const value = clause[el]
 
@@ -314,6 +325,10 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
               })
             } else if (key.includes('.')) {
               const op = key.split('.').slice(-1).pop()
+
+              if (!op) {
+                continue
+              }
 
               if (LogicOperator[op]) {
                 accumulatedClauses.push({

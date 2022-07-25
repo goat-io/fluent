@@ -67,7 +67,7 @@ export function Field(
 ): PropertyDecorator & MethodDecorator {
   return (
     prototype: Object,
-    propertyKey?: string,
+    propertyKey: string,
     descriptor?: TypedPropertyDescriptor<any>
   ) => {
     addFieldMetadata(
@@ -76,14 +76,14 @@ export function Field(
       prototype,
       propertyKey,
       descriptor
-    )
-  }
+    )  
+  } 
 }
 
 export function addFieldMetadata(
-  typeOrOptions: ReturnTypeFunc | FieldOptions,
-  fieldOptions: FieldOptions,
-  prototype: Object,
+  typeOrOptions?: ReturnTypeFunc | FieldOptions ,
+  fieldOptions?: FieldOptions | undefined,
+  prototype?: Object,
   propertyKey?: string,
   descriptor?: TypedPropertyDescriptor<any>,
   loadEagerly?: boolean
@@ -99,17 +99,17 @@ export function addFieldMetadata(
     const { typeFn: getType, options: typeOptions } = reflectTypeFromMetadata({
       metadataKey: isResolverMethod ? 'design:returntype' : 'design:type',
       prototype,
-      propertyKey,
+      propertyKey: propertyKey || '',
       explicitTypeFn: typeFunc as ReturnTypeFunc,
       typeOptions: options
     })
 
     TypeMetadataStorage.addClassFieldMetadata({
-      name: propertyKey,
+      name: propertyKey || '',
       schemaName: options.name || propertyKey,
       typeFn: getType,
       options: typeOptions,
-      target: prototype.constructor,
+      target: prototype?.constructor!,
       description: options.description,
       deprecationReason: options.deprecationReason,
       complexity: options.complexity,
@@ -119,9 +119,9 @@ export function addFieldMetadata(
     if (isResolver) {
       TypeMetadataStorage.addResolverPropertyMetadata({
         kind: 'internal',
-        methodName: propertyKey,
+        methodName: propertyKey || '',
         schemaName: options.name || propertyKey,
-        target: prototype.constructor,
+        target: prototype?.constructor!,
         complexity: options.complexity
       })
     }
@@ -130,7 +130,7 @@ export function addFieldMetadata(
     applyMetadataFn()
   } else {
     LazyMetadataStorage.store(
-      prototype.constructor as Type<unknown>,
+      prototype?.constructor as Type<unknown>,
       applyMetadataFn,
       { isField: true }
     )

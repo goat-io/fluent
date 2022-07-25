@@ -41,7 +41,7 @@ export const loadRelations = async ({
         )
         const chunks = Arrays.chunk(Array.from(ids), chunkSize)
         // TODO we can make this calls at the same time...no need to wait for each one
-        const promises = []
+        const promises: any[] = []
 
         for (const relatedIds of chunks) {
           const results = await Model.andWhere(
@@ -70,7 +70,7 @@ export const loadRelations = async ({
         )
         const chunks = Arrays.chunk(ids, chunkSize)
         // TODO we can make this calls at the same time...no need to wait for each one
-        const promises = []
+        const promises: any[] = []
         for (const relatedIds of chunks) {
           const results = await Model.andWhere(
             keys => keys.id,
@@ -107,7 +107,7 @@ export const loadRelations = async ({
           self[relationModel.propertyPath]().relationQuery.pivot
 
         // Get Pivot Table Results
-        const promises = []
+        const promises : any[]= []
         for (const pivotIds of chunks) {
           const results = await pivotRepository
             .where(
@@ -129,7 +129,7 @@ export const loadRelations = async ({
         const relationChunks = Arrays.chunk(uniquePivotIds, chunkSize)
 
         // Get relationship table results from
-        const relationPromises = []
+        const relationPromises: any[] = []
         for (const relatedIds of relationChunks) {
           const results = await Model.andWhere(
             keys => keys.id,

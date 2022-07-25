@@ -1,6 +1,6 @@
 import { Decorators } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
-
+import { z } from 'zod'
 @Decorators.entity('cars')
 export class CarsEntity {
   @Decorators.id()
@@ -19,3 +19,11 @@ export class CarsEntity {
   })
   user?: UsersEntity
 }
+
+export const CarsEntitySchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  userId: z.string().optional()
+})
+
+export type CarsEntityInputSchema = z.infer<typeof CarsEntitySchema>

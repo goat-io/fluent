@@ -1,6 +1,6 @@
-import { GoatEntity, GoatInputSchema, GoatSchema } from './goat.entity'
+import {  GoatInputSchema, GoatSchema, GoatEntity } from './goat.entity'
 import { TypeOrmConnector } from '../../TypeOrmConnector'
-import { MemoryDataSource } from '../sqlite/memoryDataSource'
+import { MongoDataSource } from '../mongo/mongoDatasource'
 
 export class GoatRepository extends TypeOrmConnector<
   GoatEntity,
@@ -9,7 +9,7 @@ export class GoatRepository extends TypeOrmConnector<
   constructor() {
     super({
       entity: GoatEntity,
-      dataSource: MemoryDataSource,
+      dataSource: MongoDataSource,
       inputSchema: GoatSchema
     })
   }

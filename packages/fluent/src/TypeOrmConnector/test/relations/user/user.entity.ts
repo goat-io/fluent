@@ -1,6 +1,7 @@
 import { CarsEntity } from '../car/car.entity'
 import { Decorators } from '../../../../decorators'
 import { RoleEntity } from '../roles/roles.entity'
+import { z } from 'zod'
 
 export class Family {
   @Decorators.property({ required: false })
@@ -39,3 +40,19 @@ export class UsersEntity {
   })
   roles?: RoleEntity[]
 }
+
+
+export const BreedSchema = z.object({
+  family: z.string().optional(),
+  members: z.number().optional()
+})
+
+export const UsersEntitySchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  age: z.number().optional(),
+  breed: BreedSchema.optional()
+})
+
+export type UsersEntityInputSchema = z.infer<typeof UsersEntitySchema>
+

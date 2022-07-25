@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm'
-import { dbEntities } from './dbEntities'
+import { dbEntities } from '../dbEntities'
 
 export const MemoryDataSource = new DataSource({
     type: 'sqlite',

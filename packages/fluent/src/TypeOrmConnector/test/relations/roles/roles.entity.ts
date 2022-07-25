@@ -1,6 +1,6 @@
 import { Decorators } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
-
+import { z } from 'zod'
 @Decorators.entity('roles')
 export class RoleEntity {
   @Decorators.id()
@@ -17,3 +17,10 @@ export class RoleEntity {
   })
   users?: UsersEntity[]
 }
+
+export const RoleEntitySchema = z.object({
+  id: z.string().optional(),
+  name: z.string()
+})
+
+export type RoleEntityInputSchema = z.infer<typeof RoleEntitySchema>

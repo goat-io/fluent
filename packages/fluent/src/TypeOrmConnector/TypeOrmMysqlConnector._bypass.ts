@@ -19,7 +19,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
 let tearDown: any
 
-beforeAll(async done => {
+beforeAll(async () => {
   const { databaseURL, kill } = { databaseURL: '', kill: () => {} }
   tearDown = kill
 
@@ -42,8 +42,6 @@ beforeAll(async done => {
     logging: false
   })
   await conn.initialize()
-
-  done()
 })
 
 afterAll(() => {

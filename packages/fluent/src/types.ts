@@ -58,9 +58,30 @@ export type FluentQuery<T> = {
   limit?: number
   offset?: number
   include?: QueryIncludeRelation<T>
+  paginated?: Paginator
 }
 
-type AddUndefinedIfNullable<T> = T extends null | undefined ? undefined : never
+export type AddUndefinedIfNullable<T> = T extends null | undefined
+  ? undefined
+  : never
+
+export type GetSelectedFromObject<
+  T extends FluentQuery<Model>,
+  Model,
+  OutputDTO
+> = {
+  // Check nested objects
+  // Is the selected key an object? A.K.A -> nested attribute
+  [P in keyof T['select']]: T['select'][P] extends object
+    ?
+        | QueryOutput<
+            { select: T['select'][P] },
+            NonNullable<Model[P]>,
+            OutputDTO[P]
+          >
+        | AddUndefinedIfNullable<Model[P]>
+    : OutputDTO[P]
+}
 
 export type QueryOutput<
   T extends FluentQuery<Model>,
@@ -69,35 +90,34 @@ export type QueryOutput<
 > = T extends {
   select: T['select']
 }
-  ? {
-      // Check nested objects
-      // Is the selected key an object? A.K.A -> nested attribute
-      [P in keyof T['select']]: T['select'][P] extends object
-        ?
-            | QueryOutput<
-                { select: T['select'][P] },
-                NonNullable<Model[P]>,
-                OutputDTO[P]
-              >
-            | AddUndefinedIfNullable<Model[P]>
-        : Model[P]
-    }
+  ? T extends { paginated: T['paginated'] }
+    ? PaginatedData<GetSelectedFromObject<T, Model, OutputDTO>>
+    : GetSelectedFromObject<T, Model, OutputDTO>
+  : // If it does not extend select
+  T extends { paginated: T['paginated'] }
+  ? PaginatedData<OutputDTO>
   : OutputDTO
 
 export interface PaginatedData<T> {
-  current_page: number
+  currentPage: number
   data: T[]
-  first_page_url: string
-  next_page_url: string
-  prev_page_url: string
-  path: string
-  per_page: number
+  firstPageUrl?: string
+  nextPageUrl?: string
+  prevPageUrl?: string
+  path?: string
+  perPage: number
   total: number
+  lastPage: number
+  firstPage: number
+  nextPage: number
+  prevPage: number | null
+  from: number
+  to: number
 }
 
 export interface Paginator {
   page: number
-  perPage
+  perPage: number
 }
 
 export interface Deleted {

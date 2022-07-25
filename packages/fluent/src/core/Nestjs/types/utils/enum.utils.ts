@@ -14,7 +14,7 @@ export function getEnumValues(enumType: SwaggerEnumType): string[] | number[] {
     return []
   }
 
-  const values = []
+  const values: any[] = []
   const uniqueValues = {}
 
   for (const key in enumType) {

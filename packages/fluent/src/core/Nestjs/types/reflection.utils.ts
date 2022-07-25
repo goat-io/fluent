@@ -11,7 +11,7 @@ const NOT_ALLOWED_TYPES: Type<any>[] = [Promise, Array, Object, Function]
 
 export interface ReflectTypeOptions {
   metadataKey: 'design:type' | 'design:returntype' | 'design:paramtypes'
-  prototype: Object
+  prototype?: Object
   propertyKey: string
   explicitTypeFn?: ReturnTypeFunc
   typeOptions?: TypeOptions
@@ -38,10 +38,10 @@ export function reflectTypeFromMetadata(
   const options = { ...typeOptions }
   const reflectedType: Type<unknown>[] | Type<unknown> = Reflect.getMetadata(
     metadataKey,
-    prototype,
+    prototype!,
     propertyKey
   )
-  const implicitType = extractTypeIfArray(metadataKey, reflectedType, index)
+  const implicitType = extractTypeIfArray(metadataKey, reflectedType, index!)
   const isNotAllowed = implicitType && NOT_ALLOWED_TYPES.includes(implicitType)
 
   if (

@@ -2,16 +2,19 @@ import { CarsRepository } from '../car/car.repositoryTypeOrm'
 import { RoleRepository } from '../roles/roles.repositoryTypeOrm'
 import { RoleUsersRepository } from '../roles/roles_users.repositoryTypeOrm'
 import { TypeOrmConnector } from '../../../TypeOrmConnector'
-import { UsersEntity } from './user.entity'
-import { UsersEntityIn } from './user.dto'
-import { MemoryDataSource } from '../../memoryDataSource'
+import { UsersEntity, UsersEntityInputSchema, UsersEntitySchema } from './user.entity'
+import { MemoryDataSource } from '../../sqlite/memoryDataSource'
 
 export class UserRepository extends TypeOrmConnector<
   UsersEntity,
-  UsersEntityIn
+  UsersEntityInputSchema
 > {
-  constructor(relations?: any) {
-    super(UsersEntity, MemoryDataSource, relations)
+  constructor() {
+    super({
+      entity: UsersEntity,
+      dataSource: MemoryDataSource,
+      inputSchema: UsersEntitySchema
+    })
   }
 
   public cars = () => this.hasMany<CarsRepository>(CarsRepository, 'cars')

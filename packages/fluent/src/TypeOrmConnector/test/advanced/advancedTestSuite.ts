@@ -1,5 +1,3 @@
-import { TypeORMDataModelInputSchema, TypeORMDataModelSchema } from "./typeOrm.entity"
-
 export const advancedTestSuite = Model => {
   beforeAll(() => {
     try {
@@ -13,19 +11,19 @@ export const advancedTestSuite = Model => {
     await Repository.insert({
       created: '2018-12-03',
       nestedTest: {
-        a: ["6", "5", "4"],
-        b: { c: true, d: ["2", "1", "0"] },
+        a: ['6', '5', '4'],
+        b: { c: true, d: ['2', '1', '0'] },
         c: 4
       },
       order: 1,
       test: true
     })
-    
+
     await Repository.insert({
       created: '2017-12-03',
       nestedTest: {
-        a: ["3", "2", "1"],
-        b: { c: true, d: ["1", "1", "0"] },
+        a: ['3', '2', '1'],
+        b: { c: true, d: ['1', '1', '0'] },
         c: 3
       },
       order: 2,
@@ -34,26 +32,25 @@ export const advancedTestSuite = Model => {
     await Repository.insert({
       created: '2016-12-03',
       nestedTest: {
-        a: ["0", "-1", "-2"],
-        b: { c: true, d: ["0", "1", "0"] },
+        a: ['0', '-1', '-2'],
+        b: { c: true, d: ['0', '1', '0'] },
         c: 2
       },
       order: 3,
       test: false
     })
-    
   }
 
   it('Should get local data', async () => {
     await insertTestData(Model)
-    const data =  await Model.findMany()
+    const data = await Model.findMany()
     expect(Array.isArray(data)).toBe(true)
     expect(typeof data[0].nestedTest.b.c).toBe('boolean')
   })
 
   it('pluck() should return a single array', async () => {
     await insertTestData(Model)
-    const data = await Model.pluck({test: true})
+    const data = await Model.pluck({ test: true })
     expect(typeof data[0]).toBe('boolean')
   })
 
@@ -65,68 +62,64 @@ export const advancedTestSuite = Model => {
         order: true
       },
       limit: 2,
-      orderBy: [{created: 'asc'}]
-    }) 
-    
+      orderBy: [{ created: 'asc' }]
+    })
+
     expect(forms.length > 0).toBe(true)
     expect(forms.length <= 2).toBe(true)
   })
 
-  /*
-  it('orderBy() should order results desc', async () => {
-    await insertTestData(Model)
-    const forms = await Model.select(
-      keys => [keys.test, keys.nestedTest.b.c, keys.order]
-    )
-      .orderBy(keys => keys.order, 'desc')
-      .get()
-    expect(forms[0].order).toBe(3)
-    expect(forms[0].nestedTest.b.c).toBe(true)
-  })
-
-  it('orderBy() should order results asc', async () => {
-    await insertTestData(Model)
-    const forms = await Model.select(
-      keys => [keys.test, keys.nestedTest.b.c, keys.order]
-    )
-      .orderBy(keys => keys.order, 'asc')
-      .get()
-
-    expect(forms[0].order).toBe(1)
-  })
-
-  it('orderBy() should order by Dates with Select()', async () => {
-    await insertTestData(Model)
-    const forms = await Model.select( keys => [keys.created, keys.order])
-      .orderBy(keys => keys.created, 'asc', 'date')
-      .get()
-
-    expect(forms[0].order).toBe(3)
-  })
-
-  it('orderBy() should order by Dates without Select()', async () => {
-    await insertTestData(Model)
-    const forms = await Model.orderBy(keys => keys.created, 'asc', 'date').get()
-
-    expect(forms[0].order).toBe(3)
-  })
-
- 
-
   it('offset() should start at the given position', async () => {
     await insertTestData(Model)
-    const forms = await Model.select(keys => [keys.created, keys.order])
-      .offset(1)
-      .limit(1)
-      .get()
+    // TODO: this test is not really covering the use case of offset
+    const forms = await Model.findMany({
+      select: {
+        created: true,
+        order: true
+      },
+      offset: 1,
+      limit: 1
+    })
 
     expect(forms.length).toBe(1)
+  })
+
+  it('findFirst() should take the first result from data', async () => {
+    await insertTestData(Model)
+
+    const form = await Model.findFirst({
+      select: {
+        id: true,
+        nestedTest: {
+          c: true
+        }
+      },
+      where: {
+        nestedTest: {
+          c: {
+            greaterOrEqualThan: 3
+          }
+        }
+      }
+    })
+    expect(!Array.isArray(form)).toBe(true)
+    expect(typeof form.nestedTest.c).toBe('number')
+    expect(form.nestedTest.c >= 3).toBe(true)
   })
 
   it('where() should filter the data', async () => {
     await insertTestData(Model)
 
-    const forms = await Model.where(keys => keys.nestedTest.c, '>=', 3).get()
+    const forms = await Model.findMany({
+      where: {
+        nestedTest: {
+          c: {
+            greaterOrEqualThan: 3
+          }
+        }
+      }
+    })
+
     expect(forms.length > 0).toBe(true)
 
     forms.forEach(form => {
@@ -134,61 +127,160 @@ export const advancedTestSuite = Model => {
     })
   })
 
-  it('first() should take the first result from data', async () => {
-    await insertTestData(Model)
+  it('andWhere() should filter the data', async () => {
+    const forms = await Model.findMany({
+      where: {
+        AND: [
+          {
+            nestedTest: {
+              c: {
+                greaterOrEqualThan: 3
+              }
+            }
+          },
+          {
+            order: 2
+          }
+        ]
+      },
+      limit: 1
+    })
 
-    const form = await Model.select(keys => [keys.nestedTest.c, keys.id])
-      .where(keys => keys.nestedTest.c, '>=', 3)
-      .first()
-    expect(typeof form.nestedTest.c).toBe('number')
+    expect(forms.length).toBe(1)
+    expect(forms[0].nestedTest.c >= 3).toBe(true)
+    expect(forms[0].order).toBe(2)
   })
 
-  /*
+  it('orWhere() should filter the data', async () => {
+    const forms = await Model.findMany({
+      where: {
+        OR: [
+          {
+            nestedTest: {
+              c: {
+                greaterOrEqualThan: 5
+              }
+            }
+          },
+
+          {
+            order: 2
+          }
+        ]
+      },
+      limit: 1
+    })
+
+    expect(forms.length).toBe(1)
+    expect(forms[0].order).toBe(2)
+  })
+
+  it('orderBy() should order results desc', async () => {
+    await insertTestData(Model)
+    const forms = await Model.findMany({
+      select: {
+        test: true,
+        order: true,
+        nestedTest: {
+          a: true,
+          b: {
+            c: true
+          }
+        }
+      },
+      orderBy: [
+        {
+          order: 'desc'
+        }
+      ]
+    })
+
+    expect(forms[0].order).toBe(3)
+    expect(forms[0].nestedTest.b.c).toBe(true)
+  })
+
+  it('orderBy() should order results asc', async () => {
+    await insertTestData(Model)
+    const forms = await Model.findMany({
+      select: {
+        test: true,
+        order: true,
+        nestedTest: {
+          a: true,
+          b: {
+            c: true
+          }
+        }
+      },
+      orderBy: [
+        {
+          order: 'asc'
+        }
+      ]
+    })
+
+    expect(forms[0].order).toBe(1)
+  })
+
+  it('orderBy() should order by Dates with Select()', async () => {
+    await insertTestData(Model)
+    const forms = await Model.findMany({
+      select: {
+        created: true,
+        order: true
+      },
+      orderBy: [
+        {
+          created: 'asc'
+        }
+      ]
+    })
+
+    expect(forms[0].order).toBe(3)
+  })
+
+  it('orderBy() should order by Dates without Select()', async () => {
+    await insertTestData(Model)
+    const forms = await Model.findMany({
+      orderBy: [
+        {
+          created: 'asc'
+        }
+      ]
+    })
+
+    expect(forms[0].order).toBe(3)
+  })
+
   it('Should get paginated data', async () => {
     await insertTestData(Model)
-    const data = await Model.paginate({ page: 1, perPage: 10 })
-    expect(Array.isArray(data.data)).toBe(true)
-    expect(data.data.length > 0).toBe(true)
-  })
-*/
-  /*
-  it('clear() should remove all records from the Model', async () => {
-    await Model.clear({ sure: true })
 
-    const forms = await Model.all()
+    const result = await Model.findMany({
+      paginated: {
+        page: 3,
+        perPage: 5
+      }
+    })
+
+    expect(Array.isArray(result.data)).toBe(true)
+    expect(result.data.length > 0).toBe(true)
+    expect(isNaN(result.total)).toBe(false)
+    expect(isNaN(result.perPage)).toBe(false)
+    expect(isNaN(result.currentPage)).toBe(false)
+    expect(isNaN(result.nextPage)).toBe(false)
+    expect(isNaN(result.firstPage)).toBe(false)
+    expect(isNaN(result.lastPage)).toBe(false)
+    expect(isNaN(result.prevPage)).toBe(false)
+    expect(isNaN(result.from)).toBe(false)
+    expect(isNaN(result.to)).toBe(false)
+  })
+/*
+  it('clear() should remove all records from the Model', async () => {
+    await Model.clear()
+
+    const forms = await Model.findMany()
 
     expect(forms.length).toBe(0)
   })
-  */
-
-  /*
-  // TODO This query requires an index
-
-    it('andWhere() should filter the data', async () => {
-    const forms = await Model.where(Model._keys.nestedTest.c, '>=', 3)
-      .andWhere(Model._keys.order, '=', 2)
-      .limit(1)
-      .get()
-    expect(forms.length).toBe(1)
-    expect(forms[0].order).toBe(2)
-  })
-
-  
-  it('orWhere() should filter the data', async () => {
-    const forms = await Model.where(Model._keys.nestedTest.c, '>', 5)
-      .orWhere(Model._keys.order, '=', 2)
-      .limit(1)
-      .get()
-    expect(forms.length).toBe(1)
-    expect(forms[0].order).toBe(2)
-  })
-
-
-
-
-
-
-  /*
-
   */
 }

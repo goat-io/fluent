@@ -16,6 +16,7 @@ import {
   Not,
   ObjectID,
   Repository,
+  MongoRepository,
   DeepPartial,
   FindOptionsWhere
 } from 'typeorm'
@@ -77,7 +78,7 @@ export class TypeOrmConnector<
 
   private readonly inputSchema: z.ZodType<InputDTO>
 
-  private readonly outputSchema: z.ZodType<OutputDTO> | undefined
+  private readonly outputSchema: z.ZodType<OutputDTO>
 
   constructor({
     entity,
@@ -90,16 +91,19 @@ export class TypeOrmConnector<
     this.inputSchema = inputSchema
     this.outputSchema =
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
+
     this.repository = this.dataSource.getRepository(entity)
+
+    this.isMongoDB =
+      this.repository.metadata.connection.driver.options.type === 'mongodb'
+
     const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
+
     const { relations } = getRelations(relationShipBuilder)
 
     this.modelRelations = relations
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
-
-    this.isMongoDB =
-      this.repository.metadata.connection.driver.options.type === 'mongodb'
   }
 
   /**
@@ -111,9 +115,13 @@ export class TypeOrmConnector<
     const validatedData = this.inputSchema.parse(data)
 
     // Only Way to Skip the DeepPartial requirement from TypeORm
-    const datum = await this.repository.save(
+    let datum = await this.repository.save(
       validatedData as unknown as DeepPartial<ModelDTO>
     )
+
+    if (this.isMongoDB) {
+      datum['id'] = datum['id'].toString()
+    }
 
     // Validate Output
     return this.outputSchema.parse(
@@ -132,9 +140,15 @@ export class TypeOrmConnector<
       }
     )
 
-    return this.outputSchema
-      .array()
-      .parse(inserted.map(d => this.clearEmpties(Objects.deleteNulls(d))))
+    return this.outputSchema.array().parse(
+      inserted.map(d => {
+        if (this.isMongoDB) {
+          d['id'] = d['id'].toString()
+        }
+
+        return this.clearEmpties(Objects.deleteNulls(d))
+      })
+    )
   }
 
   /**
@@ -151,24 +165,67 @@ export class TypeOrmConnector<
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>[]> {
-    const found = await this.repository.find(this.generateTypeOrmQuery(query))
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    const [found, count] = await this.repository.findAndCount(
+      this.generateTypeOrmQuery(query)
+    )
+
+    found.map(d => {
+      if (this.isMongoDB) {
+        d['id'] = d['id'].toString()
+      }
+
+      this.clearEmpties(Objects.deleteNulls(d))
+    })
+
+    if (query?.paginated) {
+      const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO, OutputDTO>> =
+        {
+          total: count,
+          perPage: query.paginated.perPage,
+          currentPage: query.paginated.page,
+          nextPage: query.paginated.page + 1,
+          firstPage: 1,
+          lastPage: Math.ceil(count / query.paginated.perPage),
+          prevPage:
+            query.paginated.page === 1 ? null : query.paginated.page - 1,
+          from: (query.paginated.page - 1) * query.paginated.perPage + 1,
+          to: query.paginated.perPage * query.paginated.page,
+          data: found as unknown as QueryOutput<T, ModelDTO, OutputDTO>[]
+        }
+
+      return paginationInfo as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+    }
+
+    if (query?.select) {
+      // TODO: validate based on the select properties
+      return found as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+    }
     // Validate Output against schema
-    return this.outputSchema
-      .array()
-      .parse(
-        found.map(d => this.clearEmpties(Objects.deleteNulls(d)))
-      ) as QueryOutput<T, ModelDTO, OutputDTO>[]
+    return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
+      T,
+      ModelDTO,
+      OutputDTO
+    >
   }
 
   private generateTypeOrmQuery(query?: FluentQuery<ModelDTO>): FindManyOptions {
     let filter: FindManyOptions = {}
 
-    filter.where = this.isMongoDB ? {} : this.getTypeOrmWhere(query?.where)
+    filter.where = this.isMongoDB
+      ? this.getTypeOrmMongoWhere(query?.where)
+      : this.getTypeOrmWhere(query?.where)
 
     filter.take = query?.limit
     filter.skip = query?.offset
-    filter.select = query?.select
+
+    // Pagination
+    if (query?.paginated) {
+      filter.take = query.paginated.perPage
+      filter.skip = (query.paginated?.page - 1) * query?.paginated.perPage
+    }
+
+    filter.select = Objects.flatten(query?.select || {})
     filter.order = this.getOrderBy(query?.orderBy)
 
     // TODO: we will bring the full relation Object, we should be able to filter down properties
@@ -406,6 +463,206 @@ export class TypeOrmConnector<
     return Filters.where
   }
 
+  public getTypeOrmMongoWhere(
+    where?: FluentQuery<ModelDTO>['where']
+  ): FindManyOptions['where'] {
+    /*
+
+    if (this.relationQuery && this.relationQuery.data) {
+      const ids = this.relationQuery.data.map(
+        d => Ids.objectID(d.id) as unknown as ObjectID
+      )
+
+      andFilters.push([
+        this.relationQuery.relation.inverseSidePropertyPath,
+        'in',
+        ids
+      ])
+    }
+
+    if (!andFilters || andFilters.length === 0) {
+      return filters
+    }
+    */
+
+    if (!where || Object.keys(where).length === 0) {
+      return {}
+    }
+
+    const Filters: { where: { $or: any[] } } = {
+      where: { $or: [{ $and: [] }] }
+    }
+
+    const orConditions = this.extractConditions(where['OR'])
+    const andConditions = this.extractConditions(where['AND'])
+
+    const copy = Objects.clone(where)
+    if (!!copy['AND']) {
+      delete copy['AND']
+    }
+
+    if (!!copy['OR']) {
+      delete copy['OR']
+    }
+
+    const rootLevelConditions = this.extractConditions([copy])
+
+    for (const condition of andConditions) {
+      let { element, operator, value } = condition
+
+      if (element === 'id') {
+        element = '_id'
+        /*
+        value = (Array.isArray(value)
+          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
+          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
+          */
+      }
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
+          break
+        case LogicOperator.isNot:
+          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
+          break
+        case LogicOperator.lessThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
+          break
+        case LogicOperator.in:
+          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
+          break
+        case LogicOperator.notIn:
+          Filters.where.$or[0].$and.push({
+            [element]: { $not: { $in: value } }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
+          break
+        case LogicOperator.notExists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
+          break
+        case LogicOperator.regexp:
+          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
+          break
+      }
+    }
+
+    for (const condition of rootLevelConditions) {
+      let { element, operator, value } = condition
+
+      if (element === 'id') {
+        element = '_id'
+        /*
+        value = (Array.isArray(value)
+          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
+          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
+          */
+      }
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
+          break
+        case LogicOperator.isNot:
+          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
+          break
+        case LogicOperator.lessThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
+          break
+        case LogicOperator.in:
+          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
+          break
+        case LogicOperator.notIn:
+          Filters.where.$or[0].$and.push({
+            [element]: { $not: { $in: value } }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
+          break
+        case LogicOperator.notExists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
+          break
+        case LogicOperator.regexp:
+          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
+          break
+      }
+    }
+
+    for (const condition of orConditions) {
+      let { element, operator, value } = condition
+
+      if (element === 'id') {
+        element = '_id'
+        /*
+        value = (Array.isArray(value)
+          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
+          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
+          */
+      }
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where.$or.push({ [element]: { $eq: value } })
+          break
+        case LogicOperator.isNot:
+          Filters.where.$or.push({ [element]: { $neq: value } })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where.$or.push({ [element]: { $gt: value } })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where.$or.push({ [element]: { $gte: value } })
+          break
+        case LogicOperator.lessThan:
+          Filters.where.$or.push({ [element]: { $lt: value } })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where.$or.push({ [element]: { $lte: value } })
+          break
+        case LogicOperator.in:
+          Filters.where.$or.push({ [element]: { $in: value } })
+          break
+        case LogicOperator.notIn:
+          Filters.where.$or.push({
+            [element]: { $not: { $in: value } }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where.$or.push({ [element]: { $exists: true } })
+          break
+        case LogicOperator.notExists:
+          Filters.where.$or.push({ [element]: { $exists: false } })
+          break
+        case LogicOperator.regexp:
+          Filters.where.$or.push({ [element]: { $regex: value } })
+          break
+      }
+    }
+
+    return this.clearEmpties(Filters.where)
+  }
+
   /**
    * PATCH operation
    * @param data
@@ -414,6 +671,8 @@ export class TypeOrmConnector<
     const parsedId = this.isMongoDB
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
+
+    const idFieldName = this.isMongoDB ? '_id' : 'id'
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
@@ -424,16 +683,24 @@ export class TypeOrmConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    await this.repository.update(id, validatedData)
+    const updateResults = await this.repository.update(id, validatedData)
+
+    if (updateResults.affected === 0) {
+      throw new Error('No rows where affected')
+    }
 
     const dbResult = await this.repository.findOneOrFail({
       where: {
-        id: parsedId
+        [idFieldName]: parsedId
       } as unknown as FindOptionsWhere<ModelDTO>
     })
 
+    if (this.isMongoDB) {
+      dbResult['id'] = dbResult['id'].toString()
+    }
+
     // Validate Output
-    return this.outputSchema.parse(
+    return this.outputSchema?.parse(
       this.clearEmpties(Objects.deleteNulls(dbResult))
     )
   }
@@ -451,8 +718,12 @@ export class TypeOrmConnector<
       ? (new ObjectId(id) as unknown as ObjectID)
       : id
 
+    const idFieldName = this.isMongoDB ? '_id' : 'id'
+
     const value = await this.repository.findOneOrFail({
-      where: { id: parsedId } as unknown as FindOptionsWhere<ModelDTO>
+      where: {
+        [idFieldName]: parsedId
+      } as unknown as FindOptionsWhere<ModelDTO>
     })
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
@@ -479,121 +750,31 @@ export class TypeOrmConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    await this.repository.update(id, validatedData)
+    const updateResults = await this.repository.update(id, validatedData)
+
+    if (updateResults.affected === 0) {
+      throw new Error('No rows where affected')
+    }
 
     const val = await this.repository.findOneOrFail({
       where: {
-        id: parsedId
+        [idFieldName]: parsedId
       } as unknown as FindOptionsWhere<ModelDTO>
     })
+
+    if (this.isMongoDB) {
+      val['id'] = val['id'].toString()
+    }
 
     return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
   }
 
-  /**
-   *
-   * @param filter
-   */
-  /*
-  public getTypeOrmMongoWhere(where: FluentQuery<ModelDTO>['where']) : FindManyOptions['where'] {
-    const andFilters = this.whereArray
-    const orFilters = this.orWhereArray
-
-    if (this.relationQuery && this.relationQuery.data) {
-      const ids = this.relationQuery.data.map(
-        d => Ids.objectID(d.id) as unknown as ObjectID
-      )
-
-      andFilters.push([
-        this.relationQuery.relation.inverseSidePropertyPath,
-        'in',
-        ids
-      ])
-    }
-
-    if (!andFilters || andFilters.length === 0) {
-      return filters
-    }
-
-    const Filters = { where: { $and: [] } }
-
-    andFilters.forEach(condition => {
-      let element = condition[0]
-      const operator = condition[1]
-      let value = condition[2]
-
-      if (element === 'id') {
-        element = '_id'
-
-        value = Array.isArray(value)
-          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(value) as unknown as ObjectID)
-      }
-
-      switch (operator) {
-        case '=':
-          Filters.where.$and.push({ [element]: { $eq: value } })
-          break
-        case '!=':
-          Filters.where.$and.push({ [element]: { $neq: value } })
-          break
-        case '>':
-          Filters.where.$and.push({ [element]: { $gt: value } })
-          break
-        case '>=':
-          Filters.where.$and.push({ [element]: { $gte: value } })
-          break
-        case '<':
-          Filters.where.$and.push({ [element]: { $lt: value } })
-          break
-        case '<=':
-          Filters.where.$and.push({ [element]: { $lte: value } })
-          break
-        case 'in':
-          Filters.where.$and.push({ [element]: { $in: value } })
-          break
-        case 'nin':
-          Filters.where.$and.push({
-            [element]: { $not: { $in: value } }
-          })
-          break
-        case 'exists':
-          Filters.where.$and.push({ [element]: { $exists: true } })
-          break
-        case '!exists':
-          Filters.where.$and.push({ [element]: { $exists: false } })
-          break
-        case 'regex':
-          Filters.where.$and.push({ [element]: { $regex: value } })
-          break
-      }
-    })
-
-    return Filters
+  public async clear(): Promise<boolean> {
+    await this.repository.clear()
+    return true
   }
 
-  // /**
-  //  *
-  //  */
-  // public async get(): Promise<OutputDTO[]> {
-  //   const query = this.generateTypeOrmQuery()
-
-  //   const result: any = await this.repository.find(query)
-
-  //   let data = this.jsApplySelect(result)
-
-  //   data = await loadRelations({
-  //     data,
-  //     relations: this.relations,
-  //     modelRelations: this.modelRelations,
-  //     dataSource: this.dataSource,
-  //     provider: 'typeorm',
-  //     self: this
-  //   })
-  //   return data
-  // }
-
-  // private async PostProcessResults() {}
+  /*
 
   // public async requireById(
   //   id: string,
@@ -700,10 +881,6 @@ export class TypeOrmConnector<
   //  *
   //  * @param param0
   //  */
-  // public async clear(): Promise<boolean> {
-  //   await this.repository.clear()
-  //   return true
-  // }
 
   // /**
   //  *
@@ -754,30 +931,6 @@ export class TypeOrmConnector<
   //   const result = this.jsApplySelect(data) as OutputDTO[]
   //   return result
   // }
-
-  /**
-   *
-   */
-  private getPage() {
-    const page = 'page='
-    if (this.paginator && this.paginator.page) {
-      return `${page + this.paginator.page}&`
-    }
-
-    return ''
-  }
-
-  /**
-   *
-   * @param filter
-   */
-  private getPaginatorLimit(filter) {
-    if (this.paginator && this.paginator.perPage) {
-      return { ...filter, limit: this.paginator.perPage }
-    }
-
-    return filter
-  }
 
   /**
    *

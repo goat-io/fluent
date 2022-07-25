@@ -40,7 +40,10 @@ export class Fluent {
     }
 
     if (typeof window !== 'undefined') {
-      window._FLUENT_.models[name] = true
+      if (window._FLUENT_.models) {
+        window._FLUENT_.models[name] = true
+      }
+
       return
     }
     global._FLUENT_.models[name] = true
@@ -58,13 +61,11 @@ export class Fluent {
    *
    * @param args
    */
-  public static collect<T = AnyObject | Primitives>(
-    data: T[]
-  ): Collection<T> {
+  public static collect<T = AnyObject | Primitives>(data: T[]): Collection<T> {
     return new Collection<T>(data)
   }
 
-  public static getConfig(): _FLUENT_ {
+  public static getConfig(): any {
     if (typeof window !== 'undefined' && window) {
       return window._FLUENT_
     }
@@ -78,12 +79,11 @@ export class Fluent {
     dataSources: DataSource[],
     Entities: any[]
   ): Promise<void> {
-    
     modelGeneratorDataSource.setOptions({ entities: Entities })
     if (!modelGeneratorDataSource.isInitialized) {
       await modelGeneratorDataSource.initialize()
     }
-    
+
     for (const dataSource of dataSources) {
       if (!dataSource.isInitialized) {
         await dataSource.initialize()

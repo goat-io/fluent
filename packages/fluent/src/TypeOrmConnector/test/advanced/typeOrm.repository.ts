@@ -4,7 +4,7 @@ import {
   TypeORMDataModelSchema
 } from './typeOrm.entity'
 import { TypeOrmConnector } from '../../TypeOrmConnector'
-import { MemoryDataSource } from '../memoryDataSource'
+import { MemoryDataSource } from '../sqlite/memoryDataSource'
 
 export class TypeOrmRepository extends TypeOrmConnector<
   TypeORMDataModel,
