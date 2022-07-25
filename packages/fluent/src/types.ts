@@ -60,7 +60,7 @@ export type FluentQuery<T> = {
   include?: QueryIncludeRelation<T>
 }
 
-type Nullable<T> = T extends null | undefined ? never : Partial<T>
+type AddUndefinedIfNullable<T> = T extends null | undefined ? undefined : never
 
 export type QueryOutput<
   T extends FluentQuery<Model>,
@@ -73,13 +73,13 @@ export type QueryOutput<
       // Check nested objects
       // Is the selected key an object? A.K.A -> nested attribute
       [P in keyof T['select']]: T['select'][P] extends object
-        ? QueryOutput<
-            { select: T['select'][P] },
-            Model[P] extends null | undefined 
-              ? Nullable<Model[P]>
-              : NonNullable<Model[P]>,
-            OutputDTO[P]
-          >
+        ?
+            | QueryOutput<
+                { select: T['select'][P] },
+                NonNullable<Model[P]>,
+                OutputDTO[P]
+              >
+            | AddUndefinedIfNullable<Model[P]>
         : Model[P]
     }
   : OutputDTO

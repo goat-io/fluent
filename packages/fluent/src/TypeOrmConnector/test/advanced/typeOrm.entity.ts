@@ -8,6 +8,9 @@ export class FurtherNested {
 
   @Decorators.stringArray({ required: true })
   d: string[]
+
+  @Decorators.property({ required: false })
+  e?: number
 }
 
 
@@ -22,6 +25,9 @@ export class Nested {
 
   @Decorators.embed(FurtherNested)
   b?: FurtherNested
+
+  @Decorators.property({ required: false })
+  e?: number
 }
 
 @Decorators.entity('numbers')
@@ -48,13 +54,15 @@ export class TypeORMDataModel {
 
 export const FurtherNestedSchema = z.object({
   c: z.boolean(),
-  d: z.string().array()
+  d: z.string().array(),
+  e: z.number().optional()
 })
 
 export const NestedSchema = z.object({
   a: z.string().array(),
   c: z.number(),
-  b: FurtherNestedSchema.optional()
+  b: FurtherNestedSchema.optional(),
+  e: z.number().optional()
 })
 
 export const TypeORMDataModelSchema = z.object({

@@ -30,8 +30,13 @@ describe('Execute all advanced test Suite', async () => {
       created: true,
       order: true,
       test: true,
-      nonNullNested: {c: true},
-      nestedTest: { c: true, a: true, b: { c: true, d: true } }
+      nonNullNested: { c: true, e: true },
+      nestedTest: {
+        c: true,
+        a: true,
+        b: { c: true, d: true, e: true },
+        e: true
+      }
     }
   })
   advancedTestSuite(TypeOrmRepository)
