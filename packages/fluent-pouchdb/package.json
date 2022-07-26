@@ -1,6 +1,6 @@
 {
-  "name": "@goatlab/fluent-memory",
-  "version": "0.6.5",
+  "name": "@goatlab/fluent-pouchdb",
+  "version": "0.6.6",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "install-p": "yarn",
@@ -27,7 +27,11 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/fluent": "0.6.24"
+    "@goatlab/fluent": "*",
+    "pouchdb": "^7.3.0",
+    "pouchdb-adapter-memory": "^7.3.0",
+    "pouchdb-find": "^7.3.0",
+    "pouchdb-json": "^7.3.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
@@ -36,6 +40,7 @@
     "@digitalroute/cz-conventional-changelog-for-jira": "^7.2.1",
     "@types/jest": "^27.4.1",
     "@types/node": "^17.0.23",
+    "@types/pouchdb": "^6.4.0",
     "auto-changelog": "^2.4.0",
     "commitizen": "^4.2.4",
     "cz-conventional-changelog": "^3.3.0",

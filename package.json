@@ -9,7 +9,6 @@
       "packages/*"
     ],
     "nohoist": [
-      "**/mongodb-memory-*"
     ]
   },
   "scripts": {

@@ -1,20 +1,22 @@
-import { GoatEntityIn, GoatEntityOut } from './test/basic/goat.dto'
-import { GoatEntity } from './test/basic/goat.entity'
-import { MemoryConnector } from './MemoryConnector'
-import { TypeORMDataModel } from './test/advanced/typeOrm.entity'
-import { basicTestSuite } from './test/basic/basicTestSuite'
 
-class Goat extends MemoryConnector<GoatEntity, GoatEntityIn, GoatEntityOut> {}
+import { Fluent } from '@goatlab/fluent'
+import { advancedTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/advanced/advancedTestSuite'
+import { basicTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/basic/basicTestSuite'
+import { dbEntities } from '@goatlab/fluent/src/TypeOrmConnector/test/dbEntities'
+import { GoatRepository } from './goat.pouch.repository'
+import {TypeOrmRepository} from './typeOrm.pouchdb.repository'
 
-// tslint:disable-next-line: max-classes-per-file
-class Goat2 extends MemoryConnector<TypeORMDataModel> {}
+beforeAll(async ()=> {
+  await Fluent.initialize([], dbEntities)
+
+})
 
 describe('Execute all basic test Suite', () => {
-  basicTestSuite(Goat)
+  basicTestSuite(GoatRepository)
 })
 
 describe('Execute all advanced test Suite', () => {
-  // advancedTestSuite(Goat2)
+  advancedTestSuite(TypeOrmRepository)
 })
 
 /*

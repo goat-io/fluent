@@ -12,12 +12,14 @@ import {
 import type {
   AnyObject,
   Deleted,
-  LogicOperator,
   PaginatedData,
   Paginator,
   Primitives,
   PrimitivesArray,
+  FluentQuery,
+  QueryOutput,
 } from './types'
+import {LogicOperator} from './types'
 import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
 import { Access } from './core/dtos/access.dto'
 import { BaseConnector } from './BaseConnector'
@@ -26,7 +28,7 @@ import { Decorators } from './decorators'
 import { Fluent } from './Fluent'
 import type { FluentConnectorInterface } from './BaseConnector'
 import type { SchemaObject } from './core/types'
-import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
+import { getRelationsFromModelGenerator, TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
 import { getOutputKeys } from './outputKeys'
 import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
@@ -55,7 +57,9 @@ export {
   PaginationMeta,
   PartialType,
   TypeOrmConnector,
-  Cache
+  Cache,
+  getRelationsFromModelGenerator,
+  LogicOperator
 }
 
 interface ValidatedInput<T> {
@@ -64,14 +68,15 @@ interface ValidatedInput<T> {
 }
 
 export type {
-  AnyObject as BaseDataElement,
+  AnyObject,
   Deleted,
   FluentConnectorInterface,
-  LogicOperator,
   PaginatedData,
   Paginator,
   Primitives,
   PrimitivesArray,
   SchemaObject,
-  ValidatedInput
+  ValidatedInput,
+  FluentQuery,
+  QueryOutput,
 }

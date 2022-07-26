@@ -1,8 +1,7 @@
-import { Primitives } from './../../../js-utils/src/types'
-import { LogicOperator, PrimitivesArray, QueryOutput } from './../types'
 /**
  * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
  */
+import { LogicOperator,  QueryOutput } from './../types'
 import {
   Equal,
   FindManyOptions,
@@ -18,7 +17,7 @@ import {
   Repository,
   MongoRepository,
   DeepPartial,
-  FindOptionsWhere
+  FindOptionsWhere,
 } from 'typeorm'
 import { ObjectId } from 'mongodb'
 import { Ids, Objects } from '@goatlab/js-utils'
@@ -36,7 +35,7 @@ import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
 
-export const getRelations = typeOrmRepo => {
+export const getRelationsFromModelGenerator = (typeOrmRepo: Repository<any>) => {
   const relations = {}
   for (const relation of typeOrmRepo.metadata.relations) {
     relations[relation.propertyName] = {
@@ -62,7 +61,6 @@ export interface TypeOrmConnectorParams<Input, Output> {
   dataSource: DataSource
   inputSchema: z.ZodType<Input>
   outputSchema?: z.ZodType<Output>
-  relationQuery?: any
 }
 export class TypeOrmConnector<
     ModelDTO = AnyObject,
@@ -99,7 +97,7 @@ export class TypeOrmConnector<
 
     const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
 
-    const { relations } = getRelations(relationShipBuilder)
+    const { relations } = getRelationsFromModelGenerator(relationShipBuilder)
 
     this.modelRelations = relations
 

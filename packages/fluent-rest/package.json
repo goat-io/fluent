@@ -109,7 +109,7 @@
     }
   },
   "dependencies": {
-    "@goatlab/fluent": "0.6.24"
+    "@goatlab/fluent": "^0.6.24"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
