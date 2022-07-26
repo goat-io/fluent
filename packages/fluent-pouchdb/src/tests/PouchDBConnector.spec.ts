@@ -16,7 +16,7 @@ describe('Execute all basic test Suite', () => {
 })
 
 describe('Execute all advanced test Suite', () => {
-  advancedTestSuite(TypeOrmRepository)
+  // advancedTestSuite(TypeOrmRepository)
 })
 
 /*
