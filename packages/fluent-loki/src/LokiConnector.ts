@@ -1,36 +1,142 @@
-import { Objects } from '@goatlab/js-utils'
-import { Database } from './Database'
+import { Ids, Objects } from '@goatlab/js-utils'
 import { Dates } from '@goatlab/dates'
 import {
-  BaseDataElement,
-  Sure,
-  Filter,
+  AnyObject,
   PaginatedData,
   Paginator,
   BaseConnector,
-  FluentConnectorInterface
+  FluentConnectorInterface,
+  modelGeneratorDataSource,
+  getRelationsFromModelGenerator,
+  getOutputKeys,
+  FluentQuery,
+  QueryOutput
 } from '@goatlab/fluent'
+import { z } from 'zod'
+import LokiJS, { Collection } from 'lokijs'
 
+export interface LokiConnectorParams<Input, Output> {
+  entity: any
+  dataSource: LokiJS
+  inputSchema: z.ZodType<Input>
+  outputSchema?: z.ZodType<Output>
+}
+
+export interface TypeOrmConnectorParams<Input, Output> {
+  entity: any
+  dataSource: LokiJS
+  inputSchema: z.ZodType<Input>
+  outputSchema?: z.ZodType<Output>
+}
 export class LokiConnector<
-    ModelDTO = BaseDataElement,
+    ModelDTO = AnyObject,
     InputDTO = ModelDTO,
     OutputDTO = ModelDTO
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-  implements FluentConnectorInterface<InputDTO, OutputDTO>
+  implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
 {
-  private name = 'baseModel'
+  private collection: Collection
 
-  constructor(name: string) {
+  private readonly dataSource: LokiJS
+
+  private readonly inputSchema: z.ZodType<InputDTO>
+
+  private readonly outputSchema: z.ZodType<OutputDTO>
+
+  constructor({
+    entity,
+    dataSource,
+    inputSchema,
+    outputSchema
+  }: LokiConnectorParams<InputDTO, OutputDTO>) {
     super()
-    this.name = name
-    // Fluent.model<ModelDTO>(name)
+    this.dataSource = dataSource
+    this.inputSchema = inputSchema
+    this.outputSchema =
+      outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
+
+    const dbModels = dataSource.collections.reduce((acc, collection) => {
+      acc.push(collection.name)
+      return acc
+    }, [])
+
+    if (!dbModels.includes(entity.name)) {
+      dataSource.addCollection(entity.name)
+    }
+
+    this.dataSource = dataSource
+
+    this.collection = dataSource.getCollection(entity.name)
+
+    const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
+
+    const { relations } = getRelationsFromModelGenerator(relationShipBuilder)
+
+    this.modelRelations = relations
+
+    this.outputKeys = getOutputKeys(relationShipBuilder) || []
+  }
+
+  /**
+   * Insert the data object into the database.
+   * @param data
+   */
+  public async insert(data: InputDTO): Promise<OutputDTO> {
+    const _data = Objects.clone(data)
+    // Validate Input
+    const validatedData = this.inputSchema.parse(_data)
+
+    const inserted: OutputDTO = {
+      id: Ids.uuid(),
+      ...validatedData
+    } as unknown as OutputDTO
+
+    await this.collection.insert(inserted)
+
+    // Validate Output
+    return this.outputSchema.parse(
+      this.clearEmpties(Objects.deleteNulls(inserted))
+    )
+  }
+
+  public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
+    const validatedData = this.inputSchema.array().parse(data)
+
+    const insertedElements: OutputDTO[] = []
+
+    for (const data of validatedData) {
+      insertedElements.push({
+        ...data,
+        id: Ids.uuid()
+      } as unknown as OutputDTO)
+    }
+
+    await this.collection.insert(insertedElements)
+
+    return this.outputSchema.array().parse(
+      insertedElements.map(d => {
+        return this.clearEmpties(Objects.deleteNulls(d))
+      })
+    )
   }
 
   /**
    *
+   * Returns the TypeOrm Repository, you can use it
+   * form more complex queries and to get
+   * the TypeOrm query builder
+   *
+   * @param query
    */
-  public async get(): Promise<OutputDTO[]> {
+  public raw(): Collection {
+    return this.collection
+  }
+
+  public async findMany<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+
     const filterObject = this.prepareFilter()
 
     let data = await (await this.getModel())
@@ -42,124 +148,53 @@ export class LokiConnector<
 
     // data = this.jsApplySelect(data)
     data = this.jsApplyOrderBy(data)
-    this.reset()
+
     return data
-  }
+    const [found, count] = await this.repository.findAndCount(
+      this.generateTypeOrmQuery(query)
+    )
 
-  /**
-   *
-   */
-  public async all(): Promise<OutputDTO[]> {
-    return this.get()
-  }
+    found.map(d => {
+      if (this.isMongoDB) {
+        d['id'] = d['id'].toString()
+      }
 
-  /**
-   *
-   * @param filter
-   */
-  public async find(filter: Filter): Promise<OutputDTO[]> {
-    return this.get()
-  }
-
-  /**
-   *
-   * @param filter
-   */
-  public async paginate(
-    paginator: Paginator
-  ): Promise<PaginatedData<OutputDTO>> {
-    const results: PaginatedData<OutputDTO> = {
-      current_page: 1,
-      data: [],
-      first_page_url: 'response[0].meta.firstPageUrl,',
-      next_page_url: 'response[0].meta.nextPageUrl',
-      path: 'response[0].meta.path',
-      per_page: 1,
-      prev_page_url: ' response[0].meta.previousPageUrl',
-      total: 10
-    }
-
-    return results
-  }
-
-  /**
-   * [remove description]
-   * @param  {[type]} document [description]
-   * @return {[type]}          [description]
-   */
-  public async deleteById(id: string): Promise<string> {
-    if (!id) {
-      throw new Error('No id assign to remove().You must give and id to delete')
-    }
-    const model = await this.getModel()
-    await model.findAndRemove({ id })
-    this.reset()
-    return id
-  }
-
-  /**
-   *
-   * @param id
-   */
-  public async findById(id: string): Promise<OutputDTO> {
-    if (!id) {
-      throw new Error('No id assign to remove().You must give and id to delete')
-    }
-    const model = await this.getModel()
-    const result: OutputDTO = await model.find({
-      id
+      this.clearEmpties(Objects.deleteNulls(d))
     })
-    this.reset()
-    return result
-  }
 
-  /**
-   * [insert description]
-   * @param  {Object, Array} element [description]
-   * @return {[type]}         [description]
-   */
-  public async insert(data: InputDTO): Promise<OutputDTO> {
-    const _data = Objects.clone(data)
+    if (query?.paginated) {
+      const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO, OutputDTO>> =
+        {
+          total: count,
+          perPage: query.paginated.perPage,
+          currentPage: query.paginated.page,
+          nextPage: query.paginated.page + 1,
+          firstPage: 1,
+          lastPage: Math.ceil(count / query.paginated.perPage),
+          prevPage:
+            query.paginated.page === 1 ? null : query.paginated.page - 1,
+          from: (query.paginated.page - 1) * query.paginated.perPage + 1,
+          to: query.paginated.perPage * query.paginated.page,
+          data: found as unknown as QueryOutput<T, ModelDTO, OutputDTO>[]
+        }
 
-    const model = await this.getModel()
-
-    const inserted: OutputDTO = {
-      ..._data
+      return paginationInfo as unknown as QueryOutput<T, ModelDTO, OutputDTO>
     }
 
-    model.insert(inserted)
-    this.reset()
-    return inserted
-  }
-
-  /**
-   *
-   * @param data
-   */
-  public async insertMany(
-    data: InputDTO[]
-  ): Promise<OutputDTO[]> {
-    const insertedElements: OutputDTO[] = []
-
-    for (const element of data) {
-      const inserted: OutputDTO = await this.insert({
-        ...element
-      })
-
-      insertedElements.push(inserted)
+    if (query?.select) {
+      // TODO: validate based on the select properties
+      return found as unknown as QueryOutput<T, ModelDTO, OutputDTO>
     }
-    this.reset()
-    return insertedElements
+    // Validate Output against schema
+    return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
+      T,
+      ModelDTO,
+      OutputDTO
+    >
   }
 
-  /**
-   *
-   * @param document
-   */
-  public async updateById(
-    id: string,
-    data: InputDTO
-  ): Promise<OutputDTO> {
+  /*
+  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
     if (!id) {
       throw new Error(
         'Loki connector error. Cannot update a Model without id key'
@@ -176,48 +211,14 @@ export class LokiConnector<
     }
 
     const updated: OutputDTO = model.update(mod)
-    this.reset()
+
     return updated
   }
 
-  /**
-   *
-   * @param {*} param0
-   */
-  /*
-  public async updateOrCreate({ document }) {
-    const model = await this.getModel()
-    const role = await model.findOne(document)
-
-    if (!role) {
-      model.insert(document)
-    }
-  }
-  */
-  /**
-   *
-   * @param {*} param0
-   */
-  /*
-  public async findAndRemove({ filter }) {
-    const model = await this.getModel()
-
-    return model.findAndRemove(filter)
-  }
-  */
-  /**
-   *
-   * @param {*} param0
-   */
-  public async clear({ sure }: Sure) {
-    const model = await this.getModel()
-
-    return model.clear({ removeIndices: true })
+  public async clear() {
+    return this.collection.clear({ removeIndices: true })
   }
 
-  /**
-   *
-   */
   private prepareFilter() {
     const andObject = { $and: [] }
     const orObject = { $or: [] }
@@ -275,10 +276,6 @@ export class LokiConnector<
     return globalFilter
   }
 
-  /**
-   *
-   * @param {*} operator
-   */
   private getLokiOperator(operator) {
     const lokiOperators = {
       '=': '$eq',
@@ -304,14 +301,67 @@ export class LokiConnector<
     return converted
   }
 
-  /**
-   *
-   * @param {Object} db The name of the model to fetch
-   * @param {String} db.model The name of the model to fetch
-   * @returns {Promise} The DB model
-   */
-  private async getModel() {
-    const DB = await Database.get()
-    return DB.getCollection(this.name)
+  public async get(): Promise<OutputDTO[]> {
+    const filterObject = this.prepareFilter()
+
+    let data = await (await this.getModel())
+      .chain()
+      .find(filterObject)
+      .offset(this.offsetNumber)
+      .limit(this.limitNumber)
+      .data()
+
+    // data = this.jsApplySelect(data)
+    data = this.jsApplyOrderBy(data)
+
+    return data
   }
+
+  public async all(): Promise<OutputDTO[]> {
+    return this.get()
+  }
+
+  public async find(filter: Filter): Promise<OutputDTO[]> {
+    return this.get()
+  }
+
+  public async paginate(
+    paginator: Paginator
+  ): Promise<PaginatedData<OutputDTO>> {
+    const results: PaginatedData<OutputDTO> = {
+      current_page: 1,
+      data: [],
+      first_page_url: 'response[0].meta.firstPageUrl,',
+      next_page_url: 'response[0].meta.nextPageUrl',
+      path: 'response[0].meta.path',
+      per_page: 1,
+      prev_page_url: ' response[0].meta.previousPageUrl',
+      total: 10
+    }
+
+    return results
+  }
+
+  public async deleteById(id: string): Promise<string> {
+    if (!id) {
+      throw new Error('No id assign to remove().You must give and id to delete')
+    }
+    const model = await this.getModel()
+    await model.findAndRemove({ id })
+
+    return id
+  }
+
+  public async findById(id: string): Promise<OutputDTO> {
+    if (!id) {
+      throw new Error('No id assign to remove().You must give and id to delete')
+    }
+    const model = await this.getModel()
+    const result: OutputDTO = await model.find({
+      id
+    })
+
+    return result
+  }
+  */
 }

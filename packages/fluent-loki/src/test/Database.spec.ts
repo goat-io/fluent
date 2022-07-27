@@ -1,13 +1,14 @@
-import Loki from 'lokijs'
-import { Database } from './Database'
+import LokiJS from 'lokijs'
+import { Loki, LokiStorageType } from '../Loki'
 
-let db
-beforeAll(async () => {
-  db = await Database.get()
+let db: LokiJS
+
+beforeAll(() => {
+  db = Loki.createDb({ dbName: 'GOAT', storage: LokiStorageType.memory })
 })
 
 it('Should return and instance of LockiJS DB', () => {
-  const isLoki = db instanceof Loki
+  const isLoki = db instanceof LokiJS
   expect(isLoki).toBe(true)
 })
 
@@ -22,7 +23,7 @@ it('Should start with no collections', () => {
     return dbColArray
   }, [])
 
-  // expect(expectedCollections.length).toBe(dbCollections.length)
+  expect(expectedCollections.length).toBe(dbCollections.length)
 
   const uniqueCollections = {}
 
