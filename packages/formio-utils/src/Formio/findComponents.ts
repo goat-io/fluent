@@ -1,7 +1,7 @@
 import { Objects } from '@goatlab/js-utils'
 import { eachComponent } from './eachComponent'
 import { FormioComponent } from './types/FormioComponent'
-import { BaseDataElement } from '@goatlab/fluent'
+import { AnyObject } from '@goatlab/fluent'
 /**
  *
  * @param component
@@ -29,7 +29,7 @@ const matchComponent = (component: any, query: any) => {
  */
 export const findComponents = (
   components: FormioComponent[],
-  query: BaseDataElement
+  query: AnyObject
 ): FormioComponent[] => {
   const results = []
 

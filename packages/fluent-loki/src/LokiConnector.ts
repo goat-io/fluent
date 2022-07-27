@@ -10,7 +10,8 @@ import {
   getRelationsFromModelGenerator,
   getOutputKeys,
   FluentQuery,
-  QueryOutput
+  QueryOutput,
+  LogicOperator
 } from '@goatlab/fluent'
 import { z } from 'zod'
 import LokiJS, { Collection } from 'lokijs'
@@ -56,10 +57,11 @@ export class LokiConnector<
     this.outputSchema =
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
 
-    const dbModels = dataSource.collections.reduce((acc, collection) => {
-      acc.push(collection.name)
-      return acc
-    }, [])
+    const dbModels: string[] = []
+
+    for (const collection of dataSource.collections) {
+      dbModels.push(collection.name)
+    }
 
     if (!dbModels.includes(entity.name)) {
       dataSource.addCollection(entity.name)
@@ -87,8 +89,9 @@ export class LokiConnector<
     // Validate Input
     const validatedData = this.inputSchema.parse(_data)
 
+    const id = Ids.uuid()
     const inserted: OutputDTO = {
-      id: Ids.uuid(),
+      id,
       ...validatedData
     } as unknown as OutputDTO
 
@@ -136,41 +139,48 @@ export class LokiConnector<
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    const where = this.getLokiWhere(query?.where)
 
-    const filterObject = this.prepareFilter()
+    const sort: [string, boolean][] = []
 
-    let data = await (await this.getModel())
+    let baseQuery = this.collection
       .chain()
-      .find(filterObject)
-      .offset(this.offsetNumber)
-      .limit(this.limitNumber)
-      .data()
+      .find(where)
+      .offset(query?.offset || 0)
+      .limit(query?.limit || 10)
 
-    // data = this.jsApplySelect(data)
-    data = this.jsApplyOrderBy(data)
+    // Pagination
+    if (query?.paginated) {
+      baseQuery.limit(query.paginated.perPage)
+      baseQuery.offset((query.paginated?.page - 1) * query.paginated.perPage)
+    }
 
-    return data
-    const [found, count] = await this.repository.findAndCount(
-      this.generateTypeOrmQuery(query)
-    )
+    if (query?.orderBy) {
+      for (const order of query?.orderBy!) {
+        const flattenObject = Objects.flatten(order)
+        for (const attribute of Object.keys(flattenObject)) {
+          const isDecending = flattenObject[attribute] === 'desc'
+          sort.push([attribute, isDecending])
+        }
+      }
+      baseQuery = baseQuery.compoundsort(sort)
+    }
+
+    let found = baseQuery.data()
 
     found.map(d => {
-      if (this.isMongoDB) {
-        d['id'] = d['id'].toString()
-      }
-
       this.clearEmpties(Objects.deleteNulls(d))
     })
 
     if (query?.paginated) {
       const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO, OutputDTO>> =
         {
-          total: count,
+          total: 0,
           perPage: query.paginated.perPage,
           currentPage: query.paginated.page,
           nextPage: query.paginated.page + 1,
           firstPage: 1,
-          lastPage: Math.ceil(count / query.paginated.perPage),
+          lastPage: Math.ceil(1 / query.paginated.perPage),
           prevPage:
             query.paginated.page === 1 ? null : query.paginated.page - 1,
           from: (query.paginated.page - 1) * query.paginated.perPage + 1,
@@ -182,8 +192,13 @@ export class LokiConnector<
     }
 
     if (query?.select) {
+      const selectedAttributes = this.jsApplySelect(query?.select, found)
       // TODO: validate based on the select properties
-      return found as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return selectedAttributes as unknown as QueryOutput<
+        T,
+        ModelDTO,
+        OutputDTO
+      >
     }
     // Validate Output against schema
     return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
@@ -193,87 +208,277 @@ export class LokiConnector<
     >
   }
 
-  /*
+  /**
+   * PATCH operation
+   * @param data
+   */
   public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
-    if (!id) {
-      throw new Error(
-        'Loki connector error. Cannot update a Model without id key'
-      )
-    }
-    const model = await this.getModel()
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...data,
+          ...{ updated: new Date() }
+        }
+      : data
 
-    const local = await model.findOne({ id })
+    const validatedData = this.inputSchema.parse(dataToInsert)
+
+    const local = await this.collection.findOne({ id })
 
     const mod = {
       ...local,
-      ...data,
-      ...{ modified: Dates.currentIsoString() }
+      ...validatedData,
+      modified: Dates.currentIsoString()
     }
 
-    const updated: OutputDTO = model.update(mod)
+    const dbResult = await this.collection.update(mod)
+    // const dbResult = await this.collection.findOne({ id })
 
-    return updated
+    // Validate Output
+    return this.outputSchema?.parse(
+      this.clearEmpties(Objects.deleteNulls(dbResult))
+    )
   }
 
-  public async clear() {
-    return this.collection.clear({ removeIndices: true })
+  /**
+   *
+   * PUT operation. All fields not included in the data
+   *  param will be set to null
+   *
+   * @param id
+   * @param data
+   */
+  public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
+    let value = await this.collection.findOne({ id })
+
+    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
+
+    Object.keys(flatValue).forEach(key => {
+      flatValue[key] = null
+    })
+
+    const nullObject = Objects.nest(flatValue)
+
+    const newValue = { ...nullObject, ...data }
+
+    delete newValue._id
+    delete newValue.id
+    delete newValue.created
+    delete newValue.updated
+
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...data,
+          ...{ updated: new Date() }
+        }
+      : data
+
+    const validatedData = this.inputSchema.parse(dataToInsert)
+
+    value = {...value, ...validatedData}
+
+    await this.collection.update(value)
+
+    const val = await this.collection.findOne({ id })
+
+    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
   }
 
-  private prepareFilter() {
-    const andObject = { $and: [] }
-    const orObject = { $or: [] }
-    let globalFilter = {}
-    // All first Level AND conditions
-    if (this.whereArray.length > 0) {
-      this.whereArray.forEach(c => {
-        const conditionToObject = {}
+  public getLokiWhere(where?: FluentQuery<ModelDTO>['where']): any {
+    /*
 
-        if (c[0].includes('[')) {
-          throw new Error(
-            `Error in: "${c[0]}" "Where" close does not work with Array elements`
-          )
-        }
+    if (this.relationQuery && this.relationQuery.data) {
+      const ids = this.relationQuery.data.map(
+        d => Ids.objectID(d.id) as unknown as ObjectID
+      )
 
-        conditionToObject[c[0]] = {}
-        const lokiOperator = this.getLokiOperator(c[1])
-
-        conditionToObject[c[0]][lokiOperator] = c[2]
-        if (lokiOperator.includes('$regex|')) {
-          delete conditionToObject[c[0]][lokiOperator]
-          conditionToObject[c[0]].$regex = lokiOperator
-            .replace('$regex|', '')
-            .replace('{{$var}}', c[2])
-        }
-
-        andObject.$and.push(conditionToObject)
-      })
-      globalFilter = andObject
-    }
-    // All second level OR conditions
-    if (this.orWhereArray.length > 0) {
-      this.orWhereArray.forEach(c => {
-        const conditionToObject = {}
-
-        conditionToObject[c[0]] = {}
-        const lokiOperator = this.getLokiOperator(c[1])
-
-        conditionToObject[c[0]][lokiOperator] = c[2]
-        if (lokiOperator.includes('$regex|')) {
-          delete conditionToObject[c[0]][lokiOperator]
-          conditionToObject[c[0]].$regex = lokiOperator
-            .replace('$regex|', '')
-            .replace('{{$var}}', c[2])
-        }
-
-        orObject.$or.push(conditionToObject)
-      })
-
-      globalFilter = { $or: [andObject, orObject] }
+      andFilters.push([
+        this.relationQuery.relation.inverseSidePropertyPath,
+        'in',
+        ids
+      ])
     }
 
-    // TODO we should include global level and() or()
-    // operators to give room for more complex queries
-    return globalFilter
+    if (!andFilters || andFilters.length === 0) {
+      return filters
+    }
+    */
+
+    if (!where || Object.keys(where).length === 0) {
+      return {}
+    }
+
+    const Filters: { where: { $or: any[] } } = {
+      where: { $or: [{ $and: [] }] }
+    }
+
+    const orConditions = this.extractConditions(where['OR'])
+    const andConditions = this.extractConditions(where['AND'])
+
+    const copy = Objects.clone(where)
+    if (!!copy['AND']) {
+      delete copy['AND']
+    }
+
+    if (!!copy['OR']) {
+      delete copy['OR']
+    }
+
+    const rootLevelConditions = this.extractConditions([copy])
+
+    for (const condition of andConditions) {
+      let { element, operator, value } = condition
+
+      if (element === 'id') {
+        element = '_id'
+        /*
+        value = (Array.isArray(value)
+          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
+          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
+          */
+      }
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
+          break
+        case LogicOperator.isNot:
+          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
+          break
+        case LogicOperator.lessThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
+          break
+        case LogicOperator.in:
+          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
+          break
+        case LogicOperator.notIn:
+          Filters.where.$or[0].$and.push({
+            [element]: { $not: { $in: value } }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
+          break
+        case LogicOperator.notExists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
+          break
+        case LogicOperator.regexp:
+          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
+          break
+      }
+    }
+
+    for (const condition of rootLevelConditions) {
+      let { element, operator, value } = condition
+
+      if (element === 'id') {
+        element = '_id'
+        /*
+        value = (Array.isArray(value)
+          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
+          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
+          */
+      }
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
+          break
+        case LogicOperator.isNot:
+          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
+          break
+        case LogicOperator.lessThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
+          break
+        case LogicOperator.in:
+          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
+          break
+        case LogicOperator.notIn:
+          Filters.where.$or[0].$and.push({
+            [element]: { $not: { $in: value } }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
+          break
+        case LogicOperator.notExists:
+          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
+          break
+        case LogicOperator.regexp:
+          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
+          break
+      }
+    }
+
+    for (const condition of orConditions) {
+      let { element, operator, value } = condition
+
+      if (element === 'id') {
+        element = 'id'
+        /*
+        value = (Array.isArray(value)
+          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
+          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
+          */
+      }
+
+      switch (operator) {
+        case LogicOperator.equals:
+          Filters.where.$or.push({ [element]: { $eq: value } })
+          break
+        case LogicOperator.isNot:
+          Filters.where.$or.push({ [element]: { $neq: value } })
+          break
+        case LogicOperator.greaterThan:
+          Filters.where.$or.push({ [element]: { $gt: value } })
+          break
+        case LogicOperator.greaterOrEqualThan:
+          Filters.where.$or.push({ [element]: { $gte: value } })
+          break
+        case LogicOperator.lessThan:
+          Filters.where.$or.push({ [element]: { $lt: value } })
+          break
+        case LogicOperator.lessOrEqualThan:
+          Filters.where.$or.push({ [element]: { $lte: value } })
+          break
+        case LogicOperator.in:
+          Filters.where.$or.push({ [element]: { $in: value } })
+          break
+        case LogicOperator.notIn:
+          Filters.where.$or.push({
+            [element]: { $not: { $in: value } }
+          })
+          break
+        case LogicOperator.exists:
+          Filters.where.$or.push({ [element]: { $exists: true } })
+          break
+        case LogicOperator.notExists:
+          Filters.where.$or.push({ [element]: { $exists: false } })
+          break
+        case LogicOperator.regexp:
+          Filters.where.$or.push({ [element]: { $regex: value } })
+          break
+      }
+    }
+
+    return this.clearEmpties(Filters.where)
   }
 
   private getLokiOperator(operator) {
@@ -301,45 +506,11 @@ export class LokiConnector<
     return converted
   }
 
-  public async get(): Promise<OutputDTO[]> {
-    const filterObject = this.prepareFilter()
+  /*
+  
 
-    let data = await (await this.getModel())
-      .chain()
-      .find(filterObject)
-      .offset(this.offsetNumber)
-      .limit(this.limitNumber)
-      .data()
-
-    // data = this.jsApplySelect(data)
-    data = this.jsApplyOrderBy(data)
-
-    return data
-  }
-
-  public async all(): Promise<OutputDTO[]> {
-    return this.get()
-  }
-
-  public async find(filter: Filter): Promise<OutputDTO[]> {
-    return this.get()
-  }
-
-  public async paginate(
-    paginator: Paginator
-  ): Promise<PaginatedData<OutputDTO>> {
-    const results: PaginatedData<OutputDTO> = {
-      current_page: 1,
-      data: [],
-      first_page_url: 'response[0].meta.firstPageUrl,',
-      next_page_url: 'response[0].meta.nextPageUrl',
-      path: 'response[0].meta.path',
-      per_page: 1,
-      prev_page_url: ' response[0].meta.previousPageUrl',
-      total: 10
-    }
-
-    return results
+  public async clear() {
+    return this.collection.clear({ removeIndices: true })
   }
 
   public async deleteById(id: string): Promise<string> {

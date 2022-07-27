@@ -273,21 +273,23 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   public clearEmpties(object) {
-    Object
-        .entries(object)
-        .forEach(([k, v]) => {
-            if (v && typeof v === 'object') {
-                this.clearEmpties(v);
-            }
-            if (v && typeof v === 'object' && !Object.keys(v).length || v === null || v === undefined) {
-                if (Array.isArray(object)) {
-                    object.splice(Number(k), 1);
-                } else {
-                    delete object[k];
-                }
-            }
-        });
-    return object;
+    Object.entries(object).forEach(([k, v]) => {
+      if (v && typeof v === 'object') {
+        this.clearEmpties(v)
+      }
+      if (
+        (v && typeof v === 'object' && !Object.keys(v).length) ||
+        v === null ||
+        v === undefined
+      ) {
+        if (Array.isArray(object)) {
+          object.splice(Number(k), 1)
+        } else {
+          delete object[k]
+        }
+      }
+    })
+    return object
   }
 
   public isAnyObject(val: any): boolean {
@@ -362,4 +364,123 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     }
     return accumulatedClauses
   }
+
+  /**
+   * Maps the given Data to show only those fields
+   * explicitly detailed on the Select function
+   *
+   * @param {Array} data Data from local or remote DB
+   * @returns {Array} Formatted data with the selected columns
+   */
+  protected jsApplySelect(
+    select: FluentQuery<ModelDTO>['select'],
+    data: ModelDTO[]
+  ): ModelDTO[] {
+    const _data = Array.isArray(data) ? [...data] : [data]
+
+    if (!select) {
+      return data
+    }
+
+    const selectedAttributes = Object.keys(Objects.flatten(select))
+
+    const iterationArray =
+      this.outputKeys.length === 0 && selectedAttributes.length > 0
+        ? selectedAttributes
+        : [...this.outputKeys]
+
+    const compareArray =
+      this.outputKeys.length === 0 && selectedAttributes.length > 0
+        ? [...this.outputKeys]
+        : selectedAttributes
+
+    return _data.map(element => {
+      const newElement = {}
+
+      iterationArray.forEach(attribute => {
+        if (compareArray.length > 0 && !compareArray.includes(attribute)) {
+          return undefined
+        }
+
+        const extract = Objects.getFromPath(element, attribute, undefined)
+
+        let value = Objects.get(() => extract.value, undefined)
+
+        if (typeof value !== 'undefined' && value !== null) {
+          if (
+            typeof value === 'object' &&
+            value.hasOwnProperty('data') &&
+            value.data.hasOwnProperty('name')
+          ) {
+            newElement[extract.label] = value.data.name
+          } else {
+            if (typeof value === 'object' && Ids.isValidObjectID(value)) {
+              value = Ids.objectIdString(value)
+            }
+            newElement[extract.label] = value
+          }
+        }
+      })
+
+      return Objects.nest(newElement)
+    }) as ModelDTO[]
+  }
+
+  /**
+   * Order the results once they have already
+   * been pulled from the data source
+   * @param {*} data
+   */
+  /*
+    protected jsApplyOrderBy(orderBy: FluentQuery<ModelDTO>['orderBy'],data: ModelDTO[]) {
+      let _data = [...data]
+  
+      if (orderBy?.length === 0) {
+        return _data
+      }
+
+      const field = this.orderByArray[0]
+  
+      if (
+        selectedAttributes.length > 0 &&
+        (field.includes('.') || field.includes('['))
+      ) {
+        throw new Error(
+          `Cannot orderBy nested attribute "${field}" when using Select. You must rename the attribute`
+        )
+      }
+  
+      const order = this.orderByArray[1]
+      let type = this.orderByArray[2]
+  
+      if (!type) {
+        type = 'string'
+      }
+  
+      _data = _data.sort((a, b) => {
+        const A = Objects.getFromPath(a, field, undefined).value
+        const B = Objects.getFromPath(b, field, undefined).value
+  
+        if (typeof A === 'undefined' || typeof B === 'undefined') {
+          throw new Error(
+            `Cannot order by property "${field}" not all values have this property`
+          )
+        }
+        // For default order and numbers
+        if (type.includes('string') || type.includes('number')) {
+          if (order === 'asc') {
+            return A > B ? 1 : A < B ? -1 : 0
+          }
+          return A > B ? -1 : A < B ? 1 : 0
+        }
+        if (type.includes('date')) {
+          if (order === 'asc') {
+            return new Date(A).getTime() - new Date(B).getTime()
+          }
+          return new Date(B).getTime() - new Date(A).getTime()
+        }
+      })
+      return _data
+    }
+    */
 }

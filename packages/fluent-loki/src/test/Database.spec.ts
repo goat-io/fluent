@@ -17,11 +17,12 @@ it('Should be named GOAT', () => {
 })
 
 it('Should start with no collections', () => {
-  const expectedCollections = []
-  const dbCollections = db.collections.reduce((dbColArray, dbCol) => {
-    dbColArray.push(dbCol.name)
-    return dbColArray
-  }, [])
+  const expectedCollections: string[] = []
+  const dbCollections: string[] = []
+    
+  for(const collection of db.collections) {
+    dbCollections.push(collection.name)
+  }
 
   expect(expectedCollections.length).toBe(dbCollections.length)
 

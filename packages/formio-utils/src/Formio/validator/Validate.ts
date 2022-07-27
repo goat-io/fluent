@@ -1,7 +1,7 @@
 import { FormioForm } from '../types/FormioForm'
 import Form from './Form/Form'
 import Submission from './Submission/Submission'
-import type { BaseDataElement } from '@goatlab/fluent'
+import type { AnyObject } from '@goatlab/fluent'
 import { Validator } from './Logic/Validator'
 import { Promises } from '@goatlab/js-utils'
 
@@ -9,7 +9,7 @@ interface FormioError {
   message: string
   path: string[]
   type: string
-  context: BaseDataElement
+  context: AnyObject
 }
 export interface FormioValidationError {
   name: string
@@ -19,9 +19,9 @@ export interface FormioValidationError {
 export const Validate = (() => {
   const validate = (
     form: FormioForm,
-    submissions: BaseDataElement[]
-  ): Promise<BaseDataElement[]> => {
-    const _submissions: BaseDataElement[] = JSON.parse(
+    submissions: AnyObject[]
+  ): Promise<AnyObject[]> => {
+    const _submissions: AnyObject[] = JSON.parse(
       JSON.stringify(submissions)
     )
 
@@ -56,15 +56,15 @@ export const Validate = (() => {
     })
   }
 
-  const submissions = (form: FormioForm, submissions: BaseDataElement[]) =>
+  const submissions = (form: FormioForm, submissions: AnyObject[]) =>
     validate(form, submissions)
 
   const submission = async (
     form: FormioForm,
-    submission: BaseDataElement
-  ): Promise<BaseDataElement> => {
+    submission: AnyObject
+  ): Promise<AnyObject> => {
     const _submissions = [submission]
-    const [error, subs] = await Promises.tuple<BaseDataElement, any>(
+    const [error, subs] = await Promises.tuple<AnyObject, any>(
       validate(form, _submissions)
     )
     if (error) {
