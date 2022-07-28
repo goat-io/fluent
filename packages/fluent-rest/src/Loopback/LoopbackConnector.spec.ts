@@ -1,21 +1,8 @@
-import { Fluent } from '@goatlab/fluent'
-// import { To } from '../../Helpers/To'
-// import { LoopbackConnector } from './LoopbackConnector'
-
-interface IGoat {
-  name: string
-  age: number
-  breed?: {
-    family: string
-    members: number
-  }
-}
-const authToken = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
-
 it('Should...', async () => {
   expect(1).toBe(1)
 })
 
+export {}
 /*
 describe('Given a FLUENT Remote Instance', () => {
   before(async () => {

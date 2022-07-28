@@ -41,6 +41,29 @@ export const advancedTestSuite = Model => {
     })
   }
 
+  it('findFirst() should take the first result from data', async () => {
+    await insertTestData(Model)
+
+    const form = await Model.findFirst({
+      select: {
+        id: true,
+        nestedTest: {
+          c: true
+        }
+      },
+      where: {
+        nestedTest: {
+          c: {
+            greaterOrEqualThan: 3
+          }
+        }
+      }
+    })
+    expect(!Array.isArray(form)).toBe(true)
+    expect(typeof form.nestedTest.c).toBe('number')
+    expect(form.nestedTest.c >= 3).toBe(true)
+  })
+
   it('Should get local data', async () => {
     await insertTestData(Model)
     const data = await Model.findMany()
@@ -82,29 +105,6 @@ export const advancedTestSuite = Model => {
     })
 
     expect(forms.length).toBe(1)
-  })
-
-  it('findFirst() should take the first result from data', async () => {
-    await insertTestData(Model)
-
-    const form = await Model.findFirst({
-      select: {
-        id: true,
-        nestedTest: {
-          c: true
-        }
-      },
-      where: {
-        nestedTest: {
-          c: {
-            greaterOrEqualThan: 3
-          }
-        }
-      }
-    })
-    expect(!Array.isArray(form)).toBe(true)
-    expect(typeof form.nestedTest.c).toBe('number')
-    expect(form.nestedTest.c >= 3).toBe(true)
   })
 
   it('where() should filter the data', async () => {
@@ -274,7 +274,7 @@ export const advancedTestSuite = Model => {
     expect(isNaN(result.from)).toBe(false)
     expect(isNaN(result.to)).toBe(false)
   })
-/*
+  /*
   it('clear() should remove all records from the Model', async () => {
     await Model.clear()
 
