@@ -41,7 +41,6 @@
     "mongodb": "^4.4.1",
     "openapi3-ts": "^2.0.2",
     "reflect-metadata": "^0.1.13",
-    "typed-path": "^2.2.3",
     "typeorm": "^0.3.4",
     "zod": "^3.17.3"
   },

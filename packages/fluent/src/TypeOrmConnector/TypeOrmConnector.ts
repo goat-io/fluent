@@ -1,7 +1,7 @@
 /**
  * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
  */
-import { LogicOperator,  QueryOutput } from './../types'
+import { LogicOperator, QueryOutput } from './../types'
 import {
   Equal,
   FindManyOptions,
@@ -17,7 +17,7 @@ import {
   Repository,
   MongoRepository,
   DeepPartial,
-  FindOptionsWhere,
+  FindOptionsWhere
 } from 'typeorm'
 import { ObjectId } from 'mongodb'
 import { Ids, Objects } from '@goatlab/js-utils'
@@ -35,7 +35,9 @@ import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
 
-export const getRelationsFromModelGenerator = (typeOrmRepo: Repository<any>) => {
+export const getRelationsFromModelGenerator = (
+  typeOrmRepo: Repository<any>
+) => {
   const relations = {}
   for (const relation of typeOrmRepo.metadata.relations) {
     relations[relation.propertyName] = {

@@ -24,7 +24,7 @@ import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
 import { Access } from './core/dtos/access.dto'
 import { BaseConnector } from './BaseConnector'
 import { Collection } from '@goatlab/js-utils'
-import { Decorators } from './decorators'
+import { f } from './decorators'
 import { Fluent } from './Fluent'
 import type { FluentConnectorInterface } from './BaseConnector'
 import type { SchemaObject } from './core/types'
@@ -43,7 +43,7 @@ export {
   BaseConnector,
   Collection,
   Column,
-  Decorators,
+  f,
   Fluent,
   getModelSchemaRef,
   getOutputKeys,

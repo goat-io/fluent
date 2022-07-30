@@ -26,7 +26,8 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/fluent": "*"
+    "@goatlab/fluent": "*",
+    "lokijs": "^1.5.12"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",

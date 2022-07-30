@@ -260,4 +260,4 @@ export class DecoratorsClass {
   }
 }
 
-export const Decorators = new DecoratorsClass()
+export const f = new DecoratorsClass()

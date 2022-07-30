@@ -1,12 +1,14 @@
 import { ObjectID } from 'typeorm'
 import { Objects, Ids, Collection } from '@goatlab/js-utils'
 import {
+  FluentHasManyParams,
   FluentQuery,
   LogicOperator,
   Primitives,
   PrimitivesArray,
   QueryFieldSelector,
-  QueryOutput
+  QueryOutput,
+  SingleQueryOutput
 } from './types'
 
 export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
@@ -82,16 +84,16 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    *
    * @return {Object} First result
    */
-  public async findFirst(
-    query?: FluentQuery<ModelDTO>
-  ): Promise<OutputDTO | null> {
+  public async findFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null> {
     const data = await this.findMany({ ...query, limit: 1 })
 
     if (!data[0]) {
       return null
     }
 
-    return data[0]
+    return data[0] as SingleQueryOutput<T, ModelDTO, OutputDTO>
   }
   /**
    *
@@ -206,16 +208,26 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     return this.relationQuery.pivot.insertMany(relatedData)
   }
 
+  public loadFirst(query?: FluentQuery<ModelDTO>) {
+    return this
+  }
+
   /**
    * One-to-Many relationship
    * To be used in the "parent" entity (One)
    */
-  protected hasMany<T>(Repository, relationName: string) {
+  protected hasMany<T extends FluentHasManyParams<ModelDTO>>({
+    relationKey,
+    repository
+  }: T): InstanceType<T['repository']> {
+    const flatten = Objects.flatten(relationKey)
+
+    const relation = Object.keys(flatten)[0]
+
     if (this.relationQuery) {
-      this.relationQuery.relation = this.relationQuery.relations[relationName]
+      this.relationQuery.relation = this.relationQuery.relations[relation]
     }
-    const newClass = new Repository(this.relationQuery) as T
-    return newClass
+    return new repository()
   }
 
   /**

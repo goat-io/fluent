@@ -1,42 +1,42 @@
 import { z } from 'zod'
-import { Decorators } from '../../../decorators'
+import { f } from '../../../decorators'
 
 export class FurtherNested {
-  @Decorators.property({ required: false })
+  @f.property({ required: false })
   c: boolean
 
-  @Decorators.stringArray({ required: true })
+  @f.stringArray({ required: true })
   d: string[]
 }
 
 export class Nested {
   // Array can only be string in SQLite
-  @Decorators.stringArray({ required: true })
+  @f.stringArray({ required: true })
   a: string[]
 
   // Non array props of a optional nested object cannot be required
-  @Decorators.property({ required: false })
+  @f.property({ required: false })
   c: number
 
-  @Decorators.embed(FurtherNested)
+  @f.embed(FurtherNested)
   b?: FurtherNested
 }
 
-@Decorators.entity('numbers')
+@f.entity('numbers')
 export class TypeORMDataModel {
-  @Decorators.id()
+  @f.id()
   id: string
 
-  @Decorators.property({ required: false })
+  @f.property({ required: false })
   created?: string
 
-  @Decorators.embed(Nested)
+  @f.embed(Nested)
   nestedTest?: Nested | undefined
 
-  @Decorators.property({ required: false })
+  @f.property({ required: false })
   order?: number
 
-  @Decorators.property({ required: true })
+  @f.property({ required: true })
   test: boolean
 }
 

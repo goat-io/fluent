@@ -92,6 +92,21 @@ export type QueryOutput<
 }
   ? T extends { paginated: T['paginated'] }
     ? PaginatedData<GetSelectedFromObject<T, Model, OutputDTO>>
+    : GetSelectedFromObject<T, Model, OutputDTO>[]
+  : // If it does not extend select
+  T extends { paginated: T['paginated'] }
+  ? PaginatedData<OutputDTO>
+  : OutputDTO[]
+
+export type SingleQueryOutput<
+  T extends FluentQuery<Model>,
+  Model,
+  OutputDTO
+> = T extends {
+  select: T['select']
+}
+  ? T extends { paginated: T['paginated'] }
+    ? PaginatedData<GetSelectedFromObject<T, Model, OutputDTO>>
     : GetSelectedFromObject<T, Model, OutputDTO>
   : // If it does not extend select
   T extends { paginated: T['paginated'] }
@@ -144,4 +159,15 @@ export enum LogicOperator {
   arrayContains = 'arrayContains',
   exists = 'exists',
   notExists = 'notExists'
+}
+
+export type FluentHasManyRelatedAttribute<T> = Partial<{
+  [K in keyof Concrete<T>]: Concrete<T>[K] extends object
+    ? Unpacked<Partial<FluentHasManyRelatedAttribute<Concrete<T>[K]>>>
+    : boolean | undefined
+}>
+
+export type FluentHasManyParams<T> = {
+  repository: new () => any
+  relationKey: FluentHasManyRelatedAttribute<T>
 }
