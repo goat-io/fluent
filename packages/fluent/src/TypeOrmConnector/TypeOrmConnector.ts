@@ -19,7 +19,6 @@ import {
   DeepPartial,
   FindOptionsWhere
 } from 'typeorm'
-import { ObjectId } from 'mongodb'
 import { Ids, Objects } from '@goatlab/js-utils'
 import { loadRelations } from '../loadRelations'
 import { BaseConnector, FluentConnectorInterface } from '../BaseConnector'
@@ -80,6 +79,8 @@ export class TypeOrmConnector<
 
   private readonly outputSchema: z.ZodType<OutputDTO>
 
+  private readonly entity: any
+
   constructor({
     entity,
     dataSource,
@@ -91,6 +92,8 @@ export class TypeOrmConnector<
     this.inputSchema = inputSchema
     this.outputSchema =
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
+
+    this.entity = entity
 
     this.repository = this.dataSource.getRepository(entity)
 
@@ -169,7 +172,7 @@ export class TypeOrmConnector<
     const [found, count] = await this.repository.findAndCount(
       this.generateTypeOrmQuery(query)
     )
-
+    
     found.map(d => {
       if (this.isMongoDB) {
         d['id'] = d['id'].toString()
@@ -669,7 +672,7 @@ export class TypeOrmConnector<
    */
   public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
     const parsedId = this.isMongoDB
-      ? (new ObjectId(id) as unknown as ObjectID)
+      ? (Ids.objectID(id) as unknown as ObjectID)
       : id
 
     const idFieldName = this.isMongoDB ? '_id' : 'id'
@@ -715,7 +718,7 @@ export class TypeOrmConnector<
    */
   public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
     const parsedId = this.isMongoDB
-      ? (new ObjectId(id) as unknown as ObjectID)
+      ? (Ids.objectID(id) as unknown as ObjectID)
       : id
 
     const idFieldName = this.isMongoDB ? '_id' : 'id'
@@ -772,6 +775,19 @@ export class TypeOrmConnector<
   public async clear(): Promise<boolean> {
     await this.repository.clear()
     return true
+  }
+
+  public loadFirst(query?: FluentQuery<ModelDTO>) {
+    // Create a clone of the original class
+    // to avoid polluting attributes (relatedQuery)
+    const detachedClass = Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      this
+    ) as TypeOrmConnector<ModelDTO, InputDTO, OutputDTO>
+
+    detachedClass.setRelatedQuery(this.entity, query )
+
+    return detachedClass
   }
 
   /*
@@ -888,7 +904,7 @@ export class TypeOrmConnector<
   //  */
   // public async deleteById(id: string): Promise<string> {
   //   const parsedId = this.isMongoDB
-  //     ? (new ObjectId(id) as unknown as ObjectID)
+  //     ? (Ids.objectID(id) as unknown as ObjectID)
   //     : id
 
   //   await this.repository.delete(parsedId)

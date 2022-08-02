@@ -2,6 +2,8 @@ import { CarsEntity } from '../car/car.entity'
 import { f } from '../../../../decorators'
 import { RoleEntity } from '../roles/roles.entity'
 import { z } from 'zod'
+import { FluentEntity } from '../../../../FluentEntity'
+import { PrimaryGeneratedColumn } from 'typeorm'
 
 export class Family {
   @f.property({ required: false })
@@ -13,10 +15,7 @@ export class Family {
 
 // tslint:disable-next-line: max-classes-per-file
 @f.entity('users')
-export class UsersEntity {
-  @f.id()
-  id: string
-
+export class UsersEntity extends FluentEntity {  
   @f.property({ required: true })
   name: string
 
@@ -32,6 +31,7 @@ export class UsersEntity {
   })
   cars?: CarsEntity[]
 
+  /*
   @f.belongsToMany({
     entity: () => RoleEntity,
     joinTableName: 'roles_users',
@@ -39,7 +39,9 @@ export class UsersEntity {
     inverseForeignKey: 'roleId'
   })
   roles?: RoleEntity[]
+  */
 }
+
 
 export const BreedSchema = z.object({
   family: z.string().optional(),
@@ -54,3 +56,4 @@ export const UsersEntitySchema = z.object({
 })
 
 export type UsersEntityInputSchema = z.infer<typeof UsersEntitySchema>
+

@@ -1,3 +1,4 @@
+// npx jest -i ./src/TypeOrmConnector/test/mongo/TypeOrmMongoConnector.spec.ts
 import { GoatRepository } from '../basic/goat.mongo.repository'
 import { TypeOrmRepository } from '../advanced/typeOrm.mongo.repository'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'

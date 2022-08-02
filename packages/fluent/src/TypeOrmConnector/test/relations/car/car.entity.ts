@@ -1,18 +1,16 @@
-import { Decorators } from '../../../../decorators'
+import { f } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
 import { z } from 'zod'
-@Decorators.entity('cars')
-export class CarsEntity {
-  @Decorators.id()
-  id: string
-
-  @Decorators.property({ required: true })
+import { FluentEntity } from '../../../../FluentEntity'
+@f.entity('cars')
+export class CarsEntity extends FluentEntity {
+  @f.property({ required: true })
   name: string
 
-  @Decorators.property({ required: true })
+  @f.property({ required: true })
   userId?: string
 
-  @Decorators.belongsTo({
+  @f.belongsTo({
     entity: () => UsersEntity,
     inverse: user => user.cars,
     pivotColumnName: 'userId'

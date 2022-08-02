@@ -20,7 +20,7 @@ export class UserRepository extends TypeOrmConnector<
       inputSchema: UsersEntitySchema
     })
   }
-
+/*
   public cars = () =>
     this.hasMany({
       repository: CarsRepository,
@@ -33,30 +33,5 @@ export class UserRepository extends TypeOrmConnector<
       RoleUsersRepository,
       'roles'
     )
+    */
 }
-
-const a = async () => {
-  const user = new UserRepository()
-
-  const a = await user
-    .loadFirst({
-      where: {
-        id: '2'
-      }
-    })
-    .cars()
-    .attach({ name: 'Another new car' })
-
-  const b = await user.findFirst({
-    where: {
-      name: 'john'
-    }, 
-    select: {
-      age: true
-    }
-  })
-  
-  b?.age
-}
-
-// const cars = await user.cars().attach({ name: 'Another new car' })

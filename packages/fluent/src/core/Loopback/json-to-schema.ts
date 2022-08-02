@@ -69,7 +69,7 @@ export function jsonToSchemaObject(
         break
       }
       case 'allOf': {
-        result.allOf = _.map(json.allOf, item =>
+        result.allOf = json.allOf?.map(item =>
           jsonToSchemaObject(item as SchemaObject, visited)
         )
         break

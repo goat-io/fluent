@@ -1,15 +1,13 @@
-import { Decorators } from '../../../../decorators'
+import { f } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
 import { z } from 'zod'
-@Decorators.entity('roles')
-export class RoleEntity {
-  @Decorators.id()
-  id: string
-
-  @Decorators.property({ required: true })
+import { FluentEntity } from '../../../../FluentEntity'
+@f.entity('roles')
+export class RoleEntity extends FluentEntity{
+  @f.property({ required: true })
   name: string
 
-  @Decorators.belongsToMany({
+  @f.belongsToMany({
     entity: () => UsersEntity,
     joinTableName: 'roles_users',
     foreignKey: 'roleId',

@@ -37,6 +37,11 @@ export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
 export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected outputKeys: string[]
 
+  protected relatedQuery?: {
+    entity: new () => ModelDTO
+    query?: FluentQuery<ModelDTO>
+  }
+
   protected chunk = null
 
   protected pullSize = null
@@ -134,6 +139,20 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     })
     return result
   }
+
+  public setRelatedQuery(
+    entity: new () => ModelDTO,
+    query?: FluentQuery<ModelDTO>
+  ) {
+    this.relatedQuery = {
+      entity,
+      query
+    }
+  }
+
+  public getRelatedQuery() {
+    return this.relatedQuery
+  }
   /**
    * Attach One-to-Many relationship.
    * Attach a model to the parent.
@@ -206,10 +225,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     }))
 
     return this.relationQuery.pivot.insertMany(relatedData)
-  }
-
-  public loadFirst(query?: FluentQuery<ModelDTO>) {
-    return this
   }
 
   /**

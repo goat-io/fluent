@@ -1,14 +1,12 @@
-import { Decorators } from '../../../../decorators'
+import { f } from '../../../../decorators'
 import {z} from 'zod'
-@Decorators.entity('roles_users')
-export class RolesUser {
-  @Decorators.id()
-  id: string
-
-  @Decorators.property({ required: false })
+import { FluentEntity } from '../../../../FluentEntity'
+@f.entity('roles_users')
+export class RolesUser extends FluentEntity {
+  @f.property({ required: false })
   userId?: string
 
-  @Decorators.property({ required: false })
+  @f.property({ required: false })
   roleId?: string
 }
 

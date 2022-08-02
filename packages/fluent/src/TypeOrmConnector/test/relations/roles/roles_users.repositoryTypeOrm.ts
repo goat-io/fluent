@@ -12,7 +12,7 @@ export class RoleUsersRepository extends TypeOrmConnector<
   RoleUserEntityIn,
   RolesUserInputSchema
 > {
-  constructor(relations?: any) {
+  constructor() {
     super({
       entity: RolesUser,
       dataSource: MemoryDataSource,

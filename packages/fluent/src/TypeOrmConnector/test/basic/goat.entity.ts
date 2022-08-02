@@ -40,3 +40,5 @@ export const GoatSchema = z.object({
 })
 
 export type GoatInputSchema = z.infer<typeof GoatSchema>
+
+

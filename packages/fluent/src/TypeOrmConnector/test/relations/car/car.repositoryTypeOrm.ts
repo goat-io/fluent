@@ -18,6 +18,7 @@ export class CarsRepository extends TypeOrmConnector<
       inputSchema: CarsEntitySchema
     })
   }
-
+/*
   public user = () => this.belongsTo<UserRepository>(UserRepository, 'user')
+  */
 }

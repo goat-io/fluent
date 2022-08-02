@@ -1,3 +1,6 @@
+import { UserRepository } from "./user/user.repositoryTypeOrm"
+
+
 let Model
 let BelongsToModel
 let ManyToManyModel
@@ -9,6 +12,24 @@ export const relationsTestSuite = (ModelF, BelongsToModelF, ManyToManyModelF) =>
     ManyToManyModel = new ManyToManyModelF()
   })
 
+
+  test('loadFirst - Should return a cloned class', async () => {
+
+    const userR = new UserRepository()
+  
+    const user = await userR
+    .loadFirst({
+      where: {
+        id: '2'
+      }
+    })
+  
+    //console.log(user)
+    expect(true).toBe(false)
+
+  })
+
+  /*
   test('Attach - OneToMany - Should  insert data', async () => {
     const insertedUser = await Model.insert({
       name: 'testUser',
@@ -141,4 +162,6 @@ export const relationsTestSuite = (ModelF, BelongsToModelF, ManyToManyModelF) =>
     expect(typeof roles[0].users[0].name).toBe('string')
     expect(typeof roles[0].users[0].age).toBe('number')
   })
+
+  */
 }

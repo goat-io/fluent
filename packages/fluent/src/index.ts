@@ -20,8 +20,6 @@ import type {
   QueryOutput,
 } from './types'
 import {LogicOperator} from './types'
-import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
-import { Access } from './core/dtos/access.dto'
 import { BaseConnector } from './BaseConnector'
 import { Collection } from '@goatlab/js-utils'
 import { f } from './decorators'
@@ -37,7 +35,6 @@ import { ValidationError } from 'class-validator'
 
 export { DataSource } from 'typeorm'
 export {
-  Access,
   ApiHideProperty,
   ApiProperty,
   BaseConnector,
@@ -53,8 +50,6 @@ export {
   modelGeneratorDataSource,
   ObjectType,
   OmitType,
-  PaginationLinks,
-  PaginationMeta,
   PartialType,
   TypeOrmConnector,
   Cache,
