@@ -80,7 +80,7 @@ export const BullScheduler = (() => {
         name: job.name
       }
 
-      const [error] = await Promises.tuple(options.handle(jobDescription))
+      const [error] = await Promises.try(options.handle(jobDescription))
       if (error) {
         console.log('error', error)
         console.log('Could not process the job', jobDescription)

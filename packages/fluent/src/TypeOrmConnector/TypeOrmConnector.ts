@@ -1,7 +1,13 @@
 /**
  * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
  */
-import { LogicOperator, QueryOutput } from './../types'
+import {
+  FindByIdFilter,
+  LoadedResult,
+  LogicOperator,
+  QueryOutput,
+  SingleQueryOutput
+} from './../types'
 import {
   Equal,
   FindManyOptions,
@@ -33,6 +39,7 @@ import type {
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
+import { cloneDeep } from 'lodash'
 
 export const getRelationsFromModelGenerator = (
   typeOrmRepo: Repository<any>
@@ -172,7 +179,7 @@ export class TypeOrmConnector<
     const [found, count] = await this.repository.findAndCount(
       this.generateTypeOrmQuery(query)
     )
-    
+
     found.map(d => {
       if (this.isMongoDB) {
         d['id'] = d['id'].toString()
@@ -240,7 +247,7 @@ export class TypeOrmConnector<
     return filter
   }
 
-  private getTypeOrmWhere(
+  protected getTypeOrmWhere(
     where?: FluentQuery<ModelDTO>['where']
   ): FindManyOptions['where'] {
     /*
@@ -466,7 +473,7 @@ export class TypeOrmConnector<
     return Filters.where
   }
 
-  public getTypeOrmMongoWhere(
+  protected getTypeOrmMongoWhere(
     where?: FluentQuery<ModelDTO>['where']
   ): FindManyOptions['where'] {
     /*
@@ -785,9 +792,68 @@ export class TypeOrmConnector<
       this
     ) as TypeOrmConnector<ModelDTO, InputDTO, OutputDTO>
 
-    detachedClass.setRelatedQuery(this.entity, query )
+    detachedClass.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query
+    })
 
     return detachedClass
+  }
+
+  public loadById(id: string) {
+    // Create a new instance to avoid polluting the original one
+    const newInstance = this.clone()
+
+    newInstance.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query: {
+        where: {
+          id
+        }
+      } as FluentQuery<ModelDTO>
+    })
+
+    return newInstance as LoadedResult<this>
+  }
+
+  public async requireById(
+    id: string,
+    q?: FindByIdFilter<ModelDTO>
+  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
+    const query = {
+      where: {
+        id
+      },
+      select: q?.select,
+      include: q?.include,
+      limit: 1
+    } as FluentQuery<ModelDTO>
+
+    const generatedQuery = this.generateTypeOrmQuery(query)
+    const found = await this.repository.find(generatedQuery)
+
+    found.map(d => {
+      if (this.isMongoDB) {
+        d['id'] = d['id'].toString()
+      }
+      this.clearEmpties(Objects.deleteNulls(d))
+    })
+
+    if (!found[0]) {
+      throw new Error(`Object ${id} not found`)
+    }
+
+    return this.outputSchema?.parse(found[0]) as unknown as SingleQueryOutput<
+      FindByIdFilter<ModelDTO>,
+      ModelDTO,
+      OutputDTO
+    >
+  }
+
+  protected clone() {
+    return new (<any>this.constructor)()
   }
 
   /*

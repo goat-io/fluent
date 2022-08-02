@@ -1,5 +1,5 @@
+import { Promises } from "@goatlab/js-utils"
 import { UserRepository } from "./user/user.repositoryTypeOrm"
-
 
 let Model
 let BelongsToModel
@@ -12,43 +12,80 @@ export const relationsTestSuite = (ModelF, BelongsToModelF, ManyToManyModelF) =>
     ManyToManyModel = new ManyToManyModelF()
   })
 
+  // test('requireById - Should return valid Object', async () => {
+   
+  //   const insertedUser = await Model.insert({
+  //     name: 'testUser',
+  //     age: 20
+  //   })
 
-  test('loadFirst - Should return a cloned class', async () => {
+  //   expect(typeof insertedUser.id).toBe('string')
 
-    const userR = new UserRepository()
+  //   const findById = await Model.requireById(insertedUser.id!)
+  //   expect(findById.id).toBe(insertedUser.id)
+
+  // })
+
+  // test('requireById - Should fail if not found', async () => {
+   
+  //   const insertedUser = await Model.insert({
+  //     name: 'testUser',
+  //     age: 20
+  //   })
+
+  //   expect(typeof insertedUser.id).toBe('string')
+
+  //   const [error, found] = await Promises.try(Model.requireById('SomeUnkownId'))
+
+  //   expect(error?.message).toBe('Object SomeUnkownId not found')
+
+  // })
+
+  // test('loadFirst - Should return a cloned class', async () => {
+  //   const insertedUser = await Model.insert({
+  //     name: 'testUser',
+  //     age: 20
+  //   })
+
+  //   expect(typeof insertedUser.id).toBe('string')    
   
-    const user = await userR
-    .loadFirst({
-      where: {
-        id: '2'
-      }
-    })
-  
-    //console.log(user)
-    expect(true).toBe(false)
+  //   const user = Model
+  //   .loadFirst({
+  //     where: {
+  //       id: insertedUser.id
+  //     }
+  //   })
 
-  })
+  //   expect(Array.isArray(user)).toBe(false)
+  //   expect(typeof user).toBe('object')
+  //   expect(typeof user.associate).toBe('function')
+  // })
 
-  /*
-  test('Attach - OneToMany - Should  insert data', async () => {
-    const insertedUser = await Model.insert({
+
+  test('Associate - OneToMany - Should  insert data', async () => {
+    const UserRepo = new UserRepository()
+    const insertedUser = await UserRepo.insert({
       name: 'testUser',
       age: 20
     })
 
     expect(typeof insertedUser.id).toBe('string')
 
-    const user = await Model.where(
-      keys => keys.id,
-      '=',
-      insertedUser.id
-    ).load()
+    const user = await UserRepo.loadById(insertedUser.id!)
 
-    const cars = await user.cars().attach({ name: 'Another new car' })
+    const cars = user.cars().associate({ name: 'My new car' })
 
-    expect(Array.isArray(cars)).toBe(true)
-    expect(cars[0].name).toBe('Another new car')
+    console.log(cars)
+    // console.log(user)
+
+    // const cars = await user.
+
+    // expect(Array.isArray(cars)).toBe(true)
+    // expect(cars[0].name).toBe('Another new car')
   })
+
+  /*
+  
 
   test('Query related model - OneToMany', async () => {
     const insertedUser = await Model.insert({

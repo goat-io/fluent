@@ -16,7 +16,7 @@ const decodedJWT = {
 
 test('Should verify a malformed token', async () => {
   const token = 'abvdcdv.1231,31231231'
-  const [error, decoded] = await Promises.tuple(Jwt.verify(token, validSecret))
+  const [error, decoded] = await Promises.try(Jwt.verify(token, validSecret))
   expect(typeof decoded).toBe('undefined')
   expect(typeof error).toBe('object')
   expect(error.name).toBe('Error')
@@ -27,7 +27,7 @@ test('Should verify a malformed token', async () => {
 
 test('Should fail with invalid signature', async () => {
   const secret = 'ME'
-  const [error] = await Promises.tuple(Jwt.verify(validJWT, secret))
+  const [error] = await Promises.try(Jwt.verify(validJWT, secret))
   expect(error.name).toBe('Error')
   expect(error.message).toBe(
     'VError: Error verifying token : invalid signature: invalid signature'
@@ -35,7 +35,7 @@ test('Should fail with invalid signature', async () => {
 })
 
 test('Should verify DATE on valid JWT HS256', async () => {
-  const [error] = await Promises.tuple(Jwt.verify(validJWT, validSecret))
+  const [error] = await Promises.try(Jwt.verify(validJWT, validSecret))
   expect(error.name).toBe('Error')
   expect(error.message).toBe(
     'VError: Error verifying token : jwt expired: jwt expired'
@@ -58,7 +58,7 @@ test('Should verify a valid JWT token HS256', async () => {
     expiresIn: '1 year'
   })
 
-  const [error, decoded] = await Promises.tuple(
+  const [error, decoded] = await Promises.try(
     Jwt.verify(SignedPayload, validSecret)
   )
   expect(error).toBe(null)

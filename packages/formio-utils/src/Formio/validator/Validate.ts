@@ -64,7 +64,7 @@ export const Validate = (() => {
     submission: AnyObject
   ): Promise<AnyObject> => {
     const _submissions = [submission]
-    const [error, subs] = await Promises.tuple<AnyObject, any>(
+    const [error, subs] = await Promises.try<AnyObject, any>(
       validate(form, _submissions)
     )
     if (error) {

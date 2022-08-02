@@ -3,7 +3,6 @@ import { Objects, Ids, Collection } from '@goatlab/js-utils'
 import {
   FindByIdFilter,
   FluentHasManyParams,
-  FluentHasManyRelatedAttribute,
   FluentQuery,
   LogicOperator,
   Primitives,
@@ -11,7 +10,7 @@ import {
   QueryFieldSelector,
   QueryOutput,
   SingleQueryOutput
-} from './types'
+} from '../../../types'
 
 export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   //findById(id: string): Promise<OutputDTO | null>
@@ -164,19 +163,16 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param data
    */
   public async associate(data: InputDTO | OutputDTO): Promise<OutputDTO[]> {
-    if (!this.relatedQuery?.entity || !this.relatedQuery.key) {
+    if (!this.relatedQuery?.entity || !this.relatedQuery.query) {
       throw new Error('Associate can only be called as a related model')
     }
 
-    const relation = this.modelRelations[this.relatedQuery.key]
-    const foreignKeyName = relation.inverseSidePropertyPath
-
-    console.log(foreignKeyName)
-    // console.log(this.relatedQuery)
+    console.log(this.modelRelations)
+    console.log(this.relatedQuery)
 
     return []
 
-    // 
+    // const foreignKeyName = this.relatedQuery.relation.inverseSidePropertyPath
     // const D = Array.isArray(this.relatedQuery.data)
     //   ? this.relatedQuery.data
     //   : [this.relatedQuery.data]
@@ -241,31 +237,29 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   //   return this.relationQuery.pivot.insertMany(relatedData)
   // }
 
-  // protected aaa<T, V extends new () => any>(
-  //   repository: V,
-  //   relationKey: FluentHasManyRelatedAttribute<T>
-  // ): Pick<InstanceType<V>, 'associate'>
-
   /**
    * One-to-Many relationship
    * To be used in the "parent" entity (One)
    */
-  protected hasMany<T extends FluentHasManyParams<T>>(
-    r: T
-  ): InstanceType<T['repository']> {
-    const flatten = Objects.flatten(r.relationKey)
+  protected hasMany<T extends FluentHasManyParams<ModelDTO>>({
+    relationKey,
+    repository
+  }: T): Pick<InstanceType<T['repository']>, 'associate' | 'findMany'> {
+    const flatten = Objects.flatten(relationKey)
+
     const relation = Object.keys(flatten)[0]
 
-    const newRepo = new r.repository() as any
+    const newRepo = new repository()
 
+    /*
     if (this.relatedQuery) {
-      newRepo.setRelatedQuery({
+      Promises.try({
         ...this.relatedQuery,
         key: relation
       })
     }
-
-    return newRepo as InstanceType<T['repository']>
+    */
+    return newRepo
   }
 
   /**

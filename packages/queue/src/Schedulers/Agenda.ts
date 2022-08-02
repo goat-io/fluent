@@ -65,7 +65,7 @@ const startAgenda = async () => {
     return
   }
 
-  const [error] = await Promises.tuple(agenda.start())
+  const [error] = await Promises.try(agenda.start())
 
   if (!error) {
     agendaStarted = true
@@ -98,7 +98,7 @@ export const Agenda = (() => {
           name: job.attrs.name
         }
 
-        const [error] = await Promises.tuple(options.handle(jobDescription))
+        const [error] = await Promises.try(options.handle(jobDescription))
 
         if (error) {
           console.log('Could not process the job', job)

@@ -22,7 +22,7 @@ beforeAll(async () => {
 
 test('Should validate number component', async () => {
   const wrongSubmission = { data: { number: 'HELLO WORLD' } }
-  const [error, submission] = await Promises.tuple<
+  const [error, submission] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(Form, wrongSubmission))
@@ -31,7 +31,7 @@ test('Should validate number component', async () => {
   expect(error.details[0].message).toBe('"number" must be a number')
 
   const validSubmission = { data: { number: 3 } }
-  const [error2, submission2] = await Promises.tuple<
+  const [error2, submission2] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(Form, validSubmission))
@@ -42,7 +42,7 @@ test('Should validate number component', async () => {
 
 test('Should validate required number', async () => {
   const wrongSubmission = { data: { number: undefined } }
-  const [error, submission] = await Promises.tuple<
+  const [error, submission] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(Form, wrongSubmission))
@@ -54,7 +54,7 @@ test('Should validate minimum and maximum number', async () => {
   let error
   let submission
   const wrongSubmissionMIN = { data: { number: 4 } }
-  ;[error, submission] = await Promises.tuple<
+  ;[error, submission] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(ComplexNumberForm, wrongSubmissionMIN))
@@ -64,7 +64,7 @@ test('Should validate minimum and maximum number', async () => {
   )
 
   const wrongSubmissionMAX = { data: { number: 100 } }
-  ;[error, submission] = await Promises.tuple<
+  ;[error, submission] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(ComplexNumberForm, wrongSubmissionMAX))
@@ -74,7 +74,7 @@ test('Should validate minimum and maximum number', async () => {
   )
 
   const rightSubmission = { data: { number: 15 } }
-  ;[error, submission] = await Promises.tuple<
+  ;[error, submission] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(ComplexNumberForm, rightSubmission))
@@ -84,7 +84,7 @@ test('Should validate minimum and maximum number', async () => {
 
 test('Should validate required text', async () => {
   const wrongSubmission = { data: { text: undefined } }
-  const [error, submission] = await Promises.tuple<
+  const [error, submission] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(textForm, wrongSubmission))
@@ -94,7 +94,7 @@ test('Should validate required text', async () => {
 
 test('Should validate text Type', async () => {
   const wrongSubmission = { data: { text: 3 } }
-  const [error, submission] = await Promises.tuple<
+  const [error, submission] = await Promises.try<
     AnyObject,
     FormioValidationError
   >(Validate.submission(textForm, wrongSubmission))
@@ -106,7 +106,7 @@ test('Should validate text Type', async () => {
 
 test('Should validate text min length', async () => {
   const wrongSubmission = { data: { text: 'Hell' } }
-  const [error, submission] = await Promises.tuple<AnyObject, FormioValidationError>(
+  const [error, submission] = await Promises.try<AnyObject, FormioValidationError>(
     Validate.submission(textForm, wrongSubmission)
   )
 
@@ -121,7 +121,7 @@ test('Should validate text min length', async () => {
 
 test("Should validate text max length", async () => {
   const wrongSubmission = { data: { text: "Hello World long text!" } };
-  const [error, submission] = await Promises.tuple<AnyObject, FormioValidationError>(
+  const [error, submission] = await Promises.try<AnyObject, FormioValidationError>(
     Validate.submission(textForm, wrongSubmission)
   );
   expect(error.name).toBe("ValidationError");
@@ -135,7 +135,7 @@ test("Should validate text max length on Array Submission", async () => {
     { data: { text: "Hello" } },
     { data: { text: "Hello World long text!" } }
   ];
-  const [error, submission] = await Promises.tuple<AnyObject, FormioValidationError>(
+  const [error, submission] = await Promises.try<AnyObject, FormioValidationError>(
     Validate.submission(textForm, wrongSubmission)
   );
   expect(error.name).toBe("ValidationError");
@@ -146,7 +146,7 @@ test("Should validate text max length on Array Submission", async () => {
     { data: { text: "Hello" } },
     { data: { text: "Hello" } }
   ];
-  const [error1, submission1] = await Promises.tuple<AnyObject, FormioValidationError>(
+  const [error1, submission1] = await Promises.try<AnyObject, FormioValidationError>(
     Validate.submission(textForm, rightSubmission)
   );
   expect(submission1[0].data.text).toBe("Hello");
@@ -159,7 +159,7 @@ test("Should validate Form type", async () => {
       type: "somerandom"
     }
   };
-  const [error, form] = await Promises.tuple<AnyObject, FormioValidationError>(Validate.form(_Form));
+  const [error, form] = await Promises.try<AnyObject, FormioValidationError>(Validate.form(_Form));
   expect(typeof error).toBe("object");
   expect(error.errors.type.name).toBe("ValidatorError");
 });
@@ -168,7 +168,7 @@ test("Should return the valid Form", async () => {
   const _Form = {
     ...Form
   };
-  const [error, form] = await Promises.tuple<AnyObject, FormioValidationError>(Validate.form(_Form));
+  const [error, form] = await Promises.try<AnyObject, FormioValidationError>(Validate.form(_Form));
   expect(error).toBe(null);
   expect(typeof form).toBe("object");
   expect(form.id).toBe("5d24e91176853baf2b663a60");

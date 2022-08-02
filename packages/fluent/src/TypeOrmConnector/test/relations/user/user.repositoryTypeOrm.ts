@@ -8,6 +8,7 @@ import {
   UsersEntitySchema
 } from './user.entity'
 import { MemoryDataSource } from '../../sqlite/memoryDataSource'
+import { CarsEntity } from '../car/car.entity'
 
 export class UserRepository extends TypeOrmConnector<
   UsersEntity,
@@ -20,18 +21,19 @@ export class UserRepository extends TypeOrmConnector<
       inputSchema: UsersEntitySchema
     })
   }
-/*
-  public cars = () =>
-    this.hasMany({
-      repository: CarsRepository,
-      relationKey: { age: true }
-    })
 
-  public roles = () =>
-    this.belongsToMany<RoleRepository, RoleUsersRepository>(
-      RoleRepository,
-      RoleUsersRepository,
-      'roles'
-    )
-    */
+  public cars = () => {
+    return this.hasMany({
+      repository: CarsRepository,
+      model: CarsEntity,
+      relationKey: { user: true }
+    })
+  }
+
+  // public roles = () =>
+  //   this.belongsToMany<RoleRepository, RoleUsersRepository>(
+  //     RoleRepository,
+  //     RoleUsersRepository,
+  //     'roles'
+  //   )
 }

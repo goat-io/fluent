@@ -1,6 +1,4 @@
 import { ObjectID } from 'bson'
-import { z } from 'zod'
-
 export interface AnyObject {
   id?: string
   _id?: string
@@ -163,11 +161,39 @@ export enum LogicOperator {
 
 export type FluentHasManyRelatedAttribute<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
-    ? Unpacked<Partial<FluentHasManyRelatedAttribute<Concrete<T>[K]>>>
+    ? Unpacked<Partial<FluentHasManyRelatedAttribute<Concrete<T>[K]>>> | boolean
     : boolean | undefined
 }>
 
-export type FluentHasManyParams<T> = {
-  repository: new () => any
-  relationKey: FluentHasManyRelatedAttribute<T>
+export type FluentHasManyParams<T extends FluentHasManyParams<T>> = {
+  repository: new () => InstanceType<T['repository']>
+  model: new () => InstanceType<T['model']>
+  relationKey: FluentHasManyRelatedAttribute<InstanceType<T['model']>>
 }
+
+export type FindByIdFilter<T> = {
+  select?: FluentQuery<T>['select']
+  include?: FluentQuery<T>['include']
+}
+
+export type LoadedResult<T> = Omit<
+  T,
+  | 'findMany'
+  | 'insert'
+  | 'insertMany'
+  | 'loadFirst'
+  | 'byId'
+  | 'replaceById'
+  | 'updateById'
+  | 'clear'
+  | 'requireById'
+  | 'collect'
+  | 'findByIds'
+  | 'findFirst'
+  | 'isMongoDB'
+  | 'pluck'
+  | 'raw'
+  | 'associate'
+  | 'attach'
+  | 'withPivot'
+>

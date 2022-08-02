@@ -214,7 +214,7 @@ export const RabbitMQBroker = (() => {
               name: topic
             }
 
-            const [error] = await Promises.tuple(handle(jobDescription))
+            const [error] = await Promises.try(handle(jobDescription))
             if (error) {
               console.log('Could not process the job', msg)
             }

@@ -16,6 +16,14 @@ export class CarsEntity extends FluentEntity {
     pivotColumnName: 'userId'
   })
   user?: UsersEntity
+
+
+  @f.belongsTo({
+    entity: () => UsersEntity,
+    inverse: user => user.cars,
+    pivotColumnName: 'userId'
+  })
+  anotherRelation?: UsersEntity
 }
 
 export const CarsEntitySchema = z.object({
