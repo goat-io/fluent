@@ -297,7 +297,7 @@ export class TypeOrmConnector<
             $lookup: {
               from: dbRelation.tableName,
               localField: `${localField}_object`,
-              foreignField:'_id',
+              foreignField: '_id',
               as: dbRelation.propertyName
               // pipeline: [{ $limit: 2 }]
             }
@@ -322,11 +322,13 @@ export class TypeOrmConnector<
     return lookUps
   }
 
-  private async customMongoRelatedSearch(query: FluentQuery<ModelDTO>) {
-    const where = this.getTypeOrmMongoWhere(query.where)
-    const selected = this.getMongoSelect(query.select)
-    const lookups = this.getMongoLookup(query.include)
-  
+  private async customMongoRelatedSearch<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    const where = this.getTypeOrmMongoWhere(query?.where)
+    const selected = this.getMongoSelect(query?.select)
+    const lookups = this.getMongoLookup(query?.include)
+
     const aggregate: any[] = [
       {
         $match: where
@@ -348,11 +350,35 @@ export class TypeOrmConnector<
       })
     }
 
-    console.log(aggregate)
+    let raw = await this.mongoRaw().aggregate(aggregate).toArray()
 
-    const raw = await this.mongoRaw().aggregate(aggregate).toArray()
+    // Remove array from one to many queries
+    for (const relation of Object.keys(query?.include || {})) {
+      if (this.modelRelations[relation]) {
+        const dbRelation = this.modelRelations[relation]
 
-    return raw
+        if (dbRelation.isManyToOne) {
+          raw.map(r => {
+            if (r._id) {
+              r.id = r._id.toString()
+            }
+
+            let relatedData = r[relation][0]
+            if (relatedData._id) {
+              relatedData.id = relatedData._id.toString()
+            }
+            r[relation] = r[relation][0]
+            return r
+          })
+        }
+      }
+    }
+
+    return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
+      T,
+      ModelDTO,
+      OutputDTO
+    >
   }
 
   private generateTypeOrmQuery(query?: FluentQuery<ModelDTO>): FindManyOptions {
