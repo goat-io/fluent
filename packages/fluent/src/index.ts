@@ -18,6 +18,9 @@ import type {
   PrimitivesArray,
   FluentQuery,
   QueryOutput,
+  LoadedResult,
+  FindByIdFilter,
+  SingleQueryOutput
 } from './types'
 import {LogicOperator} from './types'
 import { BaseConnector } from './BaseConnector'
@@ -32,6 +35,7 @@ import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
 import {Cache} from './cache'
 import { ValidationError } from 'class-validator'
+
 
 export { DataSource } from 'typeorm'
 export {
@@ -74,4 +78,7 @@ export type {
   ValidatedInput,
   FluentQuery,
   QueryOutput,
+  LoadedResult,
+  FindByIdFilter,
+  SingleQueryOutput
 }

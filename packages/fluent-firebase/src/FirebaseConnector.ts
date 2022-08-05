@@ -5,6 +5,7 @@ import {
   AnyObject,
   FluentQuery,
   getRelationsFromModelGenerator,
+  LoadedResult,
   LogicOperator,
   modelGeneratorDataSource,
   PaginatedData,
@@ -17,8 +18,10 @@ import {
   getOutputKeys,
   loadRelations
 } from '@goatlab/fluent'
-import { Objects, Ids, Arrays } from '@goatlab/js-utils'
+import { Objects, Ids } from '@goatlab/js-utils'
 import { z } from 'zod'
+import { FindByIdFilter } from '@goatlab/fluent'
+import { SingleQueryOutput } from '@goatlab/fluent'
 
 /**
  * Creates a repository from the given Entity
@@ -71,6 +74,8 @@ export class FirebaseConnector<
 
   private readonly collection: FirebaseFirestore.CollectionReference<ModelDTO>
 
+  private readonly entity: any
+
   constructor({
     entity,
     inputSchema,
@@ -84,6 +89,8 @@ export class FirebaseConnector<
     const { repository, name } = createFirebaseRepository(entity)
 
     this.repository = repository
+
+    this.entity = entity
 
     this.collection = admin
       .firestore()
@@ -218,6 +225,23 @@ export class FirebaseConnector<
       ModelDTO,
       OutputDTO
     >
+  }
+
+  public loadFirst(query?: FluentQuery<ModelDTO>) {
+    // Create a clone of the original class
+    // to avoid polluting attributes (relatedQuery)
+    const detachedClass = Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      this
+    ) as FirebaseConnector<ModelDTO, InputDTO, OutputDTO>
+
+    detachedClass.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query
+    })
+
+    return detachedClass
   }
 
   /**
@@ -517,7 +541,7 @@ export class FirebaseConnector<
     const query = this.collection.orderBy('__name__').limit(300)
     return new Promise((resolve, reject) => {
       this.deleteQueryBatch(admin.firestore(), query, 300, resolve, reject)
-    })
+    }) as Promise<boolean>
   }
 
   private deleteQueryBatch(db, query, batchSize, resolve, reject) {
@@ -550,6 +574,78 @@ export class FirebaseConnector<
         })
       })
       .catch(reject)
+  }
+
+  public loadById(id: string) {
+    // Create a new instance to avoid polluting the original one
+    const newInstance = this.clone()
+
+    newInstance.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query: {
+        where: {
+          id
+        }
+      } as FluentQuery<ModelDTO>
+    })
+
+    return newInstance as LoadedResult<this>
+  }
+
+  protected clone() {
+    return new (<any>this.constructor)()
+  }
+
+  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    let data = await this.findMany({
+      where: {
+        id: {
+          in: ids
+        }
+      },
+      limit: q?.limit,
+      select: q?.select,
+      include: q?.include
+    } as any)
+
+    // Validate Output against schema
+    return this.outputSchema?.array().parse(data) as unknown as QueryOutput<
+      T,
+      ModelDTO,
+      OutputDTO
+    >
+  }
+
+  public async requireById(
+    id: string,
+    q?: FindByIdFilter<ModelDTO>
+  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
+    const found = await this.findByIds([id], {
+      select: q?.select,
+      include: q?.include,
+      limit: 1
+    })
+
+    found.map(d => {
+      if (this.isMongoDB) {
+        d['id'] = d['id'].toString()
+      }
+      this.clearEmpties(Objects.deleteNulls(d))
+    })
+
+    if (!found[0]) {
+      throw new Error(`Object ${id} not found`)
+    }
+
+    return this.outputSchema?.parse(found[0]) as unknown as SingleQueryOutput<
+      FindByIdFilter<ModelDTO>,
+      ModelDTO,
+      OutputDTO
+    >
   }
 
   // /**

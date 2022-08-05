@@ -42,7 +42,6 @@ import type {
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
-import { ObjectId } from 'bson'
 
 export const getRelationsFromModelGenerator = (
   typeOrmRepo: Repository<any>
