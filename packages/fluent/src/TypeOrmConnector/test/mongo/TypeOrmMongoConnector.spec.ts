@@ -8,6 +8,11 @@ import { MongoDataSource } from './mongoDatasource'
 import { Fluent } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
 import { MongoMemoryServer } from 'mongodb-memory-server'
+import { relationsTestSuite } from '../relations/relationsTestsSuite'
+import {UserRepository} from './user.mongo.repository'
+import { CarsRepository } from './car.mongo.repository'
+import { RoleRepository } from './roles.mongo.repository'
+
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
@@ -27,13 +32,13 @@ afterAll(async () => {
 })
 
 describe('Execute all basic test Suite', () => {
-  basicTestSuite(GoatRepository)
+  // basicTestSuite(GoatRepository)
 })
 
 describe('Execute all advanced test Suite', () => {
-  advancedTestSuite(TypeOrmRepository)
+  // advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {
-  // relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
+  relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })

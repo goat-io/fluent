@@ -5,6 +5,8 @@ import {
   FindByIdFilter,
   LoadedResult,
   LogicOperator,
+  Primitives,
+  PrimitivesArray,
   QueryOutput,
   SingleQueryOutput
 } from './../types'
@@ -23,7 +25,8 @@ import {
   Repository,
   MongoRepository,
   DeepPartial,
-  FindOptionsWhere
+  FindOptionsWhere,
+  FindOptionsRelations
 } from 'typeorm'
 import { Ids, Objects } from '@goatlab/js-utils'
 import { loadRelations } from '../loadRelations'
@@ -39,7 +42,6 @@ import type {
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
-import { cloneDeep } from 'lodash'
 
 export const getRelationsFromModelGenerator = (
   typeOrmRepo: Repository<any>
@@ -107,6 +109,10 @@ export class TypeOrmConnector<
     this.isMongoDB =
       this.repository.metadata.connection.driver.options.type === 'mongodb'
 
+      if(this.isMongoDB) {
+        this.repository = this.dataSource.getMongoRepository(entity)
+      }
+
     const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
 
     const { relations } = getRelationsFromModelGenerator(relationShipBuilder)
@@ -173,12 +179,24 @@ export class TypeOrmConnector<
     return this.repository
   }
 
+  /**
+   *
+   * Returns the TypeOrm Repository, you can use it
+   * form more complex queries and to get
+   * the TypeOrm query builder
+   *
+   * @param query
+   */
+   public mongoRaw(): MongoRepository<ModelDTO> {
+    return this.repository as MongoRepository<ModelDTO>
+  }
+
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
-    const [found, count] = await this.repository.findAndCount(
-      this.generateTypeOrmQuery(query)
-    )
+    const generatedQuery = this.generateTypeOrmQuery(query)
+
+    let [found, count] = await this.repository.findAndCount(generatedQuery)
 
     found.map(d => {
       if (this.isMongoDB) {
@@ -239,7 +257,7 @@ export class TypeOrmConnector<
     filter.order = this.getOrderBy(query?.orderBy)
 
     // TODO: we will bring the full relation Object, we should be able to filter down properties
-    filter.relations = Object.keys(query?.include || {})
+    filter.relations = query?.include as FindOptionsRelations<any>
 
     // filter = this.getPaginatorLimit(filter)
     // const page = this.getPage()
@@ -470,31 +488,14 @@ export class TypeOrmConnector<
       }
     }
 
-    return Filters.where
+    const filtered = this.clearEmpties(JSON.parse(JSON.stringify(Filters.where))) 
+
+    return filtered
   }
 
   protected getTypeOrmMongoWhere(
     where?: FluentQuery<ModelDTO>['where']
   ): FindManyOptions['where'] {
-    /*
-
-    if (this.relationQuery && this.relationQuery.data) {
-      const ids = this.relationQuery.data.map(
-        d => Ids.objectID(d.id) as unknown as ObjectID
-      )
-
-      andFilters.push([
-        this.relationQuery.relation.inverseSidePropertyPath,
-        'in',
-        ids
-      ])
-    }
-
-    if (!andFilters || andFilters.length === 0) {
-      return filters
-    }
-    */
-
     if (!where || Object.keys(where).length === 0) {
       return {}
     }
@@ -522,11 +523,14 @@ export class TypeOrmConnector<
 
       if (element === 'id') {
         element = '_id'
-        /*
+
         value = (Array.isArray(value)
           ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
-          */
+          : (Ids.objectID(
+              value as string
+            ) as unknown as ObjectID)) as unknown as
+          | Primitives
+          | PrimitivesArray
       }
 
       switch (operator) {
@@ -573,11 +577,14 @@ export class TypeOrmConnector<
 
       if (element === 'id') {
         element = '_id'
-        /*
+
         value = (Array.isArray(value)
           ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
-          */
+          : (Ids.objectID(
+              value as string
+            ) as unknown as ObjectID)) as unknown as
+          | Primitives
+          | PrimitivesArray
       }
 
       switch (operator) {
@@ -624,11 +631,14 @@ export class TypeOrmConnector<
 
       if (element === 'id') {
         element = '_id'
-        /*
+
         value = (Array.isArray(value)
           ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
-          */
+          : (Ids.objectID(
+              value as string
+            ) as unknown as ObjectID)) as unknown as
+          | Primitives
+          | PrimitivesArray
       }
 
       switch (operator) {
@@ -670,7 +680,9 @@ export class TypeOrmConnector<
       }
     }
 
-    return this.clearEmpties(Filters.where)
+    const filtered = this.clearEmpties(Filters.where) 
+
+    return filtered
   }
 
   /**
@@ -822,17 +834,11 @@ export class TypeOrmConnector<
     id: string,
     q?: FindByIdFilter<ModelDTO>
   ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
-    const query = {
-      where: {
-        id
-      },
+    const found = await this.findByIds([id], {
       select: q?.select,
       include: q?.include,
       limit: 1
-    } as FluentQuery<ModelDTO>
-
-    const generatedQuery = this.generateTypeOrmQuery(query)
-    const found = await this.repository.find(generatedQuery)
+    })
 
     found.map(d => {
       if (this.isMongoDB) {
@@ -856,107 +862,37 @@ export class TypeOrmConnector<
     return new (<any>this.constructor)()
   }
 
+  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    let data = await this.findMany({
+      where: {
+        id: {
+          in: ids
+        }
+      },
+      limit: q?.limit,
+      select: q?.select,
+      include: q?.include
+    } as any)
+
+    // Validate Output against schema
+    return this.outputSchema?.array().parse(data) as unknown as QueryOutput<
+      T,
+      ModelDTO,
+      OutputDTO
+    >
+  }
+
   /*
 
-  // public async requireById(
-  //   id: string,
-  //   select?: FluentQuery<ModelDTO>['select'],
-  //   include?: FluentQuery<ModelDTO>['include']
-  // ): Promise<OutputDTO> {
-  //   const query = {
-  //     where: {
-  //       id,
-  //       limit: 1
-  //     },
-  //     select,
-  //     include
-  //   } as FluentQuery<ModelDTO>
-
-  //   const generatedQuery = this.generateTypeOrmQuery(query)
-  //   const result: any = await this.repository.find(generatedQuery)
-  //   let data = this.jsApplySelect(result)
-
-  //   if (!data[0]) {
-  //     throw new Error('')
-  //   }
-
-  //   return data[0] || null
-  // }
-
-  // /**
-  //  *
-  //  */
-  // public async getPaginated(): Promise<PaginatedData<OutputDTO>> {
-  //   const response: any = await this.get()
-
-  //   const results: PaginatedData<OutputDTO> = {
-  //     current_page: response[0].meta.currentPage,
-  //     data: response[0].data,
-  //     first_page_url: response[0].meta.firstPageUrl,
-  //     next_page_url: response[0].meta.nextPageUrl,
-  //     path: response[0].meta.path,
-  //     per_page: response[0].meta.itemsPerPage,
-  //     prev_page_url: response[0].meta.previousPageUrl,
-  //     total: response[0].meta.totalItemCount
-  //   }
-
-  //   if (results && results.data && this.selectArray.length > 0) {
-  //     results.data = this.jsApplySelect(results.data)
-  //     return results
-  //   }
-  //   return results
-  // }
 
   // /**
   //  *
   //  */
   // public async all(): Promise<OutputDTO[]> {
   //   return this.get()
-  // }
-
-  // /**
-  //  *
-  //  * @param paginator
-  //  */
-  // public async paginate(
-  //   paginator: Paginator
-  // ): Promise<PaginatedData<OutputDTO>> {
-  //   if (!paginator) {
-  //     throw new Error('Paginator cannot be empty')
-  //   }
-  //   this.paginator = paginator
-
-  //   const response = await this.getPaginated()
-
-  //   return response
-  // }
-
-  // /**
-  //  *
-  //  * Returns the TypeOrm Repository, you can use it
-  //  * form more complex queries and to get
-  //  * the TypeOrm query builder
-  //  *
-  //  * @param query
-  //  */
-  // public raw(): Repository<ModelDTO> {
-  //   return this.repository
-  // }
-
-  // /**
-  //  *
-  //  * @param data
-  //  */
-  // public async insertMany(data: QueryInsert<InputDTO>[]): Promise<OutputDTO[]> {
-  //   const inserted = await this.repository.save(
-  //     data as unknown as DeepPartial<ModelDTO>,
-  //     {
-  //       chunk: data.length / 300
-  //     }
-  //   )
-  //   this.reset()
-  //   const result = this.jsApplySelect(inserted) as OutputDTO[]
-  //   return result
   // }
 
   // /**
@@ -1000,19 +936,6 @@ export class TypeOrmConnector<
   //  *
   //  * @param ids
   //  */
-  // public async findByIds(ids: string[]): Promise<OutputDTO[]> {
-  //   const parsedIds = [...ids]
-  //   if (this.isMongoDB) {
-  //     parsedIds.map(id => new ObjectId(id) as unknown as ObjectID)
-  //   }
-
-  //   const data = await this.repository.findBy({
-  //     id: In(parsedIds)
-  //   } as unknown as FindOptionsWhere<ModelDTO>)
-
-  //   const result = this.jsApplySelect(data) as OutputDTO[]
-  //   return result
-  // }
 
   /**
    *

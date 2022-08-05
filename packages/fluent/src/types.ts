@@ -174,6 +174,7 @@ export type FluentHasManyParams<T extends FluentHasManyParams<T>> = {
 export type FindByIdFilter<T> = {
   select?: FluentQuery<T>['select']
   include?: FluentQuery<T>['include']
+  limit?: number
 }
 
 export type LoadedResult<T> = Omit<
@@ -196,4 +197,5 @@ export type LoadedResult<T> = Omit<
   | 'associate'
   | 'attach'
   | 'withPivot'
+  | 'loadById'
 >

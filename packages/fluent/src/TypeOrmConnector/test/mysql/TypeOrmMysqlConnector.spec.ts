@@ -1,3 +1,5 @@
+// npx jest -i ./src/TypeOrmConnector/test/mysql/TypeOrmMysqlConnector.spec.ts
+
 import { GoatRepository } from '../basic/goat.mysql.repository'
 import { TypeOrmRepository } from '../advanced/typeOrm.mysql.repository'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'
@@ -6,6 +8,10 @@ import getDatabase from '../docker/mysql'
 import {MYSQLDataSource} from './mysqlDataSource'
 import { Fluent } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
+import { UserRepository } from '../relations/user/user.repositoryTypeOrm'
+import { CarsRepository } from '../relations/car/car.repositoryTypeOrm'
+import { RoleRepository } from '../relations/roles/roles.repositoryTypeOrm'
+import { relationsTestSuite } from '../relations/relationsTestsSuite'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
@@ -30,9 +36,9 @@ describe('Execute all basic test Suite', () => {
 })
 
 describe('Execute all advanced test Suite', () => {
-  advancedTestSuite(TypeOrmRepository)
+ // advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {
-  //relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
+  // relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })

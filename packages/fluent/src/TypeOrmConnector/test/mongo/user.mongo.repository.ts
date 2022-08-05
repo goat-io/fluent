@@ -1,11 +1,10 @@
-import { CarsRepository } from '../car/car.repositoryTypeOrm'
-import { RoleRepository } from '../roles/roles.repositoryTypeOrm'
-import { RoleUsersRepository } from '../roles/roles_users.repositoryTypeOrm'
-import { TypeOrmConnector } from '../../../TypeOrmConnector'
-import { UsersEntity } from './user.entity'
-import { UsersEntityInputSchema, UsersEntitySchema } from './user.schema'
-import { MemoryDataSource } from '../../sqlite/memoryDataSource'
-import { CarsEntity } from '../car/car.entity'
+import { TypeOrmConnector } from "../../TypeOrmConnector"
+import { CarsEntity } from "../relations/car/car.entity"
+import { UsersEntity } from "../relations/user/user.entity"
+import { UsersEntityInputSchema, UsersEntitySchema } from "../relations/user/user.schema"
+import { CarsRepository } from "./car.mongo.repository"
+import { MongoDataSource } from "./mongoDatasource"
+
 
 export class UserRepository extends TypeOrmConnector<
   UsersEntity,
@@ -14,7 +13,7 @@ export class UserRepository extends TypeOrmConnector<
   constructor() {
     super({
       entity: UsersEntity,
-      dataSource: MemoryDataSource,
+      dataSource: MongoDataSource,
       inputSchema: UsersEntitySchema
     })
   }

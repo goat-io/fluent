@@ -12,11 +12,14 @@ import {
   QueryOutput,
   SingleQueryOutput
 } from './types'
+import { ObjectId } from 'bson'
 
 export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   //findById(id: string): Promise<OutputDTO | null>
-  //findByIds(id: string[]): Promise<OutputDTO[] | null>
-  //requireById(id: string): Promise<OutputDTO>
+  findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>>
   findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>>
@@ -74,7 +77,10 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.outputKeys = []
   }
 
-  public async findByIds(ids: string[]): Promise<OutputDTO[]> {
+  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
     throw new Error('findByIds() method not implemented')
   }
   /**
@@ -159,8 +165,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.relatedQuery = r
   }
   /**
-   * Attach One-to-Many relationship.
-   * Associate a object to the parent.
+   * Associate One-to-Many relationship.
+   * Associate an object to the parent.
    * @param data
    */
   public async associate(data: InputDTO | OutputDTO): Promise<OutputDTO[]> {
@@ -168,57 +174,55 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       throw new Error('Associate can only be called as a related model')
     }
 
-    const relation = this.modelRelations[this.relatedQuery.key]
-    const foreignKeyName = relation.inverseSidePropertyPath
+    const parentData = await this.relatedQuery.repository.findMany({
+      ...this.relatedQuery.query,
+      // We just need the IDs to make the relations
+      select: { id: true }
+    } as unknown as FluentQuery<ModelDTO>)
 
-    console.log(foreignKeyName)
-    // console.log(this.relatedQuery)
+    const foreignKeyName =
+      this.modelRelations[this.relatedQuery.key].joinColumns[0].propertyName
 
-    return []
+    const relatedData = parentData.map(r => ({
+      [foreignKeyName]: r.id,
+      ...data
+    }))
 
-    // 
-    // const D = Array.isArray(this.relatedQuery.data)
-    //   ? this.relatedQuery.data
-    //   : [this.relatedQuery.data]
+    const existingIds = relatedData.map(r => r.id)
+    const existingData = existingIds.length
+      ? await this.findByIds(relatedData.map(r => r.id))
+      : []
 
-    // const relatedData = D.map(d => ({
-    //   [foreignKeyName]: this.isMongoDB
-    //     ? (Ids.objectID(d.id) as unknown as ObjectID)
-    //     : d.id,
-    //   ...data
-    // }))
+    const updateQueries: any[] = []
+    const insertQueries: any[] = []
 
-    // const existingData = await this.findByIds(relatedData.map(r => r.id))
+    for (const related of relatedData) {
+      const exists = existingData.find(
+        (d: { id: string } & OutputDTO) => d.id === related.id
+      ) as { id: string } & OutputDTO
 
-    // const updateQueries: any[] = []
-    // const insertQueries: any[] = []
+      if (exists) {
+        updateQueries.push(
+          this.updateById(exists.id, {
+            ...exists,
+            [foreignKeyName]: related[foreignKeyName]
+          } as unknown as InputDTO)
+        )
+      } else {
+        insertQueries.push(related)
+      }
+    }
 
-    // for (const related of relatedData) {
-    //   const exists = existingData.find(
-    //     (d: { id: string } & OutputDTO) => d.id === related.id
-    //   ) as { id: string } & OutputDTO
+    const updateResult = await Promise.all(updateQueries)
+    const insertedResult = await this.insertMany(insertQueries)
 
-    //   if (exists) {
-    //     updateQueries.push(
-    //       this.updateById(exists.id, {
-    //         ...exists,
-    //         [foreignKeyName]: related[foreignKeyName]
-    //       } as unknown as InputDTO)
-    //     )
-    //   } else {
-    //     insertQueries.push(related)
-    //   }
-    // }
-    // const updateResult = await Promise.all(updateQueries)
-    // const insertedResult = await this.insertMany(insertQueries)
-
-    // return [...updateResult, ...insertedResult]
+    return [...updateResult, ...insertedResult]
   }
 
-  // /**
-  //  * Associate a registry with Many-to-Many relation
-  //  * @param id
-  //  */
+  /**
+   * Attach an object with Many-to-Many relation
+   * @param id
+   */
   // public attach(id: string) {
   //   if (!this.relationQuery?.relation || !this.relationQuery.data) {
   //     throw new Error('Associate can only be called as a related model')
@@ -240,11 +244,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
   //   return this.relationQuery.pivot.insertMany(relatedData)
   // }
-
-  // protected aaa<T, V extends new () => any>(
-  //   repository: V,
-  //   relationKey: FluentHasManyRelatedAttribute<T>
-  // ): Pick<InstanceType<V>, 'associate'>
 
   /**
    * One-to-Many relationship
@@ -323,18 +322,20 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   protected clearEmpties(object) {
-    Object.entries(object).forEach(([k, v]) => {
-      if (v && typeof v === 'object') {
-        this.clearEmpties(v)
-      }
+    Object.entries(object).forEach(([k, v]: [any, any]) => {
+      if (v && typeof v === 'object') this.clearEmpties(v)
       if (
         (v && typeof v === 'object' && !Object.keys(v).length) ||
         v === null ||
-        v === undefined
+        v === undefined ||
+        v.length === 0
       ) {
         if (Array.isArray(object)) {
-          object.splice(Number(k), 1)
-        } else {
+          // Do not remove Object ID
+          if (!(object[k] instanceof ObjectId)) {
+            object.splice(k, 1)
+          }
+        } else if (!(v instanceof Date) && !(v instanceof ObjectId)) {
           delete object[k]
         }
       }
@@ -369,13 +370,28 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
           const flatten = Objects.flatten(value)
 
           for (const key of Object.keys(flatten)) {
-            if (LogicOperator[key]) {
-              accumulatedClauses.push({
-                operator: LogicOperator[key],
-                element: `${initialKey}`,
-                value: flatten[key]
-              })
-            } else if (key.includes('.')) {
+            // Remove .# from keys when we have an array in the flattened object
+            const transformedKey = key.replace(new RegExp('.[0-9]', 'g'), '')
+
+            if (LogicOperator[transformedKey]) {
+              if (
+                LogicOperator[transformedKey] === LogicOperator.in ||
+                LogicOperator[transformedKey] === LogicOperator.notIn
+              ) {
+                // The IN operator accepts an array, therefore we need the full array as a value
+                accumulatedClauses.push({
+                  operator: LogicOperator[transformedKey],
+                  element: `${initialKey}`,
+                  value: value[transformedKey]
+                })
+              } else {
+                accumulatedClauses.push({
+                  operator: LogicOperator[transformedKey],
+                  element: `${initialKey}`,
+                  value: flatten[key]
+                })
+              }
+            } else if (transformedKey.includes('.')) {
               const op = key.split('.').slice(-1).pop()
 
               if (!op) {
@@ -398,7 +414,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
             } else {
               accumulatedClauses.push({
                 operator: LogicOperator.equals,
-                element: `${initialKey}.${key}`,
+                element: `${initialKey}.${transformedKey}`,
                 value: flatten[key]
               })
             }
@@ -412,6 +428,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         }
       }
     }
+
     return accumulatedClauses
   }
 

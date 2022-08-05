@@ -28,6 +28,33 @@ export const basicTestSuite = Repository => {
     expect(typeof storedGoats[0].id).toBe('string')
   })
 
+  test('findMany - Should  FILTER data', async () => {
+    await Repository.insertMany(flock)
+    const storedGoats = await Repository.findMany({
+      where: {
+        name: 'Goatee'
+      }
+    })
+
+    expect(Array.isArray(storedGoats)).toBe(true)
+
+    for(const goat of storedGoats) {
+      expect(goat.name).toBe('Goatee')
+    }
+    expect(typeof storedGoats[0].id).toBe('string')
+  })
+
+  test('findMany - Should  FILTER not existing data', async () => {
+    await Repository.insertMany(flock)
+    const storedGoats = await Repository.findMany({
+      where: {
+        name: 'SOMENOTEXISTINGGOAT'
+      }
+    })
+    expect(Array.isArray(storedGoats)).toBe(true)
+    expect(storedGoats.length).toBe(0)
+  })
+
   it('UpdateById - Should Update a single element', async () => {
     await Repository.insertMany(flock)
     const goats = await Repository.findMany()
