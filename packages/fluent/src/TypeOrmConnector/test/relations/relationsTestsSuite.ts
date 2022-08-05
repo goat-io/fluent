@@ -125,21 +125,18 @@ export const relationsTestSuite = (
   })
 
   test('Query related model - BelongsTo', async () => {
-    const UserRepo = new UserRepository()
-    const CarsRepo = new CarsRepository()
-
-    const insertedUser = await UserRepo.insert({
+    const insertedUser = await Model.insert({
       name: 'testUser',
       age: 20
     })
 
     expect(typeof insertedUser.id).toBe('string')
 
-    const user1 = await UserRepo.loadById(insertedUser.id!)
+    const user1 = await Model.loadById(insertedUser.id!)
 
     await user1.cars().associate({ name: 'My new car' })
 
-    const results = await CarsRepo.findMany({
+    const results = await BelongsToModel.findMany({
       where: {
         userId: insertedUser.id
       },

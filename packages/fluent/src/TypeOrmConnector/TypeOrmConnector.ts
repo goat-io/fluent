@@ -49,7 +49,7 @@ export const getRelationsFromModelGenerator = (
 ) => {
   const relations = {}
   for (const relation of typeOrmRepo.metadata.relations) {
-    // console.log(relation)
+
     const pPath = relation.inverseRelation?.joinColumns[0]
     relations[relation.propertyName] = {
       isOneToMany: relation.isOneToMany,
@@ -199,9 +199,9 @@ export class TypeOrmConnector<
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
     if (this.isMongoDB && query?.include) {
-      const a = this.customMongoRelatedSearch(query)
+      const mongoRelationResult = this.customMongoRelatedSearch(query)
 
-      return a as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return mongoRelationResult as unknown as QueryOutput<T, ModelDTO, OutputDTO>
     }
 
     const generatedQuery = this.generateTypeOrmQuery(query)
@@ -633,7 +633,7 @@ export class TypeOrmConnector<
     }
 
     const filtered = this.clearEmpties(
-      JSON.parse(JSON.stringify(Filters.where))
+      Filters.where
     )
 
     return filtered

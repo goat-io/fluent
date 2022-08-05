@@ -30,6 +30,7 @@ export const basicTestSuite = Repository => {
 
   test('findMany - Should  FILTER data', async () => {
     await Repository.insertMany(flock)
+
     const storedGoats = await Repository.findMany({
       where: {
         name: 'Goatee'
@@ -38,7 +39,7 @@ export const basicTestSuite = Repository => {
 
     expect(Array.isArray(storedGoats)).toBe(true)
 
-    for(const goat of storedGoats) {
+    for (const goat of storedGoats) {
       expect(goat.name).toBe('Goatee')
     }
     expect(typeof storedGoats[0].id).toBe('string')

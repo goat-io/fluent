@@ -183,12 +183,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const foreignKeyName =
       this.modelRelations[this.relatedQuery.key].joinColumns[0].propertyName
 
+     
+
     const relatedData = parentData.map(r => ({
       [foreignKeyName]: r.id,
       ...data
     }))
 
-    const existingIds = relatedData.map(r => r.id)
+    const existingIds = this.clearEmpties(relatedData.map(r => r.id)) 
+
     const existingData = existingIds.length
       ? await this.findByIds(relatedData.map(r => r.id))
       : []
