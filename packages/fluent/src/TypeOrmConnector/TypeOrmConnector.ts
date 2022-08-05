@@ -42,18 +42,22 @@ import type {
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
+import { ObjectId } from 'bson'
 
 export const getRelationsFromModelGenerator = (
   typeOrmRepo: Repository<any>
 ) => {
   const relations = {}
   for (const relation of typeOrmRepo.metadata.relations) {
+    // console.log(relation)
+    const pPath = relation.inverseRelation?.joinColumns[0]
     relations[relation.propertyName] = {
       isOneToMany: relation.isOneToMany,
       isManyToOne: relation.isManyToOne,
       isManyToMany: relation.isManyToMany,
-      inverseSidePropertyPath: relation.inverseSidePropertyPath,
-      propertyPath: relation.propertyName,
+      inverseSidePropertyRelationPath: relation.inverseSidePropertyPath,
+      inverseSidePropertyPath: pPath?.propertyPath,
+      propertyName: relation.propertyName,
       entityName: relation.inverseEntityMetadata.name,
       tableName: relation.inverseEntityMetadata.tableName,
       targetClass: relation.inverseEntityMetadata.target,
@@ -109,9 +113,9 @@ export class TypeOrmConnector<
     this.isMongoDB =
       this.repository.metadata.connection.driver.options.type === 'mongodb'
 
-      if(this.isMongoDB) {
-        this.repository = this.dataSource.getMongoRepository(entity)
-      }
+    if (this.isMongoDB) {
+      this.repository = this.dataSource.getMongoRepository(entity)
+    }
 
     const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
 
@@ -187,13 +191,19 @@ export class TypeOrmConnector<
    *
    * @param query
    */
-   public mongoRaw(): MongoRepository<ModelDTO> {
+  public mongoRaw(): MongoRepository<ModelDTO> {
     return this.repository as MongoRepository<ModelDTO>
   }
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    if (this.isMongoDB && query?.include) {
+      const a = this.customMongoRelatedSearch(query)
+
+      return a as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+    }
+
     const generatedQuery = this.generateTypeOrmQuery(query)
 
     let [found, count] = await this.repository.findAndCount(generatedQuery)
@@ -235,6 +245,114 @@ export class TypeOrmConnector<
       ModelDTO,
       OutputDTO
     >
+  }
+
+  private getMongoSelect(select: FluentQuery<ModelDTO>['select']) {
+    const selected = Objects.flatten(select || {})
+
+    for (const k of Object.keys(selected)) {
+      if (k === 'id') {
+        delete selected[k]
+        selected['_id'] = 1
+        continue
+      }
+      // this will fail in cases like {
+      //   cars : {
+      //     idea: true
+      //   }
+      // }
+      // as cars.idea matches .id
+      const containsId = k.lastIndexOf('.id')
+
+      if (containsId >= 0 && containsId + 3 === k.length) {
+        selected[`${k.replace('.id', '')}._id`] = 1
+        delete selected[k]
+
+        continue
+      }
+      selected[k] = 1
+    }
+
+    return selected
+  }
+
+  private getMongoLookup(include: FluentQuery<ModelDTO>['include']): any[] {
+    if (!include) {
+      return []
+    }
+
+    const lookUps: any[] = []
+    for (const relation of Object.keys(include)) {
+      if (this.modelRelations[relation]) {
+        const dbRelation = this.modelRelations[relation]
+
+        if (dbRelation.isManyToOne) {
+          const localField = dbRelation.joinColumns[0].propertyPath
+          lookUps.push({
+            $addFields: {
+              [`${localField}_object`]: { $toObjectId: `$${localField}` }
+            }
+          })
+          lookUps.push({
+            $lookup: {
+              from: dbRelation.tableName,
+              localField: `${localField}_object`,
+              foreignField:'_id',
+              as: dbRelation.propertyName
+              // pipeline: [{ $limit: 2 }]
+            }
+          })
+        }
+
+        if (dbRelation.isOneToMany) {
+          lookUps.push({ $addFields: { string_id: { $toString: '$_id' } } })
+          lookUps.push({
+            $lookup: {
+              from: dbRelation.tableName,
+              localField: 'string_id',
+              foreignField: dbRelation.inverseSidePropertyPath,
+              as: dbRelation.propertyName
+              // pipeline: [{ $limit: 2 }]
+            }
+          })
+        }
+      }
+    }
+
+    return lookUps
+  }
+
+  private async customMongoRelatedSearch(query: FluentQuery<ModelDTO>) {
+    const where = this.getTypeOrmMongoWhere(query.where)
+    const selected = this.getMongoSelect(query.select)
+    const lookups = this.getMongoLookup(query.include)
+  
+    const aggregate: any[] = [
+      {
+        $match: where
+      }
+      //{ $sort: { createdAt: 1 } }
+    ]
+
+    if (query?.limit) {
+      aggregate.push({ $limit: query.limit! })
+    }
+
+    for (const lookup of lookups) {
+      aggregate.push(lookup)
+    }
+
+    if (selected && Object.keys(selected).length) {
+      aggregate.push({
+        $project: selected
+      })
+    }
+
+    console.log(aggregate)
+
+    const raw = await this.mongoRaw().aggregate(aggregate).toArray()
+
+    return raw
   }
 
   private generateTypeOrmQuery(query?: FluentQuery<ModelDTO>): FindManyOptions {
@@ -488,7 +606,9 @@ export class TypeOrmConnector<
       }
     }
 
-    const filtered = this.clearEmpties(JSON.parse(JSON.stringify(Filters.where))) 
+    const filtered = this.clearEmpties(
+      JSON.parse(JSON.stringify(Filters.where))
+    )
 
     return filtered
   }
@@ -680,7 +800,7 @@ export class TypeOrmConnector<
       }
     }
 
-    const filtered = this.clearEmpties(Filters.where) 
+    const filtered = this.clearEmpties(Filters.where)
 
     return filtered
   }

@@ -3,7 +3,7 @@ import { ObjectId } from 'bson'
 import { Equal, MongoRepository } from 'typeorm'
 import { UserRepository } from '../mongo/user.mongo.repository'
 //import { UserRepository } from '../relations/user/user.repositoryTypeOrm'
-import { CarsRepository } from './car/car.repositoryTypeOrm'
+import { CarsRepository } from '../mongo/car.mongo.repository'
 let Model
 let BelongsToModel
 let ManyToManyModel
@@ -81,115 +81,81 @@ export const relationsTestSuite = (
   //   expect(cars[0].userId).toBe(insertedUser.id)
   // })
 
-  test('Query related model - OneToMany', async () => {
-    const insertedUser = await Model.insert({
-      name: 'testUser',
-      age: 20
-    })
-
-    expect(typeof insertedUser.id).toBe('string')
-
-    const user1 = await Model.loadById(insertedUser.id!)
-
-    const cars = await user1.cars().associate({ name: 'My new car' })
-
-    const cars2 = await user1.cars().associate({ name: 'My new car2' })
-
-    expect(Array.isArray(cars)).toBe(true)
-
-    const searchUserWithRelation = await Model.findMany({
-      where: { id: insertedUser.id },
-      include: {
-        cars: true
-      }
-    })
-    const a = new UserRepository()
-
-    const raw = await a
-      .mongoRaw()
-      .aggregate([
-        {
-          $match: {
-            _id: new ObjectId(insertedUser.id)
-          }
-        },
-        { $addFields: { string_id: { $toString: '$_id' } } },
-        {
-          $lookup: {
-            from: 'cars',
-            localField: 'string_id',
-            foreignField: 'userId',
-            as: 'cars',
-            pipeline: [
-              { $limit: 2 }
-            ]
-          }
-        },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            'cars._id': 1,
-            'cars.name': 1
-          }
-        },
-        //{ $sort: { createdAt: 1 } }
-        { $limit: 1 }
-      ])
-      .toArray()
-
-    console.log({ raw : raw[0]['cars']})
-
-    // const firstResult = searchUserWithRelation[0]!
-
-    // expect(Array.isArray(searchUserWithRelation)).toBe(true)
-    // expect(Array.isArray(firstResult.cars)).toBe(true)
-    // expect(firstResult.cars!.length > 0).toBe(true)
-    // expect(firstResult.cars![0].userId).toBe(insertedUser.id)
-
-    // const searchCar = await user1
-    //   .cars()
-    //   .findMany({ where: { name: 'My new car' } })
-
-    // expect(Array.isArray(searchCar)).toBe(true)
-    // expect(searchCar.length > 0).toBe(true)
-
-    // const searchCar2 = await user1
-    //   .cars()
-    //   .findMany({ where: { name: 'My.......' } })
-
-    // expect(Array.isArray(searchCar2)).toBe(true)
-    // expect(searchCar2.length === 0).toBe(true)
-  })
-
-  // test('Query related model - BelongsTo', async () => {
-  //   const UserRepo = new UserRepository()
-  //   const CarsRepo = new CarsRepository()
-
-  //   const insertedUser = await UserRepo.insert({
+  // test('Query related model - OneToMany', async () => {
+  //   const insertedUser = await Model.insert({
   //     name: 'testUser',
   //     age: 20
   //   })
 
   //   expect(typeof insertedUser.id).toBe('string')
 
-  //   const user1 = await UserRepo.loadById(insertedUser.id!)
+  //   const user1 = await Model.loadById(insertedUser.id!)
 
-  //   await user1.cars().associate({ name: 'My new car' })
+  //   const cars = await user1.cars().associate({ name: 'My new car' })
 
-  //   const results = await CarsRepo.findMany({
-  //     where: {
-  //       userId: insertedUser.id
-  //     },
-  //     include: { user: true }
+  //   expect(Array.isArray(cars)).toBe(true)
+
+  //   const searchUserWithRelation = await Model.findMany({
+  //     where: { id: insertedUser.id },
+  //     include: {
+  //       cars: true
+  //     }
   //   })
 
-  //   expect(Array.isArray(results)).toBe(true)
-  //   expect(results.length > 0).toBe(true)
-  //   expect(typeof results[0].user!.name).toBe('string')
+  //   const firstResult = searchUserWithRelation[0]!
 
-  //   expect(results[0].user!['id']).toBe(insertedUser.id)
+  //   expect(Array.isArray(searchUserWithRelation)).toBe(true)
+  //   expect(Array.isArray(firstResult.cars)).toBe(true)
+  //   expect(firstResult.cars!.length > 0).toBe(true)
+  //   expect(firstResult.cars![0].userId).toBe(insertedUser.id)
+
+  //   const searchCar = await user1
+  //     .cars()
+  //     .findMany({ where: { name: 'My new car' } })
+
+  //   expect(Array.isArray(searchCar)).toBe(true)
+  //   expect(searchCar.length > 0).toBe(true)
+
+  //   const searchCar2 = await user1
+  //     .cars()
+  //     .findMany({ where: { name: 'My.......' } })
+
+  //   expect(Array.isArray(searchCar2)).toBe(true)
+  //   expect(searchCar2.length === 0).toBe(true)
   // })
+
+  test('Query related model - BelongsTo', async () => {
+    const UserRepo = new UserRepository()
+    const CarsRepo = new CarsRepository()
+
+    const insertedUser = await UserRepo.insert({
+      name: 'testUser',
+      age: 20
+    })
+
+    expect(typeof insertedUser.id).toBe('string')
+
+    const user1 = await UserRepo.loadById(insertedUser.id!)
+
+    await user1.cars().associate({ name: 'My new car' })
+
+    const results = await CarsRepo.findMany({
+      where: {
+        userId: insertedUser.id
+      },
+      include: {
+        user: true
+      }
+    })
+
+    console.log(results)
+
+    expect(Array.isArray(results)).toBe(true)
+    expect(results.length > 0).toBe(true)
+    expect(typeof results[0].user![0]!.name).toBe('string')
+
+    // expect(results[0].user!['id']).toBe(insertedUser.id)
+  })
 
   // test('Query related model - ManyToMany', async () => {
   //   const insertedUser = await Model.insert({
