@@ -17,8 +17,8 @@ export class CarsRepository extends TypeOrmConnector<
     })
   }
 
-  public user = () => this.belongsTo({
-    repository: UserRepository,
-    model: UsersEntity
-  })
+  public user = () =>
+    this.belongsTo({
+      repository: UserRepository
+    })
 }

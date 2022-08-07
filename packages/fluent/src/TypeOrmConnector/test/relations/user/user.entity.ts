@@ -12,7 +12,7 @@ export class Family {
 }
 
 @f.entity('users')
-export class UsersEntity {  
+export class UsersEntity {
   @f.id()
   id: string
 
@@ -31,7 +31,6 @@ export class UsersEntity {
   })
   cars?: CarsEntity[]
 
-  /*
   @f.belongsToMany({
     entity: () => RoleEntity,
     joinTableName: 'roles_users',
@@ -39,5 +38,4 @@ export class UsersEntity {
     inverseForeignKey: 'roleId'
   })
   roles?: RoleEntity[]
-  */
 }

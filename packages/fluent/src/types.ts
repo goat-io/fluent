@@ -167,13 +167,17 @@ export type FluentHasManyRelatedAttribute<T> = Partial<{
 
 export type FluentHasManyParams<T extends FluentHasManyParams<T>> = {
   repository: new () => InstanceType<T['repository']>
-  model: new () => InstanceType<T['model']>
 }
 
 export type FluentBelongsToParams<T extends FluentHasManyParams<T>> = {
   repository: new () => InstanceType<T['repository']>
-  model: new () => InstanceType<T['model']>
 }
+
+export type FluentBelongsToManyParams<T extends FluentBelongsToManyParams<T>> =
+  {
+    repository: new () => InstanceType<T['repository']>
+    pivot: new () => InstanceType<T['pivot']>
+  }
 
 export type FindByIdFilter<T> = {
   select?: FluentQuery<T>['select']

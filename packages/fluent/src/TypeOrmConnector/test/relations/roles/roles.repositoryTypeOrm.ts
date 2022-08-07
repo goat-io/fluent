@@ -14,10 +14,9 @@ export class RoleRepository extends TypeOrmConnector<RoleEntity, RoleEntityIn> {
     })
   }
 
-  // public users = () =>
-  //   this.belongsToMany<UserRepository, RoleUsersRepository>(
-  //     UserRepository,
-  //     RoleUsersRepository,
-  //     'users'
-  //   )
+  public users = () =>
+    this.belongsToMany({
+      repository: UserRepository,
+      pivot: RoleUsersRepository
+    })
 }

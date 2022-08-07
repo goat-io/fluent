@@ -3,6 +3,8 @@ import { Objects, Ids, Collection } from '@goatlab/js-utils'
 import {
   FindByIdFilter,
   FluentHasManyParams,
+  FluentBelongsToParams,
+  FluentBelongsToManyParams,
   FluentHasManyRelatedAttribute,
   FluentQuery,
   LogicOperator,
@@ -55,6 +57,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     query?: FluentQuery<ModelDTO>
     repository?: any
     key?: string
+    pivot?: any
   }
 
   protected chunk = null
@@ -231,27 +234,39 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * Attach an object with Many-to-Many relation
    * @param id
    */
-  // public attach(id: string) {
-  //   if (!this.relationQuery?.relation || !this.relationQuery.data) {
-  //     throw new Error('Associate can only be called as a related model')
-  //   }
+  public async attach(id: string) {
+    if (!this.relatedQuery?.entity || !this.relatedQuery.key) {
+      throw new Error('Associate can only be called as a related model')
+    }
 
-  //   const D = Array.isArray(this.relationQuery.data)
-  //     ? this.relationQuery.data
-  //     : [this.relationQuery.data]
+    const parentData = await this.relatedQuery.repository.findMany({
+      ...this.relatedQuery.query,
+      // We just need the IDs to make the relations
+      select: { id: true }
+    } as unknown as FluentQuery<ModelDTO>)
 
-  //   const relatedData = D.map(d => ({
-  //     [this.relationQuery.relation.joinColumns[0].propertyName]: this.isMongoDB
-  //       ? (Ids.objectID(d.id) as unknown as ObjectID)
-  //       : d.id,
-  //     [this.relationQuery.relation.inverseJoinColumns[0].propertyName]: this
-  //       .isMongoDB
-  //       ? (Ids.objectID(id) as unknown as ObjectID)
-  //       : id
-  //   }))
+    const foreignKeyName =
+      this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]
+        .joinColumns[0].propertyPath
 
-  //   return this.relationQuery.pivot.insertMany(relatedData)
-  // }
+    const inverseKeyName =
+      this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]
+        .inverseJoinColumns[0].propertyPath
+
+    if (!foreignKeyName || !inverseKeyName) {
+      throw new Error(
+        `The relationship was not properly defined. Please check that your Repository and Model relations have the same keys: Searching for: ${this.relatedQuery.key}`
+      )
+    }
+
+    // TODO: insert data to the middle relation
+    const relatedData = parentData.map(d => ({
+      [foreignKeyName]: d.id,
+      [inverseKeyName]: id
+    }))
+
+    return this.relatedQuery.pivot.insertMany(relatedData)
+  }
 
   /**
    * One-to-Many relationship
@@ -282,25 +297,10 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * Inverse One-to-Many relationship
    * To be used in the "children" entity (Many)
    */
-  protected belongsTo<T extends FluentHasManyParams<T>>(
+  protected belongsTo<T extends FluentBelongsToParams<T>>(
     r: T
   ): InstanceType<T['repository']> {
-    const newRepo = new r.repository() as any
-
-    const calleeName = new Error('dummy')
-      .stack!.split('\n')[2]
-      // " at functionName ( ..." => "functionName"
-      .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
-      .split('.')[1]
-
-    if (this.relatedQuery) {
-      newRepo.setRelatedQuery({
-        ...this.relatedQuery,
-        key: calleeName
-      })
-    }
-
-    return newRepo as InstanceType<T['repository']>
+    return this.hasMany(r)
   }
 
   /**
@@ -311,32 +311,39 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     throw new Error('Method not implemented')
   }
 
-  // /**
-  //  * Many-to-Many relationship
-  //  * To be used in both of the Related models (excluding pivot)
-  //  */
-  // protected belongsToMany<T, R>(Repository, Pivot, relationName: string) {
-  //   this.relationQuery = !this.relationQuery
-  //     ? { pivot: new Pivot(this.relationQuery) as R }
-  //     : {
-  //         ...this.relationQuery,
-  //         ...{
-  //           pivot: new Pivot(this.relationQuery) as R,
-  //           relation: this.relationQuery.relations[relationName]
-  //         }
-  //       }
+  /**
+   * Many-to-Many relationship
+   * To be used in both of the Related models (excluding pivot)
+   */
+  protected belongsToMany<T extends FluentBelongsToManyParams<T>>(
+    r: T
+  ): InstanceType<T['repository']> {
+    const newRepo = new r.repository() as any
 
-  //   const newClass = new Repository(this.relationQuery) as T
+    const relationName = new Error('dummy')
+      .stack!.split('\n')[2]
+      // " at functionName ( ..." => "functionName"
+      .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
+      .split('.')[1]
 
-  //   return newClass
-  // }
+    const pivot = new r.pivot() as any
 
-  // public withPivot() {
-  //   if (this.relationQuery?.pivot) {
-  //     this.relationQuery.returnPivot = true
-  //   }
-  //   return this
-  // }
+    pivot.setRelatedQuery({
+      ...this.relatedQuery,
+      key: relationName
+    })
+
+    if (this.relatedQuery) {
+      newRepo.setRelatedQuery({
+        ...this.relatedQuery,
+        key: relationName,
+        pivot
+      })
+    }
+    // this.relationQuery.relations[relationName]
+
+    return newRepo as InstanceType<T['repository']>
+  }
   /**
    *
    */

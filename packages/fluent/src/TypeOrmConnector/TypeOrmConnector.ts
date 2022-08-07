@@ -238,6 +238,8 @@ export class TypeOrmConnector<
       // TODO: validate based on the select properties
       return found as unknown as QueryOutput<T, ModelDTO, OutputDTO>
     }
+
+    console.log(found)
     // Validate Output against schema
     return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
       T,
