@@ -1,9 +1,4 @@
 import { Promises } from '@goatlab/js-utils'
-import { ObjectId } from 'bson'
-import { Equal, MongoRepository } from 'typeorm'
-import { UserRepository } from '../mongo/user.mongo.repository'
-//import { UserRepository } from '../relations/user/user.repositoryTypeOrm'
-import { CarsRepository } from '../mongo/car.mongo.repository'
 let Model
 let BelongsToModel
 let ManyToManyModel

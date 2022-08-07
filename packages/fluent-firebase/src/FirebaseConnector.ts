@@ -149,14 +149,69 @@ export class FirebaseConnector<
 
   /**
    *
-   * Returns the Firebase Repository, you can use it
-   * form more complex queries and to get
-   * the TypeOrm query builder
+   * Returns the firebase-admin collection, you can use it
+   * for more complex queries that require the base library
    *
    * @param query
    */
-  public raw(): BaseFirestoreRepository<any> {
-    return this.repository
+  public raw(): admin.firestore.CollectionReference<ModelDTO> {
+    return this.collection
+  }
+
+  protected async loadRelatedData(
+    data: any[],
+    loadedKeys: AnyObject
+  ): Promise<admin.firestore.DocumentData[]> {
+    let pivotData: any[] = []
+
+    const result = await loadRelations({
+      data,
+      relations: loadedKeys,
+      modelRelations: this.modelRelations,
+      provider: 'firebase',
+      self: this,
+      returnPivot: false
+    })
+
+    /*
+    if (this.relatedQuery && this.relationQuery.data && this.relationQuery.relation) {
+      const ids = this.relationQuery.data.map(d => d.id)
+
+      if (this.relationQuery?.relation?.isManyToMany) {
+        const pivotForeignKey = this.relationQuery.relation.joinColumns[0].propertyName
+        const pivotInverseKey = this.relationQuery.relation.inverseJoinColumns[0].propertyName
+        const {pivot} = this.relationQuery
+
+        pivotData = await pivot.where(key => key[pivotForeignKey], "in", ids).get()
+        if(!pivotData.length) {
+          return []
+        }
+        const inverseIds = [...new Set(pivotData.map(d => d[pivotInverseKey]))]
+
+        if(!inverseIds.length) {
+          return []
+        }
+
+        if(inverseIds.length) {
+          query = query.where(
+            "id",
+            'in',
+            inverseIds
+          )
+        }
+      } else {
+        query = query.where(
+          this.relationQuery.relation.inverseSidePropertyPath,
+          'in',
+          ids
+        )
+      }
+
+    }
+
+   
+    */
+    return result as unknown as admin.firestore.DocumentData[]
   }
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
@@ -190,11 +245,18 @@ export class FirebaseConnector<
 
     // As there might be duplicated results from the queries,
     // we will deduplicate by ID
-    const found = [...new Map(results.map(v => [v.id, v])).values()]
+    let found = [...new Map(results.map(v => [v.id, v])).values()]
 
     found.map(d => {
       this.clearEmpties(Objects.deleteNulls(d))
     })
+
+    if (query?.include) {
+      found = await this.loadRelatedData(
+        found,
+        Objects.flatten(query?.include || {})
+      )
+    }
 
     if (query?.paginated) {
       const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO, OutputDTO>> =

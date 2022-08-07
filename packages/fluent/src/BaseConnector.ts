@@ -181,16 +181,21 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     } as unknown as FluentQuery<ModelDTO>)
 
     const foreignKeyName =
-      this.modelRelations[this.relatedQuery.key].joinColumns[0].propertyName
+      this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]
+        .inverseSidePropertyPath
 
-     
+    if (!foreignKeyName) {
+      throw new Error(
+        'The relationship was not properly defined. Please check that your Repository and Model relations have the same keys'
+      )
+    }
 
     const relatedData = parentData.map(r => ({
       [foreignKeyName]: r.id,
       ...data
     }))
 
-    const existingIds = this.clearEmpties(relatedData.map(r => r.id)) 
+    const existingIds = this.clearEmpties(relatedData.map(r => r.id))
 
     const existingData = existingIds.length
       ? await this.findByIds(relatedData.map(r => r.id))
@@ -255,15 +260,43 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected hasMany<T extends FluentHasManyParams<T>>(
     r: T
   ): InstanceType<T['repository']> {
-    const flatten = Objects.flatten(r.relationKey)
-    const relation = Object.keys(flatten)[0]
-
     const newRepo = new r.repository() as any
+
+    const calleeName = new Error('dummy')
+      .stack!.split('\n')[2]
+      // " at functionName ( ..." => "functionName"
+      .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
+      .split('.')[1]
 
     if (this.relatedQuery) {
       newRepo.setRelatedQuery({
         ...this.relatedQuery,
-        key: relation
+        key: calleeName
+      })
+    }
+
+    return newRepo as InstanceType<T['repository']>
+  }
+
+  /**
+   * Inverse One-to-Many relationship
+   * To be used in the "children" entity (Many)
+   */
+  protected belongsTo<T extends FluentHasManyParams<T>>(
+    r: T
+  ): InstanceType<T['repository']> {
+    const newRepo = new r.repository() as any
+
+    const calleeName = new Error('dummy')
+      .stack!.split('\n')[2]
+      // " at functionName ( ..." => "functionName"
+      .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
+      .split('.')[1]
+
+    if (this.relatedQuery) {
+      newRepo.setRelatedQuery({
+        ...this.relatedQuery,
+        key: calleeName
       })
     }
 
@@ -277,18 +310,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected hasOne() {
     throw new Error('Method not implemented')
   }
-
-  /**
-   * Inverse One-to-Many relationship
-   * To be used in the "children" entity (Many)
-   */
-  // protected belongsTo<T>(Repository, relationName: string) {
-  //   if (this.relationQuery) {
-  //     this.relationQuery.relation = this.relationQuery.relations[relationName]
-  //   }
-  //   const newClass = new Repository(this.relationQuery) as T
-  //   return newClass
-  // }
 
   // /**
   //  * Many-to-Many relationship

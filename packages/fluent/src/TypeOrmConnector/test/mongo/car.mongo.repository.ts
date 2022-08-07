@@ -4,7 +4,9 @@ import {
   CarsEntityInputSchema,
   CarsEntitySchema
 } from '../relations/car/car.schema'
+import { UsersEntity } from '../relations/user/user.entity'
 import { MongoDataSource } from './mongoDatasource'
+import { UserRepository } from './user.mongo.repository'
 
 export class CarsRepository extends TypeOrmConnector<
   CarsEntity,
@@ -18,5 +20,8 @@ export class CarsRepository extends TypeOrmConnector<
     })
   }
 
-  // public user = () => this.belongsTo<UserRepository>(UserRepository, 'user')
+  public user = () => this.belongsTo({
+    repository: UserRepository,
+    model: UsersEntity
+  })
 }

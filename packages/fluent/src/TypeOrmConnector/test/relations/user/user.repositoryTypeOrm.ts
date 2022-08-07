@@ -22,8 +22,7 @@ export class UserRepository extends TypeOrmConnector<
   public cars = () => {
     return this.hasMany({
       repository: CarsRepository,
-      model: CarsEntity,
-      relationKey: { user: true }
+      model: CarsEntity
     })
   }
   // public roles = () =>
