@@ -115,13 +115,7 @@ export const loadRelations = async ({
     }
 
     if (relationModel.isManyToMany) {
-      const ids = Arrays.deDuplicate(
-        data.map(d =>
-          Repository.isMongoDB
-            ? (Ids.objectID(d.id) as unknown as ObjectID)
-            : d.id
-        )
-      )
+      const ids = Arrays.deDuplicate(data.map(d => d.id))
 
       const chunks = Arrays.chunk(ids, chunkSize)
 
@@ -129,50 +123,69 @@ export const loadRelations = async ({
         return data
       }
 
-      const pivotRepository =
-        self[relationModel.propertyPath]().relationQuery.pivot
+      const pivotForeignField =
+        self.modelRelations[relationModel.propertyName].joinColumns[0]
+          .propertyPath
+
+      const inverseForeignField =
+        self.modelRelations[relationModel.propertyName].inverseJoinColumns[0]
+          .propertyPath
+
+      const pivotRepository = Repository?.relatedQuery.pivot
+
+      const calleeKey = Repository?.relatedQuery.key
+
+      if (
+        !pivotForeignField ||
+        !inverseForeignField ||
+        !pivotRepository ||
+        !calleeKey
+      ) {
+        throw new Error(
+          'The Many-to-Many relationship is not properly defined.Please check both your Model and Repository'
+        )
+      }
 
       // Get Pivot Table Results
       const promises: any[] = []
       for (const pivotIds of chunks) {
-        const results = await pivotRepository
-          .where(
-            k => k[relationModel.joinColumns[0].propertyName],
-            'in',
-            pivotIds
-          )
-          .get()
+        const results = await pivotRepository.findMany({
+          where: {
+            [pivotForeignField]: {
+              in: pivotIds
+            }
+          }
+        })
 
         promises.push(results)
       }
 
       const pivotResults = Arrays.collapse(await Promise.all(promises))
 
-      const uniquePivotIds = pivotResults.map(
-        p => p[relationModel.inverseJoinColumns[0].propertyName]
-      )
+      const uniquePivotIds = pivotResults.map(p => p[inverseForeignField])
 
       const relationChunks = Arrays.chunk(uniquePivotIds, chunkSize)
 
       // Get relationship table results from
       const relationPromises: any[] = []
       for (const relatedIds of relationChunks) {
-        const results = await Repository.andWhere(
-          keys => keys.id,
-          'in',
-          relatedIds
-        ).get()
+        const results = await Repository.findMany({
+          where: {
+            id: {
+              in: relatedIds
+            }
+          }
+        })
 
         relationPromises.push(results)
       }
 
       let relatedResults = Arrays.collapse(await Promise.all(relationPromises))
 
-      const pivotInverseKey = relationModel.inverseJoinColumns[0].propertyName
       relatedResults = relatedResults.map(r => {
         return {
           ...r,
-          pivot: pivotResults.find(p => p[pivotInverseKey] === r.id)
+          pivot: pivotResults.find(p => p[inverseForeignField] === r.id)
         }
       })
 
@@ -185,11 +198,11 @@ export const loadRelations = async ({
 
       data.map(d => {
         groupedPivot[d.id]?.forEach(gp => {
-          if (!d[relationModel.propertyPath]) {
-            d[relationModel.propertyPath] = []
+          if (!d[calleeKey]) {
+            d[calleeKey] = []
           }
-          d[relationModel.propertyPath] = [
-            ...d[relationModel.propertyPath],
+          d[calleeKey] = [
+            ...d[calleeKey],
             ...groupedRelated[
               gp[relationModel.inverseJoinColumns[0].propertyName]
             ]

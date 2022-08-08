@@ -339,7 +339,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         key: relationName,
         pivot
       })
+    } else {
+      newRepo.setRelatedQuery({
+        key: relationName,
+        pivot
+      })
     }
+
     // this.relationQuery.relations[relationName]
 
     return newRepo as InstanceType<T['repository']>

@@ -4,6 +4,8 @@ import {
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/role.schema'
 import { RoleEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles.entity'
 import { FirebaseConnector } from '../FirebaseConnector'
+import { RoleUsersRepository } from './roles_user.repository'
+import { UserRepository } from './user.repository'
 
 export class RoleRepository extends FirebaseConnector<
   RoleEntity,
@@ -16,10 +18,9 @@ export class RoleRepository extends FirebaseConnector<
     })
   }
 
-  // public users = () =>
-  //   this.belongsToMany<UserRepository, RoleUsersRepository>(
-  //     UserRepository,
-  //     RoleUsersRepository,
-  //     'users'
-  //   )
+  public users = () =>
+    this.belongsToMany({
+      repository: UserRepository,
+      pivot: RoleUsersRepository
+    })
 }

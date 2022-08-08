@@ -149,7 +149,6 @@ export class FirebaseConnector<
     loadedKeys: AnyObject
   ): Promise<admin.firestore.DocumentData[]> {
     let pivotData: any[] = []
-
     const result = await loadRelations({
       data,
       relations: loadedKeys,
@@ -160,14 +159,11 @@ export class FirebaseConnector<
     })
 
     /*
-    if (this.relatedQuery && this.relationQuery.data && this.relationQuery.relation) {
+
       const ids = this.relationQuery.data.map(d => d.id)
 
       if (this.relationQuery?.relation?.isManyToMany) {
-        const pivotForeignKey = this.relationQuery.relation.joinColumns[0].propertyName
-        const pivotInverseKey = this.relationQuery.relation.inverseJoinColumns[0].propertyName
-        const {pivot} = this.relationQuery
-
+   
         pivotData = await pivot.where(key => key[pivotForeignKey], "in", ids).get()
         if(!pivotData.length) {
           return []
@@ -694,11 +690,11 @@ export class FirebaseConnector<
       limit: 1
     })
 
-    found = this.clearEmpties(Objects.deleteNulls(found))
-
     if (!found) {
       throw new Error(`Object ${id} not found`)
     }
+
+    found = this.clearEmpties(Objects.deleteNulls(found))
 
     return this.outputSchema?.parse(found) as unknown as SingleQueryOutput<
       FindByIdFilter<ModelDTO>,
