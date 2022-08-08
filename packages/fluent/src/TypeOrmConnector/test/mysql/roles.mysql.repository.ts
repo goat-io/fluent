@@ -3,10 +3,10 @@ import {
   RoleEntityInputSchema,
   RoleEntitySchema
 } from '../relations/roles/role.schema'
-import { RoleUsersRepository } from './roles_user.mongo.repository'
 import { RoleEntity } from '../relations/roles/roles.entity'
-import { MongoDataSource } from './mongoDatasource'
-import { UserRepository } from './user.mongo.repository'
+import { MYSQLDataSource } from './mysqlDataSource'
+import { UserRepository } from './user.mysql.repository'
+import {RoleUsersRepository} from './roles_user.mysql.repository'
 
 export class RoleRepository extends TypeOrmConnector<
   RoleEntity,
@@ -15,14 +15,14 @@ export class RoleRepository extends TypeOrmConnector<
   constructor() {
     super({
       entity: RoleEntity,
-      dataSource: MongoDataSource,
+      dataSource: MYSQLDataSource,
       inputSchema: RoleEntitySchema
     })
   }
 
   public users = () =>
-    this.belongsToMany({
-      repository: UserRepository,
-      pivot: RoleUsersRepository
-    })
+  this.belongsToMany({
+    repository: UserRepository,
+    pivot: RoleUsersRepository
+  })
 }

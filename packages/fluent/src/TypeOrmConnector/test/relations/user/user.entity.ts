@@ -1,7 +1,6 @@
 import { CarsEntity } from '../car/car.entity'
 import { f } from '../../../../decorators'
 import { RoleEntity } from '../roles/roles.entity'
-import { FluentEntity } from '../../../../FluentEntity'
 
 export class Family {
   @f.property({ required: false })

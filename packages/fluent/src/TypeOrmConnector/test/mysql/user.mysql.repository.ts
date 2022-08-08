@@ -7,6 +7,8 @@ import {
 } from '../relations/user/user.schema'
 import { CarsRepository } from './car.mysql.repository'
 import { MYSQLDataSource } from './mysqlDataSource'
+import { RoleRepository } from './roles.mysql.repository'
+import { RoleUsersRepository } from './roles_user.mysql.repository'
 
 export class UserRepository extends TypeOrmConnector<
   UsersEntity,
@@ -27,10 +29,10 @@ export class UserRepository extends TypeOrmConnector<
       relationKey: { user: true }
     })
   }
-  // public roles = () =>
-  //   this.belongsToMany<RoleRepository, RoleUsersRepository>(
-  //     RoleRepository,
-  //     RoleUsersRepository,
-  //     'roles'
-  //   )
+
+  public roles = () =>
+    this.belongsToMany({
+      repository: RoleRepository,
+      pivot: RoleUsersRepository
+    })
 }

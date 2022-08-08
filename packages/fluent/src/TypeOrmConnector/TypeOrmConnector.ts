@@ -48,7 +48,6 @@ export const getRelationsFromModelGenerator = (
 ) => {
   const relations = {}
   for (const relation of typeOrmRepo.metadata.relations) {
-
     const pPath = relation.inverseRelation?.joinColumns[0]
     relations[relation.propertyName] = {
       isOneToMany: relation.isOneToMany,
@@ -200,7 +199,11 @@ export class TypeOrmConnector<
     if (this.isMongoDB && query?.include) {
       const mongoRelationResult = this.customMongoRelatedSearch(query)
 
-      return mongoRelationResult as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return mongoRelationResult as unknown as QueryOutput<
+        T,
+        ModelDTO,
+        OutputDTO
+      >
     }
 
     const generatedQuery = this.generateTypeOrmQuery(query)
@@ -239,7 +242,6 @@ export class TypeOrmConnector<
       return found as unknown as QueryOutput<T, ModelDTO, OutputDTO>
     }
 
-    console.log(found)
     // Validate Output against schema
     return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
       T,
@@ -294,26 +296,114 @@ export class TypeOrmConnector<
               [`${localField}_object`]: { $toObjectId: `$${localField}` }
             }
           })
+          // Include Id in the results as we use it in every fluent query
+          lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
+
           lookUps.push({
             $lookup: {
               from: dbRelation.tableName,
               localField: `${localField}_object`,
               foreignField: '_id',
-              as: dbRelation.propertyName
-              // pipeline: [{ $limit: 2 }]
+              as: dbRelation.propertyName,
+              pipeline: [
+                { $addFields: { id: { $toString: '$_id' } } }
+                //{ $limit: 2 }
+              ]
             }
           })
+
+          lookUps.push({ $unwind: `$${dbRelation.propertyName}` })
         }
 
         if (dbRelation.isOneToMany) {
           lookUps.push({ $addFields: { string_id: { $toString: '$_id' } } })
+          lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
           lookUps.push({
             $lookup: {
               from: dbRelation.tableName,
               localField: 'string_id',
               foreignField: dbRelation.inverseSidePropertyPath,
-              as: dbRelation.propertyName
-              // pipeline: [{ $limit: 2 }]
+              as: dbRelation.propertyName,
+              pipeline: [
+                { $addFields: { id: { $toString: '$_id' } } }
+                //{ $limit: 2 }
+              ]
+            }
+          })
+        }
+
+        if (dbRelation.isManyToMany) {
+          const relatedTableName = dbRelation.tableName
+          const pivotTableName =
+            dbRelation.joinColumns[0].relationMetadata.joinTableName
+          const pivotForeignField = dbRelation.joinColumns[0].propertyPath
+          const inverseForeignField =
+            dbRelation.inverseJoinColumns[0].propertyPath
+
+          if (
+            !relatedTableName ||
+            !pivotTableName ||
+            !pivotForeignField ||
+            !inverseForeignField
+          ) {
+            throw new Error(
+              `Your many to many relation is not properly set up. Please check both your models and schema for relation: ${relation}`
+            )
+          }
+
+          lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
+          lookUps.push({
+            $addFields: { parent_string_id: { $toString: '$_id' } }
+          })
+          lookUps.push({
+            $lookup: {
+              from: pivotTableName,
+              localField: 'parent_string_id',
+              foreignField: pivotForeignField,
+              as: dbRelation.propertyName,
+              pipeline: [
+                // This is the pivot table
+                { $addFields: { id: { $toString: '$_id' } } },
+                {
+                  $addFields: {
+                    [`${inverseForeignField}_object`]: {
+                      $toObjectId: `$${inverseForeignField}`
+                    }
+                  }
+                },
+                // The other side of the relationShip
+                {
+                  $lookup: {
+                    from: relatedTableName,
+                    localField: `${inverseForeignField}_object`,
+                    foreignField: '_id',
+                    pipeline: [
+                      { $addFields: { id: { $toString: '$_id' } } }
+                      // Here we could add more filters like
+                      //{ $limit: 2 }
+                    ],
+                    as: dbRelation.propertyName
+                  }
+                },
+                { $unwind: `$${dbRelation.propertyName}` },
+                // Select (ish)
+                {
+                  $project: {
+                    roles: `$${dbRelation.propertyName}`,
+                    pivot: '$$ROOT'
+                  }
+                },
+                {
+                  $replaceRoot: {
+                    newRoot: {
+                      $mergeObjects: ['$$ROOT', `$${dbRelation.propertyName}`]
+                    }
+                  }
+                },
+                { $project: { [dbRelation.propertyName]: 0 } }
+                // Here we could add more filters like
+                //{ $limit: 2 }
+              ]
             }
           })
         }
@@ -352,28 +442,6 @@ export class TypeOrmConnector<
     }
 
     let raw = await this.mongoRaw().aggregate(aggregate).toArray()
-
-    // Remove array from one to many queries
-    for (const relation of Object.keys(query?.include || {})) {
-      if (this.modelRelations[relation]) {
-        const dbRelation = this.modelRelations[relation]
-
-        if (dbRelation.isManyToOne) {
-          raw.map(r => {
-            if (r._id) {
-              r.id = r._id.toString()
-            }
-
-            let relatedData = r[relation][0]
-            if (relatedData._id) {
-              relatedData.id = relatedData._id.toString()
-            }
-            r[relation] = r[relation][0]
-            return r
-          })
-        }
-      }
-    }
 
     return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
       T,
@@ -633,9 +701,7 @@ export class TypeOrmConnector<
       }
     }
 
-    const filtered = this.clearEmpties(
-      Filters.where
-    )
+    const filtered = this.clearEmpties(Filters.where)
 
     return filtered
   }

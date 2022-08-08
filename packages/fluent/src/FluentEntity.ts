@@ -1,9 +1,6 @@
 import { f } from './decorators'
 
 export class FluentEntity {
-  @f.id()
-  id: string
-
   @f.property({ required: false })
   type?: string
 

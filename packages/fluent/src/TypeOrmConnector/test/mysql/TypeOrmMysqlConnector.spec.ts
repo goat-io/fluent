@@ -10,7 +10,7 @@ import { Fluent } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
 import { UserRepository } from './user.mysql.repository'
 import { CarsRepository } from './car.mysql.repository'
-import { RoleRepository } from './roles.mongo.repository'
+import { RoleRepository } from './roles.mysql.repository'
 import { relationsTestSuite } from '../relations/relationsTestsSuite'
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
@@ -31,11 +31,11 @@ afterAll(async () => {
 })
 
 describe('Execute all basic test Suite', () => {
-  basicTestSuite(GoatRepository)
+  // basicTestSuite(GoatRepository)
 })
 
 describe('Execute all advanced test Suite', () => {
-  advancedTestSuite(TypeOrmRepository)
+  // advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {

@@ -1,9 +1,10 @@
 import { f } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
-import { z } from 'zod'
-import { FluentEntity } from '../../../../FluentEntity'
 @f.entity('roles')
-export class RoleEntity extends FluentEntity{
+export class RoleEntity {
+  @f.id()
+  id: string
+
   @f.property({ required: true })
   name: string
 
@@ -15,10 +16,3 @@ export class RoleEntity extends FluentEntity{
   })
   users?: UsersEntity[]
 }
-
-export const RoleEntitySchema = z.object({
-  id: z.string().optional(),
-  name: z.string()
-})
-
-export type RoleEntityInputSchema = z.infer<typeof RoleEntitySchema>

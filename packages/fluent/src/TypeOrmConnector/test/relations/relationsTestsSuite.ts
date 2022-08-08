@@ -76,76 +76,76 @@ export const relationsTestSuite = (
   //   expect(cars[0].userId).toBe(insertedUser.id)
   // })
 
-  // test('Query related model - OneToMany', async () => {
-  //   const insertedUser = await Model.insert({
-  //     name: 'testUser',
-  //     age: 20
-  //   })
+  test('Query related model - OneToMany (belongsToMany)', async () => {
+    const insertedUser = await Model.insert({
+      name: 'testUser',
+      age: 20
+    })
 
-  //   expect(typeof insertedUser.id).toBe('string')
+    expect(typeof insertedUser.id).toBe('string')
 
-  //   const user1 = await Model.loadById(insertedUser.id!)
+    const user1 = await Model.loadById(insertedUser.id!)
 
-  //   const cars = await user1.cars().associate({ name: 'My new car' })
+    const cars = await user1.cars().associate({ name: 'My new car' })
 
-  //   expect(Array.isArray(cars)).toBe(true)
+    expect(Array.isArray(cars)).toBe(true)
 
-  //   const searchUserWithRelation = await Model.findMany({
-  //     where: { id: insertedUser.id },
-  //     include: {
-  //       cars: true
-  //     }
-  //   })
+    const searchUserWithRelation = await Model.findMany({
+      where: { id: insertedUser.id },
+      include: {
+        cars: true
+      }
+    })
 
-  //   const firstResult = searchUserWithRelation[0]!
+    const firstResult = searchUserWithRelation[0]!
 
-  //   expect(Array.isArray(searchUserWithRelation)).toBe(true)
-  //   expect(Array.isArray(firstResult.cars)).toBe(true)
-  //   expect(firstResult.cars!.length > 0).toBe(true)
-  //   expect(firstResult.cars![0].userId).toBe(insertedUser.id)
+    expect(Array.isArray(searchUserWithRelation)).toBe(true)
+    expect(Array.isArray(firstResult.cars)).toBe(true)
+    expect(firstResult.cars!.length > 0).toBe(true)
+    expect(firstResult.cars![0].userId).toBe(insertedUser.id)
 
-  //   const searchCar = await user1
-  //     .cars()
-  //     .findMany({ where: { name: 'My new car' } })
+    const searchCar = await user1
+      .cars()
+      .findMany({ where: { name: 'My new car' } })
 
-  //   expect(Array.isArray(searchCar)).toBe(true)
-  //   expect(searchCar.length > 0).toBe(true)
+    expect(Array.isArray(searchCar)).toBe(true)
+    expect(searchCar.length > 0).toBe(true)
 
-  //   const searchCar2 = await user1
-  //     .cars()
-  //     .findMany({ where: { name: 'My.......' } })
+    const searchCar2 = await user1
+      .cars()
+      .findMany({ where: { name: 'My.......' } })
 
-  //   expect(Array.isArray(searchCar2)).toBe(true)
-  //   expect(searchCar2.length === 0).toBe(true)
-  // })
+    expect(Array.isArray(searchCar2)).toBe(true)
+    expect(searchCar2.length === 0).toBe(true)
+  })
 
-  // test('Query related model - BelongsTo', async () => {
-  //   const insertedUser = await Model.insert({
-  //     name: 'testUser',
-  //     age: 20
-  //   })
+  test('Query related model - ManyToOne (BelongsTo)', async () => {
+    const insertedUser = await Model.insert({
+      name: 'testUser',
+      age: 20
+    })
 
-  //   expect(typeof insertedUser.id).toBe('string')
+    expect(typeof insertedUser.id).toBe('string')
 
-  //   const user1 = await Model.loadById(insertedUser.id!)
+    const user1 = await Model.loadById(insertedUser.id!)
 
-  //   await user1.cars().associate({ name: 'My new car' })
+    await user1.cars().associate({ name: 'My new car' })
 
-  //   const results = await BelongsToModel.findMany({
-  //     where: {
-  //       userId: insertedUser.id
-  //     },
-  //     include: {
-  //       user: true
-  //     }
-  //   })
+    const results = await BelongsToModel.findMany({
+      where: {
+        userId: insertedUser.id
+      },
+      include: {
+        user: true
+      }
+    })
 
-  //   expect(Array.isArray(results)).toBe(true)
-  //   expect(results.length > 0).toBe(true)
-  //   expect(typeof results[0].user?.name).toBe('string')
+    expect(Array.isArray(results)).toBe(true)
+    expect(results.length > 0).toBe(true)
+    expect(typeof results[0].user?.name).toBe('string')
 
-  //   expect(results[0].user!['id']).toBe(insertedUser.id)
-  // })
+    expect(results[0].user!['id']).toBe(insertedUser.id)
+  })
 
   test('Query related model - ManyToMany', async () => {
     const insertedUser = await Model.insert({
@@ -177,20 +177,21 @@ export const relationsTestSuite = (
 
     console.log({ searchUserWithRelation })
     expect(Array.isArray(searchUserWithRelation[0].roles)).toBe(true)
-    // expect(searchUserWithRelation[0].roles.length > 0).toBe(true)
-    // expect(typeof searchUserWithRelation[0].roles[0].name).toBe('string')
+    expect(searchUserWithRelation[0].roles.length > 0).toBe(true)
+    expect(typeof searchUserWithRelation[0].roles[0].name).toBe('string')
+    expect(searchUserWithRelation[0].roles[0].id).toBe(adminRole.id)
+    // expect(searchUserWithRelation[0].roles[0].pivot.id).toBe(associated.id)
 
     // // Query the opposite relation
-    // const roles = await ManyToManyModel.where(
-    //   keys => keys.name,
-    //   '=',
-    //   'Administrator'
-    // )
-    //   .with({
-    //     users: ModelF
-    //   })
-    //   .get()
-
+    // const roles = await ManyToManyModel.findMany({
+    //   where: {
+    //     name: 'Administrator'
+    //   },
+    //   include: {
+    //     users: true
+    //   }
+    // })
+    
     // expect(Array.isArray(roles)).toBe(true)
     // expect(roles.length > 0).toBe(true)
     // expect(typeof roles[0].users[0].name).toBe('string')
