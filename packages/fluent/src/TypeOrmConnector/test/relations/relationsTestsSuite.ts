@@ -182,19 +182,19 @@ export const relationsTestSuite = (
     expect(searchUserWithRelation[0].roles[0].id).toBe(adminRole.id)
     // expect(searchUserWithRelation[0].roles[0].pivot.id).toBe(associated.id)
 
-    // // Query the opposite relation
-    // const roles = await ManyToManyModel.findMany({
-    //   where: {
-    //     name: 'Administrator'
-    //   },
-    //   include: {
-    //     users: true
-    //   }
-    // })
+    // Query the opposite relation
+    const roles = await ManyToManyModel.findMany({
+      where: {
+        name: 'Administrator'
+      },
+      include: {
+        users: true
+      }
+    })
     
-    // expect(Array.isArray(roles)).toBe(true)
-    // expect(roles.length > 0).toBe(true)
-    // expect(typeof roles[0].users[0].name).toBe('string')
-    // expect(typeof roles[0].users[0].age).toBe('number')
+    expect(Array.isArray(roles)).toBe(true)
+    expect(roles.length > 0).toBe(true)
+    expect(typeof roles[0].users[0].name).toBe('string')
+    expect(typeof roles[0].users[0].age).toBe('number')
   })
 }
