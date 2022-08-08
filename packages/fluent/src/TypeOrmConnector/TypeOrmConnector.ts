@@ -389,7 +389,7 @@ export class TypeOrmConnector<
                 // Select (ish)
                 {
                   $project: {
-                    roles: `$${dbRelation.propertyName}`,
+                    [dbRelation.propertyName]: `$${dbRelation.propertyName}`,
                     pivot: '$$ROOT'
                   }
                 },
