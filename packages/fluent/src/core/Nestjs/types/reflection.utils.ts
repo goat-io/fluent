@@ -1,4 +1,3 @@
-import { get } from 'lodash'
 import { Type } from './common'
 import {
   GqlTypeReference,
@@ -6,6 +5,19 @@ import {
 } from './interfaces/return-type-func.interface'
 import { TypeOptions } from './interfaces/type-options.interface'
 import { UndefinedTypeError } from './errors/undefined-type.error'
+
+const get = (obj, path, defaultValue = undefined) => {
+  const travel = regexp =>
+    String.prototype.split
+      .call(path, regexp)
+      .filter(Boolean)
+      .reduce(
+        (res, key) => (res !== null && res !== undefined ? res[key] : res),
+        obj
+      )
+  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/)
+  return result === undefined || result === obj ? defaultValue : result
+}
 
 const NOT_ALLOWED_TYPES: Type<any>[] = [Promise, Array, Object, Function]
 

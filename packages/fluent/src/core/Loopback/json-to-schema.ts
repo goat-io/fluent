@@ -2,7 +2,7 @@
 // Node module: @loopback/openapi-v3
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
-import _ from 'lodash'
+import mapvalues from './mapValues'
 import {
   isSchemaObject,
   ReferenceObject,
@@ -75,25 +75,25 @@ export function jsonToSchemaObject(
         break
       }
       case 'anyOf': {
-        result.anyOf = _.map(json.anyOf, item =>
+        result.anyOf = json.anyOf?.map(item =>
           jsonToSchemaObject(item as SchemaObject, visited)
         )
         break
       }
       case 'oneOf': {
-        result.oneOf = _.map(json.oneOf, item =>
+        result.oneOf = json.oneOf?.map(item =>
           jsonToSchemaObject(item as SchemaObject, visited)
         )
         break
       }
       case 'definitions': {
-        result.definitions = _.mapValues(json.definitions, def =>
+        result.definitions = mapvalues(json.definitions, def =>
           jsonToSchemaObject(jsonOrBooleanToJSON(def), visited)
         )
         break
       }
       case 'properties': {
-        result.properties = _.mapValues(json.properties, item =>
+        result.properties = mapvalues(json.properties, item =>
           jsonToSchemaObject(jsonOrBooleanToJSON(item), visited)
         )
         break

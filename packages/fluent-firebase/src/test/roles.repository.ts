@@ -1,13 +1,13 @@
-import { RoleEntityIn } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/role.dto'
 import {
-  RoleEntity,
-  RoleEntitySchema
-} from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles.entity'
+  RoleEntitySchema,
+  RoleEntityInputSchema
+} from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/role.schema'
+import { RoleEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles.entity'
 import { FirebaseConnector } from '../FirebaseConnector'
 
 export class RoleRepository extends FirebaseConnector<
   RoleEntity,
-  RoleEntityIn
+  RoleEntityInputSchema
 > {
   constructor() {
     super({

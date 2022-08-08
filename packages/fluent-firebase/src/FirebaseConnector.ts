@@ -1,5 +1,4 @@
 import * as admin from 'firebase-admin'
-import { BaseFirestoreRepository, getRepository } from 'fireorm'
 import { FieldPath } from '@google-cloud/firestore'
 import {
   AnyObject,
@@ -23,33 +22,6 @@ import { z } from 'zod'
 import { FindByIdFilter } from '@goatlab/fluent'
 import { SingleQueryOutput } from '@goatlab/fluent'
 
-/**
- * Creates a repository from the given Entity
- * @param Entity
- * @param dataSource
- */
-export const createFirebaseRepository = Entity => {
-  const repository = getRepository(Entity)
-
-  let name = ''
-  let path = ''
-  const relations = {}
-
-  try {
-    const parsed = JSON.parse(JSON.stringify(repository))
-    name = parsed.colMetadata.name
-    path = parsed.path
-  } catch (error) {
-    name = ''
-  }
-  return {
-    repository,
-    name,
-    path,
-    relations
-  }
-}
-
 export interface FirebaseConnectorParams<Input, Output> {
   entity: any
   inputSchema: z.ZodType<Input>
@@ -70,7 +42,6 @@ export class FirebaseConnector<
   private readonly inputSchema: z.ZodType<InputDTO>
 
   private readonly outputSchema: z.ZodType<OutputDTO>
-  private repository: BaseFirestoreRepository<any>
 
   private readonly collection: FirebaseFirestore.CollectionReference<ModelDTO>
 
@@ -86,17 +57,21 @@ export class FirebaseConnector<
     this.outputSchema =
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
 
-    const { repository, name } = createFirebaseRepository(entity)
-
-    this.repository = repository
-
     this.entity = entity
+
+    const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
+
+    const name = relationShipBuilder.metadata.givenTableName
+
+    if (!name) {
+      throw new Error(
+        `Could not find table by name. Did you include @f.entity in your model?`
+      )
+    }
 
     this.collection = admin
       .firestore()
       .collection(name) as FirebaseFirestore.CollectionReference<ModelDTO>
-
-    const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
 
     const { relations } = getRelationsFromModelGenerator(relationShipBuilder)
 
@@ -112,30 +87,37 @@ export class FirebaseConnector<
     // Validate Input
     const validatedData = this.inputSchema.parse(data)
 
-    // Only Way to Skip the DeepPartial requirement from TypeORm
-    const datum = await this.repository.create({
-      id: data['id'] || Ids.objectIdString(),
+    if (data['id']) {
+      const found = await this.findById(data['id'])
+
+      if (found) {
+        throw new Error(`A document with id ${found[0]['id']} already exists.`)
+      }
+    }
+
+    const id: string = data['id'] || Ids.objectIdString()
+    const item = {
+      id,
       ...validatedData
-    })
+    } as unknown as ModelDTO
+
+    await this.collection.doc(id).set(item)
 
     // Validate Output
-    return this.outputSchema.parse(
-      this.clearEmpties(Objects.deleteNulls(datum))
-    )
+    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(item)))
   }
 
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
     const validatedData = this.inputSchema.array().parse(data)
 
-    const batch = this.repository.createBatch()
-    const batchInserted: InputDTO[] = []
+    const batch = admin.firestore().batch()
+    const batchInserted: ModelDTO[] = []
     validatedData.forEach(d => {
       const id: string = d['id'] || Ids.objectIdString()
-      // const created = new Date()
-      // const updated = new Date()
-      // const version = 1
-      batchInserted.push({ id, ...d })
-      batch.create({ id, ...d })
+      const item = { id, ...d } as unknown as ModelDTO
+      const insert = this.collection.doc(id)
+      batch.set(insert, item)
+      batchInserted.push(item) as unknown as InputDTO[]
     })
 
     await batch.commit()
@@ -156,6 +138,10 @@ export class FirebaseConnector<
    */
   public raw(): admin.firestore.CollectionReference<ModelDTO> {
     return this.collection
+  }
+
+  public rawFirebase(): admin.firestore.Firestore {
+    return admin.firestore()
   }
 
   protected async loadRelatedData(
@@ -547,9 +533,16 @@ export class FirebaseConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    await this.collection.doc(id).update(validatedData)
+    await this.collection.doc(id).update({
+      ...validatedData,
+      id
+    })
 
-    const dbResult = await this.repository.findById(id)
+    const dbResult = await this.findById(id)
+
+    if (!dbResult) {
+      throw new Error(`Object not found: ${id}`)
+    }
 
     // Validate Output
     return this.outputSchema?.parse(
@@ -566,7 +559,7 @@ export class FirebaseConnector<
    * @param data
    */
   public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const value = await this.repository.findById(id)
+    const value = await this.findById(id)
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
 
@@ -594,7 +587,7 @@ export class FirebaseConnector<
 
     await this.collection.doc(id).update(validatedData)
 
-    const val = await this.repository.findById(id)
+    const val = await this.findById(id)
 
     return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
   }
@@ -682,28 +675,32 @@ export class FirebaseConnector<
     >
   }
 
+  public async findById<T extends FindByIdFilter<ModelDTO>>(
+    id: string,
+    q?: T
+  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO>> {
+    const found = await this.findByIds([id], q)
+
+    return found[0] as unknown as SingleQueryOutput<T, ModelDTO, OutputDTO>
+  }
+
   public async requireById(
     id: string,
     q?: FindByIdFilter<ModelDTO>
   ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
-    const found = await this.findByIds([id], {
+    let found = await this.findById(id, {
       select: q?.select,
       include: q?.include,
       limit: 1
     })
 
-    found.map(d => {
-      if (this.isMongoDB) {
-        d['id'] = d['id'].toString()
-      }
-      this.clearEmpties(Objects.deleteNulls(d))
-    })
+    found = this.clearEmpties(Objects.deleteNulls(found))
 
-    if (!found[0]) {
+    if (!found) {
       throw new Error(`Object ${id} not found`)
     }
 
-    return this.outputSchema?.parse(found[0]) as unknown as SingleQueryOutput<
+    return this.outputSchema?.parse(found) as unknown as SingleQueryOutput<
       FindByIdFilter<ModelDTO>,
       ModelDTO,
       OutputDTO

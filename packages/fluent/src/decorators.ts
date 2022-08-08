@@ -14,7 +14,6 @@ import {
   UpdateDateColumn,
   VersionColumn
 } from 'typeorm'
-import { Collection } from 'fireorm'
 import { GraphQLID } from 'graphql'
 import {
   ApiProperty,
@@ -91,11 +90,7 @@ export class DecoratorsClass {
   public entity(name: string): ClassDecorator {
     // TODO implement pascal case for this
     const PascalCase = name
-    return applyDecorators(
-      Entity({ name: PascalCase }),
-      ObjectType(),
-      Collection(PascalCase) as ClassDecorator
-    )
+    return applyDecorators(Entity({ name: PascalCase }), ObjectType())
   }
   /**
    *

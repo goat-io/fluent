@@ -5,10 +5,9 @@ import {
   UsersEntitySchema
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/user/user.schema'
 import { CarsRepository } from './car.repository'
-import {
-  RoleEntity,
-  RoleEntitySchema
-} from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles.entity'
+import { RoleEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles.entity'
+
+import { RoleEntitySchema } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/role.schema'
 import { FirebaseConnector } from '../FirebaseConnector'
 
 export class UserRepository extends FirebaseConnector<

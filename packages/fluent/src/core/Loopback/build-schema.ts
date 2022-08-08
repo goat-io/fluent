@@ -3,7 +3,6 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 import { MetadataInspector, MetadataAccessor } from '@loopback/metadata'
-import debugFactory from 'debug'
 import { inspect } from 'util'
 import { SchemaObject as JsonSchema } from 'openapi3-ts'
 import { RelationMetadata } from './relation.types'
@@ -16,7 +15,7 @@ export const JSON_SCHEMA_KEY = MetadataAccessor.create<
   ClassDecorator
 >('loopback:json-schema')
 
-const debug = debugFactory('loopback:repository-json-schema:build-schema')
+const debug = console.log
 
 export interface JsonSchemaOptions<T extends object> {
   /**

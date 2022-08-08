@@ -5,8 +5,7 @@
   "dependencies": {
     "@goatlab/fluent": "*",
     "@google-cloud/firestore": "^4.15.1",
-    "firebase-admin": "^10.0.2",
-    "fireorm": "^0.23.3"
+    "firebase-admin": "^10.0.2"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
