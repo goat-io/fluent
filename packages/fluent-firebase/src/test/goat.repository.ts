@@ -1,14 +1,18 @@
-import { GoatEntityIn, GoatEntityOut } from '../test/basic/goat.dto'
-
+import {
+  GoatInputSchema,
+  GoatSchema,
+  GoatEntity
+} from '@goatlab/fluent/src/TypeOrmConnector/test/basic/goat.entity'
 import { FirebaseConnector } from '../FirebaseConnector'
-import { GoatEntity } from '../test/basic/goat.entity'
 
-export class GoatEntityRepository extends FirebaseConnector<
+export class GoatRepository extends FirebaseConnector<
   GoatEntity,
-  GoatEntityIn,
-  GoatEntityOut
+  GoatInputSchema
 > {
-  constructor(relations?: any) {
-    super(GoatEntity, relations)
+  constructor() {
+    super({
+      entity: GoatEntity,
+      inputSchema: GoatSchema
+    })
   }
 }

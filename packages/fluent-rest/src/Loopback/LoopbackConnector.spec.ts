@@ -1,33 +1,8 @@
-import { Fluent } from '@goatlab/fluent'
-// import { To } from '../../Helpers/To'
-import { LoopbackConnector } from './LoopbackConnector'
-
-interface IGoat {
-  name: string
-  age: number
-  breed?: {
-    family: string
-    members: number
-  }
-}
-const authToken = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
-
-const testModel = (() => {
-  const _keys = Fluent.model<IGoat>('myTestModel')
-
-  const remote = (token?: string) =>
-    new LoopbackConnector<IGoat>({
-      baseEndPoint: 'https://someEndpoint',
-      token: token || authToken
-    })
-
-  return Object.freeze({ remote, _keys })
-})()
-
 it('Should...', async () => {
   expect(1).toBe(1)
 })
 
+export {}
 /*
 describe('Given a FLUENT Remote Instance', () => {
   before(async () => {

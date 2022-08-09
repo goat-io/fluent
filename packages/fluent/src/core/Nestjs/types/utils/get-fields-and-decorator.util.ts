@@ -24,8 +24,8 @@ export function getFieldsAndDecoratorForType<T>(objType: Type<T>) {
   const [classMetadata, decoratorFactory] =
     getClassMetadataAndFactoryByTargetAndType(classType, objType)
 
-  TypeMetadataStorage.loadClassPluginMetadata([classMetadata])
-  TypeMetadataStorage.compileClassMetadata([classMetadata])
+  TypeMetadataStorage.loadClassPluginMetadata([classMetadata!])
+  TypeMetadataStorage.compileClassMetadata([classMetadata!])
 
   let fields = classMetadata?.properties
   if (!fields) {

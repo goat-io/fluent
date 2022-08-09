@@ -31,7 +31,7 @@ export interface ApiPropertyOptions
 }
 
 const isEnumArray = (obj: ApiPropertyOptions): boolean =>
-  obj.isArray && !!obj.enum
+  obj.isArray! && !!obj.enum
 
 export function ApiProperty(
   options: ApiPropertyOptions = {}
@@ -43,7 +43,7 @@ export function createApiPropertyDecorator(
   options: ApiPropertyOptions = {},
   overrideExisting = true
 ): PropertyDecorator {
-  const [type, isArray] = getTypeIsArrayTuple(options.type, options.isArray)
+  const [type, isArray] = getTypeIsArrayTuple(options.type, options.isArray!)
   options = {
     ...options,
     type,
@@ -53,7 +53,7 @@ export function createApiPropertyDecorator(
   if (isEnumArray(options)) {
     options.type = 'array'
 
-    const enumValues = getEnumValues(options.enum)
+    const enumValues = getEnumValues(options.enum!)
     options.items = {
       type: getEnumType(enumValues),
       enum: enumValues

@@ -47,23 +47,23 @@ export class LazyMetadataStorageHost {
         .filter(metadata => metadata)
     )
 
-    loadersToExecute = loadersToExecute.concat(
+    loadersToExecute = loadersToExecute?.concat(
       ...(this.lazyMetadataByTarget.get(NO_TARGET_METADATA) || [])
     )
 
     if (!options.skipFieldLazyMetadata) {
-      loadersToExecute = loadersToExecute.concat(
+      loadersToExecute = loadersToExecute?.concat(
         ...(this.lazyMetadataByTarget.get(FIELD_LAZY_METADATA) || [])
       )
     }
-    loadersToExecute.forEach(func => func())
+    loadersToExecute?.forEach(func => func())
   }
 
   private concatPrototypes(types: Function[]): Function[] {
     const typesWithPrototypes = types
       .filter(type => type && type.prototype)
       .map(type => {
-        const parentTypes = []
+        const parentTypes: any[] = []
 
         let parent: Function = type
         while (!isUndefined(parent.prototype)) {

@@ -10,42 +10,41 @@ import {
   getModelSchemaRef
 } from './core/types'
 import type {
-  BaseDataElement,
+  AnyObject,
   Deleted,
-  Filter,
-  LogicOperator,
   PaginatedData,
   Paginator,
-  Paths,
   Primitives,
   PrimitivesArray,
-  Sure,
-  WhereClause
+  FluentQuery,
+  QueryOutput,
+  LoadedResult,
+  FindByIdFilter,
+  SingleQueryOutput
 } from './types'
-import { PaginationLinks, PaginationMeta } from './core/dtos/pagination.dto'
-import { Access } from './core/dtos/access.dto'
+import {LogicOperator} from './types'
 import { BaseConnector } from './BaseConnector'
 import { Collection } from '@goatlab/js-utils'
-import { Decorators } from './decorators'
+import { f } from './decorators'
 import { Fluent } from './Fluent'
 import type { FluentConnectorInterface } from './BaseConnector'
 import type { SchemaObject } from './core/types'
-import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
+import { getRelationsFromModelGenerator, TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
 import { getOutputKeys } from './outputKeys'
 import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
 import {Cache} from './cache'
 import { ValidationError } from 'class-validator'
 
+
 export { DataSource } from 'typeorm'
 export {
-  Access,
   ApiHideProperty,
   ApiProperty,
   BaseConnector,
   Collection,
   Column,
-  Decorators,
+  f,
   Fluent,
   getModelSchemaRef,
   getOutputKeys,
@@ -55,11 +54,11 @@ export {
   modelGeneratorDataSource,
   ObjectType,
   OmitType,
-  PaginationLinks,
-  PaginationMeta,
   PartialType,
   TypeOrmConnector,
-  Cache
+  Cache,
+  getRelationsFromModelGenerator,
+  LogicOperator
 }
 
 interface ValidatedInput<T> {
@@ -68,18 +67,18 @@ interface ValidatedInput<T> {
 }
 
 export type {
-  BaseDataElement,
+  AnyObject,
   Deleted,
-  Filter,
   FluentConnectorInterface,
-  LogicOperator,
   PaginatedData,
   Paginator,
-  Paths,
   Primitives,
   PrimitivesArray,
-  Sure,
-  WhereClause,
   SchemaObject,
-  ValidatedInput
+  ValidatedInput,
+  FluentQuery,
+  QueryOutput,
+  LoadedResult,
+  FindByIdFilter,
+  SingleQueryOutput
 }

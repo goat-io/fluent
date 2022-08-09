@@ -1,6 +1,7 @@
-import { identity } from 'lodash'
 import { Type } from '../common'
 import { METADATA_FACTORY_NAME } from '../type-metadata.storage'
+
+const identity = a => a
 
 export function clonePluginMetadataFactory(
   target: Type<unknown>,

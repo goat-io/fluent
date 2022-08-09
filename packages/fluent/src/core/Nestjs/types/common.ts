@@ -14,8 +14,10 @@ export interface Type<T = any> extends Function {
 export function flatten<T extends Array<unknown> = any>(
   arr: T
 ): T extends Array<infer R> ? R : never {
-  const flat = [].concat(...arr)
-  return flat.some(Array.isArray) ? flatten(flat) : flat
+  const flat = [].concat(...(arr as any))
+  return (flat.some(Array.isArray)
+    ? flatten(flat)
+    : flat) as unknown as T extends Array<infer R> ? R : never
 }
 
 export const isUndefined = (obj: any): obj is undefined =>

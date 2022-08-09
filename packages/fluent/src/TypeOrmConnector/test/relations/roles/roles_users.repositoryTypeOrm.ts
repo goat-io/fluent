@@ -1,13 +1,17 @@
-import { RoleUserEntityIn } from './roles_user.dto'
 import { RolesUser } from './roles_user.entity'
+import { RolesUserInputSchema, RolesUserSchema } from './roles_user.schema'
 import { TypeOrmConnector } from '../../../TypeOrmConnector'
-import { MemoryDataSource } from '../../memoryDataSource'
+import { MemoryDataSource } from '../../sqlite/memoryDataSource'
 
 export class RoleUsersRepository extends TypeOrmConnector<
   RolesUser,
-  RoleUserEntityIn
+  RolesUserInputSchema
 > {
-  constructor(relations?: any) {
-    super(RolesUser, MemoryDataSource, relations)
+  constructor() {
+    super({
+      entity: RolesUser,
+      dataSource: MemoryDataSource,
+      inputSchema: RolesUserSchema
+    })
   }
 }

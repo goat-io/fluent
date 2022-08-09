@@ -75,7 +75,7 @@ export const BullMQScheduler = (() => {
         name: job.name
       }
 
-      const [error] = await Promises.tuple(options.handle(jobDescription))
+      const [error] = await Promises.try(options.handle(jobDescription))
       if (error) {
         console.log('Could not process the job', job)
       }
@@ -120,7 +120,7 @@ export const BullMQScheduler = (() => {
         name: job.name
       }
 
-      const [error] = await Promises.tuple(handle(jobDescription))
+      const [error] = await Promises.try(handle(jobDescription))
       if (error) {
         console.log('Could not process the job', job)
       }

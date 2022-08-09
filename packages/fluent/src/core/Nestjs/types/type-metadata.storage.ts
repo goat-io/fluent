@@ -360,7 +360,7 @@ export class TypeMetadataStorageHost {
 
       item.objectTypeFn =
         item.kind === 'external'
-          ? this.resolvers.find(belongsToClass).typeFn
+          ? this.resolvers?.find(belongsToClass)?.typeFn
           : () => item.target as Type<unknown>
 
       if (item.kind === 'external') {
@@ -372,7 +372,7 @@ export class TypeMetadataStorageHost {
   private compileExternalFieldResolverMetadata(item: FieldResolverMetadata) {
     const objectTypeRef = this.resolvers
       .find(el => isTargetEqual(el, item))
-      .typeFn()
+      ?.typeFn()
 
     const objectOrInterfaceTypeMetadata =
       this.objectTypes.find(
@@ -388,7 +388,7 @@ export class TypeMetadataStorageHost {
       )
     }
     const objectOrInterfaceTypeField =
-      objectOrInterfaceTypeMetadata.properties.find(
+      objectOrInterfaceTypeMetadata.properties?.find(
         fieldDef => fieldDef.name === item.methodName
       )
     if (!objectOrInterfaceTypeField) {
@@ -401,7 +401,7 @@ export class TypeMetadataStorageHost {
         deprecationReason: item.deprecationReason,
         description: item.description,
         typeFn: item.typeFn,
-        target: objectTypeRef,
+        target: objectTypeRef as Function,
         options: item.typeOptions,
         methodArgs: item.methodArgs,
         directives: item.directives,
@@ -410,13 +410,13 @@ export class TypeMetadataStorageHost {
       }
       this.addClassFieldMetadata(fieldMetadata)
 
-      objectOrInterfaceTypeMetadata.properties.push(fieldMetadata)
+      objectOrInterfaceTypeMetadata.properties?.push(fieldMetadata)
     } else {
       const isEmpty = (arr: unknown[]) => arr.length === 0
-      if (isEmpty(objectOrInterfaceTypeField.methodArgs)) {
+      if (isEmpty(objectOrInterfaceTypeField.methodArgs!)) {
         objectOrInterfaceTypeField.methodArgs = item.methodArgs
       }
-      if (isEmpty(objectOrInterfaceTypeField.directives)) {
+      if (isEmpty(objectOrInterfaceTypeField.directives!)) {
         objectOrInterfaceTypeField.directives = item.directives
       }
       if (!objectOrInterfaceTypeField.extensions) {
@@ -508,7 +508,7 @@ export class TypeMetadataStorageHost {
         ? metadata
         : {
             ...metadata,
-            objectTypeFn: isThrowing(metadata.objectTypeFn)
+            objectTypeFn: isThrowing(metadata.objectTypeFn!)
               ? classMetadata.typeFn
               : metadata.objectTypeFn
           }

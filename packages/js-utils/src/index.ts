@@ -1,5 +1,5 @@
 import { Combination as Combinations } from './Combinations'
-import * as Promises from './Promises'
+import { Promises } from './Promises'
 import { Arrays } from './Arrays'
 import { Changelogs } from './Changelogs'
 import { Collection } from './Collection'

@@ -1,13 +1,16 @@
-import { Decorators } from '../../../../decorators'
+import { f } from '../../../../decorators'
 
-@Decorators.entity('roles_users')
+@f.entity('roles_users')
 export class RolesUser {
-  @Decorators.id()
+  @f.id()
   id: string
 
-  @Decorators.property({ required: false })
-  userId?: string
+  @f.property({ required: false })
+  userId: string
 
-  @Decorators.property({ required: false })
-  roleId?: string
+  @f.property({ required: false })
+  roleId: string
 }
+
+
+

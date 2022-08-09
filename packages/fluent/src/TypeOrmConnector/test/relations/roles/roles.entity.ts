@@ -1,15 +1,14 @@
-import { Decorators } from '../../../../decorators'
+import { f } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
-
-@Decorators.entity('roles')
+@f.entity('roles')
 export class RoleEntity {
-  @Decorators.id()
+  @f.id()
   id: string
 
-  @Decorators.property({ required: true })
+  @f.property({ required: true })
   name: string
 
-  @Decorators.belongsToMany({
+  @f.belongsToMany({
     entity: () => UsersEntity,
     joinTableName: 'roles_users',
     foreignKey: 'roleId',

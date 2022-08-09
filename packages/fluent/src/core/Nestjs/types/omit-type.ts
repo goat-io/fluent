@@ -1,4 +1,3 @@
-import { omit } from 'lodash'
 import { Type } from './common'
 import { ApiProperty, DECORATORS } from './decorators/api-property.decorator'
 import { clonePluginMetadataFactory } from './utils/mapped-types.utils'
@@ -8,6 +7,12 @@ import {
   inheritTransformationMetadata,
   inheritValidationMetadata
 } from './decorators/apply-is-optional.decorator'
+
+const omit = (obj, props) => {
+  obj = { ...obj }
+  props.forEach(prop => delete obj[prop])
+  return obj
+}
 
 const modelPropertiesAccessor = new ModelPropertiesAccessor()
 

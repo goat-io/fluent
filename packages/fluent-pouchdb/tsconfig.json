@@ -1,0 +1,11 @@
+{
+  "extends": "@goatlab/tsconfig/base.json",
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.*", "src/test/**", "dist"],
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "strictNullChecks": true,
+    "allowSyntheticDefaultImports": true
+  }
+}

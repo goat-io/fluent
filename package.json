@@ -4,9 +4,15 @@
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": [
+      "@types/*",
+      "buffer"
+    ]
+  },
   "scripts": {
     "install": "turbo run install-p",
     "build": "turbo run build",

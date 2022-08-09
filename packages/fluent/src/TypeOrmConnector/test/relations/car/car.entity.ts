@@ -1,21 +1,27 @@
-import { Decorators } from '../../../../decorators'
+import { f } from '../../../../decorators'
 import { UsersEntity } from '../user/user.entity'
-
-@Decorators.entity('cars')
+@f.entity('cars')
 export class CarsEntity {
-  @Decorators.id()
+  @f.id()
   id: string
 
-  @Decorators.property({ required: true })
+  @f.property({ required: true })
   name: string
 
-  @Decorators.property({ required: true })
+  @f.property({ required: true })
   userId?: string
 
-  @Decorators.belongsTo({
+  @f.belongsTo({
     entity: () => UsersEntity,
     inverse: user => user.cars,
     pivotColumnName: 'userId'
   })
   user?: UsersEntity
+
+  @f.belongsTo({
+    entity: () => UsersEntity,
+    inverse: user => user.cars,
+    pivotColumnName: 'userId'
+  })
+  anotherRelation?: UsersEntity
 }

@@ -1,6 +1,13 @@
-import { isArray, isUndefined, negate, pickBy } from 'lodash'
 import { METADATA_FACTORY_NAME } from '../type-metadata.storage'
 import { DECORATORS } from './api-property.decorator'
+
+const isUndefined = val => typeof val === 'undefined'
+
+const OmitBy = (obj, check) => {
+  obj = { ...obj }
+  Object.entries(obj).forEach(([key, value]) => check(value) && delete obj[key])
+  return obj
+}
 
 export function createPropertyDecorator<T extends Record<string, any> = any>(
   metakey: string,
@@ -21,7 +28,7 @@ export function createPropertyDecorator<T extends Record<string, any> = any>(
     }
     const existingMetadata = Reflect.getMetadata(metakey, target, propertyKey)
     if (existingMetadata) {
-      const newMetadata = pickBy(metadata, negate(isUndefined))
+      const newMetadata = OmitBy(metadata, isUndefined)
       const metadataToSave = overrideExisting
         ? {
             ...existingMetadata,
@@ -42,7 +49,7 @@ export function createPropertyDecorator<T extends Record<string, any> = any>(
         metakey,
         {
           type,
-          ...pickBy(metadata, negate(isUndefined))
+          ...OmitBy(metadata, isUndefined)
         },
         target,
         propertyKey
@@ -61,7 +68,7 @@ export function getTypeIsArrayTuple(
   if (isArrayFlag) {
     return [input as Function, isArrayFlag]
   }
-  const isInputArray = isArray(input)
+  const isInputArray = Array.isArray(input)
   const type = isInputArray ? input[0] : input
-  return [type, isInputArray]
+  return [type as Function, isInputArray]
 }

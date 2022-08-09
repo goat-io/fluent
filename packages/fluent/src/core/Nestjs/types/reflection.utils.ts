@@ -1,4 +1,3 @@
-import { get } from 'lodash'
 import { Type } from './common'
 import {
   GqlTypeReference,
@@ -7,11 +6,24 @@ import {
 import { TypeOptions } from './interfaces/type-options.interface'
 import { UndefinedTypeError } from './errors/undefined-type.error'
 
+const get = (obj, path, defaultValue = undefined) => {
+  const travel = regexp =>
+    String.prototype.split
+      .call(path, regexp)
+      .filter(Boolean)
+      .reduce(
+        (res, key) => (res !== null && res !== undefined ? res[key] : res),
+        obj
+      )
+  const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/)
+  return result === undefined || result === obj ? defaultValue : result
+}
+
 const NOT_ALLOWED_TYPES: Type<any>[] = [Promise, Array, Object, Function]
 
 export interface ReflectTypeOptions {
   metadataKey: 'design:type' | 'design:returntype' | 'design:paramtypes'
-  prototype: Object
+  prototype?: Object
   propertyKey: string
   explicitTypeFn?: ReturnTypeFunc
   typeOptions?: TypeOptions
@@ -38,10 +50,10 @@ export function reflectTypeFromMetadata(
   const options = { ...typeOptions }
   const reflectedType: Type<unknown>[] | Type<unknown> = Reflect.getMetadata(
     metadataKey,
-    prototype,
+    prototype!,
     propertyKey
   )
-  const implicitType = extractTypeIfArray(metadataKey, reflectedType, index)
+  const implicitType = extractTypeIfArray(metadataKey, reflectedType, index!)
   const isNotAllowed = implicitType && NOT_ALLOWED_TYPES.includes(implicitType)
 
   if (

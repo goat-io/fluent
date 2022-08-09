@@ -2,7 +2,7 @@ import { Repository } from 'typeorm'
 import { Objects } from '@goatlab/js-utils'
 
 export const getOutputKeys = (repository: Repository<any>) => {
-  const excludedCols = []
+  const excludedCols: any[] = []
   repository.metadata.columns.forEach(c => {
     if (!c.isSelect) {
       excludedCols.push(c.propertyName)
