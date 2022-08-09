@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-pouchdb",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Fluent query Interface for Pouchdb",
   "scripts": {
     "install-p": "yarn",

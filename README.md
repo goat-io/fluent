@@ -15,9 +15,9 @@
   <h3 align="center">GOAT-FLUENT</h3>
 
   <p align="center">
-    Readable query Interface & API generator
+    Fluent - Time Saving (TS) utils
     <br />
-    <a href="https://docs.goatlab.io/#/0.5.x/fluent/fluent"><strong>Explore the docs »</strong></a>
+    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     ·
@@ -33,7 +33,7 @@ Fluent query interface for Multiple databases and useful helpers for general App
 
 ## Packages
 
-1. fluent: Base api generator y TypeORM connector
+1. fluent: Base api generator and TypeORM + MongoDB connector
 2. fluent-firebase: Firebase connector
 3. fluent-formio: Formio API connector
 4. fluent-loki: LokiJS API connector
@@ -59,7 +59,8 @@ Fluent query interface for Multiple databases and useful helpers for general App
 10. SAP Hana\*
 11. sql.js\*
 12. LokiJS
-13. In-memory
+13. PouchDB
+14. In-memory
 
 Wrapper for TypeORM (@goatlab/fluent)\*
 
@@ -75,7 +76,7 @@ yarn add @goatlab/fluent
 
 ### Documentation
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.5.x/fluent/fluent)
+To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
 
 ## Roadmap
 

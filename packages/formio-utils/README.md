@@ -15,17 +15,31 @@
   <h3 align="center">GOAT-FLUENT</h3>
 
   <p align="center">
-    Readable query Interface & API generator
+    Fluent - Time Saving (TS) utils
     <br />
-    <a href="https://docs.goatlab.io/#/0.5.x/fluent/fluent"><strong>Explore the docs »</strong></a>
+    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://codesandbox.io/s/goat-nestjs-tytmv?file=/src/main.ts">View Demo</a>
     ·
     <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
     ·
     <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
   </p>
+  </p>
 </p>
 
-# Goat - Fluent
+# Goat - Formio Utils
+
+General Node utilities to work with Form.io
+
+### Installing
+
+To install this package in your project, you can use the following command within your terminal.
+
+```bash
+yarn add @goatlab/formio-utils
+```
+
+### Documentation
+
+To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/formio)
