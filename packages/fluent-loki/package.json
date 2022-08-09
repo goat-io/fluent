@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-loki",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "scripts": {
     "install-p": "yarn",
     "prebuild": "rimraf dist",

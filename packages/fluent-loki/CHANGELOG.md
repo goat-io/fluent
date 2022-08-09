@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 0.7.0
+
+### Minor Changes
+
+- 2a60387: Use new fluent query structure
+
+### Patch Changes
+
+- Updated dependencies [2a60387]
+  - @goatlab/fluent@0.7.0
+
 ## 0.6.5
 
 ### Patch Changes

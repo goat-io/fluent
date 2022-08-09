@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-utils",
-  "version": "0.7.8",
+  "version": "0.8.0",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

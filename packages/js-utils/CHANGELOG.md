@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.0
+
+### Minor Changes
+
+- 2a60387: Use new fluent query structure
+
 ## 0.7.11
 
 ### Patch Changes

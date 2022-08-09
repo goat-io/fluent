@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-rest",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -32,7 +32,7 @@
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
   "dependencies": {
-    "@goatlab/fluent": "^0.6.24"
+    "@goatlab/fluent": "^0.7.0"
   },
   "devDependencies": {
     "@types/jest": "^27.4.1",

@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 0.8.0
+
+### Minor Changes
+
+- 2a60387: Use new fluent query structure
+
+### Patch Changes
+
+- Updated dependencies [2a60387]
+  - @goatlab/js-utils@0.8.0
+
 ## 0.7.8
 
 ### Patch Changes

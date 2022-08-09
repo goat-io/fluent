@@ -8,10 +8,7 @@
     "packages": [
       "packages/*"
     ],
-    "nohoist": [
-      "@types/*",
-      "buffer"
-    ]
+    "nohoist": []
   },
   "scripts": {
     "install": "turbo run install-p",
@@ -19,8 +16,8 @@
     "dev": "turbo run dev --parallel",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "cs":"changeset",
-    "cs:version":"changeset version",
+    "cs": "changeset",
+    "cs:version": "changeset version",
     "cs:publish": "changeset publish",
     "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
   },
