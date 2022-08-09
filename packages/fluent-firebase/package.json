@@ -4,8 +4,8 @@
   "description": "Readable query Interface & API generator for TS and Node",
   "dependencies": {
     "@goatlab/fluent": "*",
-    "@google-cloud/firestore": "^4.15.1",
-    "firebase-admin": "^10.0.2"
+    "@google-cloud/firestore": "^6.0.0",
+    "firebase-admin": "^11.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
