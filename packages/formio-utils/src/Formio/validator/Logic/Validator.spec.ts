@@ -23,8 +23,8 @@ beforeAll(async () => {
 test('Should validate number component', async () => {
   const wrongSubmission = { data: { number: 'HELLO WORLD' } }
   const [error, submission] = await Promises.try<
-    AnyObject,
-    FormioValidationError
+    FormioValidationError,
+    AnyObject
   >(Validate.submission(Form, wrongSubmission))
 
   expect(error.name).toBe('ValidationError')
@@ -32,8 +32,8 @@ test('Should validate number component', async () => {
 
   const validSubmission = { data: { number: 3 } }
   const [error2, submission2] = await Promises.try<
-    AnyObject,
-    FormioValidationError
+    FormioValidationError,
+    AnyObject
   >(Validate.submission(Form, validSubmission))
 
   expect(error2).toBe(null)
@@ -43,8 +43,8 @@ test('Should validate number component', async () => {
 test('Should validate required number', async () => {
   const wrongSubmission = { data: { number: undefined } }
   const [error, submission] = await Promises.try<
-    AnyObject,
-    FormioValidationError
+    FormioValidationError,
+    AnyObject
   >(Validate.submission(Form, wrongSubmission))
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe('"number" is required')
@@ -54,30 +54,27 @@ test('Should validate minimum and maximum number', async () => {
   let error
   let submission
   const wrongSubmissionMIN = { data: { number: 4 } }
-  ;[error, submission] = await Promises.try<
-    AnyObject,
-    FormioValidationError
-  >(Validate.submission(ComplexNumberForm, wrongSubmissionMIN))
+  ;[error, submission] = await Promises.try<FormioValidationError, AnyObject>(
+    Validate.submission(ComplexNumberForm, wrongSubmissionMIN)
+  )
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe(
     '"number" must be larger than or equal to 10'
   )
 
   const wrongSubmissionMAX = { data: { number: 100 } }
-  ;[error, submission] = await Promises.try<
-    AnyObject,
-    FormioValidationError
-  >(Validate.submission(ComplexNumberForm, wrongSubmissionMAX))
+  ;[error, submission] = await Promises.try<FormioValidationError, AnyObject>(
+    Validate.submission(ComplexNumberForm, wrongSubmissionMAX)
+  )
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe(
     '"number" must be less than or equal to 20'
   )
 
   const rightSubmission = { data: { number: 15 } }
-  ;[error, submission] = await Promises.try<
-    AnyObject,
-    FormioValidationError
-  >(Validate.submission(ComplexNumberForm, rightSubmission))
+  ;[error, submission] = await Promises.try<FormioValidationError, AnyObject>(
+    Validate.submission(ComplexNumberForm, rightSubmission)
+  )
   expect(error).toBe(null)
   expect(submission.number).toBe(15)
 })
@@ -85,8 +82,8 @@ test('Should validate minimum and maximum number', async () => {
 test('Should validate required text', async () => {
   const wrongSubmission = { data: { text: undefined } }
   const [error, submission] = await Promises.try<
-    AnyObject,
-    FormioValidationError
+    FormioValidationError,
+    AnyObject
   >(Validate.submission(textForm, wrongSubmission))
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe('"text" is required')
@@ -95,8 +92,8 @@ test('Should validate required text', async () => {
 test('Should validate text Type', async () => {
   const wrongSubmission = { data: { text: 3 } }
   const [error, submission] = await Promises.try<
-    AnyObject,
-    FormioValidationError
+    FormioValidationError,
+    AnyObject
   >(Validate.submission(textForm, wrongSubmission))
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe('"text" must be a string')
@@ -106,7 +103,8 @@ test('Should validate text Type', async () => {
 
 test('Should validate text min length', async () => {
   const wrongSubmission = { data: { text: 'Hell' } }
-  const [error, submission] = await Promises.try<AnyObject, FormioValidationError>(
+  const [error, submission] = await Promises.try<FormioValidationError,
+    AnyObject>(
     Validate.submission(textForm, wrongSubmission)
   )
 

@@ -1,3 +1,4 @@
 import { PouchDBConnector } from './PouchDBConnector'
+import PouchDB from 'pouchdb'
 
-export { PouchDBConnector }
+export { PouchDBConnector, PouchDB }

@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin'
-import { FieldPath } from '@google-cloud/firestore'
+import { FieldPath, UpdateData } from '@google-cloud/firestore'
 import {
   AnyObject,
   FluentQuery,
@@ -532,7 +532,7 @@ export class FirebaseConnector<
     await this.collection.doc(id).update({
       ...validatedData,
       id
-    })
+    } as unknown as UpdateData<ModelDTO>)
 
     const dbResult = await this.findById(id)
 
@@ -581,7 +581,9 @@ export class FirebaseConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    await this.collection.doc(id).update(validatedData)
+    await this.collection
+      .doc(id)
+      .update(validatedData as unknown as UpdateData<ModelDTO>)
 
     const val = await this.findById(id)
 

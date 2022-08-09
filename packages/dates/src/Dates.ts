@@ -82,6 +82,9 @@ export const Dates = (() => {
    */
   const weekOfYear = (date: Dayjs): number => dayjs(date).week()
 
+
+  const raw = dayjs
+
   return Object.freeze({
     changeLanguage,
     currentUnixDate,
@@ -93,6 +96,7 @@ export const Dates = (() => {
     parseUnixDate,
     parseIsoStringDate,
     weekOfYear,
-    supportedLanguages
+    supportedLanguages,
+    raw
   })
 })()

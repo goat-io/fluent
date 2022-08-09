@@ -7,7 +7,10 @@ import {
   getRelationsFromModelGenerator,
   getOutputKeys,
   LogicOperator,
-  PaginatedData
+  PaginatedData,
+  LoadedResult,
+  FindByIdFilter,
+  SingleQueryOutput
 } from '@goatlab/fluent'
 import type { AnyObject } from '@goatlab/fluent'
 import { z } from 'zod'
@@ -41,6 +44,8 @@ export class PouchDBConnector<
 
   private readonly outputSchema: z.ZodType<OutputDTO>
 
+  private readonly entity: any
+
   constructor({
     entity,
     dataSource,
@@ -52,6 +57,8 @@ export class PouchDBConnector<
     this.inputSchema = inputSchema
     this.outputSchema =
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
+
+    this.entity = entity
 
     const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
 
@@ -221,8 +228,8 @@ export class PouchDBConnector<
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
     const pouchQUery = this.getPouchDBWhere(query?.where)
 
-    console.log(query?.where)
-    console.log(pouchQUery)
+    // console.log(query?.where)
+    // console.log(pouchQUery)
 
     const response = await this.dataSource.find(pouchQUery)
 
@@ -494,7 +501,99 @@ export class PouchDBConnector<
     throw new Error(`The element with id ${id} was not found`)
   }
 
-  public async clear(): Promise<void> {
-    await this.dataSource.close();
+  public loadFirst(query?: FluentQuery<ModelDTO>) {
+    // Create a clone of the original class
+    // to avoid polluting attributes (relatedQuery)
+    const detachedClass = Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      this
+    ) as PouchDBConnector<ModelDTO, InputDTO, OutputDTO>
+
+    detachedClass.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query
+    })
+
+    return detachedClass
+  }
+
+  public loadById(id: string) {
+    // Create a new instance to avoid polluting the original one
+    const newInstance = this.clone()
+
+    newInstance.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query: {
+        where: {
+          id
+        }
+      } as FluentQuery<ModelDTO>
+    })
+
+    return newInstance as LoadedResult<this>
+  }
+
+  public async requireById(
+    id: string,
+    q?: FindByIdFilter<ModelDTO>
+  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
+    const found = await this.findByIds([id], {
+      select: q?.select,
+      include: q?.include,
+      limit: 1
+    })
+
+    found.map(d => {
+      if (this.isMongoDB) {
+        d['id'] = d['id'].toString()
+      }
+      this.clearEmpties(Objects.deleteNulls(d))
+    })
+
+    if (!found[0]) {
+      throw new Error(`Object ${id} not found`)
+    }
+
+    return this.outputSchema?.parse(found[0]) as unknown as SingleQueryOutput<
+      FindByIdFilter<ModelDTO>,
+      ModelDTO,
+      OutputDTO
+    >
+  }
+
+
+  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    let data = await this.findMany({
+      where: {
+        id: {
+          in: ids
+        }
+      },
+      limit: q?.limit,
+      select: q?.select,
+      include: q?.include
+    } as any)
+
+    // Validate Output against schema
+    return this.outputSchema?.array().parse(data) as unknown as QueryOutput<
+      T,
+      ModelDTO,
+      OutputDTO
+    >
+  }
+
+
+  protected clone() {
+    return new (<any>this.constructor)()
+  }
+
+  public async clear(): Promise<boolean> {
+    await this.dataSource.close()
+    return true
   }
 }
