@@ -1012,18 +1012,18 @@ export class TypeOrmConnector<
   public loadFirst(query?: FluentQuery<ModelDTO>) {
     // Create a clone of the original class
     // to avoid polluting attributes (relatedQuery)
-    const detachedClass = Object.assign(
-      Object.create(Object.getPrototypeOf(this)),
-      this
-    ) as TypeOrmConnector<ModelDTO, InputDTO, OutputDTO>
+    const newInstance = this.clone()
 
-    detachedClass.setRelatedQuery({
+    newInstance.setRelatedQuery({
       entity: this.entity,
       repository: this,
-      query
+      query: {
+        ...query,
+        limit: 1
+      }
     })
 
-    return detachedClass
+    return newInstance as LoadedResult<this>
   }
 
   public loadById(id: string) {
