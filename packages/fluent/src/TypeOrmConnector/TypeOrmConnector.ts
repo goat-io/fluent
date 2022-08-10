@@ -2,13 +2,11 @@
  * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
  */
 import {
-  FindByIdFilter,
   LoadedResult,
   LogicOperator,
   Primitives,
   PrimitivesArray,
   QueryOutput,
-  SingleQueryOutput
 } from './../types'
 import {
   Equal,
@@ -29,16 +27,9 @@ import {
   FindOptionsRelations
 } from 'typeorm'
 import { Ids, Objects } from '@goatlab/js-utils'
-import { loadRelations } from '../loadRelations'
 import { BaseConnector, FluentConnectorInterface } from '../BaseConnector'
 import { getOutputKeys } from '../outputKeys'
-import type {
-  AnyObject,
-  FluentQuery,
-  PaginatedData,
-  Paginator,
-  QueryInsert
-} from '../types'
+import type { AnyObject, FluentQuery, PaginatedData } from '../types'
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
@@ -123,6 +114,7 @@ export class TypeOrmConnector<
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
   }
+  // CREATE
 
   /**
    * Insert the data object into the database.
@@ -169,29 +161,7 @@ export class TypeOrmConnector<
     )
   }
 
-  /**
-   *
-   * Returns the TypeOrm Repository, you can use it
-   * form more complex queries and to get
-   * the TypeOrm query builder
-   *
-   * @param query
-   */
-  public raw(): Repository<ModelDTO> {
-    return this.repository
-  }
-
-  /**
-   *
-   * Returns the TypeOrm Repository, you can use it
-   * form more complex queries and to get
-   * the TypeOrm query builder
-   *
-   * @param query
-   */
-  public mongoRaw(): MongoRepository<ModelDTO> {
-    return this.repository as MongoRepository<ModelDTO>
-  }
+  // READ
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
@@ -250,6 +220,248 @@ export class TypeOrmConnector<
     >
   }
 
+  // UPDATE
+
+  /**
+   * PATCH operation
+   * @param data
+   */
+  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
+    const parsedId = this.isMongoDB
+      ? (Ids.objectID(id) as unknown as ObjectID)
+      : id
+
+    const idFieldName = this.isMongoDB ? '_id' : 'id'
+
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...data,
+          ...{ updated: new Date() }
+        }
+      : data
+
+    const validatedData = this.inputSchema.parse(dataToInsert)
+
+    const updateResults = await this.repository.update(id, validatedData)
+
+    if (updateResults.affected === 0) {
+      throw new Error('No rows where affected')
+    }
+
+    const dbResult = await this.repository.findOneOrFail({
+      where: {
+        [idFieldName]: parsedId
+      } as unknown as FindOptionsWhere<ModelDTO>
+    })
+
+    if (this.isMongoDB) {
+      dbResult['id'] = dbResult['id'].toString()
+    }
+
+    // Validate Output
+    return this.outputSchema?.parse(
+      this.clearEmpties(Objects.deleteNulls(dbResult))
+    )
+  }
+
+  /**
+   *
+   * PUT operation. All fields not included in the data
+   *  param will be set to null
+   *
+   * @param id
+   * @param data
+   */
+  public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
+    const parsedId = this.isMongoDB
+      ? (Ids.objectID(id) as unknown as ObjectID)
+      : id
+
+    const idFieldName = this.isMongoDB ? '_id' : 'id'
+
+    const value = await this.repository.findOneOrFail({
+      where: {
+        [idFieldName]: parsedId
+      } as unknown as FindOptionsWhere<ModelDTO>
+    })
+
+    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
+
+    Object.keys(flatValue).forEach(key => {
+      flatValue[key] = null
+    })
+
+    const nullObject = Objects.nest(flatValue)
+
+    const newValue = { ...nullObject, ...data }
+
+    delete newValue._id
+    delete newValue.id
+    delete newValue.created
+    delete newValue.updated
+
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...data,
+          ...{ updated: new Date() }
+        }
+      : data
+
+    const validatedData = this.inputSchema.parse(dataToInsert)
+
+    const updateResults = await this.repository.update(id, validatedData)
+
+    if (updateResults.affected === 0) {
+      throw new Error('No rows where affected')
+    }
+
+    const val = await this.repository.findOneOrFail({
+      where: {
+        [idFieldName]: parsedId
+      } as unknown as FindOptionsWhere<ModelDTO>
+    })
+
+    if (this.isMongoDB) {
+      val['id'] = val['id'].toString()
+    }
+
+    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
+  }
+
+  // DELETE
+
+  /**
+   *
+   * @param id
+   * @returns
+   */
+  public async deleteById(id: string): Promise<string> {
+    const parsedId = this.isMongoDB
+      ? (Ids.objectID(id) as unknown as ObjectID)
+      : id
+
+    await this.repository.delete(parsedId)
+
+    return id
+  }
+
+  /**
+   *
+   * @returns
+   */
+  public async clear(): Promise<boolean> {
+    await this.repository.clear()
+    return true
+  }
+
+  // RELATIONS
+
+  /**
+   *
+   * @param query
+   * @returns
+   */
+  public loadFirst(query?: FluentQuery<ModelDTO>) {
+    // Create a clone of the original class
+    // to avoid polluting attributes (relatedQuery)
+    const newInstance = this.clone()
+
+    newInstance.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query: {
+        ...query,
+        limit: 1
+      }
+    })
+
+    return newInstance as LoadedResult<this>
+  }
+
+  /**
+   *
+   * @param id
+   * @returns
+   */
+  public loadById(id: string) {
+    // Create a new instance to avoid polluting the original one
+    const newInstance = this.clone()
+
+    newInstance.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query: {
+        where: {
+          id
+        }
+      } as FluentQuery<ModelDTO>
+    })
+
+    return newInstance as LoadedResult<this>
+  }
+
+  /**
+   *
+   * Returns the TypeOrm Repository, you can use it
+   * form more complex queries and to get
+   * the TypeOrm query builder
+   *
+   * @param query
+   */
+  public raw(): Repository<ModelDTO> {
+    return this.repository
+  }
+
+  /**
+   *
+   * Returns the TypeOrm Repository, you can use it
+   * form more complex queries and to get
+   * the TypeOrm query builder
+   *
+   * @param query
+   */
+  public mongoRaw(): MongoRepository<ModelDTO> {
+    return this.repository as MongoRepository<ModelDTO>
+  }
+
+  /**
+   * Creates a Clone of the current instance of the class
+   * @returns
+   */
+  protected clone() {
+    return new (<any>this.constructor)()
+  }
+
+  //////////////////////////////////////////////////////////////
+  // ALL OF THESE METHODS PROBABLY SHOULD BE IN SOMEWHERE ELSE
+  //////////////////////////////////////////////////////////////
+  /**
+   *
+   * @param filter
+   */
+  private getOrderBy(orderBy: FluentQuery<ModelDTO>['orderBy']) {
+    if (!orderBy || orderBy.length === 0) {
+      return {}
+    }
+
+    const order = {}
+
+    for (const orderElement of orderBy) {
+      const flattenOrder = Objects.flatten(orderElement)
+
+      for (const k of Object.keys(flattenOrder)) {
+        order[k] = flattenOrder[k]
+      }
+    }
+
+    return Objects.nest(order)
+  }
+
+  /**
+   *
+   * @param select
+   * @returns
+   */
   private getMongoSelect(select: FluentQuery<ModelDTO>['select']) {
     const selected = Objects.flatten(select || {})
 
@@ -279,6 +491,11 @@ export class TypeOrmConnector<
     return selected
   }
 
+  /**
+   *
+   * @param include
+   * @returns
+   */
   private getMongoLookup(include: FluentQuery<ModelDTO>['include']): any[] {
     if (!include) {
       return []
@@ -413,6 +630,11 @@ export class TypeOrmConnector<
     return lookUps
   }
 
+  /**
+   *
+   * @param query
+   * @returns
+   */
   private async customMongoRelatedSearch<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
@@ -450,6 +672,11 @@ export class TypeOrmConnector<
     >
   }
 
+  /**
+   *
+   * @param query
+   * @returns
+   */
   private generateTypeOrmQuery(query?: FluentQuery<ModelDTO>): FindManyOptions {
     let filter: FindManyOptions = {}
 
@@ -466,18 +693,29 @@ export class TypeOrmConnector<
       filter.skip = (query.paginated?.page - 1) * query?.paginated.perPage
     }
 
-    filter.select = Objects.flatten(query?.select || {})
+    if (query?.select) {
+      const selectQuery = Objects.flatten(query?.select || {})
+
+      if (this.isMongoDB) {
+        filter.select = Object.keys(selectQuery)
+      } else {
+        filter.select = selectQuery
+      }
+    }
+
     filter.order = this.getOrderBy(query?.orderBy)
 
     // TODO: we will bring the full relation Object, we should be able to filter down properties
     filter.relations = query?.include as FindOptionsRelations<any>
 
-    // filter = this.getPaginatorLimit(filter)
-    // const page = this.getPage()
-
     return filter
   }
 
+  /**
+   *
+   * @param where
+   * @returns
+   */
   protected getTypeOrmWhere(
     where?: FluentQuery<ModelDTO>['where']
   ): FindManyOptions['where'] {
@@ -706,6 +944,11 @@ export class TypeOrmConnector<
     return filtered
   }
 
+  /**
+   *
+   * @param where
+   * @returns
+   */
   protected getTypeOrmMongoWhere(
     where?: FluentQuery<ModelDTO>['where']
   ): FindManyOptions['where'] {
@@ -896,280 +1139,5 @@ export class TypeOrmConnector<
     const filtered = this.clearEmpties(Filters.where)
 
     return filtered
-  }
-
-  /**
-   * PATCH operation
-   * @param data
-   */
-  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const parsedId = this.isMongoDB
-      ? (Ids.objectID(id) as unknown as ObjectID)
-      : id
-
-    const idFieldName = this.isMongoDB ? '_id' : 'id'
-
-    const dataToInsert = this.outputKeys.includes('updated')
-      ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
-      : data
-
-    const validatedData = this.inputSchema.parse(dataToInsert)
-
-    const updateResults = await this.repository.update(id, validatedData)
-
-    if (updateResults.affected === 0) {
-      throw new Error('No rows where affected')
-    }
-
-    const dbResult = await this.repository.findOneOrFail({
-      where: {
-        [idFieldName]: parsedId
-      } as unknown as FindOptionsWhere<ModelDTO>
-    })
-
-    if (this.isMongoDB) {
-      dbResult['id'] = dbResult['id'].toString()
-    }
-
-    // Validate Output
-    return this.outputSchema?.parse(
-      this.clearEmpties(Objects.deleteNulls(dbResult))
-    )
-  }
-
-  /**
-   *
-   * PUT operation. All fields not included in the data
-   *  param will be set to null
-   *
-   * @param id
-   * @param data
-   */
-  public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const parsedId = this.isMongoDB
-      ? (Ids.objectID(id) as unknown as ObjectID)
-      : id
-
-    const idFieldName = this.isMongoDB ? '_id' : 'id'
-
-    const value = await this.repository.findOneOrFail({
-      where: {
-        [idFieldName]: parsedId
-      } as unknown as FindOptionsWhere<ModelDTO>
-    })
-
-    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
-
-    Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null
-    })
-
-    const nullObject = Objects.nest(flatValue)
-
-    const newValue = { ...nullObject, ...data }
-
-    delete newValue._id
-    delete newValue.id
-    delete newValue.created
-    delete newValue.updated
-
-    const dataToInsert = this.outputKeys.includes('updated')
-      ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
-      : data
-
-    const validatedData = this.inputSchema.parse(dataToInsert)
-
-    const updateResults = await this.repository.update(id, validatedData)
-
-    if (updateResults.affected === 0) {
-      throw new Error('No rows where affected')
-    }
-
-    const val = await this.repository.findOneOrFail({
-      where: {
-        [idFieldName]: parsedId
-      } as unknown as FindOptionsWhere<ModelDTO>
-    })
-
-    if (this.isMongoDB) {
-      val['id'] = val['id'].toString()
-    }
-
-    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
-  }
-
-  public async clear(): Promise<boolean> {
-    await this.repository.clear()
-    return true
-  }
-
-  public loadFirst(query?: FluentQuery<ModelDTO>) {
-    // Create a clone of the original class
-    // to avoid polluting attributes (relatedQuery)
-    const newInstance = this.clone()
-
-    newInstance.setRelatedQuery({
-      entity: this.entity,
-      repository: this,
-      query: {
-        ...query,
-        limit: 1
-      }
-    })
-
-    return newInstance as LoadedResult<this>
-  }
-
-  public loadById(id: string) {
-    // Create a new instance to avoid polluting the original one
-    const newInstance = this.clone()
-
-    newInstance.setRelatedQuery({
-      entity: this.entity,
-      repository: this,
-      query: {
-        where: {
-          id
-        }
-      } as FluentQuery<ModelDTO>
-    })
-
-    return newInstance as LoadedResult<this>
-  }
-
-  public async requireById(
-    id: string,
-    q?: FindByIdFilter<ModelDTO>
-  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
-    const found = await this.findByIds([id], {
-      select: q?.select,
-      include: q?.include,
-      limit: 1
-    })
-
-    found.map(d => {
-      if (this.isMongoDB) {
-        d['id'] = d['id'].toString()
-      }
-      this.clearEmpties(Objects.deleteNulls(d))
-    })
-
-    if (!found[0]) {
-      throw new Error(`Object ${id} not found`)
-    }
-
-    return this.outputSchema?.parse(found[0]) as unknown as SingleQueryOutput<
-      FindByIdFilter<ModelDTO>,
-      ModelDTO,
-      OutputDTO
-    >
-  }
-
-  protected clone() {
-    return new (<any>this.constructor)()
-  }
-
-  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
-    ids: string[],
-    q?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
-    let data = await this.findMany({
-      where: {
-        id: {
-          in: ids
-        }
-      },
-      limit: q?.limit,
-      select: q?.select,
-      include: q?.include
-    } as any)
-
-    // Validate Output against schema
-    return this.outputSchema?.array().parse(data) as unknown as QueryOutput<
-      T,
-      ModelDTO,
-      OutputDTO
-    >
-  }
-
-  /*
-
-
-  // /**
-  //  *
-  //  */
-  // public async all(): Promise<OutputDTO[]> {
-  //   return this.get()
-  // }
-
-  // /**
-  //  *
-  //  * @param param0
-  //  */
-
-  // /**
-  //  *
-  //  * @param id
-  //  */
-  // public async deleteById(id: string): Promise<string> {
-  //   const parsedId = this.isMongoDB
-  //     ? (Ids.objectID(id) as unknown as ObjectID)
-  //     : id
-
-  //   await this.repository.delete(parsedId)
-  //   this.reset()
-  //   return id
-  // }
-
-  // /**
-  //  *
-  //  * @param id
-  //  */
-  // public async findById(id: string): Promise<OutputDTO> {
-  //   const parsedId = this.isMongoDB
-  //     ? (new ObjectId(id) as unknown as ObjectID)
-  //     : id
-
-  //   const data = await this.repository.findBy({
-  //     id: In([parsedId])
-  //   } as unknown as FindOptionsWhere<ModelDTO>)
-
-  //   const result = this.jsApplySelect(data) as OutputDTO[]
-  //   this.reset()
-  //   return result[0]
-  // }
-
-  // /**
-  //  *
-  //  * @param ids
-  //  */
-
-  /**
-   *
-   * @param filter
-   */
-  // TODO order by can have more than 1 element
-  private getOrderBy(orderBy: FluentQuery<ModelDTO>['orderBy']) {
-    if (!orderBy || orderBy.length === 0) {
-      return {}
-    }
-
-    const order = {}
-
-    for (const orderElement of orderBy) {
-      const flattenOrder = Objects.flatten(orderElement)
-
-      for (const k of Object.keys(flattenOrder)) {
-        order[k] = flattenOrder[k]
-      }
-    }
-
-    return Objects.nest(order)
   }
 }

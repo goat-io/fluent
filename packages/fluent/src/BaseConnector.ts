@@ -17,35 +17,65 @@ import {
 import { ObjectId } from 'bson'
 
 export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
-  //findById(id: string): Promise<OutputDTO | null>
+  // CREATE
+  insert(data: InputDTO): Promise<OutputDTO>
+  insertMany(data: InputDTO[]): Promise<OutputDTO[]>
+
+  // READ
+  /// Id
+  findById<T extends FindByIdFilter<ModelDTO>>(
+    id: string,
+    q?: T
+  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null>
+
   findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
     q?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>>
+
+  /// Find
   findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>>
-  //deleteById(id: string): Promise<string>
-  //updateById(id: string, data: InputDTO): Promise<OutputDTO>
-  insert(data: InputDTO): Promise<OutputDTO>
-  insertMany(data: InputDTO[]): Promise<OutputDTO[]>
-  loadFirst(query?: FluentQuery<ModelDTO>)
-  loadById(id: string)
-  replaceById(id: string, data: InputDTO): Promise<OutputDTO>
-  updateById(id: string, data: InputDTO): Promise<OutputDTO>
-  clear(): Promise<boolean>
+  findFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null>
+
+  /// Require
   requireById(
     id: string,
     q?: FindByIdFilter<ModelDTO>
   ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>>
-  // update(data: T): Promise<T>
-  // updateOrCreate(data: T): Promise<T>
-  // findAndRemove(): Promise<T[]>
-  // paginate(paginator: IPaginator): Promise<IPaginatedData<T>>
-  // tableView(paginator: IPaginator): Promise<IPaginatedData<T>>
-  // raw(): any
+  requireFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO>>
+
+  // Update
+  updateById(id: string, data: InputDTO): Promise<OutputDTO>
+  replaceById(id: string, data: InputDTO): Promise<OutputDTO>
+  // updateMany<T extends FluentQuery<ModelDTO>['where']>(
+  //   where: FluentQuery<T>['where'],
+  //   data: InputDTO
+  // ): Promise<OutputDTO>
+  // replaceMany<T extends FluentQuery<ModelDTO>['where']>(
+  //   where: FluentQuery<T>['where'],
+  //   data: InputDTO
+  // ): Promise<OutputDTO>
+
+  //DELETE
+  deleteById(id: string): Promise<string>
+  // deleteMany<T extends FluentQuery<ModelDTO>['where']>(
+  //   where: FluentQuery<T>['where']
+  // ): Promise<string[]>
+  // clear(): Promise<boolean>
+
+  // Relations
+  loadFirst(query?: FluentQuery<ModelDTO>)
+  loadById(id: string)
+  // clone()
+
+  raw(): any
   // softDelete(): Promise<T>
-  // findOne(): Promise<T>
 }
 
 // tslint:disable-next-line: max-classes-per-file
@@ -79,31 +109,35 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     this.rawQuery = undefined
     this.outputKeys = []
   }
-
-  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
-    ids: string[],
-    q?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
-    throw new Error('findByIds() method not implemented')
-  }
   /**
    *
+   * @param data
    */
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
     throw new Error('get() method not implemented')
   }
 
+  /**
+   *
+   * @param id
+   * @param data
+   */
   public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
     throw new Error('get() method not implemented')
   }
 
+  /**
+   *
+   * @param query
+   */
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
     throw new Error('findMany() method not implemented')
   }
+
   /**
-   * Executes the Get() method and
+   * Executes the findMany() method and
    * returns it's first result
    *
    * @return {Object} First result
@@ -119,6 +153,88 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     return data[0] as SingleQueryOutput<T, ModelDTO, OutputDTO>
   }
+
+  public async requireById(
+    id: string,
+    q?: FindByIdFilter<ModelDTO>
+  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
+    const found = await this.findByIds([id], {
+      select: q?.select,
+      include: q?.include,
+      limit: 1
+    })
+
+    found.map(d => {
+      if (this.isMongoDB) {
+        d['id'] = d['id'].toString()
+      }
+      this.clearEmpties(Objects.deleteNulls(d))
+    })
+
+    if (!found[0]) {
+      throw new Error(`Object ${id} not found`)
+    }
+
+    // No need to validate, as findMany already validates
+    return found[0] as unknown as SingleQueryOutput<
+      FindByIdFilter<ModelDTO>,
+      ModelDTO,
+      OutputDTO
+    >
+  }
+
+  public async requireFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO>> {
+    const found = await this.findMany({ ...query, limit: 1 })
+
+    found.map(d => {
+      if (this.isMongoDB) {
+        d['id'] = d['id'].toString()
+      }
+      this.clearEmpties(Objects.deleteNulls(d))
+    })
+
+    if (!found[0]) {
+      const stringQuery = query ? JSON.stringify(query) : ''
+      throw new Error(`No objects found matching:  ${stringQuery}`)
+    }
+    // The object is already validated by findMany
+    return found[0] as unknown as SingleQueryOutput<T, ModelDTO, OutputDTO>
+  }
+
+  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    let data = await this.findMany({
+      where: {
+        id: {
+          in: ids
+        }
+      },
+      limit: q?.limit,
+      select: q?.select,
+      include: q?.include
+    } as any)
+
+    // The object should already be validated by FindMany
+    return data as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+  }
+
+  public async findById<T extends FindByIdFilter<ModelDTO>>(
+    id: string,
+    q?: T
+  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null> {
+    const result = await this.findByIds([id], { ...q, limit: 1 })
+
+    if (!result[0]) {
+      return null
+    }
+
+    return result[0] as unknown as SingleQueryOutput<T, ModelDTO, OutputDTO>
+  }
+
   /**
    *
    * Gets the data in the current query and
@@ -159,6 +275,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     return result
   }
 
+  /**
+   * Sets the relatedQuery param, to be used by the
+   * different LOAD methods
+   * @param r
+   */
   protected setRelatedQuery(r: {
     entity: new () => ModelDTO
     query?: FluentQuery<ModelDTO>
@@ -358,6 +479,12 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     throw new Error('Method not implemented')
   }
 
+  /**
+   * Deeply removes all empty and nullish values from a
+   * given object
+   * @param object
+   * @returns
+   */
   protected clearEmpties(object) {
     Object.entries(object).forEach(([k, v]: [any, any]) => {
       if (v && typeof v === 'object') this.clearEmpties(v)
@@ -380,10 +507,21 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     return object
   }
 
+  /**
+   * Checks if the given value is a valid JS Object => {}
+   * @param val
+   * @returns
+   */
   private isAnyObject(val: any): boolean {
     return typeof val === 'object' && !Array.isArray(val) && val !== null
   }
 
+  /**
+   * Transforms the nested object WHERE clause into an
+   * Array of clearly defined conditions
+   * @param conditions
+   * @returns
+   */
   protected extractConditions(conditions: FluentQuery<ModelDTO>['where'][]) {
     const accumulatedClauses: {
       operator: LogicOperator
@@ -466,7 +604,10 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       }
     }
 
-    return accumulatedClauses
+    return accumulatedClauses.filter(
+      (v, i, a) =>
+        a.findIndex(v2 => JSON.stringify(v2) === JSON.stringify(v)) === i
+    )
   }
 
   /**

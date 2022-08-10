@@ -1,5 +1,4 @@
 import * as admin from 'firebase-admin'
-import * as fireorm from 'fireorm'
 
 interface ConnectionOptions {
   host?: string
@@ -30,7 +29,6 @@ export const FirebaseInit = ({
 
   const fireStore = admin.firestore()
   fireStore.settings({ ignoreUndefinedProperties: true })
-  fireorm.initialize(fireStore)
 
   if (!fireStore) {
     throw new Error('Could not initialize FireStore')

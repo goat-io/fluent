@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin'
-import { FieldPath, UpdateData } from '@google-cloud/firestore'
+import { UpdateData } from '@google-cloud/firestore'
 import {
   AnyObject,
   FluentQuery,
@@ -8,7 +8,6 @@ import {
   LogicOperator,
   modelGeneratorDataSource,
   PaginatedData,
-  Paginator,
   QueryOutput
 } from '@goatlab/fluent'
 import {
@@ -19,8 +18,6 @@ import {
 } from '@goatlab/fluent'
 import { Objects, Ids } from '@goatlab/js-utils'
 import { z } from 'zod'
-import { FindByIdFilter } from '@goatlab/fluent'
-import { SingleQueryOutput } from '@goatlab/fluent'
 
 export interface FirebaseConnectorParams<Input, Output> {
   entity: any
@@ -79,6 +76,8 @@ export class FirebaseConnector<
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
   }
+  // CREATE
+
   /**
    * Insert the data object into the database.
    * @param data
@@ -129,72 +128,7 @@ export class FirebaseConnector<
     )
   }
 
-  /**
-   *
-   * Returns the firebase-admin collection, you can use it
-   * for more complex queries that require the base library
-   *
-   * @param query
-   */
-  public raw(): admin.firestore.CollectionReference<ModelDTO> {
-    return this.collection
-  }
-
-  public rawFirebase(): admin.firestore.Firestore {
-    return admin.firestore()
-  }
-
-  protected async loadRelatedData(
-    data: any[],
-    loadedKeys: AnyObject
-  ): Promise<admin.firestore.DocumentData[]> {
-    let pivotData: any[] = []
-    const result = await loadRelations({
-      data,
-      relations: loadedKeys,
-      modelRelations: this.modelRelations,
-      provider: 'firebase',
-      self: this,
-      returnPivot: false
-    })
-
-    /*
-
-      const ids = this.relationQuery.data.map(d => d.id)
-
-      if (this.relationQuery?.relation?.isManyToMany) {
-   
-        pivotData = await pivot.where(key => key[pivotForeignKey], "in", ids).get()
-        if(!pivotData.length) {
-          return []
-        }
-        const inverseIds = [...new Set(pivotData.map(d => d[pivotInverseKey]))]
-
-        if(!inverseIds.length) {
-          return []
-        }
-
-        if(inverseIds.length) {
-          query = query.where(
-            "id",
-            'in',
-            inverseIds
-          )
-        }
-      } else {
-        query = query.where(
-          this.relationQuery.relation.inverseSidePropertyPath,
-          'in',
-          ids
-        )
-      }
-
-    }
-
-   
-    */
-    return result as unknown as admin.firestore.DocumentData[]
-  }
+  // READ
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
@@ -271,21 +205,206 @@ export class FirebaseConnector<
     >
   }
 
+  // UPDATE
+
+  /**
+   * PATCH operation
+   * @param data
+   */
+  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...data,
+          ...{ updated: new Date() }
+        }
+      : data
+
+    const validatedData = this.inputSchema.parse(dataToInsert)
+
+    await this.collection.doc(id).update({
+      ...validatedData,
+      id
+    } as unknown as UpdateData<ModelDTO>)
+
+    const dbResult = await this.findById(id)
+
+    if (!dbResult) {
+      throw new Error(`Object not found: ${id}`)
+    }
+
+    // Validate Output
+    return this.outputSchema?.parse(
+      this.clearEmpties(Objects.deleteNulls(dbResult))
+    )
+  }
+
+  /**
+   *
+   * PUT operation. All fields not included in the data
+   *  param will be set to null
+   *
+   * @param id
+   * @param data
+   */
+  public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
+    const value = await this.findById(id)
+
+    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
+
+    Object.keys(flatValue).forEach(key => {
+      flatValue[key] = null
+    })
+
+    const nullObject = Objects.nest(flatValue)
+
+    const newValue = { ...nullObject, ...data }
+
+    delete newValue._id
+    delete newValue.id
+    delete newValue.created
+    delete newValue.updated
+
+    const dataToInsert = this.outputKeys.includes('updated')
+      ? {
+          ...data,
+          ...{ updated: new Date() }
+        }
+      : data
+
+    const validatedData = this.inputSchema.parse(dataToInsert)
+
+    await this.collection
+      .doc(id)
+      .update(validatedData as unknown as UpdateData<ModelDTO>)
+
+    // TODO: do we need to pull the info again?
+    const val = await this.requireById(id)
+
+    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
+  }
+
+  // DELETE
+
+  public async deleteById(id: string): Promise<string> {
+    await this.collection.doc(id).delete()
+    return id
+  }
+
+  public async clear() {
+    const query = this.collection.orderBy('__name__').limit(300)
+    return new Promise((resolve, reject) => {
+      this.deleteQueryBatch(admin.firestore(), query, 300, resolve, reject)
+    }) as Promise<boolean>
+  }
+
+  // RELATIONS
+
   public loadFirst(query?: FluentQuery<ModelDTO>) {
     // Create a clone of the original class
     // to avoid polluting attributes (relatedQuery)
-    const detachedClass = Object.assign(
-      Object.create(Object.getPrototypeOf(this)),
-      this
-    ) as FirebaseConnector<ModelDTO, InputDTO, OutputDTO>
+    const newInstance = this.clone()
 
-    detachedClass.setRelatedQuery({
+    newInstance.setRelatedQuery({
       entity: this.entity,
       repository: this,
-      query
+      query: {
+        ...query,
+        limit: 1
+      }
     })
 
-    return detachedClass
+    return newInstance as LoadedResult<this>
+  }
+
+  public loadById(id: string) {
+    // Create a new instance to avoid polluting the original one
+    const newInstance = this.clone()
+
+    newInstance.setRelatedQuery({
+      entity: this.entity,
+      repository: this,
+      query: {
+        where: {
+          id
+        }
+      } as FluentQuery<ModelDTO>
+    })
+
+    return newInstance as LoadedResult<this>
+  }
+
+  /**
+   *
+   * Returns the firebase-admin collection, you can use it
+   * for more complex queries that require the base library
+   *
+   * @param query
+   */
+  public raw(): admin.firestore.CollectionReference<ModelDTO> {
+    return this.collection
+  }
+
+  public rawFirebase(): admin.firestore.Firestore {
+    return admin.firestore()
+  }
+
+  private deleteQueryBatch(db, query, batchSize, resolve, reject) {
+    query
+      .get()
+      .then(snapshot => {
+        // When there are no documents left, we are done
+        if (snapshot.size == 0) {
+          return 0
+        }
+
+        // Delete documents in a batch
+        const batch = db.batch()
+        snapshot.docs.forEach(doc => {
+          batch.delete(doc.ref)
+        })
+
+        return batch.commit().then(() => snapshot.size)
+      })
+      .then(numDeleted => {
+        if (numDeleted === 0) {
+          resolve()
+          return
+        }
+
+        // Recurse on the next process tick, to avoid
+        // exploding the stack.
+        process.nextTick(() => {
+          this.deleteQueryBatch(db, query, batchSize, resolve, reject)
+        })
+      })
+      .catch(reject)
+  }
+
+  /**
+   * Creates a Clone of the current instance of the class
+   * @returns
+   */
+  protected clone() {
+    return new (<any>this.constructor)()
+  }
+  //////////////////////////////////////////////////////////////
+  // ALL OF THESE METHODS PROBABLY SHOULD BE IN SOMEWHERE ELSE
+  //////////////////////////////////////////////////////////////
+
+  protected async loadRelatedData(
+    data: any[],
+    loadedKeys: AnyObject
+  ): Promise<admin.firestore.DocumentData[]> {
+    const result = await loadRelations({
+      data,
+      relations: loadedKeys,
+      modelRelations: this.modelRelations,
+      provider: 'firebase',
+      self: this,
+      returnPivot: false
+    })
+
+    return result as unknown as admin.firestore.DocumentData[]
   }
 
   /**
@@ -497,6 +616,7 @@ export class FirebaseConnector<
 
     let andWhereCondition: FirebaseFirestore.Query | undefined = undefined
 
+    // If there is no query, just return the collection
     if (
       !andConditions?.length &&
       !rootLevelConditions?.length &&
@@ -514,306 +634,4 @@ export class FirebaseConnector<
       orWhere: orWhereQueries
     }
   }
-
-  /**
-   * PATCH operation
-   * @param data
-   */
-  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const dataToInsert = this.outputKeys.includes('updated')
-      ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
-      : data
-
-    const validatedData = this.inputSchema.parse(dataToInsert)
-
-    await this.collection.doc(id).update({
-      ...validatedData,
-      id
-    } as unknown as UpdateData<ModelDTO>)
-
-    const dbResult = await this.findById(id)
-
-    if (!dbResult) {
-      throw new Error(`Object not found: ${id}`)
-    }
-
-    // Validate Output
-    return this.outputSchema?.parse(
-      this.clearEmpties(Objects.deleteNulls(dbResult))
-    )
-  }
-
-  /**
-   *
-   * PUT operation. All fields not included in the data
-   *  param will be set to null
-   *
-   * @param id
-   * @param data
-   */
-  public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const value = await this.findById(id)
-
-    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
-
-    Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null
-    })
-
-    const nullObject = Objects.nest(flatValue)
-
-    const newValue = { ...nullObject, ...data }
-
-    delete newValue._id
-    delete newValue.id
-    delete newValue.created
-    delete newValue.updated
-
-    const dataToInsert = this.outputKeys.includes('updated')
-      ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
-      : data
-
-    const validatedData = this.inputSchema.parse(dataToInsert)
-
-    await this.collection
-      .doc(id)
-      .update(validatedData as unknown as UpdateData<ModelDTO>)
-
-    const val = await this.findById(id)
-
-    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
-  }
-
-  public async clear() {
-    const query = this.collection.orderBy('__name__').limit(300)
-    return new Promise((resolve, reject) => {
-      this.deleteQueryBatch(admin.firestore(), query, 300, resolve, reject)
-    }) as Promise<boolean>
-  }
-
-  private deleteQueryBatch(db, query, batchSize, resolve, reject) {
-    query
-      .get()
-      .then(snapshot => {
-        // When there are no documents left, we are done
-        if (snapshot.size == 0) {
-          return 0
-        }
-
-        // Delete documents in a batch
-        const batch = db.batch()
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref)
-        })
-
-        return batch.commit().then(() => snapshot.size)
-      })
-      .then(numDeleted => {
-        if (numDeleted === 0) {
-          resolve()
-          return
-        }
-
-        // Recurse on the next process tick, to avoid
-        // exploding the stack.
-        process.nextTick(() => {
-          this.deleteQueryBatch(db, query, batchSize, resolve, reject)
-        })
-      })
-      .catch(reject)
-  }
-
-  public loadById(id: string) {
-    // Create a new instance to avoid polluting the original one
-    const newInstance = this.clone()
-
-    newInstance.setRelatedQuery({
-      entity: this.entity,
-      repository: this,
-      query: {
-        where: {
-          id
-        }
-      } as FluentQuery<ModelDTO>
-    })
-
-    return newInstance as LoadedResult<this>
-  }
-
-  protected clone() {
-    return new (<any>this.constructor)()
-  }
-
-  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
-    ids: string[],
-    q?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
-    let data = await this.findMany({
-      where: {
-        id: {
-          in: ids
-        }
-      },
-      limit: q?.limit,
-      select: q?.select,
-      include: q?.include
-    } as any)
-
-    // Validate Output against schema
-    return this.outputSchema?.array().parse(data) as unknown as QueryOutput<
-      T,
-      ModelDTO,
-      OutputDTO
-    >
-  }
-
-  public async findById<T extends FindByIdFilter<ModelDTO>>(
-    id: string,
-    q?: T
-  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO>> {
-    const found = await this.findByIds([id], q)
-
-    return found[0] as unknown as SingleQueryOutput<T, ModelDTO, OutputDTO>
-  }
-
-  public async requireById(
-    id: string,
-    q?: FindByIdFilter<ModelDTO>
-  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
-    let found = await this.findById(id, {
-      select: q?.select,
-      include: q?.include,
-      limit: 1
-    })
-
-    if (!found) {
-      throw new Error(`Object ${id} not found`)
-    }
-
-    found = this.clearEmpties(Objects.deleteNulls(found))
-
-    return this.outputSchema?.parse(found) as unknown as SingleQueryOutput<
-      FindByIdFilter<ModelDTO>,
-      ModelDTO,
-      OutputDTO
-    >
-  }
-
-  // /**
-  //  *
-  //  * PUT operation. All fields not included in the data
-  //  *  param will be set to null
-  //  *
-  //  * @param id
-  //  * @param data
-  //  */
-  // public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
-  //   const parsedId = id
-
-  //   const value = await this.repository.findById(parsedId)
-
-  //   const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
-
-  //   Object.keys(flatValue).forEach(key => {
-  //     if (key !== 'id') {
-  //       flatValue[key] = null
-  //     }
-  //   })
-
-  //   const nullObject = Objects.nest(flatValue)
-
-  //   const newValue = { ...nullObject, ...data }
-
-  //   delete newValue.created
-  //   delete newValue.updated
-
-  //   const entity = { ...newValue /* ...{ updated: new Date() } */ }
-
-  //   await this.repository.update(entity)
-
-  //   const val = await this.repository.findById(parsedId)
-
-  //   const returnValue = this.jsApplySelect([val]) as OutputDTO[]
-
-  //   return returnValue[0]
-  // }
-
-  // /**
-  //  *
-  //  * @param param0
-  //  */
-
-  // /**
-  //  *
-  //  * @param id
-  //  */
-  // public async deleteById(id: string): Promise<string> {
-  //   const parsedId = id
-
-  //   await this.repository.delete(parsedId)
-
-  //   return id
-  // }
-
-  // /**
-  //  *
-  //  * @param id
-  //  */
-  // public async findById(id: string): Promise<OutputDTO> {
-  //   const parsedId = id
-
-  //   const data = await this.repository.findById(parsedId)
-
-  //   const result = this.jsApplySelect(data) as OutputDTO[]
-
-  //   if (result.length === 0) {
-  //     return null
-  //   }
-
-  //   return result[0]
-  // }
-
-  // public async findByIds(ids: string[]): Promise<OutputDTO[] | null> {
-  //   const data = await this.raw().where('id', 'in', ids).get()
-  //   if (data.empty) {
-  //     return null
-  //   }
-  //   const res = []
-  //   data.forEach(doc => {
-  //     res.push(doc.data())
-  //   })
-  //   const results = this.jsApplySelect(res) as OutputDTO[]
-
-  //   return results
-  // }
-
-  // /**
-  //  *
-  //  */
-  // private getPopulate() {
-  //   const populate = []
-  //   this.populateArray.forEach(relation => {
-  //     if (typeof relation === 'string') {
-  //       populate.push({ relation })
-  //     } else if (Array.isArray(relation)) {
-  //       relation.forEach(nestedRelation => {
-  //         if (typeof nestedRelation === 'string') {
-  //           populate.push({ relation: nestedRelation })
-  //         } else if (typeof nestedRelation === 'object') {
-  //           populate.push(nestedRelation)
-  //         }
-  //       })
-  //     } else if (typeof relation === 'object') {
-  //       populate.push(relation)
-  //     }
-  //   })
-
-  //   return populate
-  // }
 }
