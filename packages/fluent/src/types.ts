@@ -25,7 +25,11 @@ export type QueryOrderSelector<T> = Partial<{
 }>
 
 export type QueryOperations<T> = {
-  [key in LogicOperator]: T
+  [key in LogicOperator]: key extends LogicOperator.in
+    ? T[]
+    : key extends LogicOperator.notIn
+    ? T[]
+    : T
 }
 
 export type QueryWhereFitler<T> = Partial<{

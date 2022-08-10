@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.2
+
+### Patch Changes
+
+- Fix type for in Operation
+
 ## 0.7.1
 
 ### Patch Changes
