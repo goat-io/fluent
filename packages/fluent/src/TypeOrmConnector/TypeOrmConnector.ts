@@ -1530,6 +1530,10 @@ export class TypeOrmConnector<
     const selected = Objects.flatten(select || {})
 
     for (const [index, k] of Object.keys(selected).entries()) {
+      // TODO: this will fail with nested fields as
+      // breed
+      // breed.family => breedFamily
+      // we must not include breed
       const field = Strings.camel(`${k}`)
       const search = `${queryAlias}.${field}`
 
@@ -1562,9 +1566,22 @@ export class TypeOrmConnector<
     }
 
     for (const relation of Object.keys(include)) {
+      // i.e To make this code more understandable
+      // table "users" has many "cars"
+
+      // For a first level query, represents "users"
       const self = selfReference || this
+
+      // All information about the users[cars] relation
       const dbRelation = self.modelRelations[relation]
+
+      // The "cars" table repository
+      // this will be use for possible recursive queries
       const newSelf = self[relation]()
+
+      // Extract new query for this included relationship
+      const fluentRelatedQuery =
+        include[relation] === true ? {} : include[relation]
 
       if (!dbRelation) {
         throw new Error(
@@ -1573,116 +1590,78 @@ export class TypeOrmConnector<
       }
 
       if (dbRelation.isManyToOne) {
-        const fluentRelatedQuery =
-          include[relation] === true ? {} : include[relation]
+        // We now have the opposite "cars" has one "users"
 
+        // "cars"
+        // Or users___cars if it comes from a nested relation
         const leftSideTableName = queryBuilder.alias
+
+        // "cars.userId"
+        // users___cars.userId (if nested)
         const leftSideForeignKey = `${leftSideTableName}.${dbRelation.joinColumns[0].propertyPath}`
 
+        // "cars"
+        // We cannot use leftSideTableName in case we are in a nested query
         const parentRelationName = dbRelation.inverseSidePropertyRelationPath
-        const rightSideTableName = `${queryBuilder.alias}_${parentRelationName}_${relation}`
-        const rightSidePrimaryKey = `${rightSideTableName}__id`
 
+        // Right side considering nested relations
+        // users___cars___cars___user
+        const rightSideTableName = `${queryBuilder.alias}___${parentRelationName}___${relation}`
+
+        // Double __ for the id because of... WHY NOT?
+        const rightSidePrimaryKey = `${rightSideTableName}_id`
+
+        // Now we need to decide which properties we want to select from the related model
+        // If the query has some {select: [x]: true}
+        const selectedKeysArray = fluentRelatedQuery.select
+          ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
+          : []
+        const selectedKeys = new Set(selectedKeysArray)
+
+        // Filter out selected keys
+        const selectableKeys = newSelf.outputKeys
+          .map(key => {
+            // To avoid selecting keys that are actually
+            // relations in Typeorm
+            if (typeof newSelf[key] !== 'function') {
+              return Strings.camel(`${key}`)
+            }
+          })
+          .filter(k => {
+            // If we selected anything, we pass that
+            if (selectedKeys.size) {
+              return !!k && selectedKeys.has(k)
+            }
+            // If not, we pass any key that is not nullish
+            return !!k
+          })
+
+        // Finally we get to do the LEFT JOIN
         queryBuilder.leftJoin(
           qb => {
             qb.from(dbRelation.targetClass, rightSideTableName)
 
+            // Recursive query!
             this.customTypeOrmRelatedSearch(fluentRelatedQuery, qb, newSelf)
 
-            return qb
-          },
-          // Right side of the JOIN table name
-          // The name of the table that comes from the query above!
-          rightSideTableName,
-          `${leftSideForeignKey} = ${rightSidePrimaryKey}`
-        )
+            // Force select the foreignKey, otherwise LEFT JOIN ON will not work
+            qb.addSelect(`"${rightSideTableName}"._id`, rightSidePrimaryKey)
 
-        // const localField = dbRelation.joinColumns[0].propertyPath
-        // lookUps.push({
-        //   $addFields: {
-        //     [`${localField}_object`]: { $toObjectId: `$${localField}` }
-        //   }
-        // })
-        // // Include Id in the results as we use it in every fluent query
-        // lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
-
-        // lookUps.push({
-        //   $lookup: {
-        //     from: dbRelation.tableName,
-        //     localField: `${localField}_object`,
-        //     foreignField: '_id',
-        //     as: dbRelation.propertyName,
-        //     pipeline: [
-        //       { $addFields: { id: { $toString: '$_id' } } }
-        //       //{ $limit: 2 }
-        //     ]
-        //   }
-        // })
-
-        // lookUps.push({ $unwind: `$${dbRelation.propertyName}` })
-      }
-
-      if (dbRelation.isOneToMany) {
-        const leftSideTableName = queryBuilder.alias
-        const leftSidePrimaryKey = `${leftSideTableName}.id`
-        const rightSideTableName = `${queryBuilder.alias}_${relation}`
-        const rightSideForeignKey = `"${rightSideTableName}".${dbRelation.inverseSidePropertyPath}`
-
-        const customTableName = `${leftSideTableName}_${relation}`
-
-        const fluentRelatedQuery =
-          include[relation] === true ? {} : include[relation]
-
-        const selectedKeysArray = fluentRelatedQuery.select
-          ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
-          : []
-
-        const selectedKeys = new Set(selectedKeysArray)
-
-        console.log('SELECTED KEYS', selectedKeys)
-        const selectableKeys = newSelf.outputKeys
-          .map(key => {
-            if (typeof newSelf[key] !== 'function') {
-              return key
-            }
-          })
-          .filter(k => {
-            if (selectedKeys.size) {
-              return !!k && selectedKeys.has(k)
-            }
-            return !!k
-          })
-
-        queryBuilder.leftJoin(
-          qb => {
-            qb.from(dbRelation.targetClass, `${customTableName}`)
-            this.customTypeOrmRelatedSearch(fluentRelatedQuery, qb, newSelf)
-
-            // Force select the foreignKey, otherwise join will not work
-            qb.addSelect(
-              rightSideForeignKey,
-              `${leftSideTableName}___${relation}_${dbRelation.inverseSidePropertyPath}`
-            )
-
-            // One select for each selectable Field
+            //One select for each selectable Field
             for (const key of selectableKeys) {
-              // skip the foreign key, as it is already selected
-              if (key === dbRelation.inverseSidePropertyPath) {
-                continue
-              }
-
+              // skip the foreign key, as it is already selected above
               if (key === 'id') {
-                // 'id' keys in Typeorm are '_id'
-                qb.addSelect(
-                  `"${customTableName}"._id`,
-                  `${leftSideTableName}___${relation}_id`
-                )
                 continue
               }
 
+              if (key === 'breed') {
+                continue
+              }
+
+              // In all other cases, we just follow the format
               qb.addSelect(
-                `"${customTableName}".${key}`,
-                `${leftSideTableName}___${relation}_${key}`
+                `"${rightSideTableName}".${key}`,
+                `${rightSideTableName}_${key}`
               )
             }
 
@@ -1691,12 +1670,151 @@ export class TypeOrmConnector<
           // Right side of the JOIN table name
           // The name of the table that comes from the query above!
           rightSideTableName,
+          // Keys to JOIN ON
+          // This must account for all aliases used above
+          `${leftSideForeignKey} = ${rightSidePrimaryKey}`
+        )
+
+        // Finally we can select all selectable fields, but from the Outer query
+        const possibleKeys = queryBuilder.getSql().split('AS')
+        const keys: Set<string> = new Set([])
+        for (const stringKey of possibleKeys) {
+          if (stringKey.includes('SELECT')) {
+            continue
+          }
+          keys.add(stringKey.split('"')[1])
+        }
+
+        // Finally we can select all selectable fields, but from the Outer query
+        for (const key of keys) {
+          if (key === 'breed') {
+            continue
+          }
+          queryBuilder.addSelect(key)
+        }
+
+        // DONE
+      }
+
+      if (dbRelation.isOneToMany) {
+        // "users"
+        const leftSideTableName = queryBuilder.alias
+
+        // As it is one to many, primary key will always be "id"
+        // users.id
+        const leftSidePrimaryKey = `${leftSideTableName}.id`
+
+        // "users___cars"
+        const rightSideTableName = `${leftSideTableName}___${relation}`
+
+        // "users___cars".userId
+        const rightSideForeignKey = `"${rightSideTableName}".${dbRelation.inverseSidePropertyPath}`
+
+        // Now we need to decide which properties we want to select from the related model
+        // If the query has some {select: [x]: true}
+        const selectedKeysArray = fluentRelatedQuery.select
+          ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
+          : []
+        const selectedKeys = new Set(selectedKeysArray)
+
+        // Filter out selected keys
+        const selectableKeys = newSelf.outputKeys
+          .map(key => {
+            // To avoid selecting keys that are actually
+            // relations in Typeorm
+            if (typeof newSelf[key] !== 'function') {
+              return key
+            }
+          })
+          .filter(k => {
+            // If we selected anything, we pass that
+            if (selectedKeys.size) {
+              return !!k && selectedKeys.has(k)
+            }
+            // If not, we pass any key that is not nullish
+            return !!k
+          })
+
+        //////////////////////////////////////////
+        // Tired already? me too hang on in there!
+        //////////////////////////////////////////
+
+        // Finally we get to do the LEFT JOIN
+        queryBuilder.leftJoin(
+          // As we have custom filters we create a new table from this
+          // nested Query Builder
+          qb => {
+            // Create a new table FROM table based on the "cars" table and assign an alias
+            qb.from(dbRelation.targetClass, `${rightSideTableName}`)
+
+            //////////////////////////////////////////////////////////////////
+            //  This is the fun part, the query is recursive! :S
+            //  You can either read the full code again, or just continue
+            //  hint: you should continue
+            //////////////////////////////////////////////////////////////////
+            this.customTypeOrmRelatedSearch(fluentRelatedQuery, qb, newSelf)
+
+            console.log('qb.getParameters()', qb.getParameters())
+
+            // Force select the foreignKey, otherwise LEFT JOIN ON will not work
+            qb.addSelect(
+              rightSideForeignKey,
+              `${leftSideTableName}___${relation}_${dbRelation.inverseSidePropertyPath}`
+            )
+
+            // One select for each selectable Field
+            for (const key of selectableKeys) {
+              // skip the foreign key, as it is already selected above
+              if (key === dbRelation.inverseSidePropertyPath) {
+                continue
+              }
+
+              if (key === 'id') {
+                // 'id' keys in TypeormSQL are '_id'
+                qb.addSelect(
+                  `"${rightSideTableName}"._id`,
+                  `${leftSideTableName}___${relation}_id`
+                )
+                continue
+              }
+
+              // In all other cases, we just follow the format
+              qb.addSelect(
+                `"${rightSideTableName}".${key}`,
+                `${leftSideTableName}___${relation}_${key}`
+              )
+            }
+
+            return qb
+          },
+          // Right side of the JOIN table name
+          // The name of the table that comes from the nested query above!
+          rightSideTableName,
+
+          // Keys to JOIN ON
+          // This must account for all aliases used above
           `${leftSideTableName}___${relation}_${dbRelation.inverseSidePropertyPath} = ${leftSidePrimaryKey}`
         )
 
-        for (const key of selectableKeys) {
-          queryBuilder.addSelect(`${leftSideTableName}___${relation}_${key}`)
+        const possibleKeys = queryBuilder.getSql().split('AS')
+
+        const keys: Set<string> = new Set([])
+        for (const stringKey of possibleKeys) {
+          if (stringKey.includes('SELECT')) {
+            continue
+          }
+          keys.add(stringKey.split('"')[1])
         }
+        console.log({ keys })
+        console.log(queryBuilder.alias)
+        // Finally we can select all selectable fields, but from the Outer query
+        for (const key of keys) {
+          if (key.startsWith(`${queryBuilder.alias}___`)) {
+            queryBuilder.addSelect(key)
+          }
+        }
+
+        // DONE
       }
 
       // if (dbRelation.isManyToMany) {

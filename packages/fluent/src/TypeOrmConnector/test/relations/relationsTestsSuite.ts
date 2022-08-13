@@ -228,16 +228,35 @@ export const relationsTestSuite = (
     const searchUserWithRelations = await User.findMany({
       select: {
         id: true,
-        name: true,
-        age: true
+        name: true
       },
       where: {
         id: insertedUser.id
       },
       include: {
         cars: {
+          select: {
+            name: true
+          },
+          include: {
+            user: {
+              include: {
+                cars: {
+                  select: {
+                    name: true
+                  },
+                  include: {
+                    user: true
+                  },
+                  where: {
+                    name: 'My new car 4'
+                  }
+                }
+              }
+            }
+          },
           where: {
-            name: 'My'
+            name: 'My new car 4'
           }
         }
       }
