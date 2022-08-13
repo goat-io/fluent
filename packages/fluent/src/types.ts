@@ -14,7 +14,7 @@ export type Concrete<Type> = {
 
 export type QueryFieldSelector<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
-    ? Unpacked<Partial<QueryFieldSelector<Concrete<T>[K]>>>
+    ? boolean | Unpacked<Partial<QueryFieldSelector<Concrete<T>[K]>>>
     : boolean | undefined
 }>
 
@@ -45,7 +45,9 @@ export type QueryInsert<T> = {
 export type ModelRelation<T> = T
 
 export type QueryIncludeRelation<T> = {
-  [K in keyof Partial<T>]: FluentQuery<Unpacked<T[K]>> | boolean
+  [K in keyof Partial<T>]:
+    | (FluentQuery<Unpacked<T[K]>> & { withPivot?: boolean })
+    | boolean
 }
 
 export type FluentQuery<T> = {
@@ -59,6 +61,7 @@ export type FluentQuery<T> = {
   orderBy?: QueryOrderSelector<T>[]
   limit?: number
   offset?: number
+  take?: number
   include?: QueryIncludeRelation<T>
   paginated?: Paginator
 }

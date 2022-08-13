@@ -18,11 +18,11 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 let tearDown: () => Promise<void>
 
 beforeAll(async () => {
-  const { databaseURL, kill } = await getDatabase()
+  const { kill, port } = await getDatabase()
+  MYSQLDataSource.setOptions({ port })
 
   tearDown = kill
 
-  // MYSQLDataSource.setOptions({port: 3307})
   await Fluent.initialize([MYSQLDataSource], dbEntities)
 })
 

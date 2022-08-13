@@ -1,7 +1,5 @@
-import { DataSource, ObjectID } from 'typeorm'
-import { TypedPathWrapper } from 'typed-path'
-import { Arrays, Ids } from '@goatlab/js-utils'
-import type { Primitives } from './types'
+import { DataSource } from 'typeorm'
+import { Arrays } from '@goatlab/js-utils'
 
 interface RelationshipLoader {
   data: any[]

@@ -1,23 +1,30 @@
 import { CarsEntity } from './car.entity'
-import { CarsEntitySchema, CarsEntityInputSchema } from './car.schema'
+import { carInputSchema, CarDtoInput } from './car.schema'
 import { TypeOrmConnector } from '../../../TypeOrmConnector'
 import { UserRepository } from '../user/user.repositoryTypeOrm'
 import { MemoryDataSource } from '../../sqlite/memoryDataSource'
-import { UsersEntity } from '../user/user.entity'
+import { CarDtoOutput, carOutputSchema } from './car.output.schema'
 
 export class CarsRepository extends TypeOrmConnector<
   CarsEntity,
-  CarsEntityInputSchema
+  CarDtoInput,
+  CarDtoOutput
 > {
   constructor() {
     super({
       entity: CarsEntity,
       dataSource: MemoryDataSource,
-      inputSchema: CarsEntitySchema
+      inputSchema: carInputSchema,
+      outputSchema: carOutputSchema
     })
   }
 
   public user = () =>
+    this.belongsTo({
+      repository: UserRepository
+    })
+
+  public anotherRelation = () =>
     this.belongsTo({
       repository: UserRepository
     })

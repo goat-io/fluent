@@ -6,7 +6,7 @@ import {
   LogicOperator,
   Primitives,
   PrimitivesArray,
-  QueryOutput,
+  QueryOutput
 } from './../types'
 import {
   Equal,
@@ -24,9 +24,11 @@ import {
   MongoRepository,
   DeepPartial,
   FindOptionsWhere,
-  FindOptionsRelations
+  FindOptionsRelations,
+  SelectQueryBuilder,
+  Brackets
 } from 'typeorm'
-import { Ids, Objects } from '@goatlab/js-utils'
+import { Ids, Objects, Strings } from '@goatlab/js-utils'
 import { BaseConnector, FluentConnectorInterface } from '../BaseConnector'
 import { getOutputKeys } from '../outputKeys'
 import type { AnyObject, FluentQuery, PaginatedData } from '../types'
@@ -59,6 +61,9 @@ export const getRelationsFromModelGenerator = (
   }
 }
 
+const queryId = Ids.customId(
+  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+)
 export interface TypeOrmConnectorParams<Input, Output> {
   entity: any
   dataSource: DataSource
@@ -169,11 +174,19 @@ export class TypeOrmConnector<
     if (this.isMongoDB && query?.include) {
       const mongoRelationResult = this.customMongoRelatedSearch(query)
 
-      return mongoRelationResult as unknown as QueryOutput<
-        T,
-        ModelDTO,
-        OutputDTO
-      >
+      return mongoRelationResult
+    }
+
+    const requiresCustomSQLQuery =
+      query?.include && Object.keys(query.include).length
+
+    if (requiresCustomSQLQuery) {
+      let result = await this.customTypeOrmRelatedSearch(query).getRawMany()
+
+      console.log({ result })
+
+      //TODO: We have to validate the results!
+      return result as unknown as QueryOutput<T, ModelDTO, OutputDTO>
     }
 
     const generatedQuery = this.generateTypeOrmQuery(query)
@@ -677,6 +690,56 @@ export class TypeOrmConnector<
    * @param query
    * @returns
    */
+  private customTypeOrmRelatedSearch<T extends FluentQuery<ModelDTO>>(
+    query?: T,
+    customQueryRecursive?: SelectQueryBuilder<ModelDTO>,
+    recursiveRepository?: any
+  ): SelectQueryBuilder<ModelDTO> {
+    const queryAlias =
+      customQueryRecursive?.alias || `${this.repository.metadata.tableName}`
+
+    let customQuery =
+      customQueryRecursive || this.raw().createQueryBuilder(queryAlias)
+
+    customQuery = this.getTypeOrmQueryBuilderWhere(
+      customQuery,
+      queryAlias,
+      query?.where
+    )
+    customQuery = this.getTypeOrmQueryBuilderSelect(
+      customQuery,
+      queryAlias,
+      query?.select
+    )
+
+    customQuery = this.getTypeOrmQueryBuilderSubqueries(
+      customQuery,
+      recursiveRepository,
+      query?.include
+    )
+
+    if (query?.limit) {
+      customQuery = customQuery.limit(query?.limit)
+    }
+
+    if (query?.offset) {
+      customQuery = customQuery.offset(query?.offset)
+    }
+
+    if (query?.take) {
+      customQuery = customQuery.take(query?.take)
+    }
+
+    console.log(customQuery.getSql())
+
+    return customQuery
+  }
+
+  /**
+   *
+   * @param query
+   * @returns
+   */
   private generateTypeOrmQuery(query?: FluentQuery<ModelDTO>): FindManyOptions {
     let filter: FindManyOptions = {}
 
@@ -695,20 +758,55 @@ export class TypeOrmConnector<
 
     if (query?.select) {
       const selectQuery = Objects.flatten(query?.select || {})
+      filter.select = selectQuery
 
       if (this.isMongoDB) {
         filter.select = Object.keys(selectQuery)
-      } else {
-        filter.select = selectQuery
       }
     }
 
-    filter.order = this.getOrderBy(query?.orderBy)
+    if (query?.orderBy) {
+      filter.order = this.getOrderBy(query?.orderBy)
+    }
 
-    // TODO: we will bring the full relation Object, we should be able to filter down properties
-    filter.relations = query?.include as FindOptionsRelations<any>
+    if (query?.include) {
+      filter.relations = this.extractInclude(
+        query?.include
+      ) as FindOptionsRelations<any>
+    }
 
     return filter
+  }
+
+  /**
+   *
+   * @param include
+   * @returns
+   */
+  protected extractInclude(include: FluentQuery<ModelDTO>['include']) {
+    if (!include) {
+      return undefined
+    }
+    const flatten = Objects.flatten(include)
+    const extractedInclude: AnyObject = {}
+    console.log(flatten)
+    for (const key of Object.keys(flatten)) {
+      if (key.includes('include')) {
+        const parsedKey = key.split('.include')
+
+        let acc = ''
+        for (const entity of parsedKey) {
+          extractedInclude[`${acc}${entity}`] = true
+          acc = acc + entity
+        }
+
+        continue
+      }
+
+      extractedInclude[key] = true
+    }
+    console.log({ extractedInclude })
+    return extractedInclude
   }
 
   /**
@@ -719,19 +817,6 @@ export class TypeOrmConnector<
   protected getTypeOrmWhere(
     where?: FluentQuery<ModelDTO>['where']
   ): FindManyOptions['where'] {
-    /*
-    TODO: related Searches
-    if (this.relationQuery && this.relationQuery.data) {
-      const ids = this.relationQuery.data.map(d => d.id)
-
-      andFilters.push([
-        this.relationQuery.relation.inverseSidePropertyPath,
-        'in',
-        ids
-      ])
-    }
-    */
-
     if (!where || Object.keys(where).length === 0) {
       return {}
     }
@@ -1139,5 +1224,558 @@ export class TypeOrmConnector<
     const filtered = this.clearEmpties(Filters.where)
 
     return filtered
+  }
+  /**
+   *
+   * @param where
+   * @returns
+   */
+  protected getTypeOrmQueryBuilderWhere(
+    queryBuilder: SelectQueryBuilder<ModelDTO>,
+    queryAlias: string,
+    where?: FluentQuery<ModelDTO>['where']
+  ): SelectQueryBuilder<ModelDTO> {
+    if (!where || Object.keys(where).length === 0) {
+      return queryBuilder
+    }
+
+    const orConditions = this.extractConditions(where['OR'])
+    const andConditions = this.extractConditions(where['AND'])
+
+    const copy = Objects.clone(where)
+    if (!!copy['AND']) {
+      delete copy['AND']
+    }
+
+    if (!!copy['OR']) {
+      delete copy['OR']
+    }
+
+    const rootLevelConditions = this.extractConditions([copy])
+
+    queryBuilder.andWhere(
+      new Brackets(qbAnd => {
+        // All AND level conditions (root and AND)
+        for (const condition of andConditions) {
+          const { element, operator, value } = condition
+          const customId = queryId(4)
+
+          switch (operator) {
+            case LogicOperator.equals:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} = :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.isNot:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} != :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.greaterThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} > :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.greaterOrEqualThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} >= :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.lessThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} < :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.lessOrEqualThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} <= :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.in:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} IN :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.notIn:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} NOT IN :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.exists:
+              qbAnd.andWhere(`${queryAlias}.${element} IS NOT NULL`)
+              break
+            case LogicOperator.notExists:
+              qbAnd.andWhere(`${queryAlias}.${element} IS NULL`)
+              break
+            case LogicOperator.regexp:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} LIKE :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+          }
+        }
+
+        for (const condition of rootLevelConditions) {
+          const { element, operator, value } = condition
+          const customId = queryId(4)
+
+          switch (operator) {
+            case LogicOperator.equals:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} = :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.isNot:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} != :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.greaterThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} > :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.greaterOrEqualThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} >= :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.lessThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} < :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.lessOrEqualThan:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} <= :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.in:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} IN :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.notIn:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} NOT IN :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+            case LogicOperator.exists:
+              qbAnd.andWhere(`${queryAlias}.${element} IS NOT NULL`)
+              break
+            case LogicOperator.notExists:
+              qbAnd.andWhere(`${queryAlias}.${element} IS NULL`)
+              break
+            case LogicOperator.regexp:
+              qbAnd.andWhere(
+                `${queryAlias}.${element} LIKE :${element}_${customId}`,
+                {
+                  [`${element}_${customId}`]: value
+                }
+              )
+              break
+          }
+        }
+
+        qbAnd.andWhere(
+          new Brackets(qbOr => {
+            for (const condition of orConditions) {
+              const { element, operator, value } = condition
+              const customId = queryId(4)
+
+              switch (operator) {
+                case LogicOperator.equals:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} = :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.isNot:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} != :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.greaterThan:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} > :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.greaterOrEqualThan:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} >= :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.lessThan:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} < :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.lessOrEqualThan:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} <= :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.in:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} IN :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.notIn:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} NOT IN :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+                case LogicOperator.exists:
+                  qbOr.andWhere(`${queryAlias}.${element} IS NOT NULL`)
+                  break
+                case LogicOperator.notExists:
+                  qbOr.andWhere(`${queryAlias}.${element} IS NULL`)
+                  break
+                case LogicOperator.regexp:
+                  qbOr.andWhere(
+                    `${queryAlias}.${element} LIKE :${element}_${customId}`,
+                    {
+                      [`${element}_${customId}`]: value
+                    }
+                  )
+                  break
+              }
+            }
+          })
+        )
+      })
+    )
+    return queryBuilder
+  }
+
+  protected getTypeOrmQueryBuilderSelect(
+    queryBuilder: SelectQueryBuilder<ModelDTO>,
+    queryAlias: string,
+    select?: FluentQuery<ModelDTO>['select']
+  ): SelectQueryBuilder<ModelDTO> {
+    const selected = Objects.flatten(select || {})
+
+    for (const [index, k] of Object.keys(selected).entries()) {
+      const field = Strings.camel(`${k}`)
+      const search = `${queryAlias}.${field}`
+
+      // We can tell if the field is a "related model" by checking
+      // THIS for the name of the relation
+      const isRelatedField = !!this[field]
+
+      if (isRelatedField) {
+        continue
+      }
+
+      if (index === 0) {
+        queryBuilder.select(search)
+        continue
+      }
+
+      queryBuilder.addSelect(search)
+    }
+
+    return queryBuilder
+  }
+
+  protected getTypeOrmQueryBuilderSubqueries(
+    queryBuilder: SelectQueryBuilder<ModelDTO>,
+    selfReference: any,
+    include?: FluentQuery<ModelDTO>['include']
+  ): SelectQueryBuilder<ModelDTO> {
+    if (!include) {
+      return queryBuilder
+    }
+
+    for (const relation of Object.keys(include)) {
+      const self = selfReference || this
+      const dbRelation = self.modelRelations[relation]
+      const newSelf = self[relation]()
+
+      if (!dbRelation) {
+        throw new Error(
+          `The relation ${relation} is not properly defined. Check your entity and repository`
+        )
+      }
+
+      if (dbRelation.isManyToOne) {
+        const fluentRelatedQuery =
+          include[relation] === true ? {} : include[relation]
+
+        const leftSideTableName = queryBuilder.alias
+        const leftSideForeignKey = `${leftSideTableName}.${dbRelation.joinColumns[0].propertyPath}`
+
+        const parentRelationName = dbRelation.inverseSidePropertyRelationPath
+        const rightSideTableName = `${queryBuilder.alias}_${parentRelationName}_${relation}`
+        const rightSidePrimaryKey = `${rightSideTableName}__id`
+
+        queryBuilder.leftJoin(
+          qb => {
+            qb.from(dbRelation.targetClass, rightSideTableName)
+
+            this.customTypeOrmRelatedSearch(fluentRelatedQuery, qb, newSelf)
+
+            return qb
+          },
+          // Right side of the JOIN table name
+          // The name of the table that comes from the query above!
+          rightSideTableName,
+          `${leftSideForeignKey} = ${rightSidePrimaryKey}`
+        )
+
+        // const localField = dbRelation.joinColumns[0].propertyPath
+        // lookUps.push({
+        //   $addFields: {
+        //     [`${localField}_object`]: { $toObjectId: `$${localField}` }
+        //   }
+        // })
+        // // Include Id in the results as we use it in every fluent query
+        // lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
+
+        // lookUps.push({
+        //   $lookup: {
+        //     from: dbRelation.tableName,
+        //     localField: `${localField}_object`,
+        //     foreignField: '_id',
+        //     as: dbRelation.propertyName,
+        //     pipeline: [
+        //       { $addFields: { id: { $toString: '$_id' } } }
+        //       //{ $limit: 2 }
+        //     ]
+        //   }
+        // })
+
+        // lookUps.push({ $unwind: `$${dbRelation.propertyName}` })
+      }
+
+      if (dbRelation.isOneToMany) {
+        const leftSideTableName = queryBuilder.alias
+        const leftSidePrimaryKey = `${leftSideTableName}.id`
+        const rightSideTableName = `${queryBuilder.alias}_${relation}`
+        const rightSideForeignKey = `"${rightSideTableName}".${dbRelation.inverseSidePropertyPath}`
+
+        const customTableName = `${leftSideTableName}_${relation}`
+
+        const fluentRelatedQuery =
+          include[relation] === true ? {} : include[relation]
+
+        const selectedKeysArray = fluentRelatedQuery.select
+          ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
+          : []
+
+        const selectedKeys = new Set(selectedKeysArray)
+
+        console.log('SELECTED KEYS', selectedKeys)
+        const selectableKeys = newSelf.outputKeys
+          .map(key => {
+            if (typeof newSelf[key] !== 'function') {
+              return key
+            }
+          })
+          .filter(k => {
+            if (selectedKeys.size) {
+              return !!k && selectedKeys.has(k)
+            }
+            return !!k
+          })
+
+        queryBuilder.leftJoin(
+          qb => {
+            qb.from(dbRelation.targetClass, `${customTableName}`)
+            this.customTypeOrmRelatedSearch(fluentRelatedQuery, qb, newSelf)
+
+            // Force select the foreignKey, otherwise join will not work
+            qb.addSelect(
+              rightSideForeignKey,
+              `${leftSideTableName}___${relation}_${dbRelation.inverseSidePropertyPath}`
+            )
+
+            // One select for each selectable Field
+            for (const key of selectableKeys) {
+              // skip the foreign key, as it is already selected
+              if (key === dbRelation.inverseSidePropertyPath) {
+                continue
+              }
+
+              if (key === 'id') {
+                // 'id' keys in Typeorm are '_id'
+                qb.addSelect(
+                  `"${customTableName}"._id`,
+                  `${leftSideTableName}___${relation}_id`
+                )
+                continue
+              }
+
+              qb.addSelect(
+                `"${customTableName}".${key}`,
+                `${leftSideTableName}___${relation}_${key}`
+              )
+            }
+
+            return qb
+          },
+          // Right side of the JOIN table name
+          // The name of the table that comes from the query above!
+          rightSideTableName,
+          `${leftSideTableName}___${relation}_${dbRelation.inverseSidePropertyPath} = ${leftSidePrimaryKey}`
+        )
+
+        for (const key of selectableKeys) {
+          queryBuilder.addSelect(`${leftSideTableName}___${relation}_${key}`)
+        }
+      }
+
+      // if (dbRelation.isManyToMany) {
+      //   const relatedTableName = dbRelation.tableName
+      //   const pivotTableName =
+      //     dbRelation.joinColumns[0].relationMetadata.joinTableName
+      //   const pivotForeignField = dbRelation.joinColumns[0].propertyPath
+      //   const inverseForeignField =
+      //     dbRelation.inverseJoinColumns[0].propertyPath
+
+      //   if (
+      //     !relatedTableName ||
+      //     !pivotTableName ||
+      //     !pivotForeignField ||
+      //     !inverseForeignField
+      //   ) {
+      //     throw new Error(
+      //       `Your many to many relation is not properly set up. Please check both your models and schema for relation: ${relation}`
+      //     )
+      //   }
+
+      //   lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
+      //   lookUps.push({
+      //     $addFields: { parent_string_id: { $toString: '$_id' } }
+      //   })
+      //   lookUps.push({
+      //     $lookup: {
+      //       from: pivotTableName,
+      //       localField: 'parent_string_id',
+      //       foreignField: pivotForeignField,
+      //       as: dbRelation.propertyName,
+      //       pipeline: [
+      //         // This is the pivot table
+      //         { $addFields: { id: { $toString: '$_id' } } },
+      //         {
+      //           $addFields: {
+      //             [`${inverseForeignField}_object`]: {
+      //               $toObjectId: `$${inverseForeignField}`
+      //             }
+      //           }
+      //         },
+      //         // The other side of the relationShip
+      //         {
+      //           $lookup: {
+      //             from: relatedTableName,
+      //             localField: `${inverseForeignField}_object`,
+      //             foreignField: '_id',
+      //             pipeline: [
+      //               { $addFields: { id: { $toString: '$_id' } } }
+      //               // Here we could add more filters like
+      //               //{ $limit: 2 }
+      //             ],
+      //             as: dbRelation.propertyName
+      //           }
+      //         },
+      //         { $unwind: `$${dbRelation.propertyName}` },
+      //         // Select (ish)
+      //         {
+      //           $project: {
+      //             [dbRelation.propertyName]: `$${dbRelation.propertyName}`,
+      //             pivot: '$$ROOT'
+      //           }
+      //         },
+      //         {
+      //           $replaceRoot: {
+      //             newRoot: {
+      //               $mergeObjects: ['$$ROOT', `$${dbRelation.propertyName}`]
+      //             }
+      //           }
+      //         },
+      //         { $project: { [dbRelation.propertyName]: 0 } }
+      //         // Here we could add more filters like
+      //         //{ $limit: 2 }
+      //       ]
+      //     }
+      //   })
+      // }
+    }
+
+    return queryBuilder
   }
 }

@@ -2,8 +2,10 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { CarsEntity } from '../relations/car/car.entity'
 import { UsersEntity } from '../relations/user/user.entity'
 import {
-  UsersEntityInputSchema,
-  UsersEntitySchema
+  userInputSchema,
+  userOutputSchema,
+  UsersDtoIn,
+  UsersDtoOut
 } from '../relations/user/user.schema'
 import { CarsRepository } from './car.mysql.repository'
 import { MYSQLDataSource } from './mysqlDataSource'
@@ -12,13 +14,15 @@ import { RoleUsersRepository } from './roles_user.mysql.repository'
 
 export class UserRepository extends TypeOrmConnector<
   UsersEntity,
-  UsersEntityInputSchema
+  UsersDtoIn,
+  UsersDtoOut
 > {
   constructor() {
     super({
       entity: UsersEntity,
       dataSource: MYSQLDataSource,
-      inputSchema: UsersEntitySchema
+      inputSchema: userInputSchema,
+      outputSchema: userOutputSchema
     })
   }
 

@@ -16,7 +16,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@goatlab/js-utils": "^0.8.1",
+    "@goatlab/js-utils": "^0.8.3",
     "@loopback/metadata": "^4.1.2",
     "bson": "^4.6.2",
     "graphql": "^16.3.0",

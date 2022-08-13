@@ -1,15 +1,10 @@
 import { z } from 'zod'
 
-export const CarsEntitySchema = z.object({
+export const carInputSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
-  userId: z.string().optional(),
-  // We need to manually define this type or we would create a recursion
-  user: z.object({
-    id: z.string().optional(),
-    name: z.string(),
-    age: z.number().optional(),
-  }).optional()
+  userId: z.string().optional()
 })
 
-export type CarsEntityInputSchema = z.infer<typeof CarsEntitySchema>
+export type CarDtoInput = z.infer<typeof carInputSchema>
+
