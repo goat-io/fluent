@@ -22,20 +22,20 @@ import type {
   FindByIdFilter,
   SingleQueryOutput
 } from './types'
-import {LogicOperator} from './types'
+import { LogicOperator } from './types'
 import { BaseConnector } from './BaseConnector'
 import { Collection } from '@goatlab/js-utils'
 import { f } from './decorators'
 import { Fluent } from './Fluent'
 import type { FluentConnectorInterface } from './BaseConnector'
 import type { SchemaObject } from './core/types'
-import { getRelationsFromModelGenerator, TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
+import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
 import { getOutputKeys } from './outputKeys'
 import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
-import {Cache} from './cache'
+import { Cache } from './cache'
 import { ValidationError } from 'class-validator'
-
+import { getRelationsFromModelGenerator } from './TypeOrmConnector/util/getRelationsFromModelGenerator'
 
 export { DataSource } from 'typeorm'
 export {

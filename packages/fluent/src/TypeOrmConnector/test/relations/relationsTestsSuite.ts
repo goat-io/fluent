@@ -205,12 +205,12 @@ export const relationsTestSuite = (
 
   test('Related - should load multiple relationships at once', async () => {
     const insertedUser = await User.insert({
-      name: 'testUser',
+      name: 'testUser1',
       age: 20
     })
 
     await User.insert({
-      name: 'anotherUser',
+      name: 'anotherUser 2',
       age: 24
     })
 
@@ -226,34 +226,16 @@ export const relationsTestSuite = (
     const associatedCar4 = await user.cars().associate({ name: 'My new car 4' })
 
     const searchUserWithRelations = await User.findMany({
-      select: {
-        id: true,
-        name: true
-      },
+      // Inner join
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
+        // Left Join
         cars: {
           select: {
+            id: true,
             name: true
-          },
-          include: {
-            user: {
-              include: {
-                cars: {
-                  select: {
-                    name: true
-                  },
-                  include: {
-                    user: true
-                  },
-                  where: {
-                    name: 'My new car 4'
-                  }
-                }
-              }
-            }
           },
           where: {
             name: 'My new car 4'
@@ -261,5 +243,7 @@ export const relationsTestSuite = (
         }
       }
     })
+
+    console.log(searchUserWithRelations)
   })
 }

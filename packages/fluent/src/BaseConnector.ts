@@ -1,4 +1,3 @@
-import { ObjectID } from 'typeorm'
 import { Objects, Ids, Collection } from '@goatlab/js-utils'
 import {
   FindByIdFilter,
@@ -14,7 +13,8 @@ import {
   QueryOutput,
   SingleQueryOutput
 } from './types'
-import { ObjectId } from 'bson'
+import { clearEmpties } from './TypeOrmConnector/util/clearEmpties'
+import { isAnyObject } from './TypeOrmConnector/util/isAnyObject'
 
 export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   // CREATE
@@ -78,7 +78,6 @@ export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   // softDelete(): Promise<T>
 }
 
-// tslint:disable-next-line: max-classes-per-file
 export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected outputKeys: string[]
 
@@ -168,7 +167,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       if (this.isMongoDB) {
         d['id'] = d['id'].toString()
       }
-      this.clearEmpties(Objects.deleteNulls(d))
+      clearEmpties(Objects.deleteNulls(d))
     })
 
     if (!found[0]) {
@@ -192,7 +191,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       if (this.isMongoDB) {
         d['id'] = d['id'].toString()
       }
-      this.clearEmpties(Objects.deleteNulls(d))
+      clearEmpties(Objects.deleteNulls(d))
     })
 
     if (!found[0]) {
@@ -319,7 +318,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       ...data
     }))
 
-    const existingIds = this.clearEmpties(relatedData.map(r => r.id))
+    const existingIds = clearEmpties(relatedData.map(r => r.id))
 
     const existingData = existingIds.length
       ? await this.findByIds(relatedData.map(r => r.id))
@@ -329,9 +328,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const insertQueries: any[] = []
 
     for (const related of relatedData) {
-      const exists = existingData.find(
-        (d: { id: string } & OutputDTO) => d.id === related.id
-      ) as { id: string } & OutputDTO
+      const exists = existingData.find((d: OutputDTO) => {
+        // We need to manually define the id field
+        const p = d as { id: string } & OutputDTO
+        p.id === related.id
+      }) as { id: string } & OutputDTO
 
       if (exists) {
         updateQueries.push(
@@ -477,137 +478,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   // TODO implement hasManyThrough
   protected hasManyThrough() {
     throw new Error('Method not implemented')
-  }
-
-  /**
-   * Deeply removes all empty and nullish values from a
-   * given object
-   * @param object
-   * @returns
-   */
-  protected clearEmpties(object) {
-    Object.entries(object).forEach(([k, v]: [any, any]) => {
-      if (v && typeof v === 'object') this.clearEmpties(v)
-      if (
-        (v && typeof v === 'object' && !Object.keys(v).length) ||
-        v === null ||
-        v === undefined ||
-        v.length === 0
-      ) {
-        if (Array.isArray(object)) {
-          // Do not remove Object ID
-          if (!(object[k] instanceof ObjectId)) {
-            object.splice(k, 1)
-          }
-        } else if (!(v instanceof Date) && !(v instanceof ObjectId)) {
-          delete object[k]
-        }
-      }
-    })
-    return object
-  }
-
-  /**
-   * Checks if the given value is a valid JS Object => {}
-   * @param val
-   * @returns
-   */
-  private isAnyObject(val: any): boolean {
-    return typeof val === 'object' && !Array.isArray(val) && val !== null
-  }
-
-  /**
-   * Transforms the nested object WHERE clause into an
-   * Array of clearly defined conditions
-   * @param conditions
-   * @returns
-   */
-  protected extractConditions(conditions: FluentQuery<ModelDTO>['where'][]) {
-    const accumulatedClauses: {
-      operator: LogicOperator
-      element: string
-      value: Primitives | PrimitivesArray
-    }[] = []
-
-    if (!conditions) {
-      return accumulatedClauses
-    }
-
-    for (const clause of conditions) {
-      if (!clause) {
-        continue
-      }
-      for (const el of Object.keys(clause)) {
-        const value = clause[el]
-
-        if (this.isAnyObject(value)) {
-          const initialKey = el
-          const flatten = Objects.flatten(value)
-
-          for (const key of Object.keys(flatten)) {
-            // Remove .# from keys when we have an array in the flattened object
-            const transformedKey = key.replace(new RegExp('.[0-9]', 'g'), '')
-
-            if (LogicOperator[transformedKey]) {
-              if (
-                LogicOperator[transformedKey] === LogicOperator.in ||
-                LogicOperator[transformedKey] === LogicOperator.notIn
-              ) {
-                // The IN operator accepts an array, therefore we need the full array as a value
-                accumulatedClauses.push({
-                  operator: LogicOperator[transformedKey],
-                  element: `${initialKey}`,
-                  value: value[transformedKey]
-                })
-              } else {
-                accumulatedClauses.push({
-                  operator: LogicOperator[transformedKey],
-                  element: `${initialKey}`,
-                  value: flatten[key]
-                })
-              }
-            } else if (transformedKey.includes('.')) {
-              const op = key.split('.').slice(-1).pop()
-
-              if (!op) {
-                continue
-              }
-
-              if (LogicOperator[op]) {
-                accumulatedClauses.push({
-                  operator: LogicOperator[op],
-                  element: `${initialKey}.${key.replace(`.${op}`, '')}`,
-                  value: flatten[key]
-                })
-              } else {
-                accumulatedClauses.push({
-                  operator: LogicOperator.equals,
-                  element: `${initialKey}.${key}`,
-                  value: flatten[key]
-                })
-              }
-            } else {
-              accumulatedClauses.push({
-                operator: LogicOperator.equals,
-                element: `${initialKey}.${transformedKey}`,
-                value: flatten[key]
-              })
-            }
-          }
-        } else {
-          accumulatedClauses.push({
-            operator: LogicOperator.equals,
-            element: el,
-            value
-          })
-        }
-      }
-    }
-
-    return accumulatedClauses.filter(
-      (v, i, a) =>
-        a.findIndex(v2 => JSON.stringify(v2) === JSON.stringify(v)) === i
-    )
   }
 
   /**

@@ -31,8 +31,11 @@ export const Arrays = (() => {
    * @param xs
    * @param f
    */
-  const groupBy = (xs, f) =>
-    xs.reduce((r, v, i, a, k = f(v)) => ((r[k] || (r[k] = [])).push(v), r), {})
+  const groupBy = (array, f) =>
+    array.reduce(
+      (r, v, i, a, k = f(v)) => ((r[k] || (r[k] = [])).push(v), r),
+      {}
+    )
   /**
    *
    * @param data

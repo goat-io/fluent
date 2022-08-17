@@ -34,8 +34,8 @@ export type QueryOperations<T> = {
 
 export type QueryWhereFitler<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
-    ? Partial<QueryWhereFitler<Concrete<T>[K]>>
-    : Partial<QueryOperations<Concrete<T>[K]>> | T[K]
+    ? Unpacked<Partial<QueryWhereFitler<Concrete<T>[K]>>>
+    : Unpacked<Partial<QueryOperations<Concrete<T>[K]>>> | T[K]
 }>
 
 export type QueryInsert<T> = {

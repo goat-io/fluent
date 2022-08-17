@@ -6,6 +6,7 @@ import {
   LogicOperator,
   Primitives,
   PrimitivesArray,
+  QueryIncludeRelation,
   QueryOutput
 } from './../types'
 import {
@@ -35,35 +36,16 @@ import type { AnyObject, FluentQuery, PaginatedData } from '../types'
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
+import { getSelectedKeysFromRawSql } from './util/getSelectedKeysFromRawSql'
+import { getMongoWhere } from './queryBuilder/mongodb/getMongoWhere'
+import { getRelationsFromModelGenerator } from './util/getRelationsFromModelGenerator'
+import { getMongoFindAggregatedQuery } from './queryBuilder/mongodb/getMongoFindAggregatedQuery'
+import { extractInclude } from './util/extractInclude'
+import { extractOrderBy } from './util/extractOrderBy'
+import { getTypeOrmWhere } from './queryBuilder/sql/getTypeOrmWhere'
+import { getQueryBuilderWhere } from './queryBuilder/sql/getQueryBuilderWhere'
+import { clearEmpties } from './util/clearEmpties'
 
-export const getRelationsFromModelGenerator = (
-  typeOrmRepo: Repository<any>
-) => {
-  const relations = {}
-  for (const relation of typeOrmRepo.metadata.relations) {
-    const pPath = relation.inverseRelation?.joinColumns[0]
-    relations[relation.propertyName] = {
-      isOneToMany: relation.isOneToMany,
-      isManyToOne: relation.isManyToOne,
-      isManyToMany: relation.isManyToMany,
-      inverseSidePropertyRelationPath: relation.inverseSidePropertyPath,
-      inverseSidePropertyPath: pPath?.propertyPath,
-      propertyName: relation.propertyName,
-      entityName: relation.inverseEntityMetadata.name,
-      tableName: relation.inverseEntityMetadata.tableName,
-      targetClass: relation.inverseEntityMetadata.target,
-      joinColumns: relation.joinColumns,
-      inverseJoinColumns: relation.inverseJoinColumns
-    }
-  }
-  return {
-    relations
-  }
-}
-
-const queryId = Ids.customId(
-  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-)
 export interface TypeOrmConnectorParams<Input, Output> {
   entity: any
   dataSource: DataSource
@@ -139,9 +121,7 @@ export class TypeOrmConnector<
     }
 
     // Validate Output
-    return this.outputSchema.parse(
-      this.clearEmpties(Objects.deleteNulls(datum))
-    )
+    return this.outputSchema.parse(clearEmpties(Objects.deleteNulls(datum)))
   }
 
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
@@ -161,7 +141,7 @@ export class TypeOrmConnector<
           d['id'] = d['id'].toString()
         }
 
-        return this.clearEmpties(Objects.deleteNulls(d))
+        return clearEmpties(Objects.deleteNulls(d))
       })
     )
   }
@@ -171,24 +151,27 @@ export class TypeOrmConnector<
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
-    if (this.isMongoDB && query?.include) {
-      const mongoRelationResult = this.customMongoRelatedSearch(query)
-
-      return mongoRelationResult
-    }
-
-    const requiresCustomSQLQuery =
+    const requiresCustomQuery =
       query?.include && Object.keys(query.include).length
 
-    if (requiresCustomSQLQuery) {
-      let result = await this.customTypeOrmRelatedSearch(query).getRawMany()
+    if (this.isMongoDB && requiresCustomQuery) {
+      const results = await this.customMongoRelatedFind(query)
 
-      console.log({ result })
+      return results
+    }
+
+    if (requiresCustomQuery) {
+      const customQuery = this.customTypeOrmRelatedFind(query)
+
+      let [result, count] = await customQuery.getManyAndCount()
+
+      console.log(result, count)
 
       //TODO: We have to validate the results!
       return result as unknown as QueryOutput<T, ModelDTO, OutputDTO>
     }
 
+    // Generate normal TypeORM Query
     const generatedQuery = this.generateTypeOrmQuery(query)
 
     let [found, count] = await this.repository.findAndCount(generatedQuery)
@@ -198,7 +181,7 @@ export class TypeOrmConnector<
         d['id'] = d['id'].toString()
       }
 
-      this.clearEmpties(Objects.deleteNulls(d))
+      clearEmpties(Objects.deleteNulls(d))
     })
 
     if (query?.paginated) {
@@ -272,9 +255,7 @@ export class TypeOrmConnector<
     }
 
     // Validate Output
-    return this.outputSchema?.parse(
-      this.clearEmpties(Objects.deleteNulls(dbResult))
-    )
+    return this.outputSchema?.parse(clearEmpties(Objects.deleteNulls(dbResult)))
   }
 
   /**
@@ -338,7 +319,7 @@ export class TypeOrmConnector<
       val['id'] = val['id'].toString()
     }
 
-    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
+    return this.outputSchema.parse(clearEmpties(Objects.deleteNulls(val)))
   }
 
   // DELETE
@@ -407,7 +388,7 @@ export class TypeOrmConnector<
         where: {
           id
         }
-      } as FluentQuery<ModelDTO>
+      } as unknown as FluentQuery<ModelDTO>
     })
 
     return newInstance as LoadedResult<this>
@@ -445,296 +426,6 @@ export class TypeOrmConnector<
     return new (<any>this.constructor)()
   }
 
-  //////////////////////////////////////////////////////////////
-  // ALL OF THESE METHODS PROBABLY SHOULD BE IN SOMEWHERE ELSE
-  //////////////////////////////////////////////////////////////
-  /**
-   *
-   * @param filter
-   */
-  private getOrderBy(orderBy: FluentQuery<ModelDTO>['orderBy']) {
-    if (!orderBy || orderBy.length === 0) {
-      return {}
-    }
-
-    const order = {}
-
-    for (const orderElement of orderBy) {
-      const flattenOrder = Objects.flatten(orderElement)
-
-      for (const k of Object.keys(flattenOrder)) {
-        order[k] = flattenOrder[k]
-      }
-    }
-
-    return Objects.nest(order)
-  }
-
-  /**
-   *
-   * @param select
-   * @returns
-   */
-  private getMongoSelect(select: FluentQuery<ModelDTO>['select']) {
-    const selected = Objects.flatten(select || {})
-
-    for (const k of Object.keys(selected)) {
-      if (k === 'id') {
-        delete selected[k]
-        selected['_id'] = 1
-        continue
-      }
-      // this will fail in cases like {
-      //   cars : {
-      //     idea: true
-      //   }
-      // }
-      // as cars.idea matches .id
-      const containsId = k.lastIndexOf('.id')
-
-      if (containsId >= 0 && containsId + 3 === k.length) {
-        selected[`${k.replace('.id', '')}._id`] = 1
-        delete selected[k]
-
-        continue
-      }
-      selected[k] = 1
-    }
-
-    return selected
-  }
-
-  /**
-   *
-   * @param include
-   * @returns
-   */
-  private getMongoLookup(include: FluentQuery<ModelDTO>['include']): any[] {
-    if (!include) {
-      return []
-    }
-
-    const lookUps: any[] = []
-    for (const relation of Object.keys(include)) {
-      if (this.modelRelations[relation]) {
-        const dbRelation = this.modelRelations[relation]
-
-        if (dbRelation.isManyToOne) {
-          const localField = dbRelation.joinColumns[0].propertyPath
-          lookUps.push({
-            $addFields: {
-              [`${localField}_object`]: { $toObjectId: `$${localField}` }
-            }
-          })
-          // Include Id in the results as we use it in every fluent query
-          lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
-
-          lookUps.push({
-            $lookup: {
-              from: dbRelation.tableName,
-              localField: `${localField}_object`,
-              foreignField: '_id',
-              as: dbRelation.propertyName,
-              pipeline: [
-                { $addFields: { id: { $toString: '$_id' } } }
-                //{ $limit: 2 }
-              ]
-            }
-          })
-
-          lookUps.push({ $unwind: `$${dbRelation.propertyName}` })
-        }
-
-        if (dbRelation.isOneToMany) {
-          lookUps.push({ $addFields: { string_id: { $toString: '$_id' } } })
-          lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
-          lookUps.push({
-            $lookup: {
-              from: dbRelation.tableName,
-              localField: 'string_id',
-              foreignField: dbRelation.inverseSidePropertyPath,
-              as: dbRelation.propertyName,
-              pipeline: [
-                { $addFields: { id: { $toString: '$_id' } } }
-                //{ $limit: 2 }
-              ]
-            }
-          })
-        }
-
-        if (dbRelation.isManyToMany) {
-          const relatedTableName = dbRelation.tableName
-          const pivotTableName =
-            dbRelation.joinColumns[0].relationMetadata.joinTableName
-          const pivotForeignField = dbRelation.joinColumns[0].propertyPath
-          const inverseForeignField =
-            dbRelation.inverseJoinColumns[0].propertyPath
-
-          if (
-            !relatedTableName ||
-            !pivotTableName ||
-            !pivotForeignField ||
-            !inverseForeignField
-          ) {
-            throw new Error(
-              `Your many to many relation is not properly set up. Please check both your models and schema for relation: ${relation}`
-            )
-          }
-
-          lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
-          lookUps.push({
-            $addFields: { parent_string_id: { $toString: '$_id' } }
-          })
-          lookUps.push({
-            $lookup: {
-              from: pivotTableName,
-              localField: 'parent_string_id',
-              foreignField: pivotForeignField,
-              as: dbRelation.propertyName,
-              pipeline: [
-                // This is the pivot table
-                { $addFields: { id: { $toString: '$_id' } } },
-                {
-                  $addFields: {
-                    [`${inverseForeignField}_object`]: {
-                      $toObjectId: `$${inverseForeignField}`
-                    }
-                  }
-                },
-                // The other side of the relationShip
-                {
-                  $lookup: {
-                    from: relatedTableName,
-                    localField: `${inverseForeignField}_object`,
-                    foreignField: '_id',
-                    pipeline: [
-                      { $addFields: { id: { $toString: '$_id' } } }
-                      // Here we could add more filters like
-                      //{ $limit: 2 }
-                    ],
-                    as: dbRelation.propertyName
-                  }
-                },
-                { $unwind: `$${dbRelation.propertyName}` },
-                // Select (ish)
-                {
-                  $project: {
-                    [dbRelation.propertyName]: `$${dbRelation.propertyName}`,
-                    pivot: '$$ROOT'
-                  }
-                },
-                {
-                  $replaceRoot: {
-                    newRoot: {
-                      $mergeObjects: ['$$ROOT', `$${dbRelation.propertyName}`]
-                    }
-                  }
-                },
-                { $project: { [dbRelation.propertyName]: 0 } }
-                // Here we could add more filters like
-                //{ $limit: 2 }
-              ]
-            }
-          })
-        }
-      }
-    }
-
-    return lookUps
-  }
-
-  /**
-   *
-   * @param query
-   * @returns
-   */
-  private async customMongoRelatedSearch<T extends FluentQuery<ModelDTO>>(
-    query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
-    const where = this.getTypeOrmMongoWhere(query?.where)
-    const selected = this.getMongoSelect(query?.select)
-    const lookups = this.getMongoLookup(query?.include)
-
-    const aggregate: any[] = [
-      {
-        $match: where
-      }
-      //{ $sort: { createdAt: 1 } }
-    ]
-
-    if (query?.limit) {
-      aggregate.push({ $limit: query.limit! })
-    }
-
-    for (const lookup of lookups) {
-      aggregate.push(lookup)
-    }
-
-    if (selected && Object.keys(selected).length) {
-      aggregate.push({
-        $project: selected
-      })
-    }
-
-    let raw = await this.mongoRaw().aggregate(aggregate).toArray()
-
-    return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
-      T,
-      ModelDTO,
-      OutputDTO
-    >
-  }
-
-  /**
-   *
-   * @param query
-   * @returns
-   */
-  private customTypeOrmRelatedSearch<T extends FluentQuery<ModelDTO>>(
-    query?: T,
-    customQueryRecursive?: SelectQueryBuilder<ModelDTO>,
-    recursiveRepository?: any
-  ): SelectQueryBuilder<ModelDTO> {
-    const queryAlias =
-      customQueryRecursive?.alias || `${this.repository.metadata.tableName}`
-
-    let customQuery =
-      customQueryRecursive || this.raw().createQueryBuilder(queryAlias)
-
-    customQuery = this.getTypeOrmQueryBuilderWhere(
-      customQuery,
-      queryAlias,
-      query?.where
-    )
-    customQuery = this.getTypeOrmQueryBuilderSelect(
-      customQuery,
-      queryAlias,
-      query?.select
-    )
-
-    customQuery = this.getTypeOrmQueryBuilderSubqueries(
-      customQuery,
-      recursiveRepository,
-      query?.include
-    )
-
-    if (query?.limit) {
-      customQuery = customQuery.limit(query?.limit)
-    }
-
-    if (query?.offset) {
-      customQuery = customQuery.offset(query?.offset)
-    }
-
-    if (query?.take) {
-      customQuery = customQuery.take(query?.take)
-    }
-
-    console.log(customQuery.getSql())
-
-    return customQuery
-  }
-
   /**
    *
    * @param query
@@ -744,8 +435,12 @@ export class TypeOrmConnector<
     let filter: FindManyOptions = {}
 
     filter.where = this.isMongoDB
-      ? this.getTypeOrmMongoWhere(query?.where)
-      : this.getTypeOrmWhere(query?.where)
+      ? getMongoWhere({
+          where: query?.where
+        })
+      : getTypeOrmWhere({
+          where: query?.where
+        })
 
     filter.take = query?.limit
     filter.skip = query?.offset
@@ -766,763 +461,71 @@ export class TypeOrmConnector<
     }
 
     if (query?.orderBy) {
-      filter.order = this.getOrderBy(query?.orderBy)
+      filter.order = extractOrderBy(query.orderBy)
     }
 
     if (query?.include) {
-      filter.relations = this.extractInclude(
-        query?.include
+      filter.relations = extractInclude(
+        query.include
       ) as FindOptionsRelations<any>
     }
 
     return filter
   }
-
   /**
    *
-   * @param include
+   * @param query
    * @returns
    */
-  protected extractInclude(include: FluentQuery<ModelDTO>['include']) {
-    if (!include) {
-      return undefined
-    }
-    const flatten = Objects.flatten(include)
-    const extractedInclude: AnyObject = {}
-    console.log(flatten)
-    for (const key of Object.keys(flatten)) {
-      if (key.includes('include')) {
-        const parsedKey = key.split('.include')
-
-        let acc = ''
-        for (const entity of parsedKey) {
-          extractedInclude[`${acc}${entity}`] = true
-          acc = acc + entity
-        }
-
-        continue
-      }
-
-      extractedInclude[key] = true
-    }
-    console.log({ extractedInclude })
-    return extractedInclude
-  }
-
-  /**
-   *
-   * @param where
-   * @returns
-   */
-  protected getTypeOrmWhere(
-    where?: FluentQuery<ModelDTO>['where']
-  ): FindManyOptions['where'] {
-    if (!where || Object.keys(where).length === 0) {
-      return {}
-    }
-
-    // Every element of the array is an OR
-    const Filters = { where: [{}] }
-
-    const orConditions = this.extractConditions(where['OR'])
-    const andConditions = this.extractConditions(where['AND'])
-
-    const copy = Objects.clone(where)
-    if (!!copy['AND']) {
-      delete copy['AND']
-    }
-
-    if (!!copy['OR']) {
-      delete copy['OR']
-    }
-
-    const rootLevelConditions = this.extractConditions([copy])
-
-    for (const condition of andConditions) {
-      const { element, operator, value } = condition
-
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Equal(value) }
-          })
-          break
-        case LogicOperator.isNot:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(Equal(value)) }
-          })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: MoreThan(value) }
-          })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: MoreThanOrEqual(value) }
-          })
-          break
-        case LogicOperator.lessThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: LessThan(value) }
-          })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: LessThanOrEqual(value) }
-          })
-          break
-        case LogicOperator.in:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: In(value as string[]) }
-          })
-          break
-        case LogicOperator.notIn:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(In(value as string[])) }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(IsNull()) }
-          })
-          break
-        case LogicOperator.notExists:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: IsNull() }
-          })
-          break
-        case LogicOperator.regexp:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Like(value) }
-          })
-          break
-      }
-    }
-
-    for (const condition of rootLevelConditions) {
-      const { element, operator, value } = condition
-
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Equal(value) }
-          })
-          break
-        case LogicOperator.isNot:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(Equal(value)) }
-          })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: MoreThan(value) }
-          })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: MoreThanOrEqual(value) }
-          })
-          break
-        case LogicOperator.lessThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: LessThan(value) }
-          })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: LessThanOrEqual(value) }
-          })
-          break
-        case LogicOperator.in:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: In(value as string[]) }
-          })
-          break
-        case LogicOperator.notIn:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(In(value as string[])) }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Not(IsNull()) }
-          })
-          break
-        case LogicOperator.notExists:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: IsNull() }
-          })
-          break
-        case LogicOperator.regexp:
-          Filters.where[0] = Objects.nest({
-            ...Filters.where[0],
-            ...{ [element]: Like(value) }
-          })
-          break
-      }
-    }
-
-    for (const condition of orConditions) {
-      const { element, operator, value } = condition
-
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where.push({ [element]: Equal(value) })
-          break
-        case LogicOperator.isNot:
-          Filters.where.push({ [element]: Not(Equal(value)) })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where.push({ [element]: MoreThan(value) })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where.push({ [element]: MoreThanOrEqual(value) })
-          break
-        case LogicOperator.lessThan:
-          Filters.where.push({ [element]: LessThan(value) })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where.push({ [element]: LessThanOrEqual(value) })
-          break
-        case LogicOperator.in:
-          Filters.where.push({ [element]: In(value as string[]) })
-          break
-        case LogicOperator.notIn:
-          Filters.where.push({ [element]: Not(In(value as string[])) })
-          break
-        case LogicOperator.exists:
-          Filters.where.push({ [element]: Not(IsNull()) })
-          break
-        case LogicOperator.notExists:
-          Filters.where.push({ [element]: IsNull() })
-          break
-        case LogicOperator.regexp:
-          Filters.where.push({ [element]: Like(value) })
-          break
-      }
-    }
-
-    const filtered = this.clearEmpties(Filters.where)
-
-    return filtered
-  }
-
-  /**
-   *
-   * @param where
-   * @returns
-   */
-  protected getTypeOrmMongoWhere(
-    where?: FluentQuery<ModelDTO>['where']
-  ): FindManyOptions['where'] {
-    if (!where || Object.keys(where).length === 0) {
-      return {}
-    }
-
-    const Filters: { where: { $or: any[] } } = {
-      where: { $or: [{ $and: [] }] }
-    }
-
-    const orConditions = this.extractConditions(where['OR'])
-    const andConditions = this.extractConditions(where['AND'])
-
-    const copy = Objects.clone(where)
-    if (!!copy['AND']) {
-      delete copy['AND']
-    }
-
-    if (!!copy['OR']) {
-      delete copy['OR']
-    }
-
-    const rootLevelConditions = this.extractConditions([copy])
-
-    for (const condition of andConditions) {
-      let { element, operator, value } = condition
-
-      if (element === 'id') {
-        element = '_id'
-
-        value = (Array.isArray(value)
-          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(
-              value as string
-            ) as unknown as ObjectID)) as unknown as
-          | Primitives
-          | PrimitivesArray
-      }
-
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
-          break
-        case LogicOperator.isNot:
-          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
-          break
-        case LogicOperator.lessThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
-          break
-        case LogicOperator.in:
-          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
-          break
-        case LogicOperator.notIn:
-          Filters.where.$or[0].$and.push({
-            [element]: { $not: { $in: value } }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
-          break
-        case LogicOperator.notExists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
-          break
-        case LogicOperator.regexp:
-          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
-          break
-      }
-    }
-
-    for (const condition of rootLevelConditions) {
-      let { element, operator, value } = condition
-
-      if (element === 'id') {
-        element = '_id'
-
-        value = (Array.isArray(value)
-          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(
-              value as string
-            ) as unknown as ObjectID)) as unknown as
-          | Primitives
-          | PrimitivesArray
-      }
-
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
-          break
-        case LogicOperator.isNot:
-          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
-          break
-        case LogicOperator.lessThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
-          break
-        case LogicOperator.in:
-          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
-          break
-        case LogicOperator.notIn:
-          Filters.where.$or[0].$and.push({
-            [element]: { $not: { $in: value } }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
-          break
-        case LogicOperator.notExists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
-          break
-        case LogicOperator.regexp:
-          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
-          break
-      }
-    }
-
-    for (const condition of orConditions) {
-      let { element, operator, value } = condition
-
-      if (element === 'id') {
-        element = '_id'
-
-        value = (Array.isArray(value)
-          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(
-              value as string
-            ) as unknown as ObjectID)) as unknown as
-          | Primitives
-          | PrimitivesArray
-      }
-
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where.$or.push({ [element]: { $eq: value } })
-          break
-        case LogicOperator.isNot:
-          Filters.where.$or.push({ [element]: { $neq: value } })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where.$or.push({ [element]: { $gt: value } })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where.$or.push({ [element]: { $gte: value } })
-          break
-        case LogicOperator.lessThan:
-          Filters.where.$or.push({ [element]: { $lt: value } })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where.$or.push({ [element]: { $lte: value } })
-          break
-        case LogicOperator.in:
-          Filters.where.$or.push({ [element]: { $in: value } })
-          break
-        case LogicOperator.notIn:
-          Filters.where.$or.push({
-            [element]: { $not: { $in: value } }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where.$or.push({ [element]: { $exists: true } })
-          break
-        case LogicOperator.notExists:
-          Filters.where.$or.push({ [element]: { $exists: false } })
-          break
-        case LogicOperator.regexp:
-          Filters.where.$or.push({ [element]: { $regex: value } })
-          break
-      }
-    }
-
-    const filtered = this.clearEmpties(Filters.where)
-
-    return filtered
-  }
-  /**
-   *
-   * @param where
-   * @returns
-   */
-  protected getTypeOrmQueryBuilderWhere(
-    queryBuilder: SelectQueryBuilder<ModelDTO>,
-    queryAlias: string,
-    where?: FluentQuery<ModelDTO>['where']
+  private customTypeOrmRelatedFind<T extends FluentQuery<ModelDTO>>(
+    query?: T,
+    customQueryRecursive?: SelectQueryBuilder<ModelDTO>,
+    recursiveRepository?: any,
+    alias?: string
   ): SelectQueryBuilder<ModelDTO> {
-    if (!where || Object.keys(where).length === 0) {
-      return queryBuilder
-    }
+    const queryAlias =
+      alias ||
+      customQueryRecursive?.alias ||
+      `${this.repository.metadata.tableName}`
 
-    const orConditions = this.extractConditions(where['OR'])
-    const andConditions = this.extractConditions(where['AND'])
+    let customQuery =
+      customQueryRecursive || this.raw().createQueryBuilder(queryAlias)
 
-    const copy = Objects.clone(where)
-    if (!!copy['AND']) {
-      delete copy['AND']
-    }
+    customQuery = getQueryBuilderWhere({
+      queryBuilder: customQuery,
+      queryAlias,
+      where: query?.where
+    })
 
-    if (!!copy['OR']) {
-      delete copy['OR']
-    }
+    // customQuery = this.getTypeOrmQueryBuilderSelect(
+    //   customQuery,
+    //   queryAlias,
+    //   query?.select
+    // )
 
-    const rootLevelConditions = this.extractConditions([copy])
+    customQuery = this.getTypeOrmQueryBuilderSubqueries({
+      queryBuilder: customQuery,
+      selfReference: recursiveRepository,
+      include: query?.include
+    })
 
-    queryBuilder.andWhere(
-      new Brackets(qbAnd => {
-        // All AND level conditions (root and AND)
-        for (const condition of andConditions) {
-          const { element, operator, value } = condition
-          const customId = queryId(4)
+    // if (query?.limit) {
+    //   customQuery = customQuery.limit(query?.limit)
+    // }
 
-          switch (operator) {
-            case LogicOperator.equals:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} = :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.isNot:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} != :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.greaterThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} > :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.greaterOrEqualThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} >= :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.lessThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} < :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.lessOrEqualThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} <= :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.in:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} IN :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.notIn:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} NOT IN :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.exists:
-              qbAnd.andWhere(`${queryAlias}.${element} IS NOT NULL`)
-              break
-            case LogicOperator.notExists:
-              qbAnd.andWhere(`${queryAlias}.${element} IS NULL`)
-              break
-            case LogicOperator.regexp:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} LIKE :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-          }
-        }
+    // if (query?.offset) {
+    //   customQuery = customQuery.offset(query?.offset)
+    // }
 
-        for (const condition of rootLevelConditions) {
-          const { element, operator, value } = condition
-          const customId = queryId(4)
+    // if (query?.take) {
+    //   customQuery = customQuery.take(query?.take)
+    // }
 
-          switch (operator) {
-            case LogicOperator.equals:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} = :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.isNot:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} != :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.greaterThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} > :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.greaterOrEqualThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} >= :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.lessThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} < :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.lessOrEqualThan:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} <= :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.in:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} IN :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.notIn:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} NOT IN :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-            case LogicOperator.exists:
-              qbAnd.andWhere(`${queryAlias}.${element} IS NOT NULL`)
-              break
-            case LogicOperator.notExists:
-              qbAnd.andWhere(`${queryAlias}.${element} IS NULL`)
-              break
-            case LogicOperator.regexp:
-              qbAnd.andWhere(
-                `${queryAlias}.${element} LIKE :${element}_${customId}`,
-                {
-                  [`${element}_${customId}`]: value
-                }
-              )
-              break
-          }
-        }
-
-        qbAnd.andWhere(
-          new Brackets(qbOr => {
-            for (const condition of orConditions) {
-              const { element, operator, value } = condition
-              const customId = queryId(4)
-
-              switch (operator) {
-                case LogicOperator.equals:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} = :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.isNot:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} != :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.greaterThan:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} > :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.greaterOrEqualThan:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} >= :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.lessThan:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} < :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.lessOrEqualThan:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} <= :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.in:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} IN :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.notIn:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} NOT IN :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-                case LogicOperator.exists:
-                  qbOr.andWhere(`${queryAlias}.${element} IS NOT NULL`)
-                  break
-                case LogicOperator.notExists:
-                  qbOr.andWhere(`${queryAlias}.${element} IS NULL`)
-                  break
-                case LogicOperator.regexp:
-                  qbOr.andWhere(
-                    `${queryAlias}.${element} LIKE :${element}_${customId}`,
-                    {
-                      [`${element}_${customId}`]: value
-                    }
-                  )
-                  break
-              }
-            }
-          })
-        )
-      })
-    )
-    return queryBuilder
+    console.log(customQuery.getSql())
+    return customQuery
   }
 
-  protected getTypeOrmQueryBuilderSelect(
+  private getTypeOrmQueryBuilderSelect(
     queryBuilder: SelectQueryBuilder<ModelDTO>,
     queryAlias: string,
     select?: FluentQuery<ModelDTO>['select']
@@ -1556,11 +559,17 @@ export class TypeOrmConnector<
     return queryBuilder
   }
 
-  protected getTypeOrmQueryBuilderSubqueries(
-    queryBuilder: SelectQueryBuilder<ModelDTO>,
-    selfReference: any,
+  private getTypeOrmQueryBuilderSubqueries({
+    queryBuilder,
+    selfReference,
+    include,
+    joinType = 'LeftJoin'
+  }: {
+    queryBuilder: SelectQueryBuilder<ModelDTO>
+    selfReference: any
     include?: FluentQuery<ModelDTO>['include']
-  ): SelectQueryBuilder<ModelDTO> {
+    joinType?: 'InnerJoin' | 'LeftJoin'
+  }): SelectQueryBuilder<ModelDTO> {
     if (!include) {
       return queryBuilder
     }
@@ -1600,13 +609,10 @@ export class TypeOrmConnector<
         // users___cars.userId (if nested)
         const leftSideForeignKey = `${leftSideTableName}.${dbRelation.joinColumns[0].propertyPath}`
 
-        // "cars"
-        // We cannot use leftSideTableName in case we are in a nested query
-        const parentRelationName = dbRelation.inverseSidePropertyRelationPath
-
         // Right side considering nested relations
         // users___cars___cars___user
-        const rightSideTableName = `${queryBuilder.alias}___${parentRelationName}___${relation}`
+
+        const rightSideTableName = `${queryBuilder.alias}___${relation}`
 
         // Double __ for the id because of... WHY NOT?
         const rightSidePrimaryKey = `${rightSideTableName}_id`
@@ -1637,12 +643,13 @@ export class TypeOrmConnector<
           })
 
         // Finally we get to do the LEFT JOIN
-        queryBuilder.leftJoin(
+        queryBuilder.leftJoinAndMapOne(
+          `${leftSideTableName}.elephant`,
           qb => {
             qb.from(dbRelation.targetClass, rightSideTableName)
 
             // Recursive query!
-            this.customTypeOrmRelatedSearch(fluentRelatedQuery, qb, newSelf)
+            this.customTypeOrmRelatedFind(fluentRelatedQuery, qb, newSelf)
 
             // Force select the foreignKey, otherwise LEFT JOIN ON will not work
             qb.addSelect(`"${rightSideTableName}"._id`, rightSidePrimaryKey)
@@ -1661,7 +668,7 @@ export class TypeOrmConnector<
               // In all other cases, we just follow the format
               qb.addSelect(
                 `"${rightSideTableName}".${key}`,
-                `${rightSideTableName}_${key}`
+                `${rightSideTableName}.${key}`
               )
             }
 
@@ -1675,23 +682,17 @@ export class TypeOrmConnector<
           `${leftSideForeignKey} = ${rightSidePrimaryKey}`
         )
 
-        // Finally we can select all selectable fields, but from the Outer query
-        const possibleKeys = queryBuilder.getSql().split('AS')
-        const keys: Set<string> = new Set([])
-        for (const stringKey of possibleKeys) {
-          if (stringKey.includes('SELECT')) {
-            continue
-          }
-          keys.add(stringKey.split('"')[1])
-        }
+        const keys = getSelectedKeysFromRawSql(queryBuilder.getSql())
 
         // Finally we can select all selectable fields, but from the Outer query
         for (const key of keys) {
           if (key === 'breed') {
             continue
           }
-          queryBuilder.addSelect(key)
+          // queryBuilder.addSelect(key)
         }
+
+        queryBuilder.select()
 
         // DONE
       }
@@ -1704,115 +705,66 @@ export class TypeOrmConnector<
         // users.id
         const leftSidePrimaryKey = `${leftSideTableName}.id`
 
-        // "users___cars"
-        const rightSideTableName = `${leftSideTableName}___${relation}`
+        // "cars"
+        const rightSideTableName = `${relation}`
 
-        // "users___cars".userId
-        const rightSideForeignKey = `"${rightSideTableName}".${dbRelation.inverseSidePropertyPath}`
+        // "cars".userId
+        const rightSideForeignKey = `${rightSideTableName}.${dbRelation.inverseSidePropertyPath}`
 
         // Now we need to decide which properties we want to select from the related model
         // If the query has some {select: [x]: true}
         const selectedKeysArray = fluentRelatedQuery.select
           ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
           : []
-        const selectedKeys = new Set(selectedKeysArray)
+        const selectedKeys = new Set(
+          selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
+        )
 
-        // Filter out selected keys
-        const selectableKeys = newSelf.outputKeys
-          .map(key => {
-            // To avoid selecting keys that are actually
-            // relations in Typeorm
-            if (typeof newSelf[key] !== 'function') {
-              return key
-            }
-          })
-          .filter(k => {
-            // If we selected anything, we pass that
-            if (selectedKeys.size) {
-              return !!k && selectedKeys.has(k)
-            }
-            // If not, we pass any key that is not nullish
-            return !!k
-          })
+        const leftJoinBuilder = this.customTypeOrmRelatedFind(
+          fluentRelatedQuery,
+          this.raw().createQueryBuilder(rightSideTableName),
+          newSelf,
+          rightSideTableName
+        )
 
-        //////////////////////////////////////////
-        // Tired already? me too hang on in there!
-        //////////////////////////////////////////
+        const customLeftJoin = leftJoinBuilder
+          .getQuery()
+          .split('WHERE')[1]
+          .trim()
+        const leftJoinParams = leftJoinBuilder.getParameters()
 
         // Finally we get to do the LEFT JOIN
-        queryBuilder.leftJoin(
+        queryBuilder.leftJoinAndMapMany(
+          `${leftSideTableName}.${relation}`,
           // As we have custom filters we create a new table from this
           // nested Query Builder
-          qb => {
-            // Create a new table FROM table based on the "cars" table and assign an alias
-            qb.from(dbRelation.targetClass, `${rightSideTableName}`)
-
-            //////////////////////////////////////////////////////////////////
-            //  This is the fun part, the query is recursive! :S
-            //  You can either read the full code again, or just continue
-            //  hint: you should continue
-            //////////////////////////////////////////////////////////////////
-            this.customTypeOrmRelatedSearch(fluentRelatedQuery, qb, newSelf)
-
-            console.log('qb.getParameters()', qb.getParameters())
-
-            // Force select the foreignKey, otherwise LEFT JOIN ON will not work
-            qb.addSelect(
-              rightSideForeignKey,
-              `${leftSideTableName}___${relation}_${dbRelation.inverseSidePropertyPath}`
-            )
-
-            // One select for each selectable Field
-            for (const key of selectableKeys) {
-              // skip the foreign key, as it is already selected above
-              if (key === dbRelation.inverseSidePropertyPath) {
-                continue
-              }
-
-              if (key === 'id') {
-                // 'id' keys in TypeormSQL are '_id'
-                qb.addSelect(
-                  `"${rightSideTableName}"._id`,
-                  `${leftSideTableName}___${relation}_id`
-                )
-                continue
-              }
-
-              // In all other cases, we just follow the format
-              qb.addSelect(
-                `"${rightSideTableName}".${key}`,
-                `${leftSideTableName}___${relation}_${key}`
-              )
-            }
-
-            return qb
-          },
+          dbRelation.targetClass,
           // Right side of the JOIN table name
           // The name of the table that comes from the nested query above!
           rightSideTableName,
 
           // Keys to JOIN ON
-          // This must account for all aliases used above
-          `${leftSideTableName}___${relation}_${dbRelation.inverseSidePropertyPath} = ${leftSidePrimaryKey}`
+          `(${rightSideForeignKey} = ${leftSidePrimaryKey} AND ${customLeftJoin} )`,
+          leftJoinParams
         )
 
-        const possibleKeys = queryBuilder.getSql().split('AS')
+        // Add all possible queries
+        // These queries are "Inner Joins"!
+        // queryBuilder = this.customTypeOrmRelatedFind(
+        //   fluentRelatedQuery,
+        //   queryBuilder,
+        //   newSelf,
+        //   rightSideTableName
+        // )
 
-        const keys: Set<string> = new Set([])
-        for (const stringKey of possibleKeys) {
-          if (stringKey.includes('SELECT')) {
-            continue
-          }
-          keys.add(stringKey.split('"')[1])
-        }
-        console.log({ keys })
-        console.log(queryBuilder.alias)
+        // queryBuilder.addSelect(['users.age', ...Array.from(selectedKeys)])
+
         // Finally we can select all selectable fields, but from the Outer query
-        for (const key of keys) {
-          if (key.startsWith(`${queryBuilder.alias}___`)) {
-            queryBuilder.addSelect(key)
-          }
-        }
+        // for (const key of keys) {
+        //   if (key.startsWith(`${queryBuilder.alias}___`)) {
+        //     queryBuilder.addSelect(key)
+        //   }
+        // }
 
         // DONE
       }
@@ -1895,5 +847,32 @@ export class TypeOrmConnector<
     }
 
     return queryBuilder
+  }
+
+  /**
+   *
+   * @param query
+   * @returns
+   */
+  private async customMongoRelatedFind<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+    const where = getMongoWhere({
+      where: query?.where
+    })
+
+    const aggregate = getMongoFindAggregatedQuery({
+      query,
+      where,
+      modelRelations: this.modelRelations
+    })
+
+    let raw = await this.mongoRaw().aggregate(aggregate).toArray()
+
+    return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
+      T,
+      ModelDTO,
+      OutputDTO
+    >
   }
 }
