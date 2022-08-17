@@ -228,7 +228,7 @@ export const relationsTestSuite = (
     const searchUserWithRelations = await User.findMany({
       // Inner join
       where: {
-        id: insertedUser.id,
+        id: insertedUser.id
       },
       include: {
         // Left Join
@@ -239,11 +239,41 @@ export const relationsTestSuite = (
           },
           where: {
             name: 'My new car 4'
+          },
+          include: {
+            user: {
+              include: {
+                cars: {
+                  select: {
+                    id: true,
+                    name: true
+                  },
+                  where: {
+                    name: 'My new car 4'
+                  },
+                  include: {
+                    user: {
+                      include: {
+                        cars: {
+                          select: {
+                            id: true,
+                            name: true
+                          },
+                          where: {
+                            name: 'My new car 4'
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     })
 
-    console.log(searchUserWithRelations)
+    console.log(searchUserWithRelations[0].cars)
   })
 }
