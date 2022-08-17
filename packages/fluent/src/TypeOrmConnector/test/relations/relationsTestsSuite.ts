@@ -226,6 +226,10 @@ export const relationsTestSuite = (
     const associatedCar4 = await user.cars().associate({ name: 'My new car 4' })
 
     const searchUserWithRelations = await User.findMany({
+      select: {
+        id: true,
+        name: true
+      },
       // Inner join
       where: {
         id: insertedUser.id
@@ -242,31 +246,8 @@ export const relationsTestSuite = (
           },
           include: {
             user: {
-              include: {
-                cars: {
-                  select: {
-                    id: true,
-                    name: true
-                  },
-                  where: {
-                    name: 'My new car 4'
-                  },
-                  include: {
-                    user: {
-                      include: {
-                        cars: {
-                          select: {
-                            id: true,
-                            name: true
-                          },
-                          where: {
-                            name: 'My new car 4'
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
+              where: {
+                name: 'testUser432'
               }
             }
           }
@@ -274,6 +255,6 @@ export const relationsTestSuite = (
       }
     })
 
-    console.log(searchUserWithRelations[0].cars)
+    console.log(searchUserWithRelations[0]['cars']![0])
   })
 }

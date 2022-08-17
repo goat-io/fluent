@@ -164,7 +164,7 @@ export class TypeOrmConnector<
       const customQuery = this.customTypeOrmRelatedFind({
         fluentQuery: query
       })
-      console.log(customQuery.getSql())
+      console.log(customQuery.getQuery())
 
       let [result, count] = await customQuery.getManyAndCount()
 
@@ -484,23 +484,27 @@ export class TypeOrmConnector<
     fluentQuery: query,
     queryBuilder,
     targetFluentRepository,
-    alias
+    alias,
+    isLeftJoin
   }: {
     fluentQuery?: T
     queryBuilder?: SelectQueryBuilder<ModelDTO>
     targetFluentRepository?: any
     alias?: string
+    isLeftJoin?: boolean
   }): SelectQueryBuilder<ModelDTO> {
     const queryAlias =
       alias || queryBuilder?.alias || `${this.repository.metadata.tableName}`
 
     let customQuery = queryBuilder || this.raw().createQueryBuilder(queryAlias)
 
-    customQuery = getQueryBuilderWhere({
-      queryBuilder: customQuery,
-      queryAlias,
-      where: query?.where,
-    })
+    if (!isLeftJoin) {
+      customQuery = getQueryBuilderWhere({
+        queryBuilder: customQuery,
+        queryAlias,
+        where: query?.where
+      })
+    }
 
     // customQuery = this.getTypeOrmQueryBuilderSelect(
     //   customQuery,
@@ -609,7 +613,7 @@ export class TypeOrmConnector<
         // "cars"
         // Or users___cars if it comes from a nested relation
         const leftSideTableName = leftTableAlias || queryBuilder.alias
-  
+
         // "cars.userId"
         // users___cars.userId (if nested)
         const leftSideForeignKey = `${leftSideTableName}.${dbRelation.joinColumns[0].propertyPath}`
@@ -646,6 +650,22 @@ export class TypeOrmConnector<
             return !!k
           })
 
+        const shallowQuery = { ...fluentRelatedQuery }
+        delete shallowQuery['include']
+
+        const leftJoinBuilder = this.customTypeOrmRelatedFind({
+          queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
+          fluentQuery: shallowQuery,
+          targetFluentRepository: newSelf,
+          alias: rightSideTableName
+        })
+
+        const joinQuery = leftJoinBuilder.getQuery().split('WHERE')
+        const customLeftJoin =
+          joinQuery && joinQuery[1] ? joinQuery[1].trim() : '1=1'
+
+        const leftJoinParams = leftJoinBuilder.getParameters()
+
         // Finally we get to do the LEFT JOIN
         queryBuilder.leftJoinAndMapOne(
           `${leftSideTableName}.${relation}`,
@@ -655,14 +675,16 @@ export class TypeOrmConnector<
           rightSideTableName,
           // Keys to JOIN ON
           // This must account for all aliases used above
-          `${leftSideForeignKey} = ${rightSidePrimaryKey}`
+          `(${leftSideForeignKey} = ${rightSidePrimaryKey} AND  ${customLeftJoin} )`,
+          leftJoinParams
         )
 
         queryBuilder = this.customTypeOrmRelatedFind({
           queryBuilder,
           fluentQuery: fluentRelatedQuery,
           targetFluentRepository: newSelf,
-          alias: rightSideTableName
+          alias: rightSideTableName,
+          isLeftJoin: true
         })
 
         // const keys = getSelectedKeysFromRawSql(queryBuilder.getSql())
@@ -704,17 +726,18 @@ export class TypeOrmConnector<
         //   selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
         // )
 
+        const shallowQuery = { ...fluentRelatedQuery }
+        delete shallowQuery['include']
         const leftJoinBuilder = this.customTypeOrmRelatedFind({
           queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
-          fluentQuery: fluentRelatedQuery,
+          fluentQuery: shallowQuery,
           targetFluentRepository: newSelf,
           alias: rightSideTableName
         })
 
-        const customLeftJoin = leftJoinBuilder
-          .getQuery()
-          .split('WHERE')[1]
-          .trim()
+        const joinQuery = leftJoinBuilder.getQuery().split('WHERE')
+        const customLeftJoin =
+          joinQuery && joinQuery[1] ? joinQuery[1].trim() : '1=1'
 
         const leftJoinParams = leftJoinBuilder.getParameters()
 
@@ -726,7 +749,7 @@ export class TypeOrmConnector<
           rightSideTableName,
 
           // Keys to JOIN ON
-          `(${rightSideForeignKey} = ${leftSidePrimaryKey} AND ${customLeftJoin} )`,
+          `(${leftSidePrimaryKey} = ${rightSideForeignKey} AND ${customLeftJoin} )`,
           leftJoinParams
         )
 
@@ -734,7 +757,8 @@ export class TypeOrmConnector<
           queryBuilder,
           fluentQuery: fluentRelatedQuery,
           targetFluentRepository: newSelf,
-          alias: rightSideTableName
+          alias: rightSideTableName,
+          isLeftJoin: true
         })
       }
 
