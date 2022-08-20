@@ -238,7 +238,6 @@ export const relationsTestSuite = (
         // Left Join
         cars: {
           select: {
-            id: true,
             name: true
           },
           where: {
@@ -246,8 +245,8 @@ export const relationsTestSuite = (
           },
           include: {
             user: {
-              where: {
-                name: 'testUser432'
+              select: {
+                id: true
               }
             }
           }
@@ -255,6 +254,6 @@ export const relationsTestSuite = (
       }
     })
 
-    console.log(searchUserWithRelations[0]['cars']![0])
+    console.log(searchUserWithRelations)
   })
 }

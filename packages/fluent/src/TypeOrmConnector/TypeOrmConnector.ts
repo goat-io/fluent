@@ -687,7 +687,9 @@ export class TypeOrmConnector<
           isLeftJoin: true
         })
 
-        // const keys = getSelectedKeysFromRawSql(queryBuilder.getSql())
+        const keys = getSelectedKeysFromRawSql(queryBuilder.getSql())
+
+        console.log(keys)
 
         // // Finally we can select all selectable fields, but from the Outer query
         // for (const key of keys) {
@@ -718,13 +720,16 @@ export class TypeOrmConnector<
 
         // Now we need to decide which properties we want to select from the related model
         // If the query has some {select: [x]: true}
-        // const selectedKeysArray = fluentRelatedQuery.select
-        //   ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
-        //   : []
+        const selectedKeysArray = fluentRelatedQuery.select
+          ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
+          : []
 
-        // const selectedKeys = new Set(
-        //   selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
-        // )
+        const selectedKeys = new Set(
+          selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
+        )
+        // queryBuilder.select([])
+
+        // queryBuilder.addSelect(['users.age', ...Array.from(selectedKeys)])
 
         const shallowQuery = { ...fluentRelatedQuery }
         delete shallowQuery['include']
@@ -760,28 +765,11 @@ export class TypeOrmConnector<
           alias: rightSideTableName,
           isLeftJoin: true
         })
+
+        console.log(selectedKeys)
+
+        queryBuilder.select(['users.age', 'users.id', 'users_cars.id'])
       }
-
-      // if (fluentRelatedQuery.include) {
-      //   for (const r of Object.keys(fluentRelatedQuery.include)) {
-      //     const nestedFluentRelatedQuery =
-      //       include[r] === true ? {} : include[r]
-
-      //     const newnewSelf = newSelf[r]()
-
-      // }
-      // Add all possible queries
-
-      // queryBuilder.addSelect(['users.age', ...Array.from(selectedKeys)])
-
-      // Finally we can select all selectable fields, but from the Outer query
-      // for (const key of keys) {
-      //   if (key.startsWith(`${queryBuilder.alias}___`)) {
-      //     queryBuilder.addSelect(key)
-      //   }
-      // }
-
-      // DONE
     }
 
     // if (dbRelation.isManyToMany) {
