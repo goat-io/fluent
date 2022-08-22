@@ -228,7 +228,7 @@ export const relationsTestSuite = (
     const searchUserWithRelations = await User.findMany({
       select: {
         id: true,
-        name: true
+        name: true,
       },
       // Inner join
       where: {
@@ -246,7 +246,8 @@ export const relationsTestSuite = (
           include: {
             user: {
               select: {
-                id: true
+                id: true,
+                name: true
               }
             }
           }
@@ -254,6 +255,6 @@ export const relationsTestSuite = (
       }
     })
 
-    console.log(searchUserWithRelations)
+    console.log(searchUserWithRelations[0]['cars'][0])
   })
 }

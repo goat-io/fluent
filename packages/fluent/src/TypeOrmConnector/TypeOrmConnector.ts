@@ -161,11 +161,13 @@ export class TypeOrmConnector<
     }
 
     if (requiresCustomQuery) {
-      const customQuery = this.customTypeOrmRelatedFind({
-        fluentQuery: query
-      })
-      console.log(customQuery.getQuery())
+      const { queryBuilder: customQuery, selectedKeys } =
+        this.customTypeOrmRelatedFind({
+          fluentQuery: query
+        })
 
+      customQuery.select(selectedKeys)
+      
       let [result, count] = await customQuery.getManyAndCount()
 
       console.log(result, count)
@@ -492,7 +494,10 @@ export class TypeOrmConnector<
     targetFluentRepository?: any
     alias?: string
     isLeftJoin?: boolean
-  }): SelectQueryBuilder<ModelDTO> {
+  }): {
+    queryBuilder: SelectQueryBuilder<ModelDTO>
+    selectedKeys: string[]
+  } {
     const queryAlias =
       alias || queryBuilder?.alias || `${this.repository.metadata.tableName}`
 
@@ -506,18 +511,22 @@ export class TypeOrmConnector<
       })
     }
 
-    // customQuery = this.getTypeOrmQueryBuilderSelect(
-    //   customQuery,
-    //   queryAlias,
-    //   query?.select
-    // )
+    const { queryBuilder: qb, selectedKeys } =
+      this.getTypeOrmQueryBuilderSubqueries({
+        queryBuilder: customQuery,
+        selfReference: targetFluentRepository,
+        include: query?.include,
+        leftTableAlias: alias
+      })
 
-    customQuery = this.getTypeOrmQueryBuilderSubqueries({
-      queryBuilder: customQuery,
-      selfReference: targetFluentRepository,
-      include: query?.include,
-      leftTableAlias: alias
-    })
+    customQuery = qb
+
+    const extraKeys = this.getTypeOrmQueryBuilderSelect(
+      queryAlias,
+      query?.select
+    )
+
+    const keySet = new Set([...selectedKeys, ...extraKeys])
 
     // if (query?.limit) {
     //   customQuery = customQuery.limit(query?.limit)
@@ -531,15 +540,18 @@ export class TypeOrmConnector<
     //   customQuery = customQuery.take(query?.take)
     // }
 
-    return customQuery
+    return {
+      queryBuilder: customQuery,
+      selectedKeys: Array.from(keySet)
+    }
   }
 
   private getTypeOrmQueryBuilderSelect(
-    queryBuilder: SelectQueryBuilder<ModelDTO>,
     queryAlias: string,
     select?: FluentQuery<ModelDTO>['select']
-  ): SelectQueryBuilder<ModelDTO> {
+  ): string[] {
     const selected = Objects.flatten(select || {})
+    const selectedKeys: string[] = []
 
     for (const [index, k] of Object.keys(selected).entries()) {
       // TODO: this will fail with nested fields as
@@ -557,15 +569,10 @@ export class TypeOrmConnector<
         continue
       }
 
-      if (index === 0) {
-        queryBuilder.select(search)
-        continue
-      }
-
-      queryBuilder.addSelect(search)
+      selectedKeys.push(search)
     }
 
-    return queryBuilder
+    return selectedKeys
   }
 
   private getTypeOrmQueryBuilderSubqueries({
@@ -578,9 +585,13 @@ export class TypeOrmConnector<
     selfReference: any
     include?: FluentQuery<ModelDTO>['include']
     leftTableAlias?: string
-  }): SelectQueryBuilder<ModelDTO> {
+  }): {
+    queryBuilder: SelectQueryBuilder<ModelDTO>
+    selectedKeys: string[]
+  } {
+    const selectedKeys: string[] = []
     if (!include) {
-      return queryBuilder
+      return { queryBuilder, selectedKeys }
     }
 
     for (const relation of Object.keys(include)) {
@@ -607,6 +618,16 @@ export class TypeOrmConnector<
         )
       }
 
+      // Now we need to decide which properties we want to select from the related model
+      // If the query has some {select: [x]: true}
+      const selectedKeysArray = fluentRelatedQuery.select
+        ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
+        : []
+
+      // console.log({ selectedKeys })
+
+      // queryBuilder.select(['users.age', 'users.id', 'users_cars.id'])
+
       if (dbRelation.isManyToOne) {
         // We now have the opposite "cars" has one "users"
 
@@ -627,38 +648,29 @@ export class TypeOrmConnector<
 
         // Now we need to decide which properties we want to select from the related model
         // If the query has some {select: [x]: true}
-        const selectedKeysArray = fluentRelatedQuery.select
-          ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
-          : []
-        const selectedKeys = new Set(selectedKeysArray)
+        // const selectedKeysArray = fluentRelatedQuery.select
+        //   ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
+        //   : []
+        // const selectedKeys = new Set(selectedKeysArray)
 
-        // Filter out selected keys
-        const selectableKeys = newSelf.outputKeys
-          .map(key => {
-            // To avoid selecting keys that are actually
-            // relations in Typeorm
-            if (typeof newSelf[key] !== 'function') {
-              return Strings.camel(`${key}`)
-            }
-          })
-          .filter(k => {
-            // If we selected anything, we pass that
-            if (selectedKeys.size) {
-              return !!k && selectedKeys.has(k)
-            }
-            // If not, we pass any key that is not nullish
-            return !!k
-          })
+        const keys = new Set(
+          selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
+        )
+
+        selectedKeys.push(...Array.from(keys))
 
         const shallowQuery = { ...fluentRelatedQuery }
         delete shallowQuery['include']
 
-        const leftJoinBuilder = this.customTypeOrmRelatedFind({
-          queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
-          fluentQuery: shallowQuery,
-          targetFluentRepository: newSelf,
-          alias: rightSideTableName
-        })
+        const { queryBuilder: leftJoinBuilder, selectedKeys: deepkeys } =
+          this.customTypeOrmRelatedFind({
+            queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
+            fluentQuery: shallowQuery,
+            targetFluentRepository: newSelf,
+            alias: rightSideTableName
+          })
+
+        selectedKeys.push(...deepkeys)
 
         const joinQuery = leftJoinBuilder.getQuery().split('WHERE')
         const customLeftJoin =
@@ -679,17 +691,22 @@ export class TypeOrmConnector<
           leftJoinParams
         )
 
-        queryBuilder = this.customTypeOrmRelatedFind({
-          queryBuilder,
-          fluentQuery: fluentRelatedQuery,
-          targetFluentRepository: newSelf,
-          alias: rightSideTableName,
-          isLeftJoin: true
-        })
+        const { queryBuilder: qb, selectedKeys: k } =
+          this.customTypeOrmRelatedFind({
+            queryBuilder,
+            fluentQuery: fluentRelatedQuery,
+            targetFluentRepository: newSelf,
+            alias: rightSideTableName,
+            isLeftJoin: true
+          })
 
-        const keys = getSelectedKeysFromRawSql(queryBuilder.getSql())
+        selectedKeys.push(...k)
 
-        console.log(keys)
+        queryBuilder = qb
+
+        // const keys = getSelectedKeysFromRawSql(queryBuilder.getSql())
+
+        // console.log(keys)
 
         // // Finally we can select all selectable fields, but from the Outer query
         // for (const key of keys) {
@@ -718,27 +735,25 @@ export class TypeOrmConnector<
         // "cars".userId
         const rightSideForeignKey = `${rightSideTableName}.${dbRelation.inverseSidePropertyPath}`
 
-        // Now we need to decide which properties we want to select from the related model
-        // If the query has some {select: [x]: true}
-        const selectedKeysArray = fluentRelatedQuery.select
-          ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
-          : []
-
-        const selectedKeys = new Set(
+        const keys = new Set(
           selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
         )
-        // queryBuilder.select([])
 
-        // queryBuilder.addSelect(['users.age', ...Array.from(selectedKeys)])
+        selectedKeys.push(...Array.from(keys))
 
+        // Left join query, without including any nested tables
         const shallowQuery = { ...fluentRelatedQuery }
         delete shallowQuery['include']
-        const leftJoinBuilder = this.customTypeOrmRelatedFind({
-          queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
-          fluentQuery: shallowQuery,
-          targetFluentRepository: newSelf,
-          alias: rightSideTableName
-        })
+
+        const { queryBuilder: leftJoinBuilder, selectedKeys: deepKeys } =
+          this.customTypeOrmRelatedFind({
+            queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
+            fluentQuery: shallowQuery,
+            targetFluentRepository: newSelf,
+            alias: rightSideTableName
+          })
+
+        selectedKeys.push(...deepKeys)
 
         const joinQuery = leftJoinBuilder.getQuery().split('WHERE')
         const customLeftJoin =
@@ -758,17 +773,18 @@ export class TypeOrmConnector<
           leftJoinParams
         )
 
-        queryBuilder = this.customTypeOrmRelatedFind({
-          queryBuilder,
-          fluentQuery: fluentRelatedQuery,
-          targetFluentRepository: newSelf,
-          alias: rightSideTableName,
-          isLeftJoin: true
-        })
+        const { queryBuilder: q, selectedKeys: k } =
+          this.customTypeOrmRelatedFind({
+            queryBuilder,
+            fluentQuery: fluentRelatedQuery,
+            targetFluentRepository: newSelf,
+            alias: rightSideTableName,
+            isLeftJoin: true
+          })
 
-        console.log(selectedKeys)
+        selectedKeys.push(...k)
 
-        queryBuilder.select(['users.age', 'users.id', 'users_cars.id'])
+        queryBuilder = q
       }
     }
 
@@ -848,7 +864,7 @@ export class TypeOrmConnector<
     //   })
     // }
 
-    return queryBuilder
+    return { queryBuilder, selectedKeys }
   }
 
   /**

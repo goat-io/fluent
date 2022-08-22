@@ -21,6 +21,8 @@
     "bson": "^4.6.2",
     "graphql": "^16.3.0",
     "keyv": "^4.2.2",
+    "keyv-file": "^0.2.0",
+    "lowdb": "^3.0.0",
     "openapi3-ts": "^2.0.2",
     "reflect-metadata": "^0.1.13",
     "typeorm": "^0.3.7",

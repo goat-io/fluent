@@ -6002,6 +6002,15 @@ fs-extra@^10.0.0:
     jsonfile "^6.0.1"
     universalify "^2.0.0"
 
+fs-extra@^4.0.1:
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/fs-extra/-/fs-extra-4.0.3.tgz#0d852122e5bc5beb453fb028e9c0c9bf36340c94"
+  integrity sha512-q6rbdDd1o2mAnQreO7YADIxf/Whx4AHBiRf6d+/cVT8h44ss+lHgxf1FemcqDnQt9X3ct4McHr+JMGlYSsK7Cg==
+  dependencies:
+    graceful-fs "^4.1.2"
+    jsonfile "^4.0.0"
+    universalify "^0.1.0"
+
 fs-extra@^5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/fs-extra/-/fs-extra-5.0.0.tgz#414d0110cdd06705734d055652c5411260c31abd"
@@ -8236,6 +8245,15 @@ kareem@2.3.5:
   resolved "https://registry.yarnpkg.com/kareem/-/kareem-2.3.5.tgz#111fe9dbab754c8ed88b7a2360e2680cec1420ca"
   integrity sha512-qxCyQtp3ioawkiRNQr/v8xw9KIviMSSNmy+63Wubj7KmMn3g7noRXIZB4vPCAP+ETi2SR8eH6CvmlKZuGpoHOg==
 
+keyv-file@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/keyv-file/-/keyv-file-0.2.0.tgz#3442b07a00c1d7bd0242f4a91bcf498afbd6ea6a"
+  integrity sha512-zUQ11eZRmilEUpV1gJSj8mBAHjyXpleQo1iCS0khb+GFRhiPfwavWgn4eDUKNlOyMZzmExnISl8HE1hNbim0gw==
+  dependencies:
+    debug "^4.1.1"
+    fs-extra "^4.0.1"
+    tslib "^1.9.3"
+
 keyv@^3.0.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/keyv/-/keyv-3.1.0.tgz#ecc228486f69991e49e9476485a5be1e8fc5c4d9"
@@ -8654,6 +8672,13 @@ loose-envify@^1.4.0:
   integrity sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
+
+lowdb@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/lowdb/-/lowdb-3.0.0.tgz#c10ab4e7eb86f1cbe255e35e60ffb0c6f42049e0"
+  integrity sha512-9KZRulmIcU8fZuWiaM0d5e2/nPnrFyXkeXVpqT+MJS+vgbgOf1EbtvgQmba8HwUFgDl1oeZR6XqEJnkJmQdKmg==
+  dependencies:
+    steno "^2.1.0"
 
 lowercase-keys@^1.0.0, lowercase-keys@^1.0.1:
   version "1.0.1"
@@ -11606,6 +11631,11 @@ stealthy-require@^1.1.1:
   resolved "https://registry.yarnpkg.com/stealthy-require/-/stealthy-require-1.1.1.tgz#35b09875b4ff49f26a777e509b3090a3226bf24b"
   integrity sha1-NbCYdbT/SfJqd35QmzCQoyJr8ks=
 
+steno@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/steno/-/steno-2.1.0.tgz#05a9c378ce42ed04f642cda6fcb41787a10e4e33"
+  integrity sha512-mauOsiaqTNGFkWqIfwcm3y/fq+qKKaIWf1vf3ocOuTdco9XoHCO2AGF1gFYXuZFSWuP38Q8LBHBGJv2KnJSXyA==
+
 stream-events@^1.0.1, stream-events@^1.0.3, stream-events@^1.0.4, stream-events@^1.0.5:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/stream-events/-/stream-events-1.0.5.tgz#bbc898ec4df33a4902d892333d47da9bf1c406d5"
@@ -12237,7 +12267,7 @@ tslib@2.3.1, tslib@^2.0.0, tslib@^2.1.0, tslib@^2.2.0, tslib@^2.3.1:
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.3.1.tgz#e8a335add5ceae51aa261d32a490158ef042ef01"
   integrity sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==
 
-tslib@^1.13.0, tslib@^1.14.1, tslib@^1.8.1, tslib@^1.9.0:
+tslib@^1.13.0, tslib@^1.14.1, tslib@^1.8.1, tslib@^1.9.0, tslib@^1.9.3:
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
