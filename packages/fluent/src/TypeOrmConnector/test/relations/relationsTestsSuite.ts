@@ -238,7 +238,8 @@ export const relationsTestSuite = (
         // Left Join
         cars: {
           select: {
-            name: true
+            name: true,
+            id: true
           },
           where: {
             name: 'My new car 4',
@@ -256,7 +257,7 @@ export const relationsTestSuite = (
     })
 
     console.log(searchUserWithRelations)
-    searchUserWithRelations[0].cars![0].
+    searchUserWithRelations[0].cars![0].id
 
     expect(searchUserWithRelations[0].cars![0].user?.id).toBe(insertedUser.id)
     expect(searchUserWithRelations[0].cars![0].user?.name).toBe('testUser1')

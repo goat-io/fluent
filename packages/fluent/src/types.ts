@@ -1,7 +1,6 @@
 import { ObjectID } from 'bson'
+
 export interface AnyObject {
-  id?: string
-  _id?: string
   [key: string]: any
 }
 
