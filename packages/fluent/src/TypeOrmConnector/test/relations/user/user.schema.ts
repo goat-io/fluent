@@ -17,7 +17,21 @@ export const userInputSchema = z.object({
 
 export const userOutputSchema = userInputSchema.extend({
   id: z.string(),
-  cars: carInputSchema.array().optional(),
+  cars: carInputSchema
+    .extend({
+      user: userInputSchema.extend({
+        id: z.string(),
+        cars: carInputSchema
+          .extend({
+            user: userInputSchema
+          })
+          .array()
+          .optional(),
+        roles: RoleInputSchema.array().optional()
+      })
+    })
+    .array()
+    .optional(),
   roles: RoleInputSchema.array().optional()
 })
 

@@ -241,7 +241,7 @@ export const relationsTestSuite = (
             name: true
           },
           where: {
-            name: 'My new car 4'
+            name: 'My new car 4',
           },
           include: {
             user: {
@@ -255,6 +255,10 @@ export const relationsTestSuite = (
       }
     })
 
-    console.log(searchUserWithRelations[0]['cars'][0])
+    console.log(searchUserWithRelations)
+    searchUserWithRelations[0].cars![0].
+
+    expect(searchUserWithRelations[0].cars![0].user?.id).toBe(insertedUser.id)
+    expect(searchUserWithRelations[0].cars![0].user?.name).toBe('testUser1')
   })
 }

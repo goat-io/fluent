@@ -150,7 +150,7 @@ export class TypeOrmConnector<
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
     const requiresCustomQuery =
       query?.include && Object.keys(query.include).length
 
@@ -166,14 +166,16 @@ export class TypeOrmConnector<
           fluentQuery: query
         })
 
+      console.log(selectedKeys)
+
       customQuery.select(selectedKeys)
-      
+
+      // Get the count for pagination
+      // TODO: do the pagination
       let [result, count] = await customQuery.getManyAndCount()
 
-      console.log(result, count)
-
       //TODO: We have to validate the results!
-      return result as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return result as unknown as QueryOutput<T, ModelDTO>[]
     }
 
     // Generate normal TypeORM Query
@@ -190,35 +192,32 @@ export class TypeOrmConnector<
     })
 
     if (query?.paginated) {
-      const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO, OutputDTO>> =
-        {
-          total: count,
-          perPage: query.paginated.perPage,
-          currentPage: query.paginated.page,
-          nextPage: query.paginated.page + 1,
-          firstPage: 1,
-          lastPage: Math.ceil(count / query.paginated.perPage),
-          prevPage:
-            query.paginated.page === 1 ? null : query.paginated.page - 1,
-          from: (query.paginated.page - 1) * query.paginated.perPage + 1,
-          to: query.paginated.perPage * query.paginated.page,
-          data: found as unknown as QueryOutput<T, ModelDTO, OutputDTO>[]
-        }
+      const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO>> = {
+        total: count,
+        perPage: query.paginated.perPage,
+        currentPage: query.paginated.page,
+        nextPage: query.paginated.page + 1,
+        firstPage: 1,
+        lastPage: Math.ceil(count / query.paginated.perPage),
+        prevPage: query.paginated.page === 1 ? null : query.paginated.page - 1,
+        from: (query.paginated.page - 1) * query.paginated.perPage + 1,
+        to: query.paginated.perPage * query.paginated.page,
+        data: found as unknown as QueryOutput<T, ModelDTO>[]
+      }
 
-      return paginationInfo as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return paginationInfo as unknown as QueryOutput<T, ModelDTO>[]
     }
 
     if (query?.select) {
       // TODO: validate based on the select properties
-      return found as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return found as unknown as QueryOutput<T, ModelDTO>[]
     }
 
     // Validate Output against schema
     return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
       T,
-      ModelDTO,
-      OutputDTO
-    >
+      ModelDTO
+    >[]
   }
 
   // UPDATE
@@ -550,22 +549,68 @@ export class TypeOrmConnector<
     queryAlias: string,
     select?: FluentQuery<ModelDTO>['select']
   ): string[] {
+    console.log(this.outputKeys)
     const selected = Objects.flatten(select || {})
     const selectedKeys: string[] = []
 
-    for (const [index, k] of Object.keys(selected).entries()) {
-      // TODO: this will fail with nested fields as
-      // breed
-      // breed.family => breedFamily
-      // we must not include breed
+    const iterableKeys = Object.keys(selected).length
+      ? Object.keys(selected)
+      : this.outputKeys
+
+    const baseNestedKeys: Set<string> = new Set()
+
+    for (const key of iterableKeys) {
+      const keyArray = key.split('.')
+
+      // There are no nested objects
+      if (keyArray.length <= 1) {
+        continue
+      }
+
+      const total = keyArray.length
+      for (const [index, val] of keyArray.entries()) {
+        // No need to iterate over the last object
+        if (total === index + 1) {
+          continue
+        }
+
+        let excludedField = ''
+        for (let i = 0; index; i++) {
+          if (excludedField) {
+            excludedField = `${excludedField}.${keyArray[index]}`
+          }
+          excludedField = `${keyArray[index]}`
+        }
+
+        if (excludedField) {
+          excludedField = `${excludedField}.${excludedField}${val}`
+        }
+        excludedField = `${excludedField}${val}`
+
+        baseNestedKeys.add(excludedField)
+      }
+    }
+
+    for (const k of iterableKeys) {
       const field = Strings.camel(`${k}`)
       const search = `${queryAlias}.${field}`
 
-      // We can tell if the field is a "related model" by checking
-      // THIS for the name of the relation
-      const isRelatedField = !!this[field]
+      // isRelatedField: We can tell if the field is a "related model"
+      // checking "this" for the name of the relation
+      let isNestedRelation = false
+      for (const item of k.split('.')) {
+        if (!!this[item]) {
+          isNestedRelation = true
+          break
+        }
+      }
 
-      if (isRelatedField) {
+      if (!!this[field] || !!this[queryAlias] || isNestedRelation) {
+        continue
+      }
+
+      // No need to include base keys
+      if (baseNestedKeys.has(field)) {
         continue
       }
 
@@ -641,17 +686,9 @@ export class TypeOrmConnector<
 
         // Right side considering nested relations
         // users___cars___cars___user
-
         const rightSideTableName = `${leftSideTableName}_${relation}`
 
         const rightSidePrimaryKey = `${rightSideTableName}.id`
-
-        // Now we need to decide which properties we want to select from the related model
-        // If the query has some {select: [x]: true}
-        // const selectedKeysArray = fluentRelatedQuery.select
-        //   ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
-        //   : []
-        // const selectedKeys = new Set(selectedKeysArray)
 
         const keys = new Set(
           selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
@@ -703,22 +740,6 @@ export class TypeOrmConnector<
         selectedKeys.push(...k)
 
         queryBuilder = qb
-
-        // const keys = getSelectedKeysFromRawSql(queryBuilder.getSql())
-
-        // console.log(keys)
-
-        // // Finally we can select all selectable fields, but from the Outer query
-        // for (const key of keys) {
-        //   if (key === 'breed') {
-        //     continue
-        //   }
-        //   // queryBuilder.addSelect(key)
-        // }
-
-        // queryBuilder.select()
-
-        // DONE
       }
 
       if (dbRelation.isOneToMany) {
@@ -874,7 +895,7 @@ export class TypeOrmConnector<
    */
   private async customMongoRelatedFind<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
     const where = getMongoWhere({
       where: query?.where
     })
@@ -889,8 +910,7 @@ export class TypeOrmConnector<
 
     return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
       T,
-      ModelDTO,
-      OutputDTO
-    >
+      ModelDTO
+    >[]
   }
 }

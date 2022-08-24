@@ -14,8 +14,8 @@ export type Concrete<Type> = {
 
 export type QueryFieldSelector<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
-    ? boolean | Unpacked<Partial<QueryFieldSelector<Concrete<T>[K]>>>
-    : boolean | undefined
+    ? true | Unpacked<Partial<QueryFieldSelector<Concrete<T>[K]>>>
+    : true | undefined
 }>
 
 export type QueryOrderSelector<T> = Partial<{
@@ -46,8 +46,8 @@ export type ModelRelation<T> = T
 
 export type QueryIncludeRelation<T> = {
   [K in keyof Partial<T>]:
-    | (FluentQuery<Unpacked<T[K]>> & { withPivot?: boolean })
-    | boolean
+    | (FluentQuery<Unpacked<T[K]>> & { withPivot?: true })
+    | true
 }
 
 export type FluentQuery<T> = {
@@ -70,68 +70,99 @@ export type AddUndefinedIfNullable<T> = T extends null | undefined
   ? undefined
   : never
 
-export type GetSelectedFromObject<
-  T extends FluentQuery<Model>,
-  Model,
-  OutputDTO
-> = {
+export type GetSelectedFromInclude<T extends FluentQuery<Model>, Model> = {
+  // Check nested objects
+  // Is the selected key an object? A.K.A -> nested attribute
+  [P in keyof T['include']]: T['include'][P] extends object
+    ? // We have to remove nullable to check for array!
+      NonNullable<Model[P]> extends any[]
+      ?
+          | QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>>[]
+          | AddUndefinedIfNullable<Model[P]>
+      :
+          | QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>>
+          | AddUndefinedIfNullable<Model[P]>
+    : // If it does not extend object -> true, return the model
+      Model[P]
+}
+
+export type GetSelectedFromObject<T extends FluentQuery<Model>, Model> = {
   // Check nested objects
   // Is the selected key an object? A.K.A -> nested attribute
   [P in keyof T['select']]: T['select'][P] extends object
-    ?
-        | QueryOutput<
-            { select: T['select'][P] },
-            NonNullable<Model[P]>,
-            OutputDTO[P]
-          >
-        | AddUndefinedIfNullable<Model[P]>
-    : OutputDTO[P]
-}
+    ? // We have to remove nullable to check for array!
+      NonNullable<Model[P]> extends any[]
+      ?
+          | QueryOutput<
+              { select: T['select'][P] },
+              Unpacked<NonNullable<Model[P]>>
+            >[]
+          | AddUndefinedIfNullable<Model[P]>
+      :
+          | QueryOutput<
+              { select: T['select'][P] },
+              Unpacked<NonNullable<Model[P]>>
+            >
+          | AddUndefinedIfNullable<Model[P]>
+    : // If it does not extend object -> true, return the model
+      Model[P]
+} & GetSelectedFromInclude<T, Model>
 
-export type QueryOutput<
-  T extends FluentQuery<Model>,
-  Model,
-  OutputDTO
-> = T extends {
+export type QueryOutput<T extends FluentQuery<Model>, Model> = T extends {
   select: T['select']
 }
   ? T extends { paginated: T['paginated'] }
-    ? PaginatedData<GetSelectedFromObject<T, Model, OutputDTO>>
-    : GetSelectedFromObject<T, Model, OutputDTO>[]
+    ? PaginatedData<GetSelectedFromObject<T, Model>>
+    : GetSelectedFromObject<T, Model>
   : // If it does not extend select
   T extends { paginated: T['paginated'] }
-  ? PaginatedData<OutputDTO>
-  : OutputDTO[]
-
-export type SingleQueryOutput<
-  T extends FluentQuery<Model>,
-  Model,
-  OutputDTO
-> = T extends {
-  select: T['select']
-}
-  ? T extends { paginated: T['paginated'] }
-    ? PaginatedData<GetSelectedFromObject<T, Model, OutputDTO>>
-    : GetSelectedFromObject<T, Model, OutputDTO>
-  : // If it does not extend select
-  T extends { paginated: T['paginated'] }
-  ? PaginatedData<OutputDTO>
-  : OutputDTO
+  ? PaginatedData<Model>
+  : Model & GetSelectedFromInclude<T, Model>
 
 export interface PaginatedData<T> {
+  /**
+   *
+   */
   currentPage: number
+  /**
+   * The actual result data
+   */
   data: T[]
   firstPageUrl?: string
   nextPageUrl?: string
   prevPageUrl?: string
   path?: string
+  /**
+   * Number of results on each page
+   */
   perPage: number
+  /**
+   * Total number of results for the query
+   */
   total: number
+  /**
+   * Last page number
+   */
   lastPage: number
+  /**
+   * First page number
+   */
   firstPage: number
+  /**
+   * Next page number
+   */
   nextPage: number
+  /**
+   * Previous page number
+   */
   prevPage: number | null
+  /**
+   * Showing results from
+   */
   from: number
+  /**
+   * Showing results to
+   */
   to: number
 }
 
@@ -168,8 +199,8 @@ export enum LogicOperator {
 
 export type FluentHasManyRelatedAttribute<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
-    ? Unpacked<Partial<FluentHasManyRelatedAttribute<Concrete<T>[K]>>> | boolean
-    : boolean | undefined
+    ? Unpacked<Partial<FluentHasManyRelatedAttribute<Concrete<T>[K]>>> | true
+    : true | undefined
 }>
 
 export type FluentHasManyParams<T extends FluentHasManyParams<T>> = {

@@ -1,4 +1,4 @@
-import { userInputSchema, userOutputSchema } from '../user/user.schema'
+import { userOutputSchema } from '../user/user.schema'
 import { carInputSchema } from './car.schema'
 import { z } from 'zod'
 

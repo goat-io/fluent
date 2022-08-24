@@ -10,8 +10,7 @@ import {
   Primitives,
   PrimitivesArray,
   QueryFieldSelector,
-  QueryOutput,
-  SingleQueryOutput
+  QueryOutput
 } from './types'
 import { clearEmpties } from './TypeOrmConnector/util/clearEmpties'
 import { isAnyObject } from './TypeOrmConnector/util/isAnyObject'
@@ -26,29 +25,29 @@ export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   findById<T extends FindByIdFilter<ModelDTO>>(
     id: string,
     q?: T
-  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null>
+  ): Promise<QueryOutput<T, ModelDTO> | null>
 
   findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
     q?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>>
+  ): Promise<QueryOutput<T, ModelDTO>[]>
 
   /// Find
   findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>>
+  ): Promise<QueryOutput<T, ModelDTO>[]>
   findFirst<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null>
+  ): Promise<QueryOutput<T, ModelDTO> | null>
 
   /// Require
   requireById(
     id: string,
     q?: FindByIdFilter<ModelDTO>
-  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>>
+  ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>>
   requireFirst<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO>>
+  ): Promise<QueryOutput<T, ModelDTO>>
 
   // Update
   updateById(id: string, data: InputDTO): Promise<OutputDTO>
@@ -131,7 +130,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
     throw new Error('findMany() method not implemented')
   }
 
@@ -143,20 +142,20 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public async findFirst<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null> {
+  ): Promise<QueryOutput<T, ModelDTO> | null> {
     const data = await this.findMany({ ...query, limit: 1 })
 
     if (!data[0]) {
       return null
     }
 
-    return data[0] as SingleQueryOutput<T, ModelDTO, OutputDTO>
+    return data[0] as QueryOutput<T, ModelDTO>
   }
 
   public async requireById(
     id: string,
     q?: FindByIdFilter<ModelDTO>
-  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>> {
     const found = await this.findByIds([id], {
       select: q?.select,
       include: q?.include,
@@ -175,16 +174,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     }
 
     // No need to validate, as findMany already validates
-    return found[0] as unknown as SingleQueryOutput<
+    return found[0] as unknown as QueryOutput<
       FindByIdFilter<ModelDTO>,
-      ModelDTO,
-      OutputDTO
+      ModelDTO
     >
   }
 
   public async requireFirst<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<T, ModelDTO>> {
     const found = await this.findMany({ ...query, limit: 1 })
 
     found.map(d => {
@@ -199,13 +197,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       throw new Error(`No objects found matching:  ${stringQuery}`)
     }
     // The object is already validated by findMany
-    return found[0] as unknown as SingleQueryOutput<T, ModelDTO, OutputDTO>
+    return found[0] as unknown as QueryOutput<T, ModelDTO>
   }
 
   public async findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
     q?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
     let data = await this.findMany({
       where: {
         id: {
@@ -218,20 +216,20 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     } as any)
 
     // The object should already be validated by FindMany
-    return data as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+    return data as unknown as QueryOutput<T, ModelDTO>[]
   }
 
   public async findById<T extends FindByIdFilter<ModelDTO>>(
     id: string,
     q?: T
-  ): Promise<SingleQueryOutput<T, ModelDTO, OutputDTO> | null> {
+  ): Promise<QueryOutput<T, ModelDTO> | null> {
     const result = await this.findByIds([id], { ...q, limit: 1 })
 
     if (!result[0]) {
       return null
     }
 
-    return result[0] as unknown as SingleQueryOutput<T, ModelDTO, OutputDTO>
+    return result[0] as unknown as QueryOutput<T, ModelDTO>
   }
 
   /**
@@ -249,7 +247,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       return new Collection<OutputDTO>([data])
     }
 
-    return new Collection<OutputDTO>(data)
+    return new Collection<OutputDTO>(data as unknown as OutputDTO[])
   }
 
   /**
@@ -328,11 +326,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const insertQueries: any[] = []
 
     for (const related of relatedData) {
-      const exists = existingData.find((d: OutputDTO) => {
+      const exists = existingData.find((d: ModelDTO) => {
         // We need to manually define the id field
-        const p = d as { id: string } & OutputDTO
+        const p = d as unknown as { id: string } & OutputDTO
         p.id === related.id
-      }) as { id: string } & OutputDTO
+      }) as unknown as { id: string } & OutputDTO
 
       if (exists) {
         updateQueries.push(
@@ -442,6 +440,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   ): InstanceType<T['repository']> {
     const newRepo = new r.repository() as any
 
+    // Hacky way to get the name of the callee function
     const relationName = new Error('dummy')
       .stack!.split('\n')[2]
       // " at functionName ( ..." => "functionName"

@@ -20,7 +20,6 @@ import type {
   QueryOutput,
   LoadedResult,
   FindByIdFilter,
-  SingleQueryOutput
 } from './types'
 import { LogicOperator } from './types'
 import { BaseConnector } from './BaseConnector'
@@ -79,6 +78,5 @@ export type {
   FluentQuery,
   QueryOutput,
   LoadedResult,
-  FindByIdFilter,
-  SingleQueryOutput
+  FindByIdFilter
 }
