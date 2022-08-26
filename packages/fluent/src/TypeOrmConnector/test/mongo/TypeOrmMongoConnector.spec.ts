@@ -12,31 +12,36 @@ import { relationsTestSuite } from '../relations/relationsTestsSuite'
 import {UserRepository} from './user.mongo.repository'
 import { CarsRepository } from './car.mongo.repository'
 import { RoleRepository } from './roles.mongo.repository'
+import getDatabase from '../docker/mongo'
 
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
-let mongoConnection: MongoMemoryServer
+// let mongoConnection: MongoMemoryServer
+let tearDown: () => Promise<void>
 
 beforeAll(async () => {
-  mongoConnection = await mongoMemory.start()
+  const { kill, port, databaseURL } = await getDatabase()
+  tearDown = kill
+  // mongoConnection = await mongoMemory.start()
   MongoDataSource.setOptions({
-    url: mongoConnection.getUri(),
+    url: databaseURL,
     entities: dbEntities
   })
   await Fluent.initialize([MongoDataSource], dbEntities)
 })
 
 afterAll(async () => {
-  await mongoConnection.stop()
+  // await mongoConnection.stop()
+  tearDown && await tearDown()
 })
 
 describe('Execute all basic test Suite', () => {
-  basicTestSuite(GoatRepository)
+  // basicTestSuite(GoatRepository)
 })
 
 describe('Execute all advanced test Suite', () => {
-  advancedTestSuite(TypeOrmRepository)
+ // advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {

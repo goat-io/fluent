@@ -1,13 +1,12 @@
 import { FindManyOptions } from 'typeorm'
 import { FluentQuery } from '../../../types'
-import { GeneratedModelRelations } from '../../util/getRelationsFromModelGenerator'
-import { getMongoLookup } from './getMongoLookup'
+import { getMongoBaseAggregation } from './getMongoBaseAggregations'
 import { getMongoSelect } from './getMongoSelect'
 
 export type getFindAggregateQueryParams<T extends FluentQuery<any>> = {
   query?: T
   where?: FindManyOptions['where']
-  modelRelations: GeneratedModelRelations['relations']
+  self?: any
 }
 /**
  *
@@ -17,13 +16,13 @@ export type getFindAggregateQueryParams<T extends FluentQuery<any>> = {
 export const getMongoFindAggregatedQuery = ({
   query,
   where,
-  modelRelations
+  self
 }: getFindAggregateQueryParams<any>): any[] => {
   const selected = getMongoSelect(query?.select)
 
-  const lookups = getMongoLookup({
+  const baseAggregations = getMongoBaseAggregation({
     include: query?.include,
-    modelRelations
+    self
   })
 
   const aggregate: any[] = [
@@ -38,7 +37,7 @@ export const getMongoFindAggregatedQuery = ({
     aggregate.push({ $limit: query.limit! })
   }
 
-  for (const lookup of lookups) {
+  for (const lookup of baseAggregations) {
     aggregate.push(lookup)
   }
 

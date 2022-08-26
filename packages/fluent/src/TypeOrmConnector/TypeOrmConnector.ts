@@ -166,8 +166,6 @@ export class TypeOrmConnector<
           fluentQuery: query
         })
 
-      console.log(selectedKeys)
-
       customQuery.select(selectedKeys)
 
       // Get the count for pagination
@@ -502,6 +500,8 @@ export class TypeOrmConnector<
 
     let customQuery = queryBuilder || this.raw().createQueryBuilder(queryAlias)
 
+    const self = targetFluentRepository || this
+
     if (!isLeftJoin) {
       customQuery = getQueryBuilderWhere({
         queryBuilder: customQuery,
@@ -522,6 +522,7 @@ export class TypeOrmConnector<
 
     const extraKeys = this.getTypeOrmQueryBuilderSelect(
       queryAlias,
+      self,
       query?.select
     )
 
@@ -547,21 +548,20 @@ export class TypeOrmConnector<
 
   private getTypeOrmQueryBuilderSelect(
     queryAlias: string,
+    self: this,
     select?: FluentQuery<ModelDTO>['select']
   ): string[] {
-    console.log(this.outputKeys)
     const selected = Objects.flatten(select || {})
     const selectedKeys: string[] = []
 
     const iterableKeys = Object.keys(selected).length
       ? Object.keys(selected)
-      : this.outputKeys
+      : self.outputKeys || []
 
     const baseNestedKeys: Set<string> = new Set()
 
     for (const key of iterableKeys) {
       const keyArray = key.split('.')
-
       // There are no nested objects
       if (keyArray.length <= 1) {
         continue
@@ -569,6 +569,7 @@ export class TypeOrmConnector<
 
       const total = keyArray.length
       for (const [index, val] of keyArray.entries()) {
+        
         // No need to iterate over the last object
         if (total === index + 1) {
           continue
@@ -592,20 +593,20 @@ export class TypeOrmConnector<
     }
 
     for (const k of iterableKeys) {
-      const field = Strings.camel(`${k}`)
+      const field = k.includes('.') ? Strings.camel(`${k}`) : k
       const search = `${queryAlias}.${field}`
 
       // isRelatedField: We can tell if the field is a "related model"
       // checking "this" for the name of the relation
       let isNestedRelation = false
       for (const item of k.split('.')) {
-        if (!!this[item]) {
+        if (!!self[item]) {
           isNestedRelation = true
           break
         }
       }
 
-      if (!!this[field] || !!this[queryAlias] || isNestedRelation) {
+      if (!!self[field] || !!self[queryAlias] || isNestedRelation) {
         continue
       }
 
@@ -668,10 +669,6 @@ export class TypeOrmConnector<
       const selectedKeysArray = fluentRelatedQuery.select
         ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
         : []
-
-      // console.log({ selectedKeys })
-
-      // queryBuilder.select(['users.age', 'users.id', 'users_cars.id'])
 
       if (dbRelation.isManyToOne) {
         // We now have the opposite "cars" has one "users"
@@ -903,10 +900,12 @@ export class TypeOrmConnector<
     const aggregate = getMongoFindAggregatedQuery({
       query,
       where,
-      modelRelations: this.modelRelations
+      self: this
     })
 
     let raw = await this.mongoRaw().aggregate(aggregate).toArray()
+
+    console.log(raw[0].cars[0])
 
     return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
       T,

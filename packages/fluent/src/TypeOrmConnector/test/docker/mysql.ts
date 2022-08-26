@@ -5,7 +5,7 @@ import startContainer, {
 const {createConnection} = require('mysql2');
 
 const DEFAULT_IMAGE = 'mysql:8.0';
-const DEFAULT_CONTAINER_NAME = 'fluent-mysql-test'
+const DEFAULT_CONTAINER_NAME = `fluent-${DEFAULT_IMAGE.replace(':', '-')}-test`
 const DEFAULT_CONNECT_TIMEOUT_SECONDS=10
 const DEFAULT_MYSQL_PORT = 3306;
 const DEFAULT_MYSQL_USER = 'test-user';

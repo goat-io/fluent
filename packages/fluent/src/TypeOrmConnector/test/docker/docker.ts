@@ -105,8 +105,7 @@ export function startDockerContainer(options: NormalizedOptions) {
       ...(options.detached ? ['--detach'] : []),
       // set enviornment variables
       ...envArgs,
-      options.image,
-      '--default_authentication_plugin=mysql_native_password'
+      options.image
     ],
     {
       stdio: options.debug ? 'inherit' : 'ignore'
@@ -211,8 +210,8 @@ export default async function startContainer(options: Options) {
   return {
     proc,
     externalPort,
-    async kill() {
-      await killOldContainers(options)
+    kill: async () => {
+      return await killOldContainers(options)
     }
   }
 }

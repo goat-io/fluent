@@ -1,6 +1,6 @@
 {
   "extends": "@goatlab/tsconfig/base.json",
-  "include": ["src"],
+  "include": ["src", "../fluent-firebase/src/test/firebase.ts"],
   "exclude": ["src/**/*.spec.*", "src/TypeOrmConnector/tests/**"],
   "compilerOptions": {
     "declaration": true,

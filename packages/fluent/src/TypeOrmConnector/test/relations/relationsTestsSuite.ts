@@ -101,6 +101,7 @@ export const relationsTestSuite = (
   //     }
   //   })
 
+
   //   const firstResult = searchUserWithRelation[0]!
 
   //   expect(Array.isArray(searchUserWithRelation)).toBe(true)
@@ -229,6 +230,18 @@ export const relationsTestSuite = (
       select: {
         id: true,
         name: true,
+        cars: {
+          name: true,
+          user: {
+            id: true,
+            name: true,
+            cars: {
+              id: true,
+              user: true,
+              name: true
+            }
+          }
+        }
       },
       // Inner join
       where: {
@@ -246,9 +259,15 @@ export const relationsTestSuite = (
           },
           include: {
             user: {
-              select: {
-                id: true,
-                name: true
+              include: {
+                cars: {
+                  where: {
+                    name: 'My new car XXXxX',
+                  },
+                  include: {
+                    user: true
+                  }
+                }
               }
             }
           }
@@ -256,9 +275,9 @@ export const relationsTestSuite = (
       }
     })
 
-    console.log(searchUserWithRelations)
-    searchUserWithRelations[0].cars![0].id
+    console.log(searchUserWithRelations[0].cars)
 
+    console.log(searchUserWithRelations[0].cars![0].user)
     expect(searchUserWithRelations[0].cars![0].user?.id).toBe(insertedUser.id)
     expect(searchUserWithRelations[0].cars![0].user?.name).toBe('testUser1')
   })

@@ -15,23 +15,63 @@ export const userInputSchema = z.object({
   breed: BreedSchema.optional()
 })
 
-export const userOutputSchema = userInputSchema.extend({
-  id: z.string(),
-  cars: carInputSchema
+interface zodManyToOneProps {
+  manySchema: z.AnyZodObject
+  manyKey: string
+  oneSchema: z.AnyZodObject
+  oneKey: string
+}
+
+// A bunch of nested, so you have enough to play around
+const ZodManyToOne = ({
+  manySchema,
+  oneSchema,
+  manyKey,
+  oneKey
+}: zodManyToOneProps) => {
+  return manySchema
     .extend({
-      user: userInputSchema.extend({
-        id: z.string(),
-        cars: carInputSchema
+      [oneKey]: oneSchema.extend({
+        [manyKey]: manySchema
           .extend({
-            user: userInputSchema
+            [oneKey]: oneSchema
+              .extend({
+                [manyKey]: manySchema
+                  .extend({
+                    [oneKey]: oneSchema.extend({
+                      [manyKey]: manySchema
+                        .extend({
+                          [oneKey]: oneSchema
+                            .extend({
+                              [manyKey]: manySchema.optional().array()
+                            })
+                            .optional()
+                        })
+                        .optional()
+                        .array()
+                    })
+                  })
+                  .array()
+                  .optional()
+              })
+              .optional()
           })
+          .optional()
           .array()
-          .optional(),
-        roles: RoleInputSchema.array().optional()
       })
     })
     .array()
-    .optional(),
+    .optional()
+}
+
+export const userOutputSchema = userInputSchema.extend({
+  id: z.string(),
+  cars: ZodManyToOne({
+    manySchema: carInputSchema,
+    oneSchema: userInputSchema,
+    manyKey: 'cars',
+    oneKey: 'user'
+  }),
   roles: RoleInputSchema.array().optional()
 })
 

@@ -4,11 +4,23 @@ export interface AnyObject {
   [key: string]: any
 }
 
+declare const tag: unique symbol
+
+declare type Tagged<Token> = {
+  readonly [tag]: Token
+}
+
+export type Opaque<Type, Token = unknown> = Type & Tagged<Token>
+
 // Get the type from an array TYPE[] => TYPE
 type Unpacked<T> = T extends (infer U)[] ? U : T
 
 export type Concrete<Type> = {
   [Property in keyof Type]-?: Type[Property]
+}
+
+export type Subset<T, U> = {
+  [key in keyof T]: key extends keyof U ? T[key] : never
 }
 
 export type QueryFieldSelector<T> = Partial<{
