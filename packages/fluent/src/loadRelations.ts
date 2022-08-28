@@ -46,21 +46,20 @@ export const loadRelations = async ({
       const ids = new Set(data.map(d => d.id))
 
       const chunks = Arrays.chunk(Array.from(ids), chunkSize)
-      // TODO we can make this calls at the same time...no need to wait for each one
-      const promises: any[] = []
 
+      const promises: any[] = []
       for (const relatedIds of chunks) {
         //TODO: NESTED MODEL FILTERS
         // Here is where we could define nested model filters!!!!
-        const results = await Repository.findMany({
-          where: {
-            [relationModel.inverseSidePropertyPath]: {
-              in: relatedIds
+        promises.push(
+          Repository.findMany({
+            where: {
+              [relationModel.inverseSidePropertyPath]: {
+                in: relatedIds
+              }
             }
-          }
-        })
-
-        promises.push(results)
+          })
+        )
       }
 
       const relatedResults = Arrays.collapse(await Promise.all(promises))
@@ -85,17 +84,18 @@ export const loadRelations = async ({
         data.map(d => d[relationModel.joinColumns[0].propertyPath])
       )
       const chunks = Arrays.chunk(ids, chunkSize)
-      // TODO we can make this calls at the same time...no need to wait for each one
+
       const promises: any[] = []
       for (const relatedIds of chunks) {
-        const results = await Repository.findMany({
-          where: {
-            id: {
-              in: relatedIds
+        promises.push(
+          Repository.findMany({
+            where: {
+              id: {
+                in: relatedIds
+              }
             }
-          }
-        })
-        promises.push(results)
+          })
+        )
       }
 
       const relatedResults = Arrays.collapse(await Promise.all(promises))

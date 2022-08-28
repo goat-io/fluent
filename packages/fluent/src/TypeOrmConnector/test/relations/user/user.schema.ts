@@ -2,18 +2,7 @@ import { z } from 'zod'
 import { carInputSchema } from '../car/car.schema'
 import { carOutputSchema } from '../car/car.output.schema'
 import { RoleInputSchema } from '../roles/role.schema'
-
-export const BreedSchema = z.object({
-  family: z.string().optional(),
-  members: z.number().optional()
-})
-
-export const userInputSchema = z.object({
-  id: z.string().optional(),
-  name: z.string(),
-  age: z.number().optional(),
-  breed: BreedSchema.optional()
-})
+import { RolesUserSchema } from '../roles/roles_user.schema'
 
 interface zodManyToOneProps {
   manySchema: z.AnyZodObject
@@ -58,21 +47,42 @@ const ZodManyToOne = ({
           })
           .optional()
           .array()
-      })
+      }).optional()
     })
     .array()
     .optional()
 }
 
-export const userOutputSchema = userInputSchema.extend({
+export const BreedSchema = z.object({
+  family: z.string().optional(),
+  members: z.number().optional()
+})
+
+export const userInputSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  age: z.number().optional(),
+  breed: BreedSchema.optional()
+})
+
+// We need to add 1 by 1 the relations so we can
+export const rolesWithPivot = RoleInputSchema.extend({
+  pivot: RolesUserSchema.optional()
+})
+
+export const userWithRoles = userInputSchema.extend({
   id: z.string(),
+  roles: rolesWithPivot.array().optional()
+})
+
+// The final Output for the user
+export const userOutputSchema = userWithRoles.extend({  
   cars: ZodManyToOne({
     manySchema: carInputSchema,
-    oneSchema: userInputSchema,
+    oneSchema: userWithRoles,
     manyKey: 'cars',
     oneKey: 'user'
-  }),
-  roles: RoleInputSchema.array().optional()
+  })
 })
 
 export type UsersDtoIn = z.infer<typeof userInputSchema>

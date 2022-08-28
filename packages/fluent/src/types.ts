@@ -4,13 +4,15 @@ export interface AnyObject {
   [key: string]: any
 }
 
-declare const tag: unique symbol
-
-declare type Tagged<Token> = {
-  readonly [tag]: Token
-}
-
-export type Opaque<Type, Token = unknown> = Type & Tagged<Token>
+export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
+  ? (...args: ExpandRecursively<A>) => ExpandRecursively<R>
+  : T extends object
+  ? T extends infer O
+    ? O extends any[]
+      ? { [K in keyof Unpacked<O>]: ExpandRecursively<Unpacked<O>[K]> }[]
+      : { [K in keyof O]: ExpandRecursively<O[K]> }
+    : never
+  : T
 
 // Get the type from an array TYPE[] => TYPE
 type Unpacked<T> = T extends (infer U)[] ? U : T
@@ -81,17 +83,33 @@ export type AddUndefinedIfNullable<T> = T extends null | undefined
   ? undefined
   : never
 
+// TODO: We need to properly type the pivot tables
 export type GetSelectedFromInclude<T extends FluentQuery<Model>, Model> = {
   // Check nested objects
   // Is the selected key an object? A.K.A -> nested attribute
   [P in keyof T['include']]: T['include'][P] extends object
     ? // We have to remove nullable to check for array!
       NonNullable<Model[P]> extends any[]
-      ?
-          | QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>>[]
+      ? T['include'][P] extends { withPivot: true }
+        ? // Array with pivot
+          | (QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>> & {
+                pivot: AnyObject
+              })[]
+            | AddUndefinedIfNullable<Model[P]>
+        : // Array without pivot
+          | (QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>> & {
+                pivot: AnyObject
+              })[]
+            | AddUndefinedIfNullable<Model[P]>
+      : // Not an array
+      T['include'][P] extends { withPivot: true }
+      ? // Not an array an includes pivot
+        | (QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>> & {
+              pivot: AnyObject
+            })
           | AddUndefinedIfNullable<Model[P]>
-      :
-          | QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>>
+      : // Not an array an does not include pivot
+        | QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>>
           | AddUndefinedIfNullable<Model[P]>
     : // If it does not extend object -> true, return the model
       Model[P]
@@ -119,16 +137,21 @@ export type GetSelectedFromObject<T extends FluentQuery<Model>, Model> = {
       Model[P]
 } & GetSelectedFromInclude<T, Model>
 
-export type QueryOutput<T extends FluentQuery<Model>, Model> = T extends {
-  select: T['select']
-}
-  ? T extends { paginated: T['paginated'] }
-    ? PaginatedData<GetSelectedFromObject<T, Model>>
-    : GetSelectedFromObject<T, Model>
-  : // If it does not extend select
-  T extends { paginated: T['paginated'] }
-  ? PaginatedData<Model>
-  : Model & GetSelectedFromInclude<T, Model>
+export type QueryOutput<
+  T extends FluentQuery<Model>,
+  Model
+> = ExpandRecursively<
+  T extends {
+    select: T['select']
+  }
+    ? T extends { paginated: T['paginated'] }
+      ? PaginatedData<GetSelectedFromObject<T, Model>>
+      : ExpandRecursively<GetSelectedFromObject<T, Model>>
+    : // If it does not extend select
+    T extends { paginated: T['paginated'] }
+    ? PaginatedData<Model>
+    : Model & GetSelectedFromInclude<T, Model>
+>
 
 export interface PaginatedData<T> {
   /**

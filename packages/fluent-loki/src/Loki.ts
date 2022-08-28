@@ -2,13 +2,15 @@ import LokiJS from 'lokijs'
 import LokiIndexedAdapter from 'lokijs/src/loki-indexed-adapter'
 import lfsa from 'lokijs/src/loki-fs-structured-adapter'
 import cryptedFile from 'lokijs/src/loki-crypted-file-adapter'
+import LokiNativescriptAdapter from 'lokijs/src/loki-nativescript-adapter'
 
 export enum LokiStorageType {
   indexedDB = 'indexedDB',
   memory = 'memory',
   fsStructured = 'fsStructured',
   file = 'file',
-  cryptedFile = 'cryptedFile'
+  cryptedFile = 'cryptedFile',
+  json = 'json'
 }
 
 export type LokiParams = {
@@ -56,7 +58,10 @@ export class LokiClass {
         return new LokiJS(dbName, {
           ...dbConfig,
           adapter: new LokiJS.LokiPartitioningAdapter(
-            new LokiJS.LokiMemoryAdapter()
+            new LokiJS.LokiMemoryAdapter({
+              asyncResponses: true,
+              asyncTimeout: 50
+            })
           )
         })
       case LokiStorageType.fsStructured:
@@ -66,7 +71,12 @@ export class LokiClass {
         })
       case LokiStorageType.cryptedFile:
         cryptedFile.setSecret(secret)
-        return new LokiJS(dbName, { ...dbConfig, adapter: new cryptedFile() })
+        return new LokiJS(dbName, { ...dbConfig, adapter: cryptedFile })
+      case LokiStorageType.json:
+        return new LokiJS(dbName, {
+          ...dbConfig,
+          adapter: new LokiNativescriptAdapter()
+        })
 
       default:
         return new LokiJS(dbName, {

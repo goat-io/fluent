@@ -4,78 +4,13 @@ import {
   FluentHasManyParams,
   FluentBelongsToParams,
   FluentBelongsToManyParams,
-  FluentHasManyRelatedAttribute,
   FluentQuery,
-  LogicOperator,
   Primitives,
-  PrimitivesArray,
   QueryFieldSelector,
-  QueryOutput
+  QueryOutput,
+  AnyObject
 } from './types'
 import { clearEmpties } from './TypeOrmConnector/util/clearEmpties'
-import { isAnyObject } from './TypeOrmConnector/util/isAnyObject'
-
-export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
-  // CREATE
-  insert(data: InputDTO): Promise<OutputDTO>
-  insertMany(data: InputDTO[]): Promise<OutputDTO[]>
-
-  // READ
-  /// Id
-  findById<T extends FindByIdFilter<ModelDTO>>(
-    id: string,
-    q?: T
-  ): Promise<QueryOutput<T, ModelDTO> | null>
-
-  findByIds<T extends FindByIdFilter<ModelDTO>>(
-    ids: string[],
-    q?: T
-  ): Promise<QueryOutput<T, ModelDTO>[]>
-
-  /// Find
-  findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
-  ): Promise<QueryOutput<T, ModelDTO>[]>
-  findFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
-  ): Promise<QueryOutput<T, ModelDTO> | null>
-
-  /// Require
-  requireById(
-    id: string,
-    q?: FindByIdFilter<ModelDTO>
-  ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>>
-  requireFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
-  ): Promise<QueryOutput<T, ModelDTO>>
-
-  // Update
-  updateById(id: string, data: InputDTO): Promise<OutputDTO>
-  replaceById(id: string, data: InputDTO): Promise<OutputDTO>
-  // updateMany<T extends FluentQuery<ModelDTO>['where']>(
-  //   where: FluentQuery<T>['where'],
-  //   data: InputDTO
-  // ): Promise<OutputDTO>
-  // replaceMany<T extends FluentQuery<ModelDTO>['where']>(
-  //   where: FluentQuery<T>['where'],
-  //   data: InputDTO
-  // ): Promise<OutputDTO>
-
-  //DELETE
-  deleteById(id: string): Promise<string>
-  // deleteMany<T extends FluentQuery<ModelDTO>['where']>(
-  //   where: FluentQuery<T>['where']
-  // ): Promise<string[]>
-  // clear(): Promise<boolean>
-
-  // Relations
-  loadFirst(query?: FluentQuery<ModelDTO>)
-  loadById(id: string)
-  // clone()
-
-  raw(): any
-  // softDelete(): Promise<T>
-}
 
 export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected outputKeys: string[]
@@ -326,7 +261,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const insertQueries: any[] = []
 
     for (const related of relatedData) {
-      const exists = existingData.find((d: ModelDTO) => {
+      const exists = existingData.find((d: AnyObject) => {
         // We need to manually define the id field
         const p = d as unknown as { id: string } & OutputDTO
         p.id === related.id
@@ -354,7 +289,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * Attach an object with Many-to-Many relation
    * @param id
    */
-  public async attach(id: string) {
+  // TODO: properly type the pivot object
+  public async attach(id: string, pivot?: AnyObject) {
     if (!this.relatedQuery?.entity || !this.relatedQuery.key) {
       throw new Error('Associate can only be called as a related model')
     }
@@ -379,10 +315,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       )
     }
 
-    // TODO: insert data to the middle relation
+    // TODO: insert data to the pivot table
     const relatedData = parentData.map(d => ({
       [foreignKeyName]: d.id,
-      [inverseKeyName]: id
+      [inverseKeyName]: id,
+      ...pivot
     }))
 
     return this.relatedQuery.pivot.insertMany(relatedData)

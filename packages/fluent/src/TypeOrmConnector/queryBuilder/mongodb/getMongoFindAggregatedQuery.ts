@@ -2,10 +2,10 @@ import { FindManyOptions } from 'typeorm'
 import { FluentQuery } from '../../../types'
 import { getMongoBaseAggregation } from './getMongoBaseAggregations'
 import { getMongoSelect } from './getMongoSelect'
+import { getMongoWhere } from './getMongoWhere'
 
 export type getFindAggregateQueryParams<T extends FluentQuery<any>> = {
   query?: T
-  where?: FindManyOptions['where']
   self?: any
 }
 /**
@@ -15,10 +15,13 @@ export type getFindAggregateQueryParams<T extends FluentQuery<any>> = {
  */
 export const getMongoFindAggregatedQuery = ({
   query,
-  where,
   self
 }: getFindAggregateQueryParams<any>): any[] => {
   const selected = getMongoSelect(query?.select)
+
+  const where = getMongoWhere({
+    where: query?.where
+  })
 
   const baseAggregations = getMongoBaseAggregation({
     include: query?.include,

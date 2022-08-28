@@ -3,17 +3,14 @@ import { GoatRepository } from '../basic/goat.mongo.repository'
 import { TypeOrmRepository } from '../advanced/typeOrm.mongo.repository'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'
 import { basicTestSuite } from '../basic/basicTestSuite'
-import { mongoMemory } from './mongo.memory'
 import { MongoDataSource } from './mongoDatasource'
 import { Fluent } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
-import { MongoMemoryServer } from 'mongodb-memory-server'
 import { relationsTestSuite } from '../relations/relationsTestsSuite'
-import {UserRepository} from './user.mongo.repository'
+import { UserRepository } from './user.mongo.repository'
 import { CarsRepository } from './car.mongo.repository'
 import { RoleRepository } from './roles.mongo.repository'
 import getDatabase from '../docker/mongo'
-
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
@@ -32,16 +29,16 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  // await mongoConnection.stop()
-  tearDown && await tearDown()
+
+  tearDown && (await tearDown())
 })
 
 describe('Execute all basic test Suite', () => {
-  // basicTestSuite(GoatRepository)
+  basicTestSuite(GoatRepository)
 })
 
 describe('Execute all advanced test Suite', () => {
- // advancedTestSuite(TypeOrmRepository)
+  advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {

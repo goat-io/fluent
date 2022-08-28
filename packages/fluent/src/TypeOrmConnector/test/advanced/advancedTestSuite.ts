@@ -274,6 +274,8 @@ export const advancedTestSuite = Model => {
     expect(isNaN(result.from)).toBe(false)
     expect(isNaN(result.to)).toBe(false)
   })
+
+  // TODO: test to cover pagination functionality
   /*
   it('clear() should remove all records from the Model', async () => {
     await Model.clear()

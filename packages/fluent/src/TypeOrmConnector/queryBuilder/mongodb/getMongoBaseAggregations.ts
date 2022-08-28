@@ -49,9 +49,6 @@ export const getMongoBaseAggregation = ({
       where: include[relation]['where']
     })
 
-    console.log(where)
-
-
     if (dbRelation.isManyToOne) {
       const localField = dbRelation.joinColumns[0].propertyPath
       aggregations.push({
@@ -78,7 +75,12 @@ export const getMongoBaseAggregation = ({
         }
       })
 
-      aggregations.push({ $unwind: `$${dbRelation.propertyName}` })
+      aggregations.push({
+        $unwind: {
+          path: `$${dbRelation.propertyName}`,
+          preserveNullAndEmptyArrays: true
+        }
+      })
     }
 
     if (dbRelation.isOneToMany) {
@@ -157,7 +159,12 @@ export const getMongoBaseAggregation = ({
                 as: dbRelation.propertyName
               }
             },
-            { $unwind: `$${dbRelation.propertyName}` },
+            {
+              $unwind: {
+                path: `$${dbRelation.propertyName}`,
+                preserveNullAndEmptyArrays: true
+              }
+            },
             // Select (ish)
             {
               $project: {

@@ -1,42 +1,25 @@
 /**
  * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
  */
+import { LoadedResult, QueryOutput } from './../types'
 import {
-  LoadedResult,
-  LogicOperator,
-  Primitives,
-  PrimitivesArray,
-  QueryIncludeRelation,
-  QueryOutput
-} from './../types'
-import {
-  Equal,
   FindManyOptions,
-  In,
-  IsNull,
-  LessThan,
-  LessThanOrEqual,
-  Like,
-  MoreThan,
-  MoreThanOrEqual,
-  Not,
   ObjectID,
   Repository,
   MongoRepository,
   DeepPartial,
   FindOptionsWhere,
   FindOptionsRelations,
-  SelectQueryBuilder,
-  Brackets
+  SelectQueryBuilder
 } from 'typeorm'
 import { Ids, Objects, Strings } from '@goatlab/js-utils'
-import { BaseConnector, FluentConnectorInterface } from '../BaseConnector'
+import { BaseConnector } from '../BaseConnector'
+import { FluentConnectorInterface } from '../FluentConnectorInterface'
 import { getOutputKeys } from '../outputKeys'
 import type { AnyObject, FluentQuery, PaginatedData } from '../types'
 import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
 import { z } from 'zod'
-import { getSelectedKeysFromRawSql } from './util/getSelectedKeysFromRawSql'
 import { getMongoWhere } from './queryBuilder/mongodb/getMongoWhere'
 import { getRelationsFromModelGenerator } from './util/getRelationsFromModelGenerator'
 import { getMongoFindAggregatedQuery } from './queryBuilder/mongodb/getMongoFindAggregatedQuery'
@@ -569,20 +552,12 @@ export class TypeOrmConnector<
 
       const total = keyArray.length
       for (const [index, val] of keyArray.entries()) {
-        
         // No need to iterate over the last object
         if (total === index + 1) {
           continue
         }
 
         let excludedField = ''
-        for (let i = 0; index; i++) {
-          if (excludedField) {
-            excludedField = `${excludedField}.${keyArray[index]}`
-          }
-          excludedField = `${keyArray[index]}`
-        }
-
         if (excludedField) {
           excludedField = `${excludedField}.${excludedField}${val}`
         }
@@ -893,19 +868,12 @@ export class TypeOrmConnector<
   private async customMongoRelatedFind<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO>[]> {
-    const where = getMongoWhere({
-      where: query?.where
-    })
-
     const aggregate = getMongoFindAggregatedQuery({
       query,
-      where,
       self: this
     })
 
-    let raw = await this.mongoRaw().aggregate(aggregate).toArray()
-
-    console.log(raw[0].cars[0])
+    const raw = await this.mongoRaw().aggregate(aggregate).toArray()
 
     return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
       T,

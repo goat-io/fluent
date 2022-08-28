@@ -1,9 +1,13 @@
-import { dbEntities } from '@goatlab/fluent/src/TypeOrmConnector/test/dbEntities';
+// npx jest -i ./src/test/LokiConnector.spec.ts
+
+import { dbEntities } from '@goatlab/fluent/src/TypeOrmConnector/test/dbEntities'
 import { Fluent } from '@goatlab/fluent'
 import { basicTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/basic/basicTestSuite'
+import { advancedTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/advanced/advancedTestSuite'
 import { GoatRepository } from './goat.loki.repository'
+import { TypeOrmRepository } from './typeorm.loki.repository'
 
-beforeAll(async() => {
+beforeAll(async () => {
   await Fluent.initialize([], dbEntities)
 })
 describe('Execute all basic test Suite', () => {
@@ -11,5 +15,5 @@ describe('Execute all basic test Suite', () => {
 })
 
 describe('Execute all advanced test Suite', () => {
-  // advancedTestSuite(Goat2)
+  advancedTestSuite(TypeOrmRepository)
 })

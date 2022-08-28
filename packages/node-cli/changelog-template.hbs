@@ -1,0 +1,52 @@
+{{#each releases}}
+  #
+  {{title}}
+  [{{isoDate}}]
+
+  {{! lit commits with feature: in message, use feature: or Feature: }}
+  {{#commit-list
+    commits
+    heading='### Features'
+    message='(feat: )|(Feature: )'
+    exclude='(fix: )|(Fix: )|(break: )|(Break: )'
+  }}
+    *
+    {{subject}}
+    ([`{{shorthash}}`]({{href}}))
+  {{/commit-list}}
+
+  {{! use fix: or Fix: }}
+  {{#commit-list
+    commits
+    heading='### Fixes'
+    message='(fix: )|(Fix: )'
+    exclude='(break: )|(Break: )|(Feature: )|(feat: )'
+  }}
+    *
+    {{subject}}
+    ([`{{shorthash}}`]({{href}}))
+  {{/commit-list}}
+
+  {{! user break: or Break: }}
+  {{#commit-list
+    commits
+    heading='### Breaking changes'
+    message='(break: )|(Break: )'
+    exclude='(fix: )|(Fix: )|(Feat: )|(feat: )'
+  }}
+    *
+    {{subject}}
+    ([`{{shorthash}}`]({{href}}))
+  {{/commit-list}}
+
+  {{#commit-list
+    commits
+    heading='### Other Changes'
+    exclude='(fix: )|(Fix: )|(break: )|(Break: ) (feat: )|(Feat: )'
+  }}
+    *
+    {{subject}}
+    ([`{{shorthash}}`]({{href}}))
+  {{/commit-list}}
+
+{{/each}}

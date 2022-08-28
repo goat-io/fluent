@@ -1,7 +1,7 @@
 {
-  "name": "@goatlab/node-utils",
+  "name": "@goatlab/node-cli",
   "version": "0.8.1",
-  "description": "Readable query Interface & API generator for TS and Node",
+  "description": "Node Helpers to Build CLI",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,17 +32,15 @@
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
   "dependencies": {
-    "@goatlab/js-utils": "*",
-    "child_process": "^1.0.2",
-    "dockerode": "^3.3.1",
+    "cli-progress": "^3.11.2",
+    "colors": "^1.4.0",
+    "commander": "^9.4.0",
+    "figlet": "^1.5.2",
     "fs": "^0.0.1-security",
-    "http-errors": "^2.0.0",
-    "jsonwebtoken": "^8.5.1",
+    "inquirer": "^9.1.0",
+    "ora": "^6.1.2",
     "path": "^0.12.7",
-    "portfinder": "^1.0.32",
-    "rimraf": "^3.0.2",
-    "verror": "^1.10.1",
-    "winston": "^3.6.0"
+    "shelljs": "^0.8.5"
   },
   "devDependencies": {
     "@types/jest": "^27.4.1",

@@ -50,7 +50,6 @@ export class LokiConnector<
 
   private readonly entity: any
 
-
   constructor({
     entity,
     dataSource,
@@ -217,6 +216,17 @@ export class LokiConnector<
   }
 
   /**
+   *
+   * @param id
+   * @returns
+   */
+  public async deleteById(id: string): Promise<string> {
+    await this.collection.findAndRemove({ id })
+
+    return id
+  }
+
+  /**
    * PATCH operation
    * @param data
    */
@@ -337,7 +347,7 @@ export class LokiConnector<
       let { element, operator, value } = condition
 
       if (element === 'id') {
-        element = '_id'
+        // element = '_id'
         /*
         value = (Array.isArray(value)
           ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
@@ -388,7 +398,7 @@ export class LokiConnector<
       let { element, operator, value } = condition
 
       if (element === 'id') {
-        element = '_id'
+        // element = '_id'
         /*
         value = (Array.isArray(value)
           ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
@@ -509,7 +519,6 @@ export class LokiConnector<
   protected clone() {
     return new (<any>this.constructor)()
   }
-
 
   public loadById(id: string) {
     // Create a new instance to avoid polluting the original one

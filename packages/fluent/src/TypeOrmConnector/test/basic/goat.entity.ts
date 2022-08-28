@@ -34,7 +34,7 @@ export const BreedSchema = z.object({
 
 export const GoatSchema = z.object({
   id: z.string().optional(),
-  name: z.string(),
+  name: z.string().optional(),
   age: z.number(),
   breed: BreedSchema.optional()
 })
