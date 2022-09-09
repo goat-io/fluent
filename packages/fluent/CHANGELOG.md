@@ -1,5 +1,29 @@
 # 0.5.20
 
+## 0.7.9
+
+### Patch Changes
+
+- Fix build
+- Updated dependencies
+  - @goatlab/js-utils@0.8.6
+
+## 0.7.8
+
+### Patch Changes
+
+- Fluent mongo relations
+- Updated dependencies
+  - @goatlab/js-utils@0.8.5
+
+## 0.7.7
+
+### Patch Changes
+
+- Fluent mongo relations
+- Updated dependencies
+  - @goatlab/js-utils@0.8.4
+
 ## 0.7.4
 
 ### Patch Changes

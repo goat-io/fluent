@@ -1,28 +1,30 @@
 import pluralize from 'pluralize'
-import { BaseDataElement } from './types'
+import { BaseDataElement, StringMap } from './types'
 import { nGram } from './Ngram'
 import { Objects } from './Objects'
+import { reUnicodeWords } from './Strings/unicodeWords'
 
 export interface NgramFromObject {
   fields: string[]
   object: BaseDataElement
 }
 
-export const Strings = (() => {
+const DETECT_JSON = /^\s*[{["\-\d]/
+const reAsciiWord = /[^\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\x7f]+/g
+class StringsClass {
   /**
    * Get the singular form of an English word.
    * @param  string  $value
    * @return string
    */
-  const singular = (value: string): string => pluralize.singular(value)
+  singular = (value: string): string => pluralize.singular(value)
 
   /**
    * Get the plural form of an English word.
    * @param  string  $value
    * @return string
    */
-  const plural = (value: string, count = 2): string =>
-    pluralize(value, count, false)
+  plural = (value: string, count = 2): string => pluralize(value, count, false)
 
   /**
    * Return the remainder of a string after the first occurrence of a given value.
@@ -31,7 +33,7 @@ export const Strings = (() => {
    * @param  string  $search
    * @return string
    */
-  const after = (subject: string, search: string): string => {
+  after = (subject: string, search: string): string => {
     const result = subject.split(search)
     return result.length > 1 ? result[1] : subject
   }
@@ -43,9 +45,17 @@ export const Strings = (() => {
    * @param  string  $search
    * @return string
    */
-  const before = (subject: string, search: string): string => {
+  before = (subject: string, search: string): string => {
     const result = subject.split(search)
     return result.length > 1 ? result[0] : subject
+  }
+
+  upperFirst(s: string = ''): string {
+    return s.charAt(0).toUpperCase() + s.slice(1)
+  }
+
+  lowerFirst(s: string): string {
+    return s.charAt(0).toLowerCase() + s.slice(1)
   }
 
   /**
@@ -54,10 +64,16 @@ export const Strings = (() => {
    * @param  string  $value
    * @return string
    */
-  const camel = (value: string) =>
-    value
-      .toLowerCase()
-      .replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase())
+  camel(s: string): string {
+    // return s.replace(/(_\w)/g, m => m[1]!.toUpperCase())
+    return this.words(s.replace(/['\u2019]/g, '')).reduce(
+      (result, word, index) => {
+        word = word.toLowerCase()
+        return result + (index ? this.upperFirst(word) : word)
+      },
+      ''
+    )
+  }
 
   /**
    * Determine if a given string contains a given substring.
@@ -66,7 +82,7 @@ export const Strings = (() => {
    * @param  string | array  $needles
    * @return bool
    */
-  const contains = (haystack: string, needles: string | string[]) => {
+  contains = (haystack: string, needles: string | string[]) => {
     if (Array.isArray(needles)) {
       return needles.some(v => haystack.indexOf(v) >= 0)
     }
@@ -81,7 +97,7 @@ export const Strings = (() => {
    * @param  string  $end
    * @return string
    */
-  const limit = (value, lim = 100, end = '...') =>
+  limit = (value, lim = 100, end = '...') =>
     `${value.substring(0, lim).trim()}${end}`
 
   /**
@@ -91,7 +107,7 @@ export const Strings = (() => {
    * @param  string  separator
    * @return string
    */
-  const slug = (str: string, separator = '-'): string => {
+  slug = (str: string, separator = '-'): string => {
     const a =
       'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
     const b =
@@ -117,14 +133,154 @@ export const Strings = (() => {
    * @param  string  $delimiter
    * @return string
    */
-  const snake = (str: string, delimiter = '_') =>
-    str &&
-    str
-      .match(
-        /[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g
-      )
-      .map(x => x.toLowerCase())
-      .join(delimiter)
+  snake(s: string): string {
+    return this.words(s.replace(/['\u2019]/g, '')).reduce(
+      (result, word, index) => result + (index ? '_' : '') + word.toLowerCase(),
+      ''
+    )
+  }
+
+  private hasUnicodeWord = RegExp.prototype.test.bind(
+    /[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/
+  )
+
+  asciiWords(s: string): RegExpMatchArray | null {
+    return s.match(reAsciiWord)
+  }
+
+  /**
+   * Splits a Unicode `string` into an array of its words.
+   *
+   * @returns {Array} Returns the words of `string`.
+   */
+  unicodeWords(s: string): RegExpMatchArray | null {
+    return s.match(reUnicodeWords)
+  }
+
+  /**
+   * Splits `string` into an array of its words.
+   *
+   * @param [s=''] The string to inspect.
+   * @param [pattern] The pattern to match words.
+   * @returns Returns the words of `string`.
+   * @example
+   *
+   * words('fred, barney, & pebbles')
+   * // => ['fred', 'barney', 'pebbles']
+   *
+   * words('fred, barney, & pebbles', /[^, ]+/g)
+   * // => ['fred', 'barney', '&', 'pebbles']
+   */
+  words(s: string, pattern?: RegExp | string): string[] {
+    if (pattern === undefined) {
+      const result = this.hasUnicodeWord(s)
+        ? this.unicodeWords(s)
+        : this.asciiWords(s)
+      return result || []
+    }
+    return s.match(pattern) || []
+  }
+
+  kebabCase(s: string): string {
+    return this.words(s.replace(/['\u2019]/g, '')).reduce(
+      (result, word, index) => result + (index ? '-' : '') + word.toLowerCase(),
+      ''
+    )
+  }
+  /**
+   * Attempts to parse object as JSON.
+   * Returns original object if JSON parse failed (silently).
+   */
+  jsonParseIfPossible(
+    obj: any,
+    reviver?: (this: any, key: string, value: any) => any
+  ): any {
+    // Optimization: only try to parse if it looks like JSON: starts with a json possible character
+    if (typeof obj === 'string' && obj && DETECT_JSON.test(obj)) {
+      try {
+        return JSON.parse(obj, reviver)
+      } catch {}
+    }
+
+    return obj
+  }
+
+  /**
+   * Converts the first character of string to upper case and the remaining to lower case.
+   */
+  capitalize(s: string = ''): string {
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+  }
+
+  split(str: string, separator: string, limit: number): string[] {
+    const parts = str.split(separator)
+    return [
+      ...parts.slice(0, limit - 1),
+      parts.slice(limit - 1).join(separator)
+    ]
+  }
+
+  removeWhitespace(s: string): string {
+    return s.replace(/\s/g, '')
+  }
+
+  truncate(s: string, maxLen: number, omission = '...'): string {
+    if (!s || s.length <= maxLen) return s
+
+    return s.substr(0, maxLen - omission.length) + omission
+  }
+
+  truncateMiddle(s: string, maxLen: number, omission = '...'): string {
+    if (!s || s.length <= maxLen) return s
+
+    const mark1 = Math.round((maxLen - omission.length) / 2)
+    const mark2 = s.length - Math.floor((maxLen - omission.length) / 2)
+    return s.substr(0, mark1) + omission + s.substr(mark2)
+  }
+
+  substringBefore(s: string, delimiter: string): string {
+    const pos = s.indexOf(delimiter)
+    return s.substring(0, pos !== -1 ? pos : undefined)
+  }
+
+  substringBeforeLast(s: string, delimiter: string): string {
+    const pos = s.lastIndexOf(delimiter)
+    return s.substring(0, pos !== -1 ? pos : undefined)
+  }
+
+  substringAfter(s: string, delimiter: string): string {
+    const pos = s.indexOf(delimiter)
+    return pos !== -1 ? s.substring(pos + 1) : s
+  }
+
+  substringAfterLast(s: string, delimiter: string): string {
+    const pos = s.lastIndexOf(delimiter)
+    return pos !== -1 ? s.substring(pos + 1) : s
+  }
+
+  /**
+   * Returns the substring between LAST `leftDelimiter` and then FIRST `rightDelimiter`.
+   *
+   * @example
+   *
+   * const s = '/Users/lalala/someFile.test.ts'
+   * _substringBetweenLast(s, '/', '.')
+   * // `someFile`
+   */
+  substringBetweenLast(
+    s: string,
+    leftDelimiter: string,
+    rightDelimiter: string
+  ): string {
+    return this.substringBefore(
+      this.substringAfterLast(s, leftDelimiter),
+      rightDelimiter
+    )
+  }
+
+  replaceAll(s: string, find: string, replaceWith: string): string {
+    return s.replace(new RegExp(find, 'g'), replaceWith)
+  }
   /**
    *
    * Generates a nGram based on a given text
@@ -132,7 +288,7 @@ export const Strings = (() => {
    * @param {string} text
    * @returns {string} generated nGram
    */
-  const ngram = (text?: string) => {
+  ngram = (text?: string) => {
     if (!text || text === 'undefined ') {
       return ''
     }
@@ -151,6 +307,10 @@ export const Strings = (() => {
 
     return nGramString
   }
+
+  nl2br(s: string): string {
+    return s.replace(/\n/g, '<br>\n')
+  }
   /**
    *
    * Given an Object It generates de corresponding nGram for
@@ -162,12 +322,12 @@ export const Strings = (() => {
    * @param {Array || Object} param.submissions description
    * @returns {String} Submissions with nGram
    */
-  const ngramFromObject = ({ fields, object }: NgramFromObject): string => {
+  ngramFromObject = ({ fields, object }: NgramFromObject): string => {
     const submission = JSON.parse(JSON.stringify(object))
 
     const fullNGramString = fields.reduce((r, field) => {
       const text = Objects.getFromPath(submission, field, '')
-      const nGramText = ngram(text.value)
+      const nGramText = this.ngram(text.value)
       r = `${r} ${nGramText}`
       return r
     }, '')
@@ -193,9 +353,9 @@ export const Strings = (() => {
    * @param {Array} param Strings to generate ngram from
    * @returns {String} generated nGram string
    */
-  const ngramFromArray = (texts: string[]): string => {
+  ngramFromArray = (texts: string[]): string => {
     const fullNGramString = texts.reduce((r, text) => {
-      const nGramText = Strings.ngram(text)
+      const nGramText = this.ngram(text)
       r = `${r} ${nGramText}`
       return r
     }, '')
@@ -213,18 +373,17 @@ export const Strings = (() => {
     return ngramString
   }
 
-  return Object.freeze({
-    after,
-    before,
-    camel,
-    contains,
-    limit,
-    plural,
-    singular,
-    slug,
-    snake,
-    ngram,
-    ngramFromObject,
-    ngramFromArray
-  })
-})()
+  parseQueryString(search: string): StringMap {
+    const qs: StringMap = {}
+    search
+      .slice(search[0] === '?' ? 1 : 0)
+      .split('&')
+      .forEach(p => {
+        const [k, v] = p.split('=')
+        if (!k) return
+        qs[decodeURIComponent(k)] = decodeURIComponent(v || '')
+      })
+    return qs
+  }
+}
+export const Strings = new StringsClass()

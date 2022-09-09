@@ -779,84 +779,155 @@ export class TypeOrmConnector<
 
         queryBuilder = q
       }
+
+      // if (dbRelation.isManyToMany) {
+      //   const relatedTableName = dbRelation.tableName
+      //   const pivotTableName =
+      //     dbRelation.joinColumns[0].relationMetadata.joinTableName
+      //   const pivotForeignField = dbRelation.joinColumns[0].propertyPath
+      //   const inverseForeignField =
+      //     dbRelation.inverseJoinColumns[0].propertyPath
+
+      //   if (
+      //     !relatedTableName ||
+      //     !pivotTableName ||
+      //     !pivotForeignField ||
+      //     !inverseForeignField
+      //   ) {
+      //     throw new Error(
+      //       `Your many to many relation is not properly set up. Please check both your models and schema for relation: ${relation}`
+      //     )
+      //   }
+
+      //   // "users"
+      //   const leftSideTableName = leftTableAlias || queryBuilder.alias
+
+      //   // As it is one to many, primary key will always be "id"
+      //   // users.id
+      //   const leftSidePrimaryKey = `${leftSideTableName}.id`
+
+      //   // "roles_users"
+      //   const rightSideTableName = `${relatedTableName}`
+
+      //   // "roles_users".userId
+      //   const rightSideForeignKey = `${rightSideTableName}.${pivotForeignField}`
+
+      //   const keys = new Set(
+      //     selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
+      //   )
+
+      //   selectedKeys.push(...Array.from(keys))
+
+      //   // Left join query, without including any nested tables
+      //   const shallowQuery = { ...fluentRelatedQuery }
+      //   delete shallowQuery['include']
+
+      //   const { queryBuilder: leftJoinBuilder, selectedKeys: deepKeys } =
+      //     this.customTypeOrmRelatedFind({
+      //       queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
+      //       fluentQuery: shallowQuery,
+      //       targetFluentRepository: newSelf,
+      //       alias: rightSideTableName
+      //     })
+
+      //   selectedKeys.push(...deepKeys)
+
+      //   const joinQuery = leftJoinBuilder.getQuery().split('WHERE')
+      //   const customLeftJoin =
+      //     joinQuery && joinQuery[1] ? joinQuery[1].trim() : '1=1'
+
+      //   const leftJoinParams = leftJoinBuilder.getParameters()
+
+      //   // Finally we get to do the LEFT JOIN
+      //   queryBuilder.leftJoinAndMapMany(
+      //     `${leftSideTableName}.${relation}`,
+      //     dbRelation.targetClass,
+      //     // Right side of the JOIN table name
+      //     rightSideTableName,
+
+      //     // Keys to JOIN ON
+      //     `(${leftSidePrimaryKey} = ${rightSideForeignKey} AND ${customLeftJoin} )`,
+      //     leftJoinParams
+      //   )
+
+      //   const { queryBuilder: q, selectedKeys: k } =
+      //     this.customTypeOrmRelatedFind({
+      //       queryBuilder,
+      //       fluentQuery: fluentRelatedQuery,
+      //       targetFluentRepository: newSelf,
+      //       alias: rightSideTableName,
+      //       isLeftJoin: true
+      //     })
+
+      //   selectedKeys.push(...k)
+
+      //   queryBuilder = q
+
+      //   console.log(
+      //     relatedTableName,
+      //     pivotTableName,
+      //     pivotForeignField,
+      //     inverseForeignField
+      //   )
+      //   continue
+
+      //   // lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
+      //   // lookUps.push({
+      //   //   $addFields: { parent_string_id: { $toString: '$_id' } }
+      //   // })
+      //   // lookUps.push({
+      //   //   $lookup: {
+      //   //     from: pivotTableName,
+      //   //     localField: 'parent_string_id',
+      //   //     foreignField: pivotForeignField,
+      //   //     as: dbRelation.propertyName,
+      //   //     pipeline: [
+      //   //       // This is the pivot table
+      //   //       { $addFields: { id: { $toString: '$_id' } } },
+      //   //       {
+      //   //         $addFields: {
+      //   //           [`${inverseForeignField}_object`]: {
+      //   //             $toObjectId: `$${inverseForeignField}`
+      //   //           }
+      //   //         }
+      //   //       },
+      //   //       // The other side of the relationShip
+      //   //       {
+      //   //         $lookup: {
+      //   //           from: relatedTableName,
+      //   //           localField: `${inverseForeignField}_object`,
+      //   //           foreignField: '_id',
+      //   //           pipeline: [
+      //   //             { $addFields: { id: { $toString: '$_id' } } }
+      //   //             // Here we could add more filters like
+      //   //             //{ $limit: 2 }
+      //   //           ],
+      //   //           as: dbRelation.propertyName
+      //   //         }
+      //   //       },
+      //   //       { $unwind: `$${dbRelation.propertyName}` },
+      //   //       // Select (ish)
+      //   //       {
+      //   //         $project: {
+      //   //           [dbRelation.propertyName]: `$${dbRelation.propertyName}`,
+      //   //           pivot: '$$ROOT'
+      //   //         }
+      //   //       },
+      //   //       {
+      //   //         $replaceRoot: {
+      //   //           newRoot: {
+      //   //             $mergeObjects: ['$$ROOT', `$${dbRelation.propertyName}`]
+      //   //           }
+      //   //         }
+      //   //       },
+      //   //       { $project: { [dbRelation.propertyName]: 0 } }
+      //   //       // Here we could add more filters like
+      //   //       //{ $limit: 2 }
+      //   //     ]
+      //   // }
+      //   // })
+      // }
     }
-
-    // if (dbRelation.isManyToMany) {
-    //   const relatedTableName = dbRelation.tableName
-    //   const pivotTableName =
-    //     dbRelation.joinColumns[0].relationMetadata.joinTableName
-    //   const pivotForeignField = dbRelation.joinColumns[0].propertyPath
-    //   const inverseForeignField =
-    //     dbRelation.inverseJoinColumns[0].propertyPath
-
-    //   if (
-    //     !relatedTableName ||
-    //     !pivotTableName ||
-    //     !pivotForeignField ||
-    //     !inverseForeignField
-    //   ) {
-    //     throw new Error(
-    //       `Your many to many relation is not properly set up. Please check both your models and schema for relation: ${relation}`
-    //     )
-    //   }
-
-    //   lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
-    //   lookUps.push({
-    //     $addFields: { parent_string_id: { $toString: '$_id' } }
-    //   })
-    //   lookUps.push({
-    //     $lookup: {
-    //       from: pivotTableName,
-    //       localField: 'parent_string_id',
-    //       foreignField: pivotForeignField,
-    //       as: dbRelation.propertyName,
-    //       pipeline: [
-    //         // This is the pivot table
-    //         { $addFields: { id: { $toString: '$_id' } } },
-    //         {
-    //           $addFields: {
-    //             [`${inverseForeignField}_object`]: {
-    //               $toObjectId: `$${inverseForeignField}`
-    //             }
-    //           }
-    //         },
-    //         // The other side of the relationShip
-    //         {
-    //           $lookup: {
-    //             from: relatedTableName,
-    //             localField: `${inverseForeignField}_object`,
-    //             foreignField: '_id',
-    //             pipeline: [
-    //               { $addFields: { id: { $toString: '$_id' } } }
-    //               // Here we could add more filters like
-    //               //{ $limit: 2 }
-    //             ],
-    //             as: dbRelation.propertyName
-    //           }
-    //         },
-    //         { $unwind: `$${dbRelation.propertyName}` },
-    //         // Select (ish)
-    //         {
-    //           $project: {
-    //             [dbRelation.propertyName]: `$${dbRelation.propertyName}`,
-    //             pivot: '$$ROOT'
-    //           }
-    //         },
-    //         {
-    //           $replaceRoot: {
-    //             newRoot: {
-    //               $mergeObjects: ['$$ROOT', `$${dbRelation.propertyName}`]
-    //             }
-    //           }
-    //         },
-    //         { $project: { [dbRelation.propertyName]: 0 } }
-    //         // Here we could add more filters like
-    //         //{ $limit: 2 }
-    //       ]
-    //     }
-    //   })
-    // }
-
     return { queryBuilder, selectedKeys }
   }
 

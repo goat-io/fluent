@@ -3,3 +3,38 @@ export interface BaseDataElement {
 }
 
 export type Primitives = boolean | string | number
+
+export type AnyFunction = (...args: any[]) => any
+
+export type Reviver = (this: any, key: string, value: any) => any
+
+export type Class<T = any> = new (...args: any[]) => T
+
+export const _noop = (..._args: any[]): undefined => undefined
+
+export interface StringMap<T = string> {
+  [k: string | number]: T | undefined
+}
+
+export type Mapper<IN = any, OUT = any> = (input: IN, index: number) => OUT
+
+export type Predicate<T> = (item: T, index: number) => boolean
+
+export type NullishValue = null | undefined
+export type FalsyValue = false | '' | 0 | null | undefined
+
+export type AnyObject = Record<string, any>
+
+export type ObjectPredicate<OBJ> = (
+  key: keyof OBJ,
+  value: Exclude<OBJ[keyof OBJ], undefined>,
+  obj: OBJ,
+) => boolean
+
+export type ObjectMapper<OBJ, OUT> = (
+  key: string,
+  value: Exclude<OBJ[keyof OBJ], undefined>,
+  obj: OBJ,
+) => OUT
+
+export type ValueOf<T> = T[keyof T]

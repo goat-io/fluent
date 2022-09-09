@@ -1,5 +1,25 @@
 # 0.5.20
 
+## 0.8.4
+
+### Patch Changes
+
+- Add common logger
+
+## 0.8.3
+
+### Patch Changes
+
+- Add common logger
+
+## 0.8.2
+
+### Patch Changes
+
+- Fix build
+- Updated dependencies
+  - @goatlab/js-utils@0.8.6
+
 ## 0.8.1
 
 ### Patch Changes

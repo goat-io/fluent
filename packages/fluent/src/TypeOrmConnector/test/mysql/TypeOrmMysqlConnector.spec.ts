@@ -39,5 +39,5 @@ describe('Execute all advanced test Suite', () => {
 })
 
 describe('Execute all relations test suite', () => {
-  relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
+  // relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
 })

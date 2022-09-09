@@ -46,7 +46,6 @@ export interface NormalizedOptions
 }
 
 class DockerClass {
-
   private async imageExists(
     options: NormalizedOptions | Options
   ): Promise<boolean> {

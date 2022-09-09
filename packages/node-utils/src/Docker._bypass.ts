@@ -15,9 +15,9 @@ it('runContainer - Should run a specific image', async () => {
     src: ['Dockerfile']
   })
 
-  const a = await Docker.startContainer({ image: imageName, containerName: 'Someanme' })
+  // const a = await Docker.startContainer({ image: imageName, containerName: 'Someanme' })
 
-  console.log(a)
+  // console.log(a)
 
   const containers = await Docker.listContainers()
   const wasStarted = containers.some(c => c.Image === `${imageName}:${version}`)

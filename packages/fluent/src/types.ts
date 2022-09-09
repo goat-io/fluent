@@ -4,6 +4,9 @@ export interface AnyObject {
   [key: string]: any
 }
 
+// Get the type from an array TYPE[] => TYPE
+type Unpacked<T> = T extends (infer U)[] ? U : T
+
 export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
   ? (...args: ExpandRecursively<A>) => ExpandRecursively<R>
   : T extends object
@@ -13,9 +16,6 @@ export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
       : { [K in keyof O]: ExpandRecursively<O[K]> }
     : never
   : T
-
-// Get the type from an array TYPE[] => TYPE
-type Unpacked<T> = T extends (infer U)[] ? U : T
 
 export type Concrete<Type> = {
   [Property in keyof Type]-?: Type[Property]

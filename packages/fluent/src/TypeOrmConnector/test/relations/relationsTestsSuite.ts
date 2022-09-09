@@ -629,13 +629,15 @@ export const relationsTestSuite = (
       }
     })
 
+    console.log(searchUserWithRelation[0])
+
     expect(Array.isArray(searchUserWithRelation[0].roles)).toBe(true)
     expect(searchUserWithRelation[0].roles!.length > 0).toBe(true)
     expect(typeof searchUserWithRelation[0].roles![0].name).toBe('string')
     expect(searchUserWithRelation[0].roles![0].id).toBe(adminRole.id)
     expect(searchUserWithRelation[0].roles![0].pivot.id).toBe(attached[0].id)
 
-    console.log(searchUserWithRelation[0])
+
 
     // Query the opposite relation
     const roles = await Role.findMany({

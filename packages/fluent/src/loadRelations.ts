@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm'
 import { Arrays } from '@goatlab/js-utils'
+import { AnyObject } from '@goatlab/js-utils/dist/types'
 
 interface RelationshipLoader {
   data: any[]
@@ -62,7 +63,9 @@ export const loadRelations = async ({
         )
       }
 
-      const relatedResults = Arrays.collapse(await Promise.all(promises))
+      const relatedResults: AnyObject[] = Arrays.collapse(
+        await Promise.all(promises)
+      )
 
       const grouped = Arrays.groupBy(
         relatedResults,
@@ -98,14 +101,16 @@ export const loadRelations = async ({
         )
       }
 
-      const relatedResults = Arrays.collapse(await Promise.all(promises))
+      const relatedResults: AnyObject[] = Arrays.collapse(
+        await Promise.all(promises)
+      )
 
       const grouped = Arrays.groupBy(relatedResults, r => r.id)
 
       data.map(d => {
         if (grouped[d[relationModel.joinColumns[0].propertyPath]]) {
           d[relationModel.propertyName] =
-            grouped[d[relationModel.joinColumns[0].propertyPath]][0]
+            grouped[d[relationModel.joinColumns[0].propertyPath]]![0]
         }
       })
 
@@ -158,7 +163,9 @@ export const loadRelations = async ({
         promises.push(results)
       }
 
-      const pivotResults = Arrays.collapse(await Promise.all(promises))
+      const pivotResults: AnyObject[] = Arrays.collapse(
+        await Promise.all(promises)
+      )
 
       const uniquePivotIds = pivotResults.map(p => p[inverseForeignField])
 
@@ -178,7 +185,9 @@ export const loadRelations = async ({
         relationPromises.push(results)
       }
 
-      let relatedResults = Arrays.collapse(await Promise.all(relationPromises))
+      let relatedResults: AnyObject[] = Arrays.collapse(
+        await Promise.all(relationPromises)
+      )
 
       relatedResults = relatedResults.map(r => {
         return {
@@ -199,12 +208,13 @@ export const loadRelations = async ({
           if (!d[calleeKey]) {
             d[calleeKey] = []
           }
-          d[calleeKey] = [
-            ...d[calleeKey],
-            ...groupedRelated[
-              gp[relationModel.inverseJoinColumns[0].propertyName]
-            ]
-          ]
+
+          const mapped =
+            groupedRelated[gp[relationModel.inverseJoinColumns[0].propertyName]]
+
+          if (mapped) {
+            d[calleeKey] = [...d[calleeKey], ...mapped]
+          }
         })
       })
 
