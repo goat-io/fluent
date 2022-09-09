@@ -14,7 +14,7 @@ import {
   LogicOperator,
   LoadedResult,
   FindByIdFilter,
-  SingleQueryOutput
+  extractConditions
 } from '@goatlab/fluent'
 import { z } from 'zod'
 import LokiJS, { Collection } from 'lokijs'
@@ -106,7 +106,7 @@ export class LokiConnector<
 
     // Validate Output
     return this.outputSchema.parse(
-      this.clearEmpties(Objects.deleteNulls(inserted))
+      Objects.clearEmpties(Objects.deleteNulls(inserted))
     )
   }
 
@@ -126,7 +126,7 @@ export class LokiConnector<
 
     return this.outputSchema.array().parse(
       insertedElements.map(d => {
-        return this.clearEmpties(Objects.deleteNulls(d))
+        return Objects.clearEmpties(Objects.deleteNulls(d))
       })
     )
   }
@@ -145,7 +145,7 @@ export class LokiConnector<
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
     const where = this.getLokiWhere(query?.where)
 
     const sort: [string, boolean][] = []
@@ -176,11 +176,11 @@ export class LokiConnector<
     let found = baseQuery.data()
 
     found.map(d => {
-      this.clearEmpties(Objects.deleteNulls(d))
+      Objects.clearEmpties(Objects.deleteNulls(d))
     })
 
     if (query?.paginated) {
-      const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO, OutputDTO>> =
+      const paginationInfo: PaginatedData<Promise<QueryOutput<T, ModelDTO>[]>> =
         {
           total: 0,
           perPage: query.paginated.perPage,
@@ -192,26 +192,22 @@ export class LokiConnector<
             query.paginated.page === 1 ? null : query.paginated.page - 1,
           from: (query.paginated.page - 1) * query.paginated.perPage + 1,
           to: query.paginated.perPage * query.paginated.page,
-          data: found as unknown as QueryOutput<T, ModelDTO, OutputDTO>[]
+          data: found as unknown as Promise<QueryOutput<T, ModelDTO>[]>[]
         }
 
-      return paginationInfo as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return paginationInfo as unknown as Promise<QueryOutput<T, ModelDTO>[]>
     }
 
     if (query?.select) {
       const selectedAttributes = this.jsApplySelect(query?.select, found)
       // TODO: validate based on the select properties
-      return selectedAttributes as unknown as QueryOutput<
-        T,
-        ModelDTO,
-        OutputDTO
+      return selectedAttributes as unknown as Promise<
+        QueryOutput<T, ModelDTO>[]
       >
     }
     // Validate Output against schema
-    return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
-      T,
-      ModelDTO,
-      OutputDTO
+    return this.outputSchema?.array().parse(found) as unknown as Promise<
+      QueryOutput<T, ModelDTO>[]
     >
   }
 
@@ -253,7 +249,7 @@ export class LokiConnector<
 
     // Validate Output
     return this.outputSchema?.parse(
-      this.clearEmpties(Objects.deleteNulls(dbResult))
+      Objects.clearEmpties(Objects.deleteNulls(dbResult))
     )
   }
 
@@ -298,7 +294,9 @@ export class LokiConnector<
 
     const val = await this.collection.findOne({ id })
 
-    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
+    return this.outputSchema.parse(
+      Objects.clearEmpties(Objects.deleteNulls(val))
+    )
   }
 
   public getLokiWhere(where?: FluentQuery<ModelDTO>['where']): any {
@@ -329,8 +327,8 @@ export class LokiConnector<
       where: { $or: [{ $and: [] }] }
     }
 
-    const orConditions = this.extractConditions(where['OR'])
-    const andConditions = this.extractConditions(where['AND'])
+    const orConditions = extractConditions(where['OR'])
+    const andConditions = extractConditions(where['AND'])
 
     const copy = Objects.clone(where)
     if (!!copy['AND']) {
@@ -341,7 +339,7 @@ export class LokiConnector<
       delete copy['OR']
     }
 
-    const rootLevelConditions = this.extractConditions([copy])
+    const rootLevelConditions = extractConditions([copy])
 
     for (const condition of andConditions) {
       let { element, operator, value } = condition
@@ -448,15 +446,6 @@ export class LokiConnector<
     for (const condition of orConditions) {
       let { element, operator, value } = condition
 
-      if (element === 'id') {
-        element = 'id'
-        /*
-        value = (Array.isArray(value)
-          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
-          */
-      }
-
       switch (operator) {
         case LogicOperator.equals:
           Filters.where.$or.push({ [element]: { $eq: value } })
@@ -496,7 +485,7 @@ export class LokiConnector<
       }
     }
 
-    return this.clearEmpties(Filters.where)
+    return Objects.clearEmpties(Filters.where)
   }
 
   public loadFirst(query?: FluentQuery<ModelDTO>) {
@@ -531,61 +520,10 @@ export class LokiConnector<
         where: {
           id
         }
-      } as FluentQuery<ModelDTO>
+      } as unknown as FluentQuery<ModelDTO>
     })
 
     return newInstance as LoadedResult<this>
-  }
-
-  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
-    ids: string[],
-    q?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
-    let data = await this.findMany({
-      where: {
-        id: {
-          in: ids
-        }
-      },
-      limit: q?.limit,
-      select: q?.select,
-      include: q?.include
-    } as any)
-
-    // Validate Output against schema
-    return this.outputSchema?.array().parse(data) as unknown as QueryOutput<
-      T,
-      ModelDTO,
-      OutputDTO
-    >
-  }
-
-  public async requireById(
-    id: string,
-    q?: FindByIdFilter<ModelDTO>
-  ): Promise<SingleQueryOutput<FindByIdFilter<ModelDTO>, ModelDTO, OutputDTO>> {
-    const found = await this.findByIds([id], {
-      select: q?.select,
-      include: q?.include,
-      limit: 1
-    })
-
-    found.map(d => {
-      if (this.isMongoDB) {
-        d['id'] = d['id'].toString()
-      }
-      this.clearEmpties(Objects.deleteNulls(d))
-    })
-
-    if (!found[0]) {
-      throw new Error(`Object ${id} not found`)
-    }
-
-    return this.outputSchema?.parse(found[0]) as unknown as SingleQueryOutput<
-      FindByIdFilter<ModelDTO>,
-      ModelDTO,
-      OutputDTO
-    >
   }
 
   public async clear(): Promise<boolean> {

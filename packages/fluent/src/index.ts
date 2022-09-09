@@ -19,7 +19,7 @@ import type {
   FluentQuery,
   QueryOutput,
   LoadedResult,
-  FindByIdFilter,
+  FindByIdFilter
 } from './types'
 import { LogicOperator } from './types'
 import { BaseConnector } from './BaseConnector'
@@ -34,7 +34,13 @@ import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
 import { Cache } from './cache'
 import { ValidationError } from 'class-validator'
+import { extractConditions } from './TypeOrmConnector/util/extractConditions'
+import { extractInclude } from './TypeOrmConnector/util/extractInclude'
+import { extractMetadataFromKeys } from './TypeOrmConnector/util/extractMetadataFromKeys'
+import { extractOrderBy } from './TypeOrmConnector/util/extractOrderBy'
 import { getRelationsFromModelGenerator } from './TypeOrmConnector/util/getRelationsFromModelGenerator'
+import { getSelectedKeysFromRawSql } from './TypeOrmConnector/util/getSelectedKeysFromRawSql'
+import { nestQueryResults } from './TypeOrmConnector/util/nestQueryResults'
 
 export { DataSource } from 'typeorm'
 export {
@@ -57,7 +63,13 @@ export {
   TypeOrmConnector,
   Cache,
   getRelationsFromModelGenerator,
-  LogicOperator
+  LogicOperator,
+  extractConditions,
+  extractInclude,
+  extractMetadataFromKeys,
+  extractOrderBy,
+  getSelectedKeysFromRawSql,
+  nestQueryResults
 }
 
 interface ValidatedInput<T> {

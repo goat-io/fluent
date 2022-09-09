@@ -27,7 +27,8 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/fluent": "*",
+    "@goatlab/fluent": "^0.7.11",
+    "@goatlab/js-utils": "^0.8.8",
     "pouchdb": "^7.3.0",
     "pouchdb-adapter-memory": "^7.3.0",
     "pouchdb-find": "^7.3.0",

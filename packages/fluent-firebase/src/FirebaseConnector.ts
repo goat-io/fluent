@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin'
 import { UpdateData } from '@google-cloud/firestore'
 import {
   AnyObject,
+  extractConditions,
   FluentQuery,
   getRelationsFromModelGenerator,
   LoadedResult,
@@ -103,7 +104,9 @@ export class FirebaseConnector<
     await this.collection.doc(id).set(item)
 
     // Validate Output
-    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(item)))
+    return this.outputSchema.parse(
+      Objects.clearEmpties(Objects.deleteNulls(item))
+    )
   }
 
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
@@ -123,7 +126,7 @@ export class FirebaseConnector<
 
     return this.outputSchema.array().parse(
       batchInserted.map(d => {
-        return this.clearEmpties(Objects.deleteNulls(d))
+        return Objects.clearEmpties(Objects.deleteNulls(d))
       })
     )
   }
@@ -132,7 +135,7 @@ export class FirebaseConnector<
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
-  ): Promise<QueryOutput<T, ModelDTO, OutputDTO>> {
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
     const [andQuery, orQueries] = this.getGeneratedQueries(query)
     const results: admin.firestore.DocumentData[] = []
 
@@ -164,7 +167,7 @@ export class FirebaseConnector<
     let found = [...new Map(results.map(v => [v.id, v])).values()]
 
     found.map(d => {
-      this.clearEmpties(Objects.deleteNulls(d))
+      Objects.clearEmpties(Objects.deleteNulls(d))
     })
 
     if (query?.include) {
@@ -175,34 +178,31 @@ export class FirebaseConnector<
     }
 
     if (query?.paginated) {
-      const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO, OutputDTO>> =
-        {
-          total: 0,
-          perPage: query.paginated.perPage,
-          currentPage: query.paginated.page,
-          nextPage: query.paginated.page + 1,
-          firstPage: 1,
-          lastPage: Math.ceil(0 / query.paginated.perPage),
-          prevPage:
-            query.paginated.page === 1 ? null : query.paginated.page - 1,
-          from: (query.paginated.page - 1) * query.paginated.perPage + 1,
-          to: query.paginated.perPage * query.paginated.page,
-          data: found as unknown as QueryOutput<T, ModelDTO, OutputDTO>[]
-        }
+      const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO>> = {
+        total: 0,
+        perPage: query.paginated.perPage,
+        currentPage: query.paginated.page,
+        nextPage: query.paginated.page + 1,
+        firstPage: 1,
+        lastPage: Math.ceil(0 / query.paginated.perPage),
+        prevPage: query.paginated.page === 1 ? null : query.paginated.page - 1,
+        from: (query.paginated.page - 1) * query.paginated.perPage + 1,
+        to: query.paginated.perPage * query.paginated.page,
+        data: found as unknown as QueryOutput<T, ModelDTO>[]
+      }
 
-      return paginationInfo as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return paginationInfo as unknown as Promise<QueryOutput<T, ModelDTO>[]>
     }
 
     if (query?.select) {
       // TODO: validate based on the select properties
-      return found as unknown as QueryOutput<T, ModelDTO, OutputDTO>
+      return found as unknown as QueryOutput<T, ModelDTO>[]
     }
     // Validate Output against schema
     return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
       T,
-      ModelDTO,
-      OutputDTO
-    >
+      ModelDTO
+    >[]
   }
 
   // UPDATE
@@ -234,7 +234,7 @@ export class FirebaseConnector<
 
     // Validate Output
     return this.outputSchema?.parse(
-      this.clearEmpties(Objects.deleteNulls(dbResult))
+      Objects.clearEmpties(Objects.deleteNulls(dbResult))
     )
   }
 
@@ -280,7 +280,9 @@ export class FirebaseConnector<
     // TODO: do we need to pull the info again?
     const val = await this.requireById(id)
 
-    return this.outputSchema.parse(this.clearEmpties(Objects.deleteNulls(val)))
+    return this.outputSchema.parse(
+      Objects.clearEmpties(Objects.deleteNulls(val))
+    )
   }
 
   // DELETE
@@ -327,7 +329,7 @@ export class FirebaseConnector<
         where: {
           id
         }
-      } as FluentQuery<ModelDTO>
+      } as unknown as FluentQuery<ModelDTO>
     })
 
     return newInstance as LoadedResult<this>
@@ -468,8 +470,8 @@ export class FirebaseConnector<
     let andWhereQuery: FirebaseFirestore.Query = this.collection
     let orWhereQueries: FirebaseFirestore.Query[] = []
 
-    const orConditions = this.extractConditions(where['OR'])
-    const andConditions = this.extractConditions(where['AND'])
+    const orConditions = extractConditions(where['OR'])
+    const andConditions = extractConditions(where['AND'])
 
     const copy = Objects.clone(where)
     if (!!copy['AND']) {
@@ -480,7 +482,7 @@ export class FirebaseConnector<
       delete copy['OR']
     }
 
-    const rootLevelConditions = this.extractConditions([copy])
+    const rootLevelConditions = extractConditions([copy])
 
     // We can merge root level and And conditions in the same query
     for (const condition of andConditions) {

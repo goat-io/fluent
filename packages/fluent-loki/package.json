@@ -15,8 +15,9 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@goatlab/dates": "*",
-    "@goatlab/fluent": "*",
+    "@goatlab/dates": "^0.6.6",
+    "@goatlab/fluent": "^0.7.12",
+    "@goatlab/js-utils": "^0.8.8",
     "lokijs": "^1.5.12"
   },
   "devDependencies": {

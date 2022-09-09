@@ -1,5 +1,23 @@
 # 0.5.20
 
+## 0.7.12
+
+### Patch Changes
+
+- Fix import
+
+## 0.7.11
+
+### Patch Changes
+
+- Export helper functions
+
+## 0.7.10
+
+### Patch Changes
+
+- Remove firebase dependency
+
 ## 0.7.9
 
 ### Patch Changes

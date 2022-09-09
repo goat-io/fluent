@@ -1,3 +1,4 @@
+import { ObjectId } from 'bson'
 import {
   AnyObject,
   ObjectMapper,
@@ -228,6 +229,38 @@ class ObjectsClass {
       },
       mutate ? obj : { ...obj }
     )
+  }
+
+  /**
+   * Deeply removes all empty and nullish values from a
+   * given object
+   * @param object
+   * @returns
+   */
+  clearEmpties<T extends AnyObject>(object: T): T {
+    Object.entries(object).forEach(([k, v]: [any, any]) => {
+      if (v && typeof v === 'object') this.clearEmpties(v)
+      if (
+        (v && typeof v === 'object' && !Object.keys(v).length) ||
+        v === null ||
+        v === undefined ||
+        v.length === 0
+      ) {
+        if (Array.isArray(object)) {
+          // Do not remove Object ID
+          if (!(object[k] instanceof ObjectId)) {
+            object.splice(k, 1)
+          }
+        } else if (!(v instanceof Date) && !(v instanceof ObjectId)) {
+          delete object[k]
+        }
+      }
+    })
+    return object
+  }
+
+  isAnyObject = (val: any): boolean => {
+    return typeof val === 'object' && !Array.isArray(val) && val !== null
   }
 
   /**

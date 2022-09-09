@@ -1,5 +1,5 @@
 import { Objects } from '@goatlab/js-utils'
-import { FluentQuery } from 'types'
+import { FluentQuery } from '../../types'
 
 export const extractOrderBy = <T>(orderBy?: FluentQuery<T>['orderBy']) => {
   if (!orderBy || !Array.isArray(orderBy) || orderBy.length === 0) {
