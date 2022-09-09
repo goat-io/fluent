@@ -1,5 +1,17 @@
 # @goatlab/js-utils
 
+## 0.8.13
+
+### Patch Changes
+
+- Fix Time liv
+
+## 0.8.12
+
+### Patch Changes
+
+- Fix promise retry
+
 ## 0.8.11
 
 ### Patch Changes

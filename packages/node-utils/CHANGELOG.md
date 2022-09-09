@@ -1,5 +1,35 @@
 # 0.5.20
 
+## 0.8.10
+
+### Patch Changes
+
+- Build Env
+
+## 0.8.9
+
+### Patch Changes
+
+- Add elliptic and password generator
+
+## 0.8.8
+
+### Patch Changes
+
+- Install moder spawn
+
+## 0.8.7
+
+### Patch Changes
+
+- Update js utils
+
+## 0.8.6
+
+### Patch Changes
+
+- Update js utils
+
 ## 0.8.5
 
 ### Patch Changes

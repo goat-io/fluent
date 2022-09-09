@@ -1,5 +1,6 @@
 import * as os from 'os'
 import { Units } from '@goatlab/js-utils'
+import { BuildInfo } from './Env'
 class ProcessesClass {
   private timer!: NodeJS.Timer
 
@@ -91,6 +92,36 @@ class ProcessesClass {
         total: 0
       }
     )
+  }
+
+  generateBuildInfoDev(): BuildInfo {
+    const now = new Date()
+    const ts = Math.round(now.getTime() / 1000)
+    const dateComponents = [
+      now.getUTCFullYear(),
+      (now.getUTCMonth() + 1).toString().padStart(2, '0'),
+      now.getUTCDate().toString().padStart(2, '0'),
+    ]
+  
+    const timeComponents = [
+      now.getUTCHours().toString().padStart(2, '0'),
+      now.getUTCMinutes().toString().padStart(2, '0'),
+    ]
+    const seconds = now.getUTCSeconds().toString().padStart(2, '0')
+  
+    const tsStr = dateComponents.join('-') + ' ' + timeComponents.join(':') + ':' + seconds
+  
+    const ver = [dateComponents.join('') + '_' + timeComponents.join('')].join('_')
+  
+    return {
+      ts,
+      tsStr,
+      rev: '',
+      branch: '',
+      ver,
+      env: 'dev',
+      dev: true,
+    }
   }
 }
 export const Processes = new ProcessesClass()

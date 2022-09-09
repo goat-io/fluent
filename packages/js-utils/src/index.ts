@@ -10,7 +10,7 @@ import { Numbers } from './Numbers'
 import { Objects } from './Objects'
 import { Strings } from './Strings'
 import { nGram } from './Ngram'
-import { Time } from 'Time'
+import { Time } from './Time'
 import { Units } from './Units'
 import { CommonLogger } from './Logs/commonLogger'
 

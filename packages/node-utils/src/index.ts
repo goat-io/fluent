@@ -9,6 +9,8 @@ import { Docker } from './Docker'
 import { Ports } from './Ports'
 import { Security } from './Security'
 import { runScript } from './Scripts'
+import { Env } from './Env'
+import type { BuildInfo } from './Env'
 
 export {
   Errors,
@@ -21,5 +23,7 @@ export {
   Docker,
   Ports,
   Security,
-  runScript
+  runScript,
+  Env
 }
+export type { BuildInfo }

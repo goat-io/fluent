@@ -1,4 +1,4 @@
-import { pRetry, pRetryFn } from 'Promises/pRetry'
+import { pRetry, pRetryFn } from './Promises/pRetry'
 import { pMap } from './Promises/pMap'
 /**
  * Wraps async calls in try catch blocks
