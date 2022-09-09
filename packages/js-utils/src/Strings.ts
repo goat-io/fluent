@@ -1,12 +1,12 @@
 import pluralize from 'pluralize'
-import { BaseDataElement, StringMap } from './types'
+import { AnyObject, StringMap } from './types'
 import { nGram } from './Ngram'
 import { Objects } from './Objects'
 import { reUnicodeWords } from './Strings/unicodeWords'
 
 export interface NgramFromObject {
   fields: string[]
-  object: BaseDataElement
+  object: AnyObject
 }
 
 const DETECT_JSON = /^\s*[{["\-\d]/

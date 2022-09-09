@@ -1,5 +1,23 @@
 # @goatlab/js-utils
 
+## 0.8.11
+
+### Patch Changes
+
+- Fix collections
+
+## 0.8.10
+
+### Patch Changes
+
+- Fix build
+
+## 0.8.9
+
+### Patch Changes
+
+- Remove frontend Hashing
+
 ## 0.8.8
 
 ### Patch Changes

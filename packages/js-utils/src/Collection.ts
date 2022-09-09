@@ -1,28 +1,29 @@
-import { TypedPathWrapper, typedPath } from 'typed-path'
-import { BaseDataElement, Primitives } from './types'
+import { typedPath } from 'typed-path'
+import { AnyObject, Primitives, TypedKeys } from './types'
 import { Objects } from './Objects'
+import { Arrays } from './Arrays'
 
 type Contains<T> = {
   value?: Primitives
-  path?: TypedPathWrapper<Primitives, Primitives>
+  path?: TypedKeys<T>
   Fx?(element: T, index: number): boolean
 }
 
-export class Collection<T = BaseDataElement | Primitives> {
-  public _keys = typedPath<T>()
 
+
+export class Collection<T = AnyObject | Primitives> {
   public constructor(private data: T[]) {}
 
-  public static collect<T = BaseDataElement | Primitives>(
-    data: T[]
-  ): Collection<T> {
-    return new Collection<T>(data)
+  public static collect<T = AnyObject | Primitives>(data: T[]): Collection<T> {
+    return new Collection(data)
   }
+
+  public generatedKeyPath = typedPath<T>()
 
   /**
    *
    */
-  public get() {
+  public get(): T[] {
     return this.data
   }
 
@@ -30,7 +31,7 @@ export class Collection<T = BaseDataElement | Primitives> {
    * Alias for the "get" method
    * @return function
    */
-  public all() {
+  public all(): T[] {
     return this.get()
   }
 
@@ -40,7 +41,7 @@ export class Collection<T = BaseDataElement | Primitives> {
    * @param  {String}  path Path of the key
    * @return function
    */
-  public avg(path?: TypedPathWrapper<Primitives, Primitives>) {
+  public avg(path?: TypedKeys<T>) {
     return this.average(path)
   }
 
@@ -50,9 +51,11 @@ export class Collection<T = BaseDataElement | Primitives> {
    * @param  {String}  path Path of the key
    * @return static
    */
-  public average(path?: TypedPathWrapper<Primitives, Primitives>): number {
-    const stringPath = path && path.toString()
+  public average(path?: TypedKeys<T>): number {
+    const stringP = path ? path(this.generatedKeyPath) : ''
+    const stringPath = stringP.toString()
     const data = [...this.data]
+
     const sum = Number(
       data.reduce((acc: number, element) => {
         let value: number
@@ -117,13 +120,7 @@ export class Collection<T = BaseDataElement | Primitives> {
    * @return static
    */
   public chunk(size: number) {
-    const data = [...this.data]
-    const results: T[][] = []
-
-    while (data.length) {
-      results.push(data.splice(0, size))
-    }
-
+    const results = Arrays.chunk([...this.data], size)
     return new Collection<T[]>(results)
   }
 
@@ -131,20 +128,9 @@ export class Collection<T = BaseDataElement | Primitives> {
    *
    */
   public collapse() {
-    const data = [...this.data]
-    const results: T[] = []
+    const data = [...this.data] as unknown as T[][]
 
-    data.forEach(chunk => {
-      if (Array.isArray(chunk)) {
-        chunk.forEach(element => {
-          results.push(element)
-        })
-      } else {
-        results.push(chunk)
-      }
-    })
-
-    return new Collection<T>(results)
+    return new Collection<T>(Arrays.collapse(data))
   }
 
   /**
@@ -198,7 +184,11 @@ export class Collection<T = BaseDataElement | Primitives> {
       }
 
       if (element instanceof Object) {
-        const stringPath = contains.path && contains.path.toString()
+        const stringP = contains.path
+          ? contains.path(this.generatedKeyPath)
+          : ''
+        const stringPath = stringP.toString()
+
         const extract = Objects.getFromPath(element, stringPath, undefined)
         if (extract.value) {
           return extract.value === contains.value

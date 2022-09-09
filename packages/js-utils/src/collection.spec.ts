@@ -25,8 +25,8 @@ it('Get - Should return the original array', () => {
 })
 
 it('Avg - Should return the average', () => {
-  expect(Goats.avg(Goats._keys.age)).toBe(30)
-  expect(Goats.avg(Goats._keys.breed.members)).toBe(45)
+  expect(Goats.avg(k => k.age)).toBe(30)
+  expect(Goats.avg(k => k.breed.members)).toBe(45)
 })
 
 it('Average - Should also run for none Objects Arrays', () => {
@@ -68,12 +68,10 @@ it('Concat - Should return both arrays', () => {
 })
 
 it('Contains - Should verify presence of', () => {
-  expect(Goats.contains({ value: 'Johnny', path: Goats._keys.name })).toBe(true)
-  expect(Goats.contains({ value: 'Johnny 2', path: Goats._keys.name })).toBe(
-    false
-  )
+  expect(Goats.contains({ value: 'Johnny', path: k => k.name })).toBe(true)
+  expect(Goats.contains({ value: 'Johnny 2', path: k => k.name })).toBe(false)
   expect(
-    Goats.contains({ value: 'The Goatee`s', path: Goats._keys.breed.family })
+    Goats.contains({ value: 'The Goatee`s', path: k => k.breed.family })
   ).toBe(true)
 
   expect(

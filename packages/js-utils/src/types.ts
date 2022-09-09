@@ -1,6 +1,4 @@
-export interface BaseDataElement {
-  [key: string]: any
-}
+import { TypedPathWrapper } from "typed-path"
 
 export type Primitives = boolean | string | number
 
@@ -38,3 +36,12 @@ export type ObjectMapper<OBJ, OUT> = (
 ) => OUT
 
 export type ValueOf<T> = T[keyof T]
+
+export const stringMapEntries = Object.entries as <T>(m: StringMap<T>) => [k: string, v: T][]
+
+
+export type TypedKeys<T> = (
+  key: TypedPathWrapper<T, Record<never, never>>
+) =>
+  | TypedPathWrapper<Primitives, Record<never, never>>
+  | TypedPathWrapper<Primitives[], Record<never, never>>

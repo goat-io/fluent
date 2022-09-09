@@ -1,5 +1,5 @@
 import diff from 'deep-diff'
-import { BaseDataElement } from './types'
+import { AnyObject } from './types'
 
 enum kind {
   'N' = 'NEW',
@@ -9,8 +9,8 @@ enum kind {
 }
 
 export interface ChangelogInput {
-  previous: BaseDataElement
-  current: BaseDataElement
+  previous: AnyObject
+  current: AnyObject
   author: string
 }
 

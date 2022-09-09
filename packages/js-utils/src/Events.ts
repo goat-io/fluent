@@ -1,7 +1,7 @@
-import { BaseDataElement, Primitives } from './types'
+import { AnyObject, Primitives } from './types'
 
 export interface EventOptions {
-  data: BaseDataElement | Primitives
+  data: AnyObject | Primitives
   text: string
 }
 export const Events = (() => {

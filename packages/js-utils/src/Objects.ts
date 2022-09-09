@@ -304,7 +304,7 @@ class ObjectsClass {
    * v - value
    * obj - whole object
    *
-   * Order of arguments in the predicate is different form _mapValues / _mapKeys!
+   * Order of arguments in the predicate is different form mapValues / mapKeys!
    *
    * Predicate should return a _tuple_ [0, 1], where:
    * 0 - key of returned object (string)

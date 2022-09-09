@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'fs'
 import { dirname } from 'path'
 import rimraf from 'rimraf'
 
-export const Folder = (() => {
+export const Folders = (() => {
   /**
    *
    * @param dir
