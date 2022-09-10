@@ -629,8 +629,6 @@ export const relationsTestSuite = (
       }
     })
 
-    console.log(searchUserWithRelation[0])
-
     expect(Array.isArray(searchUserWithRelation[0].roles)).toBe(true)
     expect(searchUserWithRelation[0].roles!.length > 0).toBe(true)
     expect(typeof searchUserWithRelation[0].roles![0].name).toBe('string')

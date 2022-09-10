@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.17
+
+### Patch Changes
+
+- Change Mongo Where to Filter
+
 ## 0.7.16
 
 ### Patch Changes

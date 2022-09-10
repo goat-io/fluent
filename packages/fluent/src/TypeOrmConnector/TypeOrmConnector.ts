@@ -28,6 +28,7 @@ import { extractOrderBy } from './util/extractOrderBy'
 import { getTypeOrmWhere } from './queryBuilder/sql/getTypeOrmWhere'
 import { getQueryBuilderWhere } from './queryBuilder/sql/getQueryBuilderWhere'
 import { clearEmpties } from './util/clearEmpties'
+import { getMongoSelect } from './queryBuilder/mongodb/getMongoSelect'
 
 export interface TypeOrmConnectorParams<Input, Output> {
   entity: any
@@ -47,9 +48,9 @@ export class TypeOrmConnector<
 
   private readonly dataSource: DataSource
 
-  private readonly inputSchema: z.ZodType<InputDTO>
+  private readonly inputSchema: z.ZodTypeAny
 
-  private readonly outputSchema: z.ZodType<OutputDTO>
+  private readonly outputSchema: z.ZodTypeAny
 
   private readonly entity: any
 
@@ -142,7 +143,7 @@ export class TypeOrmConnector<
     const requiresCustomQuery =
       query?.include && Object.keys(query.include).length
 
-    if (this.isMongoDB && requiresCustomQuery) {
+    if (this.isMongoDB) {
       const results = await this.customMongoRelatedFind(query)
 
       return results
@@ -171,7 +172,7 @@ export class TypeOrmConnector<
 
     found.map(d => {
       if (this.isMongoDB) {
-        d['id'] = d['id'].toString()
+        d['id'] = d['_id'].toString()
       }
 
       clearEmpties(Objects.deleteNulls(d))
@@ -444,10 +445,6 @@ export class TypeOrmConnector<
     if (query?.select) {
       const selectQuery = Objects.flatten(query?.select || {})
       filter.select = selectQuery
-
-      if (this.isMongoDB) {
-        filter.select = Object.keys(selectQuery)
-      }
     }
 
     if (query?.orderBy) {
@@ -950,6 +947,12 @@ export class TypeOrmConnector<
     })
 
     const raw = await this.mongoRaw().aggregate(aggregate).toArray()
+
+    if (query?.select) {
+      return this.outputSchema['deepPartial']()
+        .array()
+        .parse(raw) as unknown as QueryOutput<T, ModelDTO>[]
+    }
 
     return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
       T,

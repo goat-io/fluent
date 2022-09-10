@@ -47,8 +47,10 @@ export const advancedTestSuite = Model => {
     const form = await Model.findFirst({
       select: {
         id: true,
+        test: true,
         nestedTest: {
-          c: true
+          c: true,
+          a: true
         }
       },
       where: {
@@ -81,6 +83,12 @@ export const advancedTestSuite = Model => {
     await insertTestData(Model)
     const forms = await Model.findMany({
       select: {
+        id: true,
+        test: true,
+        nestedTest: {
+          c: true,
+          a: true
+        },
         created: true,
         order: true
       },
@@ -97,8 +105,12 @@ export const advancedTestSuite = Model => {
     // TODO: this test is not really covering the use case of offset
     const forms = await Model.findMany({
       select: {
-        created: true,
-        order: true
+        id: true,
+        test: true,
+        nestedTest: {
+          c: true,
+          a: true
+        }
       },
       offset: 1,
       limit: 1
@@ -179,12 +191,15 @@ export const advancedTestSuite = Model => {
     await insertTestData(Model)
     const forms = await Model.findMany({
       select: {
+        id: true,
         test: true,
         order: true,
         nestedTest: {
+          c: true,
           a: true,
           b: {
-            c: true
+            c: true,
+            d: true
           }
         }
       },
@@ -203,12 +218,15 @@ export const advancedTestSuite = Model => {
     await insertTestData(Model)
     const forms = await Model.findMany({
       select: {
+        id: true,
         test: true,
         order: true,
         nestedTest: {
+          c: true,
           a: true,
           b: {
-            c: true
+            c: true,
+            d: true
           }
         }
       },
@@ -226,8 +244,17 @@ export const advancedTestSuite = Model => {
     await insertTestData(Model)
     const forms = await Model.findMany({
       select: {
-        created: true,
-        order: true
+        id: true,
+        test: true,
+        order: true,
+        nestedTest: {
+          c: true,
+          a: true,
+          b: {
+            c: true,
+            d: true
+          }
+        }
       },
       orderBy: [
         {
@@ -252,28 +279,28 @@ export const advancedTestSuite = Model => {
     expect(forms[0].order).toBe(3)
   })
 
-  it('Should get paginated data', async () => {
-    await insertTestData(Model)
+  // it('Should get paginated data', async () => {
+  //   await insertTestData(Model)
 
-    const result = await Model.findMany({
-      paginated: {
-        page: 3,
-        perPage: 5
-      }
-    })
+  //   const result = await Model.findMany({
+  //     paginated: {
+  //       page: 3,
+  //       perPage: 5
+  //     }
+  //   })
 
-    expect(Array.isArray(result.data)).toBe(true)
-    expect(result.data.length > 0).toBe(true)
-    expect(isNaN(result.total)).toBe(false)
-    expect(isNaN(result.perPage)).toBe(false)
-    expect(isNaN(result.currentPage)).toBe(false)
-    expect(isNaN(result.nextPage)).toBe(false)
-    expect(isNaN(result.firstPage)).toBe(false)
-    expect(isNaN(result.lastPage)).toBe(false)
-    expect(isNaN(result.prevPage)).toBe(false)
-    expect(isNaN(result.from)).toBe(false)
-    expect(isNaN(result.to)).toBe(false)
-  })
+  //   expect(Array.isArray(result.data)).toBe(true)
+  //   expect(result.data.length > 0).toBe(true)
+  //   expect(isNaN(result.total)).toBe(false)
+  //   expect(isNaN(result.perPage)).toBe(false)
+  //   expect(isNaN(result.currentPage)).toBe(false)
+  //   expect(isNaN(result.nextPage)).toBe(false)
+  //   expect(isNaN(result.firstPage)).toBe(false)
+  //   expect(isNaN(result.lastPage)).toBe(false)
+  //   expect(isNaN(result.prevPage)).toBe(false)
+  //   expect(isNaN(result.from)).toBe(false)
+  //   expect(isNaN(result.to)).toBe(false)
+  // })
 
   // TODO: test to cover pagination functionality
   /*

@@ -37,7 +37,6 @@ export const basicTestSuite = Repo => {
     const goats = await Repository.insertMany(flock)
 
     const goat = await Repository.findById(goats[0].id!)
-
     expect(goat?.id).toBe(goats[0].id)
     expect(typeof goat?.id).toBe('string')
 
@@ -166,13 +165,14 @@ export const basicTestSuite = Repo => {
         name: 'Goatee'
       },
       select: {
-        name: true
+        name: true,
+        age: true,
       }
     })
 
     expect(Array.isArray(storedGoats)).toBe(false)
     expect(storedGoats!.name).toBe('Goatee')
-    expect(storedGoats).not.toHaveProperty('age')
+    expect(storedGoats).not.toHaveProperty('id')
   })
 
   test('requireFirst - Should fail if not found', async () => {

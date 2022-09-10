@@ -1,6 +1,7 @@
 import { FindManyOptions } from 'typeorm'
 import { FluentQuery } from '../../../types'
 import { getMongoBaseAggregation } from './getMongoBaseAggregations'
+import { getMongoOrderBy } from './getMongoOrderBy'
 import { getMongoSelect } from './getMongoSelect'
 import { getMongoWhere } from './getMongoWhere'
 
@@ -18,6 +19,7 @@ export const getMongoFindAggregatedQuery = ({
   self
 }: getFindAggregateQueryParams<any>): any[] => {
   const selected = getMongoSelect(query?.select)
+  const orderBy = getMongoOrderBy(query?.orderBy)
 
   const where = getMongoWhere({
     where: query?.where
@@ -32,12 +34,22 @@ export const getMongoFindAggregatedQuery = ({
     {
       $match: where
     }
-    // Any order be
-    //{ $sort: { createdAt: 1 } }
   ]
 
+  if (orderBy) {
+    aggregate.push(orderBy)
+  }
+
+  if (!query?.include) {
+    aggregate.push({ $addFields: { id: { $toString: '$_id' } } })
+  }
+
+  if (query?.offset) {
+    aggregate.push({ $skip: query?.offset })
+  }
+
   if (query?.limit) {
-    aggregate.push({ $limit: query.limit! })
+    aggregate.push({ $limit: query.limit })
   }
 
   for (const lookup of baseAggregations) {
