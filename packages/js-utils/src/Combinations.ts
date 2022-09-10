@@ -1,4 +1,3 @@
-const crypto = require('crypto')
 /**
  * BigInt Workaround
  *
@@ -19,10 +18,18 @@ const _BI: typeof Number = typeof BigInt === 'function' ? BigInt : Number
 const _crop = (n: anyint): anyint =>
   n <= Number.MAX_SAFE_INTEGER ? Number(n) : _BI(n)
 
-const _randomBytes: (len: number) => Uint8Array =
-  crypto && typeof crypto?.getRandomValues === 'function'
-    ? (len: number) => crypto.getRandomValues(new Uint8Array(len))
-    : (len: number) => Uint8Array.from(Array(len), () => Math.random() * 256)
+const _randomBytes = (len: number): Uint8Array => {
+  let crypto = undefined
+  try {
+    crypto = require('crypto')
+  } catch (error) {}
+  const arr: Uint8Array =
+    crypto && typeof crypto?.getRandomValues === 'function'
+      ? crypto.getRandomValues(new Uint8Array(len))
+      : Uint8Array.from(Array(len), () => Math.random() * 256)
+
+  return arr
+}
 
 /**
  * Base Class of `js-combinatorics`

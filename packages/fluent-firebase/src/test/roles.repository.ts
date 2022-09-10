@@ -1,6 +1,6 @@
 import {
-  RoleEntitySchema,
-  RoleEntityInputSchema
+  RoleInputSchema,
+  RoleDtoInput
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/role.schema'
 import { RoleEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles.entity'
 import { FirebaseConnector } from '../FirebaseConnector'
@@ -9,12 +9,12 @@ import { UserRepository } from './user.repository'
 
 export class RoleRepository extends FirebaseConnector<
   RoleEntity,
-  RoleEntityInputSchema
+  RoleDtoInput
 > {
   constructor() {
     super({
       entity: RoleEntity,
-      inputSchema: RoleEntitySchema
+      inputSchema: RoleInputSchema
     })
   }
 

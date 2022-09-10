@@ -1,5 +1,17 @@
 # @goatlab/js-utils
 
+## 0.8.15
+
+### Patch Changes
+
+- Use "insecure" uuid
+
+## 0.8.14
+
+### Patch Changes
+
+- Combinations optional crypto
+
 ## 0.8.13
 
 ### Patch Changes

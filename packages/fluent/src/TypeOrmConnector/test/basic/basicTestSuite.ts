@@ -17,6 +17,16 @@ export const basicTestSuite = Repo => {
     expect(0).toBe(0)
   })
 
+  test('insert - Should  insert data with customId', async () => {
+    const a = await Repository.insert({
+      id: '631ce4304f9183f61ffb613a',
+      name: 'myGoat',
+      age: 13
+    })
+    expect(typeof a.id).toBe('string')
+    expect(a.id).toBe('631ce4304f9183f61ffb613a')
+  })
+
   it('insertMany - Should insert Multiple elements', async () => {
     const insertedFlock = await Repository.insertMany(flock)
     expect(insertedFlock[0].name).toBe('Goatee')

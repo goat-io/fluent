@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.7.16
+
+### Patch Changes
+
+- Replace where for filter
+
+## 0.7.15
+
+### Patch Changes
+
+- Allow custom Id creation
+
 ## 0.7.14
 
 ### Patch Changes

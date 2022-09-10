@@ -1,6 +1,6 @@
 import { ObjectId } from 'bson'
 import { nanoid, customAlphabet } from 'nanoid'
-import { v4 as secure } from '@lukeed/uuid/secure'
+import { v4 as secure } from '@lukeed/uuid'
 
 export const Ids = (() => {
   /**

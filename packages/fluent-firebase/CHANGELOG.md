@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.8
+
+### Patch Changes
+
+- Update base libraries and tests
+
 ## 0.7.4
 
 ### Patch Changes

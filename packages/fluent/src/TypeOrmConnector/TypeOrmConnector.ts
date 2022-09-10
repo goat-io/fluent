@@ -94,6 +94,11 @@ export class TypeOrmConnector<
     // Validate Input
     const validatedData = this.inputSchema.parse(data)
 
+    if (this.isMongoDB && validatedData['id']) {
+      validatedData['_id'] = Ids.objectID(validatedData['id'])
+      delete validatedData['id']
+    }
+
     // Only Way to Skip the DeepPartial requirement from TypeORm
     let datum = await this.repository.save(
       validatedData as unknown as DeepPartial<ModelDTO>
