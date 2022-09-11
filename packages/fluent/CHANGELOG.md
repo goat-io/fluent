@@ -1,5 +1,23 @@
 # 0.5.20
 
+## 0.7.20
+
+### Patch Changes
+
+- Remove now rows affected error in update
+
+## 0.7.19
+
+### Patch Changes
+
+- Allow update and replace to use aggregate instead of where
+
+## 0.7.18
+
+### Patch Changes
+
+- Update utils
+
 ## 0.7.17
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.16
+
+### Patch Changes
+
+- Add hang
+
 ## 0.8.15
 
 ### Patch Changes

@@ -214,12 +214,6 @@ export class TypeOrmConnector<
    * @param data
    */
   public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const parsedId = this.isMongoDB
-      ? (Ids.objectID(id) as unknown as ObjectID)
-      : id
-
-    const idFieldName = this.isMongoDB ? '_id' : 'id'
-
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
@@ -229,24 +223,10 @@ export class TypeOrmConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    const updateResults = await this.repository.update(id, validatedData)
-
-    if (updateResults.affected === 0) {
-      throw new Error('No rows where affected')
-    }
-
-    const dbResult = await this.repository.findOneOrFail({
-      where: {
-        [idFieldName]: parsedId
-      } as unknown as FindOptionsWhere<ModelDTO>
-    })
-
-    if (this.isMongoDB) {
-      dbResult['id'] = dbResult['id'].toString()
-    }
+    await this.repository.update(id, validatedData)
 
     // Validate Output
-    return this.outputSchema?.parse(clearEmpties(Objects.deleteNulls(dbResult)))
+    return (await this.requireById(id)) as OutputDTO
   }
 
   /**
@@ -258,17 +238,9 @@ export class TypeOrmConnector<
    * @param data
    */
   public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const parsedId = this.isMongoDB
-      ? (Ids.objectID(id) as unknown as ObjectID)
-      : id
-
     const idFieldName = this.isMongoDB ? '_id' : 'id'
 
-    const value = await this.repository.findOneOrFail({
-      where: {
-        [idFieldName]: parsedId
-      } as unknown as FindOptionsWhere<ModelDTO>
-    })
+    const value = this.requireById(id)
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
 
@@ -294,23 +266,9 @@ export class TypeOrmConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    const updateResults = await this.repository.update(id, validatedData)
+    await this.repository.update(id, validatedData)
 
-    if (updateResults.affected === 0) {
-      throw new Error('No rows where affected')
-    }
-
-    const val = await this.repository.findOneOrFail({
-      where: {
-        [idFieldName]: parsedId
-      } as unknown as FindOptionsWhere<ModelDTO>
-    })
-
-    if (this.isMongoDB) {
-      val['id'] = val['id'].toString()
-    }
-
-    return this.outputSchema.parse(clearEmpties(Objects.deleteNulls(val)))
+    return (await this.requireById(id)) as OutputDTO
   }
 
   // DELETE

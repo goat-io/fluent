@@ -37,6 +37,10 @@ class PromisesClass {
   retry = pRetry
 
   retryFunction = pRetryFn
+
+  async hang(): Promise<never> {
+    return await new Promise<never>(() => void 0)
+  }
 }
 
 export const Promises = new PromisesClass()

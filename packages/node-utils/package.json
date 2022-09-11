@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-utils",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Readable query Interface & API generator for TS and Node",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -32,7 +32,7 @@
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
   "dependencies": {
-    "@goatlab/js-utils": "^0.8.13",
+    "@goatlab/js-utils": "^0.8.16",
     "@types/through2-concurrent": "^2.0.1",
     "bcrypt": "^5.0.1",
     "child_process": "^1.0.2",
