@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.9
+
+### Patch Changes
+
+- Bump js utils and fluent
+
 ## 0.7.8
 
 ### Patch Changes

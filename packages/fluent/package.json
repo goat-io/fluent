@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.7.20",
+  "version": "0.7.21",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "install-p": "yarn",
@@ -16,7 +16,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@goatlab/js-utils": "^0.8.16",
+    "@goatlab/js-utils": "^0.8.17",
     "@loopback/metadata": "^4.1.2",
     "bson": "^4.6.2",
     "graphql": "^16.3.0",
