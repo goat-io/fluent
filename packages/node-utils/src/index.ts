@@ -11,6 +11,7 @@ import { Security } from './Security'
 import { runScript } from './Scripts'
 import { Env } from './Env'
 import type { BuildInfo } from './Env'
+import { getGot } from './getGot'
 
 export {
   Errors,
@@ -24,6 +25,7 @@ export {
   Ports,
   Security,
   runScript,
-  Env
+  Env,
+  getGot
 }
 export type { BuildInfo }

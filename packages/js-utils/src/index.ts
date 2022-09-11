@@ -13,6 +13,7 @@ import { nGram } from './Ngram'
 import { Time } from './Time'
 import { Units } from './Units'
 import { CommonLogger } from './Logs/commonLogger'
+import { JsonStringifyFunction, StringifyAnyOptions } from './Strings/stringifyAny'
 
 export {
   Arrays,
@@ -32,4 +33,4 @@ export {
 }
 
 export * from './types'
-export type { CommonLogger }
+export type { CommonLogger, JsonStringifyFunction, StringifyAnyOptions }

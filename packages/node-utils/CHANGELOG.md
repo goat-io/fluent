@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.12
+
+### Patch Changes
+
+- Add getGot
+
 ## 0.8.11
 
 ### Patch Changes

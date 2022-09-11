@@ -230,13 +230,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       throw new Error('Associate can only be called as a related model')
     }
 
+    // Get ids of the Loaded query "One" side of relation
     const parentData = await this.relatedQuery.repository.findMany({
       ...this.relatedQuery.query,
       // We just need the IDs to make the relations
       select: { id: true }
     } as unknown as FluentQuery<ModelDTO>)
 
-    const foreignKeyName =
+    // "Many" side of relation foreignKey
+    let foreignKeyName =
       this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]
         .inverseSidePropertyPath
 
@@ -245,7 +247,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         'The relationship was not properly defined. Please check that your Repository and Model relations have the same keys'
       )
     }
-
+  
     const relatedData = parentData.map(r => ({
       [foreignKeyName]: r.id,
       ...data
@@ -257,6 +259,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       ? await this.findByIds(relatedData.map(r => r.id))
       : []
 
+      console.log({existingData})
     const updateQueries: any[] = []
     const insertQueries: any[] = []
 

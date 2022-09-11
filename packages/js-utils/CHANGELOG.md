@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.17
+
+### Patch Changes
+
+- Add stringify
+
 ## 0.8.16
 
 ### Patch Changes
