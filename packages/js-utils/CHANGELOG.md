@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.18
+
+### Patch Changes
+
+- Error handle
+
 ## 0.8.17
 
 ### Patch Changes

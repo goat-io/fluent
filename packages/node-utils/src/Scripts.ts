@@ -1,4 +1,4 @@
-import { CommonLogger } from "@goatlab/js-utils"
+import { CommonLogger } from '@goatlab/js-utils'
 
 export interface RunScriptOptions {
   /**
@@ -34,7 +34,10 @@ const { DEBUG_RUN_SCRIPT } = process.env
  *
  * Set env DEBUG_RUN_SCRIPT for extra debugging.
  */
-export function runScript(fn: (...args: any[]) => any, opt: RunScriptOptions = {}): void {
+export function runScript(
+  fn: (...args: any[]) => any,
+  opt: RunScriptOptions = {}
+): void {
   const { logger = console, noExit } = opt
 
   process.on('uncaughtException', err => {
@@ -46,7 +49,9 @@ export function runScript(fn: (...args: any[]) => any, opt: RunScriptOptions = {
 
   if (DEBUG_RUN_SCRIPT) {
     process.on('exit', code => logger.log(`process.exit event, code=${code}`))
-    process.on('beforeExit', code => logger.log(`process.beforeExit event, code=${code}`))
+    process.on('beforeExit', code =>
+      logger.log(`process.beforeExit event, code=${code}`)
+    )
   }
 
   // fake timeout, to ensure node.js process won't exit until runScript main promise is resolved
@@ -72,3 +77,9 @@ export function runScript(fn: (...args: any[]) => any, opt: RunScriptOptions = {
     }
   })()
 }
+
+class ScriptsClass {
+  run = runScript
+}
+
+export const Scripts = new ScriptsClass()

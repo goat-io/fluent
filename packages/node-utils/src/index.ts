@@ -8,10 +8,11 @@ import { Folders } from './Folders'
 import { Docker } from './Docker'
 import { Ports } from './Ports'
 import { Security } from './Security'
-import { runScript } from './Scripts'
+import { runScript, Scripts } from './Scripts'
 import { Env } from './Env'
 import type { BuildInfo } from './Env'
 import { getGot } from './getGot'
+import { Inspect } from './Inspect'
 
 export {
   Errors,
@@ -26,6 +27,8 @@ export {
   Security,
   runScript,
   Env,
-  getGot
+  getGot,
+  Inspect,
+  Scripts
 }
 export type { BuildInfo }

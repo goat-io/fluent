@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.22
+
+### Patch Changes
+
+- rebuild
+
 ## 0.7.21
 
 ### Patch Changes

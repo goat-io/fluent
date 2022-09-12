@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.7.10
+
+### Patch Changes
+
+- rebuild
+- Updated dependencies
+  - @goatlab/fluent@0.7.22
+
 ## 0.7.9
 
 ### Patch Changes

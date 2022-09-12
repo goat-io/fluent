@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.7.21",
+  "version": "0.7.22",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "install-p": "yarn",

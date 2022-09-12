@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.8.15
+
+### Patch Changes
+
+- Add inspector
+
+## 0.8.14
+
+### Patch Changes
+
+- rebuild
+
 ## 0.8.13
 
 ### Patch Changes

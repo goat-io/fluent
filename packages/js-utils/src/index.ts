@@ -13,7 +13,20 @@ import { nGram } from './Ngram'
 import { Time } from './Time'
 import { Units } from './Units'
 import { CommonLogger } from './Logs/commonLogger'
-import { JsonStringifyFunction, StringifyAnyOptions } from './Strings/stringifyAny'
+import {
+  JsonStringifyFunction,
+  StringifyAnyOptions
+} from './Strings/stringifyAny'
+
+import type {
+  ErrorData,
+  ErrorObject,
+  HttpErrorData,
+  HttpErrorResponse
+} from './Errors/error.model'
+import { HttpError } from './Errors/http.error'
+import { Assert } from './Assert'
+import { ErrorMode } from './Errors/errorMode'
 
 export {
   Arrays,
@@ -29,8 +42,19 @@ export {
   Promises,
   Strings,
   Time,
-  Units
+  Units,
+  HttpError,
+  Assert,
+  ErrorMode
 }
 
 export * from './types'
-export type { CommonLogger, JsonStringifyFunction, StringifyAnyOptions }
+export type {
+  CommonLogger,
+  JsonStringifyFunction,
+  StringifyAnyOptions,
+  ErrorData,
+  ErrorObject,
+  HttpErrorData,
+  HttpErrorResponse
+}
