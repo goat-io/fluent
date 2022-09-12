@@ -1,5 +1,19 @@
 # 0.5.20
 
+## 0.7.12
+
+### Patch Changes
+
+- bump js
+
+## 0.7.11
+
+### Patch Changes
+
+- Update js utils
+- Updated dependencies
+  - @goatlab/fluent@0.7.24
+
 ## 0.7.10
 
 ### Patch Changes

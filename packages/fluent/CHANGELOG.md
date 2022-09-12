@@ -1,5 +1,23 @@
 # 0.5.20
 
+## 0.7.25
+
+### Patch Changes
+
+- bump js
+
+## 0.7.24
+
+### Patch Changes
+
+- Update js utils
+
+## 0.7.23
+
+### Patch Changes
+
+- bump utils
+
 ## 0.7.22
 
 ### Patch Changes

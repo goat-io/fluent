@@ -27,6 +27,7 @@ import type {
 import { HttpError } from './Errors/http.error'
 import { Assert } from './Assert'
 import { ErrorMode } from './Errors/errorMode'
+import { Errors } from './Errors'
 
 export {
   Arrays,
@@ -45,7 +46,8 @@ export {
   Units,
   HttpError,
   Assert,
-  ErrorMode
+  ErrorMode,
+  Errors
 }
 
 export * from './types'

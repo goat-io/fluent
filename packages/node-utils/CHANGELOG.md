@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.16
+
+### Patch Changes
+
+- bump js
+
 ## 0.8.15
 
 ### Patch Changes
