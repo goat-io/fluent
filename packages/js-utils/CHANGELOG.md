@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.20
+
+### Patch Changes
+
+- Export Error types
+
 ## 0.8.19
 
 ### Patch Changes

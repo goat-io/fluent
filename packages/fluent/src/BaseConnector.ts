@@ -259,15 +259,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       ? await this.findByIds(relatedData.map(r => r.id))
       : []
 
-      console.log({existingData})
     const updateQueries: any[] = []
     const insertQueries: any[] = []
 
     for (const related of relatedData) {
+
       const exists = existingData.find((d: AnyObject) => {
         // We need to manually define the id field
         const p = d as unknown as { id: string } & OutputDTO
-        p.id === related.id
+        return p.id === related.id
       }) as unknown as { id: string } & OutputDTO
 
       if (exists) {
@@ -293,7 +293,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param id
    */
   // TODO: properly type the pivot object
-  public async attach(id: string, pivot?: AnyObject) {
+  public async attach(id: string, pivot?: AnyObject): Promise<any[]> {
     if (!this.relatedQuery?.entity || !this.relatedQuery.key) {
       throw new Error('Associate can only be called as a related model')
     }
@@ -302,7 +302,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       ...this.relatedQuery.query,
       // We just need the IDs to make the relations
       select: { id: true }
-    } as unknown as FluentQuery<ModelDTO>)
+    } as unknown as FluentQuery<ModelDTO>[])
 
     const foreignKeyName =
       this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]

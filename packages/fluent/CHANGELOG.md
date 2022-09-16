@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.7.27
+
+### Patch Changes
+
+- Fix associate
+
+## 0.7.26
+
+### Patch Changes
+
+- Bump utils
+
 ## 0.7.25
 
 ### Patch Changes

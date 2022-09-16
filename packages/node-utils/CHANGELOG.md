@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.17
+
+### Patch Changes
+
+- Bump utils
+
 ## 0.8.16
 
 ### Patch Changes
