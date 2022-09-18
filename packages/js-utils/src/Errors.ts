@@ -28,16 +28,6 @@ class ErrorsClass {
   isErrorObject = _isErrorObject
 
   errorDataAppend = _errorDataAppend
-
-  try<ERR = Error, RETURN = void>(
-    fn: () => RETURN,
-  ): [err: ERR | null, value: RETURN] {
-    try {
-      return [null, fn()]
-    } catch (err) {
-      return [err as ERR, undefined as any]
-    }
-  }
 }
 
 export const Errors = new ErrorsClass()

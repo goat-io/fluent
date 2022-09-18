@@ -1,9 +1,10 @@
 import { Dates } from './Dates'
 
 it('currentUnixDate - Should get the current date in unix', async () => {
-  const date = Dates.currentUnixDate()
+  const date = Dates.currentUnixSeconds()
   expect(typeof date).toBe('number')
   expect(date > 1588659293).toBe(true)
+  expect(date.toString().length).toBe(10)
 })
 
 it('currentIsoString - Should get the current date in iso string format', async () => {
@@ -16,7 +17,7 @@ it('currentIsoString - Should get the current date in iso string format', async 
 })
 
 it('currentDateObject - Should get the current date in dayjs Format', async () => {
-  const date = Dates.currentDateObject()
+  const date = Dates.currentDate()
 
   expect(date.locale()).toBe('en')
 })

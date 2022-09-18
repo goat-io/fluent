@@ -1,5 +1,6 @@
 import { pRetry, pRetryFn } from './Promises/pRetry'
 import { pMap } from './Promises/pMap'
+import { TryCatch, tryCatch } from './Errors/tryCatch'
 /**
  * Wraps async calls in try catch blocks
  * to simplify syntax.
@@ -41,6 +42,10 @@ class PromisesClass {
   async hang(): Promise<never> {
     return await new Promise<never>(() => void 0)
   }
+
+  tryCatch = tryCatch
+
+  TryCatch = TryCatch
 }
 
 export const Promises = new PromisesClass()

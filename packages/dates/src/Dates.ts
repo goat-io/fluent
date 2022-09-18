@@ -26,18 +26,25 @@ dayjs.extend(DayjsweekOfYear)
 
 export const Dates = (() => {
   /**
-   *
+   * Unix timestamp in seconds.
+   * 10 digits!
+   * @example 1628945450
    */
-  const currentUnixDate = (): number => Math.round(+new Date() / 1000)
+  const currentUnixSeconds = (): number => Math.round(+new Date() / 1000)
   /**
-   *
+   * Unix timestamp in seconds.
+   * 13 digits!
+   * @example 1628945450000
+   */
+  const currentUnixMillis = (): number => +new Date()
+  /**
+   * '2019-06-21T05:21:73Z'
    */
   const currentIsoString = (): string => new Date().toISOString()
   /**
    *
    */
-  const currentDateObject = (): Dayjs => dayjs()
-
+  const currentDate = (): Dayjs => dayjs()
   /**
    *
    * @param code
@@ -52,16 +59,15 @@ export const Dates = (() => {
     locale(Language.get())
   }
   /**
-   * Get a Dayjs instance given a unixDate
+   * Get a Dayjs instance given a unixTime (seconds/millis)
    * @param unixDate
    */
   const parseUnixDate = (unixDate: number): Dayjs => dayjs.unix(unixDate)
   /**
-   * Get a Dayjs instance given a unixDate
+   * Get a Dayjs instance given iso string ('2019-06-21T05:21:73Z')
    * @param unixDate
    */
   const parseIsoStringDate = (isoStringDate: string): Dayjs =>
-    // var d = new Date(isoStringDate)
     dayjs(isoStringDate)
 
   /**
@@ -82,14 +88,14 @@ export const Dates = (() => {
    */
   const weekOfYear = (date: Dayjs): number => dayjs(date).week()
 
-
   const raw = dayjs
 
   return Object.freeze({
     changeLanguage,
-    currentUnixDate,
+    currentUnixSeconds,
+    currentUnixMillis,
     currentIsoString,
-    currentDateObject,
+    currentDate,
     isSameOrAfterNow,
     isSameOrBeforeNow,
     setLocales,

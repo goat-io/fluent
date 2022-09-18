@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.21
+
+### Patch Changes
+
+- Add time types
+
 ## 0.8.20
 
 ### Patch Changes

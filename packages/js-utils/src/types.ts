@@ -1,4 +1,4 @@
-import { TypedPathWrapper } from "typed-path"
+import { TypedPathWrapper } from 'typed-path'
 
 export type Primitives = boolean | string | number
 
@@ -26,22 +26,54 @@ export type AnyObject = Record<string, any>
 export type ObjectPredicate<OBJ> = (
   key: keyof OBJ,
   value: Exclude<OBJ[keyof OBJ], undefined>,
-  obj: OBJ,
+  obj: OBJ
 ) => boolean
 
 export type ObjectMapper<OBJ, OUT> = (
   key: string,
   value: Exclude<OBJ[keyof OBJ], undefined>,
-  obj: OBJ,
+  obj: OBJ
 ) => OUT
 
 export type ValueOf<T> = T[keyof T]
 
-export const stringMapEntries = Object.entries as <T>(m: StringMap<T>) => [k: string, v: T][]
-
+export const stringMapEntries = Object.entries as <T>(
+  m: StringMap<T>
+) => [k: string, v: T][]
 
 export type TypedKeys<T> = (
   key: TypedPathWrapper<T, Record<never, never>>
 ) =>
   | TypedPathWrapper<Primitives, Record<never, never>>
   | TypedPathWrapper<Primitives[], Record<never, never>>
+
+/**
+ * Interface explicitly states that the value is an ISO Date string (without time).
+ * YYYY-MM-DD
+ *
+ * @example '2019-06-21'
+ */
+export declare type IsoDateString = string
+/**
+ * Interface explicitly states that the value is an ISO DateTime string (with time).
+ * YYYY-MM-DDThh:mm:ssZ
+ *
+ * @example '2019-06-21T05:21:73Z'
+ */
+export declare type IsoDateTimeString = string
+/**
+ * Interface explicitly states that the value is a Unix timestamp (in seconds).
+ * 10 digits!
+ * @example 1628945450
+ */
+export declare type UnixTimestampNumber = number
+/**
+ * Interface explicitly states that the value is a "Unix timestamp in **milleseconds**" (not seconds). 13 digits!
+ *
+ * @example 1628945450000
+ */
+export declare type UnixTimestampMillisNumber = number
+/**
+ * Same as `number`, but with semantic meaning that it is an Integer.
+ */
+export declare type Integer = number

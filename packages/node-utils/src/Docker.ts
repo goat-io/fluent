@@ -14,7 +14,7 @@ export const detectPort: (
   defaultPort: number
 ) => Promise<number> = require('detect-port')
 
-export interface Options {
+export interface DockerOptions {
   debug: boolean
   image: string
   containerName: string
@@ -35,19 +35,19 @@ export interface Options {
   detached?: boolean
   enableDebugInstructions?: string
   testConnection?: (
-    opts: NormalizedOptions & { testPortConnection: () => Promise<boolean> }
+    opts: DockerNormalizedOptions & { testPortConnection: () => Promise<boolean> }
   ) => Promise<boolean>
 }
 
-export interface NormalizedOptions
-  extends Pick<Options, Exclude<keyof Options, 'defaultExternalPort'>> {
+export interface DockerNormalizedOptions
+  extends Pick<DockerOptions, Exclude<keyof DockerOptions, 'defaultExternalPort'>> {
   detached: boolean
   externalPort: number
 }
 
 class DockerClass {
   private async imageExists(
-    options: NormalizedOptions | Options
+    options: DockerNormalizedOptions | DockerOptions
   ): Promise<boolean> {
     const stdout = await spawnBuffered(
       'docker',
@@ -74,7 +74,7 @@ class DockerClass {
     )
   }
 
-  private startDockerContainer(options: NormalizedOptions) {
+  private startDockerContainer(options: DockerNormalizedOptions) {
     const env = options.environment || {}
     const envArgs: string[] = []
     Object.keys(env).forEach(key => {
@@ -143,7 +143,7 @@ class DockerClass {
 
   public listImages = () => docker.listImages()
 
-  public async testConnection(options: NormalizedOptions): Promise<boolean> {
+  public async testConnection(options: DockerNormalizedOptions): Promise<boolean> {
     return new Promise<boolean>(resolve => {
       const connection = connect(options.externalPort)
         .on('error', () => {
@@ -157,7 +157,7 @@ class DockerClass {
   }
 
   public async killOldContainers(
-    options: Pick<NormalizedOptions, 'debug' | 'containerName'>
+    options: Pick<DockerNormalizedOptions, 'debug' | 'containerName'>
   ) {
     await spawnBuffered('docker', ['kill', options.containerName], {
       debug: options.debug
@@ -167,7 +167,7 @@ class DockerClass {
     }) // do not check exit code as there may not be a container to remove
   }
 
-  public async pullDockerImage(options: NormalizedOptions | Options) {
+  public async pullDockerImage(options: DockerNormalizedOptions | DockerOptions) {
     if (
       !options.refreshImage &&
       /.+\:.+/.test(options.image) &&
@@ -185,7 +185,7 @@ class DockerClass {
     }).getResult()
   }
 
-  public async startContainer(options: Options) {
+  public async startContainer(options: DockerOptions) {
     if (isNaN(options.connectTimeoutSeconds)) {
       throw new Error('connectTimeoutSeconds must be a valid integer.')
     }
@@ -201,7 +201,7 @@ class DockerClass {
     if (typeof externalPort !== 'number') {
       throw new Error('Expected external port to be a number')
     }
-    const opts: NormalizedOptions = {
+    const opts: DockerNormalizedOptions = {
       detached: false,
       ...rawOptions,
       externalPort
@@ -221,7 +221,7 @@ class DockerClass {
     }
   }
 
-  public async waitForContainerToStart(options: NormalizedOptions) {
+  public async waitForContainerToStart(options: DockerNormalizedOptions) {
     await new Promise<void>((resolve, reject) => {
       let finished = false
       const timeout = setTimeout(() => {

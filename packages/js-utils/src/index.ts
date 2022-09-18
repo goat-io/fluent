@@ -1,3 +1,13 @@
+import {
+  AssertionError,
+  _try,
+  assert,
+  assertDeepEquals,
+  assertEquals,
+  assertIsError,
+  assertIsNumber,
+  assertIsString
+} from './Assert'
 import { CommonLogLevel, CommonLogger } from './Logs/commonLogger'
 import type {
   ErrorData,
@@ -11,7 +21,6 @@ import {
 } from './Strings/stringifyAny'
 import { AppError } from './Errors/app.error'
 import { Arrays } from './Arrays'
-import { Assert } from './Assert'
 import { Changelogs } from './Changelogs'
 import { Collection } from './Collection'
 import { Combination as Combinations } from './Combinations'
@@ -32,9 +41,16 @@ import { nGram } from './Ngram'
 export * from './types'
 
 export {
+  _try,
   AppError,
   Arrays,
-  Assert,
+  assert,
+  assertDeepEquals,
+  assertEquals,
+  AssertionError,
+  assertIsError,
+  assertIsNumber,
+  assertIsString,
   Changelogs,
   Collection,
   Combinations,
@@ -63,3 +79,8 @@ export type {
   JsonStringifyFunction,
   StringifyAnyOptions
 }
+
+export * from './Datetime/localDate'
+export * from './Datetime/localTime'
+export * from './Datetime/dateInterval'
+export * from './Datetime/timeInterval'
