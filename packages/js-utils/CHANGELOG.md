@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.24
+
+### Patch Changes
+
+- Fix memo export
+
 ## 0.8.23
 
 ### Patch Changes

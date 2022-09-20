@@ -32,6 +32,15 @@ afterAll(async () => {
   tearDown && (await tearDown())
 })
 
+const userRepo = new UserRepository()
+describe('Loading test', () => {
+  it('Should run even when initialized in the same file', async () => {
+    const a = await userRepo.findMany()
+
+    expect(Array.isArray(a)).toBe(true)
+  })
+})
+
 describe('Execute all basic test Suite', () => {
   basicTestSuite(GoatRepository)
 })

@@ -8,11 +8,10 @@ import {
   Repository,
   MongoRepository,
   DeepPartial,
-  FindOptionsWhere,
   FindOptionsRelations,
   SelectQueryBuilder
 } from 'typeorm'
-import { Ids, Objects, Strings } from '@goatlab/js-utils'
+import { Ids, Objects, Strings, Memo } from '@goatlab/js-utils'
 import { BaseConnector } from '../BaseConnector'
 import { FluentConnectorInterface } from '../FluentConnectorInterface'
 import { getOutputKeys } from '../outputKeys'
@@ -28,7 +27,6 @@ import { extractOrderBy } from './util/extractOrderBy'
 import { getTypeOrmWhere } from './queryBuilder/sql/getTypeOrmWhere'
 import { getQueryBuilderWhere } from './queryBuilder/sql/getQueryBuilderWhere'
 import { clearEmpties } from './util/clearEmpties'
-import { getMongoSelect } from './queryBuilder/mongodb/getMongoSelect'
 
 export interface TypeOrmConnectorParams<Input, Output> {
   entity: any
@@ -44,7 +42,7 @@ export class TypeOrmConnector<
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
 {
-  private readonly repository: Repository<ModelDTO>
+  private repository: Repository<ModelDTO>
 
   private readonly dataSource: DataSource
 
@@ -67,23 +65,29 @@ export class TypeOrmConnector<
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
 
     this.entity = entity
+  }
 
-    this.repository = this.dataSource.getRepository(entity)
+  @Memo.syncMethod()
+  initDB() {
+    this.repository = this.dataSource.getRepository(this.entity)
 
     this.isMongoDB =
       this.repository.metadata.connection.driver.options.type === 'mongodb'
 
     if (this.isMongoDB) {
-      this.repository = this.dataSource.getMongoRepository(entity)
+      this.repository = this.dataSource.getMongoRepository(this.entity)
     }
 
-    const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
+    const relationShipBuilder = modelGeneratorDataSource.getRepository(
+      this.entity
+    )
 
     const { relations } = getRelationsFromModelGenerator(relationShipBuilder)
 
     this.modelRelations = relations
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
+    return 1
   }
   // CREATE
 
@@ -92,6 +96,7 @@ export class TypeOrmConnector<
    * @param data
    */
   public async insert(data: InputDTO): Promise<OutputDTO> {
+    this.initDB()
     // Validate Input
     const validatedData = this.inputSchema.parse(data)
 
@@ -114,6 +119,7 @@ export class TypeOrmConnector<
   }
 
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
+    this.initDB()
     const validatedData = this.inputSchema.array().parse(data)
 
     //
@@ -140,6 +146,7 @@ export class TypeOrmConnector<
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO>[]> {
+    this.initDB()
     const requiresCustomQuery =
       query?.include && Object.keys(query.include).length
 
@@ -214,6 +221,7 @@ export class TypeOrmConnector<
    * @param data
    */
   public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
+    this.initDB()
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
@@ -238,6 +246,7 @@ export class TypeOrmConnector<
    * @param data
    */
   public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
+    this.initDB()
     const idFieldName = this.isMongoDB ? '_id' : 'id'
 
     const value = this.requireById(id)
@@ -279,6 +288,7 @@ export class TypeOrmConnector<
    * @returns
    */
   public async deleteById(id: string): Promise<string> {
+    this.initDB()
     const parsedId = this.isMongoDB
       ? (Ids.objectID(id) as unknown as ObjectID)
       : id
@@ -293,6 +303,7 @@ export class TypeOrmConnector<
    * @returns
    */
   public async clear(): Promise<boolean> {
+    this.initDB()
     await this.repository.clear()
     return true
   }
@@ -305,6 +316,7 @@ export class TypeOrmConnector<
    * @returns
    */
   public loadFirst(query?: FluentQuery<ModelDTO>) {
+    this.initDB()
     // Create a clone of the original class
     // to avoid polluting attributes (relatedQuery)
     const newInstance = this.clone()
@@ -327,6 +339,7 @@ export class TypeOrmConnector<
    * @returns
    */
   public loadById(id: string) {
+    this.initDB()
     // Create a new instance to avoid polluting the original one
     const newInstance = this.clone()
 
@@ -352,6 +365,7 @@ export class TypeOrmConnector<
    * @param query
    */
   public raw(): Repository<ModelDTO> {
+    this.initDB()
     return this.repository
   }
 
@@ -364,6 +378,7 @@ export class TypeOrmConnector<
    * @param query
    */
   public mongoRaw(): MongoRepository<ModelDTO> {
+    this.initDB()
     return this.repository as MongoRepository<ModelDTO>
   }
 
@@ -372,6 +387,7 @@ export class TypeOrmConnector<
    * @returns
    */
   protected clone() {
+    this.initDB()
     return new (<any>this.constructor)()
   }
 

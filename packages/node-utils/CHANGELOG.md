@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.19
+
+### Patch Changes
+
+- Fluent delay DB init
+
 ## 0.8.18
 
 ### Patch Changes

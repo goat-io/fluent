@@ -17,7 +17,7 @@ import {
   getOutputKeys,
   loadRelations
 } from '@goatlab/fluent'
-import { Objects, Ids } from '@goatlab/js-utils'
+import { Objects, Ids, Memo } from '@goatlab/js-utils'
 import { z } from 'zod'
 
 export interface FirebaseConnectorParams<Input, Output> {
@@ -41,7 +41,7 @@ export class FirebaseConnector<
 
   private readonly outputSchema: z.ZodType<OutputDTO>
 
-  private readonly collection: FirebaseFirestore.CollectionReference<ModelDTO>
+  private collection: FirebaseFirestore.CollectionReference<ModelDTO>
 
   private readonly entity: any
 
@@ -56,8 +56,13 @@ export class FirebaseConnector<
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)
 
     this.entity = entity
+  }
 
-    const relationShipBuilder = modelGeneratorDataSource.getRepository(entity)
+  @Memo.syncMethod()
+  initDB() {
+    const relationShipBuilder = modelGeneratorDataSource.getRepository(
+      this.entity
+    )
 
     const name = relationShipBuilder.metadata.givenTableName
 
@@ -76,6 +81,7 @@ export class FirebaseConnector<
     this.modelRelations = relations
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
+    return 1
   }
   // CREATE
 
@@ -84,6 +90,7 @@ export class FirebaseConnector<
    * @param data
    */
   public async insert(data: InputDTO): Promise<OutputDTO> {
+    this.initDB()
     // Validate Input
     const validatedData = this.inputSchema.parse(data)
 
@@ -110,6 +117,7 @@ export class FirebaseConnector<
   }
 
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
+    this.initDB()
     const validatedData = this.inputSchema.array().parse(data)
 
     const batch = admin.firestore().batch()
@@ -136,6 +144,7 @@ export class FirebaseConnector<
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO>[]> {
+    this.initDB()
     const [andQuery, orQueries] = this.getGeneratedQueries(query)
     const results: admin.firestore.DocumentData[] = []
 
@@ -212,6 +221,7 @@ export class FirebaseConnector<
    * @param data
    */
   public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
+    this.initDB()
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
@@ -247,6 +257,7 @@ export class FirebaseConnector<
    * @param data
    */
   public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
+    this.initDB()
     const value = await this.findById(id)
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
@@ -288,11 +299,13 @@ export class FirebaseConnector<
   // DELETE
 
   public async deleteById(id: string): Promise<string> {
+    this.initDB()
     await this.collection.doc(id).delete()
     return id
   }
 
   public async clear() {
+    this.initDB()
     const query = this.collection.orderBy('__name__').limit(300)
     return new Promise((resolve, reject) => {
       this.deleteQueryBatch(admin.firestore(), query, 300, resolve, reject)
@@ -302,6 +315,7 @@ export class FirebaseConnector<
   // RELATIONS
 
   public loadFirst(query?: FluentQuery<ModelDTO>) {
+    this.initDB()
     // Create a clone of the original class
     // to avoid polluting attributes (relatedQuery)
     const newInstance = this.clone()
@@ -319,6 +333,7 @@ export class FirebaseConnector<
   }
 
   public loadById(id: string) {
+    this.initDB()
     // Create a new instance to avoid polluting the original one
     const newInstance = this.clone()
 
@@ -343,14 +358,17 @@ export class FirebaseConnector<
    * @param query
    */
   public raw(): admin.firestore.CollectionReference<ModelDTO> {
+    this.initDB()
     return this.collection
   }
 
   public rawFirebase(): admin.firestore.Firestore {
+    this.initDB()
     return admin.firestore()
   }
 
   private deleteQueryBatch(db, query, batchSize, resolve, reject) {
+    this.initDB()
     query
       .get()
       .then(snapshot => {
@@ -387,6 +405,7 @@ export class FirebaseConnector<
    * @returns
    */
   protected clone() {
+    this.initDB()
     return new (<any>this.constructor)()
   }
   //////////////////////////////////////////////////////////////
