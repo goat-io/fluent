@@ -73,7 +73,41 @@ export declare type UnixTimestampNumber = number
  * @example 1628945450000
  */
 export declare type UnixTimestampMillisNumber = number
+
+/**
+ * Interface explicitly states that the value is a Millisecond number.
+ *
+ * @example 300
+ */
+export declare type Milliseconds = number
 /**
  * Same as `number`, but with semantic meaning that it is an Integer.
  */
 export declare type Integer = number
+
+export type Promisable<T> = T | PromiseLike<T>
+
+export type Nullish<T> = T extends NullishValue ? T : never
+export type Truthy<T> = T extends FalsyValue ? never : T
+export type Falsy<T> = T extends FalsyValue ? T : never
+
+export type Primitive =
+  | null
+  | undefined
+  | string
+  | number
+  | boolean
+  | symbol
+  | bigint
+
+/**
+ * Allows to identify instance of Class by `instanceId`.
+ */
+export interface InstanceId {
+  /**
+   * Unique id of this instance of the Class.
+   */
+  instanceId: string
+}
+
+

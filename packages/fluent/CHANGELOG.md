@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.7.29
+
+### Patch Changes
+
+- Update typeorm
+
+## 0.7.28
+
+### Patch Changes
+
+- js utils update
+
 ## 0.7.27
 
 ### Patch Changes

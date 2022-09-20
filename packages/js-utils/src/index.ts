@@ -37,6 +37,8 @@ import { Strings } from './Strings'
 import { Time } from './Time'
 import { Units } from './Units'
 import { nGram } from './Ngram'
+import { Is } from './Is'
+import { Memo } from './Memo'
 
 export * from './types'
 
@@ -60,6 +62,8 @@ export {
   Functions,
   HttpError,
   Ids,
+  Is,
+  Memo,
   nGram,
   Numbers,
   Objects,

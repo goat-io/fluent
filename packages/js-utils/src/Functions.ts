@@ -1,40 +1,28 @@
-export const Functions = (() => {
+import { Debounce, Throttle } from './Functions/debounce.decorator'
+import { Retry } from './Functions/retry.decorator'
+import { Milliseconds } from 'types'
+import { debounce, throttle } from './Functions/debounce'
+
+class FunctionsClass {
   /**
    *
    * @param f
    */
-  const requestAnimationFrame = f => {
+  requestAnimationFrame = f => {
     setImmediate(() => f(Date.now()))
   }
-  /**
-   *
-   * @param fn
-   * @param time
-   */
-  const debounce = (fn: () => void, time: number) => {
-    let timeout
 
-    return function () {
-      const functionCall = () => fn.apply(this, arguments)
+  debounce = debounce
 
-      clearTimeout(timeout)
-      timeout = setTimeout(functionCall, time)
-    }
-  }
-  /**
-   *
-   * @param ms
-   */
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-  /**
-   *
-   * @param cb
-   */
-  const repeatEvery = async (ms: number, callback: () => void) => {
+  throttle = throttle
+
+  sleep = (ms: Milliseconds) => new Promise(resolve => setTimeout(resolve, ms))
+
+  repeatEvery = async (ms: Milliseconds, callback: () => void) => {
     const dateNow = Date.now
     const requestAnimation =
       (typeof window !== 'undefined' && window.requestAnimationFrame) ||
-      requestAnimationFrame
+      this.requestAnimationFrame
 
     let start = dateNow()
     let stop
@@ -53,10 +41,67 @@ export const Functions = (() => {
       }
     }
   }
+  /**
+   * Decorator to allow method retry
+   *
+   * @example
+   *```typescript
+   *    class C {
+   *      constructor(public succeedOnAttempt: number) {}
+   *
+   *     attempt = 0
+   *
+   *      `@Functions.retryDecorator({
+   *        maxAttempts: 3,
+   *        delay: 100,
+   *        delayMultiplier: 1,
+   *        logAll: true,
+   *      })`
+   *      async fn(...args: any[]) {
+   *        this.attempt++
+   *        // console.log(`fn called attempt=${attempt}`, {args})
+   *        if (this.attempt >= this.succeedOnAttempt) {
+   *          return args
+   *        }
+   *
+   *       throw new Error(`fail`)
+   *     }
+   *   }
+   *```
+   * */
+  retryMethod = Retry
 
-  return Object.freeze({
-    debounce,
-    sleep,
-    repeatEvery
-  })
-})()
+  /**
+   * Decorator to allow method debounce
+   *
+   * @example
+   *```typescript
+   *   class C {
+   *   '@Functions.debounceMethod(20)'
+   *   fn(started: number, n: number): void {
+   *     console.log(`#${n} after ${_since(started)}`)
+   *   }
+   * }
+   *```
+   * */
+  debounceMethod = Debounce
+
+  /**
+   * Decorator to allow method throttle
+   *
+   * @example
+   *```typescript
+   *   class C {
+   *   '@Functions.throttleMethod(20)'
+   *   fn(started: number, n: number): void {
+   *     console.log(`#${n} after ${_since(started)}`)
+   *   }
+   * }
+   *```
+   * */
+  throttleMethod = Throttle
+}
+
+export const Functions = new FunctionsClass()
+
+Functions.debounceMethod

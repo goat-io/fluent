@@ -108,6 +108,9 @@ All of these should run out of the box with your dev dependencies
 ## Release Process
 
 1. This package uses [Changesets](https://github.com/changesets/changesets) to manage releases for individual packages
+2. Release chain:
+   js-utils
+   node-utils fluent
 
 ## License
 

@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.18
+
+### Patch Changes
+
+- js utils update
+
 ## 0.8.17
 
 ### Patch Changes

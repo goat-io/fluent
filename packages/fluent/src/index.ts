@@ -43,6 +43,7 @@ import { getSelectedKeysFromRawSql } from './TypeOrmConnector/util/getSelectedKe
 import { nestQueryResults } from './TypeOrmConnector/util/nestQueryResults'
 
 export { DataSource } from 'typeorm'
+export type { Relation } from 'typeorm'
 export {
   ApiHideProperty,
   ApiProperty,

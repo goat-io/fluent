@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.14
+
+### Patch Changes
+
+- Up fluent
+
 ## 0.7.13
 
 ### Patch Changes

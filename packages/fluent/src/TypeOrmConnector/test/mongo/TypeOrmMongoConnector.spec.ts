@@ -33,11 +33,11 @@ afterAll(async () => {
 })
 
 describe('Execute all basic test Suite', () => {
-  // basicTestSuite(GoatRepository)
+  basicTestSuite(GoatRepository)
 })
 
 describe('Execute all advanced test Suite', () => {
-  // advancedTestSuite(TypeOrmRepository)
+  advancedTestSuite(TypeOrmRepository)
 })
 
 describe('Execute all relations test suite', () => {

@@ -1,5 +1,17 @@
 # @goatlab/js-utils
 
+## 0.8.23
+
+### Patch Changes
+
+- Add memo and try
+
+## 0.8.22
+
+### Patch Changes
+
+- Add date functions
+
 ## 0.8.21
 
 ### Patch Changes
