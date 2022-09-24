@@ -109,7 +109,7 @@
     "request-promise-native": "^1.0.9",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.5",
-    "sqlite3": "^5.0.2",
+    "sqlite3": "^5.0.3",
     "stampit": "4.3.2",
     "ts-morph": "^14.0.0",
     "typed-path": "^2.2.3",
