@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.31
+
+### Patch Changes
+
+- Fix relations dbInit
+
 ## 0.7.30
 
 ### Patch Changes

@@ -16,6 +16,7 @@ export const getMongoBaseAggregation = ({
   include,
   self
 }: getMongoBaseAggregationParams): any[] => {
+  self.initDB()
   if (!include) {
     return []
   }

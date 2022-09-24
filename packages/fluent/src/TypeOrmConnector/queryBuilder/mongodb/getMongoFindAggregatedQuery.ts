@@ -18,6 +18,7 @@ export const getMongoFindAggregatedQuery = ({
   query,
   self
 }: getFindAggregateQueryParams<any>): any[] => {
+  self.initDB()
   const selected = getMongoSelect(query?.select)
   const orderBy = getMongoOrderBy(query?.orderBy)
 
