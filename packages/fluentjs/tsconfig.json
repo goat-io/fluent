@@ -1,9 +1,12 @@
 {
-  "extends": "@goatlab/tsconfig/base.json",
-  "include": ["src"],
-  "exclude": ["dist"],
+  "extends": "@goatlab/tsconfig/tsconfig.json",
+  "include": ["./src"],
+  "exclude": ["./src/**/*.spec.*"],
   "compilerOptions": {
+    "declaration": true,
     "outDir": "./dist",
-    "baseUrl": "./src"
+    "baseUrl": "./src",
+    "allowJs": true,
+    "resolveJsonModule": true
   }
 }

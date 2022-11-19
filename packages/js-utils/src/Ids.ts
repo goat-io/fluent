@@ -23,7 +23,7 @@ export const Ids = (() => {
     return new ObjectId().toString()
   }
 
-  const isValidObjectID = (id?: string): boolean => ObjectId.isValid(id)
+  const isValidObjectID = (id: string): boolean => ObjectId.isValid(id)
   /**
    * Generate a UUID (version 4).
    *

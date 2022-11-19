@@ -3,7 +3,7 @@
  *
  * @param {number} n
  */
-export function nGram(n) {
+export function nGram(n: number) {
   if (
     typeof n !== 'number' ||
     Number.isNaN(n) ||
@@ -22,9 +22,9 @@ export function nGram(n) {
    * @param {T} [value]
    * @returns {T[]}
    */
-  function grams(value) {
+  function grams(value: string) {
     /** @type {T[]} */
-    const nGrams = []
+    const nGrams: string[] = []
     /** @type {number} */
     let index
     /** @type {string|string[]} */
@@ -34,7 +34,7 @@ export function nGram(n) {
       return nGrams
     }
 
-    source = value.slice ? value : String(value)
+    source = value.length ? value : String(value)
     index = source.length - n + 1
 
     if (index < 1) {

@@ -24,7 +24,7 @@ const Utils = {
    *   The content to pass to console.log.
    */
   log(content: any) {
-    if (process.env.TEST_SUITE) {
+    if (process.env['TEST_SUITE']) {
       return
     }
 

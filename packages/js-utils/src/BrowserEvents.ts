@@ -5,7 +5,7 @@ export interface EventOptions {
   text: string
 }
 export const BrowserEvents = (() => {
-  const CustomEvent = (event, params) => {
+  const CustomEvent = (event, params: any) => {
     const evt = document.createEvent('CustomEvent')
 
     params = params || { bubbles: false, cancelable: false, detail: undefined }
@@ -39,7 +39,7 @@ export const BrowserEvents = (() => {
    *
    * @param param0
    */
-  const listen = (name: string, callback) => {
+  const listen = (name: string, callback: any) => {
     if (!name) {
       throw new Error('Listener must have a name.')
     }
@@ -52,7 +52,7 @@ export const BrowserEvents = (() => {
    *
    * @param param0
    */
-  const remove = (name: string, callback) => {
+  const remove = (name: string, callback: any) => {
     if (!name) {
       throw new Error('Listener must have a name to detach')
     }

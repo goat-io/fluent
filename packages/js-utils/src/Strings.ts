@@ -19,7 +19,7 @@ class StringsClass {
    * @param  string  $search
    * @return string
    */
-  after = (subject: string, search: string): string => {
+  after = (subject: string, search: string): string | undefined => {
     const result = subject.split(search)
     return result.length > 1 ? result[1] : subject
   }
@@ -31,7 +31,7 @@ class StringsClass {
    * @param  string  $search
    * @return string
    */
-  before = (subject: string, search: string): string => {
+  before = (subject: string, search: string): string | undefined => {
     const result = subject.split(search)
     return result.length > 1 ? result[0] : subject
   }
@@ -83,7 +83,7 @@ class StringsClass {
    * @param  string  $end
    * @return string
    */
-  limit = (value, lim = 100, end = '...') =>
+  limit = (value: string, lim = 100, end = '...') =>
     `${value.substring(0, lim).trim()}${end}`
 
   /**

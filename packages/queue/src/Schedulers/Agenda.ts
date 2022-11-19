@@ -3,7 +3,7 @@ import { hostname } from 'os'
 import { Promises } from '@goatlab/js-utils'
 import { Job, JobDescription, RepeatEvery, TimeZones } from '../Jobs'
 
-const mongoConnectionString = process.env.MONGO_URL
+const mongoConnectionString = process.env['MONGO_URL']
 
 export enum AgendaCronTimes {
   never = 'never',

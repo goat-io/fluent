@@ -17,7 +17,7 @@ export const FirebaseInit = ({
     return
   }
   if (host && port) {
-    process.env.FIRESTORE_EMULATOR_HOST = `${host}:${port}`
+    process.env['FIRESTORE_EMULATOR_HOST'] = `${host}:${port}`
   }
 
   admin.initializeApp({

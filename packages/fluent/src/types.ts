@@ -1,30 +1,3 @@
-import { ObjectID } from 'bson'
-
-export interface AnyObject {
-  [key: string]: any
-}
-
-// Get the type from an array TYPE[] => TYPE
-type Unpacked<T> = T extends (infer U)[] ? U : T
-
-export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
-  ? (...args: ExpandRecursively<A>) => ExpandRecursively<R>
-  : T extends object
-  ? T extends infer O
-    ? O extends any[]
-      ? { [K in keyof Unpacked<O>]: ExpandRecursively<Unpacked<O>[K]> }[]
-      : { [K in keyof O]: ExpandRecursively<O[K]> }
-    : never
-  : T
-
-export type Concrete<Type> = {
-  [Property in keyof Type]-?: Type[Property]
-}
-
-export type Subset<T, U> = {
-  [key in keyof T]: key extends keyof U ? T[key] : never
-}
-
 export type QueryFieldSelector<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
     ? true | Unpacked<Partial<QueryFieldSelector<Concrete<T>[K]>>>
@@ -153,64 +126,9 @@ export type QueryOutput<
     : Model & GetSelectedFromInclude<T, Model>
 >
 
-export interface PaginatedData<T> {
-  /**
-   *
-   */
-  currentPage: number
-  /**
-   * The actual result data
-   */
-  data: T[]
-  firstPageUrl?: string
-  nextPageUrl?: string
-  prevPageUrl?: string
-  path?: string
-  /**
-   * Number of results on each page
-   */
-  perPage: number
-  /**
-   * Total number of results for the query
-   */
-  total: number
-  /**
-   * Last page number
-   */
-  lastPage: number
-  /**
-   * First page number
-   */
-  firstPage: number
-  /**
-   * Next page number
-   */
-  nextPage: number
-  /**
-   * Previous page number
-   */
-  prevPage: number | null
-  /**
-   * Showing results from
-   */
-  from: number
-  /**
-   * Showing results to
-   */
-  to: number
-}
-
-export interface Paginator {
-  page: number
-  perPage: number
-}
-
 export interface Deleted {
   deleted: number
 }
-
-export type Primitives = boolean | string | number | ObjectID
-export type PrimitivesArray = boolean[] | string[] | number[] | ObjectID[]
 
 export enum LogicOperator {
   equals = 'equals',

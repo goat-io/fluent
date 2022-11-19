@@ -5,12 +5,12 @@ import { MulterConfiguration } from '../Upload'
 
 const s3 = new AWS.S3()
 AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEYid,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  accessKeyId: process.env['AWS_ACCESS_KEYid'],
+  secretAccessKey: process.env['AWS_SECRET_ACCESS_KEY']
 })
 
 export const S3 = (config: MulterConfiguration) => {
-  if (!process.env.AWS_ACCESS_KEYid || !process.env.AWS_SECRET_ACCESS_KEY) {
+  if (!process.env['AWS_ACCESS_KEYid'] || !process.env['AWS_SECRET_ACCESS_KEY']) {
     throw new Error('AWS access keys are missing')
   }
   return multerS3({

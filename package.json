@@ -12,7 +12,7 @@
   },
   "scripts": {
     "install": "turbo run install-p",
-    "build": "turbo run build",
+    "build": "turbo run build --filter=!@goatlab/fluent",
     "dev": "turbo run dev --parallel",
     "test": "turbo run test",
     "lint": "turbo run lint",

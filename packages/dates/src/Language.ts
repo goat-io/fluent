@@ -4,7 +4,7 @@ export const Language = (() => {
    * @returns {string} language code (ie. "en")
    */
   const get = (): string =>
-    localStorage.getItem('defaultLanguage') || process.env.DEFAULT_LANGUAGE
+    localStorage.getItem('defaultLanguage') || process.env['DEFAULT_LANGUAGE']
   /**
    * Stores language as default in local database
    * @param {String} code

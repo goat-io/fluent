@@ -38,9 +38,9 @@ const getTimezoneString = (timeZone: TimeZones): BullTimeZones =>
 const RedisConnection = {
   db: 0,
   family: 4, // 4 (IPv4) or 6 (IPv6)
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  password: process.env.REDIS_PASSWORD || undefined,
-  port: Number(process.env.REDIS_PORT) || 6379
+  host: process.env['REDIS_HOST'] || '127.0.0.1',
+  password: process.env['REDIS_PASSWORD'] || undefined,
+  port: Number(process.env['REDIS_PORT']) || 6379
 }
 
 export const BullScheduler = (() => {
@@ -60,7 +60,7 @@ export const BullScheduler = (() => {
       (options.repeat && options.repeat.timeZone) || TimeZones.EuropeStockholm
     )
 
-    const queue = new Bull.default(options.jobName, opts)
+    const queue = new Bull(options.jobName, opts)
 
     let queueOptions: any = {
       repeat: { cron: croneString, tz: timezoneString }

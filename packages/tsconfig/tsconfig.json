@@ -6,24 +6,28 @@
     "files": true
   },
   "compilerOptions": {
-    "composite": true,
+    "composite": false,
     "module": "commonjs",
     "lib": ["es2020"],
     "moduleResolution": "node",
     "skipLibCheck": true,
     "declaration": true,
-    "removeComments": true,
+    "removeComments": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "strictPropertyInitialization": false,
     "target": "es2020",
     "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
+    "suppressImplicitAnyIndexErrors": false,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "newLine": "lf",
+    "importHelpers": true,
+    "pretty": true,
     "paths": {
       "@src/*": ["src/*"]
     }

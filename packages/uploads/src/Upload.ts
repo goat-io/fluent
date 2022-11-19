@@ -90,6 +90,6 @@ export class Upload {
         break
     }
 
-    return multer.default({ storage, limits }).array(key, 1)
+    return multer({ storage, limits }).array(key, 1)
   }
 }

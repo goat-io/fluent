@@ -27,10 +27,10 @@ export interface RabbitMQConsumer {
 }
 
 const connectionOptions: Options.Connect = {
-  hostname: process.env.RABBITMQ_HOST,
-  password: process.env.RABBITMQ_PASSWORD,
-  port: Number(process.env.RABBITMQ_PORT),
-  username: process.env.RABBITMQ_USER
+  hostname: process.env['RABBITMQ_HOST'],
+  password: process.env['RABBITMQ_PASSWORD'],
+  port: Number(process.env['RABBITMQ_PORT']),
+  username: process.env['RABBITMQ_USER']
 }
 
 const connectToMQ = (): Promise<Connection> =>

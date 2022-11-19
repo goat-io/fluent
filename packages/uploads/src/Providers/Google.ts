@@ -4,16 +4,16 @@ import * as multerGoogleStorage from 'multer-google-storage'
 
 export const Google = (config: MulterConfiguration) => {
   if (
-    !process.env.GOOGLE_PROJECTid ||
-    !process.env.AZURE_ACCESS_KEY ||
-    !process.env.AZURE_ACCOUNT_NAME
+    !process.env['GOOGLE_PROJECTID'] ||
+    !process.env['AZURE_ACCESS_KEY'] ||
+    !process.env['AZURE_ACCOUNT_NAME']
   ) {
     throw new Error('AWS access keys are missing')
   }
   return new multerGoogleStorage.default({
     autoRetry: true,
     maxRetries: 3,
-    projectId: process.env.GOOGLE_PROJECTid,
+    projectId: process.env['GOOGLE_PROJECTID'],
     filename: (req, file, cb) => {
       cb(null, config.fileName + extname(file.originalname))
     },

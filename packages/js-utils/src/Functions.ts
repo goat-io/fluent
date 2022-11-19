@@ -1,6 +1,6 @@
 import { Debounce, Throttle } from './Functions/debounce.decorator'
 import { Retry } from './Functions/retry.decorator'
-import { Milliseconds } from 'types'
+import { Milliseconds } from './types'
 import { debounce, throttle } from './Functions/debounce'
 
 class FunctionsClass {
@@ -8,7 +8,7 @@ class FunctionsClass {
    *
    * @param f
    */
-  requestAnimationFrame = f => {
+  requestAnimationFrame = (f: any) => {
     setImmediate(() => f(Date.now()))
   }
 
@@ -25,7 +25,7 @@ class FunctionsClass {
       this.requestAnimationFrame
 
     let start = dateNow()
-    let stop
+    let stop: any
 
     const intervalFunc = () => {
       // tslint:disable-next-line: no-unused-expression

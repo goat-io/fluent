@@ -86,9 +86,9 @@ export const Jwt = (() => {
    *
    */
   const getScretFromEnv = () =>
-    process.env.JWT_SECRET_BUFFER
-      ? Buffer.from(process.env.JWT_SECRET_BUFFER, 'base64')
-      : process.env.JWT_SECRET
+    process.env['JWT_SECRET_BUFFER']
+      ? Buffer.from(process.env['JWT_SECRET_BUFFER'], 'base64')
+      : process.env['JWT_SECRET']
   /**
    *
    * Given the express APP, it defined a middleware
