@@ -39,6 +39,7 @@ import { Units } from './Units'
 import { nGram } from './Ngram'
 import { Is } from './Is'
 import { Memo } from './Memo'
+import { Cache } from './Cache'
 
 export * from './types'
 
@@ -53,12 +54,13 @@ export {
   assertIsError,
   assertIsNumber,
   assertIsString,
+  BrowserEvents,
+  Cache,
   Changelogs,
   Collection,
   Combinations,
   ErrorMode,
   Errors,
-  BrowserEvents,
   Functions,
   HttpError,
   Ids,
