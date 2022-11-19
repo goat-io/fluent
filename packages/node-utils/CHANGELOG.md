@@ -1,5 +1,19 @@
 # 0.5.20
 
+## 0.8.21
+
+### Patch Changes
+
+- Update jsutils
+
+## 0.8.20
+
+### Patch Changes
+
+- 88f93a3: Remove inter dependencies
+- Updated dependencies [88f93a3]
+  - @goatlab/js-utils@0.8.25
+
 ## 0.8.19
 
 ### Patch Changes

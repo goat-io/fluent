@@ -1,5 +1,17 @@
 # @goatlab/js-utils
 
+## 0.8.26
+
+### Patch Changes
+
+- Fix Cache definition
+
+## 0.8.25
+
+### Patch Changes
+
+- 88f93a3: Remove inter dependencies
+
 ## 0.8.24
 
 ### Patch Changes
