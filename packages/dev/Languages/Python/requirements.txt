@@ -10,7 +10,7 @@ enum34==1.1.10  # Updated from 1.1.6
 hyperlink==19.0.0
 incremental==17.5.0
 ipaddress==1.0.23  # Updated from 1.0.22
-lxml==4.6.5  # Updated from 4.4.1
+lxml==4.9.1  # Updated from 4.4.1
 parsel==1.5.2
 pyasn1==0.4.8  # Updated from 0.4.7
 pyasn1-modules==0.2.8  # Updated from 0.2.6
