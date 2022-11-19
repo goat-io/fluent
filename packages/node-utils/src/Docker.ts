@@ -1,4 +1,4 @@
-import _Docker from 'dockerode'
+import * as _Docker from 'dockerode'
 
 const docker = new _Docker({
   socketPath: '/var/run/docker.sock'

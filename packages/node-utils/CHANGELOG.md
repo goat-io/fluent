@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.8.23
+
+### Patch Changes
+
+- Update dockerode
+
+## 0.8.22
+
+### Patch Changes
+
+- Update js utils
+
 ## 0.8.21
 
 ### Patch Changes
