@@ -1,5 +1,5 @@
 import net from 'net'
-import portfinder from 'portfinder'
+import * as portfinder from 'portfinder'
 
 class PortClass {
   isPortAvailable = async (port: number): Promise<boolean> =>

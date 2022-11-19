@@ -19,8 +19,8 @@ test('Should verify a malformed token', async () => {
   const [error, decoded] = await Promises.try(Jwt.verify(token, validSecret))
   expect(typeof decoded).toBe('undefined')
   expect(typeof error).toBe('object')
-  expect(error.name).toBe('Error')
-  expect(error.message).toBe(
+  expect(error?.name).toBe('Error')
+  expect(error?.message).toBe(
     'VError: Error verifying token : jwt malformed: jwt malformed'
   )
 })
@@ -28,16 +28,16 @@ test('Should verify a malformed token', async () => {
 test('Should fail with invalid signature', async () => {
   const secret = 'ME'
   const [error] = await Promises.try(Jwt.verify(validJWT, secret))
-  expect(error.name).toBe('Error')
-  expect(error.message).toBe(
+  expect(error?.name).toBe('Error')
+  expect(error?.message).toBe(
     'VError: Error verifying token : invalid signature: invalid signature'
   )
 })
 
 test('Should verify DATE on valid JWT HS256', async () => {
   const [error] = await Promises.try(Jwt.verify(validJWT, validSecret))
-  expect(error.name).toBe('Error')
-  expect(error.message).toBe(
+  expect(error?.name).toBe('Error')
+  expect(error?.message).toBe(
     'VError: Error verifying token : jwt expired: jwt expired'
   )
 })
