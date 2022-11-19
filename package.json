@@ -24,7 +24,7 @@
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
   "dependencies": {
-    "@changesets/cli": "^2.22.0"
+    "@changesets/cli": "^2.23.0"
   },
   "devDependencies": {
     "turbo": "^1.1.10",
