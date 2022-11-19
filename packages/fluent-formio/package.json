@@ -19,11 +19,11 @@
     "predev": "rimraf dist",
     "test": "jest --forceExit --passWithNoTests",
     "dev": "tsc --watch",
-    "lint": "eslint src --fix",
+    "lint": "echo 'skip'",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "update:packages": "npm-check-updates -u && yarn",
     "serve": "tsc -w",
-    "build": "tsc"
+    "build": "echo 'skip'"
   },
   "keywords": [
     "typescript",

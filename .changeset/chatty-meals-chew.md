@@ -2,4 +2,4 @@
 '@goatlab/js-utils': patch
 ---
 
-Move cache to JSutils
+Update Reflect metadata
