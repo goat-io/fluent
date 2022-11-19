@@ -9,7 +9,8 @@ import {
   MongoRepository,
   DeepPartial,
   FindOptionsRelations,
-  SelectQueryBuilder
+  SelectQueryBuilder,
+  ObjectLiteral
 } from 'typeorm'
 import { Ids, Objects, Strings, Memo } from '@goatlab/js-utils'
 import { BaseConnector } from '../BaseConnector'
@@ -35,7 +36,7 @@ export interface TypeOrmConnectorParams<Input, Output> {
   outputSchema?: z.ZodType<Output>
 }
 export class TypeOrmConnector<
-    ModelDTO = AnyObject,
+    ModelDTO extends (ObjectLiteral & { id?: string}) = { id?: string} & AnyObject,
     InputDTO = ModelDTO,
     OutputDTO = InputDTO
   >
@@ -107,7 +108,7 @@ export class TypeOrmConnector<
 
     // Only Way to Skip the DeepPartial requirement from TypeORm
     let datum = await this.repository.save(
-      validatedData as unknown as DeepPartial<ModelDTO>
+      validatedData as unknown as (DeepPartial<ModelDTO> & {id: string})
     )
 
     if (this.isMongoDB) {
@@ -124,7 +125,7 @@ export class TypeOrmConnector<
 
     //
     const inserted = await this.repository.save(
-      validatedData as unknown as DeepPartial<ModelDTO[]>,
+      validatedData as unknown as DeepPartial<(ModelDTO & {id: string})[]>,
       {
         chunk: data.length / 300
       }
@@ -132,7 +133,7 @@ export class TypeOrmConnector<
 
     return this.outputSchema.array().parse(
       inserted.map(d => {
-        if (this.isMongoDB) {
+        if (this.isMongoDB && d['id']) {
           d['id'] = d['id'].toString()
         }
 
@@ -178,8 +179,8 @@ export class TypeOrmConnector<
     let [found, count] = await this.repository.findAndCount(generatedQuery)
 
     found.map(d => {
-      if (this.isMongoDB) {
-        d['id'] = d['_id'].toString()
+      if (this.isMongoDB && d['_id']) {
+        d.id = d['_id'].toString()
       }
 
       clearEmpties(Objects.deleteNulls(d))

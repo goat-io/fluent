@@ -1,3 +1,5 @@
+// Original Source: https://github.com/NaturalCycles/js-lib/blob/master/src/datetime/dateInterval.ts
+
 import type { Inclusiveness, LocalDateConfig, LocalDateUnit } from './localDate'
 import { LocalDate } from './localDate'
 

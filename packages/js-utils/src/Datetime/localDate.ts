@@ -1,3 +1,5 @@
+// Original Source: https://github.com/NaturalCycles/js-lib/blob/master/src/datetime/localDate.ts
+
 import { assert } from '../Assert'
 import type {
   IsoDateString,

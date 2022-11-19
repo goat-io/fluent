@@ -1,9 +1,9 @@
-import { Events } from './Events'
+import { BrowserEvents } from './BrowserEvents'
 /*
 const event = { data: { test: 'true' }, text: 'Some test' }
 let eventWorked = false
 
-const changeEventStatus = () => {
+const changeBrowserEventstatus = () => {
   eventWorked = !eventWorked
 }
 

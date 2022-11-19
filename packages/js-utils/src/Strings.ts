@@ -1,4 +1,3 @@
-import pluralize from 'pluralize'
 import { AnyObject, StringMap } from './types'
 import { nGram } from './Ngram'
 import { Objects } from './Objects'
@@ -13,20 +12,6 @@ export interface NgramFromObject {
 const DETECT_JSON = /^\s*[{["\-\d]/
 const reAsciiWord = /[^\x00-\x2f\x3a-\x40\x5b-\x60\x7b-\x7f]+/g
 class StringsClass {
-  /**
-   * Get the singular form of an English word.
-   * @param  string  $value
-   * @return string
-   */
-  singular = (value: string): string => pluralize.singular(value)
-
-  /**
-   * Get the plural form of an English word.
-   * @param  string  $value
-   * @return string
-   */
-  plural = (value: string, count = 2): string => pluralize(value, count, false)
-
   /**
    * Return the remainder of a string after the first occurrence of a given value.
    *

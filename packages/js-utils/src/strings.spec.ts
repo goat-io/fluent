@@ -3,24 +3,6 @@ import { Strings } from './Strings'
 const text = 'Search'
 const generatedNgram = Strings.ngram(text)
 
-it('Should get the singular of a word', () => {
-  const plural = 'dogs'
-  const singular = Strings.singular(plural)
-  expect(singular).toBe('dog')
-})
-
-it('Should get the plural of a word', () => {
-  const singular = 'child'
-  const plural = Strings.plural(singular)
-  expect(plural).toBe('children')
-})
-
-it('Should get the singular given the count', () => {
-  const singular = 'child'
-  const plural = Strings.plural(singular, 1)
-  expect(plural).toBe('child')
-})
-
 it('Should all text after a given string', () => {
   const after = Strings.after('This is my name', 'This is')
   expect(after).toBe(' my name')

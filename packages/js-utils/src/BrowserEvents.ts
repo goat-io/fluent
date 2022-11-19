@@ -4,7 +4,7 @@ export interface EventOptions {
   data: AnyObject | Primitives
   text: string
 }
-export const Events = (() => {
+export const BrowserEvents = (() => {
   const CustomEvent = (event, params) => {
     const evt = document.createEvent('CustomEvent')
 

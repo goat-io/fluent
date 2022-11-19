@@ -1,4 +1,5 @@
 import Keyv from 'keyv'
+ 
 export class Cache<T> extends Keyv<T> {
   public async has(key: string): Promise<boolean> {
     const value = await this.get(key)

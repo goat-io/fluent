@@ -1,6 +1,6 @@
 {
-  "extends": "@goatlab/tsconfig/base.json",
-  "include": ["src"],
+  "extends": "@goatlab/tsconfig/tsconfig.json",
+  "include": ["src", "../js-utils/src/cache.ts"],
   "exclude": ["src/**/*.spec.*", "src/TypeOrmConnector/tests/**"],
   "compilerOptions": {
     "declaration": true,

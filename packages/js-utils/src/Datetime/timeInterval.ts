@@ -1,3 +1,5 @@
+// Original Source: https://github.com/NaturalCycles/js-lib/blob/master/src/datetime/timeInterval.ts
+
 import type { UnixTimestampNumber } from '../types'
 import type { Inclusiveness } from './localDate'
 import type { LocalTimeConfig } from './localTime'
@@ -13,12 +15,15 @@ export type TimeIntervalString = string
  * @experimental
  */
 export class TimeInterval {
-  private constructor(private $start: UnixTimestampNumber, private $end: UnixTimestampNumber) {}
+  private constructor(
+    private $start: UnixTimestampNumber,
+    private $end: UnixTimestampNumber
+  ) {}
 
   static of(start: LocalTimeConfig, end: LocalTimeConfig): TimeInterval {
     return new TimeInterval(
       LocalTime.parseToUnixTimestamp(start),
-      LocalTime.parseToUnixTimestamp(end),
+      LocalTime.parseToUnixTimestamp(end)
     )
   }
 

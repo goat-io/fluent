@@ -26,7 +26,7 @@ import { Collection } from './Collection'
 import { Combination as Combinations } from './Combinations'
 import { ErrorMode } from './Errors/errorMode'
 import { Errors } from './Errors'
-import { Events } from './Events'
+import { BrowserEvents } from './BrowserEvents'
 import { Functions } from './Functions'
 import { HttpError } from './Errors/http.error'
 import { Ids } from './Ids'
@@ -58,7 +58,7 @@ export {
   Combinations,
   ErrorMode,
   Errors,
-  Events,
+  BrowserEvents,
   Functions,
   HttpError,
   Ids,

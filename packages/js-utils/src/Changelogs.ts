@@ -1,4 +1,4 @@
-import diff from 'deep-diff'
+import * as diff from 'deep-diff'
 import { AnyObject } from './types'
 
 enum kind {
