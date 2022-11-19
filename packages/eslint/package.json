@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "files": [
-    "./eslint-server.js"
+    "./eslint-config.js"
   ],
   "private": false,
   "publishConfig": {
@@ -23,6 +23,13 @@
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-jest": "^26.1.3",
     "eslint-plugin-jest-dom": "^4.0.1",
-    "eslint-plugin-testing-library": "^5.2.0"
+    "eslint-plugin-jsdoc": "^39.3.6",
+    "eslint-plugin-testing-library": "^5.2.0",
+    "eslint-plugin-unicorn": "^44.0.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "eslint-plugin-vue": "^9.5.1",
+    "stylelint": "^14.13.0",
+    "stylelint-config-prettier": "^9.0.3",
+    "stylelint-config-standard-scss": "^5.0.0"
   }
 }

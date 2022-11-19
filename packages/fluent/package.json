@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@goatlab/js-utils": "^0.8.24",
-    "@loopback/metadata": "^4.1.2",
+    "@loopback/metadata": "^5.0.4",
     "bson": "^4.6.2",
     "graphql": "^16.3.0",
     "keyv": "^4.2.2",
