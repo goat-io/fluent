@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.24
+
+### Patch Changes
+
+- Change JWT validation
+
 ## 0.8.23
 
 ### Patch Changes

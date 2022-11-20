@@ -1,5 +1,4 @@
 import { Jwt } from './Jwt'
-import { Errors } from './Errors'
 import { Log } from './Logger'
 import { Processes } from './Processes'
 import { Secrets } from './Secrets'
@@ -15,7 +14,6 @@ import { getGot } from './getGot'
 import { Inspect } from './Inspect'
 
 export {
-  Errors,
   Log,
   Jwt,
   Processes,

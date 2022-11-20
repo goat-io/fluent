@@ -1,5 +1,11 @@
-import { sign, verify as verifyAsync } from 'jsonwebtoken'
-import { Errors } from './Errors'
+import { AnyObject } from '@goatlab/js-utils'
+import {
+  JwtPayload,
+  sign,
+  SignOptions,
+  verify as verifyAsync,
+  VerifyOptions
+} from 'jsonwebtoken'
 
 enum algorithms {
   'HS256' = 'HS256',
@@ -31,20 +37,14 @@ export const Jwt = (() => {
   const verify = async (
     token: string,
     secret: string,
-    options?: any
-  ): Promise<any> => {
-    if (!token) {
-      const errors = Errors(null, `Error verifying token : 'token' is null`)
-      throw new Error(errors)
-    }
-
-    try {
-      const decodedToken = await verifyAsync(token, secret, options)
-      return decodedToken
-    } catch (error) {
-      const errors = Errors(error, `Error verifying token : ${error.message}`)
-      throw new Error(errors)
-    }
+    options?: VerifyOptions
+  ): Promise<AnyObject> => {
+    const decoded = (await verifyAsync(
+      token,
+      secret,
+      options
+    )) as unknown as AnyObject
+    return decoded
   }
 
   /**
@@ -54,77 +54,16 @@ export const Jwt = (() => {
    * @param jwtOptions
    */
   const generate = async (
-    payload: any,
-    jwtOptions: JwtOptions
+    payload: AnyObject,
+    jwtOptions: SignOptions & { secret: string }
   ): Promise<string> => {
-    if (!payload) {
-      const errors = Errors(
-        null,
-        'Error generating token : userProfile is null'
-      )
-      throw new Error(errors)
-    }
-
-    let token: string
-    try {
-      token = await sign(payload, jwtOptions.secret, {
-        expiresIn: jwtOptions.expiresIn,
-        algorithm: jwtOptions.algorithm || algorithms.HS256
-      })
-    } catch (error) {
-      const errors = Errors(error, `Error encoding token : ${error}`)
-      throw new Error(errors)
-    }
-
-    return token
+    const secret = jwtOptions.secret
+    delete jwtOptions.secret
+    return await sign(payload, secret, {
+      algorithm: jwtOptions.algorithm || algorithms.HS256,
+      ...jwtOptions
+    })
   }
-  /**
-   *
-   * Extracts the secret key from the ENV variables
-   *
-   * @returns {String}
-   *
-   */
-  const getScretFromEnv = () =>
-    process.env['JWT_SECRET_BUFFER']
-      ? Buffer.from(process.env['JWT_SECRET_BUFFER'], 'base64')
-      : process.env['JWT_SECRET']
-  /**
-   *
-   * Given the express APP, it defined a middleware
-   * to process the JWT token for LB apps
-   *
-   * @param {*} app
-   */
-  const expressMiddleware = app => {
-    /* app
-      .remotes()
-      .phases.addBefore('invoke', 'options-from-request')
-      .use(async (ctx, next) => {
-        const token = getTokenFromRequest(ctx.req)
-        const secret = getScretFromEnv()
-        const [tokenError, decoded] = verify({
-          token,
-          secret
-        })
-       
-        const anonymos = {
-          data: {
-            email: 'ANONYMOUS',
-            name: 'ANONYMOUS'
-          },
-          id: null
-        }
-        ctx.args.options = ctx.args.options || {}
-        ctx.args.options.token = token
-        ctx.args.options.validToken = tokenError ? false : true
-        // ctx.args.options.user = tokenError
-        //  ? anonymos
-        //  : await Auth.getUserById(decoded.user.id, app)
-        next()
-     
-      })
-      */
-  }
+
   return Object.freeze({ generate, verify })
 })()
