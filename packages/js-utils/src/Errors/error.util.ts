@@ -8,7 +8,7 @@ import type {
   HttpErrorData,
   HttpErrorResponse
 } from './error.model'
-import type { StringifyAnyOptions } from '../Strings/stringifyAny'
+import { StringifyAnyOptions } from '../Strings/stringifyOptions.model'
 
 /**
  * Useful to ensure that error in `catch (err) { ... }`

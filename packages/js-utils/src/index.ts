@@ -18,7 +18,7 @@ import type {
 import {
   JsonStringifyFunction,
   StringifyAnyOptions
-} from './Strings/stringifyAny'
+} from './Strings/stringifyOptions.model'
 import { AppError } from './Errors/app.error'
 import { Arrays } from './Arrays'
 import { Changelogs } from './Changelogs'

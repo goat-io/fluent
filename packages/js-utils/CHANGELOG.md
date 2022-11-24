@@ -1,5 +1,17 @@
 # @goatlab/js-utils
 
+## 0.8.29
+
+### Patch Changes
+
+- Remove polyfill
+
+## 0.8.28
+
+### Patch Changes
+
+- Remove recursive require and Bigint
+
 ## 0.8.27
 
 ### Patch Changes
