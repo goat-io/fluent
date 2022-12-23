@@ -42,7 +42,7 @@
     "fs": "^0.0.1-security",
     "got": "11.0.1",
     "http-errors": "^2.0.0",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "modern-spawn": "^1.0.0",
     "net": "^1.0.2",
     "path": "^0.12.7",
