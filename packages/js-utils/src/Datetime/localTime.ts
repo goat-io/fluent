@@ -1,3 +1,5 @@
+// Original Source: https://github.com/NaturalCycles/js-lib/blob/master/src/datetime/timeInterval.ts
+
 import type {
   IsoDateString,
   IsoDateTimeString,

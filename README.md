@@ -78,33 +78,6 @@ yarn add @goatlab/fluent
 
 To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
 
-## Roadmap
-
-See the [open issues](https://github.com/github_username/repo/issues) for a list of proposed features (and known issues).
-
-<!-- CONTRIBUTING -->
-
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-We use a few tools to help with code styling, pre-commits, versioning, changelog and releases.
-
-- [Pretty-quick](https://github.com/azz/pretty-quick)
-- [Husky](https://github.com/typicode/husky)
-- [Auto-changelog](https://github.com/CookPete/auto-changelog)
-- [Release-it](https://github.com/release-it/release-it)
-
-All of these should run out of the box with your dev dependencies
-
-1. If you have an issue assigned, please include the issue code/id in the beginning of you commits.
-2. Include the issue id also at the start of your PR message.
-3. Fork the Project
-4. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-5. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-6. Push to the Branch (`git push origin feature/AmazingFeature`)
-7. Open a Pull Request
-
 ## Release Process
 
 1. This package uses [Changesets](https://github.com/changesets/changesets) to manage releases for individual packages
@@ -124,7 +97,15 @@ Ignacio Cabrera - [@twitter_handle](https://twitter.com/cabrerabywaters) - ignac
 
 <!-- ACKNOWLEDGEMENTS -->
 
-## Acknowledgements
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+This library is based on the work of other Authors and Open Source Libraries. Have a look at them and give them a well deserved Star ⭐!
+
+* [sindresorhus - p-map](https://github.com/sindresorhus/p-map)
+* [sindresorhus - p-props](https://github.com/sindresorhus/p-props)
+* [Natural Cycles - NodeJS](https://github.com/NaturalCycles/nodejs-lib)
+* [Natural Cycles - JS-Lib](https://github.com/NaturalCycles/js-lib)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
