@@ -59,7 +59,7 @@
     "bullmq": "^1.78.2",
     "chalk": "^5.0.1",
     "child_process": "^1.0.2",
-    "class-validator": "^0.13.2",
+    "class-validator": "^0.14.0",
     "cli-progress": "^3.10.0",
     "cluster": "^0.7.7",
     "colors": "^1.4.0",
