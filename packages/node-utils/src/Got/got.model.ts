@@ -1,9 +1,7 @@
-
-
 import { AnyObject, CommonLogger } from '@goatlab/js-utils'
-import type { Options } from 'got'
+import type { ExtendOptions } from 'got'
 
-export interface GetGotOptions extends Options {
+export interface GetGotOptions extends ExtendOptions {
   /**
    * Set to `true` to enable all possible debug logging.
    * Not safe in prod (as it logs Responses), but great to use during development.

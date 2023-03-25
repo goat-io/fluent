@@ -1,7 +1,7 @@
 import { StringMap } from '@goatlab/js-utils'
 import * as fs from 'fs'
-import { Hashes } from './Hashes'
-import { Security } from './Security'
+import { Hashes } from './Hashes.js'
+import { Security } from './Security.js'
 
 let loaded = false
 const secretMap: StringMap = {}

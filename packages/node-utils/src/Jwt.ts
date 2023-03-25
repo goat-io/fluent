@@ -1,11 +1,6 @@
 import { AnyObject } from '@goatlab/js-utils'
-import {
-  JwtPayload,
-  sign,
-  SignOptions,
-  verify as verifyAsync,
-  VerifyOptions
-} from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
+import type { VerifyOptions, SignOptions } from 'jsonwebtoken'
 
 enum algorithms {
   'HS256' = 'HS256',
@@ -39,7 +34,7 @@ export const Jwt = (() => {
     secret: string,
     options?: VerifyOptions
   ): Promise<AnyObject> => {
-    const decoded = (await verifyAsync(
+    const decoded = (await jwt.verify(
       token,
       secret,
       options
@@ -59,7 +54,7 @@ export const Jwt = (() => {
   ): Promise<string> => {
     const secret = jwtOptions.secret
     delete jwtOptions.secret
-    return await sign(payload, secret, {
+    return await jwt.sign(payload, secret, {
       algorithm: jwtOptions.algorithm || algorithms.HS256,
       ...jwtOptions
     })

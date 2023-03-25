@@ -1,14 +1,15 @@
 import { URL } from 'url'
 import { Time } from '@goatlab/js-utils'
-import got, {
+import {got} from 'got';
+import type {
+  Got,
   AfterResponseHook,
   BeforeErrorHook,
   BeforeRequestHook,
-  BeforeRetryHook,
-  Got
+  BeforeRetryHook
 } from 'got'
-import { inspectAny } from './Got/inspectAny'
-import { GetGotOptions, GotRequestContext } from './Got/got.model'
+import { inspectAny } from './Got/inspectAny.js'
+import { GetGotOptions, GotRequestContext } from './Got/got.model.js'
 
 /**
  * Returns instance of Got with "reasonable defaults":
@@ -19,8 +20,6 @@ import { GetGotOptions, GotRequestContext } from './Got/got.model'
  * 4. Preserves error stack traces (!) (experimental!)
  */
 export function getGot(opt: GetGotOptions = {}): Got {
-  opt.logger ||= console
-
   if (opt.debug) {
     opt.logStart = opt.logFinished = opt.logResponse = opt.logRequest = true
   }
@@ -47,7 +46,9 @@ export function getGot(opt: GetGotOptions = {}): Got {
     // So, for 3 tries it multiplies your timeout by 3 (+3 seconds between the tries).
     // So, e.g 60 seconds timeout with 2 retries becomes up to 183 seconds.
     // Which definitely doesn't fit into default "RequestTimeout"
-    timeout: 60_000,
+    timeout: {
+      response: 60_000
+    },
     ...opt,
     handlers: [
       (options, next) => {
@@ -118,7 +119,11 @@ function gotErrorHook(opt: GetGotOptions = {}): BeforeErrorHook {
   return err => {
     const statusCode = err.response?.statusCode || 0
     const { method, url, prefixUrl } = err.options
-    const shortUrl = getShortUrl(opt, url, prefixUrl)
+    const shortUrl = getShortUrl(
+      opt,
+      url instanceof URL ? url : new URL(url),
+      prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
+    )
     const { started, retryCount } = (err.request?.options.context ||
       {}) as GotRequestContext
 
@@ -187,7 +192,11 @@ function gotBeforeRequestHook(opt: GetGotOptions): BeforeRequestHook {
   return options => {
     if (opt.logStart) {
       const { retryCount } = options.context as GotRequestContext
-      const shortUrl = getShortUrl(opt, options.url, options.prefixUrl)
+      const shortUrl = getShortUrl(
+        opt,
+        opt.url instanceof URL ? opt.url : new URL(opt.url),
+        opt.prefixUrl instanceof URL ? opt.prefixUrl.toString() : opt.prefixUrl
+      )
       opt.logger!.log(
         [
           ' >>',
@@ -213,7 +222,7 @@ function gotBeforeRequestHook(opt: GetGotOptions): BeforeRequestHook {
 function gotBeforeRetryHook(opt: GetGotOptions): BeforeRetryHook {
   const { maxResponseLength = 10_000 } = opt
 
-  return (options, err, retryCount) => {
+  return async (err, retryCount) => {
     // opt.logger!.log('beforeRetry', retryCount)
     const statusCode = err?.response?.statusCode || 0
 
@@ -225,10 +234,14 @@ function gotBeforeRetryHook(opt: GetGotOptions): BeforeRetryHook {
       return
     }
 
-    const { method, url, prefixUrl } = options
-    const shortUrl = getShortUrl(opt, url, prefixUrl)
-    const { started } = options.context as GotRequestContext
-    Object.assign(options.context, { retryCount })
+    const { method, url, prefixUrl } = opt
+    const shortUrl = getShortUrl(
+      opt,
+      url instanceof URL ? url : new URL(url),
+      prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
+    )
+    const { started } = opt.context as GotRequestContext
+    Object.assign(opt.context, { retryCount })
 
     const body = err?.response?.body
       ? inspectAny(err.response.body, {
@@ -272,7 +285,11 @@ function gotAfterResponseHook(opt: GetGotOptions = {}): AfterResponseHook {
       const { started, retryCount } = resp.request.options
         .context as GotRequestContext
       const { url, prefixUrl, method } = resp.request.options
-      const shortUrl = getShortUrl(opt, url, prefixUrl)
+      const shortUrl = getShortUrl(
+        opt,
+        url instanceof URL ? url : new URL(url),
+        prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
+      )
 
       opt.logger!.log(
         [

@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { Docker } from './Docker'
+import { Docker } from './Docker.js'
 import { Ids } from '@goatlab/js-utils'
 
 jest.setTimeout(30000)

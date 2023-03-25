@@ -10,8 +10,8 @@ test('md5Buffer', () => {
   const plain = 'hello!@#123'
   const m = Hashes.md5AsBuffer(plain)
   expect(m).toMatchInlineSnapshot(`
-    Object {
-      "data": Array [
+    {
+      "data": [
         65,
         248,
         113,

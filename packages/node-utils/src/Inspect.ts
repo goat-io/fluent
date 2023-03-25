@@ -1,4 +1,4 @@
-import { inspectAny, inspectAnyStringifyFn } from "./Got/inspectAny"
+import { inspectAny, inspectAnyStringifyFn } from "./Got/inspectAny.js"
 
 class InspectClass {
     anyStringifyFn = inspectAnyStringifyFn

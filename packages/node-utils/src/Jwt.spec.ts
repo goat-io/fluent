@@ -1,13 +1,11 @@
 import { Promises } from '@goatlab/js-utils'
 import { Jwt } from './Jwt'
 
-export declare const securityId: unique symbol
 const validJWT =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7Il9pZCI6IjVjNzQxZWFiNzY1MDU1MDAxODMyYWVmMSJ9LCJmb3JtIjp7Il9pZCI6IjVjNzAyNGJiM2EzNjkzMDAxOGY0ZjQ2NCJ9LCJpYXQiOjE1Njg3NDUzMzIsImV4cCI6MTU2ODc1OTczMn0.LtD4j-AuU7TQX_fbbB85P_2mWEcCYZfRwGKdibJvKG8'
 const validSecret = 'CHANGEME'
 
 const decodedJWT = {
-  [securityId]: '5c741eab765055001832aef1',
   id: '5c741eab765055001832aef1',
   name: 'SomeName',
   email: 'SomeEmail',
