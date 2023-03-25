@@ -1,5 +1,5 @@
 import { AnyObject, CommonLogger } from '@goatlab/js-utils'
-import type { ExtendOptions } from 'got'
+import type { ExtendOptions } from 'got-cjs'
 
 export interface GetGotOptions extends ExtendOptions {
   /**

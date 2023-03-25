@@ -1,6 +1,6 @@
 import * as os from 'os'
 import { Units } from '@goatlab/js-utils'
-import { BuildInfo } from './Env.js'
+import { BuildInfo } from './Env'
 class ProcessesClass {
   private timer!: NodeJS.Timer
 

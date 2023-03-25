@@ -1,15 +1,15 @@
 import { URL } from 'url'
 import { Time } from '@goatlab/js-utils'
-import {got} from 'got';
+import {got} from 'got-cjs';
 import type {
   Got,
   AfterResponseHook,
   BeforeErrorHook,
   BeforeRequestHook,
   BeforeRetryHook
-} from 'got'
-import { inspectAny } from './Got/inspectAny.js'
-import { GetGotOptions, GotRequestContext } from './Got/got.model.js'
+} from 'got-cjs'
+import { inspectAny } from './Got/inspectAny'
+import { GetGotOptions, GotRequestContext } from './Got/got.model'
 
 /**
  * Returns instance of Got with "reasonable defaults":
