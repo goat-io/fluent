@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.30
+
+### Patch Changes
+
+- ee9ba0c: Fix URL parse in getGot
+
 ## 0.8.29
 
 ### Patch Changes
