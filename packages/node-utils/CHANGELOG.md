@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.29
+
+### Patch Changes
+
+- Fix logger
+
 ## 0.8.28
 
 ### Patch Changes

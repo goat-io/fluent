@@ -1,6 +1,6 @@
 import { URL } from 'url'
 import { Time } from '@goatlab/js-utils'
-import {got} from 'got-cjs';
+import { got } from 'got-cjs'
 import type {
   Got,
   AfterResponseHook,
@@ -119,11 +119,20 @@ function gotErrorHook(opt: GetGotOptions = {}): BeforeErrorHook {
   return err => {
     const statusCode = err.response?.statusCode || 0
     const { method, url, prefixUrl } = err.options
-    const shortUrl = getShortUrl(
-      opt,
-      url instanceof URL ? url : new URL(url),
-      prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
-    )
+
+    let shortUrl
+
+    try {
+      shortUrl = getShortUrl(
+        opt,
+        url instanceof URL ? url : new URL(url),
+        prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
+      )
+    } catch (e) {
+      console.error('Invalid URL:', url)
+      shortUrl = url
+    }
+
     const { started, retryCount } = (err.request?.options.context ||
       {}) as GotRequestContext
 
@@ -135,7 +144,7 @@ function gotErrorHook(opt: GetGotOptions = {}): BeforeErrorHook {
       : err.message
 
     // We don't include Response/Body/Message in the log, because it's included in the Error thrown from here
-    opt.logger!.log(
+    console.log(
       [
         ' <<',
         statusCode,
@@ -197,7 +206,7 @@ function gotBeforeRequestHook(opt: GetGotOptions): BeforeRequestHook {
         opt.url instanceof URL ? opt.url : new URL(opt.url),
         opt.prefixUrl instanceof URL ? opt.prefixUrl.toString() : opt.prefixUrl
       )
-      opt.logger!.log(
+      console.log(
         [
           ' >>',
           options.method,
@@ -211,7 +220,7 @@ function gotBeforeRequestHook(opt: GetGotOptions): BeforeRequestHook {
       const body = options.json || options.body
 
       if (body) {
-        opt.logger!.log(body)
+        console.log(body)
       }
     }
   }
@@ -223,12 +232,12 @@ function gotBeforeRetryHook(opt: GetGotOptions): BeforeRetryHook {
   const { maxResponseLength = 10_000 } = opt
 
   return async (err, retryCount) => {
-    // opt.logger!.log('beforeRetry', retryCount)
+    // console.log('beforeRetry', retryCount)
     const statusCode = err?.response?.statusCode || 0
 
     if (statusCode && statusCode < 300) {
       // todo: possibly remove the log message completely in the future
-      // opt.logger!.log(
+      // console.log(
       //   `skipping got.beforeRetry hook as statusCode is ${statusCode}, err.msg is ${err?.message}`,
       // )
       return
@@ -291,7 +300,7 @@ function gotAfterResponseHook(opt: GetGotOptions = {}): AfterResponseHook {
         prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
       )
 
-      opt.logger!.log(
+      console.log(
         [
           ' <<',
           resp.statusCode,
@@ -308,7 +317,7 @@ function gotAfterResponseHook(opt: GetGotOptions = {}): AfterResponseHook {
 
     // Error responses are not logged, cause they're included in Error message already
     if (opt.logResponse && success) {
-      opt.logger!.log(inspectAny(resp.body, { maxLen: opt.maxResponseLength }))
+      console.log(inspectAny(resp.body, { maxLen: opt.maxResponseLength }))
     }
 
     return resp
