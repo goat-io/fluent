@@ -45,7 +45,9 @@ export class Env<ENV extends BaseEnv = any> {
         throw new Error(`Cannot read envFile ${envFilePath}`)
       }
 
-      console.log(`APP_ENV=${APP_ENV} loaded`)
+      if (APP_ENV.toLowerCase() !== 'test') {
+        console.log(`APP_ENV=${APP_ENV} loaded`)
+      }
     }
 
     return this.env!

@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.32
+
+### Patch Changes
+
+- Remove console.log of env in test
+
 ## 0.8.31
 
 ### Patch Changes
