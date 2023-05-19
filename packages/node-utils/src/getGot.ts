@@ -201,11 +201,22 @@ function gotBeforeRequestHook(opt: GetGotOptions): BeforeRequestHook {
   return options => {
     if (opt.logStart) {
       const { retryCount } = options.context as GotRequestContext
-      const shortUrl = getShortUrl(
-        opt,
-        opt.url instanceof URL ? opt.url : new URL(opt.url),
-        opt.prefixUrl instanceof URL ? opt.prefixUrl.toString() : opt.prefixUrl
-      )
+
+      let shortUrl
+
+      try {
+        shortUrl = getShortUrl(
+          opt,
+          opt.url instanceof URL ? opt.url : new URL(opt.url),
+          opt.prefixUrl instanceof URL
+            ? opt.prefixUrl.toString()
+            : opt.prefixUrl
+        )
+      } catch (e) {
+        console.error('Invalid URL:', opt.url)
+        shortUrl = opt.url
+      }
+
       console.log(
         [
           ' >>',
@@ -244,11 +255,20 @@ function gotBeforeRetryHook(opt: GetGotOptions): BeforeRetryHook {
     }
 
     const { method, url, prefixUrl } = opt
-    const shortUrl = getShortUrl(
-      opt,
-      url instanceof URL ? url : new URL(url),
-      prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
-    )
+
+    let shortUrl
+
+    try {
+      shortUrl = getShortUrl(
+        opt,
+        url instanceof URL ? url : new URL(url),
+        prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
+      )
+    } catch (e) {
+      console.error('Invalid URL:', url)
+      shortUrl = url
+    }
+
     const { started } = opt.context as GotRequestContext
     Object.assign(opt.context, { retryCount })
 
@@ -294,11 +314,18 @@ function gotAfterResponseHook(opt: GetGotOptions = {}): AfterResponseHook {
       const { started, retryCount } = resp.request.options
         .context as GotRequestContext
       const { url, prefixUrl, method } = resp.request.options
-      const shortUrl = getShortUrl(
-        opt,
-        url instanceof URL ? url : new URL(url),
-        prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
-      )
+      let shortUrl
+
+      try {
+        shortUrl = getShortUrl(
+          opt,
+          url instanceof URL ? url : new URL(url),
+          prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
+        )
+      } catch (e) {
+        console.error('Invalid URL:', url)
+        shortUrl = url
+      }
 
       console.log(
         [
