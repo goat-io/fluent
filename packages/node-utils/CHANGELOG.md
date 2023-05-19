@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.31
+
+### Patch Changes
+
+- 8830a24: Fix all url parse
+
 ## 0.8.30
 
 ### Patch Changes
