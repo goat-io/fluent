@@ -1,5 +1,5 @@
 import { TypedPathWrapper } from 'typed-path'
-import { ObjectID } from 'bson'
+import type { ObjectID } from 'bson'
 
 export type Primitives = boolean | string | number | ObjectID
 export type PrimitivesArray = boolean[] | string[] | number[] | ObjectID[]
@@ -114,7 +114,6 @@ export interface InstanceId {
 
 // Get the type from an array TYPE[] => TYPE
 export type Unpacked<T> = T extends (infer U)[] ? U : T
-
 
 export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
   ? (...args: ExpandRecursively<A>) => ExpandRecursively<R>

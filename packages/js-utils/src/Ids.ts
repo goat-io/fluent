@@ -1,4 +1,3 @@
-import { ObjectId } from 'bson'
 import { nanoid, customAlphabet } from 'nanoid'
 import { v4 as secure } from '@lukeed/uuid'
 
@@ -6,7 +5,9 @@ export const Ids = (() => {
   /**
    *
    */
-  const objectID = (id?: string): ObjectId => {
+  const objectID = async (id?: string) => {
+    const { ObjectId } = await import('bson')
+
     if (id) {
       return new ObjectId(id)
     }
@@ -16,14 +17,19 @@ export const Ids = (() => {
   /**
    *
    */
-  const objectIdString = (id?: string): string => {
+  const objectIdString = async (id?: string): Promise<string> => {
+    const { ObjectId } = await import('bson')
+
     if (id) {
       return new ObjectId(id).toString()
     }
     return new ObjectId().toString()
   }
 
-  const isValidObjectID = (id: string): boolean => ObjectId.isValid(id)
+  const isValidObjectID = async (id: string): Promise<boolean> => {
+    const { ObjectId } = await import('bson')
+    return ObjectId.isValid(id)
+  }
   /**
    * Generate a UUID (version 4).
    *

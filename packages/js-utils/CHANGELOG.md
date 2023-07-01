@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.30
+
+### Patch Changes
+
+- Remove direct bson
+
 ## 0.8.29
 
 ### Patch Changes

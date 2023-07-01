@@ -1,4 +1,3 @@
-import { ObjectId } from 'bson'
 import {
   AnyObject,
   ObjectMapper,
@@ -238,24 +237,34 @@ class ObjectsClass {
    * @returns
    */
   clearEmpties<T extends AnyObject>(object: T): T {
-    Object.entries(object).forEach(([k, v]: [any, any]) => {
-      if (v && typeof v === 'object') this.clearEmpties(v)
-      if (
-        (v && typeof v === 'object' && !Object.keys(v).length) ||
-        v === null ||
-        v === undefined ||
-        v.length === 0
+    for (const key in object) {
+      if (!object.hasOwnProperty(key)) continue
+
+      let value = object[key]
+
+      if (value && typeof value === 'object') {
+        this.clearEmpties(value)
+
+        if (!Object.keys(value).length) {
+          delete object[key]
+        }
+      } else if (
+        value === null ||
+        value === undefined ||
+        (Array.isArray(value) && !value.length)
       ) {
-        if (Array.isArray(object)) {
-          // Do not remove Object ID
-          if (!(object[k] instanceof ObjectId)) {
-            object.splice(k, 1)
-          }
-        } else if (!(v instanceof Date) && !(v instanceof ObjectId)) {
-          delete object[k]
+        delete object[key]
+      }
+
+      // we only keep Date and ObjectId types
+      if (typeof value === 'object' && !Array.isArray(value)) {
+        // @ts-ignore
+        if (!(value instanceof Date) || value?._bsontype !== 'ObjectId') {
+          delete object[key]
         }
       }
-    })
+    }
+
     return object
   }
 
