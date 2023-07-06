@@ -9,11 +9,6 @@ it('Should generate a uuid', () => {
   expect(pattern.test(uuid)).toBe(true)
 })
 
-it('Should generate a mongo ObjectId as string', () => {
-  const objectID = Ids.objectIdString()
-  expect(typeof objectID).toBe('string')
-})
-
 it('Should generate a nanoId', () => {
   const nanoId = Ids.nanoId()
   expect(typeof nanoId).toBe('string')

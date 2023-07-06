@@ -89,39 +89,22 @@ export function getGot(opt: GetGotOptions = {}): Got {
   })
 }
 
-/**
- * Without this hook (default behaviour):
- *
- * HTTPError: Response code 422 (Unprocessable Entity)
- *  at EventEmitter.<anonymous> (.../node_modules/got/dist/source/as-promise.js:118:31)
- *  at processTicksAndRejections (internal/process/task_queues.js:97:5) {
- *  name: 'HTTPError'
- *
- *
- * With this hook:
- *
- * HTTPError 422 GET http://a.com/err?q=1 in 8 ms
- * {
- *   message: 'Reference already exists',
- *   documentation_url: 'https://developer.github.com/v3/git/refs/#create-a-reference'
- * }
- *
- * Features:
- * 1. Includes original method and URL (including e.g searchParams) in the error message.
- * 2. Includes response.body in the error message (limited length).
- * 3. Auto-detects and parses JSON response body (limited length).
- * 4. Includes time spent (gotBeforeRequestHook must also be enabled).
- * UPD: excluded now to allow automatic Sentry error grouping
- */
 function gotErrorHook(opt: GetGotOptions = {}): BeforeErrorHook {
   const { maxResponseLength = 10_000 } = opt
 
   return err => {
+    // Defensive Programming
+    if (!err || !err.options) {
+      console.error('Unexpected error:', err)
+      return err
+    }
+
     const statusCode = err.response?.statusCode || 0
     const { method, url, prefixUrl } = err.options
 
     let shortUrl
 
+    // Error Handling
     try {
       shortUrl = getShortUrl(
         opt,
@@ -133,8 +116,15 @@ function gotErrorHook(opt: GetGotOptions = {}): BeforeErrorHook {
       shortUrl = url
     }
 
-    const { started, retryCount } = (err.request?.options.context ||
-      {}) as GotRequestContext
+    const context = err.request?.options?.context || {}
+    const { started, retryCount } = context as GotRequestContext
+    if (!context) {
+      console.error(
+        'Context is not defined in the request options:',
+        err.request?.options
+      )
+      return err
+    }
 
     const body = err.response?.body
       ? inspectAny(err.response.body, {
@@ -199,31 +189,35 @@ function gotErrorHook(opt: GetGotOptions = {}): BeforeErrorHook {
 
 function gotBeforeRequestHook(opt: GetGotOptions): BeforeRequestHook {
   return options => {
+    // If options or options.context are not defined, log an error and exit early.
+    if (!options || !options.context) {
+      console.error('Unexpected options:', options)
+      return
+    }
+
     if (opt.logStart) {
       const { retryCount } = options.context as GotRequestContext
 
       let shortUrl
 
+      // Error Handling
       try {
         shortUrl = getShortUrl(
           opt,
-          opt.url instanceof URL ? opt.url : new URL(opt.url),
-          opt.prefixUrl instanceof URL
-            ? opt.prefixUrl.toString()
-            : opt.prefixUrl
+          options.url instanceof URL ? options.url : new URL(options.url),
+          options.prefixUrl instanceof URL
+            ? options.prefixUrl.toString()
+            : options.prefixUrl
         )
       } catch (e) {
-        console.error('Invalid URL:', opt.url)
-        shortUrl = opt.url
+        console.error('Invalid URL:', options.url)
+        shortUrl = options.url
       }
 
       console.log(
-        [
-          ' >>',
-          options.method,
-          shortUrl,
-          retryCount && `(retry ${retryCount})`
-        ].join(' ')
+        [' >>', options.method, shortUrl, retryCount && `(retry ${retryCount})`]
+          .filter(Boolean)
+          .join(' ')
       )
     }
 
@@ -237,41 +231,45 @@ function gotBeforeRequestHook(opt: GetGotOptions): BeforeRequestHook {
   }
 }
 
-// Here we log always, because it's similar to ErrorHook - we always log errors
-// Because Retries are always result of some Error
+/**
+ * Returns a before retry hook for 'got' HTTP client library.
+ *
+ * @param opt - The options for the got HTTP client
+ * @returns The before retry hook
+ */
 function gotBeforeRetryHook(opt: GetGotOptions): BeforeRetryHook {
   const { maxResponseLength = 10_000 } = opt
 
   return async (err, retryCount) => {
-    // console.log('beforeRetry', retryCount)
     const statusCode = err?.response?.statusCode || 0
 
+    // Skip hook for successful status codes
     if (statusCode && statusCode < 300) {
-      // todo: possibly remove the log message completely in the future
-      // console.log(
-      //   `skipping got.beforeRetry hook as statusCode is ${statusCode}, err.msg is ${err?.message}`,
-      // )
       return
     }
 
     const { method, url, prefixUrl } = opt
-
     let shortUrl
 
+    // Safely construct shortUrl
     try {
-      shortUrl = getShortUrl(
-        opt,
-        url instanceof URL ? url : new URL(url),
+      const urlObject = url instanceof URL ? url : new URL(url)
+      const prefixUrlString =
         prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
-      )
+      shortUrl = getShortUrl(opt, urlObject, prefixUrlString)
     } catch (e) {
       console.error('Invalid URL:', url)
       shortUrl = url
     }
 
+    // Ensure opt.context exists
+    if (!opt.context) {
+      opt.context = {}
+    }
     const { started } = opt.context as GotRequestContext
-    Object.assign(opt.context, { retryCount })
+    opt.context = { ...opt.context, retryCount }
 
+    // Construct body message
     const body = err?.response?.body
       ? inspectAny(err.response.body, {
           maxLen: maxResponseLength,
@@ -279,67 +277,70 @@ function gotBeforeRetryHook(opt: GetGotOptions): BeforeRetryHook {
         })
       : err?.message
 
-    // We don't include Response/Body/Message in the log, because it's included in the Error thrown from here
-    opt.logger!.warn(
-      [
-        [
-          ' <<',
-          statusCode,
-          method,
-          shortUrl,
-          retryCount && retryCount > 1
-            ? `(retry ${retryCount - 1})`
-            : '(first try)',
-          'error',
-          started && 'in ' + Time.since(started)
-        ]
-          .filter(Boolean)
-          .join(' '),
-        body
-      ]
-        .filter(Boolean)
-        .join('\n')
-    )
+    // Construct and log the warning message
+    const messageParts = [
+      ' <<',
+      statusCode,
+      method,
+      shortUrl,
+      retryCount && retryCount > 1
+        ? `(retry ${retryCount - 1})`
+        : '(first try)',
+      'error',
+      started && 'in ' + Time.since(started),
+      body
+    ]
+    const message = messageParts.filter(Boolean).join(' ')
+
+    opt.logger!.warn(message)
   }
 }
 
-// AfterResponseHook is never called on Error
-// So, coloredHttpCode(resp.statusCode) is probably useless
+/**
+ * Returns an after response hook for 'got' HTTP client library.
+ *
+ * @param opt - The options for the got HTTP client
+ * @returns The after response hook
+ */
 function gotAfterResponseHook(opt: GetGotOptions = {}): AfterResponseHook {
   return resp => {
     const success = resp.statusCode >= 200 && resp.statusCode < 400
 
     // Errors are not logged here, as they're logged by gotErrorHook
     if (opt.logFinished && success) {
-      const { started, retryCount } = resp.request.options
-        .context as GotRequestContext
-      const { url, prefixUrl, method } = resp.request.options
+      const requestOptions = resp.request.options
+
+      // Ensure context exists
+      if (!requestOptions.context) {
+        requestOptions.context = {}
+      }
+
+      const { started, retryCount } =
+        requestOptions.context as GotRequestContext
+      const { url, prefixUrl, method } = requestOptions
       let shortUrl
 
       try {
-        shortUrl = getShortUrl(
-          opt,
-          url instanceof URL ? url : new URL(url),
+        const urlObject = url instanceof URL ? url : new URL(url)
+        const prefixUrlString =
           prefixUrl instanceof URL ? prefixUrl.toString() : prefixUrl
-        )
+        shortUrl = getShortUrl(opt, urlObject, prefixUrlString)
       } catch (e) {
         console.error('Invalid URL:', url)
         shortUrl = url
       }
 
-      console.log(
-        [
-          ' <<',
-          resp.statusCode,
-          method,
-          shortUrl,
-          retryCount && `(retry ${retryCount - 1})`,
-          started && 'in ' + Time.since(started)
-        ]
-          .filter(Boolean)
-          .join(' ')
-      )
-      // console.log(`afterResp! ${resp.request.options.method} ${resp.url}`, { context: resp.request.options.context })
+      const logParts = [
+        ' <<',
+        resp.statusCode,
+        method,
+        shortUrl,
+        retryCount && `(retry ${retryCount - 1})`,
+        started && 'in ' + Time.since(started)
+      ]
+      const logMessage = logParts.filter(Boolean).join(' ')
+
+      console.log(logMessage)
     }
 
     // Error responses are not logged, cause they're included in Error message already
@@ -351,18 +352,29 @@ function gotAfterResponseHook(opt: GetGotOptions = {}): AfterResponseHook {
   }
 }
 
+/**
+ * Returns a shortened URL based on given options.
+ *
+ * @param opt - The options for getting the shortened URL
+ * @param url - The URL to be shortened
+ * @param prefixUrl - The prefix URL to be removed if option is set
+ * @returns The shortened URL as a string
+ */
 function getShortUrl(opt: GetGotOptions, url: URL, prefixUrl?: string): string {
+  // Copy the URL and redact password if it exists
   if (url.password) {
-    url = new URL(url.toString()) // prevent original url mutation
-    url.password = '[redacted]'
+    const redactedUrl = new URL(url.toString())
+    redactedUrl.password = '[redacted]'
+    url = redactedUrl
   }
 
-  let shortUrl = url.toString()
+  // Remove search params if the option is set
+  let shortUrl =
+    opt.logWithSearchParams === false
+      ? url.toString().split('?')[0]!
+      : url.toString()
 
-  if (opt.logWithSearchParams === false) {
-    shortUrl = shortUrl.split('?')[0]!
-  }
-
+  // Remove prefix if the option is set and the URL starts with the prefix
   if (
     opt.logWithPrefixUrl === false &&
     prefixUrl &&

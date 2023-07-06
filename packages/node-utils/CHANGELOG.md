@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.33
+
+### Patch Changes
+
+- Update got
+
 ## 0.8.32
 
 ### Patch Changes

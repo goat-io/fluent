@@ -1,9 +1,10 @@
 import { getGot } from './getGot'
 
+const client = getGot({
+  prefixUrl: 'https://cat-fact.herokuapp.com/facts'
+})
+
 test('Should get data', async () => {
-  const client = await getGot({
-    prefixUrl: 'https://cat-fact.herokuapp.com/facts'
-  })
   const facts = await client.get('').json<any[]>()
 
   expect(facts).toBeDefined()

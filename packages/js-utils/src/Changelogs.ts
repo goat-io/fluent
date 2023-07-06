@@ -1,4 +1,3 @@
-import * as diff from 'deep-diff'
 import { AnyObject } from './types'
 
 enum kind {
@@ -29,58 +28,74 @@ export interface Changelog {
 }
 
 export const Changelogs = (() => {
-  /**
-   *
-   * Given two Objects, it calculates the changes
-   * between them and generates a changelog.
-   *
-   * @param {Object} param
-   * @param {Object} param.previous previous value
-   * @param {Object} param.current current value
-   * @param {String} param.author change author
-   * @returns {Array} Changelog
-   */
   const get = ({ previous, current, author }: ChangelogInput): Changelog[] => {
-    const lhs = { ...previous }
-    const rhs = { ...current }
     const timestamp = new Date().toISOString()
-    const differences = diff(lhs, rhs)
+    const differences: Changelog[] = []
 
-    if (!differences) {
-      return []
+    function deepCompare(lhs: AnyObject, rhs: AnyObject, path: string[] = []) {
+      for (const key in lhs) {
+        if (rhs.hasOwnProperty(key)) {
+          if (typeof lhs[key] === 'object' && typeof rhs[key] === 'object') {
+            deepCompare(lhs[key], rhs[key], path.concat(key))
+          } else if (lhs[key] !== rhs[key]) {
+            if (
+              !path.includes('user') &&
+              !path.includes('_ngram') &&
+              !path.includes('submit')
+            ) {
+              differences.push({
+                kind:
+                  lhs[key] === undefined
+                    ? kind.N
+                    : rhs[key] === undefined
+                    ? kind.D
+                    : kind.E,
+                path: path.concat(key),
+                user: author,
+                timestamp,
+                previous: String(lhs[key]),
+                new: String(rhs[key])
+              })
+            }
+          }
+        } else if (
+          !path.includes('user') &&
+          !path.includes('_ngram') &&
+          !path.includes('submit')
+        ) {
+          differences.push({
+            kind: kind.D,
+            path: path.concat(key),
+            user: author,
+            timestamp,
+            previous: String(lhs[key]),
+            new: undefined
+          })
+        }
+      }
+
+      for (const key in rhs) {
+        if (
+          !lhs.hasOwnProperty(key) &&
+          !path.includes('user') &&
+          !path.includes('_ngram') &&
+          !path.includes('submit')
+        ) {
+          differences.push({
+            kind: kind.N,
+            path: path.concat(key),
+            user: author,
+            timestamp,
+            previous: undefined,
+            new: String(rhs[key])
+          })
+        }
+      }
     }
 
-    let _differences = []
+    deepCompare(previous, current)
 
-    differences.forEach(d => {
-      if (
-        !d.path.includes('user') &&
-        !d.path.includes('_ngram') &&
-        !d.path.includes('submit')
-      ) {
-        const c = { ...d, user: author, timestamp }
-        c.previous = String(c.lhs)
-        c.new = String(d.rhs)
-        delete c.rhs
-        delete c.lhs
-        _differences.push(c)
-      }
-    })
-
-    _differences = _differences.map(d => {
-      d.kind = kind[d.kind]
-      d.path = d.path.map(String)
-      d.item = d.item
-        ? {
-            kind: kind[d.item.kind],
-            new: d.item.rhs,
-            previous: d.item.lhs
-          }
-        : undefined
-
-      return d
-    })
-    return _differences
+    return differences
   }
 
   return Object.freeze({

@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.31
+
+### Patch Changes
+
+- Remove more dependencies
+
 ## 0.8.30
 
 ### Patch Changes

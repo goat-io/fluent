@@ -3,34 +3,6 @@ import { v4 as secure } from '@lukeed/uuid'
 
 export const Ids = (() => {
   /**
-   *
-   */
-  const objectID = async (id?: string) => {
-    const { ObjectId } = await import('bson')
-
-    if (id) {
-      return new ObjectId(id)
-    }
-    return new ObjectId()
-  }
-
-  /**
-   *
-   */
-  const objectIdString = async (id?: string): Promise<string> => {
-    const { ObjectId } = await import('bson')
-
-    if (id) {
-      return new ObjectId(id).toString()
-    }
-    return new ObjectId().toString()
-  }
-
-  const isValidObjectID = async (id: string): Promise<boolean> => {
-    const { ObjectId } = await import('bson')
-    return ObjectId.isValid(id)
-  }
-  /**
    * Generate a UUID (version 4).
    *
    * @return uuid/v4
@@ -45,10 +17,7 @@ export const Ids = (() => {
   }
 
   return Object.freeze({
-    objectID,
     uuid,
-    isValidObjectID,
-    objectIdString,
     nanoId,
     customId
   })

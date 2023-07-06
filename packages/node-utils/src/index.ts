@@ -12,6 +12,7 @@ import { Env } from './Env'
 import type { BuildInfo } from './Env'
 import { getGot } from './getGot'
 import { Inspect } from './Inspect'
+import { ObjectIds } from 'ObjectIds'
 
 export {
   Log,
@@ -27,6 +28,11 @@ export {
   Env,
   getGot,
   Inspect,
-  Scripts
+  Scripts,
+  ObjectIds
 }
-export type { BuildInfo, DockerNormalizedOptions as NormalizedOptions, DockerOptions as Options }
+export type {
+  BuildInfo,
+  DockerNormalizedOptions as NormalizedOptions,
+  DockerOptions as Options
+}
