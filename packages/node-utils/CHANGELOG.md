@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.34
+
+### Patch Changes
+
+- Fix import
+
 ## 0.8.33
 
 ### Patch Changes
