@@ -13,7 +13,7 @@ import type { BuildInfo } from './Env'
 import { getGot } from './getGot'
 import { Inspect } from './Inspect'
 import { ObjectIds } from './ObjectIds'
-import { Streams } from 'Streams'
+import { Streams } from './Streams'
 
 export {
   Log,
