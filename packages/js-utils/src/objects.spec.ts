@@ -55,3 +55,15 @@ describe('[deleteNulls]', () => {
     expect(JSON.stringify(test)).toBe(JSON.stringify(expected))
   })
 })
+
+describe('[sortObjectDeep]', () => {
+  const initial = {
+    d: '1',
+    a: '2',
+    b: '3'
+  }
+
+  const val = Objects.sortObjectDeep(initial)
+
+  console.log(val)
+})

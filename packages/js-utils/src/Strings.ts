@@ -3,6 +3,7 @@ import { nGram } from './Ngram'
 import { Objects } from './Objects'
 import { reUnicodeWords } from './Strings/unicodeWords'
 import { _stringifyAny } from './Strings/stringifyAny'
+import { pupa } from './Strings/pupa'
 
 export interface NgramFromObject {
   fields: string[]
@@ -373,5 +374,7 @@ class StringsClass {
   }
 
   stringifyAny = _stringifyAny
+
+  pupa = pupa
 }
 export const Strings = new StringsClass()

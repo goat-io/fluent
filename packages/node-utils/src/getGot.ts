@@ -292,7 +292,7 @@ function gotBeforeRetryHook(opt: GetGotOptions): BeforeRetryHook {
     ]
     const message = messageParts.filter(Boolean).join(' ')
 
-    opt.logger!.warn(message)
+    console.warn(message)
   }
 }
 

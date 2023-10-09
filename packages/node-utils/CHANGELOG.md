@@ -1,5 +1,19 @@
 # 0.5.20
 
+## 0.8.36
+
+### Patch Changes
+
+- Pupa and Streams
+- Updated dependencies
+  - @goatlab/js-utils@0.8.32
+
+## 0.8.35
+
+### Patch Changes
+
+- Fix getGot logger
+
 ## 0.8.34
 
 ### Patch Changes

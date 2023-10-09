@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.32
+
+### Patch Changes
+
+- Pupa and Streams
+
 ## 0.8.31
 
 ### Patch Changes

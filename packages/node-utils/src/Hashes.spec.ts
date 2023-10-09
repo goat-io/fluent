@@ -41,3 +41,19 @@ test('base64', () => {
   const dec = Hashes.base64ToString(enc)
   expect(dec).toBe(plain)
 })
+it('should generate a hashed password with the correct salt', async () => {
+  const password = 'my-password'
+  const rounds = 10
+  const hashedPassword = await Hashes.saltHash(password, rounds)
+
+  expect(hashedPassword).toMatch(/\$2[aby]?\$[\d]{1,2}\$[.\/A-Za-z0-9]{53}/)
+})
+
+it('should correctly compare two hashed passwords', async () => {
+  const password = 'my-password'
+  const rounds = 10
+  const hashedPassword = await Hashes.saltHash(password, rounds)
+
+  expect(await Hashes.saltCompare(password, hashedPassword)).toBe(true)
+  expect(await Hashes.saltCompare('wrong-password', hashedPassword)).toBe(false)
+})

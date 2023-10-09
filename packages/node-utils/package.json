@@ -1,7 +1,7 @@
 {
   "author": "ignacio.cabrera@goatlab.io",
   "dependencies": {
-    "@goatlab/js-utils": "^0.8.31",
+    "@goatlab/js-utils": "^0.8.32",
     "@types/through2-concurrent": "^2.0.1",
     "bcrypt": "^5.0.1",
     "bson": "^5.4.0",
@@ -68,5 +68,5 @@
     "update:packages": "npm-check-updates -u && yarn"
   },
   "types": "./dist/index.d.ts",
-  "version": "0.8.34"
+  "version": "0.8.36"
 }
