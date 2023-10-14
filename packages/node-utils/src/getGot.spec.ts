@@ -1,12 +1,12 @@
 import { getGot } from './getGot'
 
 const client = getGot({
-  prefixUrl: 'https://cat-fact.herokuapp.com/facts'
+  prefixUrl: 'https://api.github.com'
 })
 
 test('Should get data', async () => {
-  const facts = await client.get('').json<any[]>()
+  const repo = await client.get('repos/octocat/Hello-World').json<any>()
 
-  expect(facts).toBeDefined()
-  expect(facts.length).toBeGreaterThan(0)
+  expect(repo).toBeDefined()
+  expect(repo.name).toBe('Hello-World')
 })

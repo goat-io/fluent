@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.38
+
+### Patch Changes
+
+- Fix streams zip
+
 ## 0.8.37
 
 ### Patch Changes

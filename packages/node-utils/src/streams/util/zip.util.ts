@@ -1,10 +1,10 @@
 import { promisify } from 'node:util'
-import zlib, { ZlibOptions } from 'node:zlib'
+import { ZlibOptions, deflate, inflate, gzip, gunzip } from 'node:zlib'
 
-const deflate = promisify(zlib.deflate.bind(zlib))
-const inflate = promisify(zlib.inflate.bind(zlib))
-const gzip = promisify(zlib.gzip.bind(zlib))
-const gunzip = promisify(zlib.gunzip.bind(zlib))
+const zDeflate = promisify(deflate)
+const zInflate = promisify(inflate)
+const zGzip = promisify(gzip)
+const zGunzip = promisify(gunzip)
 
 // string > compressed buffer
 
@@ -14,16 +14,16 @@ const gunzip = promisify(zlib.gunzip.bind(zlib))
  */
 export async function deflateBuffer(
   buf: Buffer,
-  options: ZlibOptions = {},
+  options: ZlibOptions = {}
 ): Promise<Buffer> {
-  return await deflate(buf, options)
+  return await zDeflate(buf, options)
 }
 
 export async function inflateBuffer(
   buf: Buffer,
-  options: ZlibOptions = {},
+  options: ZlibOptions = {}
 ): Promise<Buffer> {
-  return await inflate(buf, options)
+  return await zInflate(buf, options)
 }
 
 /**
@@ -32,14 +32,14 @@ export async function inflateBuffer(
  */
 export async function deflateString(
   s: string,
-  options?: ZlibOptions,
+  options?: ZlibOptions
 ): Promise<Buffer> {
   return await deflateBuffer(Buffer.from(s), options)
 }
 
 export async function inflateToString(
   buf: Buffer,
-  options?: ZlibOptions,
+  options?: ZlibOptions
 ): Promise<string> {
   return (await inflateBuffer(buf, options)).toString()
 }
@@ -50,16 +50,16 @@ export async function inflateToString(
  */
 export async function gzipBuffer(
   buf: Buffer,
-  options: ZlibOptions = {},
+  options: ZlibOptions = {}
 ): Promise<Buffer> {
-  return await gzip(buf, options)
+  return await zGzip(buf, options)
 }
 
 export async function gunzipBuffer(
   buf: Buffer,
-  options: ZlibOptions = {},
+  options: ZlibOptions = {}
 ): Promise<Buffer> {
-  return await gunzip(buf, options)
+  return await zGunzip(buf, options)
 }
 
 /**
@@ -68,14 +68,14 @@ export async function gunzipBuffer(
  */
 export async function gzipString(
   s: string,
-  options?: ZlibOptions,
+  options?: ZlibOptions
 ): Promise<Buffer> {
   return await gzipBuffer(Buffer.from(s), options)
 }
 
 export async function gunzipToString(
   buf: Buffer,
-  options?: ZlibOptions,
+  options?: ZlibOptions
 ): Promise<string> {
   return (await gunzipBuffer(buf, options)).toString()
 }
