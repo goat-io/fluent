@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.45
+
+### Patch Changes
+
+- remove cs from command
+
 ## 0.8.44
 
 ### Patch Changes
