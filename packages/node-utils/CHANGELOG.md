@@ -1,5 +1,41 @@
 # 0.5.20
 
+## 0.8.44
+
+### Patch Changes
+
+- Final fix docker
+
+## 0.8.43
+
+### Patch Changes
+
+- fix args
+
+## 0.8.42
+
+### Patch Changes
+
+- sage
+
+## 0.8.41
+
+### Patch Changes
+
+- args
+
+## 0.8.40
+
+### Patch Changes
+
+- docker options
+
+## 0.8.39
+
+### Patch Changes
+
+- Allow args for docker start
+
 ## 0.8.38
 
 ### Patch Changes

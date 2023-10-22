@@ -24,6 +24,7 @@ export interface DockerOptions {
   connectTimeoutSeconds: number
   environment?: { [key: string]: string }
   command?: string[]
+  args?: Record<string, string>
   cap_add?: 'SYS_NICE' | 'IPC_LOCK'
   /**
    * By default, we check if the image already exists
@@ -35,14 +36,20 @@ export interface DockerOptions {
   detached?: boolean
   enableDebugInstructions?: string
   testConnection?: (
-    opts: DockerNormalizedOptions & { testPortConnection: () => Promise<boolean> }
+    opts: DockerNormalizedOptions & {
+      testPortConnection: () => Promise<boolean>
+    }
   ) => Promise<boolean>
 }
 
 export interface DockerNormalizedOptions
-  extends Pick<DockerOptions, Exclude<keyof DockerOptions, 'defaultExternalPort'>> {
+  extends Pick<
+    DockerOptions,
+    Exclude<keyof DockerOptions, 'defaultExternalPort'>
+  > {
   detached: boolean
   externalPort: number
+  args?: Record<string, string>
 }
 
 class DockerClass {
@@ -82,25 +89,30 @@ class DockerClass {
       envArgs.push(`${key}=${env[key]}`)
     })
 
-    return spawn(
-      'docker',
-      [
-        'run',
-        '--name',
-        options.containerName,
-        '-t', // terminate when sent SIGTERM
-        '--rm', // automatically remove when container is killed
-        '-p', // forward appropriate port
-        `${options.externalPort}:${options.internalPort}`,
-        ...(options.detached ? ['--detach'] : []),
-        // set enviornment variables
-        ...envArgs,
-        options.image
-      ],
-      {
-        stdio: options.debug ? 'inherit' : 'ignore'
-      }
-    )
+    const args: string[] = []
+    Object.keys(options.args || {}).forEach(key => {
+      args.push(key)
+      args.push(options.args[key])
+    })
+
+    const command = [
+      'run',
+      '--name',
+      options.containerName,
+      '-t', // terminate when sent SIGTERM
+      '--rm', // automatically remove when container is killed
+      '-p', // forward appropriate port
+      `${options.externalPort}:${options.internalPort}`,
+      ...(options.detached ? ['--detach'] : []),
+      // set enviornment variables
+      ...envArgs,
+      options.image,
+      ...args
+    ]
+
+    return spawn('docker', command, {
+      stdio: options.debug ? 'inherit' : 'ignore'
+    })
   }
 
   public buildImage = async ({
@@ -143,7 +155,9 @@ class DockerClass {
 
   public listImages = () => docker.listImages()
 
-  public async testConnection(options: DockerNormalizedOptions): Promise<boolean> {
+  public async testConnection(
+    options: DockerNormalizedOptions
+  ): Promise<boolean> {
     return new Promise<boolean>(resolve => {
       const connection = connect(options.externalPort)
         .on('error', () => {
@@ -167,7 +181,9 @@ class DockerClass {
     }) // do not check exit code as there may not be a container to remove
   }
 
-  public async pullDockerImage(options: DockerNormalizedOptions | DockerOptions) {
+  public async pullDockerImage(
+    options: DockerNormalizedOptions | DockerOptions
+  ) {
     if (
       !options.refreshImage &&
       /.+\:.+/.test(options.image) &&
