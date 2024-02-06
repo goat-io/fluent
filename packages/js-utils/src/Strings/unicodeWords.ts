@@ -1,4 +1,4 @@
-// from: https://github.com/lodash/lodash/blob/master/.internal/unicodeWords.js
+// from: https://github.com/lodash/lodash/blob/main/src/.internal/unicodeWords.ts
 /* eslint-disable */
 
 /** Used to compose unicode character classes. */
@@ -23,7 +23,8 @@ const rsSpaceRange =
   ' \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000'
 const rsUpperRange = 'A-Z\\xc0-\\xd6\\xd8-\\xde'
 const rsVarRange = '\\ufe0e\\ufe0f'
-const rsBreakRange = rsMathOpRange + rsNonCharRange + rsPunctuationRange + rsSpaceRange
+const rsBreakRange =
+  rsMathOpRange + rsNonCharRange + rsPunctuationRange + rsSpaceRange
 
 /** Used to compose unicode capture groups. */
 const rsApos = "['\u2019]"
@@ -50,24 +51,30 @@ const rsOptContrLower = `(?:${rsApos}(?:d|ll|m|re|s|t|ve))?`
 const rsOptContrUpper = `(?:${rsApos}(?:D|LL|M|RE|S|T|VE))?`
 const reOptMod = `${rsModifier}?`
 const rsOptVar = `[${rsVarRange}]?`
-const rsOptJoin = `(?:${rsZWJ}(?:${[rsNonAstral, rsRegional, rsSurrPair].join('|')})${
-  rsOptVar + reOptMod
-})*`
+const rsOptJoin = `(?:${rsZWJ}(?:${[rsNonAstral, rsRegional, rsSurrPair].join(
+  '|'
+)})${rsOptVar + reOptMod})*`
 const rsOrdLower = '\\d*(?:1st|2nd|3rd|(?![123])\\dth)(?=\\b|[A-Z_])'
 const rsOrdUpper = '\\d*(?:1ST|2ND|3RD|(?![123])\\dTH)(?=\\b|[a-z_])'
 const rsSeq = rsOptVar + reOptMod + rsOptJoin
 const rsEmoji = `(?:${[rsDingbat, rsRegional, rsSurrPair].join('|')})${rsSeq}`
 
-export const reUnicodeWords = new RegExp(
+export const reUnicodeWords = RegExp(
   [
-    `${rsUpper}?${rsLower}+${rsOptContrLower}(?=${[rsBreak, rsUpper, '$'].join('|')})`,
-    `${rsMiscUpper}+${rsOptContrUpper}(?=${[rsBreak, rsUpper + rsMiscLower, '$'].join('|')})`,
+    `${rsUpper}?${rsLower}+${rsOptContrLower}(?=${[rsBreak, rsUpper, '$'].join(
+      '|'
+    )})`,
+    `${rsMiscUpper}+${rsOptContrUpper}(?=${[
+      rsBreak,
+      rsUpper + rsMiscLower,
+      '$'
+    ].join('|')})`,
     `${rsUpper}?${rsMiscLower}+${rsOptContrLower}`,
     `${rsUpper}+${rsOptContrUpper}`,
     rsOrdUpper,
     rsOrdLower,
     `${rsDigit}+`,
-    rsEmoji,
+    rsEmoji
   ].join('|'),
-  'g',
+  'g'
 )

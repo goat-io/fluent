@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.33
+
+### Patch Changes
+
+- UnicodeWords
+
 ## 0.8.32
 
 ### Patch Changes
