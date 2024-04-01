@@ -22,7 +22,7 @@ RUN sudo apt install -y openjdk-11-jre-headless
 
 # Install NodeJS
 RUN sudo apt-get install -y gcc g++ make node-gyp
-RUN curl -sL https://deb.nodesource.com/setup_16.x 565 | sudo -E bash -
+RUN curl -sL https://deb.nodesource.com/setup_20.x 565 | sudo -E bash -
 RUN sudo apt-get install -y nodejs
 # Install base tools
 RUN sudo npm install -g firebase-tools
