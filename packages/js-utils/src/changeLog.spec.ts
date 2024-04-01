@@ -1,3 +1,4 @@
+// yarn test changeLog.spec.ts
 import { Changelogs } from './Changelogs'
 
 test('Should get basic diffs', () => {

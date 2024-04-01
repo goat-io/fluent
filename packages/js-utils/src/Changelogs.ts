@@ -33,28 +33,64 @@ export const Changelogs = (() => {
     const differences: Changelog[] = []
 
     function deepCompare(lhs: AnyObject, rhs: AnyObject, path: string[] = []) {
-      for (const key in lhs) {
+      const lhsKeys = Object.keys(lhs)
+      const rhsKeys = Object.keys(rhs)
+
+      lhsKeys.forEach(key => {
         if (rhs.hasOwnProperty(key)) {
-          if (typeof lhs[key] === 'object' && typeof rhs[key] === 'object') {
-            deepCompare(lhs[key], rhs[key], path.concat(key))
-          } else if (lhs[key] !== rhs[key]) {
+          const newPath = path.concat(key)
+          const lhsValue = lhs[key]
+          const rhsValue = rhs[key]
+
+          if (Array.isArray(lhsValue) && Array.isArray(rhsValue)) {
+            if (lhsValue.length !== rhsValue.length) {
+              differences.push({
+                kind: kind.A,
+                path: newPath,
+                user: author,
+                timestamp,
+                previous: JSON.stringify(lhsValue),
+                new: JSON.stringify(rhsValue)
+              })
+            } else {
+              lhsValue.forEach((item, index) => {
+                if (item !== rhsValue[index]) {
+                  differences.push({
+                    kind: kind.A,
+                    path: newPath.concat(index.toString()),
+                    user: author,
+                    timestamp,
+                    previous: JSON.stringify(item),
+                    new: JSON.stringify(rhsValue[index]),
+                    item: {
+                      kind: kind.N,
+                      new: JSON.stringify(rhsValue[index])
+                    }
+                  })
+                }
+              })
+            }
+          } else if (
+            typeof lhsValue === 'object' &&
+            typeof rhsValue === 'object' &&
+            !Array.isArray(lhsValue) &&
+            !Array.isArray(rhsValue)
+          ) {
+            deepCompare(lhsValue, rhsValue, newPath)
+          } else if (lhsValue !== rhsValue) {
             if (
               !path.includes('user') &&
               !path.includes('_ngram') &&
               !path.includes('submit')
             ) {
               differences.push({
-                kind:
-                  lhs[key] === undefined
-                    ? kind.N
-                    : rhs[key] === undefined
-                    ? kind.D
-                    : kind.E,
-                path: path.concat(key),
+                kind: lhsValue === undefined ? kind.N : kind.E,
+                path: newPath,
                 user: author,
                 timestamp,
-                previous: String(lhs[key]),
-                new: String(rhs[key])
+                previous:
+                  lhsValue === undefined ? 'undefined' : String(lhsValue),
+                new: rhsValue === undefined ? 'undefined' : String(rhsValue)
               })
             }
           }
@@ -72,25 +108,26 @@ export const Changelogs = (() => {
             new: undefined
           })
         }
-      }
+      })
 
-      for (const key in rhs) {
-        if (
-          !lhs.hasOwnProperty(key) &&
-          !path.includes('user') &&
-          !path.includes('_ngram') &&
-          !path.includes('submit')
-        ) {
-          differences.push({
-            kind: kind.N,
-            path: path.concat(key),
-            user: author,
-            timestamp,
-            previous: undefined,
-            new: String(rhs[key])
-          })
+      rhsKeys.forEach(key => {
+        if (!lhs.hasOwnProperty(key)) {
+          if (
+            !path.includes('user') &&
+            !path.includes('_ngram') &&
+            !path.includes('submit')
+          ) {
+            differences.push({
+              kind: kind.N,
+              path: path.concat(key),
+              user: author,
+              timestamp,
+              previous: undefined,
+              new: String(rhs[key])
+            })
+          }
         }
-      }
+      })
     }
 
     deepCompare(previous, current)
