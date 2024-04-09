@@ -9,12 +9,16 @@ type Contains<T> = {
   Fx?(element: T, index: number): boolean
 }
 
-
-
 export class Collection<T = AnyObject | Primitives> {
-  public constructor(private data: T[]) {}
+  private data: T[]
 
-  public static collect<T = AnyObject | Primitives>(data: T[]): Collection<T> {
+  public constructor(data: T[] = []) {
+    this.data = data
+  }
+
+  public static collect<T = AnyObject | Primitives>(
+    data: T[] = []
+  ): Collection<T> {
     return new Collection(data)
   }
 
@@ -140,29 +144,27 @@ export class Collection<T = AnyObject | Primitives> {
     return this.collapse()
   }
 
-  /* public combine(array) {
-    const data = [...this.data]
-    let result
-    data.forEach((e, index) => {
-      if (!(e instanceof Object) && typeof e !== 'boolean') {
-        if (!result) {
-          result = {}
-        }
-        result[e] = array[index]
-      } else {
-        if (!result) {
-          result = []
-        }
-        result[index] = { ...e, _value: array[index] }
-      }
+  public combine<U>(values: U[]): Collection<{ [key: string]: U }> {
+    if (this.data.length !== values.length) {
+      throw new Error('The array to combine with must be of the same length.')
+    }
+
+    const combined: { [key: string]: U } = {}
+    this.data.forEach((key, index) => {
+      combined[String(key)] = values[index]
     })
 
-    this.data = result
-    return this
-  } */
-  public concat(array: T[]) {
-    this.data = [...this.data, ...array]
-    return this
+    return new Collection([combined])
+  }
+
+  public concat<U>(values: U[] | Collection<U>): Collection<T | U> {
+    // Extracting the array from the Collection if needed
+    const arrayValues = values instanceof Collection ? values.get() : values
+
+    // Since T and U can be different, we treat them as a union type (T | U)
+    const concatenated: Array<T | U> = [...this.data, ...arrayValues]
+
+    return new Collection<T | U>(concatenated)
   }
 
   /**
@@ -211,6 +213,101 @@ export class Collection<T = AnyObject | Primitives> {
   public count(): number {
     return this.data.length
   }
+
+  public countBy(
+    callback?: (item: T) => string | number
+  ): Collection<{ [key: string]: number }> {
+    const counts: { [key: string]: number } = {}
+    this.data.forEach(item => {
+      // Convert the key to a string to ensure it's a valid object index.
+      const key = String(callback ? callback(item) : item)
+      counts[key] = (counts[key] || 0) + 1
+    })
+    return new Collection([counts])
+  }
+
+  public crossJoin<U>(
+    ...arrays: Array<U[] | Collection<U>>
+  ): Collection<Array<T | U>> {
+    const inputArrays: Array<Array<T | U>> = [
+      this.data,
+      ...arrays.map(a => (a instanceof Collection ? a.get() : a))
+    ]
+
+    const result: Array<Array<T | U>> = []
+
+    const addToResult = (current: Array<T | U>, depth: number) => {
+      if (depth === inputArrays.length) {
+        result.push(current)
+        return
+      }
+
+      for (const item of inputArrays[depth]) {
+        addToResult(current.concat([item]), depth + 1)
+      }
+    }
+
+    addToResult([], 0)
+
+    return new Collection(result)
+  }
+
+  public diff<U>(items: U[] | Collection<U>): Collection<T> {
+    const arrayItems = (
+      items instanceof Collection ? items.get() : items
+    ) as any[]
+
+    const diffArray: T[] = this.data.filter(item => {
+      return !arrayItems.some(otherItem => {
+        if (typeof item === 'object' && typeof otherItem === 'object') {
+          return JSON.stringify(item) === JSON.stringify(otherItem)
+        }
+        return item === otherItem
+      })
+    })
+
+    return new Collection(diffArray)
+  }
+
+  // public dot(): Collection<{ [key: string]: any }> {
+  //   const result: Array<{ [key: string]: any }> = []
+
+  //   const recurse = (
+  //     obj: any,
+  //     current: string,
+  //     result: { [key: string]: any }
+  //   ) => {
+  //     if (Array.isArray(obj)) {
+  //       obj.forEach((value, index) => {
+  //         const newKey = `${current}.${index}`
+  //         if (typeof value === 'object' && !Array.isArray(value)) {
+  //           recurse(value, newKey, result)
+  //         } else {
+  //           // Directly assign primitives or arrays without further flattening
+  //           result[newKey] = value
+  //         }
+  //       })
+  //     } else {
+  //       Object.keys(obj).forEach(key => {
+  //         const value = obj[key]
+  //         const newKey = current ? `${current}.${key}` : key
+  //         if (typeof value === 'object' && !Array.isArray(value)) {
+  //           recurse(value, newKey, result)
+  //         } else {
+  //           result[newKey] = value
+  //         }
+  //       })
+  //     }
+  //   }
+
+  //   this.data.forEach(item => {
+  //     let flatItem: { [key: string]: any } = {}
+  //     recurse(item, '', flatItem)
+  //     result.push(flatItem)
+  //   })
+
+  //   return new Collection(result)
+  // }
 
   /**
    * Returns an array of duplicate submissions, based on an array of keys.

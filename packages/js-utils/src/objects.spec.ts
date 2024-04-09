@@ -64,6 +64,4 @@ describe('[sortObjectDeep]', () => {
   }
 
   const val = Objects.sortObjectDeep(initial)
-
-  console.log(val)
 })

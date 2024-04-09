@@ -1,27 +1,36 @@
 {
   "emulators": {
-    "firestore": {
-      "port": 8080,
-      "host": "0.0.0.0"
+    "auth": {
+      "port": 9099
     },
     "database": {
-      "port": 9000,
-      "host": "0.0.0.0"
-    },
-    "ui": {
-      "enabled": true,
       "host": "0.0.0.0",
-      "port": 4000
+      "port": 9000
     },
-    "pubsub": {
-      "port": "8085",
-      "host": "0.0.0.0"
+    "firestore": {
+      "host": "0.0.0.0",
+      "port": 8080
     },
     "functions": {
       "port": 5001
     },
-    "auth": {
-      "port": 9099
+    "hub": {
+      "host": "0.0.0.0",
+      "port": 4400
+    },
+    "logging": {
+      "host": "0.0.0.0",
+      "port": 4500
+    },
+    "pubsub": {
+      "host": "0.0.0.0",
+      "port": "8085"
+    },
+    "singleProjectMode": false,
+    "ui": {
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 4000
     }
   }
 }

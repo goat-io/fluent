@@ -4,6 +4,7 @@ services:
   #  FireStore
   #######################################################
   firestore:
+    image: goatlab/firebase-emulator
     build:
       context: .
       dockerfile: ./Dockerfile
