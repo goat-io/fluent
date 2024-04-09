@@ -1,4 +1,4 @@
-FROM python:3.7-slim-buster
+FROM python:3.8-slim-buster
 ################################################################################
 # Original Source
 # https://github.com/eHealthAfrica/firebase-emulator/blob/master/Dockerfile
@@ -28,7 +28,7 @@ RUN sudo apt-get install -y nodejs
 RUN sudo npm install -g firebase-tools
 
 # Install gcloud commmand utilities to use default login
-RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=/root/gcloud --disable-prompts
+RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && sudo bash /tmp/gcl --install-dir=/root/gcloud --disable-prompts
 
 ENV PATH $PATH:~/gcloud/google-cloud-sdk/bin
 
