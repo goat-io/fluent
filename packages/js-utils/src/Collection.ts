@@ -62,7 +62,7 @@ export class Collection<T = AnyObject | Primitives> {
 
     const sum = Number(
       data.reduce((acc: number, element) => {
-        let value: number
+        let value: number = 0
 
         if (element instanceof Object) {
           const extract = Objects.getFromPath(element, stringPath, undefined)
@@ -102,9 +102,9 @@ export class Collection<T = AnyObject | Primitives> {
 
     this.chunk(size)
 
-    const reducer = (chain, batch) =>
+    const reducer = (chain: any, batch: any) =>
       chain
-        .then(() => Promise.all(batch.map(d => callback(d))))
+        .then(() => Promise.all(batch.map((d: any) => callback(d))))
         .then(() => {
           count = count + size > totalSize ? totalSize : count + size
           console.log(`Processed ${count}/${totalSize} elements...`)
@@ -144,15 +144,20 @@ export class Collection<T = AnyObject | Primitives> {
     return this.collapse()
   }
 
-  public combine<U>(values: U[]): Collection<{ [key: string]: U }> {
-    if (this.data.length !== values.length) {
+  public combine<K extends string | number, U>(
+    values: U[]
+  ): Collection<Record<string, U>> {
+    const keys = this.data as unknown as K[]
+    const len = keys.length
+    if (len !== values.length) {
       throw new Error('The array to combine with must be of the same length.')
     }
 
-    const combined: { [key: string]: U } = {}
-    this.data.forEach((key, index) => {
-      combined[String(key)] = values[index]
-    })
+    const combined: Record<string, U> = {}
+    for (let idx = 0; idx < len; idx++) {
+      const key = keys[idx]
+      combined[String(key)] = values[idx]! // ← non-null assertion
+    }
 
     return new Collection([combined])
   }
@@ -171,40 +176,40 @@ export class Collection<T = AnyObject | Primitives> {
    *
    * @param args
    */
-  public contains(contains: Contains<T>): boolean {
-    const data = [...this.data]
-
-    if (!contains.Fx && !contains.value) {
+  public contains(predicate: Contains<T>): boolean {
+    const { value, path, Fx } = predicate
+    if (!Fx && value === undefined && !path) {
       throw new Error(
         'No Function nor value to compare. Please add one of them'
       )
     }
 
-    return data.some((element, index) => {
-      if (contains.Fx) {
-        return !!contains.Fx(element, index)
+    for (let i = 0; i < this.data.length; i++) {
+      const elem = this.data[i]
+
+      if (Fx) {
+        if (Fx(elem as T, i)) return true
+        continue
       }
 
-      if (element instanceof Object) {
-        const stringP = contains.path
-          ? contains.path(this.generatedKeyPath)
-          : ''
-        const stringPath = stringP.toString()
-
-        const extract = Objects.getFromPath(element, stringPath, undefined)
-        if (extract.value) {
-          return extract.value === contains.value
+      const elemValue = (() => {
+        if (value === undefined) return undefined
+        if (elem !== null && typeof elem === 'object') {
+          const stringPath = path?.(this.generatedKeyPath).toString() ?? ''
+          const extract = Objects.getFromPath(
+            elem as AnyObject,
+            stringPath,
+            undefined
+          )
+          return extract.value
         }
-      }
+        return elem as unknown as Primitives
+      })()
 
-      if (
-        typeof element === 'string' ||
-        typeof element === 'number' ||
-        typeof element === 'boolean'
-      ) {
-        return element === contains.value
-      }
-    })
+      if (elemValue === value) return true
+    }
+
+    return false
   }
 
   /**
@@ -229,26 +234,41 @@ export class Collection<T = AnyObject | Primitives> {
   public crossJoin<U>(
     ...arrays: Array<U[] | Collection<U>>
   ): Collection<Array<T | U>> {
-    const inputArrays: Array<Array<T | U>> = [
-      this.data,
-      ...arrays.map(a => (a instanceof Collection ? a.get() : a))
-    ]
+    const first = this.data as Array<T>
+    const rest = arrays.map(a =>
+      a instanceof Collection ? a.get() : a
+    ) as Array<U[]>
 
-    const result: Array<Array<T | U>> = []
+    const inputs = [first, ...rest] as Array<Array<T | U>>
 
-    const addToResult = (current: Array<T | U>, depth: number) => {
-      if (depth === inputArrays.length) {
-        result.push(current)
-        return
-      }
+    if (inputs.some(arr => arr.length === 0)) {
+      return new Collection<Array<T | U>>([])
+    }
 
-      for (const item of inputArrays[depth]) {
-        addToResult(current.concat([item]), depth + 1)
+    const total = inputs.reduce((acc, arr) => acc * arr.length, 1)
+    const result: Array<Array<T | U>> = new Array(total)
+    const prefix: (T | U)[] = new Array(inputs.length)
+
+    function rec(level: number, offset: number, stride: number): void {
+      const arr = inputs[level]
+      const len = arr?.length || 0
+      const nextStride = stride / len
+
+      for (let i = 0; i < len; i++) {
+        const val = arr?.[i]!
+
+        prefix[level] = val
+        const nextOffset = offset + i * nextStride
+
+        if (level + 1 === inputs.length) {
+          result[nextOffset] = prefix.slice(0, inputs.length)
+        } else {
+          rec(level + 1, nextOffset, nextStride)
+        }
       }
     }
 
-    addToResult([], 0)
-
+    rec(0, 0, total)
     return new Collection(result)
   }
 
@@ -313,27 +333,23 @@ export class Collection<T = AnyObject | Primitives> {
    * Returns an array of duplicate submissions, based on an array of keys.
    * @param {Array} keys - Keys where the function compares an object to evaluate its similarity.
    */
-  public duplicatesBy(keys: string[]) {
-    const data = [...this.data]
-    const duplicates = []
+  public duplicatesBy(keys: string[]): this {
+    const duplicates: T[] = []
+    const seen: Record<string, true> = {} // <-- typed index signature
 
-    data.reduce((object, submission) => {
-      const finalKey = keys.reduce(
-        (s: string, key) => s + Objects.getFromPath(submission, key, '').value,
-        ''
-      )
+    for (const item of this.data) {
+      const finalKey = keys
+        .map(key => Objects.getFromPath(item, key, '').value)
+        .join('|')
 
-      if (object.hasOwnProperty(finalKey)) {
-        duplicates.push(submission)
+      if (seen[finalKey]) {
+        duplicates.push(item)
       } else {
-        object[finalKey] = true
+        seen[finalKey] = true
       }
-
-      return object
-    }, {})
+    }
 
     this.data = duplicates
-
     return this
   }
 
@@ -341,7 +357,7 @@ export class Collection<T = AnyObject | Primitives> {
    *
    * @param functionToCheck
    */
-  private isFunction(functionToCheck) {
+  public isFunction(functionToCheck: any) {
     return (
       functionToCheck &&
       {}.toString.call(functionToCheck) === '[object Function]'

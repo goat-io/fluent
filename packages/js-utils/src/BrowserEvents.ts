@@ -5,7 +5,7 @@ export interface EventOptions {
   text: string
 }
 export const BrowserEvents = (() => {
-  const CustomEvent = (event, params: any) => {
+  const CustomEvent = (event: any, params: any) => {
     const evt = document.createEvent('CustomEvent')
 
     params = params || { bubbles: false, cancelable: false, detail: undefined }

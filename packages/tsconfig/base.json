@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "lib": ["es2022"],
+    "module": "esnext",
+    "target": "esnext",
+
+    "moduleResolution": "node",
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "noEmit": false,
+
+    "allowJs": true,
+    "checkJs": true,
+    "outDir": "${configDir}/dist",
+
+    "removeComments": false,
+    "sourceMap": true,
+    "pretty": true,
+    "incremental": true,
+    "tsBuildInfoFile": "dist/tsconfig.build.tsbuildinfo",
+
+    "noEmitOnError": true,
+    "preserveConstEnums": true,
+    "preserveWatchOutput": true,
+
+    "strict": true,
+    "strictNullChecks": true,
+    "alwaysStrict": true,
+    "strictPropertyInitialization": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": false,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "downlevelIteration": true,
+
+    "baseUrl": "${configDir}",
+    "paths": {
+      "@src/*": ["src/*"]
+    },
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "disableSourceOfProjectReferenceRedirect": true,
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*",
+    "package.json",
+    "scripts",
+    "src/**/*.json",
+    "scripts/**/*.json",
+    "loadTesting"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "prisma",
+    "coverage/**",
+    ".next",
+    ".expo"
+  ],
+  "ts-node": {
+    "files": true,
+    "require": ["tsconfig-paths/register"],
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "ESNext",
+      "moduleResolution": "Node"
+    }
+  }
+}

@@ -1,8 +1,6 @@
-// import Formio from 'formiojs/Formio';
 // import offlinePlugin from 'offlinePlugin/offlinePlugin';
 import Submission from '../../models/Submission'
 import Event from '../../Wrappers/Event'
-// import Promise from 'bluebird';
 let Import = class {
   /**
    *

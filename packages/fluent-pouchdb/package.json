@@ -1,9 +1,8 @@
 {
   "name": "@goatlab/fluent-pouchdb",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Fluent query Interface for Pouchdb",
   "scripts": {
-    "install-p": "yarn",
     "prebuild": "rimraf dist",
     "prestart": "rimraf dist",
     "predev": "rimraf dist",
@@ -27,12 +26,13 @@
     "changelog-debug": "auto-changelog --template changelog-template.hbs -p --template json --output changelog-data.json"
   },
   "dependencies": {
-    "@goatlab/fluent": "^0.7.11",
-    "@goatlab/js-utils": "^0.8.8",
-    "pouchdb": "^7.3.0",
-    "pouchdb-adapter-memory": "^7.3.0",
-    "pouchdb-find": "^7.3.0",
-    "pouchdb-json": "^7.3.0"
+    "@goatlab/tsconfig": "workspace:*",
+    "@goatlab/fluent": "workspace:*",
+    "@goatlab/js-utils": "workspace:*",
+    "pouchdb": "^9.0.0",
+    "pouchdb-adapter-memory": "^9.0.0",
+    "pouchdb-find": "^9.0.0",
+    "pouchdb-json": "^9.0.0"
   },
   "devDependencies": {
     "@types/jest": "^27.4.1",
@@ -40,12 +40,12 @@
     "@types/pouchdb": "^6.4.0",
     "dotenv-cli": "^5.1.0",
     "eslint": "^8.5.0",
-    "jest": "^27.5.1",
+    "jest": "catalog:",
     "jest-environment-node": "^27.5.1",
     "prettier": "^2.6.1",
     "pretty-quick": "^3.1.3",
-    "ts-jest": "^27.1.4",
-    "ts-node": "^10.7.0",
+    "ts-jest": "catalog:",
+    "ts-node": "catalog:",
     "turbo": "^1.1.10",
     "typescript": "^4.6.3"
   },

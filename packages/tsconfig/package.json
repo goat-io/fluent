@@ -1,12 +1,19 @@
 {
   "name": "@goatlab/tsconfig",
-  "version": "0.0.9",
+  "license": "MIT",
+  "version": "0.0.11",
   "private": false,
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  },
+  "scripts": {
+    "clean": "rimraf .cache .turbo dist node_modules"
+  },
   "publishConfig": {
     "access": "public"
   },
   "main": "index.js",
   "files": [
-    "tsconfig.json"
+    "*.json"
   ]
 }
