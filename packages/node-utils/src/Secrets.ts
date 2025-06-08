@@ -134,7 +134,7 @@ class SecretsClass {
   secretOptional<T = string>(k: string, json = false): T | undefined {
     this.requireLoaded()
     const v = secretMap[k.toUpperCase()]
-    return v && json ? JSON.parse(Hashes.base64ToString(v)) : v
+    return v && json ? (JSON.parse(Hashes.base64ToString(v)) as T) : (v as T)
   }
 
   /**
