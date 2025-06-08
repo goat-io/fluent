@@ -43,7 +43,7 @@
     "predev": "rimraf dist",
     "prestart": "rimraf dist",
     "serve": "tsc -w",
-    "test": "jest --forceExit",
+    "test": "jest --forceExit --passWithNoTests",
     "update:packages": "npm-check-updates -u && yarn"
   },
   "types": "./dist/index.d.ts",
