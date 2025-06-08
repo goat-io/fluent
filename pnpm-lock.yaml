@@ -21,7 +21,7 @@ importers:
   .:
     dependencies:
       '@changesets/cli':
-        specifier: ^2.23.0
+        specifier: ^2.29.4
         version: 2.29.4
     devDependencies:
       turbo:
@@ -251,7 +251,7 @@ importers:
   packages/fluent-firebase:
     dependencies:
       '@goatlab/fluent':
-        specifier: ^0.7.31
+        specifier: ^0.7.32
         version: link:../fluent
       '@goatlab/js-utils':
         specifier: workspace:*

@@ -21,12 +21,13 @@
     "clean": "rimraf node_modules && pnpm clean:modules",
     "clean:modules": "find . -name 'node_modules' -type d -prune -print | xargs -I {} rm -rf \"{}\"",
     "clean:turbo": "pnpm turbo run clean && rm -rf node_modules",
-    "act": "act --container-architecture linux/amd64 -W '.github/workflows/test.yml'"
+    "act": "act --container-architecture linux/amd64 -W '.github/workflows/test.yml'",
+    "push": "git push --follow-tags"
   },
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
   "dependencies": {
-    "@changesets/cli": "^2.23.0"
+    "@changesets/cli": "^2.29.4"
   },
   "devDependencies": {
     "turbo": "^2.5.3",
