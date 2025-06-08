@@ -82,7 +82,8 @@ export class ArraysClass {
     return items.reduce((map, item, index) => {
       const key = mapper(item, index) ?? 'undefined' // Coerce undefined to the string "undefined"
       map[key] = map[key] || []
-      map[key].push(item)
+
+      map[key]?.push(item)
       return map
     }, {} as StringMap<T[]>)
   }
@@ -190,10 +191,14 @@ export class ArraysClass {
    * @returns The shuffled array.
    */
   shuffle<T>(array: T[], mutate = false): T[] {
-    const result = mutate ? array : [...array]
+    const result = mutate ? array : array.slice()
     for (let i = result.length - 1; i > 0; i--) {
+      // random int in [0, i]
       const j = Math.floor(Math.random() * (i + 1))
-      ;[result[i], result[j]] = [result[j], result[i]]
+      // type-safe swap without tuple destructure
+      const tmp = result[i]!
+      result[i] = result[j]!
+      result[j] = tmp
     }
     return result
   }
@@ -311,7 +316,7 @@ export class ArraysClass {
    * @returns A new array consisting of all elements from the input arrays.
    */
   concatAll<T>(...arrays: T[][]): T[] {
-    return [].concat(...arrays)
+    return arrays.flat()
   }
 
   /**

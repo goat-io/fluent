@@ -14,6 +14,7 @@ import { getGot } from './getGot'
 import { Inspect } from './Inspect'
 import { ObjectIds } from './ObjectIds'
 import { Streams } from './Streams'
+import { Ips } from './Ips'
 
 export {
   Log,
@@ -31,7 +32,8 @@ export {
   Inspect,
   Scripts,
   ObjectIds,
-  Streams
+  Streams,
+  Ips
 }
 export type {
   BuildInfo,

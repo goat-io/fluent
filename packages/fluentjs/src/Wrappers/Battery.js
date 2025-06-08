@@ -1,4 +1,3 @@
-// import Promise from 'bluebird';
 const Battery = class {
   /**
    * [status description]
