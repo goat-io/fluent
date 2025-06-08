@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.34
+
+### Patch Changes
+
+- 6ec8e94: Update to pnpm
+
 ## 0.8.33
 
 ### Patch Changes

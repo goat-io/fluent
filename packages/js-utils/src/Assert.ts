@@ -1,4 +1,4 @@
-import type { ErrorData, HttpErrorData } from './Errors/error.model'
+import type { ErrorData } from './Errors/error.model'
 import { _stringifyAny } from './Strings/stringifyAny'
 import { Objects } from './Objects'
 import { AppError } from './Errors/app.error'
@@ -135,9 +135,8 @@ export class AssertionError extends AppError {
   }
 }
 
-
 export function _try<ERR = Error, RETURN = void>(
-  fn: () => RETURN,
+  fn: () => RETURN
 ): [err: ERR | null, value: RETURN] {
   try {
     return [null, fn()]
