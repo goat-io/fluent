@@ -1,5 +1,5 @@
 import { nanoid, customAlphabet } from 'nanoid'
-import { v4 as secure } from '@lukeed/uuid'
+import { v4 as secure } from '@lukeed/uuid/secure'
 
 export const Ids = (() => {
   /**

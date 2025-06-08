@@ -50,8 +50,6 @@ Fluent query interface for Multiple database types and helpers for fast API gene
 
 Wrapper for TypeORM \*
 
-Wrapper for firebase-admin and fireorm \*\*
-
 ### Installing
 
 To install this package in your project, you can use the following command within your terminal.
@@ -69,7 +67,6 @@ To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.5.x/f
 Packages that we need to replace
 npm-pack-zip
 @commitlint/prompt-cli
-formiojs
 react-native
 multer-google-storage
 nestjs-typed-dynamodb
@@ -154,7 +151,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contact
 
-Ignacio Cabrera - [@twitter_handle](https://twitter.com/cabrerabywaters) - ignacio.cabrera@goatlab.io
+Ignacio Cabrera - [@twitter_handle](https://twitter.com/cabrerabywaters) - <ignacio.cabrera@goatlab.io>
 
 <!-- ACKNOWLEDGEMENTS -->
 
@@ -167,14 +164,9 @@ Ignacio Cabrera - [@twitter_handle](https://twitter.com/cabrerabywaters) - ignac
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[contributors-url]: https://github.com/goat-io/fluent/graphs/contributors
-[forks-url]: https://github.com/goat-io/fluent/network/members
 [stars-shield]: https://img.shields.io/github/stars/goat-io/fluent?style=flat-square
 [stars-url]: https://github.com/goat-io/fluent/stargazers
 [issues-shield]: https://img.shields.io/github/issues/goat-io/fluent?style=flat-square
 [issues-url]: https://github.com/goat-io/fluent/issues
 [license-shield]: https://img.shields.io/github/license/goat-io/fluent?style=flat-square
 [license-url]: https://github.com/goat-io/fluent/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
-[product-screenshot]: images/screenshot.png

@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.2
+
+### Patch Changes
+
+- 6ec8e94: Update to pnpm
+
 ## 0.7.1
 
 ### Patch Changes

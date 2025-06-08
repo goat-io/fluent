@@ -45,7 +45,7 @@ class ObjectsClass {
    */
   getFromPath = (obj: any, path: string, def?: any) => {
     let PATH = path
-    let pathArray = []
+    let pathArray: any[] = []
 
     if (path.includes(' as ')) {
       pathArray = path.split(' as ')
@@ -77,36 +77,41 @@ class ObjectsClass {
    * dot notation. Custom notation can be assigned using the
    * keyFactory helper function
    * @param ob
+   * @param includeBaseKeys
    * @param keyFactory
    */
   flatten = (
-    ob: { [key: string]: any },
-    includeBaseKeys?: boolean,
-    keyFactory: KeyFactory | null = null
-  ): { [key: string]: any } => {
-    if (keyFactory === null) {
-      keyFactory = (previousKey, currentKey) => `${previousKey}.${currentKey}`
-    }
-    const toReturn: { [key: string]: string } = {}
-    for (const i in ob) {
-      if (!ob.hasOwnProperty(i)) {
-        continue
-      }
-      if (typeof ob[i] === 'object') {
-        const flatObject = this.flatten(ob[i])
-        for (const x in flatObject) {
-          if (!flatObject.hasOwnProperty(x)) {
-            continue
+    ob: AnyObject,
+    includeBaseKeys: boolean = false,
+    keyFactory: KeyFactory = (previousKey, currentKey) =>
+      `${previousKey}.${currentKey}`
+  ): Record<string, string> => {
+    const toReturn: Record<string, string> = {}
+
+    const walk = (obj: AnyObject, path: string) => {
+      for (const key in obj) {
+        if (!hasProp.call(obj, key)) continue
+
+        const value = obj[key]
+        const newKey = path ? keyFactory(path, key) : key
+
+        if (
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        ) {
+          if (includeBaseKeys && !(newKey in toReturn)) {
+            toReturn[newKey] = 'true'
           }
-          if (includeBaseKeys) {
-            toReturn[i] = 'true'
-          }
-          toReturn[keyFactory(i, x)] = flatObject[x]
+          walk(value, newKey)
+        } else {
+          toReturn[newKey] = String(value)
         }
-      } else {
-        toReturn[i] = ob[i]
       }
     }
+
+    walk(ob, '')
+
     return toReturn
   }
 
@@ -114,20 +119,20 @@ class ObjectsClass {
    *
    * @param obj
    */
-  isPlainObject = (obj: { [key: string]: any }) =>
+  isPlainObject = (obj: AnyObject) =>
     !!obj && obj.constructor === {}.constructor
 
   /**
    *
    * @param obj
    */
-  getNestedObject = (obj: { [key: string]: any }, markNewObject: boolean) =>
+  getNestedObject = (obj: AnyObject, markNewObject: boolean) =>
     Object.entries(obj).reduce((result, [prop, val]) => {
       prop.split('.').reduce((nestedResult, prop, propIndex, propArray) => {
         const lastProp = propIndex === propArray.length - 1
         if (lastProp) {
           nestedResult[prop] = this.isPlainObject(val)
-            ? this.getNestedObject(val, markNewObject)
+            ? this.getNestedObject(val as AnyObject, markNewObject)
             : val
         } else {
           nestedResult[prop] =
@@ -138,20 +143,17 @@ class ObjectsClass {
                 }
               : {})
         }
-        return nestedResult[prop]
+        return nestedResult[prop] as AnyObject
       }, result)
       return result
-    }, {})
+    }, {} as AnyObject)
 
   /**
    * Opposite of the flatten method. Given a nested dot notation flatten object.
    * it will generate the corresponding nested object
    * @param obj
    */
-  nest = (
-    obj: { [key: string]: any },
-    markNewObject?: boolean
-  ): { [key: string]: any } => {
+  nest = (obj: AnyObject, markNewObject?: boolean): AnyObject => {
     if (!obj) {
       return {}
     }
@@ -163,7 +165,7 @@ class ObjectsClass {
    * will not clone functions inside objects
    * @param {Object} object
    */
-  clone = (object: { [key: string]: any }) => JSON.parse(JSON.stringify(object))
+  clone = (object: AnyObject) => JSON.parse(JSON.stringify(object))
 
   /**
    * Given a value, it will check if it contains
@@ -198,7 +200,7 @@ class ObjectsClass {
    * @param {Array|Object} object Array, Object to clean
    * @returns {Array|Object} returns the cleaned value
    */
-  deleteNulls = (object: { [key: string]: any }) => {
+  deleteNulls = (object: AnyObject) => {
     const obj = object
     const isArray = obj instanceof Array
 
@@ -206,7 +208,7 @@ class ObjectsClass {
       if (obj[k] === null) {
         isArray ? obj.splice(Number(k), 1) : delete obj[k]
       } else if (typeof obj[k] === 'object') {
-        this.deleteNulls(obj[k])
+        this.deleteNulls(obj[k] as AnyObject)
       }
     }
     return obj
@@ -338,9 +340,17 @@ class ObjectsClass {
 
   findKeyByValue<T extends AnyObject>(
     obj: T,
-    v: ValueOf<T>
+    value: ValueOf<T>
   ): keyof T | undefined {
-    return Object.entries(obj).find(([_, value]) => value === v)?.[0] as keyof T
+    for (const key in obj) {
+      if (
+        Object.prototype.hasOwnProperty.call(obj, key) &&
+        obj[key] === value
+      ) {
+        return key as keyof T
+      }
+    }
+    return undefined
   }
 
   objectNullValuesToUndefined<T extends AnyObject>(obj: T, mutate = false): T {
