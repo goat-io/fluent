@@ -1,5 +1,15 @@
 # 0.5.20
 
+## 0.7.2
+
+### Patch Changes
+
+- 6ec8e94: Update to pnpm
+- Updated dependencies [6ec8e94]
+  - @goatlab/js-utils@0.8.34
+  - @goatlab/tsconfig@0.0.11
+  - @goatlab/fluent@0.7.32
+
 ## 0.7.1
 
 ### Patch Changes

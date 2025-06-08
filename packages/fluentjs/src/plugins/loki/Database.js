@@ -1,4 +1,3 @@
-// import Promise from "bluebird";
 import Loki from 'lokijs'
 import LokiIndexedAdapter from 'lokijs/src/loki-indexed-adapter'
 let LokiReactNativeAdapter
