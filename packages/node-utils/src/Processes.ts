@@ -2,7 +2,7 @@ import * as os from 'os'
 import { Units } from '@goatlab/js-utils'
 import { BuildInfo } from './Env'
 class ProcessesClass {
-  private timer!: NodeJS.Timer
+  private timer: ReturnType<typeof setInterval>
 
   memoryUsage() {
     const { rss, external, heapUsed, heapTotal } = process.memoryUsage()
@@ -38,7 +38,10 @@ class ProcessesClass {
   }
 
   stopMemoryTimer(afterMillis = 0): void {
-    setTimeout(() => clearInterval(this.timer), afterMillis)
+    setTimeout(
+      () => clearInterval(this.timer as unknown as number),
+      afterMillis
+    )
   }
 
   cpuAvg(): { avg1: string; avg5: string; avg15: string } {
@@ -100,19 +103,22 @@ class ProcessesClass {
     const dateComponents = [
       now.getUTCFullYear(),
       (now.getUTCMonth() + 1).toString().padStart(2, '0'),
-      now.getUTCDate().toString().padStart(2, '0'),
+      now.getUTCDate().toString().padStart(2, '0')
     ]
-  
+
     const timeComponents = [
       now.getUTCHours().toString().padStart(2, '0'),
-      now.getUTCMinutes().toString().padStart(2, '0'),
+      now.getUTCMinutes().toString().padStart(2, '0')
     ]
     const seconds = now.getUTCSeconds().toString().padStart(2, '0')
-  
-    const tsStr = dateComponents.join('-') + ' ' + timeComponents.join(':') + ':' + seconds
-  
-    const ver = [dateComponents.join('') + '_' + timeComponents.join('')].join('_')
-  
+
+    const tsStr =
+      dateComponents.join('-') + ' ' + timeComponents.join(':') + ':' + seconds
+
+    const ver = [dateComponents.join('') + '_' + timeComponents.join('')].join(
+      '_'
+    )
+
     return {
       ts,
       tsStr,
@@ -120,7 +126,7 @@ class ProcessesClass {
       branch: '',
       ver,
       env: 'dev',
-      dev: true,
+      dev: true
     }
   }
 }

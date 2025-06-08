@@ -1,23 +1,34 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "baseBranch": "origin/main",
-  "pipeline": {
-    "install-p": {
-
-    },
+  "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", ".next/**", "public/dist/**"],
+      "dependsOn": ["^build"]
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["coverage/**"]
     },
     "lint": {
       "outputs": []
     },
-    "dev": {
+    "clean": {
       "cache": false
+    },
+    "//#clean": {
+      "cache": false
+    },
+    "build:serve": {
+      "outputs": ["dist/**", ".next/**", "public/dist/**"]
+    },
+    "serve": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build:serve"]
+    },
+    "bt": {
+      "outputs": ["dist/**", ".next/**", "public/dist/**"],
+      "dependsOn": ["^bt"]
     }
   }
 }

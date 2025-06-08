@@ -1,7 +1,6 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testRunner: 'jasmine2',
   setupFiles: ['dotenv/config', './setup.ts'],
   roots: ['<rootDir>/src'],
   maxWorkers: 1,

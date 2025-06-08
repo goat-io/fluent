@@ -1,11 +1,10 @@
 import { join } from 'path'
 import { Docker } from './Docker.js'
-import { Ids } from '@goatlab/js-utils'
 
 jest.setTimeout(30000)
 
 it('runContainer - Should run a specific image', async () => {
-  const imageName = 'somerandomimagename' || Ids.nanoId().toLowerCase()
+  const imageName = 'somerandomimagename'
   const version = '0.0.2'
 
   await Docker.buildImage({
