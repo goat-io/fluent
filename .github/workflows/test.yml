@@ -40,15 +40,16 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - name: Config npm secret token
-        run: echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
+        run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
 
       - name: Installing Fluent´s Dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm i
 
-      - name: Building Fluent
+      - name: Building all packages
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm build
-      - name: Testing Fluent
+
+      - name: Test all packages
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm test

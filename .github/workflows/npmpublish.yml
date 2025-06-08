@@ -38,7 +38,7 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - name: Config npm secret token
-        run: echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
+        run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
 
       - name: Installing Fluent´s Dependencies
         if: steps.pnpm-cache.outputs.cache-hit != 'true'
