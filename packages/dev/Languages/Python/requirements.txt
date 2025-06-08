@@ -48,7 +48,7 @@ dockerpty==0.4.1
 docopt==0.6.2
 docutils==0.16  # Updated from 0.14
 entrypoints==0.3
-idna==2.9  # Updated from 2.8
+idna==3.7  # Updated from 2.8
 ipykernel==5.2.1  # Updated from 5.1.0
 ipython==7.16.3  # Updated from 7.2.0
 ipython-genutils==0.2.0
