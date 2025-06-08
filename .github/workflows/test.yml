@@ -10,31 +10,45 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+            - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-
-      - name: Cache node modules
-        uses: actions/cache@v3
-        id: yarn-cache
-        env:
-          NPM_TOKEN: ${{ secrets.GOATLAB_NPM_TOKEN }}
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          node-version: 22
+
+      - name: Setup pnpm 9.15.2
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
+      - name: Get pnpm cache directory path
+        id: pnpm-cache-dir-path
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: pnpm-cache
+        with:
+          path: |
+            **/node_modules
+            **/.eslintcache
+            ${{ steps.pnpm-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-pnpm-
 
       - name: Config npm secret token
         run: echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
 
       - name: Installing Fluent´s Dependencies
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && yarn
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm i
+
       - name: Building Fluent
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && yarn build
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm build
       - name: Testing Fluent
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && yarn test
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm test
