@@ -1,7 +1,7 @@
 {
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/js-utils",
-  "version": "0.8.33",
+  "version": "0.8.34",
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {

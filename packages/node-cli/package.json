@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-cli",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Node Helpers to Build CLI",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

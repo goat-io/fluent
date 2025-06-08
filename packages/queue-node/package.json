@@ -4,7 +4,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@goatlab/queue-node",
-  "version": "0.8.45",
+  "version": "0.8.46",
   "private": false,
   "publishConfig": {
     "access": "public"
