@@ -1,3 +1,5 @@
+// npx jest -i ./src/objects.spec.ts
+
 import { Objects } from './Objects'
 
 const nestedObject: any = { a: { b: { c: 'hello' } } }
