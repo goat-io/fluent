@@ -1,7 +1,7 @@
 {
   "license": "MIT",
   "main": "./dist/index.js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "name": "@goatlab/node-xlsx",
   "description": "Efficiently work with xlsx files streams in Node.js",
   "private": false,

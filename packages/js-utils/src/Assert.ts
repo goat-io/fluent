@@ -71,7 +71,7 @@ export function assertDeepEquals<T>(
   message?: string,
   errorData?: ErrorData
 ): asserts actual is T {
-  if (!Objects.deepEquals(actual, expected)) {
+  if (!Objects.deepEquals(actual, expected as any)) {
     const msg = [
       message || `not deeply equal`,
       `expected: ${_stringifyAny(expected)}`,

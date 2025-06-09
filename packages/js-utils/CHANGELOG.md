@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.35
+
+### Patch Changes
+
+- Code optimizations and clean ups
+
 ## 0.8.34
 
 ### Patch Changes
