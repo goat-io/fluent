@@ -12,6 +12,16 @@ export interface RunScriptOptions {
    * Default to `console`
    */
   logger?: CommonLogger
+
+  /**
+   * Callback to handle process exit with exit code
+   */
+  onExit?: (code: number) => void
+
+  /**
+   * Callback to handle errors
+   */
+  onError?: (error: unknown) => void
 }
 
 const { DEBUG_RUN_SCRIPT } = process.env
@@ -35,47 +45,45 @@ const { DEBUG_RUN_SCRIPT } = process.env
  * Set env DEBUG_RUN_SCRIPT for extra debugging.
  */
 export function runScript(
-  fn: (...args: any[]) => any,
+  fn: () => Promise<any>,
   opt: RunScriptOptions = {}
 ): void {
-  const { logger = console, noExit } = opt
+  const { logger = console, noExit, onExit, onError } = opt
+  let exiting = false
+
+  const cleanExit = (code: number) => {
+    if (exiting) return
+    exiting = true
+    process.removeAllListeners()
+    onExit?.(code)
+    if (!noExit) process.exit(code)
+  }
 
   process.on('uncaughtException', err => {
     logger.error('uncaughtException:', err)
+    onError?.(err)
+    cleanExit(1)
   })
   process.on('unhandledRejection', err => {
     logger.error('unhandledRejection:', err)
+    onError?.(err)
+    cleanExit(1)
   })
+  ;['SIGINT', 'SIGTERM', 'SIGHUP'].forEach(sig =>
+    process.once(sig as NodeJS.Signals, () => {
+      logger.log(`Received ${sig}, shutting down…`)
+      cleanExit(0)
+    })
+  )
 
-  if (DEBUG_RUN_SCRIPT) {
-    process.on('exit', code => logger.log(`process.exit event, code=${code}`))
-    process.on('beforeExit', code =>
-      logger.log(`process.beforeExit event, code=${code}`)
-    )
-  }
-
-  // fake timeout, to ensure node.js process won't exit until runScript main promise is resolved
-  const timeout = setTimeout(() => {}, 10000000)
-
-  void (async () => {
-    try {
-      await fn()
-
-      if (DEBUG_RUN_SCRIPT) logger.log(`runScript promise resolved`)
-
-      if (!noExit) {
-        setImmediate(() => process.exit(0))
-      }
-    } catch (err) {
+  Promise.resolve()
+    .then(() => fn())
+    .then(() => cleanExit(0))
+    .catch(err => {
       logger.error('runScript error:', err)
-      process.exitCode = 1
-      if (!noExit) {
-        setImmediate(() => process.exit(1))
-      }
-    } finally {
-      clearTimeout(timeout)
-    }
-  })()
+      onError?.(err)
+      cleanExit(1)
+    })
 }
 
 class ScriptsClass {

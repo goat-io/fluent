@@ -24,7 +24,6 @@
   "dependencies": {
     "@goatlab/js-utils": "workspace:*",
     "@goatlab/tsconfig": "workspace:*",
-    "@types/through2-concurrent": "^2.0.1",
     "bcrypt": "^6.0.0",
     "bson": "^6.10.4",
     "child_process": "^1.0.2",
@@ -46,6 +45,7 @@
   },
   "description": "Readable query Interface & API generator for TS and Node",
   "devDependencies": {
+    "@types/through2-concurrent": "^2.0.1",
     "@types/jest": "^29.5.0",
     "@types/node": "^18.15.9",
     "dotenv-cli": "^7.1.0",
