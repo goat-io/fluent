@@ -1,9 +1,30 @@
 {
-  "author": "ignacio.cabrera@goatlab.io",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "version": "0.0.2",
+  "name": "@goatlab/node-xlsx",
+  "description": "Efficiently work with xlsx files streams in Node.js",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "lint": "eslint src --fix",
+    "prebuild": "rimraf dist",
+    "predev": "rimraf dist",
+    "prestart": "rimraf dist",
+    "serve": "tsc -w",
+    "test": "jest --forceExit --passWithNoTests",
+    "update:packages": "npm-check-updates -u && yarn"
+  },
   "dependencies": {
     "@goatlab/js-utils": "workspace:*"
   },
-  "description": "Efficiently work with xlsx files streams in Node.js",
+  "types": "./dist/index.d.ts",
+  "author": "ignacio.cabrera@goatlab.io",
   "devDependencies": {
     "@goatlab/tsconfig": "workspace:*",
     "@types/jest": "^29.5.0",
@@ -26,26 +47,5 @@
   "keywords": [
     "typescript",
     "TS"
-  ],
-  "license": "MIT",
-  "main": "./dist/index.js",
-  "name": "@goatlab/node-xlsx",
-  "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
-    "lint": "eslint src --fix",
-    "prebuild": "rimraf dist",
-    "predev": "rimraf dist",
-    "prestart": "rimraf dist",
-    "serve": "tsc -w",
-    "test": "jest --forceExit --passWithNoTests",
-    "update:packages": "npm-check-updates -u && yarn"
-  },
-  "types": "./dist/index.d.ts",
-  "version": "0.0.2"
+  ]
 }

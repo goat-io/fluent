@@ -789,45 +789,21 @@ importers:
       '@goatlab/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
-      '@types/through2-concurrent':
-        specifier: ^2.0.1
-        version: 2.0.4
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
       bson:
         specifier: ^6.10.4
         version: 6.10.4
-      child_process:
-        specifier: ^1.0.2
-        version: 1.0.2
-      cross-spawn:
-        specifier: ^7.0.6
-        version: 7.0.6
-      detect-port:
-        specifier: ^2.1.0
-        version: 2.1.0
-      dockerode:
-        specifier: ^4.0.7
-        version: 4.0.7
-      fs:
-        specifier: ^0.0.1-security
-        version: 0.0.1-security
       got-cjs:
         specifier: ^12.5.4
         version: 12.5.4
-      http-errors:
-        specifier: ^2.0.0
-        version: 2.0.0
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
       kleur:
         specifier: ^4.1.5
         version: 4.1.5
-      modern-spawn:
-        specifier: ^1.0.0
-        version: 1.0.0
       net:
         specifier: ^1.0.2
         version: 1.0.2
@@ -853,6 +829,9 @@ importers:
       '@types/node':
         specifier: ^18.15.9
         version: 18.19.111
+      '@types/through2-concurrent':
+        specifier: ^2.0.1
+        version: 2.0.4
       dotenv-cli:
         specifier: ^7.1.0
         version: 7.4.4
@@ -2940,10 +2919,6 @@ packages:
     resolution: {integrity: sha512-4B/qKCfeE/ODUaAUpSwfzazo5x29WD4r3vXiWsB7I2mSDAihwEqKO+g8GELZUQSSAo5e1XTYh3ZVfLyxBc12nA==}
     engines: {node: '>= 10.0.0'}
 
-  address@2.0.3:
-    resolution: {integrity: sha512-XNAb/a6TCqou+TufU8/u11HCu9x1gYvOoxLwtlXgIqmkrYQADVv6ljyW2zwiPhHz9R1gItAWpuDrdJMmrOBFEA==}
-    engines: {node: '>= 16.0.0'}
-
   agent-base@4.3.0:
     resolution: {integrity: sha512-salcGninV0nPrwpGNn4VTXBb1SOuXQBiqbrNXoeizJsHrsL6ERFM2Ne3JUSBWRE6aeNJI2ROP/WEEIDUiDe3cg==}
     engines: {node: '>= 4.0.0'}
@@ -3557,9 +3532,6 @@ packages:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
     engines: {node: '>= 16'}
 
-  child_process@1.0.2:
-    resolution: {integrity: sha512-Wmza/JzL0SiWz7kl6MhIKT5ceIlnFPJX+lwUGj7Clhy5MMldsSoJR0+uvRzOS5Kv45Mq7t1PoE8TsOA9bzvb6g==}
-
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
 
@@ -4079,11 +4051,6 @@ packages:
   detect-port@1.6.1:
     resolution: {integrity: sha512-CmnVc+Hek2egPx1PeTFVta2W78xy2K/9Rkf6cC4T59S50tVnzKj+tnx5mmx5lwvCkujZ4uRrpRSuV+IVs3f90Q==}
     engines: {node: '>= 4.0.0'}
-    hasBin: true
-
-  detect-port@2.1.0:
-    resolution: {integrity: sha512-epZuWb/6Q62L+nDHJc/hQAqf8pylsqgk3BpZXVBx1CDnr3nkrVNn73Uu1rXcFzkNcc+hkP3whuOg7JZYaQB65Q==}
-    engines: {node: '>= 16.0.0'}
     hasBin: true
 
   dialog-polyfill@0.5.6:
@@ -11789,8 +11756,6 @@ snapshots:
 
   address@1.2.2: {}
 
-  address@2.0.3: {}
-
   agent-base@4.3.0:
     dependencies:
       es6-promisify: 5.0.0
@@ -12491,8 +12456,6 @@ snapshots:
 
   check-error@2.1.1: {}
 
-  child_process@1.0.2: {}
-
   chownr@1.1.4: {}
 
   ci-info@2.0.0: {}
@@ -13056,10 +13019,6 @@ snapshots:
       debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
-
-  detect-port@2.1.0:
-    dependencies:
-      address: 2.0.3
 
   dialog-polyfill@0.5.6: {}
 
