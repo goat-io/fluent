@@ -3,7 +3,7 @@
   "main": "./dist/index.js",
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/node-utils",
-  "version": "0.8.49",
+  "version": "0.8.50",
   "private": false,
   "publishConfig": {
     "access": "public"

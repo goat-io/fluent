@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.36
+
+### Patch Changes
+
+- Add Iterable type
+
 ## 0.8.35
 
 ### Patch Changes

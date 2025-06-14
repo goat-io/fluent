@@ -1,5 +1,12 @@
 # 0.5.20
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.36
+
 ## 0.1.2
 
 ### Patch Changes

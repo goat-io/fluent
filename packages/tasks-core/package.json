@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/tasks-core",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Common interfaces to work with tasks",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

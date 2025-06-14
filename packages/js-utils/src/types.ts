@@ -158,6 +158,8 @@ export type Subset<T, U> = {
   [key in keyof T]: key extends keyof U ? T[key] : never
 }
 
+export type IterableItem<T> = T extends Iterable<infer U> ? U : never
+
 // Interface for paginated data responses
 export interface PaginatedData<T> {
   /**
