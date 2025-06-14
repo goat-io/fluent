@@ -37,10 +37,11 @@ export interface TaskStatus<T extends InputType = UnknownInputType> {
 }
 
 export interface TaskConnector<TInput> {
-  schedule(params: {
+  queue(params: {
     taskName: string
     postUrl: string
     taskBody: TInput
+    handle: () => Promise<any>
   }): Promise<Omit<TaskStatus, 'payload'>>
   getStatus(id: string): Promise<TaskStatus>
 }

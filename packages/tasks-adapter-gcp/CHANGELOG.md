@@ -1,28 +1,36 @@
 # 0.5.20
 
-## 0.1.6
-
-### Patch Changes
-
-- New Hatchet Queue adaptor
-
 ## 0.1.5
 
 ### Patch Changes
 
-- Fix get status
+- New Hatchet Queue adaptor
+- Updated dependencies
+  - @goatlab/tasks-core@0.1.6
 
 ## 0.1.4
 
 ### Patch Changes
 
-- Rename schedule to queue
+- Fix get status
+- Updated dependencies
+  - @goatlab/tasks-core@0.1.5
 
 ## 0.1.3
 
 ### Patch Changes
 
+- Rename schedule to queue
+- Updated dependencies
+  - @goatlab/tasks-core@0.1.4
+
+## 0.1.2
+
+### Patch Changes
+
 - Publish task adapter gcp
+- Updated dependencies
+  - @goatlab/tasks-core@0.1.3
 
 ## 0.1.2
 

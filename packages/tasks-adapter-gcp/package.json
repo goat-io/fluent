@@ -1,7 +1,7 @@
 {
-  "name": "@goatlab/tasks-core",
-  "version": "0.1.6",
-  "description": "Common interfaces to work with tasks",
+  "name": "@goatlab/tasks-adapter-gcp",
+  "version": "0.1.5",
+  "description": "Cloud Tasks adapter for Goatlab tasks",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -42,7 +42,10 @@
     "TS"
   ],
   "dependencies": {
-    "@goatlab/js-utils": "workspace:*"
+    "@goatlab/js-utils": "workspace:*",
+    "@goatlab/node-utils": "workspace:*",
+    "@goatlab/tasks-core": "workspace:*",
+    "@google-cloud/tasks": "^6.1.0"
   },
   "devDependencies": {
     "@goatlab/tsconfig": "workspace:*",
@@ -51,8 +54,10 @@
     "@types/amqplib": "^0.8.2",
     "@types/jest": "^27.4.1",
     "@types/node": "^17.0.23",
+    "dotenv": "^16.5.0",
     "dotenv-cli": "^5.1.0",
     "eslint": "^8.5.0",
+    "google-gax": "^5.0.0",
     "jest": "catalog:",
     "jest-environment-node": "^27.5.1",
     "prettier": "^2.6.1",
