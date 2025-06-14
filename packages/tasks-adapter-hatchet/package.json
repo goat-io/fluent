@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/tasks-adapter-hatchet",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Hatchet Tasks adapter for Goatlab tasks",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

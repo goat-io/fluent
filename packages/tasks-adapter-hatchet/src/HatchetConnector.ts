@@ -1,4 +1,4 @@
-import { Memo } from '@goatlab/js-utils'
+import { Ids, Memo } from '@goatlab/js-utils'
 import type {
   ShouldQueue,
   TaskConnector,
@@ -28,7 +28,7 @@ export class HatchetConnector implements TaskConnector<object> {
   }) {
     this.token = token || ''
     this.hostAndPort = hostAndPort || 'localhost:7077'
-    this.apiUrl = apiUrl || 'http:localhost:8888'
+    this.apiUrl = apiUrl || 'http://localhost:8888'
     this.logLevel = logLevel || 'INFO'
     this.tenantId = tenantId || ''
   }
@@ -57,6 +57,30 @@ export class HatchetConnector implements TaskConnector<object> {
       retries: task['retries'] || 3,
       fn: task.handle.bind(this)
     })
+  }
+
+  async startWorker({
+    workerName,
+    tasks,
+    slots = 100
+  }: {
+    workerName?: string
+    tasks: any[]
+    slots?: number
+  }) {
+    const worker = await this.getHatchetClient().worker(
+      `${workerName}-${Ids.nanoId(5)}`,
+      {
+        // 👀 Declare the workflows that the worker can execute
+        workflows: tasks,
+        // 👀 Declare the number of concurrent task runs the worker can accept
+        slots: slots
+      }
+    )
+
+    await worker.start()
+
+    return worker
   }
 
   /**

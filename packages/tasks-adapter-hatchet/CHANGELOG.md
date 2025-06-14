@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.1.2
+
+### Patch Changes
+
+- Add start worker
+
 ## 0.1.1
 
 ### Patch Changes
