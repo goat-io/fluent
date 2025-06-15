@@ -25,8 +25,6 @@ export default async () => {
     9093
   )}`
 
-  console.log({ kafkaUrl })
-
   const data = {
     rabbitMQUrl,
     kafkaUrl
