@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.1.8
+
+### Patch Changes
+
+- Fix unique task name
+
 ## 0.1.7
 
 ### Patch Changes
