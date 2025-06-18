@@ -25,17 +25,11 @@ const task = new TestTask({
 
 describe('HatcherConnector', () => {
   beforeAll(async () => {
-    const worker = await hatchetConnector
-      .getHatchetClient()
-      .worker(`backend-worker-${Ids.nanoId(5)}`, {
-        // 👀 Declare the workflows that the worker can execute
-        workflows: [hatchetConnector.getHatchetTask(task)],
-        // 👀 Declare the number of concurrent task runs the worker can accept
-        slots: 100
-      })
-
-    void worker.start()
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await hatchetConnector.startWorker({
+      workerName: 'backend-worker',
+      tasks: [task],
+      slots: 100
+    })
   })
   it('should create a task and run it', async () => {
     const status = await task.queue({ text: 'Hello, World!' })

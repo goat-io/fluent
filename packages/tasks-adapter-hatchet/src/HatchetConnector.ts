@@ -72,14 +72,15 @@ export class HatchetConnector implements TaskConnector<object> {
       `${workerName}-${Ids.nanoId(5)}`,
       {
         // 👀 Declare the workflows that the worker can execute
-        workflows: tasks,
+        workflows: tasks.map(task => this.getHatchetTask(task)),
         // 👀 Declare the number of concurrent task runs the worker can accept
         slots: slots
       }
     )
 
-    await worker.start()
-
+    void worker.start()
+    // Give the worker some time to start
+    await new Promise(resolve => setTimeout(resolve, 1000))
     return worker
   }
 
