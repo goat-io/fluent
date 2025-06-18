@@ -9,6 +9,10 @@ class TestTask extends ShouldQueue<{ text: string }> {
   postUrl = `http://localhost/task/this/url`
   taskName = 'this_is_the_task_name'
 
+  protected getUniqueTaskName(_: { text: string }): string {
+    return `test_task_${Ids.uuid()}`
+  }
+
   public async handle(taskBody: UnknownInputType): Promise<void> {
     console.log('Running task with body:', taskBody)
   }

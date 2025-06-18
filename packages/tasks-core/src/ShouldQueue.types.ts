@@ -38,6 +38,7 @@ export interface TaskStatus<T extends InputType = UnknownInputType> {
 
 export interface TaskConnector<TInput> {
   queue(params: {
+    uniquiteTaskName: string
     taskName: string
     postUrl: string
     taskBody: TInput

@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.1.5
+
+### Patch Changes
+
+- Fix unique task name
+- Updated dependencies
+  - @goatlab/tasks-core@0.1.8
+
 ## 0.1.4
 
 ### Patch Changes
