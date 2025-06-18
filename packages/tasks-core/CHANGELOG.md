@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.1.9
+
+### Patch Changes
+
+- Fix typo
+
 ## 0.1.8
 
 ### Patch Changes
