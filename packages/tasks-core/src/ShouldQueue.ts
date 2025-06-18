@@ -29,7 +29,7 @@ export abstract class ShouldQueue<
   async queue(taskBody: TInput): Promise<Omit<TaskStatus, 'payload'>> {
     return await this.connector.queue({
       taskName: this.taskName,
-      uniquiteTaskName: this.getUniqueTaskName(taskBody),
+      uniqueTaskName: this.getUniqueTaskName(taskBody),
       postUrl: this.postUrl,
       taskBody,
       handle: this.handle.bind(this)

@@ -315,7 +315,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
   async queue(params: any): Promise<Omit<TaskStatus, 'payload'>> {
     const task = await this.addTask({
       task: {
-        name: `${params.uniquiteTaskName}_${Ids.nanoId(5)}`,
+        name: `${params.uniqueTaskName}_${Ids.nanoId(5)}`,
         httpRequest: {
           url: params.postUrl,
           body: JSON.stringify(params.taskBody)
