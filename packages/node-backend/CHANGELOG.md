@@ -1,80 +1,17 @@
 # 0.5.20
 
-## 0.1.9
+## 0.0.2
 
 ### Patch Changes
 
-- Updated dependencies
-  - @goatlab/node-utils@0.8.51
-
-## 0.1.8
-
-### Patch Changes
-
-- Fix typo
-- Updated dependencies
-  - @goatlab/tasks-core@0.1.9
-
-## 0.1.7
-
-### Patch Changes
-
-- Fix unique task name
-- Updated dependencies
-  - @goatlab/tasks-core@0.1.8
-
-## 0.1.6
-
-### Patch Changes
-
-- Updated dependencies
-  - @goatlab/js-utils@0.8.36
-  - @goatlab/node-utils@0.8.50
-  - @goatlab/tasks-core@0.1.7
-
-## 0.1.5
-
-### Patch Changes
-
-- New Hatchet Queue adaptor
-- Updated dependencies
-  - @goatlab/tasks-core@0.1.6
-
-## 0.1.4
-
-### Patch Changes
-
-- Fix get status
-- Updated dependencies
-  - @goatlab/tasks-core@0.1.5
+- Create backend repo
 
 ## 0.1.3
 
 ### Patch Changes
 
-- Rename schedule to queue
 - Updated dependencies
-  - @goatlab/tasks-core@0.1.4
-
-## 0.1.2
-
-### Patch Changes
-
-- Publish task adapter gcp
-- Updated dependencies
-  - @goatlab/tasks-core@0.1.3
-
-## 0.1.2
-
-### Patch Changes
-
-- First publish
-
-## 0.1.1
-
-### Patch Changes
-
-- Common interfaces for tasks
+  - @goatlab/js-utils@0.8.36
 
 ## 0.1.2
 

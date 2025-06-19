@@ -1,34 +1,131 @@
 import { existsSync, mkdirSync } from 'fs'
 import { dirname } from 'path'
-import rimraf from 'rimraf'
+import * as crypto from 'crypto'
+import * as fs from 'fs'
+import * as path from 'path'
+import { Promises } from '@goatlab/js-utils'
+import { readdir, stat } from 'fs/promises'
+import { join } from 'path'
 
-export const Folders = (() => {
+class FoldersClass {
   /**
-   *
-   * @param dir
+   * Removes a directory and all its contents synchronously
+   * @param dir - The directory path to remove
    */
-  const remove = (dir: string) => rimraf.sync(dir)
+  removeSync = (dir: string) => {
+    if (!fs.existsSync(dir)) return
+    for (const entry of fs.readdirSync(dir)) {
+      const fullPath = path.join(dir, entry)
+      const stat = fs.lstatSync(fullPath)
+      if (stat.isDirectory()) {
+        this.removeSync(fullPath)
+      } else {
+        fs.unlinkSync(fullPath)
+      }
+    }
+    fs.rmdirSync(dir)
+  }
+
   /**
-   *
-   * @param filePath
+   * Ensures a directory exists by creating it if it doesn't exist
+   * @param filePath - The file path whose directory should be created
+   * @returns Always returns true
    */
-  const findOrCreate = filePath => {
+  findOrCreate = (filePath: string) => {
     const dir = dirname(filePath)
     if (existsSync(dir)) {
       return true
     }
 
-    mkdirSync(dir)
-
-    return findOrCreate(dirname)
+    mkdirSync(dir, { recursive: true })
+    return true
   }
+
   /**
+   * Generates a SHA-256 hash representing the contents and structure of a directory.
    *
+   * Recursively traverses the specified directory, including all subdirectories and files,
+   * and computes a hash based on both the file contents and their relative paths.
+   * The order of directory entries is sorted to ensure consistent hashing across runs.
+   *
+   * @param directory - The root directory to hash.
+   * @returns A hexadecimal string representing the SHA-256 hash of the directory's contents and structure.
    */
-  const isGoatFolder = (): boolean => {
+  hash(directory: string): string {
+    const hash = crypto.createHash('sha256')
+    const stack: string[] = [directory]
+
+    while (stack.length) {
+      const currentDir = stack.pop()!
+      const entries = fs.readdirSync(currentDir).sort() // ensure consistent order
+
+      for (const entry of entries) {
+        const fullPath = path.join(currentDir, entry)
+        const relativePath = path.relative(directory, fullPath)
+        const stat = fs.statSync(fullPath)
+
+        hash.update(relativePath) // include relative path to differentiate same-named files
+        if (stat.isDirectory()) {
+          stack.push(fullPath)
+        } else {
+          hash.update(fs.readFileSync(fullPath))
+        }
+      }
+    }
+
+    return hash.digest('hex')
+  }
+
+  /**
+   * Recursively searches for files within a directory and its subdirectories.
+   * Optionally filters the results by a search string.
+   *
+   * @param params - The parameters for the search.
+   * @param params.dir - The root directory to start the search from.
+   * @param params.search - (Optional) A string to filter file paths. Only files whose full path includes this string will be included.
+   * @param params.fileList - The accumulator array for found file paths. Defaults to an empty array.
+   * @returns A promise that resolves to an array of file paths matching the search criteria.
+   */
+  searchFileIn = async ({
+    dir,
+    search,
+    fileList = []
+  }: {
+    dir: string
+    search?: string
+    fileList: string[]
+  }) => {
+    const files = await readdir(dir)
+
+    await Promises.map(files, async file => {
+      const filepath = join(dir, file)
+      const statFS = await stat(filepath)
+
+      if (statFS.isDirectory()) {
+        fileList = await this.searchFileIn({
+          dir: filepath,
+          fileList,
+          search
+        })
+      } else {
+        const fullPath = `${dir}/${file}`
+        if (search) {
+          if (fullPath.includes(search)) {
+            fileList.push(fullPath)
+          }
+        } else {
+          fileList.push(fullPath)
+        }
+      }
+    })
+
+    return fileList
+  }
+
+  isGoatFolder = (): boolean => {
     const fastDirname = '.goat'
     return existsSync(fastDirname)
   }
+}
 
-  return Object.freeze({ isGoatFolder, remove, findOrCreate })
-})()
+export const Folders = new FoldersClass()

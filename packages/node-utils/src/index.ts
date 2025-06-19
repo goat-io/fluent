@@ -14,6 +14,7 @@ import { Inspect } from './Inspect'
 import { ObjectIds } from './ObjectIds'
 import { Streams } from './Streams'
 import { Ips } from './Ips'
+import { TypesenseService } from './services/search/typesense.service'
 
 export {
   Log,
@@ -31,6 +32,16 @@ export {
   Scripts,
   ObjectIds,
   Streams,
-  Ips
+  Ips,
+  TypesenseService
 }
 export type { BuildInfo }
+export type {
+  TypesenseFieldType,
+  TypesenseCollection,
+  TypesenseDocument,
+  TypesenseDocumentGeneric,
+  TypesenseQuery,
+  TypesenseCollectionOutput,
+  TypesenseQueryResults
+} from './services/search/typesense.model'
