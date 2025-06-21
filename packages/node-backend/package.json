@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-backend",
-  "version": "0.0.5",
+  "version": "0.0.8",
   "description": "Common tools to work with Node.js backend applications.",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

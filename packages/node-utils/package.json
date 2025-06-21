@@ -3,7 +3,7 @@
   "main": "./dist/index.js",
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/node-utils",
-  "version": "0.8.53",
+  "version": "0.8.54",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -26,7 +26,6 @@
     "@goatlab/tsconfig": "workspace:*",
     "bcrypt": "^6.0.0",
     "bson": "^6.10.4",
-    "got-cjs": "^12.5.4",
     "jsonwebtoken": "^9.0.2",
     "kleur": "^4.1.5",
     "net": "^1.0.2",

@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.8.54
+
+### Patch Changes
+
+- Remove getGot from node-utils
+- Updated dependencies
+  - @goatlab/js-utils@0.8.37
+
 ## 0.8.53
 
 ### Patch Changes

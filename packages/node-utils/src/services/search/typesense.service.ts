@@ -1,4 +1,5 @@
-import { getGot } from '../../getGot'
+import { Http } from '@goatlab/js-utils'
+import type { KyInstance } from '@goatlab/js-utils'
 import type {
   TypesenseCollection,
   TypesenseCollectionOutput,
@@ -8,7 +9,7 @@ import type {
 } from './typesense.model'
 
 export class TypesenseService<T> {
-  private typesenseAPI: ReturnType<typeof getGot>
+  private typesenseAPI: KyInstance
   private readonly collectionName: string
 
   constructor({
@@ -22,11 +23,9 @@ export class TypesenseService<T> {
   }) {
     this.collectionName = collectionName
 
-    this.typesenseAPI = getGot({
+    this.typesenseAPI = Http.getClient({
       prefixUrl,
-      timeout: {
-        response: 10_000
-      },
+      timeout: 10_000,
       retry: {
         limit: 5
       },

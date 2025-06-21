@@ -222,4 +222,30 @@ export class Cache extends Keyv {
       }
     }
   }
+
+  public async getValueWhereKeyStartsWith<T>(value: string): Promise<T[]> {
+    const result = []
+    if (!this.iterator) {
+      await Promises.map(
+        Object.keys(this.opts.store['cache']['cache']),
+        async k => {
+          if (k.startsWith(`${this._ns}:${value}`)) {
+            const val = JSON.parse(
+              this.opts.store['cache']['cache'][k].value
+            ).value
+            result.push(val)
+          }
+        }
+      )
+      return result
+    }
+
+    for await (const [key, val] of this.iterator(this._ns)) {
+      if (key.startsWith(value)) {
+        result.push(val)
+      }
+    }
+
+    return result
+  }
 }

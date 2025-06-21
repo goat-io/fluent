@@ -1,5 +1,25 @@
 # 0.5.20
 
+## 0.0.8
+
+### Patch Changes
+
+- Add cache functionality
+
+## 0.0.7
+
+### Patch Changes
+
+- Remove getGot from node-utils
+- Updated dependencies
+  - @goatlab/js-utils@0.8.37
+
+## 0.0.6
+
+### Patch Changes
+
+- Remove keyv from fluent
+
 ## 0.0.5
 
 ### Patch Changes

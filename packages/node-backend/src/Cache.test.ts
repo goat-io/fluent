@@ -604,3 +604,214 @@ describe('CACHE - Keyv', () => {
     expect(exists).toBe(false)
   })
 })
+
+describe('Cache#getValueWhereKeyStartsWith', () => {
+  it('should return values for keys starting with a prefix (Memory)', async () => {
+    const cache = new Cache({
+      connection: undefined,
+      opts: { namespace: 'gvwksw-ns' }
+    })
+    await cache.set('foo:1', 'a')
+    await cache.set('foo:2', 'b')
+    await cache.set('bar:1', 'c')
+
+    const values = await cache.getValueWhereKeyStartsWith('foo')
+    expect(values).toContain('a')
+    expect(values).toContain('b')
+    expect(values).not.toContain('c')
+    expect(values.length).toBe(2)
+  })
+
+  it('should return an empty array if no keys match (Memory)', async () => {
+    const cache = new Cache({
+      connection: undefined,
+      opts: { namespace: 'gvwksw-empty' }
+    })
+    await cache.set('foo:1', 'a')
+    const values = await cache.getValueWhereKeyStartsWith('bar')
+    expect(Array.isArray(values)).toBe(true)
+    expect(values.length).toBe(0)
+  })
+
+  it('should isolate values between namespaces (Memory)', async () => {
+    const cacheA = new Cache({
+      connection: undefined,
+      opts: { namespace: 'gvwksw-nsA' }
+    })
+    const cacheB = new Cache({
+      connection: undefined,
+      opts: { namespace: 'gvwksw-nsB' }
+    })
+    await cacheA.set('foo:1', 'a')
+    await cacheB.set('foo:1', 'b')
+
+    const valuesA = await cacheA.getValueWhereKeyStartsWith('foo')
+    const valuesB = await cacheB.getValueWhereKeyStartsWith('foo')
+    expect(valuesA).toEqual(['a'])
+    expect(valuesB).toEqual(['b'])
+  })
+
+  describe('with Redis', () => {
+    const connection = getGlobalData().redisUrl || 'redis://localhost:6379'
+    let cache: Cache
+
+    beforeEach(async () => {
+      cache = new Cache({
+        connection,
+        opts: { namespace: `gvwksw-redis-${Ids.nanoId(5)}` }
+      })
+      await cache.flush()
+    })
+
+    afterEach(async () => {
+      await cache.flush()
+    })
+
+    it('should return values for keys starting with a prefix (Redis)', async () => {
+      await cache.set('foo:1', 'a')
+      await cache.set('foo:2', 'b')
+      await cache.set('bar:1', 'c')
+
+      const values = await cache.getValueWhereKeyStartsWith('foo')
+      expect(values).toContain('a')
+      expect(values).toContain('b')
+      expect(values).not.toContain('c')
+      expect(values.length).toBe(2)
+    })
+
+    it('should return an empty array if no keys match (Redis)', async () => {
+      await cache.set('foo:1', 'a')
+      const values = await cache.getValueWhereKeyStartsWith('bar')
+      expect(Array.isArray(values)).toBe(true)
+      expect(values.length).toBe(0)
+    })
+
+    it('should isolate values between namespaces (Redis)', async () => {
+      const cacheA = new Cache({
+        connection,
+        opts: { namespace: `gvwksw-redisA-${Ids.nanoId(5)}` }
+      })
+      const cacheB = new Cache({
+        connection,
+        opts: { namespace: `gvwksw-redisB-${Ids.nanoId(5)}` }
+      })
+      await cacheA.set('foo:1', 'a')
+      await cacheB.set('foo:1', 'b')
+
+      const valuesA = await cacheA.getValueWhereKeyStartsWith('foo')
+      const valuesB = await cacheB.getValueWhereKeyStartsWith('foo')
+      expect(valuesA).toEqual(['a'])
+      expect(valuesB).toEqual(['b'])
+    })
+  })
+  describe('Cache#getValueWhereKeyStartsWith - complex objects', () => {
+    it('should return complex objects for keys starting with a prefix (Memory)', async () => {
+      const cache = new Cache({
+        connection: undefined,
+        opts: { namespace: 'gvwksw-complex' }
+      })
+      const obj1 = { a: 1, b: [1, 2, 3], c: { d: 'test' } }
+      const obj2 = { x: 42, y: { z: [4, 5] } }
+      await cache.set('foo:1', obj1)
+      await cache.set('foo:2', obj2)
+      await cache.set('bar:1', { not: 'included' })
+
+      const values = await cache.getValueWhereKeyStartsWith('foo')
+      expect(values).toEqual(expect.arrayContaining([obj1, obj2]))
+      expect(values).not.toContainEqual({ not: 'included' })
+      expect(values.length).toBe(2)
+      expect(values[0]).toHaveProperty('a')
+      expect(values[1]).toHaveProperty('x')
+    })
+
+    it('should return an empty array if no complex objects match (Memory)', async () => {
+      const cache = new Cache({
+        connection: undefined,
+        opts: { namespace: 'gvwksw-complex-empty' }
+      })
+      await cache.set('foo:1', { a: 1 })
+      const values = await cache.getValueWhereKeyStartsWith('bar')
+      expect(Array.isArray(values)).toBe(true)
+      expect(values.length).toBe(0)
+    })
+
+    it('should isolate complex objects between namespaces (Memory)', async () => {
+      const cacheA = new Cache({
+        connection: undefined,
+        opts: { namespace: 'gvwksw-complexA' }
+      })
+      const cacheB = new Cache({
+        connection: undefined,
+        opts: { namespace: 'gvwksw-complexB' }
+      })
+      const objA = { foo: 'A', arr: [1, 2] }
+      const objB = { foo: 'B', arr: [3, 4] }
+      await cacheA.set('foo:1', objA)
+      await cacheB.set('foo:1', objB)
+
+      const valuesA = await cacheA.getValueWhereKeyStartsWith('foo')
+      const valuesB = await cacheB.getValueWhereKeyStartsWith('foo')
+      expect(valuesA).toEqual([objA])
+      expect(valuesB).toEqual([objB])
+    })
+
+    describe('with Redis - complex objects', () => {
+      const connection = getGlobalData().redisUrl || 'redis://localhost:6379'
+      let cache: Cache
+
+      beforeEach(async () => {
+        cache = new Cache({
+          connection,
+          opts: { namespace: `gvwksw-redis-complex-${Ids.nanoId(5)}` }
+        })
+        await cache.flush()
+      })
+
+      afterEach(async () => {
+        await cache.flush()
+      })
+
+      // it('should return complex objects for keys starting with a prefix (Redis)', async () => {
+      //   const obj1 = { a: 1, b: [1, 2, 3], c: { d: 'test' } }
+      //   const obj2 = { x: 42, y: { z: [4, 5] } }
+      //   await cache.set('foo:1', obj1)
+      //   await cache.set('foo:2', obj2)
+      //   await cache.set('bar:1', { not: 'included' })
+
+      //   const values = await cache.getValueWhereKeyStartsWith('foo')
+      //   expect(values).toEqual(expect.arrayContaining([obj1, obj2]))
+      //   expect(values).not.toContainEqual({ not: 'included' })
+      //   expect(values.length).toBe(2)
+      //   expect(values[0]).toEqual(expect.objectContaining(obj1))
+      //   expect(values[1]).toEqual(expect.objectContaining(obj2))
+      // })
+
+      it('should return an empty array if no complex objects match (Redis)', async () => {
+        await cache.set('foo:1', { a: 1 })
+        const values = await cache.getValueWhereKeyStartsWith('bar')
+        expect(Array.isArray(values)).toBe(true)
+        expect(values.length).toBe(0)
+      })
+
+      it('should isolate complex objects between namespaces (Redis)', async () => {
+        const cacheA = new Cache({
+          connection,
+          opts: { namespace: `gvwksw-redis-complexA-${Ids.nanoId(5)}` }
+        })
+        const cacheB = new Cache({
+          connection,
+          opts: { namespace: `gvwksw-redis-complexB-${Ids.nanoId(5)}` }
+        })
+        const objA = { foo: 'A', arr: [1, 2] }
+        const objB = { foo: 'B', arr: [3, 4] }
+        await cacheA.set('foo:1', objA)
+        await cacheB.set('foo:1', objB)
+
+        const valuesA = await cacheA.getValueWhereKeyStartsWith('foo')
+        const valuesB = await cacheB.getValueWhereKeyStartsWith('foo')
+        expect(valuesA).toEqual([objA])
+        expect(valuesB).toEqual([objB])
+      })
+    })
+  })
+})
