@@ -3,12 +3,12 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     globalSetup: './setup.ts',
-    environment: 'node',
-    globals: true,
-    server: {
-      deps: {
-        inline: ['keyv', '@keyv/redis']
-      }
-    }
+    environment: 'node'
+    //globals: true
+    // server: {
+    //   deps: {
+    //     inline: ['keyv', '@keyv/redis']
+    //   }
+    // }
   }
 })

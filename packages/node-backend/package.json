@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-backend",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "Common tools to work with Node.js backend applications.",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -44,7 +44,7 @@
   "dependencies": {
     "@goatlab/js-utils": "workspace:*",
     "@keyv/redis": "^4.4.0",
-    "keyv": "^4.5.4",
+    "keyv": "^5.3.4",
     "keyv-lru": "^3.0.4"
   },
   "devDependencies": {

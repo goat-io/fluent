@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.0.5
+
+### Patch Changes
+
+- Fix vitest
+
+## 0.0.4
+
+### Patch Changes
+
+- Bump keyv
+
 ## 0.0.3
 
 ### Patch Changes

@@ -718,10 +718,10 @@ importers:
         version: link:../js-utils
       '@keyv/redis':
         specifier: ^4.4.0
-        version: 4.4.0(keyv@4.5.4)
+        version: 4.4.0(keyv@5.3.4)
       keyv:
-        specifier: ^4.5.4
-        version: 4.5.4
+        specifier: ^5.3.4
+        version: 5.3.4
       keyv-lru:
         specifier: ^3.0.4
         version: 3.0.4
@@ -2188,6 +2188,9 @@ packages:
     engines: {node: '>= 18'}
     peerDependencies:
       keyv: ^5.3.3
+
+  '@keyv/serialize@1.0.3':
+    resolution: {integrity: sha512-qnEovoOp5Np2JDGonIDL6Ayihw0RhnRh6vxPuHo4RDn1UOzwEo4AeIfpL6UGIrsceWrCMiVPgwRjbHu4vYFc3g==}
 
   '@loopback/metadata@7.0.14':
     resolution: {integrity: sha512-qt4DfeIRFfGCQRXGBXkVvEGXt/LadZJC9Xj38f0sXWNNaDbBuWiFwAXhpIYgsdafLYGCJkziFkk1K87Wa7d75g==}
@@ -6233,6 +6236,9 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  keyv@5.3.4:
+    resolution: {integrity: sha512-ypEvQvInNpUe+u+w8BIcPkQvEqXquyyibWE/1NB5T2BTzIpS5cGEV1LZskDzPSTvNAaT4+5FutvzlvnkxOSKlw==}
 
   kind-of@6.0.3:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
@@ -10825,11 +10831,15 @@ snapshots:
     dependencies:
       lodash: 4.17.21
 
-  '@keyv/redis@4.4.0(keyv@4.5.4)':
+  '@keyv/redis@4.4.0(keyv@5.3.4)':
     dependencies:
       '@redis/client': 1.6.1
       cluster-key-slot: 1.1.2
-      keyv: 4.5.4
+      keyv: 5.3.4
+
+  '@keyv/serialize@1.0.3':
+    dependencies:
+      buffer: 6.0.3
 
   '@loopback/metadata@7.0.14':
     dependencies:
@@ -16262,6 +16272,10 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  keyv@5.3.4:
+    dependencies:
+      '@keyv/serialize': 1.0.3
 
   kind-of@6.0.3: {}
 
