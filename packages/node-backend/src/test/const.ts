@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import { join, resolve } from 'path'
 
 export type GlobalTempData = {
-  rabbitMQUrl?: string
+  redisUrl?: string
 }
 const tempDataFilePath = resolve(join(__dirname, '../../'), 'tempData.json')
 

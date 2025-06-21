@@ -1,5 +1,20 @@
 # 0.5.20
 
+## 0.1.11
+
+### Patch Changes
+
+- Add node-backend
+- Updated dependencies
+  - @goatlab/node-utils@0.8.53
+
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.8.52
+
 ## 0.1.9
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.8.53
+
+### Patch Changes
+
+- Add node-backend
+
+## 0.8.52
+
+### Patch Changes
+
+- Fix Ips
+
 ## 0.8.51
 
 ### Patch Changes
