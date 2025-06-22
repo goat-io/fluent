@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.0.4
+
+### Patch Changes
+
+- Change meta imports to require
+
+## 0.0.3
+
+### Patch Changes
+
+- Change import for pupeteer
+
 ## 0.0.2
 
 ### Patch Changes

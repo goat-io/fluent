@@ -2,18 +2,19 @@ import { URL } from 'url'
 import { Promises } from '@goatlab/js-utils'
 import { PuppeteerService } from './puppeteer.service'
 import * as cheerio from 'cheerio'
-import metascraper from 'metascraper'
-import metascraperAuthor from 'metascraper-author'
-import metascraperClearBit from 'metascraper-clearbit'
-import metascraperDate from 'metascraper-date'
-import metascraperDescription from 'metascraper-description'
-import metascraperFeed from 'metascraper-feed'
-import metascraperImage from 'metascraper-image'
-import metascraperLang from 'metascraper-lang'
-import metascraperLogo from 'metascraper-logo'
-import metascraperPublisher from 'metascraper-publisher'
-import metascraperTitle from 'metascraper-title'
-import metascraperUrl from 'metascraper-url'
+
+const metascraper = require('metascraper')
+const metascraperAuthor = require('metascraper-author')
+const metascraperClearBit = require('metascraper-clearbit')
+const metascraperDate = require('metascraper-date')
+const metascraperDescription = require('metascraper-description')
+const metascraperFeed = require('metascraper-feed')
+const metascraperImage = require('metascraper-image')
+const metascraperLang = require('metascraper-lang')
+const metascraperLogo = require('metascraper-logo')
+const metascraperPublisher = require('metascraper-publisher')
+const metascraperTitle = require('metascraper-title')
+const metascraperUrl = require('metascraper-url')
 
 const scraper = metascraper([
   metascraperImage(),
