@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.38
+
+### Patch Changes
+
+- Bundle Ky
+
 ## 0.8.37
 
 ### Patch Changes

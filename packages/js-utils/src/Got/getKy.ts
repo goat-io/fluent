@@ -1,13 +1,13 @@
 import { URL } from 'url'
 import { Time } from '../Time'
-import Ky from '@toss/ky'
+import Ky from './ky'
 import type {
   KyInstance,
   AfterResponseHook,
   BeforeErrorHook,
   BeforeRequestHook,
   BeforeRetryHook
-} from 'ky'
+} from './ky'
 import { inspectAny } from './inspectAny'
 import { GetKyOptions, KyRequestContext } from './ky.model'
 

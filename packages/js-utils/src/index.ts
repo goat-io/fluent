@@ -48,7 +48,7 @@ export type {
   BeforeErrorHook,
   BeforeRequestHook,
   BeforeRetryHook
-} from 'ky'
+} from './Got/ky'
 
 export * from './types'
 

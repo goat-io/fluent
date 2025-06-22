@@ -1,6 +1,6 @@
 import type { AnyObject } from '../types'
 import type { CommonLogger } from '../Logs/commonLogger'
-import type { Options } from 'ky'
+import type { Options } from './ky'
 
 export interface GetKyOptions extends Options {
   /**
