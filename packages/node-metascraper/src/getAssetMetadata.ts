@@ -1,6 +1,7 @@
 import { Http } from '@goatlab/js-utils'
 import { Jimp } from 'jimp'
 import filetype from 'magic-bytes.js'
+import { readFileSync } from 'fs'
 
 export type MarketplaceAsset = {
   id?: string
@@ -35,16 +36,23 @@ export const getAssetMetadata = async (
   }
 
   try {
-    // Fetch the image data using got
-    const response = await got(imageUrl)
+    let buffer: Buffer
+    const isUrl = /^https?:\/\//i.test(imageUrl)
 
-    const buffer = Buffer.from(await response.arrayBuffer())
+    if (isUrl) {
+      // Fetch the image data using got
+      const response = await got(imageUrl)
+
+      buffer = Buffer.from(await response.arrayBuffer())
+    } else {
+      // Read the image data from the local file system
+      buffer = readFileSync(imageUrl)
+    }
 
     // Detect MIME type using magic-bytes.js
-    const mimeType = filetype(buffer) || response.headers.get('content-type')
-
+    const mimeType = filetype(buffer)
     const mime =
-      mimeType && mimeType[0] ? `${mimeType[0]['mime']}` : 'image/unknown'
+      mimeType && mimeType[0] ? `${mimeType[0].mime}` : 'image/unknown'
 
     // Determine if it's an image or not
     const isImage = mime?.startsWith('image/') || false

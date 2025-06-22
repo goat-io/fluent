@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.0.5
+
+### Patch Changes
+
+- Support local files in scrapper
+
 ## 0.0.4
 
 ### Patch Changes
