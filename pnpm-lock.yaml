@@ -968,6 +968,12 @@ importers:
       '@goatlab/js-utils':
         specifier: workspace:*
         version: link:../js-utils
+      '@goatlab/node-utils':
+        specifier: workspace:*
+        version: link:../node-utils
+      xlstream:
+        specifier: ^2.5.5
+        version: 2.5.5
     devDependencies:
       '@goatlab/tsconfig':
         specifier: workspace:*
@@ -4656,6 +4662,10 @@ packages:
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
 
+  deep-rename-keys@0.2.1:
+    resolution: {integrity: sha512-RHd9ABw4Fvk+gYDWqwOftG849x0bYOySl/RgX0tLI9i27ZIeSO91mLZJEp7oPHOMFqHvpgu21YptmDt0FYD/0A==}
+    engines: {node: '>=0.10.0'}
+
   deepmerge@4.3.1:
     resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
     engines: {node: '>=0.10.0'}
@@ -5410,6 +5420,9 @@ packages:
   fb-watchman@2.0.2:
     resolution: {integrity: sha512-p5161BqbuCaSnB8jIbzQHOlpgsPmK5rJVDfDKO91Axs5NC1uu3HRQm6wt9cd9/+GtQQIO53JdGXXoyDpTAsgYA==}
 
+  fclone@1.0.11:
+    resolution: {integrity: sha512-GDqVQezKzRABdeqflsgMr7ktzgF9CyS+p2oe0jJqUY6izSSbhPIQJDpoU4PtGcD7VPM9xh/dVrTu6z1nwgmEGw==}
+
   fd-slicer@1.1.0:
     resolution: {integrity: sha512-cE1qsB/VwyQozZ+q1dGxR8LBYNZeofhEdUNGSMbQD3Gw2lAzX9Zb3uIU6Ebc/Fmyjo9AWWfnn0AUCHqtevs/8g==}
 
@@ -5575,6 +5588,10 @@ packages:
   forwarded@0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
+
+  frac@1.1.2:
+    resolution: {integrity: sha512-w/XBfkibaTl3YDqASwfDUqkna4Z2p9cFSr1aHDt0WoMTECnRfBOv2WArlZILlqgWlmdIlALXGpM2AOhEk5W3IA==}
+    engines: {node: '>=0.8'}
 
   fresh@0.5.2:
     resolution: {integrity: sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q==}
@@ -7707,6 +7724,10 @@ packages:
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
 
+  node-stream-zip@1.15.0:
+    resolution: {integrity: sha512-LN4fydt9TqhZhThkZIVQnF9cwjU3qmUH9h78Mx/K7d3VvfRqqwthLwJEUOEL0QPZ0XQmNN7be5Ggit5+4dq3Bw==}
+    engines: {node: '>=0.12.0'}
+
   nopt@8.1.0:
     resolution: {integrity: sha512-ieGu42u/Qsa4TFktmaKEwM6MQH0pOWnaB3htzh0JRtx84+Mebc0cbZYN5bC+6WTZ4+77xrL9Pn5m7CV6VIkV7A==}
     engines: {node: ^18.17.0 || >=20.5.0}
@@ -7766,6 +7787,9 @@ packages:
   number-is-nan@1.0.1:
     resolution: {integrity: sha512-4jbtZXNAsfZbAHiiqjLPBiCl16dES1zI4Hpzzxw61Tk+loF+sBDBKx1ICKKKwIqQ7M0mFn1TmkN7euSncWgHiQ==}
     engines: {node: '>=0.10.0'}
+
+  numfmt@3.2.2:
+    resolution: {integrity: sha512-vAdkKhb+8D1ebZcPx5TdUmPnzNYhzKGA+oVy+BoENFydDWljaZDci0wWWjNfvOUcXCdgKhwS08ErdTe+VzuQ+w==}
 
   nwsapi@2.2.20:
     resolution: {integrity: sha512-/ieB+mDe4MrrKMT8z+mQL8klXydZWGR5Dowt4RAGKbJ3kIGEx3X4ljUo+6V73IXtUPWgfOlU5B9MlGxFO5T+cA==}
@@ -8651,6 +8675,10 @@ packages:
   remove-trailing-separator@1.1.0:
     resolution: {integrity: sha512-/hS+Y0u3aOfIETiaiirUFwDBDzmXPvO+jAfKTitUngIPzdKc6Z0LoFjM/CK5PL4C+eKwHohlHAb6H0VFfmmUsw==}
 
+  rename-keys@1.2.0:
+    resolution: {integrity: sha512-U7XpAktpbSgHTRSNRrjKSrjYkZKuhUukfoBlXWXUExCAqhzh1TU3BDRAfJmarcl5voKS+pbKU9MvyLWKZ4UEEg==}
+    engines: {node: '>= 0.8.0'}
+
   request@2.88.2:
     resolution: {integrity: sha512-MsvtOrfG9ZcrOwAW+Qi+F6HbD0CWXEh9ou77uOb7FM2WPhwT7smM833PzanhJLsgXjN89Ir6V2PczXNnMpwKhw==}
     engines: {node: '>= 6'}
@@ -8833,6 +8861,9 @@ packages:
 
   sanitize-filename@1.6.3:
     resolution: {integrity: sha512-y/52Mcy7aw3gRm7IrcGDFx/bCk4AhRh2eI9luHOQM86nZsqwiRkkq2GekHXBBD+SmPidc8i2PqtYZl+pWJ8Oeg==}
+
+  sax-stream@1.3.0:
+    resolution: {integrity: sha512-tcfsAAICAkyNNe4uiKtKmLKxx3C7qPAej13UUoN+7OLYq/P5kHGahZtJhhMVM3fIMndA6TlYHWFlFEzFkv1VGg==}
 
   sax@0.5.8:
     resolution: {integrity: sha512-c0YL9VcSfcdH3F1Qij9qpYJFpKFKMXNOkLWFssBL3RuF7ZS8oZhllR2rWlCRjDTJsfq3R6wbSsaRU6o0rkEdNw==}
@@ -9072,6 +9103,10 @@ packages:
   sqlstring@2.3.3:
     resolution: {integrity: sha512-qC9iz2FlN7DQl3+wjwn3802RTyjCx7sDvfQEXchwa6CWOx07/WVfh91gBmQ9fahw8snwGEWU3xGzOt4tFyHLxg==}
     engines: {node: '>= 0.6'}
+
+  ssf@0.11.2:
+    resolution: {integrity: sha512-+idbmIXoYET47hH+d7dfm2epdOMUDjqcB4648sTZ+t2JwoyBFL/insLfB/racrDmsKB3diwsDA696pZMieAC5g==}
+    engines: {node: '>=0.8'}
 
   ssh-remote-port-forward@1.0.4:
     resolution: {integrity: sha512-x0LV1eVDwjf1gmG7TTnfqIzf+3VPRz7vrNIjX6oYLbeCrf/PeVY6hkT68Mg+q02qXxQhrLjB0jfgvhevoCRmLQ==}
@@ -10289,6 +10324,9 @@ packages:
   xdg-basedir@4.0.0:
     resolution: {integrity: sha512-PSNhEJDejZYV7h50BohL09Er9VaIefr2LMAf3OEmpCkjOi34eYyQYAXUTjEQtZJTKcF0E2UKTh+osDLsgNim9Q==}
     engines: {node: '>=8'}
+
+  xlstream@2.5.5:
+    resolution: {integrity: sha512-6WyXAI/o0heH7dCZr/I6FSmhz/CYJDEbMXUuesuOqBlTc4uzx0zhD18DsE4t4NOGrHbf5uoWlnxRsBCfRDqMpA==}
 
   xml-name-validator@4.0.0:
     resolution: {integrity: sha512-ICP2e+jsHvAj2E2lIHxa5tjXRlKDJo4IdvPvCXbXQGdzSfmSpNVyIKMvoZHjDY9DP0zV17iI85o90vRFXNccRw==}
@@ -14970,6 +15008,11 @@ snapshots:
 
   deep-is@0.1.4: {}
 
+  deep-rename-keys@0.2.1:
+    dependencies:
+      kind-of: 3.2.2
+      rename-keys: 1.2.0
+
   deepmerge@4.3.1: {}
 
   defaults@1.0.4:
@@ -16006,6 +16049,8 @@ snapshots:
     dependencies:
       bser: 2.1.1
 
+  fclone@1.0.11: {}
+
   fd-slicer@1.1.0:
     dependencies:
       pend: 1.2.0
@@ -16233,6 +16278,8 @@ snapshots:
       - encoding
 
   forwarded@0.2.0: {}
+
+  frac@1.1.2: {}
 
   fresh@0.5.2: {}
 
@@ -19070,6 +19117,8 @@ snapshots:
 
   node-releases@2.0.19: {}
 
+  node-stream-zip@1.15.0: {}
+
   nopt@8.1.0:
     dependencies:
       abbrev: 3.0.1
@@ -19134,6 +19183,8 @@ snapshots:
   null-prototype-object@1.0.0: {}
 
   number-is-nan@1.0.1: {}
+
+  numfmt@3.2.2: {}
 
   nwsapi@2.2.20: {}
 
@@ -20213,6 +20264,8 @@ snapshots:
 
   remove-trailing-separator@1.1.0: {}
 
+  rename-keys@1.2.0: {}
+
   request@2.88.2:
     dependencies:
       aws-sign2: 0.7.0
@@ -20427,6 +20480,13 @@ snapshots:
   sanitize-filename@1.6.3:
     dependencies:
       truncate-utf8-bytes: 1.0.2
+
+  sax-stream@1.3.0:
+    dependencies:
+      debug: 2.6.9
+      sax: 1.2.1
+    transitivePeerDependencies:
+      - supports-color
 
   sax@0.5.8: {}
 
@@ -20689,6 +20749,10 @@ snapshots:
   sql-highlight@6.1.0: {}
 
   sqlstring@2.3.3: {}
+
+  ssf@0.11.2:
+    dependencies:
+      frac: 1.1.2
 
   ssh-remote-port-forward@1.0.4:
     dependencies:
@@ -22089,6 +22153,17 @@ snapshots:
   xdg-basedir@3.0.0: {}
 
   xdg-basedir@4.0.0: {}
+
+  xlstream@2.5.5:
+    dependencies:
+      deep-rename-keys: 0.2.1
+      fclone: 1.0.11
+      node-stream-zip: 1.15.0
+      numfmt: 3.2.2
+      sax-stream: 1.3.0
+      ssf: 0.11.2
+    transitivePeerDependencies:
+      - supports-color
 
   xml-name-validator@4.0.0: {}
 
