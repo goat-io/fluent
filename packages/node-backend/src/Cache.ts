@@ -1,21 +1,21 @@
 import { Promises, type Milliseconds } from '@goatlab/js-utils'
-import Keyv from 'keyv'
+import { Options } from 'keyv'
 import KeyvRedis from '@keyv/redis'
-import type { KeyvRedisOptions } from '@keyv/redis'
+const Keyv = require('keyv')
 import { KeyvLru } from 'keyv-lru'
 
 export class Cache extends Keyv {
   private _ns: string
   private usesLRUMemory?: boolean
   private keyvLru: KeyvLru
-  private memoryCache: Keyv
+  private memoryCache: typeof Keyv
 
   constructor({
     connection,
     opts
   }: {
     connection: string | undefined
-    opts?: KeyvRedisOptions & { usesLRUMemory?: boolean }
+    opts?: Options<any> & { usesLRUMemory?: boolean }
   }) {
     super({
       store: connection

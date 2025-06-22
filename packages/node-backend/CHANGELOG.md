@@ -1,5 +1,18 @@
 # 0.5.20
 
+## 0.0.10
+
+### Patch Changes
+
+- Change ts config
+  - @goatlab/js-utils@0.8.37
+
+## 0.0.9
+
+### Patch Changes
+
+- down version keyv
+
 ## 0.0.8
 
 ### Patch Changes

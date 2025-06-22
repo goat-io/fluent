@@ -1,5 +1,5 @@
 import { Cache } from './Cache'
-import type { KeyvRedisOptions } from '@keyv/redis'
+import type { Options } from 'keyv'
 
 export { Cache }
-export type { KeyvRedisOptions }
+export type { Options }

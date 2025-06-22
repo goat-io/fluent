@@ -1,5 +1,11 @@
 # @goatlab/tsconfig
 
+## 0.0.12
+
+### Patch Changes
+
+- Change ts config
+
 ## 0.0.11
 
 ### Patch Changes
