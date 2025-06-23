@@ -4,7 +4,7 @@
   "exclude": ["./src/**/*.spec.*"],
   "compilerOptions": {
     "outDir": "./dist",
-    "incremental": true,
+    "incremental": false,
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"]

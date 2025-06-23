@@ -1,7 +1,7 @@
 {
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/js-utils",
-  "version": "0.8.38",
+  "version": "0.8.39",
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
@@ -29,11 +29,11 @@
     "@types/node": "^17.0.23",
     "@yarnpkg/esbuild-plugin-pnp": "3.0.0-rc.15",
     "abort-controller": "^3.0.0",
-    "cross-fetch": "^4.1.0",
     "dotenv-cli": "^5.1.0",
     "esbuild": "^0.25.5",
     "eslint": "^8.5.0",
     "jest": "catalog:",
+    "jest-environment-jsdom": "^30.0.2",
     "jest-environment-node": "^27.5.1",
     "ky": "^1.8.1",
     "prettier": "^2.6.1",

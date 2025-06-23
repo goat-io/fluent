@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.39
+
+### Patch Changes
+
+- Remove polyfil
+
 ## 0.8.38
 
 ### Patch Changes

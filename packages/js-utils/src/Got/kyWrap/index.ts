@@ -8,45 +8,45 @@
 
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-ignore
-import fetch, { Headers, Request, Response } from 'cross-fetch'
-import AbortController from 'abort-controller'
+// import fetch, { Headers, Request, Response } from 'cross-fetch'
+// import AbortController from 'abort-controller'
 // @ts-ignore
 import ky from 'ky'
 
 // Only set polyfills in Node.js environment
-if (
-  typeof process !== 'undefined' &&
-  process.versions &&
-  process.versions.node
-) {
-  if (!globalThis.fetch) {
-    // @ts-ignore
-    globalThis.fetch = (url, options) => fetch(url, { ...options })
-  }
+// if (
+//   typeof process !== 'undefined' &&
+//   process.versions &&
+//   process.versions.node
+// ) {
+//   if (!globalThis.fetch) {
+//     // @ts-ignore
+//     globalThis.fetch = (url, options) => fetch(url, { ...options })
+//   }
 
-  if (!globalThis.Headers) {
-    globalThis.Headers = Headers
-  }
+//   if (!globalThis.Headers) {
+//     globalThis.Headers = Headers
+//   }
 
-  if (!globalThis.Request) {
-    // @ts-ignore
-    globalThis.Request = Request
-  }
+//   if (!globalThis.Request) {
+//     // @ts-ignore
+//     globalThis.Request = Request
+//   }
 
-  if (!globalThis.Response) {
-    // @ts-ignore
-    globalThis.Response = Response
-  }
+//   if (!globalThis.Response) {
+//     // @ts-ignore
+//     globalThis.Response = Response
+//   }
 
-  if (!globalThis.AbortController) {
-    // @ts-ignore
-    globalThis.AbortController = AbortController
-  }
+//   if (!globalThis.AbortController) {
+//     // @ts-ignore
+//     globalThis.AbortController = AbortController
+//   }
 
-  if (!globalThis.ReadableStream) {
-    globalThis.ReadableStream = require('web-streams-polyfill/dist/ponyfill.js')
-  }
-}
+//   if (!globalThis.ReadableStream) {
+//     globalThis.ReadableStream = require('web-streams-polyfill/dist/ponyfill.js')
+//   }
+// }
 
 export default ky
 // @ts-ignore
