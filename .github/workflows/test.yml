@@ -49,8 +49,13 @@ jobs:
       - name: Building all packages
         run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm build
 
+      - name: Create tasks-adapter-gcp .env
+        working-directory: ./packages/tasks-adapter-gcp
+        run: |
+          echo FIREBASE_SERVICE_ACCOUNT="${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > .env
+
       - name: Test all packages
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           NPM_TOKEN: ${{ secrets.GOATLAB_NPM_TOKEN }}
-        run: export FIREBASE_SERVICE_ACCOUNT=${{ secrets.FIREBASE_SERVICE_ACCOUNT }} && pnpm test
+        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm test
