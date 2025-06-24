@@ -2,8 +2,9 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 
 export type GlobalTempData = {
-  rabbitMQUrl?: string
-  kafkaUrl?: string
+  token?: string
+  hostAndPort?: string
+  apiUrl?: string
 }
 const tempDataFilePath = resolve(join(__dirname, '../../'), 'tempData.json')
 

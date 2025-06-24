@@ -4,6 +4,7 @@ import { ShouldQueue, UnknownInputType } from '@goatlab/tasks-core'
 import { HatchetConnector } from './HatchetConnector'
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Ids } from '@goatlab/js-utils'
+import { getGlobalData } from './test/const'
 
 class TestTask extends ShouldQueue<{ text: string }> {
   postUrl = `http://localhost/task/this/url`
@@ -20,7 +21,9 @@ class TestTask extends ShouldQueue<{ text: string }> {
 
 const hatchetConnector = new HatchetConnector({
   logLevel: 'DEBUG',
-  token: process.env['HATCHET_JWT_TOKEN'] || ''
+  token: getGlobalData().token || process.env['HATCHET_JWT_TOKEN'] || '',
+  hostAndPort: getGlobalData().hostAndPort,
+  apiUrl: getGlobalData().apiUrl
 })
 
 const task = new TestTask({
@@ -34,7 +37,10 @@ describe('HatcherConnector', () => {
       tasks: [task],
       slots: 100
     })
-  })
+    // Wait for the hatchet worker to be ready to accept connections/messages
+    await new Promise(resolve => setTimeout(resolve, 20_000))
+  }, 40_000)
+
   it('should create a task and run it', async () => {
     const status = await task.queue({ text: 'Hello, World!' })
 
@@ -45,7 +51,7 @@ describe('HatcherConnector', () => {
     expect(status.name).toContain('this_is_the_task_name')
     expect(status).not.toHaveProperty('payload')
 
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise(resolve => setTimeout(resolve, 2_000))
 
     const getStatus = await task.getStatus(status.id)
 
