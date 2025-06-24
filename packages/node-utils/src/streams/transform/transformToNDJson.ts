@@ -27,7 +27,7 @@ export interface TransformToNDJsonOptions {
  * Transforms objects (objectMode=true) into chunks \n-terminated JSON strings (readableObjectMode=false).
  */
 export function transformToNDJson<IN = any>(
-  opt: TransformToNDJsonOptions = {},
+  opt: TransformToNDJsonOptions = {}
 ): TransformTyped<IN, string> {
   const { strict = true, separator = '\n', sortObjects = false } = opt
 
@@ -42,7 +42,7 @@ export function transformToNDJson<IN = any>(
 
         cb(null, JSON.stringify(chunk) + separator)
       } catch (err) {
-        console.error(err)
+        console.log(err)
 
         if (strict) {
           cb(err as Error) // emit error
@@ -50,6 +50,6 @@ export function transformToNDJson<IN = any>(
           cb() // emit no error, but no result neither
         }
       }
-    },
+    }
   })
 }
