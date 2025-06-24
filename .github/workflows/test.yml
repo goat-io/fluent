@@ -52,4 +52,5 @@ jobs:
       - name: Test all packages
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: export NPM_TOKEN=${{ secrets.GOATLAB_NPM_TOKEN }} && pnpm test
+          NPM_TOKEN: ${{ secrets.GOATLAB_NPM_TOKEN }}
+        run: pnpm test
