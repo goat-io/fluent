@@ -53,4 +53,4 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           NPM_TOKEN: ${{ secrets.GOATLAB_NPM_TOKEN }}
-        run: pnpm test
+        run: export FIREBASE_SERVICE_ACCOUNT=${{ secrets.FIREBASE_SERVICE_ACCOUNT }} && pnpm test
