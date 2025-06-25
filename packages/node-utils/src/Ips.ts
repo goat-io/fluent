@@ -1,10 +1,10 @@
-import os from 'os'
+import { networkInterfaces } from 'os'
 
 class IpsClass {
   getLocalIpAddress = (): string | null => {
-    const networkInterfaces = os.networkInterfaces()
-    for (const interfaceName of Object.keys(networkInterfaces)) {
-      const addresses = networkInterfaces[interfaceName] || []
+    const interfaces = networkInterfaces()
+    for (const interfaceName of Object.keys(interfaces)) {
+      const addresses = interfaces[interfaceName] || []
       for (const address of addresses) {
         if (
           address.family === 'IPv4' &&

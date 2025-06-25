@@ -49,7 +49,7 @@ class StreamClass {
   }
 
   get unGzip() {
-    return require('./streams/transform/transformUnGzip')
+    return require('./streams/transform/transformUnGZip')
       .transformUnGzip as typeof transformUnGzip
   }
 

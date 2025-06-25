@@ -95,22 +95,98 @@ class StringsClass {
    * @return string
    */
   slug = (str: string, separator = '-'): string => {
-    const a =
-      'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
-    const b =
-      'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrsssssttuuuuuuuuuwxyyzzz------'
-    const p = new RegExp(a.split('').join('|'), 'g')
-
+    const charMap = new Map([
+      ['à', 'a'],
+      ['á', 'a'],
+      ['â', 'a'],
+      ['ä', 'a'],
+      ['æ', 'a'],
+      ['ã', 'a'],
+      ['å', 'a'],
+      ['ā', 'a'],
+      ['ă', 'a'],
+      ['ą', 'a'],
+      ['ç', 'c'],
+      ['ć', 'c'],
+      ['č', 'c'],
+      ['đ', 'd'],
+      ['ď', 'd'],
+      ['è', 'e'],
+      ['é', 'e'],
+      ['ê', 'e'],
+      ['ë', 'e'],
+      ['ē', 'e'],
+      ['ė', 'e'],
+      ['ę', 'e'],
+      ['ě', 'e'],
+      ['ğ', 'g'],
+      ['ǵ', 'g'],
+      ['ḧ', 'h'],
+      ['î', 'i'],
+      ['ï', 'i'],
+      ['í', 'i'],
+      ['ī', 'i'],
+      ['į', 'i'],
+      ['ì', 'i'],
+      ['ł', 'l'],
+      ['ḿ', 'm'],
+      ['ñ', 'n'],
+      ['ń', 'n'],
+      ['ǹ', 'n'],
+      ['ň', 'n'],
+      ['ô', 'o'],
+      ['ö', 'o'],
+      ['ò', 'o'],
+      ['ó', 'o'],
+      ['œ', 'o'],
+      ['ø', 'o'],
+      ['ō', 'o'],
+      ['õ', 'o'],
+      ['ő', 'o'],
+      ['ṕ', 'p'],
+      ['ŕ', 'r'],
+      ['ř', 'r'],
+      ['ß', 's'],
+      ['ś', 's'],
+      ['š', 's'],
+      ['ş', 's'],
+      ['ș', 's'],
+      ['ť', 't'],
+      ['ț', 't'],
+      ['û', 'u'],
+      ['ü', 'u'],
+      ['ù', 'u'],
+      ['ú', 'u'],
+      ['ū', 'u'],
+      ['ǘ', 'u'],
+      ['ů', 'u'],
+      ['ű', 'u'],
+      ['ų', 'u'],
+      ['ẃ', 'w'],
+      ['ẍ', 'x'],
+      ['ÿ', 'y'],
+      ['ý', 'y'],
+      ['ž', 'z'],
+      ['ź', 'z'],
+      ['ż', 'z'],
+      ['·', separator],
+      ['/', separator],
+      ['_', separator],
+      [',', separator],
+      [':', separator],
+      [';', separator]
+    ])
     return str
-      .toString()
       .toLowerCase()
-      .replace(/\s+/g, separator) // Replace spaces with -
-      .replace(p, c => b.charAt(a.indexOf(c))) // Replace special characters
-      .replace(/&/g, `${separator}and${separator}`) // Replace & with 'and'
-      .replace(/[^\w\-]+/g, '') // Remove all non-word characters
-      .replace(/\-\-+/g, separator) // Replace multiple - with single -
-      .replace(/^-+/, '') // Trim - from start of text
-      .replace(/-+$/, '') // Trim - from end of text
+      .replace(/\s+/g, separator)
+      .replace(
+        /[àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;]/g,
+        c => charMap.get(c) || separator
+      )
+      .replace(/&/g, `${separator}and${separator}`)
+      .replace(/[^\w\-]+/g, '')
+      .replace(new RegExp(`\\${separator}{2,}`, 'g'), separator)
+      .replace(new RegExp(`^\\${separator}+|\\${separator}+$`, 'g'), '')
   }
 
   /**
@@ -196,7 +272,7 @@ class StringsClass {
    * Converts the first character of string to upper case and the remaining to lower case.
    */
   capitalize(s: string = ''): string {
-    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+    return s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s
   }
 
   split(str: string, separator: string, limit: number): string[] {
@@ -266,7 +342,7 @@ class StringsClass {
   }
 
   replaceAll(s: string, find: string, replaceWith: string): string {
-    return s.replace(new RegExp(find, 'g'), replaceWith)
+    return s.replaceAll(find, replaceWith)
   }
   /**
    *

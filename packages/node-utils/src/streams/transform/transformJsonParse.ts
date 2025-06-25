@@ -28,7 +28,7 @@ export interface TransformJsonParseOptions {
  * [)
  */
 export function transformJsonParse<OUT = any>(
-  opt: TransformJsonParseOptions = {},
+  opt: TransformJsonParseOptions = {}
 ): TransformTyped<string | Buffer, OUT> {
   const { strict = true, reviver } = opt
 
@@ -43,11 +43,11 @@ export function transformJsonParse<OUT = any>(
         if (strict) {
           cb(err as Error) // emit error
         } else {
-          console.error(err)
+          console.log(err)
           cb() // emit no error, but no result neither
         }
       }
-    },
+    }
   })
 }
 

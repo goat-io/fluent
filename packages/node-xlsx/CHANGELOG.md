@@ -1,5 +1,56 @@
 # 0.5.20
 
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.40
+  - @goatlab/node-utils@0.8.58
+
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.39
+  - @goatlab/node-utils@0.8.57
+
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.38
+  - @goatlab/node-utils@0.8.56
+
+## 0.0.6
+
+### Patch Changes
+
+- Create stream and batchstream functions
+
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.37
+
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.36
+
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.35
+
 ## 0.0.2
 
 ### Patch Changes

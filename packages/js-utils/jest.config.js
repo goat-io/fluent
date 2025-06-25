@@ -1,6 +1,5 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'node',
   setupFiles: ['dotenv/config', './setup.ts'],
   roots: ['<rootDir>/src'],
   maxWorkers: 1,

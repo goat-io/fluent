@@ -1,5 +1,54 @@
 # 0.5.20
 
+## 0.7.39
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.40
+
+## 0.7.38
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.39
+
+## 0.7.37
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.38
+
+## 0.7.36
+
+### Patch Changes
+
+- Remove getGot from node-utils
+- Updated dependencies
+  - @goatlab/js-utils@0.8.37
+
+## 0.7.35
+
+### Patch Changes
+
+- Remove keyv from fluent
+
+## 0.7.34
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.36
+
+## 0.7.33
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.35
+
 ## 0.7.32
 
 ### Patch Changes

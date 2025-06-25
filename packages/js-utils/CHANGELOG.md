@@ -1,5 +1,41 @@
 # @goatlab/js-utils
 
+## 0.8.40
+
+### Patch Changes
+
+- Fix URL usage in expo
+
+## 0.8.39
+
+### Patch Changes
+
+- Remove polyfil
+
+## 0.8.38
+
+### Patch Changes
+
+- Bundle Ky
+
+## 0.8.37
+
+### Patch Changes
+
+- Remove getGot from node-utils
+
+## 0.8.36
+
+### Patch Changes
+
+- Add Iterable type
+
+## 0.8.35
+
+### Patch Changes
+
+- Code optimizations and clean ups
+
 ## 0.8.34
 
 ### Patch Changes
