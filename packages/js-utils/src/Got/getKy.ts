@@ -1,9 +1,7 @@
-import { URL } from 'url'
 import { Time } from '../Time'
 import Ky from './ky'
 import type {
   KyInstance,
-  AfterResponseHook,
   BeforeErrorHook,
   BeforeRequestHook,
   BeforeRetryHook

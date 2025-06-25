@@ -67,5 +67,5 @@
     "update:packages": "npm-check-updates -u && yarn"
   },
   "types": "dist/index.d.ts",
-  "version": "0.7.38"
+  "version": "0.7.39"
 }

@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.40
+
+### Patch Changes
+
+- Fix URL usage in expo
+
 ## 0.8.39
 
 ### Patch Changes
