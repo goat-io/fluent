@@ -2,7 +2,7 @@ import { CommonLogger, ErrorMode, Errors } from '@goatlab/js-utils'
 import {
   AbortableAsyncMapper,
   END,
-  SKIP,
+  SKIP
 } from '@goatlab/js-utils/dist/Promises/pMap'
 import through2Concurrent = require('through2-concurrent')
 import { TransformTyped } from '../streams.model'
@@ -12,7 +12,7 @@ import { pipelineClose } from '../pipelineClose'
 import { yellow } from 'kleur/colors'
 export type AsyncPredicate<T> = (
   item: T,
-  index: number,
+  index: number
 ) => boolean | PromiseLike<boolean>
 
 export interface TransformMapOptions<IN = any, OUT = IN> {
@@ -77,7 +77,7 @@ export interface TransformMapOptions<IN = any, OUT = IN> {
  */
 export function transformMap<IN = any, OUT = IN>(
   mapper: AbortableAsyncMapper<IN, OUT | typeof SKIP | typeof END>,
-  opt: TransformMapOptions<IN, OUT> = {},
+  opt: TransformMapOptions<IN, OUT> = {}
 ): TransformTyped<IN, OUT> {
   const {
     concurrency = 16,
@@ -86,7 +86,7 @@ export function transformMap<IN = any, OUT = IN>(
     flattenArrayOutput,
     onError,
     metric = 'stream',
-    logger = console,
+    logger = console
   } = opt
 
   let index = -1
@@ -107,14 +107,14 @@ export function transformMap<IN = any, OUT = IN>(
           cb(
             new AggregateError(
               collectedErrors,
-              `transformMap resulted in ${collectedErrors.length} error(s)`,
-            ),
+              `transformMap resulted in ${collectedErrors.length} error(s)`
+            )
           )
         } else {
           // emit no error
           cb()
         }
-      },
+      }
     },
     async function transformMapFn(this: AbortableTransform, chunk: IN, _, cb) {
       // Stop processing if isSettled (either THROW_IMMEDIATELY was fired or END received)
@@ -134,7 +134,7 @@ export function transformMap<IN = any, OUT = IN>(
             return (
               r !== SKIP && (!predicate || (await predicate(r, currentIndex)))
             )
-          },
+          }
         )
 
         passedResults.forEach(r => this.push(r))
@@ -146,13 +146,13 @@ export function transformMap<IN = any, OUT = IN>(
             this,
             this.sourceReadable,
             this.streamDone,
-            logger,
+            logger
           )
         }
 
         cb() // done processing
       } catch (err) {
-        logger.error(err)
+        logger.log(err)
         errors++
         logErrorStats()
 
@@ -174,7 +174,7 @@ export function transformMap<IN = any, OUT = IN>(
         // Tell input stream that we're done processing, but emit nothing to output - not error nor result
         cb()
       }
-    },
+    }
   )
 
   function logErrorStats(final = false): void {

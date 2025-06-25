@@ -1,7 +1,8 @@
-import { AnyObject, CommonLogger } from '@goatlab/js-utils'
-import type { ExtendOptions } from 'got-cjs'
+import type { AnyObject } from '../types'
+import type { CommonLogger } from '../Logs/commonLogger'
+import type { Options } from './ky'
 
-export interface GetGotOptions extends ExtendOptions {
+export interface GetKyOptions extends Options {
   /**
    * Set to `true` to enable all possible debug logging.
    * Not safe in prod (as it logs Responses), but great to use during development.
@@ -59,7 +60,7 @@ export interface GetGotOptions extends ExtendOptions {
   maxResponseLength?: number
 }
 
-export interface GotRequestContext extends AnyObject {
+export interface KyRequestContext extends AnyObject {
   /**
    * Millisecond-timestamp of when the request was started. To be able to count "time spent".
    */

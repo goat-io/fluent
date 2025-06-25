@@ -24,7 +24,7 @@
     "resolveJsonModule": true,
     "suppressImplicitAnyIndexErrors": false,
     "noUncheckedIndexedAccess": true,
-    "noPropertyAccessFromIndexSignature": true,
+    "noPropertyAccessFromIndexSignature": false,
     "newLine": "lf",
     "importHelpers": true,
     "pretty": true,

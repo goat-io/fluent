@@ -3,7 +3,7 @@
   "main": "./dist/index.js",
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/node-utils",
-  "version": "0.8.50",
+  "version": "0.8.58",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -26,21 +26,19 @@
     "@goatlab/tsconfig": "workspace:*",
     "bcrypt": "^6.0.0",
     "bson": "^6.10.4",
-    "got-cjs": "^12.5.4",
     "jsonwebtoken": "^9.0.2",
     "kleur": "^4.1.5",
     "net": "^1.0.2",
     "path": "^0.12.7",
     "portfinder": "^1.0.37",
-    "rimraf": "^6.0.1",
     "through2-concurrent": "^2.0.0",
     "winston": "^3.17.0"
   },
   "description": "Readable query Interface & API generator for TS and Node",
   "devDependencies": {
-    "@types/through2-concurrent": "^2.0.1",
     "@types/jest": "^29.5.0",
     "@types/node": "^18.15.9",
+    "@types/through2-concurrent": "^2.0.1",
     "dotenv-cli": "^7.1.0",
     "eslint": "^8.36.0",
     "jest": "catalog:",

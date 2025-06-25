@@ -3,6 +3,7 @@ import { KafkaContainer } from '@testcontainers/kafka'
 import { writeFileSync } from 'fs'
 import * as fs from 'fs'
 import { resolve } from 'path'
+import { cleanGlobalData, writeGlobalData } from './src/test/const'
 // This file runs before jest sets the env
 // so we need to load dotenv manually if we want to use env
 
@@ -25,21 +26,11 @@ export default async () => {
     9093
   )}`
 
-  console.log({ kafkaUrl })
-
-  const data = {
-    rabbitMQUrl,
-    kafkaUrl
-  }
-
-  const filePath = resolve(__dirname, 'tempData.json')
-  writeFileSync(filePath, JSON.stringify(data), 'utf-8')
+  writeGlobalData({ rabbitMQUrl, kafkaUrl })
 
   return async () => {
     await rabbitMQContainer.stop()
     await kafkaContainer.stop()
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
-    }
+    cleanGlobalData()
   }
 }

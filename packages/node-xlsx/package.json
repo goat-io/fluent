@@ -1,7 +1,7 @@
 {
   "license": "MIT",
   "main": "./dist/index.js",
-  "version": "0.0.4",
+  "version": "0.0.9",
   "name": "@goatlab/node-xlsx",
   "description": "Efficiently work with xlsx files streams in Node.js",
   "private": false,
@@ -21,7 +21,9 @@
     "update:packages": "npm-check-updates -u && yarn"
   },
   "dependencies": {
-    "@goatlab/js-utils": "workspace:*"
+    "@goatlab/js-utils": "workspace:*",
+    "@goatlab/node-utils": "workspace:*",
+    "xlstream": "^2.5.5"
   },
   "types": "./dist/index.d.ts",
   "author": "ignacio.cabrera@goatlab.io",

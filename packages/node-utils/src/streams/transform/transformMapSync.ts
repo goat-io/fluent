@@ -3,7 +3,7 @@ import {
   ErrorMode,
   Errors,
   Mapper,
-  Predicate,
+  Predicate
 } from '@goatlab/js-utils'
 import { AbortableTransform } from '../pipeline'
 import { END, SKIP } from '@goatlab/js-utils/dist/Promises/pMap'
@@ -61,7 +61,7 @@ export class TransformMapSync extends AbortableTransform {}
  */
 export function transformMapSync<IN = any, OUT = IN>(
   mapper: Mapper<IN, OUT | typeof SKIP | typeof END>,
-  opt: TransformMapSyncOptions = {},
+  opt: TransformMapSyncOptions = {}
 ): TransformTyped<IN, OUT> {
   let index = -1
 
@@ -72,7 +72,7 @@ export function transformMapSync<IN = any, OUT = IN>(
     onError,
     metric = 'stream',
     objectMode = true,
-    logger = console,
+    logger = console
   } = opt
   let isSettled = false
   let errors = 0
@@ -110,13 +110,13 @@ export function transformMapSync<IN = any, OUT = IN>(
             this,
             this.sourceReadable,
             this.streamDone,
-            logger,
+            logger
           )
         }
 
         cb() // done processing
       } catch (err) {
-        logger.error(err)
+        logger.log(err)
         errors++
 
         logErrorStats()
@@ -150,14 +150,14 @@ export function transformMapSync<IN = any, OUT = IN>(
         cb(
           new AggregateError(
             collectedErrors,
-            `transformMapSync resulted in ${collectedErrors.length} error(s)`,
-          ),
+            `transformMapSync resulted in ${collectedErrors.length} error(s)`
+          )
         )
       } else {
         // emit no error
         cb()
       }
-    },
+    }
   })
 
   function logErrorStats(final = false): void {

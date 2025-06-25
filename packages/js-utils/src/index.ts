@@ -39,6 +39,16 @@ import { Units } from './Units'
 import { nGram } from './Ngram'
 import { Is } from './Is'
 import { Memo } from './Memo'
+import { Http } from './Http'
+import { Inspect } from './Inspect'
+
+export type {
+  KyInstance,
+  AfterResponseHook,
+  BeforeErrorHook,
+  BeforeRequestHook,
+  BeforeRetryHook
+} from './Got/ky'
 
 export * from './types'
 
@@ -70,7 +80,9 @@ export {
   Promises,
   Strings,
   Time,
-  Units
+  Units,
+  Http,
+  Inspect
 }
 
 export type {

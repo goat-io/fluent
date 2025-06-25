@@ -1,5 +1,80 @@
 # 0.5.20
 
+## 0.1.16
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.40
+  - @goatlab/node-utils@0.8.58
+  - @goatlab/tasks-core@0.1.13
+
+## 0.1.15
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.39
+  - @goatlab/node-utils@0.8.57
+  - @goatlab/tasks-core@0.1.12
+
+## 0.1.14
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.8.38
+  - @goatlab/node-utils@0.8.56
+  - @goatlab/tasks-core@0.1.11
+
+## 0.1.13
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.8.55
+  - @goatlab/js-utils@0.8.37
+  - @goatlab/tasks-core@0.1.10
+
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.8.54
+  - @goatlab/js-utils@0.8.37
+  - @goatlab/tasks-core@0.1.10
+
+## 0.1.11
+
+### Patch Changes
+
+- Add node-backend
+- Updated dependencies
+  - @goatlab/node-utils@0.8.53
+
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.8.52
+
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.8.51
+
+## 0.1.8
+
+### Patch Changes
+
+- Fix typo
+- Updated dependencies
+  - @goatlab/tasks-core@0.1.9
+
 ## 0.1.7
 
 ### Patch Changes
