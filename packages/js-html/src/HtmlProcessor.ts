@@ -6,7 +6,7 @@ import linkifyRegisterKeywords from 'linkify-plugin-keyword'
 import 'linkify-plugin-mention'
 import 'linkify-plugin-ticket'
 import { Opts } from 'linkifyjs'
-import * as sanitizeHtml from 'sanitize-html'
+import sanitizeHtml from 'sanitize-html'
 
 const isEmptyHTML = (html: string) => {
   let isEmpty = true
@@ -129,7 +129,7 @@ export class HtmlProcessor {
   getParsedHtml() {
     linkifyRegisterKeywords(this.keywords)
 
-    const sanitized = sanitizeHtml['default'](this.html, {
+    const sanitized = sanitizeHtml(this.html, {
       allowedTags: ['b', 'i', 'em', 'strong', 'a', 'p', 'div', 'br'],
       allowedAttributes: {
         a: ['href'],
