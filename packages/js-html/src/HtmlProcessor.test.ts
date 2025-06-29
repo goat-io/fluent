@@ -62,7 +62,7 @@ describe('HtmlProcessor', () => {
 
   it('should register keywords', () => {
     const processor = new HtmlProcessor({ html: 'test' })
-    processor.registerKeyworks(['foo', 'bar'])
+    processor.registerKeywords(['foo', 'bar'])
     // No direct way to check keywords, but getParsedHtml should not throw
     expect(() => processor.getParsedHtml()).not.toThrow()
   })
@@ -138,8 +138,8 @@ describe('HtmlProcessor', () => {
 
   it('should not throw if registerKeyworks is called multiple times', () => {
     const processor = new HtmlProcessor({ html: 'foo' })
-    processor.registerKeyworks(['bar'])
-    processor.registerKeyworks(['baz'])
+    processor.registerKeywords(['bar'])
+    processor.registerKeywords(['baz'])
     expect(() => processor.getParsedHtml()).not.toThrow()
   })
 
@@ -196,7 +196,7 @@ describe('HtmlProcessor', () => {
 
   it('should handle getParsedHtml with keywords', () => {
     const processor = new HtmlProcessor({ html: 'foo bar' })
-    processor.registerKeyworks(['foo'])
+    processor.registerKeywords(['foo'])
     const parsed = processor.getParsedHtml()
     expect(parsed).toContain('foo')
   })

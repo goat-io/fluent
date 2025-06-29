@@ -2,12 +2,12 @@ import { Promises, type Milliseconds } from '@goatlab/js-utils'
 import { Options } from 'keyv'
 import KeyvRedis from '@keyv/redis'
 const Keyv = require('keyv')
-import { KeyvLru } from 'keyv-lru'
+import { KeyvLru } from './cache/KeyvLrus'
 
-export class Cache extends Keyv {
+export class Cache<T extends object = any> extends Keyv<T> {
   private _ns: string
   private usesLRUMemory?: boolean
-  private keyvLru: KeyvLru
+  private keyvLru: KeyvLru<T>
   private memoryCache: typeof Keyv
 
   constructor({
@@ -15,25 +15,23 @@ export class Cache extends Keyv {
     opts
   }: {
     connection: string | undefined
-    opts?: Options<any> & { usesLRUMemory?: boolean }
+    opts?: Options<T> & { usesLRUMemory?: boolean }
   }) {
     super({
       store: connection
         ? new KeyvRedis(connection)
-        : new KeyvLru({
+        : new KeyvLru<T>({
             max: 1000,
-            notify: false,
-            ttl: 0,
-            expire: 0
+            resetTtl: false,
+            ttl: 0
           }),
       ...opts
     })
 
-    this.keyvLru = new KeyvLru({
+    this.keyvLru = new KeyvLru<T>({
       max: 1000,
-      notify: false,
-      ttl: 0,
-      expire: 0
+      resetTtl: false,
+      ttl: 0
     })
 
     this.memoryCache = new Keyv({
@@ -76,26 +74,26 @@ export class Cache extends Keyv {
     return nonNullValues.length !== 0
   }
 
-  public async get<T>(key: string | string[]): Promise<T> {
+  public async get(key: string | string[]): Promise<T> {
     // Search first in LRU memory
     // It will greatly improve performance
-    // for "frequent" users
+    // for "frequent" uses
     if (this.usesLRUMemory) {
       const memoryVal = await this.memoryCache.get(`${this._ns}:${key}`)
 
       if (memoryVal) {
-        return memoryVal as T
+        return memoryVal
       }
     }
 
-    const result = await super.get(key as any)
+    const result = await super.get(key)
 
     if (this.usesLRUMemory && result) {
       // We could also just overwrite the set method as well
       await this.memoryCache.set(`${this._ns}:${key}`, result)
     }
 
-    return result as T
+    return result
   }
 
   public async delete(key: string): Promise<boolean> {
@@ -124,12 +122,12 @@ export class Cache extends Keyv {
    * @param  int  $ms - time in milliseconds
    * @param  $callback
    */
-  public async remember<T>(
+  public async remember(
     key: string,
     ms: Milliseconds,
     fx: () => Promise<T>
   ): Promise<T> {
-    const value = await this.get<T>(key)
+    const value = await this.get(key)
 
     if (value) {
       return value
@@ -150,11 +148,8 @@ export class Cache extends Keyv {
    * @param  string  $key
    * @param  \Closure  $callback
    */
-  public async rememberForever<T>(
-    key: string,
-    fx: () => Promise<T>
-  ): Promise<T> {
-    const value = await this.get<T>(key)
+  public async rememberForever(key: string, fx: () => Promise<T>): Promise<T> {
+    const value = await this.get(key)
 
     if (value) {
       return value
@@ -174,14 +169,14 @@ export class Cache extends Keyv {
    *
    * @param  string  $key
    */
-  public async pull(key: string): Promise<any> {
+  public async pull(key: string): Promise<T> {
     const value = await this.get(key)
 
     if (value) {
       await this.delete(key)
     }
 
-    return value
+    return value as T
   }
 
   /**
@@ -206,7 +201,7 @@ export class Cache extends Keyv {
   public async deleteWhereStartsWith(value: string): Promise<void> {
     if (!this.iterator) {
       await Promises.map(
-        Object.keys(this.opts.store['cache']['cache']),
+        Object.keys(this.opts.store['cache']['items']),
         async k => {
           if (k.startsWith(`${this._ns}:${value}`)) {
             await this.delete(k.replace(`${this._ns}:`, ''))
@@ -227,11 +222,11 @@ export class Cache extends Keyv {
     const result = []
     if (!this.iterator) {
       await Promises.map(
-        Object.keys(this.opts.store['cache']['cache']),
+        Object.keys(this.opts.store['cache']['items']),
         async k => {
           if (k.startsWith(`${this._ns}:${value}`)) {
             const val = JSON.parse(
-              this.opts.store['cache']['cache'][k].value
+              this.opts.store['cache']['items'][k].value
             ).value
             result.push(val)
           }

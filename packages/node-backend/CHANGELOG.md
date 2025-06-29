@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.0.14
+
+### Patch Changes
+
+- Add type support for cache and upgrade tiny-url version
+
 ## 0.0.13
 
 ### Patch Changes

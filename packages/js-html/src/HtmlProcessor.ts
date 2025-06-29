@@ -181,7 +181,7 @@ export class HtmlProcessor {
     return isEmptyHTML(this.html)
   }
 
-  registerKeyworks(keywords: string[]): void {
+  registerKeywords(keywords: string[]): void {
     this.keywords.push(...keywords)
   }
 

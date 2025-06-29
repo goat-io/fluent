@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.0.6
+
+### Patch Changes
+
+- Add type support for cache and upgrade tiny-url version
+
+## 0.0.5
+
+### Patch Changes
+
+- Another try to fix imports
+
 ## 0.0.4
 
 ### Patch Changes

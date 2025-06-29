@@ -3,6 +3,8 @@
   "include": ["src"],
   "exclude": ["dist"],
   "compilerOptions": {
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "outDir": "./dist",
     "baseUrl": "./src"
   }

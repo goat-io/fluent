@@ -1,11 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, test } from 'vitest'
 import { Cache } from './Cache'
-import { KeyvLru } from 'keyv-lru'
+import { KeyvLru } from './cache/KeyvLrus'
 import Keyv from 'keyv'
 import { getGlobalData } from './test/const'
 import { Ids } from '@goatlab/js-utils'
 
 const connection = getGlobalData().redisUrl || 'redis://localhost:6379'
+
+type RANGA = { this: string; world: number }
+
+const a = new Cache<RANGA>({
+  connection,
+  opts: { namespace: 'test-ns' }
+})
 
 describe('Cache (Memory)', () => {
   it('should initialize with Redis store when connection is provided', () => {
