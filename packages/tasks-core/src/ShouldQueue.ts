@@ -13,13 +13,22 @@ export abstract class ShouldQueue<
 > {
   public abstract readonly taskName: string
   public abstract readonly postUrl: string
+  public basePostUrl?: string
+
   public abstract handle(taskBody: TInput): Promise<TResult>
 
   public retries = 3
   protected connector: TaskConnector<TInput>
 
-  constructor({ connector }: { connector: TaskConnector<TInput> }) {
+  constructor({
+    connector,
+    basePostUrl
+  }: {
+    connector: TaskConnector<TInput>
+    basePostUrl?: string
+  }) {
     this.connector = connector
+    this.basePostUrl = basePostUrl
   }
 
   protected getUniqueTaskName(_: TInput): string {
@@ -30,7 +39,9 @@ export abstract class ShouldQueue<
     return await this.connector.queue({
       taskName: this.taskName,
       uniqueTaskName: this.getUniqueTaskName(taskBody),
-      postUrl: this.postUrl,
+      postUrl: this.basePostUrl
+        ? `${this.basePostUrl}${this.postUrl}`
+        : this.postUrl,
       taskBody,
       handle: this.handle.bind(this)
     })

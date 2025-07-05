@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.1.14
+
+### Patch Changes
+
+- Add baseUrl to tasks
+
 ## 0.1.13
 
 ### Patch Changes
