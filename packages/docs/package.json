@@ -1,0 +1,29 @@
+{
+  "license": "UNLICENSED",
+  "private": true,
+  "name": "@goatlab/fluent-docs",
+  "version": "0.1.0",
+  "author": "Goat<Ignacio Cabrera>",
+  "description": "Fluent - Complete TypeScript Development Ecosystem Documentation",
+  "dependencies": {
+    "algoliasearch": "^5.32.0",
+    "dotenv": "^16.4.5",
+    "fs": "^0.0.1-security",
+    "globby": "^14.0.2",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+ 
+    "@types/node": "^17.0.23",
+    "rimraf": "^6.0.1",
+    "serve": "^14.2.4",
+    "tsx": "^4.7.1",
+    "typescript": "^4.6.3"
+  },
+  "scripts": {
+    "clean": "rimraf .cache .turbo dist node_modules",
+    "index:docs": "npx tsx indexDocs.ts",
+    "serve": "npx serve -p 3003"
+  }
+
+}

@@ -1,0 +1,67 @@
+section.cover,
+section.cover.show {
+  background-color: var(--cover-bg-color) !important;
+}
+
+section.cover .cover-main {
+  flex: 1;
+  margin: -20px 16px 0;
+  text-align: center;
+  z-index: 0;
+}
+
+section.cover p {
+  line-height: 1.5rem;
+  margin: 1em 0;
+  color: var(--accent-color);
+}
+.cover-main > ul > li {
+  color: white;
+}
+
+section.cover .cover-main > p:last-child a:last-child {
+  background-color: var(--accent-color);
+  color: #fff;
+  border: 1px solid var(--accent-color);
+}
+
+section.cover .cover-main > p:last-child a {
+  border-radius: 2rem;
+  border: 1px solid white;
+  box-sizing: border-box;
+  color: white;
+  display: inline-block;
+  font-size: 1.05rem;
+  letter-spacing: 0.1rem;
+  margin: 0.5rem 1rem;
+  padding: 0.75em 2rem;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+section.cover .cover-main > p:last-child a:last-child:hover {
+  color: var(--cover-action-button-hover);
+}
+
+body[data-page~='README.md'] .search {
+  display: none;
+}
+
+body[data-page~='README.md'] .sidebar > h1 {
+  position: absolute;
+  top: 80px;
+  left: 0;
+  width: 100%;
+}
+
+body[data-page~='README.md'] main section {
+  display: none;
+}
+
+body[data-page~='README.md'] main {
+  display: none;
+  position: relative;
+  width: auto;
+  height: auto;
+  z-index: 0;
+}

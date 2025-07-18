@@ -1,0 +1,20 @@
+pages:
+  stage: deploy
+  script:
+    - mkdir .public
+    - cp -r * .public
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+
+algolia:
+  stage: deploy
+  image: node:lts
+  script:
+    - yarn
+    - pnpm run index:docs
+  only:
+    - master

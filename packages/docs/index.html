@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fluent - Complete TypeScript Development Ecosystem</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="description" content="Fluent - Complete TypeScript development ecosystem with utilities, query builder, queue processing, and cloud integrations" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#212428" />
+    <meta name="msapplication-TileColor" content="#212428" />
+    <meta name="msapplication-TileImage" content="/mstile-144x144.png" />
+    <meta name="theme-color" content="#212428" />
+
+    <link rel="stylesheet" href="//unpkg.com/docsify/themes/vue.css" />
+    <link rel="stylesheet" href="https://use.typekit.net/ins2wgm.css" />
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/docsify-toc@1.0.0/dist/toc.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@fortawesome/fontawesome-free/css/fontawesome.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@fortawesome/fontawesome-free/css/brands.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@fortawesome/fontawesome-free/css/regular.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@fortawesome/fontawesome-free/css/solid.css"
+    />
+
+    <link
+      rel="stylesheet"
+      href="//cdn.jsdelivr.net/npm/docsify-top-banner-plugin@latest/dist/style.css"
+    />
+
+    <link rel="stylesheet" href="./style/_variables.css" />
+    <link rel="stylesheet" href="./style/index.css" />
+    <link rel="stylesheet" href="./style/cover.css" />
+    <link rel="stylesheet" href="./style/sidebar.css" />
+    <link rel="stylesheet" href="./style/search.css" />
+    <link rel="stylesheet" href="./style/toc.css" />
+    <!-- <link rel="stylesheet" href="./style/dracula.css" /> -->
+  </head>
+  <!-- #F7CE45 -->
+
+  <body class="match-braces">
+    <div id="app"></div>
+    <script>
+      function slugify(text) {
+        return text
+          .toString() // Cast to string (optional)
+          .normalize('NFKD') // The normalize() using NFKD method returns the Unicode Normalization Form of a given string.
+          .toLowerCase() // Convert the string to lowercase letters
+          .trim() // Remove whitespace from both sides of a string (optional)
+          .replace(/\s+/g, '-') // Replace spaces with -
+          .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+          .replace(/\-\-+/g, '-')
+      }
+
+      const getIndicesOf = (searchStr, str, caseSensitive) => {
+        var searchStrLen = searchStr.length
+        if (searchStrLen == 0) {
+          return []
+        }
+        var startIndex = 0,
+          index,
+          indices = []
+        if (!caseSensitive) {
+          str = str.toLowerCase()
+          searchStr = searchStr.toLowerCase()
+        }
+        while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+          indices.push(index)
+          startIndex = index + searchStrLen
+        }
+        return indices
+      }
+
+      const uniqueArray = (arr) => {
+        return arr.filter(
+          (v, i, a) =>
+            a.findIndex((v2) => JSON.stringify(v2) === JSON.stringify(v)) === i,
+        )
+      }
+
+      window.$docsify = {
+        onlyCover: false,
+        loadSidebar: true,
+        // homepage: "",
+        alias: {
+          '/.*/_sidebar.md': '_sidebar.md',
+          // "_sidebar.md": "/0.1.0/_sidebar.md"
+          '0.1.0/.*/_sidebar.md': '/_sidebar.md',
+        },
+        coverpage: ['/', '/es/'],
+        // topBanner: {
+        //   content: "Something happened!"
+        //},
+        ga: 'UA-XXXXX-Y',
+        toc: {
+          scope: '.markdown-section',
+          headings: 'h1, h2, h3, h4, h5, h6',
+          title: 'Contents',
+        },
+        plantuml: {
+          skin: 'default',
+        },
+        plugins: [
+          function (hook, vm) {
+            hook.doneEach(function (html) {
+              Prism.highlightAll()
+            })
+          },
+        ],
+        markdown: {
+          renderer: {
+            /* Change code block rendering. Add line-numbers class.*/
+            code: function (code, lang) {
+              let cc = document.createElement('code')
+              cc.textContent = code
+              cc.setAttribute('class', `language-${lang}`)
+              return (
+                '<pre data-lang="' +
+                lang +
+                '" class="line-numbers">' +
+                cc.outerHTML +
+                '</pre>'
+              )
+            },
+          },
+        },
+        logo: './logo.png',
+        name: 'Fluent Ecosystem - Docs',
+        themeColor: 'var(--accent-color)',
+        auto2top: true,
+        autoHeader: false,
+        maxLevel: 3,
+        repo: '',
+        search: {
+          placeholder: 'Search the docs...',
+          noData: 'No results for it. Sorry!',
+          templates: {
+            resultItem: (result, response, options) => {
+              const slug = result.slug.replace(/\/+$/, '')
+
+              // Get highlighted title or fallback to original
+              const title =
+                result._highlightResult?.title?.value || result.title
+              const menu = result.menu || 'Documentation'
+              const searchSnippet =
+                result._highlightResult?.searchSnippet?.value ||
+                result.searchSnippet ||
+                ''
+
+              // Handle chunked documents
+              const isChunked = result.isChunked || false
+              const chunkInfo = isChunked
+                ? ` (Part ${result.chunkIndex + 1}/${result.totalChunks})`
+                : ''
+
+              // Find the best matching section from highlighted content
+              const highlightedContent =
+                result._highlightResult?.content?.value || ''
+              const highlights =
+                highlightedContent.match(/<em>.*?<\/em>/g) || []
+              const firstHighlight = highlights[0] || ''
+
+              // Create context snippet from around the first highlight
+              let contextSnippet = searchSnippet
+              if (firstHighlight && highlightedContent) {
+                const highlightIndex =
+                  highlightedContent.indexOf(firstHighlight)
+                const start = Math.max(0, highlightIndex - 100)
+                const end = Math.min(
+                  highlightedContent.length,
+                  highlightIndex + 200,
+                )
+                contextSnippet = highlightedContent.substring(start, end)
+                if (start > 0) contextSnippet = '...' + contextSnippet
+                if (end < highlightedContent.length)
+                  contextSnippet = contextSnippet + '...'
+              }
+
+              // Clean up context snippet - remove markdown and excessive HTML
+              contextSnippet = contextSnippet
+                .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+                .replace(/`([^`]+)`/g, '$1') // Remove inline code markdown
+                .replace(/<(?!em|\/em)[^>]*>/g, '') // Remove HTML except <em> tags
+                .trim()
+
+              const url = `#${slug}`
+
+              return `
+                <div class="search-result-item">
+                  <a href="${url}" data-slug="${slug}">
+                    <div class="search-result-header">
+                      <div class="search-result-category">${menu}</div>
+                      <div class="search-result-title">${title}${chunkInfo}</div>
+                    </div>
+                    <div class="search-result-snippet">${contextSnippet}</div>
+                  </a>
+                </div>
+              `
+            },
+          },
+          algolia: {
+            token: 'fee145b265e08305e3fdbbfa2aef6079',
+            appId: 'FNFI485NDK',
+            defaultIndex: 'fluent-docs',
+            // single index
+            indexes: 'fluent-docs',
+            // default multi settings
+            multi: false,
+          },
+        },
+        tabs: {
+          persist: true,
+          sync: true,
+          theme: 'material',
+          tabComments: true,
+          tabHeadings: true,
+        },
+        pagination: {
+          previousText: 'Previous',
+          nextText: 'Next',
+          crossChapter: true,
+        },
+        footer: {
+          copy: '<span>Goat &copy; 2024.</span>',
+          auth: 'Fluent Ecosystem',
+          pre: '<hr/>',
+          style: 'text-align: center;',
+          style: 'className',
+        },
+        select: {
+          detectOperatingSystem: {
+            enabled: false,
+            menuId: 'operating-system',
+          },
+          sync: true,
+          theme: 'classic',
+        },
+      }
+    </script>
+    <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/ga.min.js"></script>
+    <script src="//unpkg.com/docsify/lib/docsify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-select@1"></script>
+
+    <script src="//unpkg.com/docsify-algolia-search-plugin"></script>
+    <script src="//unpkg.com/docsify/lib/plugins/zoom-image.min.js"></script>
+    <script src="https://unpkg.com/docsify-copy-code@2"></script>
+    <script src="//unpkg.com/prismjs/components/prism-bash.min.js"></script>
+    <script src="//unpkg.com/docsify-edit-on-github@1.0.1/index.js"></script>
+    <script src="./toc.js"></script>
+    <script src="./lines.js"></script>
+    <script src="./braces.js"></script>
+    <script src="//unpkg.com/docsify-fontawesome/dist/docsify-fontawesome.min.js"></script>
+    <script src="//unpkg.com/docsify-plantuml/dist/docsify-plantuml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-tabs@1"></script>
+    <script src="//unpkg.com/docsify-pagination/dist/docsify-pagination.min.js"></script>
+    <script src="//unpkg.com/docsify-footer-enh/dist/docsify-footer-enh.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docsify-example-panels"></script>
+    <script src="//unpkg.com/docsify-sidebar-collapse/dist/docsify-sidebar-collapse.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-typescript.min.js"></script>
+
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs'
+
+      mermaid.initialize({ startOnLoad: true })
+      window.mermaid = mermaid
+    </script>
+    <script src="//unpkg.com/docsify-mermaid@2.0.1/dist/docsify-mermaid.js"></script>
+    <script>
+      let active = 0
+      const activateSearch = () => {
+        const search = document.getElementsByClassName('search')[0]
+        const input = document.getElementsByTagName('input')[0]
+        const panel = document.getElementsByClassName('results-panel')[0]
+        const clearButton = document.getElementsByClassName('clear-button')[0]
+
+        input.addEventListener('input', function (e) {
+          if (input.value === '') {
+            panel.classList.add('show')
+            panel.innerHTML =
+              '<p class="empty">Start typing to find results in the documentation.</p>'
+          }
+        })
+        input.addEventListener('focus', function () {
+          if (!active) {
+            active = 1
+            search.classList.add('search-active')
+            clearButton.classList.add('show')
+            panel.classList.add('show')
+
+            panel.innerHTML =
+              '<p class="empty">Enter a search term to find results in the documentation.</p>'
+          }
+        })
+
+        window.addEventListener('click', function (e) {
+          if (search.contains(e.target) || e.target.className === 'sidebar') {
+            return
+          }
+
+          search.classList.remove('search-active')
+          panel.innerHTML = ''
+          panel.classList.remove('show')
+          clearButton.classList.remove('show')
+          input.value = ''
+          active = 0
+        })
+
+        clearButton.addEventListener('click', function () {
+          search.classList.remove('search-active')
+          panel.innerHTML = ''
+          panel.classList.remove('show')
+          clearButton.classList.remove('show')
+          input.value = ''
+          active = 0
+        })
+      }
+
+      window.addEventListener('load', function () {
+        activateSearch()
+      })
+    </script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/docsify-top-banner-plugin@latest/dist/index.js"></script> -->
+  </body>
+</html>

@@ -1,0 +1,11 @@
+:root {
+  --sidebar-bg-color: #212428;
+  --sidebar-right-border-style: 1px solid rgba(0, 0, 0, 0.07);
+  --sidebar-first-level-links-color: white;
+  --sidebar-second-level-links-color: white;
+  --search-bg-color: white;
+  --search-text-color: rgba(9, 9, 16, 0.7);
+  --cover-bg-color: #212428;
+  --cover-action-button-hover: grey;
+  --accent-color: #00abcc;
+}

@@ -1,0 +1,117 @@
+.sidebar {
+  border-right: var(--sidebar-right-border) !important;
+}
+
+.sidebar > h1 {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+}
+
+.sidebar-nav {
+  position: absolute;
+  width: 100%;
+  top: 190px;
+}
+
+.sidebar {
+  overflow: hidden;
+  position: fixed;
+  overflow-y: auto;
+  top: 0;
+  bottom: 0;
+  transition: transform 0.25s ease-out;
+  width: 350px;
+  z-index: 20;
+  background-image: linear-gradient(
+    0deg,
+    var(--sidebar-bg-color),
+    var(--sidebar-bg-color)
+  );
+}
+
+.sidebar ul li a {
+  border-bottom: none;
+  display: block;
+  display: block;
+  font-size: 0.98em;
+  font-weight: 500;
+  color: var(--sidebar-first-level-links-color);
+  text-decoration: none;
+  margin-bottom: 0;
+  cursor: pointer;
+  -webkit-transition: all 0.3s ease;
+  transition: all 0.3s ease;
+  letter-spacing: -0.5px;
+}
+
+.sidebar ul li p:hover a {
+  margin-left: 7px;
+  text-decoration: none;
+}
+
+.sidebar ul li ul li:hover a {
+  margin-left: 7px;
+  text-decoration: none;
+}
+
+.sidebar ul li ul li a {
+  border-bottom: none;
+  display: block;
+  display: block;
+  font-size: 0.98em;
+  font-weight: 400;
+  color: var(--sidebar-second-level-links-color);
+  text-decoration: none;
+  margin-bottom: 0;
+  cursor: pointer;
+  -webkit-transition: all 0.3s ease;
+  transition: all 0.3s ease;
+  letter-spacing: -0.5px;
+}
+
+.sidebar ul {
+  margin: 0 0 0 50px;
+  padding: 0;
+}
+
+.sidebar ul li.active > a {
+  border-right: 4px solid !important;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.sidebar ul li.active > a {
+  border-right: 2px solid;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.sidebar ul li p.active > a {
+  border-right: 4px solid !important;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.sidebar ul li p.active > a {
+  border-right: 2px solid;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.sidebar-toggle {
+  background-color: transparent;
+  background-color: transparent;
+}
+.sidebar-toggle span {
+  width: 25px;
+}
+
+body.close .sidebar-toggle {
+  background-color: transparent;
+  transition: 1s background-color;
+  width: 284px;
+  padding: 10px;
+  position: fixed;
+}

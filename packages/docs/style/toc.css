@@ -1,0 +1,77 @@
+.page_toc > ul > li > a > span::before {
+  content: '#';
+  font-weight: 400;
+  margin-left: -14px;
+  position: absolute;
+  font-size: 16px;
+  color: var(--accent-color);
+}
+
+.page_toc > ul > li > ul > li > a > span::before {
+  content: '#';
+  font-weight: 400;
+  margin-left: -14px;
+  position: absolute;
+  font-size: 14px;
+  color: var(--accent-color);
+  opacity: 0.6;
+}
+
+.page_toc > ul > li > ul > li > ul > li > a > span::before {
+  content: '#';
+  font-weight: 400;
+  margin-left: -14px;
+  position: absolute;
+  font-size: 12px;
+  color: var(--accent-color);
+  opacity: 0.5;
+}
+
+.page_toc > ul > li > ul > li > ul > li > ul > li > a > span::before {
+  content: '#';
+  font-weight: 400;
+  margin-left: -14px;
+  position: absolute;
+  font-size: 10px;
+  color: var(--accent-color);
+  opacity: 0.4;
+}
+
+.page_toc .active {
+  border-left: none !important;
+  padding-left: 10px;
+}
+
+.page_toc ul a {
+  font-size: 0.8em !important;
+}
+
+.page_toc {
+  position: fixed;
+  border-left-style: solid;
+  border-left-width: 1px;
+  border-left-color: rgba(0, 0, 0, 0.07);
+  border-image-slice: 1;
+  padding-left: 15px;
+}
+
+@media screen and (max-width: 800px) {
+  .page_toc {
+    display: none;
+  }
+}
+
+.page_toc ul a:hover span {
+  color: var(--accent-color);
+  border-bottom: none !important;
+  text-decoration: none !important;
+}
+
+.page_toc {
+  max-height: 85vh;
+  overflow-y: scroll;
+}
+
+.page_toc::-webkit-scrollbar {
+  display: none;
+}

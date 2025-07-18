@@ -1,0 +1,245 @@
+html {
+  font-size: 16px;
+}
+
+body,
+button,
+input,
+textarea {
+  font-family: scandia-web, sans-serif;
+  font-weight: 400;
+  color: rgba(9, 9, 16, 0.7);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 1rem;
+}
+
+.app-name-link > img {
+  height: 70px;
+}
+
+.docsify-tabs__tab {
+  outline: none;
+}
+
+h1 a span {
+  font-size: 1.3em !important;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: #090910 !important;
+}
+
+h2 a span {
+  font-size: 0.85em !important;
+  letter-spacing: 0;
+  font-weight: 450;
+  color: #090910 !important;
+}
+
+h3 a span {
+  font-size: 0.75em !important;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: #090910 !important;
+}
+
+h4 a span {
+  font-size: 1.05rem !important;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: #090910 !important;
+}
+
+h3 a span::before,
+h2 a span::before {
+  content: '#';
+  font-weight: 400;
+  margin-left: -25px;
+  position: absolute;
+  font-size: 28px;
+  color: var(--accent-color);
+  opacity: 0.6;
+}
+.content {
+  left: 350px;
+}
+
+.anchor:hover {
+  text-decoration: none;
+}
+
+.markdown-section p {
+  line-height: 1.8em;
+  margin-bottom: 2em;
+  text-align: justify;
+}
+.markdown-section pre {
+  -moz-osx-font-smoothing: initial;
+  -webkit-font-smoothing: initial;
+  font-family: 'Roboto Mono', Monaco, courier, monospace;
+  line-height: 1.5rem;
+  margin: 2.2em 0;
+  overflow: auto;
+  padding: 0 1rem;
+  position: relative;
+  word-wrap: normal;
+  background: #fbfbfd;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075);
+  display: grid;
+}
+
+.markdown-section {
+  line-height: 1.8em;
+  margin-bottom: 2em;
+  text-align: justify;
+  max-width: 85%;
+  word-wrap: break-word;
+  margin: 0 auto;
+  max-width: 800px !important;
+  padding: 50px !important;
+  position: relative;
+  flex: 1 1 0%;
+  margin: 0 48px !important;
+}
+
+.pagination-item-title {
+  font-size: 1.6em;
+  color: var(--accent-color);
+  opacity: 0.6;
+}
+
+.docsify-pagination-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  overflow: hidden;
+  margin: 5em 0 1em;
+  border-top: none !important;
+}
+
+.markdown-section em {
+  color: var(--accent-color);
+}
+
+.nav {
+  width: var(--toc-width, 300px);
+  align-self: flex-start;
+  flex: 0 0 auto;
+}
+
+.markdown-section code {
+  border-radius: 2px;
+  color: var(--accent-color);
+  font-family: 'Roboto Mono', Monaco, courier, monospace;
+  font-size: 0.8rem;
+  margin: 0 2px;
+  padding: 3px 5px;
+  white-space: pre-wrap;
+  background: #fbfbfd;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+
+.token.keyword,
+.token.function {
+  color: var(--accent-color);
+}
+
+.docsify-tabs--material .docsify-tabs__content {
+  padding-top: 30px;
+}
+
+img.medium-zoom-image {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  -o-box-shadow: 12px 12px 29px #555;
+  -icab-box-shadow: 12px 12px 29px #555;
+  -khtml-box-shadow: 12px 12px 29px #555;
+  -moz-box-shadow: 12px 12px 29px #555;
+  -webkit-box-shadow: 12px 12px 29px #555;
+  box-shadow: 12px 12px 29px #555;
+}
+
+.markdown-section ul > li {
+  margin-bottom: 1rem;
+}
+
+.docsify-tabs--material .docsify-tabs__content {
+  padding-top: 30px;
+}
+
+#collection-method-list > p {
+  column-count: 3;
+  -moz-column-count: 3;
+  -webkit-column-count: 3;
+  column-gap: 2em;
+  -moz-column-gap: 2em;
+  -webkit-column-gap: 2em;
+}
+
+#collection-method-list a {
+  display: block;
+}
+
+.markdown-section pre[data-lang] {
+  overflow: auto !important;
+}
+.markdown-section pre[data-lang] code {
+  overflow: visible;
+}
+
+/*
+Line number
+*/
+
+pre[class*='language-'].line-numbers {
+  position: relative;
+  padding-left: 3.8em;
+  counter-reset: linenumber;
+}
+
+pre[class*='language-'].line-numbers > code {
+  position: relative;
+  white-space: inherit;
+}
+
+.line-numbers .line-numbers-rows {
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  font-size: 100%;
+  left: -3.8em;
+  width: 3em; /* works for line-numbers below 1000 lines */
+  letter-spacing: -1px;
+  border-right: 1px solid #999;
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.line-numbers-rows > span {
+  display: block;
+  counter-increment: linenumber;
+}
+
+.line-numbers-rows > span:before {
+  content: counter(linenumber);
+  color: #999;
+  display: block;
+  padding-right: 0.8em;
+  text-align: right;
+}
+
+.line-numbers .line-numbers-rows {
+  border-right: 2px solid white;
+  /* Fix paddings to align with code.*/
+  padding: 2.2em 0; /* Same as code block */
+}
+
+.brace-hover {
+  color: black !important;
+  font-weight: 600 !important;
+  font-size: 1.1rem;
+}
