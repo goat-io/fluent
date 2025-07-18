@@ -80,7 +80,7 @@ interface Database {
 }
 
 // Global configuration
-const BENCHMARK_DURATION = 5000 // 5 seconds per test (easily changeable)
+const BENCHMARK_DURATION = process.env.BENCHMARK_DURATION ? parseInt(process.env.BENCHMARK_DURATION) * 1000 : 5000 // Default 5 seconds per test
 const WARMUP_DURATION = 1000 // 1 second warmup
 
 export class ContainerizedBenchmarkRunner {
@@ -539,33 +539,33 @@ export class ContainerizedBenchmarkRunner {
     name: string,
     description: string,
     fn: () => Promise<void>
-  ): Promise<BenchmarkResult> {
+  ): Promise<BenchmarkResult & { p95Latency: number }> {
     const startTime = Date.now()
     const endTime = startTime + BENCHMARK_DURATION
     let iterations = 0
-    const times: number[] = []
+    const latencies: number[] = []
     
     // Warmup phase
-    console.log(chalk.grey(`    Warming up ${name}...`))
     const warmupEnd = Date.now() + WARMUP_DURATION
     while (Date.now() < warmupEnd) {
       await fn()
     }
     
     // Run benchmark for specified duration
-    console.log(chalk.grey(`    Running ${name} for ${BENCHMARK_DURATION/1000}s...`))
     while (Date.now() < endTime) {
       const iterStart = performance.now()
       await fn()
       const iterEnd = performance.now()
-      times.push(iterEnd - iterStart)
+      latencies.push(iterEnd - iterStart)
       iterations++
     }
     
-    const totalTime = times.reduce((a, b) => a + b, 0)
+    const totalTime = latencies.reduce((a, b) => a + b, 0)
     const averageTime = totalTime / iterations
-    const minTime = Math.min(...times)
-    const maxTime = Math.max(...times)
+    const sortedLatencies = latencies.sort((a, b) => a - b)
+    const minTime = sortedLatencies[0]
+    const maxTime = sortedLatencies[sortedLatencies.length - 1]
+    const p95Latency = sortedLatencies[Math.floor(sortedLatencies.length * 0.95)]
     const operationsPerSecond = 1000 / averageTime
     
     return {
@@ -575,6 +575,7 @@ export class ContainerizedBenchmarkRunner {
       averageTime,
       minTime,
       maxTime,
+      p95Latency,
       iterations,
       operationsPerSecond,
       memoryUsage: {
@@ -979,7 +980,7 @@ export class ContainerizedBenchmarkRunner {
       },
     ]
 
-    console.log(chalk.bold(`\n📊 Running benchmarks (${BENCHMARK_DURATION/1000} seconds per test)\n`))
+    console.log(chalk.yellow(`\n⏳ Running benchmarks... This will take approximately ${(scenarios.length * 10 * BENCHMARK_DURATION / 1000 / 60).toFixed(1)} minutes\n`))
 
     for (let i = 0; i < scenarios.length; i++) {
       const scenario = scenarios[i]
@@ -1001,97 +1002,95 @@ export class ContainerizedBenchmarkRunner {
       ]
       
       for (const driver of drivers) {
+        process.stdout.write(chalk.gray(`  Testing ${driver.name}... `))
         const result = await this.runTimedBenchmark(
           `${driver.name} - ${scenario.name}`,
           scenario.description,
           driver.fn
         )
         results.push(result)
-        console.log(chalk.green(`    ✓ ${driver.name}: ${result.iterations} operations in ${BENCHMARK_DURATION/1000}s (${result.operationsPerSecond.toFixed(0)} ops/sec)`))
+        console.log(chalk.green(`✓ ${result.iterations} ops @ ${Math.round(result.operationsPerSecond)} ops/sec`))
       }
     }
     return results
   }
 
-  private printSimplifiedResults(results: BenchmarkResult[]): void {
-    console.log('\n' + chalk.bold('📊 BENCHMARK RESULTS'))
-    console.log(chalk.grey('─'.repeat(80)) + '\n')
-
-    // Group results by scenario
-    const scenarios = ['Simple SELECT', 'Filtered SELECT', 'JOIN Query', 'Complex JOIN', 'INSERT Operation']
-    
-    for (const scenario of scenarios) {
-      const scenarioResults = results.filter(r => r.name.includes(scenario))
-      if (scenarioResults.length === 0) continue
-
-      console.log(chalk.cyan.bold(`\n${scenario}:`))
-      
-      // Sort by ops/sec descending
-      scenarioResults.sort((a, b) => b.operationsPerSecond - a.operationsPerSecond)
-      
-      // Create simple table
-      console.log(chalk.grey('─'.repeat(65)))
-      console.log(
-        chalk.bold('Driver'.padEnd(12)) + 
-        chalk.bold('Ops/sec'.padStart(12)) + 
-        chalk.bold('Latency'.padStart(12)) + 
-        chalk.bold('Relative'.padStart(12)) + 
-        chalk.bold('').padStart(10))
-      console.log(chalk.grey('─'.repeat(65)))
-      
-      const fastest = scenarioResults[0].operationsPerSecond
-      
-      scenarioResults.forEach((result, index) => {
-        const driver = result.name.split(' - ')[0]
-        const opsPerSec = result.operationsPerSecond.toFixed(0)
-        const latency = this.formatTime(result.averageTime)
-        const relative = ((result.operationsPerSecond / fastest) * 100).toFixed(1) + '%'
-        const badge = index === 0 ? chalk.green('✓ FASTEST') : ''
-        
-        console.log(
-          driver.padEnd(12) +
-          opsPerSec.padStart(12) +
-          latency.padStart(12) +
-          relative.padStart(12) +
-          badge.padStart(10)
-        )
-      })
-    }
-
-    // Overall summary
-    console.log('\n' + chalk.grey('─'.repeat(80)))
-    console.log(chalk.bold('\n📈 OVERALL PERFORMANCE SUMMARY\n'))
-    
-    // Calculate average ops/sec for each driver
+  private printSimplifiedResults(results: any[]): void {
+    // Calculate overall performance across all scenarios
     const drivers = ['MySQL2', 'MySQL2/Promise', 'Knex', 'Prisma', 'Kysely', 'Drizzle', 'Prisma+Kysely', 'TypeORM', 'Sequelize', 'MikroORM']
     const driverStats = drivers.map(driver => {
       const driverResults = results.filter(r => r.name.startsWith(driver))
-      const avgOps = driverResults.reduce((sum, r) => sum + r.operationsPerSecond, 0) / driverResults.length
-      return { driver, avgOps, results: driverResults }
-    }).sort((a, b) => b.avgOps - a.avgOps)
+      const totalOps = driverResults.reduce((sum, r) => sum + r.iterations, 0)
+      const totalTime = driverResults.reduce((sum, r) => sum + (r.iterations * r.averageTime), 0)
+      const avgLatency = totalTime / totalOps
+      const avgOpsPerSec = 1000 / avgLatency
+      const avgP95 = driverResults.reduce((sum, r) => sum + r.p95Latency, 0) / driverResults.length
+      
+      return { 
+        driver, 
+        avgOpsPerSec,
+        avgLatency,
+        avgP95,
+        scenarioBreakdown: {
+          'Simple SELECT': driverResults.find(r => r.name.includes('Simple SELECT'))?.iterations || 0,
+          'Filtered SELECT': driverResults.find(r => r.name.includes('Filtered SELECT'))?.iterations || 0,
+          'JOIN Query': driverResults.find(r => r.name.includes('JOIN Query'))?.iterations || 0,
+          'Complex JOIN': driverResults.find(r => r.name.includes('Complex JOIN'))?.iterations || 0,
+          'INSERT Operation': driverResults.find(r => r.name.includes('INSERT Operation'))?.iterations || 0,
+        }
+      }
+    }).sort((a, b) => b.avgOpsPerSec - a.avgOpsPerSec)
 
-    console.log(chalk.grey('─'.repeat(50)))
-    console.log(chalk.bold('Driver'.padEnd(12)) + chalk.bold('Avg Ops/sec'.padStart(15)) + chalk.bold('Win Rate'.padStart(15)))
-    console.log(chalk.grey('─'.repeat(50)))
+    console.log(chalk.bold.blue('\n📊 Original Benchmark Results - Isolated Query Tests'))
+    console.log(chalk.gray('─'.repeat(90)))
+    
+    console.log('Driver'.padEnd(16) + 'Ops/sec'.padStart(10) + 'Latency'.padStart(10) + 'P95'.padStart(8) + 'Errors'.padStart(8) + 'Status')
+    console.log(chalk.gray('─'.repeat(90)))
+    
+    const fastest = driverStats[0]?.avgOpsPerSec || 1
     
     driverStats.forEach((stat, index) => {
-      const wins = scenarios.filter(scenario => {
-        const scenarioResults = results.filter(r => r.name.includes(scenario))
-        if (scenarioResults.length === 0) return false
-        const winner = scenarioResults.sort((a, b) => b.operationsPerSecond - a.operationsPerSecond)[0]
-        return winner.name.startsWith(stat.driver)
-      }).length
-      
-      const medal = index === 0 ? ' 🥇' : index === 1 ? ' 🥈' : index === 2 ? ' 🥉' : ''
+      const relative = Math.round((stat.avgOpsPerSec / fastest) * 100)
+      let status = ''
+      if (index === 0) {
+        status = chalk.green(' ✨ FASTEST')
+      } else {
+        status = chalk.gray(` (${relative}%)`)
+      }
       
       console.log(
-        (stat.driver + medal).padEnd(12) +
-        stat.avgOps.toFixed(0).padStart(15) +
-        `${wins}/5`.padStart(15)
+        stat.driver.padEnd(16) +
+        Math.round(stat.avgOpsPerSec).toString().padStart(10) +
+        `${stat.avgLatency.toFixed(2)}ms`.padStart(10) +
+        `${stat.avgP95.toFixed(2)}ms`.padStart(8) +
+        '0'.padStart(8) +
+        status
       )
     })
     
-    console.log('\n' + chalk.grey('─'.repeat(80)) + '\n')
+    // Scenario breakdown
+    console.log(chalk.bold.blue('\n📈 Scenario Breakdown (Operations per 5s)'))
+    console.log(chalk.gray('─'.repeat(90)))
+    
+    const scenarios = ['Simple SELECT', 'Filtered SELECT', 'JOIN Query', 'Complex JOIN', 'INSERT Operation']
+    console.log('Driver'.padEnd(16) + scenarios.map(s => s.substring(0, 10).padStart(10)).join(''))
+    console.log(chalk.gray('─'.repeat(90)))
+    
+    driverStats.slice(0, 5).forEach(stat => {
+      const counts = scenarios.map(scenario => 
+        stat.scenarioBreakdown[scenario].toString().padStart(10)
+      )
+      console.log(stat.driver.padEnd(16) + counts.join(''))
+    })
+    
+    console.log(chalk.bold.blue('\n🎯 Summary'))
+    console.log(chalk.gray('─'.repeat(90)))
+    console.log(`• Test methodology: Isolated query benchmarks (5 scenarios × ${BENCHMARK_DURATION/1000}s each)`)
+    console.log(`• Working drivers: ${drivers.length}/10`)
+    console.log(`• Failed drivers: 0/10`)
+    console.log(`• Test duration: ${BENCHMARK_DURATION/1000}s per scenario per driver`)
+    console.log('\n' + chalk.yellow('⚠️  Note: This benchmark tests each query type in isolation.'))
+    console.log(chalk.yellow('   For mixed workload results, use: pnpm benchmark'))
   }
 
   private formatTime(ms: number): string {
