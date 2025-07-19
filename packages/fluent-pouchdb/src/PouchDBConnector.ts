@@ -77,9 +77,19 @@ export class PouchDBConnector<
     // Validate Input
     const validatedData = this.inputSchema.parse(data)
 
-    const reponse = await this.dataSource.post(validatedData)
-    let datum = await this.dataSource.get(reponse.id)
-
+    let response: any
+    if ((validatedData as any).id) {
+      // If id is provided, use put with explicit _id
+      const docData = { ...(validatedData as any) }
+      docData._id = docData.id
+      delete docData.id
+      response = await this.dataSource.put(docData)
+    } else {
+      // If no id, use post to auto-generate
+      response = await this.dataSource.post(validatedData as any)
+    }
+    
+    let datum = await this.dataSource.get(response.id)
     datum['id'] = datum['_id']
 
     // Validate Output
@@ -95,9 +105,9 @@ export class PouchDBConnector<
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
     const validatedData = this.inputSchema.array().parse(data)
 
-    const inserted = await this.dataSource.bulkDocs(validatedData)
+    const inserted = await this.dataSource.bulkDocs(validatedData as any)
 
-    const insertedOK = inserted.map(i => {
+    const insertedOK = (inserted as any).map((i: any) => {
       if (i.id) {
         return i
       }
@@ -108,7 +118,7 @@ export class PouchDBConnector<
     })
 
     const res = elements.results.map(r => {
-      if (r.id && r.docs[0]['ok']) {
+      if (r.id && r.docs?.[0] && r.docs[0]['ok']) {
         return Objects.clearEmpties(
           Objects.deleteNulls({ ...r.docs[0]['ok'], id: r.id })
         )
@@ -171,7 +181,7 @@ export class PouchDBConnector<
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
 
     Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null
+      flatValue[key] = null as any
     })
 
     const nullObject = Objects.nest(flatValue)
@@ -469,16 +479,16 @@ export class PouchDBConnector<
    * @param id
    */
   public async deleteById(id: string): Promise<string> {
-    const dbIndex = db.findIndex(obj => obj.id === id)
-    if (dbIndex > -1) {
-      const element: { id: string } & OutputDTO = JSON.parse(
-        JSON.stringify(db[dbIndex])
-      )
-      db.splice(dbIndex, 1)
-
-      return element.id
+    try {
+      const doc = await this.dataSource.get(id)
+      await this.dataSource.remove(doc)
+      return id
+    } catch (error: any) {
+      if (error.status === 404) {
+        throw new Error(`The element with id ${id} was not found`)
+      }
+      throw error
     }
-    throw new Error(`The element with id ${id} was not found`)
   }
 
   public loadFirst(query?: FluentQuery<ModelDTO>) {
@@ -519,8 +529,22 @@ export class PouchDBConnector<
     return new (<any>this.constructor)()
   }
 
+
   public async clear(): Promise<boolean> {
-    await this.dataSource.close()
-    return true
+    try {
+      // Get all documents first
+      const allDocs = await this.dataSource.allDocs()
+      
+      // Delete all documents
+      const deletePromises = allDocs.rows.map(row => 
+        this.dataSource.remove(row.id, row.value.rev)
+      )
+      
+      await Promise.all(deletePromises)
+      return true
+    } catch (error) {
+      console.error('Error clearing database:', error)
+      return false
+    }
   }
 }

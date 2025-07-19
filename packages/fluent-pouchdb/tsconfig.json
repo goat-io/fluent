@@ -1,11 +1,13 @@
 {
   "extends": "@goatlab/tsconfig/tsconfig.json",
-  "include": ["src"],
-  "exclude": ["src/**/*.spec.*", "src/test/**", "dist"],
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.spec.*", "src/**/*.test.*", "src/tests/**", "dist", "node_modules"],
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": "./src",
     "strictNullChecks": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true
   }
 }

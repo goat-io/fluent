@@ -1,23 +1,170 @@
+import { describe, test, it, expect, beforeAll, beforeEach } from 'vitest'
 import { Fluent } from '@goatlab/fluent'
-import { advancedTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/advanced/advancedTestSuite'
-import { basicTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/basic/basicTestSuite'
 import { dbEntities } from '@goatlab/fluent/src/TypeOrmConnector/test/dbEntities'
-import { GoatRepository } from './goat.pouch.repository'
-import { TypeOrmRepository } from './typeOrm.pouchdb.repository'
+import { GoatRepositoryFactory, TypeOrmRepositoryFactory } from './repository.factory'
+import { flock } from '@goatlab/fluent/src/TypeOrmConnector/test/flock'
+import { Promises } from '@goatlab/js-utils'
 
 beforeAll(async () => {
   await Fluent.initialize([], dbEntities)
 })
 
-describe('Execute all basic test Suite', () => {
-  test('', () => {
-    expect(true).toBe(true)
+describe('PouchDB Basic Test Suite', () => {
+  let Repository: GoatRepositoryFactory
+  let storedId: any
+
+  beforeEach(() => {
+    Repository = new GoatRepositoryFactory()
   })
-  // basicTestSuite(GoatRepository)
+
+  test('insert - Should insert data', async () => {
+    const a = await Repository.insert({ name: 'myGoat', age: 13 })
+    expect(typeof a.id).toBe('string')
+    expect(a.name).toBe('myGoat')
+  })
+
+  test('insert - Should insert data with customId', async () => {
+    const a = await Repository.insert({
+      id: '631ce4304f9183f61ffb613a',
+      name: 'myGoat',
+      age: 13
+    })
+    expect(typeof a.id).toBe('string')
+    expect(a.id).toBe('631ce4304f9183f61ffb613a')
+  })
+
+  it('insertMany - Should insert Multiple elements', async () => {
+    const insertedFlock = await Repository.insertMany(flock)
+    expect(insertedFlock[0].name).toBe('Goatee')
+    storedId = insertedFlock[0].id
+  })
+
+  test('findById - Should GET an object by its ID', async () => {
+    const goats = await Repository.insertMany(flock)
+
+    const goat = await Repository.findById(goats[0].id!)
+    expect(goat?.id).toBe(goats[0].id)
+    expect(typeof goat?.id).toBe('string')
+
+    const anotherGoat = await Repository.findById('507f1f77bcf86cd799439011')
+    expect(anotherGoat).toBe(null)
+  })
+
+  test('findMany - Should GET data', async () => {
+    await Repository.insertMany(flock)
+    const storedGoats = await Repository.findMany()
+
+    expect(Array.isArray(storedGoats)).toBe(true)
+    expect(typeof storedGoats[0].id).toBe('string')
+  })
+
+  test('findMany - Should FILTER data', async () => {
+    await Repository.insertMany(flock)
+
+    const storedGoats = await Repository.findMany({
+      where: {
+        name: 'Goatee'
+      }
+    })
+
+    expect(Array.isArray(storedGoats)).toBe(true)
+
+    for (const goat of storedGoats) {
+      expect(goat.name).toBe('Goatee')
+    }
+    expect(typeof storedGoats[0].id).toBe('string')
+  })
+
+  test('findFirst - Should get only 1 object back', async () => {
+    await Repository.insertMany(flock)
+
+    const storedGoats = await Repository.findFirst({
+      where: {
+        name: 'Goatee'
+      }
+    })
+
+    expect(Array.isArray(storedGoats)).toBe(false)
+    expect(typeof storedGoats!.id).toBe('string')
+  })
+
+  it('UpdateById - Should Update a single element', async () => {
+    await Repository.insertMany(flock)
+    const goats = await Repository.findMany()
+
+    const data = await Repository.updateById(goats[0].id!, {
+      age: 99,
+      name: 'MyUpdatedGoat'
+    })
+    expect(data.name).toBe('MyUpdatedGoat')
+    expect(data.id).toBe(goats[0].id!)
+  })
+
+  it('ReplaceById - Should Update a single element', async () => {
+    await Repository.insertMany(flock)
+    const goats = await Repository.findMany()
+    const data = await Repository.replaceById(goats[0].id!, {
+      age: 2,
+      name: 'MyReplacedGoat'
+    })
+    expect(data.name).toBe('MyReplacedGoat')
+    expect(data.id).toBe(goats[0].id!)
+  })
 })
 
-describe('Execute all advanced test Suite', () => {
-  // advancedTestSuite(TypeOrmRepository)
+describe('PouchDB Advanced Test Suite', () => {
+  let Model: TypeOrmRepositoryFactory
+
+  beforeEach(() => {
+    Model = new TypeOrmRepositoryFactory()
+  })
+
+  const insertTestData = async (Repository) => {
+    await Repository.insert({
+      created: '2018-12-03',
+      nestedTest: {
+        a: ['6', '5', '4'],
+        b: { c: true, d: ['2', '1', '0'] },
+        c: 4
+      },
+      order: 1,
+      test: true
+    })
+
+    await Repository.insert({
+      created: '2017-12-03',
+      nestedTest: {
+        a: ['3', '2', '1'],
+        b: { c: true, d: ['1', '1', '0'] },
+        c: 3
+      },
+      order: 2,
+      test: false
+    })
+    await Repository.insert({
+      created: '2016-12-03',
+      nestedTest: {
+        a: ['0', '-1', '-2'],
+        b: { c: true, d: ['0', '1', '0'] },
+        c: 2
+      },
+      order: 3,
+      test: false
+    })
+  }
+
+  it('Should get local data', async () => {
+    await insertTestData(Model)
+    const data = await Model.findMany()
+    expect(Array.isArray(data)).toBe(true)
+    expect(typeof data[0].nestedTest.b.c).toBe('boolean')
+  })
+
+  it('pluck() should return a single array', async () => {
+    await insertTestData(Model)
+    const data = await Model.pluck({ test: true })
+    expect(typeof data[0]).toBe('boolean')
+  })
 })
 
 /*
