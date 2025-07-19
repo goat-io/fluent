@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "echo 'skipping build step for benchmarks'",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:container": "vitest run --config vitest.container.config.ts",

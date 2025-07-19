@@ -4,7 +4,7 @@
 // License text available at https://opensource.org/licenses/MIT
 // tslint:disable: max-classes-per-file
 // tslint:disable: forin
-import { SchemaObject as JsonSchema } from 'openapi3-ts'
+import { SchemaObject as JsonSchema } from 'openapi3-ts/oas30'
 import { AnyObject, DataObject, Options, PrototypeOf } from './common-types'
 import {
   BelongsToDefinition,
@@ -138,7 +138,10 @@ export class ModelDefinition {
     this.properties = {}
     if (properties) {
       for (const p in properties) {
-        this.addProperty(p, properties[p])
+        const prop = properties[p]
+        if (prop !== undefined) {
+          this.addProperty(p, prop)
+        }
       }
     }
 
@@ -272,7 +275,7 @@ export class ModelDefinition {
       return this.settings.id
     }
     const idProps = Object.keys(this.properties).filter(
-      prop => this.properties[prop].id
+      prop => this.properties[prop]?.id
     )
     return idProps
   }
@@ -348,7 +351,9 @@ export class Model {
     }
 
     for (const r in def.relations) {
-      const relName = def.relations[r].name
+      const rel = def.relations[r]
+      if (!rel) continue
+      const relName = rel.name
       if (relName in this) {
         copyPropertyAsJson(relName)
       }
@@ -384,7 +389,9 @@ export class Model {
     if (def?.relations) {
       // tslint:disable-next-line: forin
       for (const r in def.relations) {
-        const relName = def.relations[r].name
+        const rel = def.relations[r]
+      if (!rel) continue
+      const relName = rel.name
         if (relName in this) {
           obj[relName] = asObject((this as AnyObject)[relName], {
             ...options,
@@ -400,6 +407,7 @@ export class Model {
     // tslint:disable-next-line: forin
     for (const i in keys) {
       const propertyName = keys[i]
+      if (!propertyName) continue
       const val = (this as AnyObject)[propertyName]
 
       if (val === undefined) continue
@@ -447,6 +455,7 @@ export class Entity extends Model implements Persistable {
     }
 
     const idName = this.getIdProperties()[0]
+    if (!idName) return undefined
     return entityOrData[idName]
   }
 
@@ -458,7 +467,9 @@ export class Entity extends Model implements Persistable {
     const { definition } = this.constructor as typeof Entity
     const idProps = definition.idProperties()
     if (idProps.length === 1) {
-      return (this as AnyObject)[idProps[0]]
+      const firstId = idProps[0]
+      if (!firstId) return undefined
+      return (this as AnyObject)[firstId]
     }
     if (!idProps.length) {
       throw new Error(
@@ -491,7 +502,10 @@ export class Entity extends Model implements Persistable {
     const where = {} as any
     const idProps = this.definition.idProperties()
     if (idProps.length === 1) {
-      where[idProps[0]] = id
+      const firstId = idProps[0]
+      if (firstId) {
+        where[firstId] = id
+      }
     } else {
       for (const idProp of idProps) {
         where[idProp] = id[idProp]
@@ -530,7 +544,9 @@ export function rejectNavigationalPropertiesInData<M extends typeof Entity>(
   const props = def.properties
 
   for (const r in def.relations) {
-    const relName = def.relations[r].name
+    const rel = def.relations[r]
+    if (!rel) continue
+    const relName = rel.name
     if (!(relName in data)) continue
 
     let msg =

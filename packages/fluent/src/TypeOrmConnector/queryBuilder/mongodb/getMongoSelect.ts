@@ -7,9 +7,10 @@ import { FluentQuery } from '../../../types'
  * @returns
  */
 export const getMongoSelect = (select: FluentQuery<any>['select']) => {
-  const selected = Objects.flatten(select || {})
+  const flattened = Objects.flatten(select || {})
+  const selected: Record<string, number> = {}
 
-  for (const k of Object.keys(selected)) {
+  for (const k of Object.keys(flattened)) {
     selected[k] = 1
   }
 

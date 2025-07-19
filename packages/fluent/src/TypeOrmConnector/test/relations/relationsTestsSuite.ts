@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeAll } from 'vitest'
 import { Ids, Promises } from '@goatlab/js-utils'
 import { CarsRepository } from './car/car.repositoryTypeOrm'
 import { RoleRepository } from './roles/roles.repositoryTypeOrm'

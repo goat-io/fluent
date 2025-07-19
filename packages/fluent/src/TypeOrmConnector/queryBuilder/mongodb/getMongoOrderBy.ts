@@ -13,7 +13,7 @@ export const getMongoOrderBy = (orderBy?: FluentQuery<any>['orderBy']) => {
 
   for (const key of Object.keys(order)) {
     const val = order[key]
-    sort.$sort[key] = val === 'asc' ? 1 : -1
+    sort.$sort[key] = val?.toLowerCase() === 'asc' ? 1 : -1
   }
 
   return sort

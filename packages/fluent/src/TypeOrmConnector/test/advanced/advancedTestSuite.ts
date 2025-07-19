@@ -1,8 +1,17 @@
-export const advancedTestSuite = Model => {
-  beforeAll(() => {
-    try {
-      Model = new Model()
-    } catch (error) {}
+import { describe, test, it, expect, beforeAll } from 'vitest'
+import { DataSource } from 'typeorm'
+import { TypeOrmRepositoryFactory } from '../repository.factory'
+
+export const advancedTestSuite = (dataSource?: DataSource) => {
+  let Model: any
+  beforeAll(async () => {
+    if (!dataSource) {
+      // For backward compatibility - dynamic import to avoid initialization issues
+      const module = await import('./typeOrm.repository')
+      Model = new module.TypeOrmRepository()
+    } else {
+      Model = new TypeOrmRepositoryFactory(dataSource)
+    }
   })
   /**
    *

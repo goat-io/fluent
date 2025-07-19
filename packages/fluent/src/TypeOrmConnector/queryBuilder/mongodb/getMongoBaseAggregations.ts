@@ -35,11 +35,12 @@ export const getMongoBaseAggregation = ({
     const dbRelation = modelRelations[relation]
 
     // Nested Includes
-    if (include[relation]['include']) {
+    const relationInclude = include[relation]
+    if (relationInclude && typeof relationInclude === 'object' && 'include' in relationInclude) {
       const newSelf = self[relation] && self[relation]()
 
       const innerRelations = getMongoBaseAggregation({
-        include: include[relation]['include'],
+        include: relationInclude['include'],
         self: newSelf
       })
 
@@ -47,7 +48,7 @@ export const getMongoBaseAggregation = ({
     }
 
     const where = getMongoWhere({
-      where: include[relation]['where']
+      where: relationInclude && typeof relationInclude === 'object' && 'where' in relationInclude ? relationInclude['where'] : undefined
     })
 
     if (dbRelation.isManyToOne) {

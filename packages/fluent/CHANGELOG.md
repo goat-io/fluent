@@ -1,5 +1,12 @@
 # 0.5.20
 
+## 0.7.40
+
+### Patch Changes
+
+- Rebump library to function again
+  - @goatlab/js-utils@0.8.40
+
 ## 0.7.39
 
 ### Patch Changes

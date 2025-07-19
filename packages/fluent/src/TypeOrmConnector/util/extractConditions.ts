@@ -60,7 +60,7 @@ export const extractConditions = (
               accumulatedClauses.push({
                 operator: LogicOperator[transformedKey],
                 element: `${initialKey}`,
-                value: flatten[key]
+                value: flatten[key] as Primitives | PrimitivesArray as Primitives | PrimitivesArray
               })
             }
           } else if (transformedKey.includes('.')) {
@@ -74,20 +74,20 @@ export const extractConditions = (
               accumulatedClauses.push({
                 operator: LogicOperator[op],
                 element: `${initialKey}.${key.replace(`.${op}`, '')}`,
-                value: flatten[key]
+                value: flatten[key] as Primitives | PrimitivesArray as Primitives | PrimitivesArray
               })
             } else {
               accumulatedClauses.push({
                 operator: LogicOperator.equals,
                 element: `${initialKey}.${key}`,
-                value: flatten[key]
+                value: flatten[key] as Primitives | PrimitivesArray as Primitives | PrimitivesArray
               })
             }
           } else {
             accumulatedClauses.push({
               operator: LogicOperator.equals,
               element: `${initialKey}.${transformedKey}`,
-              value: flatten[key]
+              value: flatten[key] as Primitives | PrimitivesArray
             })
           }
         }

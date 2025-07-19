@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { f } from '../../../decorators'
 
 export class FurtherNested {
-  @f.property({ required: false })
+  @f.property({ required: false, type: 'boolean' })
   c: boolean
 
   @f.stringArray({ required: true })
@@ -15,7 +15,7 @@ export class Nested {
   a: string[]
 
   // Non array props of a optional nested object cannot be required
-  @f.property({ required: false })
+  @f.property({ required: false, type: 'int' })
   c: number
 
   @f.embed(FurtherNested)
@@ -27,16 +27,16 @@ export class TypeORMDataModel {
   @f.id()
   id: string
 
-  @f.property({ required: false })
+  @f.property({ required: false, type: 'varchar' })
   created?: string
 
   @f.embed(Nested)
   nestedTest?: Nested | undefined
 
-  @f.property({ required: false })
+  @f.property({ required: false, type: 'int' })
   order?: number
 
-  @f.property({ required: true })
+  @f.property({ required: true, type: 'boolean' })
   test: boolean
 }
 

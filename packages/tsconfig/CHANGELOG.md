@@ -1,5 +1,11 @@
 # @goatlab/tsconfig
 
+## 0.0.13
+
+### Patch Changes
+
+- Rebump library to function again
+
 ## 0.0.12
 
 ### Patch Changes

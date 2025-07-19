@@ -1,5 +1,5 @@
-import { Ids, Objects } from '@goatlab/js-utils'
-import { ObjectID } from 'bson'
+import { Objects } from '@goatlab/js-utils'
+import { ObjectId as BSONObjectID } from 'bson'
 import { FindManyOptions } from 'typeorm'
 import { clearEmpties } from '../../util/clearEmpties'
 import {
@@ -52,8 +52,8 @@ export const getMongoWhere = ({
       element = '_id'
 
       value = (Array.isArray(value)
-        ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-        : (Ids.objectID(value as string) as unknown as ObjectID)) as unknown as
+        ? value.map(v => new BSONObjectID(v as string))
+        : new BSONObjectID(value as string)) as unknown as
         | Primitives
         | PrimitivesArray
     }
@@ -104,8 +104,8 @@ export const getMongoWhere = ({
       element = '_id'
 
       value = (Array.isArray(value)
-        ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-        : (Ids.objectID(value as string) as unknown as ObjectID)) as unknown as
+        ? value.map(v => new BSONObjectID(v as string))
+        : new BSONObjectID(value as string)) as unknown as
         | Primitives
         | PrimitivesArray
     }
@@ -156,8 +156,8 @@ export const getMongoWhere = ({
       element = '_id'
 
       value = (Array.isArray(value)
-        ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-        : (Ids.objectID(value as string) as unknown as ObjectID)) as unknown as
+        ? value.map(v => new BSONObjectID(v as string))
+        : new BSONObjectID(value as string)) as unknown as
         | Primitives
         | PrimitivesArray
     }

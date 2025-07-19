@@ -6,9 +6,10 @@ import mapvalues from './mapValues'
 import {
   isSchemaObject,
   ReferenceObject,
-  SchemaObject,
+  SchemaObject as BaseSchemaObject,
   SchemasObject
-} from 'openapi3-ts'
+} from 'openapi3-ts/oas30'
+import { SchemaObject } from './build-schema'
 /**
  * Custom LoopBack extension: a reference to Schema object that's bundled
  * inside `definitions` property.
@@ -70,19 +71,19 @@ export function jsonToSchemaObject(
       }
       case 'allOf': {
         result.allOf = json.allOf?.map(item =>
-          jsonToSchemaObject(item as SchemaObject, visited)
+          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item
         )
         break
       }
       case 'anyOf': {
         result.anyOf = json.anyOf?.map(item =>
-          jsonToSchemaObject(item as SchemaObject, visited)
+          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item
         )
         break
       }
       case 'oneOf': {
         result.oneOf = json.oneOf?.map(item =>
-          jsonToSchemaObject(item as SchemaObject, visited)
+          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item
         )
         break
       }
@@ -103,7 +104,7 @@ export function jsonToSchemaObject(
           result.additionalProperties = json.additionalProperties
         } else {
           result.additionalProperties = jsonToSchemaObject(
-            json.additionalProperties!,
+            json.additionalProperties as SchemaObject,
             visited
           )
         }

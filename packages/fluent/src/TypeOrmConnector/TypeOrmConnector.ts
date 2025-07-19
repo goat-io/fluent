@@ -4,7 +4,6 @@
 import { LoadedResult, QueryOutput } from './../types'
 import {
   FindManyOptions,
-  ObjectID,
   Repository,
   MongoRepository,
   DeepPartial,
@@ -12,7 +11,8 @@ import {
   SelectQueryBuilder,
   ObjectLiteral
 } from 'typeorm'
-import { Ids, Objects, Strings, Memo } from '@goatlab/js-utils'
+import { Objects, Strings, Memo } from '@goatlab/js-utils'
+import { ObjectId as BSONObjectID } from 'bson'
 import { BaseConnector } from '../BaseConnector'
 import { FluentConnectorInterface } from '../FluentConnectorInterface'
 import { getOutputKeys } from '../outputKeys'
@@ -99,10 +99,10 @@ export class TypeOrmConnector<
   public async insert(data: InputDTO): Promise<OutputDTO> {
     this.initDB()
     // Validate Input
-    const validatedData = this.inputSchema.parse(data)
+    const validatedData = this.inputSchema.parse(data) as any
 
     if (this.isMongoDB && validatedData['id']) {
-      validatedData['_id'] = Ids.objectID(validatedData['id'])
+      validatedData['_id'] = new BSONObjectID(validatedData['id'])
       delete validatedData['id']
     }
 
@@ -116,7 +116,7 @@ export class TypeOrmConnector<
     }
 
     // Validate Output
-    return this.outputSchema.parse(clearEmpties(Objects.deleteNulls(datum)))
+    return this.outputSchema.parse(clearEmpties(Objects.deleteNulls(datum))) as OutputDTO
   }
 
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
@@ -139,7 +139,7 @@ export class TypeOrmConnector<
 
         return clearEmpties(Objects.deleteNulls(d))
       })
-    )
+    ) as OutputDTO[]
   }
 
   // READ
@@ -169,6 +169,7 @@ export class TypeOrmConnector<
       // TODO: do the pagination
       let [result, count] = await customQuery.getManyAndCount()
 
+      // Apply select filtering if needed
       //TODO: We have to validate the results!
       return result as unknown as QueryOutput<T, ModelDTO>[]
     }
@@ -204,7 +205,8 @@ export class TypeOrmConnector<
     }
 
     if (query?.select) {
-      // TODO: validate based on the select properties
+      // Filter out fields that are explicitly set to false
+      found = this.applySelectFilter(found, query.select)
       return found as unknown as QueryOutput<T, ModelDTO>[]
     }
 
@@ -232,7 +234,7 @@ export class TypeOrmConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    await this.repository.update(id, validatedData)
+    await this.repository.update(id, validatedData as any)
 
     // Validate Output
     return (await this.requireById(id)) as OutputDTO
@@ -255,7 +257,7 @@ export class TypeOrmConnector<
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
 
     Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null
+      (flatValue as any)[key] = null
     })
 
     const nullObject = Objects.nest(flatValue)
@@ -276,7 +278,7 @@ export class TypeOrmConnector<
 
     const validatedData = this.inputSchema.parse(dataToInsert)
 
-    await this.repository.update(id, validatedData)
+    await this.repository.update(id, validatedData as any)
 
     return (await this.requireById(id)) as OutputDTO
   }
@@ -291,7 +293,7 @@ export class TypeOrmConnector<
   public async deleteById(id: string): Promise<string> {
     this.initDB()
     const parsedId = this.isMongoDB
-      ? (Ids.objectID(id) as unknown as ObjectID)
+      ? new BSONObjectID(id)
       : id
 
     await this.repository.delete(parsedId)
@@ -393,6 +395,99 @@ export class TypeOrmConnector<
   }
 
   /**
+   * Apply select filter to remove fields explicitly set to false
+   * @param results The query results
+   * @param select The select configuration
+   * @returns Filtered results
+   */
+  private applySelectFilter<T extends AnyObject>(
+    results: T[],
+    select: FluentQuery<ModelDTO>['select']
+  ): T[] {
+    if (!select) return results
+    
+    const flatSelect = Objects.flatten(select)
+    const fieldsToInclude = new Set<string>()
+    const fieldsToExclude = new Set<string>()
+    let hasIncludes = false
+    
+    // Separate fields to include and exclude
+    for (const [key, value] of Object.entries(flatSelect)) {
+      // Convert to string for consistent comparison
+      const strValue = String(value)
+      if (strValue === 'true' || strValue === '1') {
+        fieldsToInclude.add(key)
+        hasIncludes = true
+      } else if (strValue === 'false' || strValue === '0') {
+        fieldsToExclude.add(key)
+      }
+    }
+    
+    return results.map(result => {
+      // If there are explicit includes, only include those fields (exclusive selection)
+      if (hasIncludes) {
+        const filtered: any = {}
+        
+        // For exclusive selection, only copy fields that are explicitly included
+        for (const field of fieldsToInclude) {
+          if (field.includes('.')) {
+            // Handle nested field paths
+            const parts = field.split('.')
+            let source = result
+            let target = filtered
+            
+            for (let i = 0; i < parts.length - 1; i++) {
+              const part = parts[i]
+              if (!part || !source[part]) break
+              source = source[part]
+              if (!target[part]) target[part] = {}
+              target = target[part]
+            }
+            
+            if (source && parts.length > 0) {
+              const lastPart = parts[parts.length - 1]
+              if (lastPart) {
+                target[lastPart] = source[lastPart]
+              }
+            }
+          } else if (field in result) {
+            filtered[field] = result[field]
+          }
+        }
+        
+        return filtered
+      } else {
+        // If there are only excludes, include all fields except excluded ones
+        const filtered = { ...result }
+        
+        for (const field of fieldsToExclude) {
+          if (field.includes('.')) {
+            const parts = field.split('.')
+            let current = filtered
+            
+            for (let i = 0; i < parts.length - 1; i++) {
+              const part = parts[i]
+              if (!part || !current[part]) break
+              current = current[part]
+            }
+            
+            if (current && parts.length > 0) {
+              const lastPart = parts[parts.length - 1]
+              if (lastPart) {
+                delete current[lastPart]
+              }
+            }
+          } else {
+            delete filtered[field]
+          }
+        }
+        
+        return filtered
+      }
+    })
+  }
+
+  /**
    *
    * @param query
    * @returns
@@ -419,7 +514,19 @@ export class TypeOrmConnector<
 
     if (query?.select) {
       const selectQuery = Objects.flatten(query?.select || {})
-      filter.select = selectQuery
+      // Filter out fields with false values - TypeORM only accepts fields to include
+      const fieldsToSelect = Object.keys(selectQuery).filter(key => {
+        const val = selectQuery[key]
+        return val !== undefined && (String(val) === 'true' || String(val) === '1')
+      })
+      if (fieldsToSelect.length > 0) {
+        // TypeORM expects select to be an object with field names as keys
+        const selectObject = fieldsToSelect.reduce((acc, field) => {
+          acc[field] = true
+          return acc
+        }, {} as Record<string, boolean>)
+        filter.select = selectObject
+      }
     }
 
     if (query?.orderBy) {
@@ -618,7 +725,7 @@ export class TypeOrmConnector<
 
       // Now we need to decide which properties we want to select from the related model
       // If the query has some {select: [x]: true}
-      const selectedKeysArray = fluentRelatedQuery.select
+      const selectedKeysArray = fluentRelatedQuery?.select
         ? Object.keys(Objects.flatten(fluentRelatedQuery.select))
         : []
 
@@ -924,9 +1031,9 @@ export class TypeOrmConnector<
     const raw = await this.mongoRaw().aggregate(aggregate).toArray()
 
     if (query?.select) {
-      return this.outputSchema['deepPartial']()
-        .array()
-        .parse(raw) as unknown as QueryOutput<T, ModelDTO>[]
+      // Apply select filtering for MongoDB results
+      const filtered = this.applySelectFilter(raw, query.select)
+      return filtered as unknown as QueryOutput<T, ModelDTO>[]
     }
 
     return this.outputSchema?.array().parse(raw) as unknown as QueryOutput<
@@ -934,4 +1041,5 @@ export class TypeOrmConnector<
       ModelDTO
     >[]
   }
+
 }

@@ -21,6 +21,7 @@ export function getEnumValues(enumType: SwaggerEnumType): string[] | number[] {
     const value = enumType[key]
     // filter out cases where enum key also becomes its value (A: B, B: A)
     if (
+      value !== undefined &&
       !uniqueValues.hasOwnProperty(value) &&
       !uniqueValues.hasOwnProperty(key)
     ) {

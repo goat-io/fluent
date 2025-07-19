@@ -4,7 +4,7 @@ import { dbEntities } from '../dbEntities'
 export const MYSQLDataSource = new DataSource({
     type: 'mysql',
     database: 'test-db',
-    username: 'root',
+    username: 'test-user',
     password: 'password',
     host: '127.0.0.1',
     port: 3306,

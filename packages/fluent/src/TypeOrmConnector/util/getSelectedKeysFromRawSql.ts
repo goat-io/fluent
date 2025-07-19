@@ -10,7 +10,7 @@ export const getSelectedKeysFromRawSql = (sql: string): string[] => {
   for (const stringKey of possibleKeys) {
     if (stringKey.includes('SELECT')) {
       const key = stringKey.split('"')[1]
-      if (key.includes('___') || !key.includes('_')) {
+      if (!key || key.includes('___') || !key.includes('_')) {
         continue
       }
 
@@ -19,7 +19,10 @@ export const getSelectedKeysFromRawSql = (sql: string): string[] => {
       continue
     }
 
-    keys.add(stringKey.split('"')[1].replace('_id', 'id').replace('_', '.'))
+    const key = stringKey.split('"')[1]
+    if (key) {
+      keys.add(key.replace('_id', 'id').replace('_', '.'))
+    }
   }
 
   return Array.from(keys)

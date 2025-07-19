@@ -68,7 +68,7 @@ export function debounce<T extends AnyFunction>(
   }
 
   function cancelTimer(id: number) {
-    clearTimeout(id)
+    clearTimeout(id as any)
   }
 
   function leadingEdge(time: number) {

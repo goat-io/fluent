@@ -1,5 +1,12 @@
 # 0.5.20
 
+## 0.0.10
+
+### Patch Changes
+
+- @goatlab/js-utils@0.8.40
+- @goatlab/node-utils@0.8.59
+
 ## 0.0.9
 
 ### Patch Changes

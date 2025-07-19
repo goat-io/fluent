@@ -30,6 +30,7 @@
     "pretty": true,
     "paths": {
       "@src/*": ["src/*"]
-    }
+    },
+    "types": ["node"]
   }
 }

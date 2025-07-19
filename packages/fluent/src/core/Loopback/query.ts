@@ -331,7 +331,7 @@ export class WhereBuilder<MT extends object = AnyObject> {
    */
   eq<K extends KeyOf<MT>>(key: K, val: MT[K]): this {
     const w: Where<MT> = {}
-    w[key] = val
+    w[key] = val as any
     return this.add(w)
   }
 

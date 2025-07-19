@@ -91,7 +91,7 @@ function extractTypeIfArray(
   index: number
 ): Type<unknown> {
   if (metadataKey === 'design:paramtypes') {
-    return (reflectedType as Type<unknown>[])[index]
+    return (reflectedType as Type<unknown>[])[index] as Type<unknown>
   }
   return reflectedType as Type<unknown>
 }

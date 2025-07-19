@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/formio-utils",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Readable query Interface & API generator for TS and Node",
   "scripts": {
     "prebuild": "rimraf dist",

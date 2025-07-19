@@ -1,7 +1,11 @@
+import { Primitives, PrimitivesArray, AnyObject, Concrete, Unpacked, PaginatedData, ExpandRecursively, Paginator } from '@goatlab/js-utils'
+
+export { Primitives, PrimitivesArray, AnyObject, Concrete, Unpacked, PaginatedData, ExpandRecursively, Paginator }
+
 export type QueryFieldSelector<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
-    ? true | Unpacked<Partial<QueryFieldSelector<Concrete<T>[K]>>>
-    : true | undefined
+    ? true | false | Unpacked<Partial<QueryFieldSelector<Concrete<T>[K]>>>
+    : true | false | undefined
 }>
 
 export type QueryOrderSelector<T> = Partial<{
@@ -60,29 +64,29 @@ export type AddUndefinedIfNullable<T> = T extends null | undefined
 export type GetSelectedFromInclude<T extends FluentQuery<Model>, Model> = {
   // Check nested objects
   // Is the selected key an object? A.K.A -> nested attribute
-  [P in keyof T['include']]: T['include'][P] extends object
+  [P in keyof T['include'] & keyof Model]: T['include'][P] extends object
     ? // We have to remove nullable to check for array!
       NonNullable<Model[P]> extends any[]
       ? T['include'][P] extends { withPivot: true }
         ? // Array with pivot
-          | (QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>> & {
+          | (QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>> & {
                 pivot: AnyObject
               })[]
             | AddUndefinedIfNullable<Model[P]>
         : // Array without pivot
-          | (QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>> & {
+          | (QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>> & {
                 pivot: AnyObject
               })[]
             | AddUndefinedIfNullable<Model[P]>
       : // Not an array
       T['include'][P] extends { withPivot: true }
       ? // Not an array an includes pivot
-        | (QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>> & {
+        | (QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>> & {
               pivot: AnyObject
             })
           | AddUndefinedIfNullable<Model[P]>
       : // Not an array an does not include pivot
-        | QueryOutput<T['include'][P], Unpacked<NonNullable<Model[P]>>>
+        | QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>>
           | AddUndefinedIfNullable<Model[P]>
     : // If it does not extend object -> true, return the model
       Model[P]
@@ -91,7 +95,7 @@ export type GetSelectedFromInclude<T extends FluentQuery<Model>, Model> = {
 export type GetSelectedFromObject<T extends FluentQuery<Model>, Model> = {
   // Check nested objects
   // Is the selected key an object? A.K.A -> nested attribute
-  [P in keyof T['select']]: T['select'][P] extends object
+  [P in keyof T['select'] & keyof Model]: T['select'][P] extends object
     ? // We have to remove nullable to check for array!
       NonNullable<Model[P]> extends any[]
       ?

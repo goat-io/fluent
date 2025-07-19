@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.1.16
+
+### Patch Changes
+
+- @goatlab/js-utils@0.8.40
+- @goatlab/node-utils@0.8.59
+- @goatlab/tasks-core@0.1.14
+
 ## 0.1.15
 
 ### Patch Changes

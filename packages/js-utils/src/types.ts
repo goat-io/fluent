@@ -1,10 +1,10 @@
 import { TypedPathWrapper } from 'typed-path'
-import type { ObjectID } from 'bson'
+import type { ObjectId } from 'bson'
 
 // Basic primitive types that can be used in various contexts
-export type Primitives = boolean | string | number | ObjectID
+export type Primitives = boolean | string | number | ObjectId
 // Arrays of primitive types
-export type PrimitivesArray = boolean[] | string[] | number[] | ObjectID[]
+export type PrimitivesArray = boolean[] | string[] | number[] | ObjectId[]
 
 // Generic function type that accepts any arguments and returns any value
 export type AnyFunction = (...args: any[]) => any

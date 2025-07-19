@@ -4,14 +4,20 @@
 // License text available at https://opensource.org/licenses/MIT
 import { MetadataInspector, MetadataAccessor } from '@loopback/metadata'
 import { inspect } from 'util'
-import { SchemaObject as JsonSchema } from 'openapi3-ts'
+import { SchemaObject as JsonSchema } from 'openapi3-ts/oas30'
+
+// Extended schema type that includes definitions
+export interface SchemaObject extends JsonSchema {
+  definitions?: { [key: string]: SchemaObject }
+  $ref?: string
+}
 import { RelationMetadata } from './relation.types'
 import { ModelDefinition, PropertyDefinition, PropertyType } from './model'
 import { Null, resolveType, isBuiltinType } from './type-resolver'
 import { ModelMetadataHelper } from './metadata'
 
 export const JSON_SCHEMA_KEY = MetadataAccessor.create<
-  { [key: string]: JsonSchema },
+  { [key: string]: SchemaObject },
   ClassDecorator
 >('loopback:json-schema')
 
@@ -86,7 +92,7 @@ export interface JsonSchemaOptions<T extends object> {
   /**
    * @internal
    */
-  visited?: { [key: string]: JsonSchema }
+  visited?: { [key: string]: SchemaObject }
 }
 
 /**
@@ -114,7 +120,7 @@ export function buildModelCacheKey<T extends object>(
 export function getJsonSchema<T extends object>(
   ctor: Function & { prototype: T },
   options?: JsonSchemaOptions<T>
-): JsonSchema {
+): SchemaObject {
   // In the near future the metadata will be an object with
   // different titles as keys
   const cached = MetadataInspector.getClassMetadata(JSON_SCHEMA_KEY, ctor, {
@@ -169,7 +175,7 @@ export function getJsonSchema<T extends object>(
 export function getJsonSchemaRef<T extends object>(
   modelCtor: Function & { prototype: T },
   options?: JsonSchemaOptions<T>
-): JsonSchema {
+): SchemaObject {
   const schemaWithDefinitions = getJsonSchema(modelCtor, options)
   const key = schemaWithDefinitions.title
 
@@ -250,9 +256,9 @@ export function isArrayType(type: string | Function | PropertyType) {
  * Converts property metadata into a JSON property definition
  * @param meta
  */
-export function metaToJsonProperty(meta: PropertyDefinition): JsonSchema {
-  const propDef: JsonSchema = {}
-  let result: JsonSchema
+export function metaToJsonProperty(meta: PropertyDefinition): SchemaObject {
+  const propDef: SchemaObject = {}
+  let result: SchemaObject
   let propertyType = meta.type as string | Function
 
   if (isArrayType(propertyType) && meta.itemType) {
@@ -306,8 +312,8 @@ export function metaToJsonProperty(meta: PropertyDefinition): JsonSchema {
  */
 export function getNavigationalPropertyForRelation(
   relMeta: RelationMetadata,
-  targetRef: JsonSchema
-): JsonSchema {
+  targetRef: SchemaObject
+): SchemaObject {
   if (relMeta.targetsMany === true) {
     // Targets an array of object, like, hasMany
     return {
@@ -420,7 +426,7 @@ function getDescriptionSuffix<T extends object>(
 export function modelToJsonSchema<T extends object>(
   ctor: Function & { prototype: T },
   jsonSchemaOptions: JsonSchemaOptions<T> = {}
-): JsonSchema {
+): SchemaObject {
   const options = { ...jsonSchemaOptions }
   options.visited = options.visited ?? {}
   options.optional = options.optional ?? []
@@ -448,7 +454,7 @@ export function modelToJsonSchema<T extends object>(
   const title = buildSchemaTitle(ctor, meta, options)
   if (options.visited[title]) return options.visited[title]
 
-  const result: JsonSchema = { title }
+  const result: SchemaObject = { title }
   options.visited[title] = result
 
   result.type = 'object'
@@ -469,7 +475,7 @@ export function modelToJsonSchema<T extends object>(
       continue
     }
 
-    if (meta.properties[p].type == null) {
+    if (meta.properties?.[p]?.type == null) {
       // Circular import of model classes can lead to this situation
       throw new Error(
         `Property ${ctor.name}.${p} does not have "type" in its definition`
@@ -480,9 +486,12 @@ export function modelToJsonSchema<T extends object>(
     result.properties[p] = result.properties[p] || {}
 
     const metaProperty = { ...meta.properties[p] }
+    if (!metaProperty.type) {
+      throw new Error(`Property ${p} does not have a type`)
+    }
 
     // populating "properties" key
-    result.properties[p] = metaToJsonProperty(metaProperty)
+    result.properties[p] = metaToJsonProperty(metaProperty as PropertyDefinition)
 
     // handling 'required' metadata
     const optional = options.optional.includes(p as keyof T)
@@ -524,7 +533,7 @@ export function modelToJsonSchema<T extends object>(
 
     // JSONSchema6Definition allows both boolean and JSONSchema6 types
     if (typeof result.properties[p] !== 'boolean') {
-      const prop = result.properties[p] as JsonSchema
+      const prop = result.properties[p] as SchemaObject
       const propTitle = propSchema.title ?? referenceType.name
       const targetRef = { $ref: `#/definitions/${propTitle}` }
 
@@ -545,6 +554,7 @@ export function modelToJsonSchema<T extends object>(
     for (const r in meta.relations) {
       result.properties = result.properties ?? {}
       const relMeta = meta.relations[r]
+      if (!relMeta) continue
       const targetType = resolveType(relMeta.target)
 
       // `title` is the unique identity of a schema,
@@ -563,7 +573,7 @@ export function modelToJsonSchema<T extends object>(
     }
   }
 
-  function includeReferencedSchema(name: string, schema: JsonSchema) {
+  function includeReferencedSchema(name: string, schema: SchemaObject) {
     if (!schema || !Object.keys(schema).length) return
 
     // promote nested definition to the top level
@@ -571,7 +581,7 @@ export function modelToJsonSchema<T extends object>(
       for (const key in schema.definitions) {
         if (key === title) continue
         result.definitions = result.definitions ?? {}
-        result.definitions[key] = schema.definitions[key]
+        result.definitions[key] = schema.definitions[key]!
       }
       delete schema.definitions
     }

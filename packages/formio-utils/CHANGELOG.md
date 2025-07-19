@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.7.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tsconfig@0.0.13
+  - @goatlab/fluent@0.7.40
+  - @goatlab/node-utils@0.8.59
+
 ## 0.7.3
 
 ### Patch Changes

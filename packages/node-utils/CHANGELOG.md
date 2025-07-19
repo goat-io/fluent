@@ -1,5 +1,13 @@
 # 0.5.20
 
+## 0.8.59
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tsconfig@0.0.13
+  - @goatlab/js-utils@0.8.40
+
 ## 0.8.58
 
 ### Patch Changes

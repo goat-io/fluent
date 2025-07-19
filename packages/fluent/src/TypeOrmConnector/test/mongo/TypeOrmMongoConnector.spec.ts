@@ -1,4 +1,5 @@
 // npx jest -i ./src/TypeOrmConnector/test/mongo/TypeOrmMongoConnector.spec.ts
+import { describe, beforeAll, afterAll, it, expect } from 'vitest'
 import { GoatRepository } from '../basic/goat.mongo.repository'
 import { TypeOrmRepository } from '../advanced/typeOrm.mongo.repository'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'
@@ -11,8 +12,6 @@ import { UserRepository } from './user.mongo.repository'
 import { CarsRepository } from './car.mongo.repository'
 import { RoleRepository } from './roles.mongo.repository'
 import getDatabase from '../docker/mongo'
-
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
 
 // let mongoConnection: MongoMemoryServer
 let tearDown: () => Promise<void>

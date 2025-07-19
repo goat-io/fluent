@@ -27,11 +27,11 @@
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
   "dependencies": {
-    "@changesets/cli": "^2.29.4"
+    "@changesets/cli": "^2.29.5"
   },
   "devDependencies": {
-    "turbo": "^2.5.3",
-    "typescript": "^5.6.3"
+    "turbo": "^2.5.5",
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=14.16.0"

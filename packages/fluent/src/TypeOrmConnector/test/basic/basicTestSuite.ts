@@ -1,13 +1,21 @@
+import { describe, test, it, expect, beforeAll } from 'vitest'
 import { Promises } from '@goatlab/js-utils'
 import { flock } from '../flock'
-import { GoatRepository } from './goat.repository'
+import { DataSource } from 'typeorm'
+import { GoatRepositoryFactory } from '../repository.factory'
 
-export const basicTestSuite = Repo => {
+export const basicTestSuite = (dataSource?: DataSource) => {
   let storedId: any
 
-  let Repository: GoatRepository
-  beforeAll(() => {
-    Repository = new Repo()
+  let Repository: any
+  beforeAll(async () => {
+    if (!dataSource) {
+      // For backward compatibility with SQLite tests - dynamic import to avoid initialization issues
+      const module = await import('./goat.repository')
+      Repository = new module.GoatRepository()
+    } else {
+      Repository = new GoatRepositoryFactory(dataSource)
+    }
   })
 
   test('insert - Should  insert data', async () => {

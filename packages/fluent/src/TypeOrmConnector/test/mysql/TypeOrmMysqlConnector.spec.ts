@@ -1,43 +1,37 @@
-// npx jest -i ./src/TypeOrmConnector/test/mysql/TypeOrmMysqlConnector.spec.ts
+// npx vitest run ./src/TypeOrmConnector/test/mysql/TypeOrmMysqlConnector.spec.ts
 
-import { GoatRepository } from '../basic/goat.mysql.repository'
-import { TypeOrmRepository } from '../advanced/typeOrm.mysql.repository'
-import { advancedTestSuite } from '../advanced/advancedTestSuite'
-import { basicTestSuite } from '../basic/basicTestSuite'
-import getDatabase from '../docker/mysql'
-import { MYSQLDataSource } from './mysqlDataSource'
+import 'reflect-metadata'
+import { describe, beforeAll, afterAll } from 'vitest'
+import { advancedTestSuite } from '../testcontainer/advancedTestSuite'
+import { basicTestSuite } from '../testcontainer/basicTestSuite'
+import { MySQLTestContainer } from '../testcontainers/mysql.testcontainer'
 import { Fluent } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
-import { UserRepository } from './user.mysql.repository'
-import { CarsRepository } from './car.mysql.repository'
-import { RoleRepository } from './roles.mysql.repository'
-import { relationsTestSuite } from '../relations/relationsTestsSuite'
+import { DataSource } from 'typeorm'
 
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 600000
-
-let tearDown: () => Promise<void>
+let container: MySQLTestContainer
+let dataSource: DataSource
 
 beforeAll(async () => {
-  const { kill, port } = await getDatabase()
-  MYSQLDataSource.setOptions({ port })
-
-  tearDown = kill
-
-  await Fluent.initialize([MYSQLDataSource], dbEntities)
-})
+  container = new MySQLTestContainer()
+  dataSource = await container.start()
+  
+  // Initialize Fluent with entities for model generator
+  await Fluent.initialize([dataSource], dbEntities)
+}, 60000) // Increase timeout for container startup
 
 afterAll(async () => {
-  await tearDown()
+  await container.stop()
 })
 
 describe('Execute all basic test Suite', () => {
-  basicTestSuite(GoatRepository)
+  basicTestSuite(dataSource)
 })
 
 describe('Execute all advanced test Suite', () => {
-  advancedTestSuite(TypeOrmRepository)
+  advancedTestSuite(dataSource)
 })
 
-describe('Execute all relations test suite', () => {
-  // relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
-})
+// describe('Execute all relations test suite', () => {
+//   relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
+// })

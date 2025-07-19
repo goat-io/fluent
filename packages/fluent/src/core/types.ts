@@ -1,5 +1,5 @@
 import { Column as TypeORMColumn } from 'typeorm'
-import { SchemaObject as LBSchemaObject } from 'openapi3-ts'
+import { SchemaObject as LBSchemaObject } from 'openapi3-ts/oas30'
 import {
   InputTypeOptions,
   InputType as NestInputType

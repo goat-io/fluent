@@ -4,9 +4,10 @@ import { connect } from 'net'
 import spawn = require('cross-spawn')
 import { spawnBuffered } from 'modern-spawn'
 
+const detectPortLib = require('detect-port')
 export const detectPort: (
   defaultPort: number
-) => Promise<number> = require('detect-port')
+) => Promise<number> = detectPortLib.default || detectPortLib
 
 export interface Options {
   debug: boolean
