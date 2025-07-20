@@ -1,6 +1,6 @@
 import { Transform } from 'node:stream'
 import { inspect, InspectOptions } from 'node:util'
-import { bold, grey, white, yellow } from 'kleur'
+import { bold, grey, white, yellow } from 'kleur/colors'
 import { TransformOptions, TransformTyped } from '../streams.model'
 import {
   AnyObject,

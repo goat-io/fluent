@@ -1,5 +1,6 @@
-// npx jest -i ./src/Folders.test.ts
+// npx vitest run ./src/Folders.test.ts
 
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { Folders } from './Folders'
 import * as fs from 'fs'
 import * as path from 'path'

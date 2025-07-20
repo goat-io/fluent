@@ -1,5 +1,6 @@
-// npx jest -i ./src/streams.spec.ts
+// npx vitest run ./src/streams.spec.ts
 
+import { describe, it, expect } from 'vitest'
 import { Streams } from './Streams'
 import { createGunzip } from 'zlib'
 import { readFile, unlink } from 'fs/promises'
@@ -177,7 +178,7 @@ describe('Streams.filter', () => {
       Streams.readableFrom(input),
       Streams.filter(async (n: number) => n % 2 === 0),
       Streams.map(async (n: number) => {
-        await output.push(n)
+        output.push(n)
       }),
       Streams.closePipeline()
     ])

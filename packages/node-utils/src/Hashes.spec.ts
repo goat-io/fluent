@@ -1,3 +1,4 @@
+import { test, it, expect } from 'vitest'
 import { Hashes } from './Hashes'
 
 test('md5', () => {

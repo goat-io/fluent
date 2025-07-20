@@ -1,3 +1,4 @@
+import { it, expect } from 'vitest'
 import { Ports } from './Ports'
 
 it('Should get available port', async () => {

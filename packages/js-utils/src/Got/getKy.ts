@@ -51,12 +51,12 @@ export function getKy(opt: GetKyOptions = {}): KyInstance {
 }
 
 function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
-  const { maxResponseLength = 10_000 } = opt
+  const { maxResponseLength = 10_000, logger = console } = opt
 
   return err => {
     // Defensive Programming
     if (!err || !err.options) {
-      console.error('Unexpected error:', err)
+      logger.error('Unexpected error:', err)
       return err
     }
 
@@ -74,7 +74,7 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
         (prefixUrl as any) instanceof URL ? prefixUrl.toString() : prefixUrl
       )
     } catch (e) {
-      console.error('Invalid URL:', url)
+      logger.error('Invalid URL:', url)
       shortUrl = url
     }
 
@@ -82,7 +82,7 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
     const { started, retryCount } = context as KyRequestContext
 
     if (!context) {
-      console.error(
+      logger.error(
         'Context is not defined in the request options:',
         err.options
       )
@@ -97,7 +97,7 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
       : err.message
 
     // We don't include Response/Body/Message in the log, because it's included in the Error thrown from here
-    console.log(
+    logger.log(
       [
         ' <<',
         statusCode,
@@ -152,6 +152,8 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
 }
 
 function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
+  const { logger = console } = opt
+  
   return (request, options) => {
     if (!options['context']) {
       options['context'] = {}
@@ -160,7 +162,7 @@ function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
 
     // If options or options.context are not defined, log an error and exit early.
     if (!options || !options['context']) {
-      console.error('Unexpected options:', options)
+      logger.error('Unexpected options:', options)
       return
     }
 
@@ -181,11 +183,11 @@ function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
             : options.prefixUrl
         )
       } catch (e) {
-        console.error('Invalid URL:', request.url)
+        logger.error('Invalid URL:', request.url)
         shortUrl = request.url
       }
 
-      console.log(
+      logger.log(
         [' >>', options.method, shortUrl, retryCount && `(retry ${retryCount})`]
           .filter(Boolean)
           .join(' ')
@@ -196,7 +198,7 @@ function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
       const body = request.body
 
       if (body) {
-        console.log(body)
+        logger.log(body)
       }
     }
   }
@@ -209,7 +211,7 @@ function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
  * @returns The before retry hook
  */
 function gotBeforeRetryHook(opt: GetKyOptions): BeforeRetryHook {
-  const { maxResponseLength = 10_000 } = opt
+  const { maxResponseLength = 10_000, logger = console } = opt
 
   return async ({ error, request, retryCount, options }) => {
     // const statusCode = request. || 0
@@ -230,7 +232,7 @@ function gotBeforeRetryHook(opt: GetKyOptions): BeforeRetryHook {
       const prefixUrlString = prefixUrl
       shortUrl = getShortUrl(opt, urlObject, prefixUrlString)
     } catch (e) {
-      console.error('Invalid URL:', url)
+      logger.error('Invalid URL:', url)
       shortUrl = url
     }
 
@@ -266,7 +268,7 @@ function gotBeforeRetryHook(opt: GetKyOptions): BeforeRetryHook {
     ]
     const message = messageParts.filter(Boolean).join(' ')
 
-    console.warn(message)
+    logger.warn(message)
   }
 }
 

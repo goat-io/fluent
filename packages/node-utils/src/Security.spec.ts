@@ -1,4 +1,5 @@
-// npx jest -i ./src/Security.spec.ts
+// npx vitest run ./src/Security.spec.ts
+import { describe, it, expect, beforeAll } from 'vitest'
 import { GeneratedKeyPair, Security } from './Security'
 
 describe('Security', () => {

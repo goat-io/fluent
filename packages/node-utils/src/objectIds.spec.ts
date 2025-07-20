@@ -1,3 +1,4 @@
+import { it, expect } from 'vitest'
 import { ObjectIds } from './ObjectIds'
 
 it('Should generate a mongo ObjectId as string', async () => {

@@ -6,6 +6,7 @@ import { KeyvLru } from './cache/KeyvLrus'
 
 export class Cache<T extends object = any> extends Keyv<T> {
   private _ns: string
+  private _tenantId?: string
   private usesLRUMemory?: boolean
   private keyvLru: KeyvLru<T>
   private memoryCache: typeof Keyv
@@ -15,8 +16,16 @@ export class Cache<T extends object = any> extends Keyv<T> {
     opts
   }: {
     connection: string | undefined
-    opts?: Options<T> & { usesLRUMemory?: boolean }
+    opts?: Options<T> & { usesLRUMemory?: boolean; tenantId?: string }
   }) {
+    const tenantId = opts?.tenantId
+    const namespace = opts?.namespace || ''
+    
+    // Build the full namespace including tenant ID if provided
+    const fullNamespace = tenantId 
+      ? (namespace ? `${tenantId}:${namespace}` : tenantId)
+      : namespace
+
     super({
       store: connection
         ? new KeyvRedis(connection)
@@ -25,7 +34,8 @@ export class Cache<T extends object = any> extends Keyv<T> {
             resetTtl: false,
             ttl: 0
           }),
-      ...opts
+      ...opts,
+      namespace: fullNamespace
     })
 
     this.keyvLru = new KeyvLru<T>({
@@ -36,11 +46,16 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
     this.memoryCache = new Keyv({
       store: this.keyvLru,
-      namespace: opts?.namespace || ''
+      namespace: fullNamespace
     })
 
-    this._ns = opts?.namespace || ''
+    this._ns = fullNamespace
+    this._tenantId = tenantId
     this.usesLRUMemory = opts?.usesLRUMemory || false
+  }
+
+  public get tenantId(): string | undefined {
+    return this._tenantId
   }
 
   private isValidResult(result: any): boolean {
@@ -211,9 +226,30 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return
     }
 
+    // When using iterator with compound namespaces (e.g., tenant:namespace),
+    // keyv may not strip the full namespace correctly. We need to handle this.
+    const namespaceParts = this._ns.split(':')
+    const hasCompoundNamespace = namespaceParts.length > 1
+
     for await (const [key] of this.iterator(this._ns)) {
-      if (key.startsWith(value)) {
-        await this.delete(key)
+      let keyToCheck = key
+      
+      // If we have a compound namespace and the key still contains part of it,
+      // we need to strip the remaining namespace parts
+      if (hasCompoundNamespace && key.includes(':')) {
+        // Check if the key starts with any remaining namespace parts
+        for (let i = 1; i < namespaceParts.length; i++) {
+          const remainingNamespace = namespaceParts.slice(i).join(':')
+          if (key.startsWith(`${remainingNamespace}:`)) {
+            keyToCheck = key.substring(remainingNamespace.length + 1)
+            break
+          }
+        }
+      }
+      
+      if (keyToCheck.startsWith(value)) {
+        // Use the processed key (without namespace parts) for deletion
+        await this.delete(keyToCheck)
       }
     }
   }
@@ -235,8 +271,28 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return result
     }
 
+    // When using iterator with compound namespaces (e.g., tenant:namespace),
+    // keyv may not strip the full namespace correctly. We need to handle this.
+    const namespaceParts = this._ns.split(':')
+    const hasCompoundNamespace = namespaceParts.length > 1
+
     for await (const [key, val] of this.iterator(this._ns)) {
-      if (key.startsWith(value)) {
+      let keyToCheck = key
+      
+      // If we have a compound namespace and the key still contains part of it,
+      // we need to strip the remaining namespace parts
+      if (hasCompoundNamespace && key.includes(':')) {
+        // Check if the key starts with any remaining namespace parts
+        for (let i = 1; i < namespaceParts.length; i++) {
+          const remainingNamespace = namespaceParts.slice(i).join(':')
+          if (key.startsWith(`${remainingNamespace}:`)) {
+            keyToCheck = key.substring(remainingNamespace.length + 1)
+            break
+          }
+        }
+      }
+      
+      if (keyToCheck.startsWith(value)) {
         result.push(val)
       }
     }

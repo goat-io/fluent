@@ -1,5 +1,6 @@
-// npx jest -i ./src/Ips.test.ts
+// npx vitest run ./src/Ips.test.ts
 
+import { describe, it, expect } from 'vitest'
 import { Ips } from './Ips'
 
 describe('Ips', () => {

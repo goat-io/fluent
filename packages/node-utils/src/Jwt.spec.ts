@@ -1,3 +1,4 @@
+import { test, expect } from 'vitest'
 import { Promises } from '@goatlab/js-utils'
 import { Jwt } from './Jwt'
 
