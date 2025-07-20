@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.5.25
+
+### Patch Changes
+
+- Typesense api
+
 ## 0.5.24
 
 ### Patch Changes

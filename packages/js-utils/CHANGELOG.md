@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.41
+
+### Patch Changes
+
+- Typesense api
+
 ## 0.8.40
 
 ### Patch Changes

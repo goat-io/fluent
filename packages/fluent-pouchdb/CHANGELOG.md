@@ -1,5 +1,15 @@
 # 0.5.20
 
+## 0.7.12
+
+### Patch Changes
+
+- Typesense api
+- Updated dependencies
+  - @goatlab/fluent@0.7.41
+  - @goatlab/js-utils@0.8.41
+  - @goatlab/tsconfig@0.0.14
+
 ## 0.7.11
 
 ### Patch Changes

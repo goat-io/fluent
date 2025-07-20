@@ -12,7 +12,7 @@ import type { BuildInfo } from './Env'
 import { ObjectIds } from './ObjectIds'
 import { Streams } from './Streams'
 import { Ips } from './Ips'
-import { TypesenseService } from './services/search/typesense/typesense.service'
+import { TypesenseApi } from './services/search/typesense/TypesenseApi'
 
 export {
   Log,
@@ -29,7 +29,7 @@ export {
   ObjectIds,
   Streams,
   Ips,
-  TypesenseService
+  TypesenseApi
 }
 export type { BuildInfo }
 export type {

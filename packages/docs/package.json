@@ -2,7 +2,7 @@
   "license": "UNLICENSED",
   "private": true,
   "name": "@goatlab/fluent-docs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Goat<Ignacio Cabrera>",
   "description": "Fluent - Complete TypeScript Development Ecosystem Documentation",
   "dependencies": {
@@ -13,7 +13,6 @@
     "gray-matter": "^4.0.3"
   },
   "devDependencies": {
- 
     "@types/node": "^17.0.23",
     "rimraf": "^6.0.1",
     "serve": "^14.2.4",
@@ -25,5 +24,4 @@
     "index:docs": "npx tsx indexDocs.ts",
     "serve": "npx serve -p 3003"
   }
-
 }

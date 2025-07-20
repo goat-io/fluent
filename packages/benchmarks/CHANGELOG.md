@@ -1,11 +1,7 @@
-# @sodium/docs
+# @goatlab/benchmarks
 
 ## 0.1.1
 
 ### Patch Changes
 
 - Typesense api
-
-## 0.1.0
-
-### Minor Changes

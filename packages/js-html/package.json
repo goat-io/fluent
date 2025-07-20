@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/js-html",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Parses html to make it app/react native friendly",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

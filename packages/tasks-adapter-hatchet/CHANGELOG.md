@@ -1,5 +1,15 @@
 # 0.5.20
 
+## 0.1.17
+
+### Patch Changes
+
+- Typesense api
+- Updated dependencies
+  - @goatlab/node-utils@0.8.60
+  - @goatlab/js-utils@0.8.41
+  - @goatlab/tasks-core@0.1.15
+
 ## 0.1.16
 
 ### Patch Changes
