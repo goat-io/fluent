@@ -1,56 +1,39 @@
-// npx jest -i src/Providers/Firebase/firebaseConnector.spec.ts
-import { Fluent } from '@goatlab/fluent'
+import { describe, beforeAll, afterAll } from 'vitest'
+import { createUnifiedTests, Fluent } from '@goatlab/fluent'
 import { dbEntities } from '@goatlab/fluent/src/TypeOrmConnector/test/dbEntities'
-import { GoatRepository } from './goat.repository'
-import { basicTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/basic/basicTestSuite'
-import { advancedTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/advanced/advancedTestSuite'
-import { relationsTestSuite } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/relationsTestsSuite'
+import { FirebaseInit, deleteFirebaseApps } from '../FirebaseInit'
 
-import { FirebaseInit } from '../FirebaseInit'
 import { TypeOrmRepository } from './typeOrm.repository'
-import { UserRepository } from './user.repository'
-import { CarsRepository } from './car.repository'
-import { RoleRepository } from './roles.repository'
-jest.setTimeout(3 * 60 * 1000)
+import { GoatRepository } from './goat.repository'
 
-const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT
-
-const serviceAccount = JSON.parse(
-  Buffer.from(FIREBASE_SERVICE_ACCOUNT!, 'base64').toString('utf8')
-)
-
-beforeAll(async () => {
-  await FirebaseInit({
-    databaseName: 'fluent-f1d4a',
-    serviceAccount
+describe('Firebase Connector Tests with Generic Unified Suite', () => {
+  const unifiedTests = createUnifiedTests({
+    createGoatConnector: () => new GoatRepository(),
+    createTypeOrmConnector: () => new TypeOrmRepository(),
+    dbType: 'firebase'
   })
-  await Fluent.initialize([], dbEntities)
-})
 
-afterAll(async () => {
-  // Clean all repositories
-  const repositories = [
-    GoatRepository,
-    TypeOrmRepository,
-    UserRepository,
-    CarsRepository,
-    RoleRepository
-  ]
+  beforeAll(async () => {
+    // Initialize Firebase with emulator settings
+    FirebaseInit({
+      databaseName: 'test-project',
+      emulator: true
+    })
 
-  for (const repo of repositories) {
-    const r = new repo()
-    await r.clear()
-  }
-})
+    // Initialize Fluent with empty datasources since Firebase doesn't use TypeORM
+    await Fluent.initialize([], dbEntities)
+  })
 
-describe('Execute all basic test Suite', () => {
-  basicTestSuite(GoatRepository)
-})
+  afterAll(async () => {
+    // Clean up Firebase connection if needed
+    await deleteFirebaseApps()
+  })
 
-describe('Execute all advanced', () => {
-  advancedTestSuite(TypeOrmRepository)
-})
+  describe('Basic Tests', () => {
+    unifiedTests.runBasicTests(describe, it, expect, beforeAll, beforeEach)
+  })
 
-describe('Execute all relations test suite', () => {
-  // relationsTestSuite(UserRepository, CarsRepository, RoleRepository)
+  describe('Advanced Tests', () => {
+    unifiedTests.runAdvancedTests(describe, it, expect, beforeAll, beforeEach)
+  })
 })

@@ -30,7 +30,7 @@ export interface FirebaseConnectorParams<Input, Output> {
  *
  */
 export class FirebaseConnector<
-    ModelDTO = AnyObject,
+    ModelDTO extends admin.firestore.DocumentData = AnyObject,
     InputDTO = ModelDTO,
     OutputDTO = InputDTO
   >
@@ -92,7 +92,7 @@ export class FirebaseConnector<
   public async insert(data: InputDTO): Promise<OutputDTO> {
     this.initDB()
     // Validate Input
-    const validatedData = this.inputSchema.parse(data)
+    const validatedData = (this.inputSchema as any).parse(data)
 
     if (data['id']) {
       const found = await this.findById(data['id'])
@@ -102,7 +102,7 @@ export class FirebaseConnector<
       }
     }
 
-    const id: string = data['id'] || Ids.objectIdString()
+    const id: string = data['id'] || Ids.uuid()
     const item = {
       id,
       ...validatedData
@@ -123,7 +123,7 @@ export class FirebaseConnector<
     const batch = admin.firestore().batch()
     const batchInserted: ModelDTO[] = []
     validatedData.forEach(d => {
-      const id: string = d['id'] || Ids.objectIdString()
+      const id: string = d['id'] || Ids.uuid()
       const item = { id, ...d } as unknown as ModelDTO
       const insert = this.collection.doc(id)
       batch.set(insert, item)
@@ -229,7 +229,7 @@ export class FirebaseConnector<
         }
       : data
 
-    const validatedData = this.inputSchema.parse(dataToInsert)
+    const validatedData = (this.inputSchema as any).parse(dataToInsert)
 
     await this.collection.doc(id).update({
       ...validatedData,
@@ -263,7 +263,7 @@ export class FirebaseConnector<
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
 
     Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null
+      flatValue[key] = null as any
     })
 
     const nullObject = Objects.nest(flatValue)
@@ -282,7 +282,7 @@ export class FirebaseConnector<
         }
       : data
 
-    const validatedData = this.inputSchema.parse(dataToInsert)
+    const validatedData = (this.inputSchema as any).parse(dataToInsert)
 
     await this.collection
       .doc(id)
@@ -449,10 +449,10 @@ export class FirebaseConnector<
     for (const [index] of mergedQueries.entries()) {
       if (select?.length > 0) {
         // Force select the ID
-        mergedQueries[index] = mergedQueries[index].select(...['id', ...select])
+        mergedQueries[index] = mergedQueries[index]!.select(...['id', ...select])
       }
 
-      mergedQueries[index] = mergedQueries[index].limit(query?.limit || 10)
+      mergedQueries[index] = mergedQueries[index]!.limit(query?.limit || 10)
       mergedQueries[index] = mergedQueries[index].offset(query?.offset || 0)
 
       if (query?.orderBy) {
@@ -461,7 +461,7 @@ export class FirebaseConnector<
           for (const attribute of Object.keys(flattenObject)) {
             mergedQueries[index] = mergedQueries[index].orderBy(
               attribute,
-              flattenObject[attribute]
+              flattenObject[attribute] as FirebaseFirestore.OrderByDirection
             )
           }
         }
@@ -486,11 +486,11 @@ export class FirebaseConnector<
     }
 
     // Every element of the array is an OR
-    let andWhereQuery: FirebaseFirestore.Query = this.collection
+    let andWhereQuery: FirebaseFirestore.Query = this.collection as any
     let orWhereQueries: FirebaseFirestore.Query[] = []
 
-    const orConditions = extractConditions(where['OR'])
-    const andConditions = extractConditions(where['AND'])
+    const orConditions = extractConditions((where['OR'] || []) as any)
+    const andConditions = extractConditions((where['AND'] || []) as any)
 
     const copy = Objects.clone(where)
     if (!!copy['AND']) {
@@ -592,7 +592,7 @@ export class FirebaseConnector<
     for (const condition of orConditions) {
       const { element, operator, value } = condition
 
-      let orQuery: FirebaseFirestore.Query = this.collection
+      let orQuery: FirebaseFirestore.Query = this.collection as any
 
       switch (operator) {
         case LogicOperator.equals:
@@ -643,7 +643,7 @@ export class FirebaseConnector<
       !rootLevelConditions?.length &&
       !orConditions?.length
     ) {
-      andWhereCondition = this.collection
+      andWhereCondition = this.collection as any
     }
 
     if (andConditions?.length || rootLevelConditions?.length) {

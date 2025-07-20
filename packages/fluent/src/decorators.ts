@@ -114,7 +114,8 @@ export class DecoratorsClass {
     }
     return applyDecorators(
       Column({
-        nullable: !params?.required
+        nullable: !params?.required,
+        type: params?.type
       }) as PropertyDecorator,
       ApiProperty({
         nullable: !params?.required,

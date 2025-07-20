@@ -1,3 +1,3 @@
-import { Formioconnector } from './FormioConnector'
+import { FormioConnector, Formioconnector } from './FormioConnector'
 
-export { Formioconnector }
+export { FormioConnector, Formioconnector }

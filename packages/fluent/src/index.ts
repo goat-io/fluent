@@ -44,6 +44,12 @@ import { nestQueryResults } from './TypeOrmConnector/util/nestQueryResults'
 
 export { DataSource } from 'typeorm'
 export type { Relation } from 'typeorm'
+
+// Export test utilities for connector packages
+export { createUnifiedTests } from './testing/unifiedTestFactory'
+export type { UnifiedTestOptions, TestConnector } from './testing/unifiedTestFactory'
+export { GoatEntity, GoatSchema, type GoatInputSchema } from './TypeOrmConnector/test/basic/goat.entity'
+export { TypeORMDataModel as TypeOrmEntity, TypeORMDataModelSchema, type TypeORMDataModelInputSchema } from './TypeOrmConnector/test/advanced/typeOrm.entity'
 export {
   ApiHideProperty,
   ApiProperty,

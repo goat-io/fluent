@@ -27,8 +27,8 @@ export class TypeORMDataModel {
   @f.id()
   id: string
 
-  @f.property({ required: false, type: 'varchar' })
-  created?: string
+  @f.created()
+  created?: Date
 
   @f.embed(Nested)
   nestedTest?: Nested | undefined
@@ -53,7 +53,7 @@ export const NestedSchema = z.object({
 
 export const TypeORMDataModelSchema = z.object({
   id: z.string().optional(),
-  created: z.string().optional(),
+  created: z.date().optional(),
   order: z.number().optional(),
   nestedTest: NestedSchema.optional(),
   test: z.boolean()

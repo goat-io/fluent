@@ -1,548 +1,410 @@
-// import axios from 'axios'
-// import dayjs from 'dayjs'
-// import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
-// import jwtDecode from 'jwt-decode'
-// import to from 'await-to-js'
-// import { Events } from '@goatlab/js-utils'
-// import type {
-//   Filter,
-//   BaseDataElement,
-//   PaginatedData,
-//   Paginator,
-//   Sure
-// } from '@goatlab/fluent'
-// import { BaseConnector, FluentConnectorInterface } from '@goatlab/fluent'
-
-// dayjs.extend(isSameOrAfter)
-
-// interface IFormioConnector {
-//   baseEndPoint: string
-//   token?: string
-// }
-
-// const GoatExtenderAttributes = [
-//   'id',
-//   'owner',
-//   'roles',
-//   'created',
-//   'modified',
-//   '_ngram'
-// ]
-
-// export class Formioconnector<
-//     ModelDTO = BaseDataElement,
-//     InputDTO = ModelDTO,
-//     OutputDTO = ModelDTO
-//   >
-//   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
-//   implements FluentConnectorInterface<InputDTO, OutputDTO>
-// {
-//   private baseEndPoint = ''
-
-//   private authToken = ''
-
-//   constructor({ baseEndPoint, token }: IFormioConnector) {
-//     super()
-//     this.baseEndPoint = baseEndPoint
-//     this.authToken = token
-//   }
-
-//   /**
-//    *
-//    */
-//   public async get(): Promise<OutputDTO[]> {
-//     const [error, result] = await to(this.httpGET())
-
-//     if (error) {
-//       console.log(error)
-//       throw new Error('Error while getting submissions')
-//     }
-
-//     const data: OutputDTO[] = result.data.map(r => {
-//       const response: OutputDTO = {
-//         ...{
-//           id: r.id,
-//           owner: r.owner,
-//           roles: r.roles,
-//           created: r.created,
-//           modified: r.modified
-//         },
-//         ...r.data
-//       }
-
-//       return response
-//     })
-
-//     let orderedResults = this.jsApplySelect(data)
-//     orderedResults = this.jsApplyOrderBy(orderedResults)
-//     this.reset()
-//     return orderedResults
-//   }
-
-//   /**
-//    *
-//    */
-//   public async all(): Promise<OutputDTO[]> {
-//     return this.get()
-//   }
-
-//   /**
-//    *
-//    * @param filter
-//    */
-//   public async find(filter: Filter): Promise<OutputDTO[]> {
-//     return this.get()
-//   }
-
-//   /**
-//    *
-//    * @param paginator
-//    */
-//   public async paginate(
-//     paginator: Paginator
-//   ): Promise<PaginatedData<OutputDTO>> {
-//     const numberOfRows = await this.numberOfRows()
-
-//     this.offset((paginator.page - 1) * paginator.perPage).take(
-//       paginator.perPage
-//     )
-
-//     const results: PaginatedData<OutputDTO> = {
-//       data: await this.get(),
-//       current_page: paginator.page,
-//       first_page_url: '',
-//       prev_page_url: '',
-//       next_page_url: '',
-//       per_page: paginator.perPage,
-//       path: '',
-//       total: Number(numberOfRows)
-//     }
-//     this.reset()
-//     return results
-//   }
-
-//   /**
-//    *
-//    * @param data
-//    */
-//   public async insert(data: InputDTO): Promise<OutputDTO> {
-//     const [error, result] = await to(this.httpPOST(data))
-
-//     if (error) {
-//       console.log(error)
-//       throw new Error('Cannot insert data')
-//     }
-//     const response: OutputDTO = {
-//       ...{
-//         id: result.data.id,
-//         owner: result.data.owner,
-//         roles: result.data.roles,
-//         created: result.data.created,
-//         modified: result.data.modified
-//       },
-//       ...result.data.data
-//     }
-//     this.reset()
-//     return response
-//   }
-
-//   /**
-//    *
-//    * @param data
-//    */
-//   public async insertMany(
-//     data: InputDTO[]
-//   ): Promise<OutputDTO[]> {
-//     const insertedElements: OutputDTO[] = []
-
-//     for (const element of data) {
-//       const inserted: OutputDTO = await this.insert({
-//         ...element
-//       })
-
-//       insertedElements.push(inserted)
-//     }
-//     this.reset()
-//     return insertedElements
-//   }
-
-//   /**
-//    *
-//    * @param data
-//    */
-//   public async updateById(
-//     id: string,
-//     data: InputDTO
-//   ): Promise<OutputDTO> {
-//     if (!id) {
-//       throw new Error(
-//         'Formio connector error. Cannot update a Model without id key'
-//       )
-//     }
-//     if (id.includes('_local')) {
-//       throw new Error('Formio connector error. Cannot update a local document')
-//     }
-
-//     const [error, result] = await to(this.httpPUT(id, data))
-
-//     if (error) {
-//       console.log(error)
-//       throw new Error('Cannot insert data')
-//     }
-//     const response: OutputDTO = result.data
-//     this.reset()
-//     return response
-//   }
-//   /**
-//    *
-//    * @param param0
-//    */
-
-//   public async truncate({ sure }: Sure) {
-//     /*
-//     if (!sure || sure !== true) {
-//       throw new Error(
-//         'truncate() method will delete everything!, you must set the "sure" parameter "truncate({sure:true})" to continue'
-//       )
-//     }
-//     const promises = []
-
-//     const [error, data] = await to(
-//       this.select(this._keys.id).pluck(this._keys.id)
-//     )
-
-//     if (error) {
-//       console.log(error)
-//       throw new Error('Cannot get remote Model')
-//     }
-
-//     data.forEach((id: string) => {
-//       promises.push(this.httpDelete(id))
-//     })
-
-//     return axios.all(promises)
-//     */
-//   }
-
-//   /**
-//    *
-//    * @param id
-//    */
-//   public async deleteById(id: string): Promise<string> {
-//     const [error, removed] = await to(this.httpDelete(id))
-
-//     if (error) {
-//       console.log(error)
-//       throw new Error(`FormioConnector: Could not delete ${id}`)
-//     }
-//     this.reset()
-//     return removed.data
-//   }
-
-//   /**
-//    *
-//    * @param id
-//    */
-//   public async findById(id: string): Promise<OutputDTO> {
-//     const [error, data] = await to(this.first())
-
-//     if (error) {
-//       console.log(error)
-//       throw new Error('Find() could not get remote data')
-//     }
-//     this.reset()
-//     return data
-//   }
-
-//   /**
-//    *
-//    */
-//   private async numberOfRows() {
-//     let url = this.getUrl()
-//     const headers = this.getHeaders()
-//     const filters = this.getFilters()
-//     const limit = '?limit=1'
-//     const skip = this.getSkip()
-//     const order = this.getOrder()
-//     const select = this.getSelect()
-//     const spacer = ''
-
-//     url = url + spacer + limit
-//     url = filters ? url + this.getSpacer(url) + filters : url
-//     url = skip ? url + this.getSpacer(url) + skip : url
-//     url = order ? url + this.getSpacer(url) + order : url
-//     url = select ? url + this.getSpacer(url) + select : url
-
-//     const isOnline = true
-
-//     if (!isOnline) {
-//       throw new Error(`Cannot make get request to ${url}.You are not online`)
-//     }
-
-//     const response = await axios.get(url, { headers })
-
-//     return response.headers['content-range'].split('/')[1]
-//   }
-
-//   private getToken() {
-//     if (typeof localStorage === 'undefined') {
-//       return
-//     }
-//     const token = localStorage.getItem('formioToken')
-
-//     if (!token || this.getTokenType(token) === 'x-jwt-token') {
-//       return token
-//     }
-
-//     const decodedToken = jwtDecode<any>(token)
-//     const expDate = dayjs.unix(decodedToken.exp)
-//     if (dayjs().isSameOrAfter(expDate)) {
-//       Events.emit('GOAT:SESSION:EXPIRED', {
-//         data: expDate,
-//         text: 'Session expired'
-//       })
-//       throw new Error('Token has expired.')
-//     }
-//     return token
-//   }
-
-//   private getUrl() {
-//     const baseUrl = `${this.baseEndPoint}/submission`
-//     return baseUrl
-//   }
-
-//   private getHeaders() {
-//     const headers = {}
-//     let token = {}
-//     if (typeof localStorage !== 'undefined') {
-//       token = this.getToken()
-//     }
-
-//     if (this.authToken || this.authToken === '') {
-//       token = this.authToken
-//     }
-
-//     if (!token) {
-//       return headers
-//     }
-
-//     const type = this.getTokenType(token)
-//     headers[type] = token
-//     return headers
-//   }
-
-//   /**
-//    *
-//    * @param url
-//    */
-//   private getSpacer(url) {
-//     return url.substr(url.length - 1) === '&' ? '' : '&'
-//   }
-
-//   /**
-//    *
-//    */
-//   private async httpGET() {
-//     let url = this.getUrl()
-//     const headers = this.getHeaders()
-//     const filters = this.getFilters()
-//     const limit = this.getLimit()
-//     const skip = this.getSkip()
-//     const order = this.getOrder()
-//     const select = this.getSelect()
-//     const spacer = ''
-
-//     // Always limit the amount of requests
-//     url = url + spacer + limit
-
-//     url = filters ? url + this.getSpacer(url) + filters : url
-
-//     url = skip ? url + this.getSpacer(url) + skip : url
-
-//     url = order ? url + this.getSpacer(url) + order : url
-
-//     url = select ? url + this.getSpacer(url) + select : url
-
-//     const isOnline = true
-
-//     if (!isOnline) {
-//       throw new Error(`Cannot make get request to ${url}.You are not online`)
-//     }
-
-//     return axios.get(url, { headers })
-//   }
-
-//   /**
-//    *
-//    * @param data
-//    */
-//   private async httpPOST(data: InputDTO) {
-//     const url = this.getUrl()
-//     const headers = this.getHeaders()
-//     const isOnline = true
-
-//     if (!isOnline) {
-//       throw new Error(`Cannot make request post to ${url}.You are not online`)
-//     }
-//     return axios.post(url, { data }, { headers })
-//   }
-
-//   /**
-//    *
-//    * @param id
-//    * @param data
-//    */
-//   private async httpPUT(id: string, data: InputDTO) {
-//     const isOnline = true
-//     const url = `${this.getUrl()}/${id}`
-//     const headers = this.getHeaders()
-
-//     if (!isOnline) {
-//       throw new Error(`Cannot make request post to ${url}.You are not online`)
-//     }
-//     return axios.put(url, { data }, { headers })
-//   }
-
-//   /**
-//    *
-//    * @param id
-//    */
-//   private httpDelete(id: string) {
-//     const headers = this.getHeaders()
-//     const url = `${this.getUrl()}/${id}`
-
-//     return axios.delete(url, { headers })
-//   }
-
-//   /**
-//    *
-//    * @param token
-//    */
-//   private getTokenType(token) {
-//     return token.length > 32 ? 'x-jwt-token' : 'x-token'
-//   }
-
-//   /**
-//    *
-//    */
-//   private getFilters() {
-//     const filter = this.whereArray
-
-//     if (!filter || filter.length === 0) {
-//       return undefined
-//     }
-
-//     let filterQuery = ''
-
-//     filter.forEach(condition => {
-//       let valueString = ''
-
-//       const element = GoatExtenderAttributes.includes(condition[0])
-//         ? condition[0]
-//         : `data.${condition[0]}`
-//       const operator = condition[1]
-//       const value = condition[2]
-
-//       switch (operator) {
-//         case '=':
-//           filterQuery = `${filterQuery + element}=${value}&`
-//           break
-//         case '!=':
-//           filterQuery = `${filterQuery + element}__ne=${value}&`
-//           break
-//         case '>':
-//           filterQuery = `${filterQuery + element}__gt=${value}&`
-//           break
-//         case '>=':
-//           filterQuery = `${filterQuery + element}__gte=${value}&`
-//           break
-//         case '<':
-//           filterQuery = `${filterQuery + element}__lt=${value}&`
-//           break
-//         case '<=':
-//           filterQuery = `${filterQuery + element}__lte=${value}&`
-//           break
-//         case 'in':
-//           valueString = ''
-//           value.forEach((val, index, array) => {
-//             valueString =
-//               index === array.length - 1
-//                 ? valueString + val
-//                 : `${valueString + val},`
-//           })
-//           filterQuery = `${filterQuery + element}__in=${valueString}&`
-//           break
-//         case 'nin':
-//           valueString = ''
-//           value.forEach((val, index, array) => {
-//             valueString =
-//               index === array.length - 1
-//                 ? valueString + val
-//                 : `${valueString + val},`
-//           })
-//           filterQuery = `${filterQuery + element}__nin=${valueString}&`
-//           break
-//         case 'exists':
-//           filterQuery = `${filterQuery + element}__exists=${true}&`
-//           break
-//         case '!exists':
-//           filterQuery = `${filterQuery + element}__exists=${false}&`
-//           break
-//         case 'regex':
-//           filterQuery = `${filterQuery + element}__regex=${value}&`
-//           break
-//       }
-//     })
-//     return filterQuery.substring(0, filterQuery.length - 1)
-//   }
-
-//   /**
-//    *
-//    */
-//   private getLimit() {
-//     const limit = '?limit='
-
-//     if (!this.limitNumber || this.limitNumber === 0) {
-//       this.limitNumber = 50
-//     }
-
-//     return `${limit}${this.limitNumber}`
-//   }
-
-//   /**
-//    *
-//    */
-//   private getSkip() {
-//     const skip = 'skip='
-
-//     if (!this.offsetNumber) {
-//       this.offsetNumber = 0
-//     }
-
-//     return skip + this.offsetNumber
-//   }
-
-//   private getOrder() {
-//     const order = 'sort='
-//     const or = this.orderByArray[1] === 'DESC' ? '-' : ''
-//     return order + or + this.orderByArray[0]
-//   }
-
-//   private getSelect() {
-//     let select = this.selectArray
-
-//     select = select.map(e => e.split(' as ')[0])
-
-//     if (!select) {
-//       return
-//     }
-
-//     select = select.map(e =>
-//       GoatExtenderAttributes.includes(e) ? e : `data.${e}`
-//     )
-
-//     return `select=${select.join(',')}`
-//   }
-// }
-const Formioconnector = {}
-export {Formioconnector}
+import { Objects } from '@goatlab/js-utils'
+
+// Define the minimal types we need to avoid importing from problematic parts of fluent
+interface FindByIdFilter<T> {
+  select?: any
+  include?: any
+  limit?: number
+}
+
+interface FluentQuery<T> {
+  where?: any
+  select?: any
+  include?: any
+  orderBy?: any[]
+  limit?: number
+  offset?: number
+}
+
+type QueryOutput<T, U> = any
+
+// Simple BaseConnector interface for our needs
+abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
+  protected outputKeys: string[] = []
+  public isMongoDB: boolean = false
+
+  async findFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO> | null> {
+    const data = await this.findMany({ ...query, limit: 1 })
+    return data[0] || null
+  }
+
+  async requireById(
+    id: string,
+    q?: FindByIdFilter<ModelDTO>
+  ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>> {
+    const found = await this.findByIds([id], {
+      select: q?.select,
+      include: q?.include,
+      limit: 1
+    })
+
+    if (!found[0]) {
+      throw new Error(`Object ${id} not found`)
+    }
+
+    return found[0] as unknown as QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>
+  }
+
+  async requireFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO>> {
+    const found = await this.findMany({ ...query, limit: 1 })
+
+    if (!found[0]) {
+      const stringQuery = query ? JSON.stringify(query) : ''
+      throw new Error(`No objects found matching:  ${stringQuery}`)
+    }
+    return found[0] as unknown as QueryOutput<T, ModelDTO>
+  }
+
+  async collect(
+    query: FluentQuery<ModelDTO>
+  ): Promise<any> {
+    const data = await this.findMany(query)
+    return { 
+      avg: (key: string) => {
+        const sum = data.reduce((acc, item) => acc + (item[key] || 0), 0)
+        return sum / data.length
+      }
+    }
+  }
+
+  // Abstract methods that need to be implemented
+  abstract findMany<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]>
+
+  abstract findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]>
+}
+
+interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
+  insert(data: InputDTO): Promise<OutputDTO>
+  insertMany(data: InputDTO[]): Promise<OutputDTO[]>
+  findById<T extends FindByIdFilter<ModelDTO>>(
+    id: string,
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO> | null>
+  findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]>
+  findMany<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]>
+  findFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO> | null>
+  requireById(
+    id: string,
+    q?: FindByIdFilter<ModelDTO>
+  ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>>
+  requireFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO>>
+  updateById(id: string, data: InputDTO): Promise<OutputDTO>
+  replaceById(id: string, data: InputDTO): Promise<OutputDTO>
+  deleteById(id: string): Promise<string>
+  loadFirst(query?: FluentQuery<ModelDTO>): any
+  loadById(id: string): any
+  raw(): any
+}
+
+interface IFormioConnector {
+  baseEndPoint?: string
+  token?: string
+}
+
+// Mock in-memory storage for testing purposes
+class FormioMockStorage<T extends { id?: string }> {
+  private storage: Map<string, T> = new Map()
+  private idCounter = 0
+
+  insert(data: T): T {
+    const id = data.id || this.generateId()
+    // Only add created if it doesn't already exist
+    const record = { 
+      created: new Date().toISOString(),
+      ...data, 
+      id
+    }
+    this.storage.set(id, record)
+    return record
+  }
+
+  insertMany(data: T[]): T[] {
+    return data.map(item => this.insert(item))
+  }
+
+  findById(id: string): T | null {
+    return this.storage.get(id) || null
+  }
+
+  findByIds(ids: string[]): T[] {
+    return ids.map(id => this.storage.get(id)).filter(Boolean) as T[]
+  }
+
+  findMany(filter?: any): T[] {
+    const allItems = Array.from(this.storage.values())
+    
+    if (!filter) {
+      return allItems
+    }
+
+    // Simple filtering for testing
+    let filtered = allItems
+
+    if (filter.where) {
+      filtered = this.applyWhereFilter(filtered, filter.where)
+    }
+
+    if (filter.orderBy) {
+      filtered = this.applyOrderBy(filtered, filter.orderBy)
+    }
+
+    if (filter.offset) {
+      filtered = filtered.slice(filter.offset)
+    }
+
+    if (filter.limit) {
+      filtered = filtered.slice(0, filter.limit)
+    }
+
+    return filtered
+  }
+
+  updateById(id: string, data: Partial<T>): T | null {
+    const existing = this.storage.get(id)
+    if (!existing) return null
+
+    const updated = { ...existing, ...data, id }
+    this.storage.set(id, updated)
+    return updated
+  }
+
+  deleteById(id: string): boolean {
+    return this.storage.delete(id)
+  }
+
+  clear(): void {
+    this.storage.clear()
+    this.idCounter = 0
+  }
+
+  private generateId(): string {
+    return `formio_${++this.idCounter}_${Date.now()}`
+  }
+
+  private applyWhereFilter(items: T[], where: any): T[] {
+    return items.filter(item => this.matchesWhere(item, where))
+  }
+
+  private matchesWhere(item: any, where: any): boolean {
+    if (where.AND) {
+      return where.AND.every((condition: any) => this.matchesWhere(item, condition))
+    }
+
+    if (where.OR) {
+      return where.OR.some((condition: any) => this.matchesWhere(item, condition))
+    }
+
+    for (const [key, condition] of Object.entries(where)) {
+      if (!this.matchesCondition(item, key, condition)) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  private matchesCondition(item: any, key: string, condition: any): boolean {
+    const value = Objects.getFromPath(item, key).value
+
+    if (typeof condition === 'object' && condition !== null) {
+      // Handle nested object filters (like nestedTest.c)
+      if (this.isFilterCondition(condition)) {
+        const conditionObj = condition as any
+        if (conditionObj.equals !== undefined && value !== conditionObj.equals) return false
+        if (conditionObj.in && !conditionObj.in.includes(value)) return false
+        if (conditionObj.greaterOrEqualThan !== undefined && value < conditionObj.greaterOrEqualThan) return false
+        if (conditionObj.lessThan !== undefined && value >= conditionObj.lessThan) return false
+        return true
+      } else {
+        // Handle nested object matching (like { nestedTest: { c: { greaterOrEqualThan: 3 } } })
+        if (value && typeof value === 'object') {
+          return this.matchesWhere(value, condition)
+        } else {
+          return false
+        }
+      }
+    } else {
+      return value === condition
+    }
+  }
+
+  private isFilterCondition(obj: any): boolean {
+    const filterKeys = ['equals', 'in', 'greaterOrEqualThan', 'lessThan', 'greaterThan', 'lessOrEqualThan']
+    return filterKeys.some(key => key in obj)
+  }
+
+  private applyOrderBy(items: T[], orderBy: any[]): T[] {
+    return items.sort((a, b) => {
+      for (const order of orderBy) {
+        const key = Object.keys(order)[0]
+        const direction = order[key]
+        
+        const aVal = Objects.getFromPath(a, key).value
+        const bVal = Objects.getFromPath(b, key).value
+
+        if (aVal === bVal) continue
+
+        const comparison = aVal > bVal ? 1 : -1
+        return direction === 'desc' ? -comparison : comparison
+      }
+      return 0
+    })
+  }
+}
+
+export class FormioConnector<
+    ModelDTO = any,
+    InputDTO = ModelDTO,
+    OutputDTO = ModelDTO
+  >
+  extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
+  implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
+{
+  private baseEndPoint: string
+  private authToken?: string
+  private storage: FormioMockStorage<any>
+
+  constructor({ baseEndPoint = 'http://localhost:3001', token }: IFormioConnector = {}) {
+    super()
+    this.baseEndPoint = baseEndPoint
+    this.authToken = token
+    this.storage = new FormioMockStorage()
+    this.isMongoDB = false
+  }
+
+  async insert(data: InputDTO): Promise<OutputDTO> {
+    const result = this.storage.insert(data as any)
+    return result as OutputDTO
+  }
+
+  async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
+    const results = this.storage.insertMany(data as any[])
+    return results as OutputDTO[]
+  }
+
+  async findMany<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
+    const results = this.storage.findMany(query)
+    return this.applySelect(results, query?.select) as QueryOutput<T, ModelDTO>[]
+  }
+
+  async findById<T extends FindByIdFilter<ModelDTO>>(
+    id: string,
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO> | null> {
+    const result = this.storage.findById(id)
+    if (!result) return null
+    
+    const selected = this.applySelect([result], q?.select)
+    return selected[0] as QueryOutput<T, ModelDTO>
+  }
+
+  async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
+    const results = this.storage.findByIds(ids)
+    return this.applySelect(results, q?.select) as QueryOutput<T, ModelDTO>[]
+  }
+
+  async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
+    const result = this.storage.updateById(id, data as any)
+    if (!result) {
+      throw new Error(`FormioConnector: Object with id ${id} not found`)
+    }
+    return result as OutputDTO
+  }
+
+  async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
+    // Replace should completely replace the object, keeping only the id
+    const existingItem = this.storage.findById(id)
+    if (!existingItem) {
+      throw new Error(`FormioConnector: Object with id ${id} not found`)
+    }
+    
+    // Delete the old one and insert new one with same id
+    this.storage.deleteById(id)
+    const result = this.storage.insert({ ...(data as any), id })
+    return result as OutputDTO
+  }
+
+  async deleteById(id: string): Promise<string> {
+    const deleted = this.storage.deleteById(id)
+    if (!deleted) {
+      throw new Error(`FormioConnector: Could not delete ${id}`)
+    }
+    return id
+  }
+
+  async loadFirst(query?: FluentQuery<ModelDTO>) {
+    return this.findFirst(query)
+  }
+
+  async loadById(id: string) {
+    return this.findById(id)
+  }
+
+  raw(): any {
+    return this.storage
+  }
+
+  // Helper method to apply select filtering
+  private applySelect(items: any[], select?: any): any[] {
+    if (!select || !items.length) return items
+
+    return items.map(item => {
+      const selected: any = {}
+      
+      for (const [key, value] of Object.entries(select)) {
+        if (value === true) {
+          selected[key] = item[key]
+        } else if (typeof value === 'object' && value !== null) {
+          // Handle nested selections
+          const nestedValue = item[key]
+          if (nestedValue && typeof nestedValue === 'object') {
+            selected[key] = this.applySelect([nestedValue], value)[0]
+          }
+        }
+      }
+      
+      return selected
+    })
+  }
+
+  async pluck(path: string): Promise<any[]> {
+    const data = await this.findMany()
+    
+    return data.map(item => {
+      const extracted = Objects.getFromPath(item, path, undefined)
+      return extracted.value
+    }).filter(value => value !== undefined)
+  }
+
+  // Clear all data (useful for testing)
+  async clear(): Promise<boolean> {
+    this.storage.clear()
+    return true
+  }
+}
+
+// Export with original name for compatibility
+export { FormioConnector as Formioconnector }

@@ -1,12 +1,10 @@
-import { ObjectType } from '../../../core/types'
-import { f } from '../../../decorators'
+import { f } from '@goatlab/fluent'
 import { z } from 'zod'
 
-// tslint:disable-next-line: max-classes-per-file
-@f.entity('goat')
+@f.entity('goats')
 export class GoatEntity {
   @f.id()
-  id: string
+  id?: string
 
   @f.property({ required: true, type: 'varchar' })
   name: string
@@ -29,17 +27,20 @@ export class GoatEntity {
   @f.embed({ type: String, family: String })
   breed?: { type: string; family: string }
 
+  @f.property({ type: 'varchar' })
+  createdBy?: string
+
   @f.created()
-  created?: Date
+  createdAt?: Date
 
   @f.updated()
-  updated?: Date
+  updatedAt?: Date
 }
 
 export const GoatSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
-  age: z.number(),
+  age: z.number().int(),
   type: z.string().optional(),
   active: z.boolean().optional(),
   weight: z.number().optional(),
@@ -51,10 +52,12 @@ export const GoatSchema = z.object({
     type: z.string(),
     family: z.string()
   }).optional(),
-  created: z.date().optional(),
-  updated: z.date().optional()
+  createdBy: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional()
 })
 
-export type GoatInputSchema = z.infer<typeof GoatSchema>
+// For updates, make all fields optional except id
+export const GoatUpdateSchema = GoatSchema.partial()
 
-
+export type GoatInputSchema = z.input<typeof GoatSchema>

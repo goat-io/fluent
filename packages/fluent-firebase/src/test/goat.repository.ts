@@ -1,8 +1,4 @@
-import {
-  GoatInputSchema,
-  GoatSchema,
-  GoatEntity
-} from '@goatlab/fluent/src/TypeOrmConnector/test/basic/goat.entity'
+import { GoatEntity, GoatInputSchema, GoatSchema } from '@goatlab/fluent'
 import { FirebaseConnector } from '../FirebaseConnector'
 
 export class GoatRepository extends FirebaseConnector<

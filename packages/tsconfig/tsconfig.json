@@ -17,7 +17,7 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "strictPropertyInitialization": false,
-    "target": "es2020",
+    "target": "es2022",
     "sourceMap": true,
     "incremental": true,
     "allowSyntheticDefaultImports": true,

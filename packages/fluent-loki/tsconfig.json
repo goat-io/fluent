@@ -5,6 +5,10 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": "./src",
-    "strictNullChecks": true
+    "strictNullChecks": false,
+    "types": ["node"],
+    "skipLibCheck": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
   }
 }

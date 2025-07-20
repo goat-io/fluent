@@ -1,6 +1,7 @@
-import { Loki, LokiStorageType} from '../Loki'
+import LokiJS from 'lokijs'
 
-export const lokiDataSource = Loki.createDb({
-  dbName: 'MyLocalDB',
-  storage: LokiStorageType.memory
+// Create a new in-memory database for each test run
+export const lokiDataSource = new (LokiJS as any)('test-db.json', {
+  autosave: false,
+  persistenceMethod: 'memory'
 })

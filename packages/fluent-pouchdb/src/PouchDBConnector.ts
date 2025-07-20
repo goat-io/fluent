@@ -1,15 +1,8 @@
 import {
-  BaseConnector,
-  FluentConnectorInterface,
-  FluentQuery,
   modelGeneratorDataSource,
-  QueryOutput,
   getRelationsFromModelGenerator,
   getOutputKeys,
   LogicOperator,
-  PaginatedData,
-  LoadedResult,
-  FindByIdFilter,
   extractConditions
 } from '@goatlab/fluent'
 import type { AnyObject } from '@goatlab/js-utils'
@@ -28,6 +21,124 @@ export interface PouchDBConnectorParams<Input, Output> {
   dataSource: PouchDB.Database
   inputSchema: z.ZodType<Input>
   outputSchema?: z.ZodType<Output>
+}
+
+// Types needed for PouchDB connector
+interface FluentQuery<T> {
+  where?: any
+  select?: any
+  include?: any
+  orderBy?: any[]
+  limit?: number
+  offset?: number
+  paginated?: { page: number; perPage: number }
+}
+
+interface FindByIdFilter<T> {
+  select?: any
+  include?: any
+  limit?: number
+}
+
+interface PaginatedData<T> {
+  total: number
+  perPage: number
+  currentPage: number
+  nextPage: number
+  firstPage: number
+  lastPage: number
+  prevPage: number | null
+  from: number
+  to: number
+  data: T[]
+}
+
+interface LoadedResult<T> {
+  // Minimal interface
+}
+
+type QueryOutput<T, U> = any
+
+interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
+  insert(data: InputDTO): Promise<OutputDTO>
+  insertMany(data: InputDTO[]): Promise<OutputDTO[]>
+  updateById(id: string, data: Partial<InputDTO>): Promise<OutputDTO>
+  replaceById(id: string, data: Partial<InputDTO>): Promise<OutputDTO>
+  deleteById(id: string): Promise<string>
+  findMany<T extends FluentQuery<ModelDTO>>(query?: T): Promise<QueryOutput<T, ModelDTO>[]>
+  findFirst<T extends FluentQuery<ModelDTO>>(query?: T): Promise<QueryOutput<T, ModelDTO> | null>
+  findByIds<T extends FindByIdFilter<ModelDTO>>(ids: string[], q?: T): Promise<QueryOutput<T, ModelDTO>[]>
+  requireById(id: string, q?: FindByIdFilter<ModelDTO>): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>>
+  requireFirst<T extends FluentQuery<ModelDTO>>(query?: T): Promise<QueryOutput<T, ModelDTO>>
+  pluck(path: any, query?: FluentQuery<ModelDTO>): Promise<any[]>
+  clear(): Promise<boolean>
+}
+
+// Base class for connectors
+abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
+  protected outputKeys: string[] = []
+  protected modelRelations: any[] = []
+  public isMongoDB: boolean = false
+  protected relationQuery?: any
+
+  async findFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO> | null> {
+    const data = await this.findMany({ ...query, limit: 1 } as T)
+    return data[0] || null
+  }
+
+  async requireById(
+    id: string,
+    q?: FindByIdFilter<ModelDTO>
+  ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>> {
+    const found = await this.findByIds([id], {
+      select: q?.select,
+      include: q?.include,
+      limit: 1
+    })
+
+    if (!found[0]) {
+      throw new Error(`Object ${id} not found`)
+    }
+
+    return found[0] as unknown as QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>
+  }
+
+  async requireFirst<T extends FluentQuery<ModelDTO>>(
+    query?: T
+  ): Promise<QueryOutput<T, ModelDTO>> {
+    const found = await this.findFirst(query)
+    if (!found) {
+      throw new Error('Object not found')
+    }
+    return found
+  }
+
+  async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
+    return this.findMany({
+      where: { id: { in: ids } },
+      select: q?.select,
+      include: q?.include,
+      limit: q?.limit
+    } as unknown as FluentQuery<ModelDTO>)
+  }
+
+  setRelatedQuery(query: any) {
+    this.relationQuery = query
+  }
+
+  abstract insert(data: InputDTO): Promise<OutputDTO>
+  abstract insertMany(data: InputDTO[]): Promise<OutputDTO[]>
+  abstract updateById(id: string, data: Partial<InputDTO>): Promise<OutputDTO>
+  abstract replaceById(id: string, data: Partial<InputDTO>): Promise<OutputDTO>
+  abstract deleteById(id: string): Promise<string>
+  abstract findMany<T extends FluentQuery<ModelDTO>>(query?: T): Promise<QueryOutput<T, ModelDTO>[]>
+  abstract pluck(path: any, query?: FluentQuery<ModelDTO>): Promise<any[]>
+  abstract clear(): Promise<boolean>
 }
 
 export class PouchDBConnector<
@@ -64,7 +175,7 @@ export class PouchDBConnector<
 
     const { relations } = getRelationsFromModelGenerator(relationShipBuilder)
 
-    this.modelRelations = relations
+    this.modelRelations = Object.values(relations || {})
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
   }
@@ -76,21 +187,35 @@ export class PouchDBConnector<
   public async insert(data: InputDTO): Promise<OutputDTO> {
     // Validate Input
     const validatedData = this.inputSchema.parse(data)
+    
+    // Add created date if needed
+    const dataToInsert: any = { ...validatedData }
+    if (this.outputKeys.includes('created') && !dataToInsert.created) {
+      dataToInsert.created = new Date()
+    }
 
     let response: any
-    if ((validatedData as any).id) {
+    if (dataToInsert.id) {
       // If id is provided, use put with explicit _id
-      const docData = { ...(validatedData as any) }
+      const docData = { ...dataToInsert }
       docData._id = docData.id
       delete docData.id
       response = await this.dataSource.put(docData)
     } else {
       // If no id, use post to auto-generate
-      response = await this.dataSource.post(validatedData as any)
+      response = await this.dataSource.post(dataToInsert)
     }
     
     let datum = await this.dataSource.get(response.id)
     datum['id'] = datum['_id']
+    
+    // Handle date fields
+    if (datum['created'] && typeof datum['created'] === 'string') {
+      datum['created'] = new Date(datum['created'])
+    }
+    if (datum['updated'] && typeof datum['updated'] === 'string') {
+      datum['updated'] = new Date(datum['updated'])
+    }
 
     // Validate Output
     return this.outputSchema.parse(
@@ -104,14 +229,23 @@ export class PouchDBConnector<
    */
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
     const validatedData = this.inputSchema.array().parse(data)
+    
+    // Add created date if needed
+    const dataToInsert = validatedData.map((item: any) => {
+      const doc = { ...item }
+      if (this.outputKeys.includes('created') && !doc.created) {
+        doc.created = new Date()
+      }
+      return doc
+    })
 
-    const inserted = await this.dataSource.bulkDocs(validatedData as any)
+    const inserted = await this.dataSource.bulkDocs(dataToInsert as any)
 
     const insertedOK = (inserted as any).map((i: any) => {
       if (i.id) {
         return i
       }
-    }) as any
+    }).filter(Boolean) as any
 
     const elements = await this.dataSource.bulkGet({
       docs: insertedOK
@@ -119,11 +253,19 @@ export class PouchDBConnector<
 
     const res = elements.results.map(r => {
       if (r.id && r.docs?.[0] && r.docs[0]['ok']) {
-        return Objects.clearEmpties(
-          Objects.deleteNulls({ ...r.docs[0]['ok'], id: r.id })
-        )
+        const doc = { ...r.docs[0]['ok'], id: r.id }
+        
+        // Handle date fields
+        if (doc['created'] && typeof doc['created'] === 'string') {
+          doc['created'] = new Date(doc['created'])
+        }
+        if (doc['updated'] && typeof doc['updated'] === 'string') {
+          doc['updated'] = new Date(doc['updated'])
+        }
+        
+        return Objects.clearEmpties(Objects.deleteNulls(doc))
       }
-    })
+    }).filter(Boolean)
 
     return this.outputSchema.array().parse(res)
   }
@@ -131,24 +273,40 @@ export class PouchDBConnector<
    * PATCH operation
    * @param data
    */
-  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const dataToInsert = this.outputKeys.includes('updated')
-      ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
-      : data
+  public async updateById(id: string, data: Partial<InputDTO>): Promise<OutputDTO> {
+    // Get existing document
+    const existing = await this.dataSource.get(id)
+    const existingRev = existing._rev
+    existing['id'] = existing['_id']
+    if ('_id' in existing) delete (existing as any)['_id']
+    if ('_rev' in existing) delete (existing as any)['_rev']
+    
+    // Merge with new data
+    const merged = {
+      ...existing,
+      ...data
+    }
+    
+    if (this.outputKeys.includes('updated')) {
+      merged['updated'] = new Date()
+    }
 
-    const validatedData = this.inputSchema.parse(dataToInsert)
+    // Convert date strings to Date objects for existing data
+    if (merged['created'] && typeof merged['created'] === 'string') {
+      merged['created'] = new Date(merged['created'])
+    }
+    if (merged['updated'] && typeof merged['updated'] === 'string') {
+      merged['updated'] = new Date(merged['updated'])
+    }
 
-    // Yes, terribly ineficient, Pull/push/pull
-    const prePull = await this.dataSource.get(id)
+    // Validate merged data with partial schema
+    const validatedData = (this.inputSchema as any).partial().parse(merged)
 
     const updateResults = await this.dataSource.put(
       {
         ...validatedData,
         _id: id,
-        _rev: prePull._rev
+        _rev: existingRev
       },
       { force: true }
     )
@@ -158,8 +316,15 @@ export class PouchDBConnector<
     }
 
     const dbResult = await this.dataSource.get(id)
-
     dbResult['id'] = dbResult['_id']
+
+    // Convert date strings to Date objects
+    if (dbResult['created'] && typeof dbResult['created'] === 'string') {
+      dbResult['created'] = new Date(dbResult['created'])
+    }
+    if (dbResult['updated'] && typeof dbResult['updated'] === 'string') {
+      dbResult['updated'] = new Date(dbResult['updated'])
+    }
 
     // Validate Output
     return this.outputSchema?.parse(
@@ -175,38 +340,34 @@ export class PouchDBConnector<
    * @param id
    * @param data
    */
-  public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
-    const value = await this.dataSource.get(id)
+  public async replaceById(id: string, data: Partial<InputDTO>): Promise<OutputDTO> {
+    const existing = await this.dataSource.get(id)
+    const existingId = existing._id
+    const existingRev = existing._rev
+    const existingCreated = (existing as any).created
 
-    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
+    // For replace, we start with only the provided data
+    const newData: any = {
+      ...data
+    }
+    
+    // Preserve system fields
+    if (existingCreated) {
+      newData.created = existingCreated
+    }
 
-    Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null as any
-    })
+    if (this.outputKeys.includes('updated')) {
+      newData['updated'] = new Date()
+    }
 
-    const nullObject = Objects.nest(flatValue)
-
-    const newValue = { ...nullObject, ...data }
-
-    delete newValue._id
-    delete newValue.id
-    delete newValue.created
-    delete newValue.updated
-
-    const dataToInsert = this.outputKeys.includes('updated')
-      ? {
-          ...data,
-          ...{ updated: new Date() }
-        }
-      : data
-
-    const validatedData = this.inputSchema.parse(dataToInsert)
+    // Don't validate against full schema since replace allows partial data
+    const validatedData = newData
 
     const updateResults = await this.dataSource.put(
       {
         ...validatedData,
-        _id: id,
-        _rev: value._rev
+        _id: existingId,
+        _rev: existingRev
       },
       { force: true }
     )
@@ -215,13 +376,21 @@ export class PouchDBConnector<
       throw new Error('Could not Replace')
     }
 
-    const val = await this.dataSource.get(id)
-
+    const val = await this.dataSource.get(existingId)
     val['id'] = val['_id'].toString()
 
-    return this.outputSchema.parse(
+    // Convert date strings to Date objects
+    if (val['created'] && typeof val['created'] === 'string') {
+      val['created'] = new Date(val['created'])
+    }
+    if (val['updated'] && typeof val['updated'] === 'string') {
+      val['updated'] = new Date(val['updated'])
+    }
+
+    // For replace, use partial schema since not all fields may be present
+    return (this.outputSchema as any).partial().parse(
       Objects.clearEmpties(Objects.deleteNulls(val))
-    )
+    ) as OutputDTO
   }
   // TODO: apply types to the DB?
   /**
@@ -238,20 +407,70 @@ export class PouchDBConnector<
   public async findMany<T extends FluentQuery<ModelDTO>>(
     query?: T
   ): Promise<QueryOutput<T, ModelDTO>[]> {
-    const pouchQUery = this.getPouchDBWhere(query?.where)
+    const pouchQuery: any = this.getPouchDBWhere(query?.where)
 
-    // console.log(query?.where)
-    // console.log(pouchQUery)
+    // Note: PouchDB requires indexes for sorting, so we'll sort in memory instead
+    const needsSort = query?.orderBy && query.orderBy.length > 0
+    
+    // If we need to sort, we can't use PouchDB's limit/skip because they apply before sorting
+    // So we'll fetch all results and apply limit/offset after sorting
+    if (!needsSort) {
+      // Add limit and skip only if we don't need to sort
+      if (query?.limit) {
+        pouchQuery.limit = query.limit
+      }
+      if (query?.offset) {
+        pouchQuery.skip = query.offset
+      }
+    }
 
-    const response = await this.dataSource.find(pouchQUery)
-
+    const response = await this.dataSource.find(pouchQuery)
     const found = response.docs
 
-    found.map(d => {
-      d['id'] = d['_id']
-
-      Objects.clearEmpties(Objects.deleteNulls(d))
+    // Process documents
+    let processed = found.map(d => {
+      const doc = { ...d }
+      doc['id'] = doc['_id']
+      if ('_id' in doc) delete (doc as any)['_id']
+      if ('_rev' in doc) delete (doc as any)['_rev']
+      
+      // Handle date fields
+      if (doc['created'] && typeof doc['created'] === 'string') {
+        doc['created'] = new Date(doc['created'])
+      }
+      if (doc['updated'] && typeof doc['updated'] === 'string') {
+        doc['updated'] = new Date(doc['updated'])
+      }
+      
+      return Objects.clearEmpties(Objects.deleteNulls(doc))
     })
+    
+    // Apply in-memory sorting if needed
+    if (needsSort && query?.orderBy) {
+      processed = processed.sort((a, b) => {
+        for (const order of query.orderBy!) {
+          const entries = Object.entries(order)
+          if (!entries[0]) continue
+          const [field, direction] = entries[0]
+          const aVal = a[field]
+          const bVal = b[field]
+          
+          if (aVal === bVal) continue
+          
+          const result = aVal < bVal ? -1 : 1
+          return direction === 'asc' ? result : -result
+        }
+        return 0
+      })
+      
+      // Apply offset and limit after sorting
+      if (query?.offset) {
+        processed = processed.slice(query.offset)
+      }
+      if (query?.limit) {
+        processed = processed.slice(0, query.limit)
+      }
+    }
 
     if (query?.paginated) {
       const paginationInfo: PaginatedData<Promise<QueryOutput<T, ModelDTO>[]>> =
@@ -266,18 +485,30 @@ export class PouchDBConnector<
             query.paginated.page === 1 ? null : query.paginated.page - 1,
           from: (query.paginated.page - 1) * query.paginated.perPage + 1,
           to: query.paginated.perPage * query.paginated.page,
-          data: found as unknown as Promise<QueryOutput<T, ModelDTO>[]>[]
+          data: processed as unknown as Promise<QueryOutput<T, ModelDTO>[]>[]
         }
 
       return paginationInfo as unknown as Promise<QueryOutput<T, ModelDTO>[]>
     }
 
     if (query?.select) {
-      // TODO: validate based on the select properties
-      return found as unknown as Promise<QueryOutput<T, ModelDTO>[]>
+      // Apply field selection
+      const selectedFields = Object.keys(query.select).filter(key => query.select![key])
+      const selected = processed.map(doc => {
+        const selectedDoc: any = { id: doc.id }
+        selectedFields.forEach(field => {
+          if (field in doc) {
+            selectedDoc[field] = doc[field]
+          }
+        })
+        return selectedDoc
+      })
+      return selected as unknown as Promise<QueryOutput<T, ModelDTO>[]>
     }
+    
     // Validate Output against schema
-    return this.outputSchema?.array().parse(found) as unknown as Promise<
+    // Use partial validation since documents may have been created with replaceById
+    return (this.outputSchema as any)?.partial().array().parse(processed) as unknown as Promise<
       QueryOutput<T, ModelDTO>[]
     >
   }
@@ -529,6 +760,44 @@ export class PouchDBConnector<
     return new (<any>this.constructor)()
   }
 
+  public async findById<T extends FindByIdFilter<ModelDTO>>(
+    id: string,
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO> | null> {
+    const results = await this.findByIds([id], q)
+    return results[0] || null
+  }
+
+  public async findByIds<T extends FindByIdFilter<ModelDTO>>(
+    ids: string[],
+    q?: T
+  ): Promise<QueryOutput<T, ModelDTO>[]> {
+    // Call parent implementation
+    const results = await super.findByIds(ids, q)
+    
+    // Sort results to match the order of input IDs
+    const orderedResults: QueryOutput<T, ModelDTO>[] = []
+    for (const id of ids) {
+      const found = results.find(r => r.id === id)
+      if (found) {
+        orderedResults.push(found)
+      }
+    }
+    
+    return orderedResults
+  }
+
+  public async pluck(path: any, query?: FluentQuery<ModelDTO>): Promise<any[]> {
+    const allDocs = await this.findMany(query)
+    
+    // If path is a string, pluck that field
+    if (typeof path === 'string') {
+      return allDocs.map(doc => (doc as any)[path]).filter(val => val !== undefined)
+    }
+    
+    // Otherwise return empty array
+    return []
+  }
 
   public async clear(): Promise<boolean> {
     try {

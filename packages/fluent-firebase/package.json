@@ -3,7 +3,7 @@
   "version": "0.7.24",
   "description": "Readable query Interface & API generator for TS and Node",
   "dependencies": {
-    "@goatlab/fluent": "^0.7.40",
+    "@goatlab/fluent": "workspace:*",
     "@goatlab/js-utils": "workspace:*",
     "@google-cloud/firestore": "^6.0.0",
     "firebase-admin": "^11.0.1"
@@ -18,22 +18,27 @@
     "jest-environment-node": "^27.5.1",
     "prettier": "^2.6.1",
     "pretty-quick": "^3.1.3",
+    "rimraf": "^3.0.2",
+    "testcontainers": "^10.11.0",
     "ts-jest": "catalog:",
     "ts-node": "catalog:",
     "turbo": "^1.1.10",
-    "typescript": "^4.6.3"
+    "typeorm": "^0.3.17",
+    "typescript": "^5.0.0",
+    "unplugin-swc": "catalog:",
+    "vitest": "catalog:"
   },
   "scripts": {
     "prebuild": "rimraf dist",
     "prestart": "rimraf dist",
     "predev": "rimraf dist",
-    "test": "echo 'skip'",
+    "test": "vitest run",
     "dev": "tsc --watch",
     "lint": "echo 'skip'",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "update:packages": "npm-check-updates -u && yarn",
     "serve": "tsc -w",
-    "build": "echo 'skip'"
+    "build": "tsc --skipLibCheck --noEmit false"
   },
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
