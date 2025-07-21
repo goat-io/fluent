@@ -1,45 +1,60 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/node-metascraper
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+A Node.js wrapper around metascraper that simplifies metadata extraction from URLs. Supports both standard HTTP requests and Puppeteer-based scraping for JavaScript-heavy sites, with built-in image metadata extraction.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - QUEUE</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - JS UTILS
-
-Standard queue interfaces for different providers
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
-yarn add @goatlab/queue
+npm install @goatlab/node-metascraper
+# or
+yarn add @goatlab/node-metascraper
+# or
+pnpm add @goatlab/node-metascraper
 ```
 
-### Documentation
+## Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/overview)
+```typescript
+import { MetaScrapers } from '@goatlab/node-metascraper'
+
+// Initialize without browser service (uses local Puppeteer)
+const scraper = new MetaScrapers()
+
+// Or initialize with remote browser service URL
+const scraper = new MetaScrapers('http://your-browser-service:3000')
+
+// Extract metadata from a URL
+const metadata = await scraper.getMetadataFromUrl('https://example.com')
+
+console.log(metadata)
+// {
+//   url: 'https://example.com',
+//   title: 'Example Domain',
+//   description: 'Example Domain. This domain is for use in illustrative examples...',
+//   image: 'https://example.com/image.png',
+//   author: 'Author Name',
+//   date: '2024-01-01',
+//   logo: 'https://example.com/logo.png',
+//   publisher: 'Example',
+//   domain: 'example.com',
+//   lang: 'en',
+//   feed: 'https://example.com/feed',
+//   assetMeta: {
+//     // Image metadata including dimensions, format, etc.
+//     buffer: Buffer // Original image buffer
+//   }
+// }
+
+// Extract metadata from an image URL directly
+const imageMeta = await scraper.getAssetMetadata('https://example.com/image.png')
+```
+
+## Key Features
+
+- **Automatic fallback** from simple HTTP requests to Puppeteer for JavaScript-rendered pages
+- **Comprehensive metadata extraction** including title, description, author, date, publisher, language, and more
+- **Image metadata analysis** with dimensions, format detection, and buffer access
+- **RSS feed detection** with automatic title extraction
+- **Malformed URL handling** with automatic correction
+- **Remote browser support** for scalable Puppeteer operations
+- **Built-in retry logic** that falls back to logo if main image fails

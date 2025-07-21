@@ -1,49 +1,78 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/fluent-firebase
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+Firebase/Firestore connector for the Goat Fluent query interface. Provides a type-safe, schema-validated query builder for Firebase Firestore with support for complex queries, batch operations, and relations.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - FLUENT-FIREBASE</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - Fluent
-
-Fluent query interface for Multiple database types and helpers for fast API generation and general App building.
-
-## Supported Databases
-
-1. Firebase\*
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
+npm install @goatlab/fluent-firebase
+# or
 yarn add @goatlab/fluent-firebase
+# or
+pnpm add @goatlab/fluent-firebase
 ```
 
-### Documentation
+## Basic Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
+```typescript
+import { FirebaseInit, FirebaseConnector } from '@goatlab/fluent-firebase'
+import { z } from 'zod'
+
+// Initialize Firebase
+FirebaseInit({
+  databaseName: 'your-project-id',
+  serviceAccount: './path/to/service-account.json', // optional
+  emulator: false // set to true for local development
+})
+
+// Define your schema
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  created: z.date()
+})
+
+// Create a repository
+class UserRepository extends FirebaseConnector<User> {
+  constructor() {
+    super({
+      entity: UserEntity, // Your TypeORM-style entity class
+      inputSchema: UserSchema,
+      outputSchema: UserSchema // optional, defaults to inputSchema
+    })
+  }
+}
+
+// Use the repository
+const userRepo = new UserRepository()
+
+// Insert
+const user = await userRepo.insert({
+  name: 'John Doe',
+  email: 'john@example.com'
+})
+
+// Query
+const users = await userRepo.findMany({
+  where: { email: 'john@example.com' },
+  limit: 10,
+  orderBy: [{ created: 'desc' }]
+})
+
+// Update
+await userRepo.updateById(user.id, { name: 'Jane Doe' })
+
+// Delete
+await userRepo.deleteById(user.id)
+```
+
+## Key Features
+
+- **Type-safe queries** with TypeScript and Zod schema validation
+- **Fluent query interface** compatible with other Goat Fluent connectors
+- **Complex query support** including AND/OR conditions and multiple operators
+- **Batch operations** for efficient bulk inserts and updates
+- **Relations support** for loading related data
+- **Firebase Emulator support** for local development and testing
+- **Raw access** to Firebase Admin SDK when needed

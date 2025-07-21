@@ -1,45 +1,73 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/tasks-adapter-hatchet
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+Hatchet adapter for Goatlab's task processing system. Provides a seamless integration with [Hatchet](https://hatchet.run/) workflow engine for distributed task processing.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - QUEUE</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - JS UTILS
-
-Standard queue interfaces for different providers
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
-yarn add @goatlab/queue
+npm install @goatlab/tasks-adapter-hatchet
+# or
+yarn add @goatlab/tasks-adapter-hatchet
+# or
+pnpm add @goatlab/tasks-adapter-hatchet
 ```
 
-### Documentation
+## Basic Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/overview)
+```typescript
+import { HatchetConnector } from '@goatlab/tasks-adapter-hatchet'
+import { ShouldQueue } from '@goatlab/tasks-core'
+
+// Initialize Hatchet connector
+const hatchetConnector = new HatchetConnector({
+  token: process.env.HATCHET_JWT_TOKEN,
+  hostAndPort: 'localhost:7077',  // optional, defaults to localhost:7077
+  apiUrl: 'http://localhost:8888', // optional, defaults to http://localhost:8888
+  logLevel: 'INFO',                // optional, defaults to INFO
+  tenantId: 'your-tenant-id'       // optional
+})
+
+// Define a task
+class MyTask extends ShouldQueue<{ message: string }> {
+  taskName = 'process_message'
+  
+  async handle(taskBody: { message: string }): Promise<void> {
+    console.log('Processing:', taskBody.message)
+    // Your task logic here
+  }
+}
+
+// Create task instance
+const myTask = new MyTask({ connector: hatchetConnector })
+
+// Start worker to process tasks
+await hatchetConnector.startWorker({
+  workerName: 'my-worker',
+  tasks: [myTask],
+  slots: 100  // concurrent task capacity
+})
+
+// Queue a task
+const status = await myTask.queue({ message: 'Hello Hatchet!' })
+console.log('Task queued:', status.id)
+
+// Check task status
+const taskStatus = await myTask.getStatus(status.id)
+console.log('Task status:', taskStatus.status)
+```
+
+## Key Features
+
+- **Seamless Integration**: Works with Goatlab's task system using Hatchet as the backend
+- **Worker Management**: Easy worker creation with configurable concurrency slots
+- **Task Status Tracking**: Monitor task execution status and results
+- **Retry Support**: Built-in retry mechanism for failed tasks
+- **Type Safety**: Full TypeScript support with strongly-typed task payloads
+
+## Configuration Options
+
+- `token` (required): Hatchet JWT authentication token
+- `hostAndPort`: Hatchet server address (default: `localhost:7077`)
+- `apiUrl`: Hatchet API URL (default: `http://localhost:8888`)
+- `logLevel`: Logging verbosity (`INFO`, `OFF`, `DEBUG`, `WARN`, `ERROR`)
+- `tenantId`: Hatchet tenant identifier for multi-tenant setups

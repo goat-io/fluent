@@ -1,49 +1,62 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/fluent-pouchdb
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+PouchDB connector for the Goat Fluent query interface. Enables you to use PouchDB with the same unified API as other Fluent database connectors.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - FLUENT-POUCHDB</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - Fluent
-
-Fluent query interface for Multiple database types and helpers for fast API generation and general App building.
-
-## Supported Databases
-
-1. PouchDB
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
+npm install @goatlab/fluent-pouchdb
+# or
 yarn add @goatlab/fluent-pouchdb
+# or
+pnpm add @goatlab/fluent-pouchdb
 ```
 
-### Documentation
+## Basic Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
+```typescript
+import { PouchDBConnector, PouchDB } from '@goatlab/fluent-pouchdb'
+import { z } from 'zod'
+
+// Define your schema
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  created: z.date().optional()
+})
+
+// Create PouchDB instance
+const db = new PouchDB('users', { adapter: 'memory' }) // or use 'leveldb' for persistence
+
+// Initialize connector
+const users = new PouchDBConnector({
+  entity: UserEntity, // Your entity class with decorators
+  dataSource: db,
+  inputSchema: UserSchema,
+  outputSchema: UserSchema // optional, defaults to inputSchema
+})
+
+// Use Fluent API
+const user = await users.insert({ 
+  name: 'John Doe', 
+  email: 'john@example.com' 
+})
+
+const found = await users.findMany({
+  where: { email: { equals: 'john@example.com' } },
+  orderBy: [{ created: 'desc' }],
+  limit: 10
+})
+```
+
+## Key Features
+
+- **Unified Fluent API** - Same query interface as other Fluent connectors
+- **Full CRUD operations** - insert, update, replace, delete with validation
+- **Advanced querying** - Complex where clauses with AND/OR logic
+- **Schema validation** - Input/output validation with Zod schemas
+- **In-memory sorting** - orderBy support without PouchDB indexes
+- **Pagination support** - Built-in pagination helpers
+- **PouchDB plugins** - Pre-configured with find, memory adapter, and json plugins
+- **Raw access** - Direct PouchDB database access via `.raw()` method

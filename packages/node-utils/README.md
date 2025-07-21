@@ -1,45 +1,107 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/node-utils
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+Node.js-specific utilities for common server-side tasks including JWT handling, security operations, stream processing, and environment management.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - NODE UTILS</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - JS UTILS
-
-General Node only Time Saving (TS) utilities
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
+npm install @goatlab/node-utils
+# or
 yarn add @goatlab/node-utils
+# or
+pnpm add @goatlab/node-utils
 ```
 
-### Documentation
+## Usage Examples
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/overview)
+### JWT Operations
+```typescript
+import { Jwt } from '@goatlab/node-utils'
+
+// Sign a token
+const token = await Jwt.sign({ userId: '123' }, 'your-secret', { expiresIn: '1h' })
+
+// Verify a token
+const payload = await Jwt.verify(token, 'your-secret')
+```
+
+### Security & Encryption
+```typescript
+import { Security, Hashes } from '@goatlab/node-utils'
+
+// Generate secure random strings
+const password = Security.randomString(16)
+const apiKey = Security.randomString(32, { includeSymbols: true })
+
+// Encrypt/decrypt data
+const encrypted = Security.encrypt('sensitive data', 'secret-key')
+const decrypted = Security.decrypt(encrypted, 'secret-key')
+
+// Generate RSA key pair
+const { publicKey, privateKey } = Security.generateKeyPair()
+
+// Hash passwords
+const hash = await Hashes.hash('password123')
+const isValid = await Hashes.verify('password123', hash)
+```
+
+### Stream Processing
+```typescript
+import { Streams } from '@goatlab/node-utils'
+
+// Transform streams with pipeline
+await Streams.pipeline(
+  readableStream,
+  Streams.map(async (item) => ({ ...item, processed: true })),
+  Streams.filter((item) => item.valid),
+  Streams.gzip(),
+  Streams.toWriteStream('./output.gz')
+)
+
+// Parse NDJSON
+await Streams.pipeline(
+  fs.createReadStream('./data.ndjson'),
+  Streams.parseJson(),
+  Streams.logProgress('Processing'),
+  writableStream
+)
+```
+
+### Environment & Process Management
+```typescript
+import { Env, Processes } from '@goatlab/node-utils'
+
+// Get environment info
+const buildInfo = Env.getBuildInfo()
+const isProduction = Env.isProduction()
+
+// Execute shell commands
+const result = await Processes.run('npm list')
+
+// Find available port
+import { Ports } from '@goatlab/node-utils'
+const port = await Ports.findPort(3000)
+```
+
+## Available Utilities
+
+### Authentication & Security
+- **Jwt** - JWT token signing and verification
+- **Security** - Encryption, decryption, random string generation, RSA key pairs
+- **Hashes** - Password hashing (bcrypt), MD5, SHA256 hashing
+- **Secrets** - Generate secure random secrets
+
+### Stream Processing
+- **Streams** - Pipeline builder with transforms: map, filter, buffer, gzip, JSON parsing, progress logging
+
+### System & Environment
+- **Env** - Environment detection and build info
+- **Processes** - Shell command execution
+- **Ports** - Find available network ports
+- **Folders** - Directory operations
+- **Scripts** - Run Node.js scripts programmatically
+
+### Data & Utilities
+- **ObjectIds** - BSON ObjectId generation and validation
+- **Ips** - IP address utilities
+- **Log** - Winston logger instance

@@ -1,61 +1,102 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/fluent
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+A TypeScript query builder and ORM wrapper that provides a fluent interface for multiple database types with built-in validation using Zod schemas.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
+## Installation
 
-  <h3 align="center">GOAT - FLUENT</h3>
+```bash
+npm install @goatlab/fluent
+# or
+yarn add @goatlab/fluent
+# or
+pnpm add @goatlab/fluent
+```
 
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
+## Basic Usage
 
-# Goat - Fluent
+```typescript
+import { TypeOrmConnector, f } from '@goatlab/fluent'
+import { DataSource } from 'typeorm'
+import { z } from 'zod'
 
-Fluent query interface for Multiple database types and helpers for fast API generation and general App building.
+// Define your entity
+@f.entity('users')
+class User {
+  @f.id()
+  id: string
+
+  @f.property({ required: true, type: 'varchar' })
+  name: string
+
+  @f.property({ type: 'int' })
+  age?: number
+
+  @f.created()
+  created?: Date
+}
+
+// Define your schema
+const UserSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  age: z.number().optional(),
+  created: z.date().optional()
+})
+
+// Create a repository
+class UserRepository extends TypeOrmConnector<User> {
+  constructor(dataSource: DataSource) {
+    super({
+      entity: User,
+      dataSource,
+      inputSchema: UserSchema
+    })
+  }
+}
+
+// Use the repository
+const userRepo = new UserRepository(dataSource)
+
+// Insert data
+const user = await userRepo.insert({ name: 'John', age: 25 })
+
+// Query data
+const users = await userRepo.findMany({
+  where: { age: { $gte: 18 } },
+  orderBy: { name: 'asc' },
+  limit: 10
+})
+
+// Find by ID
+const user = await userRepo.findById('user-id')
+
+// Update
+await userRepo.updateById('user-id', { name: 'Jane' })
+
+// Delete
+await userRepo.deleteById('user-id')
+```
+
+## Key Features
+
+- **Multi-database support** - Works with MySQL, PostgreSQL, MongoDB, SQLite, and more via TypeORM
+- **Fluent query interface** - Chainable query methods with TypeScript support
+- **Built-in validation** - Automatic input/output validation using Zod schemas
+- **Decorators** - Simple entity definition using decorators (`@f.entity`, `@f.property`, etc.)
+- **Type safety** - Full TypeScript support with proper type inference
+- **Relations** - Support for complex relationships between entities
+- **Pagination** - Built-in pagination support
+- **Raw queries** - Execute raw SQL when needed
 
 ## Supported Databases
 
-1. MongoDB\*
-2. Mysql\*
-3. MariaDB\*
-4. SQLite\*
-5. Postgres\*
-6. CockroachDB\*
-7. Microsoft SQL Server\*
-8. Oracle\*
-9. SAP Hana\*
-10. sql.js\*
-11. In-memory SQlite
-
-Wrapper for TypeORM \*
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
-
-```bash
-yarn add @goatlab/fluent
-```
-
-### Documentation
-
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
+All databases supported by TypeORM:
+- MySQL / MariaDB
+- PostgreSQL
+- MongoDB
+- SQLite
+- Microsoft SQL Server
+- Oracle
+- CockroachDB
+- SAP Hana
+- And more...

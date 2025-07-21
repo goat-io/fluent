@@ -1,49 +1,66 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/fluent-loki
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+LokiJS connector for the Goat Fluent query interface. Provides in-memory database capabilities with multiple storage adapters including IndexedDB, file system, and encrypted storage.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - FLUENT-LOKI</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - Fluent
-
-Fluent query interface for Multiple database types and helpers for fast API generation and general App building.
-
-## Supported Databases
-
-1. LokiJS
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
+npm install @goatlab/fluent-loki
+# or
 yarn add @goatlab/fluent-loki
+# or
+pnpm add @goatlab/fluent-loki
 ```
 
-### Documentation
+## Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
+```typescript
+import { Loki, LokiConnector, LokiStorageType } from '@goatlab/fluent-loki'
+import { z } from 'zod'
+
+// Define your schema
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  age: z.number()
+})
+
+// Create LokiJS database instance
+const db = Loki.createDb({
+  dbName: 'myapp',
+  storage: LokiStorageType.memory // or indexedDB, file, fsStructured, cryptedFile
+})
+
+// Create a User entity
+class User {
+  static name = 'User'
+}
+
+// Initialize the connector
+const userConnector = new LokiConnector({
+  entity: User,
+  dataSource: db,
+  inputSchema: UserSchema,
+  outputSchema: UserSchema
+})
+
+// Use the Fluent query interface
+const users = await userConnector.findMany({
+  where: {
+    age: { gte: 18 }
+  },
+  orderBy: [{ name: 'asc' }],
+  limit: 10
+})
+```
+
+## Key Features
+
+- **Multiple Storage Adapters**: Memory, IndexedDB, file system, structured file system, and encrypted file storage
+- **Fluent Query Interface**: Chainable query methods compatible with Goat Fluent
+- **Schema Validation**: Built-in Zod schema validation for input and output
+- **TypeScript Support**: Full type safety with generics
+- **Automatic ID Generation**: UUID-based ID generation for new records
+- **Pagination Support**: Built-in pagination with offset and limit
+- **Complex Queries**: Support for AND/OR conditions, nested properties, and various operators

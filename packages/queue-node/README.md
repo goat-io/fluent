@@ -1,45 +1,43 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/queue-node
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+A Node.js-based scheduler implementation for the Goat queue system. This package provides a simple cron-based job scheduler using the `node-cron` library for executing recurring tasks.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - NODE UTILS</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - JS UTILS
-
-General Node only Time Saving (TS) utilities
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
-yarn add @goatlab/node-utils
+npm install @goatlab/queue-node
+# or
+yarn add @goatlab/queue-node
+# or
+pnpm add @goatlab/queue-node
 ```
 
-### Documentation
+## Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/overview)
+```typescript
+import { NodeScheduler } from '@goatlab/queue-node'
+
+const scheduler = new NodeScheduler()
+
+// Schedule a job to run every minute
+await scheduler.schedule({
+  jobName: 'my-task',
+  data: { message: 'Hello World' },
+  repeat: {
+    cronTime: 'minute',
+    runOnInit: false,
+    timeZone: 'EuropeStockholm'
+  },
+  handle: async (job) => {
+    console.log('Job running:', job.name, job.data)
+  }
+})
+```
+
+## Features
+
+- **Cron-based scheduling** - Built on top of the `cron` package for reliable task scheduling
+- **Flexible intervals** - Support for various predefined intervals (seconds, minutes, hours)
+- **Timezone support** - Schedule jobs in specific timezones
+- **Queue-core compatible** - Implements the `Scheduler` interface from `@goatlab/queue-core`
+- **Immediate execution** - Jobs without repeat settings run once after 250ms

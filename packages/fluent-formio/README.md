@@ -1,49 +1,66 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/fluent-formio
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+A fluent query interface connector for Form.io that provides a consistent API for CRUD operations with Form.io data sources. Currently includes a mock in-memory implementation for testing and development.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - FLUENT-FORM.IO</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - Fluent
-
-Fluent query interface for Multiple database types and helpers for fast API generation and general App building.
-
-## Supported Databases
-
-1. Form.io
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
+npm install @goatlab/fluent-formio
+# or
 yarn add @goatlab/fluent-formio
+# or
+pnpm add @goatlab/fluent-formio
 ```
 
-### Documentation
+## Basic Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
+```typescript
+import { FormioConnector } from '@goatlab/fluent-formio'
+
+// Define your entity types
+interface User {
+  id?: string
+  name: string
+  email: string
+  age: number
+}
+
+// Create a connector instance
+const userConnector = new FormioConnector<User>({
+  baseEndPoint: 'http://localhost:3001/users',
+  token: 'your-formio-token' // optional
+})
+
+// Insert a single record
+const user = await userConnector.insert({
+  name: 'John Doe',
+  email: 'john@example.com',
+  age: 30
+})
+
+// Find records with fluent query syntax
+const adults = await userConnector.findMany({
+  where: { age: { greaterOrEqualThan: 18 } },
+  orderBy: [{ age: 'desc' }],
+  limit: 10
+})
+
+// Find by ID
+const foundUser = await userConnector.findById(user.id)
+
+// Update a record
+await userConnector.updateById(user.id, {
+  age: 31
+})
+```
+
+## Key Features
+
+- **Fluent Query Interface** - Chain methods for complex queries with TypeScript support
+- **Form.io Compatible** - Designed to work with Form.io REST APIs
+- **In-Memory Mock Storage** - Built-in mock implementation for testing
+- **Type-Safe** - Full TypeScript support with generic types
+- **Standard CRUD Operations** - insert, findById, findMany, updateById, deleteById
+- **Advanced Queries** - Support for where clauses, ordering, pagination
+- **Batch Operations** - insertMany for bulk inserts
+- **Utility Methods** - findFirst, requireById, requireFirst, pluck

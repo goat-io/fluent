@@ -27,7 +27,7 @@
     "@goatlab/js-utils": "workspace:*",
     "@goatlab/tsconfig": "workspace:*"
   },
-  "description": "Metabase API wrapper for TypeScript and Node.js",
+  "description": "Modern TypeScript wrapper for Typesense search engine API",
   "devDependencies": {
     "@testcontainers/mysql": "^11.0.3",
     "@types/node": "^18.15.9",
@@ -52,9 +52,12 @@
   ],
   "homepage": "https://docs.goatlab.io",
   "keywords": [
-    "metabase",
+    "typesense",
+    "search",
     "api",
     "wrapper",
-    "typescript"
+    "typescript",
+    "search-engine",
+    "full-text-search"
   ]
 }

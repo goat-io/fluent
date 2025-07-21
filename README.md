@@ -29,61 +29,170 @@
 
 # Goat - Fluent (Monorepo)
 
-Fluent query interface for Multiple databases and useful helpers for general App development.
+A comprehensive TypeScript ecosystem for building data-driven applications with unified query interfaces, multi-database support, and extensive utilities for Node.js and browser environments.
 
-## Packages
-
-1. fluent: Base api generator and TypeORM + MongoDB connector
-2. fluent-firebase: Firebase connector
-3. fluent-formio: Formio API connector
-4. fluent-loki: LokiJS API connector
-5. fluent-memory: In memory database connector
-6. fluent-rest: REST API connector
-7. formio-utils: General tools to help with Formio
-8. js-utils: Node/Browser utilities
-9. node-utils: Node utilities
-10. queue: Wrappers to work with queues
-11. uploads: Wrappers to upload files to S3, GCP, Azure
-
-## Supported Databases
-
-1. Firebase\*\*
-2. MongoDB\*
-3. Mysql\*
-4. MariaDB\*
-5. SQLite\*
-6. Postgres\*
-7. CockroachDB\*
-8. Microsoft SQL Server\*
-9. Oracle\*
-10. SAP Hana\*
-11. sql.js\*
-12. LokiJS
-13. PouchDB
-14. In-memory
-
-Wrapper for TypeORM (@goatlab/fluent)\*
-
-Wrapper for firebase-admin and fireorm (@goatlab/fluent-firebase) \*\*
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## 🚀 Quick Start
 
 ```bash
-yarn add @goatlab/fluent
+# Install the core package
+pnpm add @goatlab/fluent
+
+# Install specific database connectors
+pnpm add @goatlab/fluent-firebase  # For Firebase/Firestore
+pnpm add @goatlab/fluent-loki      # For in-memory database
+pnpm add @goatlab/fluent-pouchdb   # For PouchDB
+
+# Install utilities
+pnpm add @goatlab/js-utils         # Browser/Node utilities
+pnpm add @goatlab/node-utils       # Node.js specific utilities
 ```
 
-### Documentation
+## 📦 Packages
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent/fluent)
+### Core Query Interface
 
-## Release Process
+- **[@goatlab/fluent](./packages/fluent)** - TypeScript query builder and ORM wrapper with multi-database support via TypeORM
+- **[@goatlab/fluentjs](./packages/fluentjs)** - JavaScript implementation of the Fluent query interface
 
-1. This package uses [Changesets](https://github.com/changesets/changesets) to manage releases for individual packages
-2. Release chain:
-   js-utils
-   node-utils fluent
+### Database Connectors
+
+- **[@goatlab/fluent-firebase](./packages/fluent-firebase)** - Firebase/Firestore connector with real-time capabilities
+- **[@goatlab/fluent-loki](./packages/fluent-loki)** - LokiJS in-memory database connector
+- **[@goatlab/fluent-pouchdb](./packages/fluent-pouchdb)** - PouchDB connector for offline-first applications
+- **[@goatlab/fluent-formio](./packages/fluent-formio)** - Form.io API connector for form-based data
+
+### Utilities
+
+- **[@goatlab/js-utils](./packages/js-utils)** - Comprehensive utilities for browser and Node.js (arrays, objects, HTTP, promises)
+- **[@goatlab/node-utils](./packages/node-utils)** - Node.js specific utilities (JWT, encryption, streams, file operations)
+- **[@goatlab/js-html](./packages/js-html)** - HTML processing with sanitization and text extraction
+- **[@goatlab/node-xlsx](./packages/node-xlsx)** - Excel file streaming and processing
+- **[@goatlab/formio-utils](./packages/formio-utils)** - Form.io form parsing and validation utilities
+
+### Task Processing & Queues
+
+- **[@goatlab/queue-core](./packages/queue-core)** - Unified interface for message brokers (Kafka, RabbitMQ) and job schedulers (Bull, Agenda)
+- **[@goatlab/queue-node](./packages/queue-node)** - Node.js cron-based scheduler implementation
+- **[@goatlab/tasks-core](./packages/tasks-core)** - Common interface for queueable tasks
+- **[@goatlab/tasks-adapter-gcp](./packages/tasks-adapter-gcp)** - Google Cloud Tasks adapter
+- **[@goatlab/tasks-adapter-hatchet](./packages/tasks-adapter-hatchet)** - Hatchet workflow engine adapter
+
+### Cloud Services
+
+- **[@goatlab/uploads](./packages/uploads)** - Multi-cloud file upload middleware (S3, Google Cloud, Azure)
+- **[@goatlab/node-backend](./packages/node-backend)** - Flexible caching with Redis and LRU support
+- **[@goatlab/node-metascraper](./packages/node-metascraper)** - Web metadata extraction
+
+### API Integrations
+
+- **[@goatlab/metabase](./packages/metabase)** - Comprehensive Metabase API wrapper
+- **[@goatlab/typesense](./packages/typesense)** - Modern TypeScript wrapper for Typesense search engine
+
+### Development Tools
+
+- **[@goatlab/benchmarks](./packages/benchmarks)** - Performance benchmarking for database operations
+- **[@goatlab/eslint](./packages/eslint)** - Shared ESLint configuration
+- **[@goatlab/tsconfig](./packages/tsconfig)** - Shared TypeScript configuration
+- **[@goatlab/ts-package-template](./packages/base_project)** - Template for new TypeScript packages
+
+## 🗄️ Supported Databases
+
+### Via TypeORM Connector (@goatlab/fluent)
+
+- PostgreSQL
+- MySQL / MariaDB
+- SQLite
+- Microsoft SQL Server
+- Oracle
+- MongoDB
+- CockroachDB
+- SAP Hana
+- sql.js
+
+### Native Connectors
+
+- Firebase / Firestore
+- LokiJS (in-memory)
+- PouchDB (offline-first)
+- Form.io (API-based)
+
+## 🏗️ Architecture
+
+This monorepo follows a modular architecture with:
+
+- **Unified Query Interface**: All database connectors implement the same Fluent API
+- **Type Safety**: Full TypeScript support with Zod schema validation
+- **Decorator-based Entities**: Define your models using decorators
+- **Extensible Connectors**: Easy to add new database support
+- **Monorepo Structure**: Managed with pnpm workspaces and Turbo
+
+## 🛠️ Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Run tests
+pnpm test
+
+# Run development mode
+pnpm dev
+
+# Lint code
+pnpm lint
+```
+
+## 📝 Example Usage
+
+```typescript
+import { Fluent, TypeOrmConnector } from '@goatlab/fluent'
+import { z } from 'zod'
+
+// Define your schema
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  age: z.number().optional()
+})
+
+// Create a repository
+class UserRepository extends TypeOrmConnector<User> {
+  constructor() {
+    super({
+      entity: User,
+      dataSource: myDataSource
+    })
+  }
+}
+
+// Use the Fluent API
+const users = await userRepo
+  .where({ age: { $gte: 18 } })
+  .orderBy({ name: 'ASC' })
+  .limit(10)
+  .find()
+```
+
+## 🚢 Release Process
+
+This monorepo uses [Changesets](https://github.com/changesets/changesets) for versioning and publishing.
+
+```bash
+# Create a changeset
+pnpm changeset
+
+# Version packages
+pnpm changeset version
+
+# Build and publish
+pnpm changeset publish
+```
+
+Release dependency chain: `js-utils` → `node-utils` → `fluent` → other packages
 
 ## License
 
@@ -93,31 +202,27 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contact
 
-Ignacio Cabrera - [@twitter_handle](https://twitter.com/cabrerabywaters) - ignacio.cabrera@goatlab.io
+Ignacio Cabrera - [@twitter_handle](https://twitter.com/cabrerabywaters) - <ignacio.cabrera@goatlab.io>
 
 <!-- ACKNOWLEDGEMENTS -->
 
 <!-- ACKNOWLEDGMENTS -->
+
 ## Acknowledgments
 
 This library is based on the work of other Authors and Open Source Libraries. Have a look at them and give them a well deserved Star ⭐!
 
-* [sindresorhus - p-map](https://github.com/sindresorhus/p-map)
-* [sindresorhus - p-props](https://github.com/sindresorhus/p-props)
-* [Natural Cycles - NodeJS](https://github.com/NaturalCycles/nodejs-lib)
-* [Natural Cycles - JS-Lib](https://github.com/NaturalCycles/js-lib)
+- [sindresorhus - p-map](https://github.com/sindresorhus/p-map)
+- [sindresorhus - p-props](https://github.com/sindresorhus/p-props)
+- [Natural Cycles - NodeJS](https://github.com/NaturalCycles/nodejs-lib)
+- [Natural Cycles - JS-Lib](https://github.com/NaturalCycles/js-lib)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[contributors-url]: https://github.com/goat-io/fluent/graphs/contributors
-[forks-url]: https://github.com/goat-io/fluent/network/members
 [stars-shield]: https://img.shields.io/github/stars/goat-io/fluent?style=flat-square
 [stars-url]: https://github.com/goat-io/fluent/stargazers
 [issues-shield]: https://img.shields.io/github/issues/goat-io/fluent?style=flat-square
 [issues-url]: https://github.com/goat-io/fluent/issues
 [license-shield]: https://img.shields.io/github/license/goat-io/fluent?style=flat-square
 [license-url]: https://github.com/goat-io/fluent/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
-[product-screenshot]: images/screenshot.png

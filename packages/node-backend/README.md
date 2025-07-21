@@ -1,45 +1,61 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/node-backend
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+A flexible caching solution for Node.js applications that supports both Redis and in-memory LRU caching with multi-tenancy support.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - QUEUE</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - JS UTILS
-
-Standard queue interfaces for different providers
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
-yarn add @goatlab/queue
+npm install @goatlab/node-backend
+# or
+yarn add @goatlab/node-backend
+# or
+pnpm add @goatlab/node-backend
 ```
 
-### Documentation
+## Basic Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/overview)
+```typescript
+import { Cache } from '@goatlab/node-backend'
+
+// Use Redis cache
+const redisCache = new Cache({
+  connection: 'redis://localhost:6379',
+  opts: { namespace: 'my-app' }
+})
+
+// Use in-memory LRU cache
+const memoryCache = new Cache({
+  connection: undefined,
+  opts: { namespace: 'my-app' }
+})
+
+// Cache with LRU memory layer for improved performance
+const hybridCache = new Cache({
+  connection: 'redis://localhost:6379',
+  opts: { 
+    namespace: 'my-app',
+    usesLRUMemory: true // Adds LRU memory caching layer
+  }
+})
+
+// Basic operations
+await cache.set('key', { data: 'value' }, 60000) // TTL in milliseconds
+const value = await cache.get('key')
+await cache.delete('key')
+
+// Advanced operations
+const result = await cache.remember('expensive-op', 300000, async () => {
+  // This function only runs if key doesn't exist
+  return await expensiveOperation()
+})
+```
+
+## Key Features
+
+- **Dual Storage**: Supports Redis for distributed caching or in-memory LRU for single instances
+- **Multi-tenancy**: Built-in tenant isolation with namespace support
+- **Memory Layer**: Optional LRU memory caching on top of Redis for improved performance
+- **Cache Helpers**: Laravel-inspired helper methods like `remember()`, `rememberForever()`, and `pull()`
+- **Namespace Operations**: Delete or retrieve values by key prefix with `deleteWhereStartsWith()` and `getValueWhereKeyStartsWith()`
+- **Type Safety**: Full TypeScript support with generic types
+- **Automatic Validation**: Skips caching of null, undefined, empty strings, empty arrays, and empty objects

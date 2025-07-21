@@ -1,45 +1,72 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/node-xlsx
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+Efficiently stream and process Excel (.xlsx) files in Node.js with TypeScript support. Built on top of xlstream for memory-efficient processing of large Excel files.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - NODE UTILS</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - JS UTILS
-
-General Node only Time Saving (TS) utilities
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
-yarn add @goatlab/node-utils
+npm install @goatlab/node-xlsx
+# or
+yarn add @goatlab/node-xlsx
+# or
+pnpm add @goatlab/node-xlsx
 ```
 
-### Documentation
+## Basic Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/overview)
+```typescript
+import { xlsxStream } from '@goatlab/node-xlsx'
+
+// Process rows individually
+await xlsxStream.stream({
+  file: {
+    filePath: './data.xlsx',
+    sheet: 0,
+    withHeader: true
+  },
+  rowMapper: (row) => ({
+    name: row.Name,
+    email: row.Email,
+    age: Number(row.Age)
+  }),
+  fx: async (mappedRow) => {
+    // Process each row
+    console.log(mappedRow)
+  },
+  mapOptions: {
+    concurrency: 4
+  }
+})
+
+// Process rows in batches
+await xlsxStream.batchStream({
+  file: {
+    filePath: './data.xlsx',
+    sheet: 0,
+    withHeader: true
+  },
+  batchSize: 100,
+  rowMapper: (row) => ({
+    name: row.Name,
+    email: row.Email
+  }),
+  fx: async (batch) => {
+    // Process batch of rows
+    await saveToDatabase(batch)
+  },
+  mapOptions: {
+    concurrency: 2
+  }
+})
+```
+
+## Key Features
+
+- **Memory-efficient streaming** - Process large Excel files without loading them entirely into memory
+- **TypeScript support** - Full type safety with generic column typing
+- **Flexible row mapping** - Transform rows with custom mapper functions
+- **Batch processing** - Process rows individually or in configurable batches
+- **Concurrent processing** - Control concurrency for optimal performance
+- **Row filtering** - Skip rows by returning `null` from the mapper function
+- **Sheet selection** - Choose which sheet to process by index
+- **Header support** - Automatically use first row as column headers

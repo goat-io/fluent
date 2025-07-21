@@ -1,45 +1,60 @@
-<!-- PROJECT SHIELDS -->
+# @goatlab/tasks-core
 
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+A TypeScript library providing a common interface for creating queueable tasks that can be executed by different task processing backends. This package defines the core abstractions for task queuing, status tracking, and execution handling.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/github_username/repo">
-       <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
-  </a>
-
-  <h3 align="center">GOAT - QUEUE</h3>
-
-  <p align="center">
-    Fluent - Time Saving (TS) utils
-    <br />
-    <a href="https://docs.goatlab.io/#/0.7.x/fluent/fluent"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/goat-io/fluent/issues">Request Feature</a>
-  </p>
-  </p>
-</p>
-
-# Goat - JS UTILS
-
-Standard queue interfaces for different providers
-
-### Installing
-
-To install this package in your project, you can use the following command within your terminal.
+## Installation
 
 ```bash
-yarn add @goatlab/queue
+pnpm add @goatlab/tasks-core
 ```
 
-### Documentation
+## Basic Usage
 
-To learn how to use this visit the [Goat Docs](https://docs.goatlab.io/#/0.7.x/fluent-helpers/overview)
+Create a queueable task by extending the `ShouldQueue` abstract class:
+
+```typescript
+import { ShouldQueue, TaskConnector } from '@goatlab/tasks-core'
+
+// Define your task input/output types
+interface EmailTaskInput {
+  to: string
+  subject: string
+  body: string
+}
+
+// Create your task class
+class SendEmailTask extends ShouldQueue<EmailTaskInput, void> {
+  taskName = 'send-email'
+  postUrl = '/api/tasks/send-email'
+
+  async handle(taskBody: EmailTaskInput): Promise<void> {
+    // Your task logic here
+    await sendEmail(taskBody.to, taskBody.subject, taskBody.body)
+  }
+}
+
+// Initialize with a connector (e.g., GCP Cloud Tasks, Hatchet, etc.)
+const emailTask = new SendEmailTask({
+  connector: myTaskConnector,
+  basePostUrl: 'https://api.example.com'
+})
+
+// Queue the task
+const status = await emailTask.queue({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  body: 'Thanks for signing up'
+})
+
+// Check task status
+const taskStatus = await emailTask.getStatus(status.id)
+```
+
+## Key Features
+
+- **Abstract task interface** - Define queueable tasks with consistent behavior
+- **Type-safe** - Full TypeScript support for task inputs and outputs
+- **Connector agnostic** - Works with any task backend that implements `TaskConnector`
+- **Status tracking** - Monitor task execution with standardized status types
+- **Retry support** - Built-in retry configuration for failed tasks
+- **Unique task naming** - Override `getUniqueTaskName()` for deduplication
