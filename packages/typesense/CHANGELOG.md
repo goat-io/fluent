@@ -1,5 +1,11 @@
 # @goatlab/typesense
 
+## 0.0.3
+
+### Patch Changes
+
+- Publish typesense
+
 ## 0.0.2
 
 ### Patch Changes
