@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.43
+
+### Patch Changes
+
+- Typense types from collections
+
 ## 0.7.42
 
 ### Patch Changes

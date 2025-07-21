@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.7.42",
+  "version": "0.7.43",
   "scripts": {
     "build": "tsc && cp src/core/Loopback/mapValues.js dist/core/Loopback/",
     "dev": "tsc --watch",
@@ -33,7 +33,7 @@
     "openapi3-ts": "^4.5.0",
     "reflect-metadata": "^0.2.2",
     "typeorm": "^0.3.25",
-    "zod": "^4.0.5"
+    "zod": "catalog:"
   },
   "description": "Readable query Interface & API generator for TS and Node",
   "devDependencies": {
