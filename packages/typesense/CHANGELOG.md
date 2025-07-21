@@ -1,5 +1,11 @@
 # @goatlab/typesense
 
+## 0.0.4
+
+### Patch Changes
+
+- Typense types from collections
+
 ## 0.0.3
 
 ### Patch Changes

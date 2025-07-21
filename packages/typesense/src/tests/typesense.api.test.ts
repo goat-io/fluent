@@ -159,11 +159,14 @@ describe('TypesenseApi', () => {
     }
     typesenseUrl = globalData.typesenseUrl
 
-    // Create main service instance once
+    // Create main service instance once (with circuit breaker disabled for tests)
     service = new TypesenseApi<TestDocument>({
       prefixUrl: typesenseUrl,
       token: testApiKey,
-      collectionName: testCollectionName
+      collectionName: testCollectionName,
+      resilience: {
+        enabled: false // Disable circuit breaker for tests
+      }
     })
 
     await service.admin.waitForHealth()
@@ -216,23 +219,23 @@ describe('TypesenseApi', () => {
       await tempService.collections.delete(tempCollectionName)
     })
 
-    it.skip('should update a collection', async () => {
-      // Note: Typesense's PATCH collection endpoint has limited functionality
-      // and may not support all field updates. Skipping this test for now.
-      const updatedCollection: TypesenseCollection = {
-        ...testCollection,
+    it('should update a collection', async () => {
+      // Typesense PATCH only accepts fields array with add/drop operations
+      const updatePayload: Partial<TypesenseCollection> = {
         fields: [
-          ...testCollection.fields,
-          { name: 'author', type: 'string', facet: true }
+          { name: 'author', type: 'string' as const, facet: true, optional: true }
         ]
       }
 
-      const result = await service.collections.update(updatedCollection)
+      const result = await service.collections.update(updatePayload)
+      
+      // After updating, get the full collection to verify the change
+      const updatedCollection = await service.collections.get(testCollectionName)
 
-      expect(result.name).toBe(testCollectionName)
-      // Note: updateCollection filters out 'id' field in the implementation
-      expect(result.fields.find(f => f.name === 'id')).toBeUndefined()
-      expect(result.fields.find(f => f.name === 'author')).toBeDefined()
+      expect(updatedCollection.name).toBe(testCollectionName)
+      // Should have the new field
+      expect(updatedCollection.fields.find((f: any) => f.name === 'author')).toBeDefined()
+      expect(updatedCollection.fields.find((f: any) => f.name === 'author')?.facet).toBe(true)
     })
 
     it('should delete a collection', async () => {
@@ -1180,7 +1183,7 @@ describe('TypesenseApi', () => {
         await new Promise(resolve => setTimeout(resolve, 100))
       })
 
-      it.skip('should get collection statistics', async () => {
+      it('should get collection statistics', async () => {
         // Note: This endpoint may not be available in all Typesense versions
         try {
           const stats = await service.admin.getCollectionStats()
@@ -1193,7 +1196,7 @@ describe('TypesenseApi', () => {
           expect(stats.num_memory_shards).toBeDefined()
         } catch (error: any) {
           // Skip test if stats endpoint is not available (404)
-          if (error.status === 404) {
+          if (error.status === 404 || error.response?.status === 404) {
             console.log(
               'Collection stats endpoint not available, skipping test'
             )
@@ -1203,7 +1206,7 @@ describe('TypesenseApi', () => {
         }
       })
 
-      it.skip('should get stats for specific collection', async () => {
+      it('should get stats for specific collection', async () => {
         // Note: This endpoint may not be available in all Typesense versions
         try {
           const stats = await service.admin.getCollectionStats(
@@ -1213,7 +1216,7 @@ describe('TypesenseApi', () => {
           expect(stats.collection_name).toBe(testCollectionName)
         } catch (error: any) {
           // Skip test if stats endpoint is not available (404)
-          if (error.status === 404) {
+          if (error.status === 404 || error.response?.status === 404) {
             console.log(
               'Collection stats endpoint not available, skipping test'
             )
@@ -1450,7 +1453,7 @@ describe('TypesenseApi', () => {
     })
 
     describe('Auto-create Collection', () => {
-      it.skip('should auto-create collection on insert when enabled', async () => {
+      it('should auto-create collection on insert when enabled', async () => {
         // Create service with auto-create enabled
         const autoService = new TypesenseApi<TestDocument>({
           prefixUrl: typesenseUrl,
@@ -1512,14 +1515,14 @@ describe('TypesenseApi', () => {
     })
 
     describe('Circuit Breaker', () => {
-      it.skip('should open circuit breaker after multiple failures', async () => {
-        // Create a service with a bad URL to ensure failures
+      it('should open circuit breaker after multiple failures', async () => {
+        // Create a service with wrong auth token to ensure consistent failures
         const failService = new TypesenseApi<TestDocument>({
-          prefixUrl: typesenseUrl.replace(/:\d+/, ':99999'), // Use non-existent port
-          token: testApiKey,
-          collectionName: 'test-collection',
+          prefixUrl: typesenseUrl,
+          token: 'invalid-token-to-force-401',
+          collectionName: testCollectionName,
           resilience: {
-            maxFailures: 2, // Low threshold for testing
+            maxFailures: 3, // Circuit opens on the 3rd failure
             resetTimeout: 1000 // Short timeout for testing
           }
         })
@@ -1530,7 +1533,7 @@ describe('TypesenseApi', () => {
           title: 'test'
         } as TypesenseDocument<TestDocument>
 
-        // First two requests should fail normally
+        // First two requests should fail normally with 401
         for (let i = 0; i < 2; i++) {
           try {
             await failService.documents.insert(doc)
@@ -1539,7 +1542,12 @@ describe('TypesenseApi', () => {
           }
         }
 
-        // Third request should fail with circuit breaker error
+        // Third request should open the circuit and fail with circuit breaker error
+        await expect(failService.documents.insert(doc)).rejects.toThrow(
+          'Circuit breaker is open'
+        )
+
+        // Subsequent requests should also fail with circuit breaker error
         await expect(failService.documents.insert(doc)).rejects.toThrow(
           'Circuit breaker is open'
         )

@@ -3,11 +3,11 @@ import { TypesenseError, isValidDocumentId } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
 import { getOrCreateCollection } from '../collections/getOrCreateCollection'
 
-export async function insertDocument<T extends Record<string, any>>(
-  ctx: TypesenseContext,
-  document: WithRequiredId<T>,
+export async function insertDocument<TDoc extends Record<string, any>>(
+  ctx: TypesenseContext<TDoc>,
+  document: WithRequiredId<TDoc>,
   options?: TypesenseCollectionOptions
-): Promise<TypesenseDocument<T>> {
+): Promise<TypesenseDocument<TDoc>> {
   if (!isValidDocumentId(document.id)) {
     throw new TypesenseError('Document must have a valid id', 400)
   }
@@ -15,7 +15,7 @@ export async function insertDocument<T extends Record<string, any>>(
   const collectionName = options?.collection || ctx.fqcn()
 
   try {
-    return await ctx.httpClient.request<TypesenseDocument<T>>(
+    return await ctx.httpClient.request<TypesenseDocument<TDoc>>(
       `/collections/${collectionName}/documents`,
       {
         method: 'POST',
@@ -26,8 +26,7 @@ export async function insertDocument<T extends Record<string, any>>(
     // Auto-create collection if enabled
     if (
       ctx.autoCreateCollection &&
-      error.status === 404 &&
-      error.message?.includes('Not found')
+      (error.status === 404 || error.response?.status === 404)
     ) {
       // Infer schema from document
       const inferredSchema = ctx.schemaManager.inferSchemaFromDocument(document, collectionName)
@@ -39,7 +38,7 @@ export async function insertDocument<T extends Record<string, any>>(
       })
       
       // Retry insert
-      return await ctx.httpClient.request<TypesenseDocument<T>>(
+      return await ctx.httpClient.request<TypesenseDocument<TDoc>>(
         `/collections/${collectionName}/documents`,
         {
           method: 'POST',

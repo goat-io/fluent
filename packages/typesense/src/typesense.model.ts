@@ -85,6 +85,8 @@ export interface TypesenseCollectionField {
   num_dim?: number // Number of dimensions for vector fields
   vec_dist?: 'cosine' | 'ip' | 'l2' // Distance metric for vector fields
   store?: boolean // Whether to store the vector values
+  // Nested schema for object types
+  schema?: TypesenseCollectionField[] // For nested object definitions
 }
 
 export interface TypesenseCollection {

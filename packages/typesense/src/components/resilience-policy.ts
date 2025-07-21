@@ -6,6 +6,10 @@ export interface ResiliencePolicyOptions {
   resetTimeout?: number
   retryDelay?: number
   maxRetries?: number
+  onStateChange?: (state: 'open' | 'closed' | 'half-open', metadata?: any) => void
+  onRetry?: (attempt: number, error: any) => void
+  onRateLimitUpdate?: (info: TypesenseRateLimitInfo) => void
+  enabled?: boolean // Option to disable circuit breaker (useful for tests)
 }
 
 export class ResiliencePolicy {
@@ -20,11 +24,17 @@ export class ResiliencePolicy {
       resetTimeout: 60000, // 1 minute
       retryDelay: 1000,
       maxRetries: 3,
+      enabled: true, // Enabled by default
       ...options
     }
   }
 
   isCircuitOpen(): boolean {
+    // If circuit breaker is disabled, always return false
+    if (!this.options.enabled) {
+      return false
+    }
+    
     if (this.circuitOpenUntil > Date.now()) {
       return true
     }
@@ -70,15 +80,29 @@ export class ResiliencePolicy {
   }
 
   recordSuccess(): void {
+    const wasOpen = this.circuitOpenUntil > 0
     this.failures = 0
     this.circuitOpenUntil = 0
+    
+    if (wasOpen && this.options.onStateChange) {
+      this.options.onStateChange('closed', { previousFailures: this.failures })
+    }
   }
 
   recordFailure(): void {
     this.failures++
     
     if (this.failures >= (this.options.maxFailures || 5)) {
+      const wasOpen = this.circuitOpenUntil > Date.now()
       this.circuitOpenUntil = Date.now() + (this.options.resetTimeout || 60000)
+      
+      if (!wasOpen && this.options.onStateChange) {
+        this.options.onStateChange('open', {
+          failures: this.failures,
+          openUntil: new Date(this.circuitOpenUntil),
+          resetTimeout: this.options.resetTimeout || 60000
+        })
+      }
     }
   }
 
@@ -98,6 +122,11 @@ export class ResiliencePolicy {
     // Set retry-after period if present
     if (retryAfter) {
       this.retryAfterUntil = Date.now() + (parseInt(retryAfter, 10) * 1000)
+    }
+    
+    // Notify about rate limit updates
+    if (this.rateLimitInfo && this.options.onRateLimitUpdate) {
+      this.options.onRateLimitUpdate(this.rateLimitInfo)
     }
   }
 

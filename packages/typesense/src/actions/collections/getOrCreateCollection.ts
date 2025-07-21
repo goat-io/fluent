@@ -12,7 +12,7 @@ export async function getOrCreateCollection(
     return await getCollection(ctx, collection.name)
   } catch (error: any) {
     // If collection doesn't exist (404), create it
-    if (error.status === 404) {
+    if (error.status === 404 || error.response?.status === 404) {
       return await createCollection(ctx, collection)
     }
     throw error

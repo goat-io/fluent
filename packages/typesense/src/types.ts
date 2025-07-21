@@ -2,7 +2,7 @@ import type { TypesenseHttpClient } from './components/http-client'
 import type { ResiliencePolicy } from './components/resilience-policy'
 import type { CollectionSchemaManager } from './components/schema-manager'
 
-export interface TypesenseContext {
+export interface TypesenseContext<TDoc = unknown> {
   httpClient: TypesenseHttpClient
   resilience: ResiliencePolicy
   schemaManager: CollectionSchemaManager
@@ -12,6 +12,7 @@ export interface TypesenseContext {
   autoCreateCollection?: boolean
   suppressLogs?: boolean
   fqcn: (baseCollectionName?: string) => string
+  docType?: TDoc  // Placeholder for type information
 }
 
 // Type helper to extract remaining properties after context binding

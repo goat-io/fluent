@@ -13,12 +13,15 @@ export { TypesenseFilterBuilder } from './components/typesense.filter-builder'
 // Re-export all action functions
 export * from './TypesenseApi'
 
-export type {
-  TypesenseFieldType,
-  TypesenseCollection,
-  TypesenseDocument,
-  TypesenseDocumentGeneric,
-  TypesenseQuery,
-  TypesenseCollectionOutput,
-  TypesenseQueryResults
-} from './typesense.model'
+export type * from './typesense.model'
+
+// Schema utilities
+export {
+  defineCollection,
+  type InferFromCollection,
+  type InferDocumentType
+} from './utils/schema-to-types'
+
+export {
+  createSchemaTypedApi
+} from './utils/schema-typed-api'

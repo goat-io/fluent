@@ -93,3 +93,15 @@ export function filterCollectionsByTenant(collections: string[], tenantId: strin
   const prefix = `${tenantId}__`
   return collections.filter(name => name.startsWith(prefix))
 }
+
+/**
+ * Creates a tenant-qualified resource name for aliases, synonyms, presets, etc.
+ * This ensures tenant isolation for all Typesense resources, not just collections
+ * 
+ * @param tenantId - Optional tenant ID (if not provided, returns the resource name as-is)
+ * @param resourceName - Base resource name
+ * @returns Tenant-qualified resource name or original name
+ */
+export function createTenantQualifiedName(tenantId: string | undefined, resourceName: string): string {
+  return tenantId ? `${tenantId}__${resourceName}` : resourceName
+}

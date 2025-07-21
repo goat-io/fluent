@@ -1,9 +1,10 @@
 {
   "license": "MIT",
   "main": "./dist/index.js",
-  "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/typesense",
-  "version": "0.0.3",
+  "description": "Modern TypeScript wrapper for Typesense search engine API",
+  "author": "ignacio.cabrera@goatlab.io",
+  "version": "0.0.4",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -25,9 +26,9 @@
   "types": "./dist/index.d.ts",
   "dependencies": {
     "@goatlab/js-utils": "workspace:*",
-    "@goatlab/tsconfig": "workspace:*"
+    "@goatlab/tsconfig": "workspace:*",
+    "zod": "catalog:"
   },
-  "description": "Modern TypeScript wrapper for Typesense search engine API",
   "devDependencies": {
     "@testcontainers/mysql": "^11.0.3",
     "@types/node": "^18.15.9",

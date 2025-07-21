@@ -13,7 +13,10 @@ import { updateDocument } from './actions/documents/updateDocument'
 import { deleteDocument } from './actions/documents/deleteDocument'
 import { getDocumentById } from './actions/documents/getDocumentById'
 import { importDocuments } from './actions/documents/importDocuments'
-import { exportDocuments, exportDocumentsStream } from './actions/documents/exportDocuments'
+import {
+  exportDocuments,
+  exportDocumentsStream
+} from './actions/documents/exportDocuments'
 import { deleteByFilter } from './actions/documents/deleteByFilter'
 import { clearCollection } from './actions/documents/clearCollection'
 
@@ -52,12 +55,28 @@ import { deletePreset } from './actions/presets/deletePreset'
 
 // Types
 import type { TypesenseContext } from './types'
-import { TypesenseHttpClient, type HttpClientOptions } from './components/http-client'
-import { ResiliencePolicy, type ResiliencePolicyOptions } from './components/resilience-policy'
+import type {
+  TypesenseRateLimitInfo,
+  WithRequiredId,
+  TypesenseDocument,
+  TypesenseCollectionOptions,
+  TypesenseCollection
+} from './typesense.model'
+import { defineCollection as defineCollectionUtil, type InferFromCollection } from './utils/schema-to-types'
+import { createSchemaTypedApi as createSchemaTypedApiUtil } from './utils/schema-typed-api'
+import {
+  TypesenseHttpClient,
+  type HttpClientOptions
+} from './components/http-client'
+import {
+  ResiliencePolicy,
+  type ResiliencePolicyOptions
+} from './components/resilience-policy'
 import { CollectionSchemaManager } from './components/schema-manager'
 import { sanitizeTenantId, createFQCN } from './utils/tenant'
 
-interface TypesenseApiOptions extends Omit<HttpClientOptions, 'prefixUrl' | 'token'> {
+export interface TypesenseApiOptions
+  extends Omit<HttpClientOptions, 'prefixUrl' | 'token'> {
   prefixUrl: string
   token: string
   tenantId?: string
@@ -71,21 +90,32 @@ interface TypesenseApiOptions extends Omit<HttpClientOptions, 'prefixUrl' | 'tok
   schemaCacheTtl?: number
   resilience?: ResiliencePolicyOptions
   typesenseVersion?: string
+  // Observability callbacks
+  onCircuitBreakerStateChange?: (
+    state: 'open' | 'closed' | 'half-open',
+    metadata?: any
+  ) => void
+  onRateLimitUpdate?: (info: TypesenseRateLimitInfo) => void
 }
 
 /**
+ * Type helper to extract tail parameters after context
+ */
+type Tail<F> = F extends (ctx: any, ...rest: infer R) => any ? R : never
+
+/**
  * Binds context to API functions by prepending context as first argument
+ * Preserves generic types through currying
  */
 function bindCtx<Ctx extends object>(ctx: Ctx) {
-  return <F extends (ctx: Ctx, ...args: any[]) => any>(fn: F) => {
-    return (...args: Parameters<F> extends [Ctx, ...infer Rest] ? Rest : never) => 
-      fn(ctx, ...args as any)
-  }
+  return <F extends (ctx: Ctx, ...args: any[]) => any>(fn: F) =>
+    (...args: Tail<F>) =>
+      fn(ctx, ...args)
 }
 
 /**
  * Modern, modular Typesense API client with grouped functionality
- * 
+ *
  * @example
  * ```typescript
  * const api = new TypesenseApi({
@@ -93,23 +123,52 @@ function bindCtx<Ctx extends object>(ctx: Ctx) {
  *   token: 'xyz',
  *   collectionName: 'products'
  * })
- * 
+ *
  * // Collections
  * await api.collections.create({ name: 'products', fields: [...] })
  * await api.collections.getOrCreate({ name: 'products', fields: [...] })
- * 
+ *
  * // Documents
  * await api.documents.insert({ id: '1', title: 'Product 1' })
  * await api.documents.search({ q: 'product', query_by: 'title' })
- * 
+ *
  * // Admin
  * await api.admin.health()
  * await api.admin.getMetrics()
  * ```
  */
-export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
-  private readonly ctx: TypesenseContext
-  private withCtx!: ReturnType<typeof bindCtx<TypesenseContext>>
+/**
+ * Factory helper for creating typed TypesenseApi instances
+ * @example
+ * ```typescript
+ * interface Product { id: string; title: string; price: number; }
+ * const productApi = createTypedApi<Product>()({
+ *   prefixUrl: 'http://localhost:8108',
+ *   token: 'xyz',
+ *   collectionName: 'products'
+ * })
+ *
+ * // Now all document operations are typed
+ * await productApi.documents.insert({ id: "1", title: "Foo", price: 42 }) // ✅ typed
+ * ```
+ */
+export const createTypedApi =
+  <TDoc extends Record<string, any>>() =>
+  (options: TypesenseApiOptions) =>
+    new TypesenseApi<TDoc>(options)
+
+/**
+ * Type-safe multitenant API wrapper
+ */
+export type TenantApi<TDoc, TenantId extends string> = TypesenseApi<TDoc> & {
+  readonly tenantId: TenantId
+}
+
+export class TypesenseApi<
+  TDoc extends Record<string, any> = Record<string, any>
+> {
+  private readonly ctx: TypesenseContext<TDoc>
+  private withCtx!: ReturnType<typeof bindCtx<TypesenseContext<TDoc>>>
   private readonly options: TypesenseApiOptions
 
   // Expose components for advanced usage
@@ -117,24 +176,92 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
   readonly resilience: ResiliencePolicy
   readonly schemaManager: CollectionSchemaManager
 
+  /**
+   * Define a strongly-typed collection schema
+   * @example
+   * ```typescript
+   * const ProductCollection = TypesenseApi.defineCollection({
+   *   name: 'products',
+   *   fields: [
+   *     { name: 'id', type: 'string' as const },
+   *     { name: 'title', type: 'string' as const },
+   *     { name: 'price', type: 'float' as const },
+   *     { name: 'inStock', type: 'bool' as const }
+   *   ] as const
+   * } as const)
+   * ```
+   */
+  static defineCollection = defineCollectionUtil
+
+  /**
+   * Create a strongly-typed API instance from a collection schema
+   * @example
+   * ```typescript
+   * const ProductCollection = TypesenseApi.defineCollection({...})
+   * 
+   * const api = TypesenseApi.createSchemaTypedApi(ProductCollection)({
+   *   prefixUrl: 'http://localhost:8108',
+   *   token: 'xyz'
+   * })
+   * 
+   * // Now all document operations are fully typed
+   * await api.documents.insert({
+   *   id: '1',
+   *   title: 'Product',
+   *   price: 99.99,
+   *   inStock: true
+   * })
+   * ```
+   */
+  static createSchemaTypedApi = createSchemaTypedApiUtil
+
+  /**
+   * Create a typed API from an inline collection definition (convenience method)
+   * @example
+   * ```typescript
+   * const api = TypesenseApi.createFromSchema({
+   *   name: 'products',
+   *   fields: [
+   *     { name: 'id', type: 'string' as const },
+   *     { name: 'title', type: 'string' as const },
+   *     { name: 'price', type: 'float' as const }
+   *   ] as const
+   * } as const)({
+   *   prefixUrl: 'http://localhost:8108',
+   *   token: 'xyz'
+   * })
+   * ```
+   */
+  static createFromSchema<const C extends TypesenseCollection>(collection: C) {
+    return TypesenseApi.createSchemaTypedApi(TypesenseApi.defineCollection(collection))
+  }
+
   constructor(options: TypesenseApiOptions) {
     this.options = options
-    
-    // Initialize resilience policy first
-    this.resilience = new ResiliencePolicy(options.resilience)
-    
+
+    // Initialize resilience policy with observability callbacks
+    this.resilience = new ResiliencePolicy({
+      ...options.resilience,
+      onStateChange: options.onCircuitBreakerStateChange,
+      onRateLimitUpdate: options.onRateLimitUpdate
+    })
+
     // Create request/response interceptors for circuit breaker
     const beforeRequestHooks = [
       async (_request: Request) => {
         // Check circuit breaker before making request
-        // Temporarily disabled to fix test issues
-        // if (this.resilience.isCircuitOpen()) {
-        //   throw new Error('Circuit breaker is open')
-        // }
+        if (this.resilience.isCircuitOpen()) {
+          const error = new Error(
+            'Circuit breaker is open - service unavailable'
+          )
+          ;(error as any).isCircuitBreakerError = true
+          ;(error as any).retriesRemaining = 0
+          throw error
+        }
       },
       ...(options.beforeRequest || [])
     ]
-    
+
     const afterResponseHooks = [
       async (_request: Request, _options: any, response: Response) => {
         // Only record success for successful responses
@@ -147,12 +274,12 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
       },
       ...(options.afterResponse || [])
     ]
-    
+
     const beforeErrorHooks = [
       (error: any) => {
         // Record failure for circuit breaker before any error transformation
         this.resilience.recordFailure()
-        
+
         // Check if circuit is now open after recording failure
         if (this.resilience.isCircuitOpen()) {
           // Replace the error with circuit breaker error
@@ -160,12 +287,12 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
           ;(circuitError as any).isCircuitBreakerError = true
           throw circuitError
         }
-        
+
         // Re-throw the original error
         throw error
       }
     ]
-    
+
     // Initialize components with interceptors
     this.httpClient = new TypesenseHttpClient({
       prefixUrl: options.prefixUrl,
@@ -179,7 +306,7 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
       kyInstance: options.kyInstance,
       enforceTLS: options.enforceTLS
     })
-    
+
     this.schemaManager = new CollectionSchemaManager({
       typesenseVersion: options.typesenseVersion,
       cacheSize: options.schemaCacheSize,
@@ -188,7 +315,9 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
     })
 
     // Validate and sanitize tenant ID if provided
-    const sanitizedTenantId = options.tenantId ? sanitizeTenantId(options.tenantId) : undefined
+    const sanitizedTenantId = options.tenantId
+      ? sanitizeTenantId(options.tenantId)
+      : undefined
 
     // Create context
     this.ctx = {
@@ -220,7 +349,7 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
       if (stats.server_version) {
         this.ctx.typesenseVersion = stats.server_version
         this.schemaManager.setTypesenseVersion(stats.server_version)
-        
+
         if (!this.options.suppressLogs) {
           console.info(`Connected to Typesense v${stats.server_version}`)
         }
@@ -248,10 +377,20 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
    * Document CRUD operations
    */
   get documents() {
+    const ctx = this.ctx
     return {
-      insert: this.withCtx(insertDocument),
-      upsert: this.withCtx(upsertDocument),
-      update: this.withCtx(updateDocument),
+      insert: (
+        document: WithRequiredId<TDoc>,
+        options?: TypesenseCollectionOptions
+      ) => insertDocument(ctx, document, options),
+      upsert: (
+        document: WithRequiredId<TDoc>,
+        options?: TypesenseCollectionOptions
+      ) => upsertDocument(ctx, document, options),
+      update: (
+        document: Partial<TypesenseDocument<TDoc>> & { id: string | number },
+        options?: TypesenseCollectionOptions
+      ) => updateDocument(ctx, document, options),
       delete: this.withCtx(deleteDocument),
       getById: this.withCtx(getDocumentById),
       import: this.withCtx(importDocuments),
@@ -259,7 +398,7 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
       exportStream: this.withCtx(exportDocumentsStream),
       deleteByFilter: this.withCtx(deleteByFilter),
       clear: this.withCtx(clearCollection),
-      
+
       // Search operations
       search: this.withCtx(search),
       searchText: this.withCtx(searchText),
@@ -383,10 +522,10 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
     if (!this.ctx.tenantId) {
       throw new Error('Tenant ID is required for listing tenant collections')
     }
-    
+
     const allCollections = await this.collections.list()
     const tenantPrefix = `${this.ctx.tenantId}__`
-    
+
     return allCollections
       .map(c => c.name)
       .filter(name => name.startsWith(tenantPrefix))
@@ -399,7 +538,7 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
   async listTenantBaseCollectionNames(): Promise<string[]> {
     const tenantCollections = await this.listTenantCollections()
     const tenantPrefix = `${this.ctx.tenantId}__`
-    
+
     return tenantCollections.map(name => name.substring(tenantPrefix.length))
   }
 
@@ -411,14 +550,13 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
     if (!this.ctx.tenantId) {
       throw new Error('Tenant ID is required for deleting tenant collections')
     }
-    
+
     const tenantCollections = await this.listTenantCollections()
-    
+
     for (const collectionName of tenantCollections) {
-      await this.httpClient.request(
-        `/collections/${collectionName}`,
-        { method: 'DELETE' }
-      )
+      await this.httpClient.request(`/collections/${collectionName}`, {
+        method: 'DELETE'
+      })
     }
   }
 
@@ -446,54 +584,3 @@ export class TypesenseApi<T extends Record<string, any> = Record<string, any>> {
     this.resilience.reset()
   }
 }
-
-// Export all action functions for direct usage if needed
-export * from './actions/collections/createCollection'
-export * from './actions/collections/getCollection'
-export * from './actions/collections/updateCollection'
-export * from './actions/collections/deleteCollection'
-export * from './actions/collections/listCollections'
-export * from './actions/collections/getOrCreateCollection'
-
-export * from './actions/documents/insertDocument'
-export * from './actions/documents/upsertDocument'
-export * from './actions/documents/updateDocument'
-export * from './actions/documents/deleteDocument'
-export * from './actions/documents/getDocumentById'
-export * from './actions/documents/importDocuments'
-export * from './actions/documents/exportDocuments'
-export * from './actions/documents/deleteByFilter'
-export * from './actions/documents/clearCollection'
-
-export * from './actions/search/search'
-export * from './actions/search/multiSearch'
-
-export * from './actions/admin/health'
-export * from './actions/admin/metrics'
-export * from './actions/admin/getCollectionStats'
-
-export * from './actions/aliases/createOrUpdateAlias'
-export * from './actions/aliases/getAlias'
-export * from './actions/aliases/listAliases'
-export * from './actions/aliases/deleteAlias'
-
-export * from './actions/synonyms/upsertSynonym'
-export * from './actions/synonyms/getSynonym'
-export * from './actions/synonyms/listSynonyms'
-export * from './actions/synonyms/deleteSynonym'
-
-export * from './actions/overrides/upsertOverride'
-export * from './actions/overrides/getOverride'
-export * from './actions/overrides/listOverrides'
-export * from './actions/overrides/deleteOverride'
-
-export * from './actions/presets/upsertPreset'
-export * from './actions/presets/getPreset'
-export * from './actions/presets/listPresets'
-export * from './actions/presets/deletePreset'
-
-// Export tenant utilities
-export * from './utils/tenant'
-
-// Re-export types
-export type { TypesenseCollectionOutput } from './typesense.model'

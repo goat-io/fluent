@@ -66,5 +66,5 @@ export async function exportDocumentsStream<T extends Record<string, any>>(
     .stream(`/collections/${collectionName}/documents/export`, {
       searchParams
     })
-    .then(stream => Readable.fromWeb(stream))
+    .then(stream => Readable.fromWeb(stream as any))
 }

@@ -2,18 +2,18 @@ import type { TypesenseDocument, TypesenseCollectionOptions, WithRequiredId } fr
 import { TypesenseError, isValidDocumentId } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
 
-export async function upsertDocument<T extends Record<string, any>>(
-  ctx: TypesenseContext,
-  document: WithRequiredId<T>,
+export async function upsertDocument<TDoc extends Record<string, any>>(
+  ctx: TypesenseContext<TDoc>,
+  document: WithRequiredId<TDoc>,
   options?: TypesenseCollectionOptions
-): Promise<TypesenseDocument<T>> {
+): Promise<TypesenseDocument<TDoc>> {
   if (!isValidDocumentId(document.id)) {
     throw new TypesenseError('Document must have a valid id', 400)
   }
 
   const collectionName = options?.collection || ctx.fqcn()
 
-  return await ctx.httpClient.request<TypesenseDocument<T>>(
+  return await ctx.httpClient.request<TypesenseDocument<TDoc>>(
     `/collections/${collectionName}/documents`,
     {
       method: 'POST',
