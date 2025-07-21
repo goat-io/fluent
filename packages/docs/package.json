@@ -2,7 +2,7 @@
   "license": "UNLICENSED",
   "private": true,
   "name": "@goatlab/fluent-docs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Goat<Ignacio Cabrera>",
   "description": "Fluent - Complete TypeScript Development Ecosystem Documentation",
   "dependencies": {

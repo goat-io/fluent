@@ -1,5 +1,15 @@
 # 0.5.20
 
+## 0.7.6
+
+### Patch Changes
+
+- Make metabase and typesense libraries independent packages
+- Updated dependencies
+  - @goatlab/node-utils@0.8.61
+  - @goatlab/fluent@0.7.42
+  - @goatlab/tsconfig@0.0.15
+
 ## 0.7.5
 
 ### Patch Changes

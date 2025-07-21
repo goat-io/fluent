@@ -1,5 +1,11 @@
 # @goatlab/tsconfig
 
+## 0.0.15
+
+### Patch Changes
+
+- Make metabase and typesense libraries independent packages
+
 ## 0.0.14
 
 ### Patch Changes

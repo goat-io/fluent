@@ -12,7 +12,6 @@ import type { BuildInfo } from './Env'
 import { ObjectIds } from './ObjectIds'
 import { Streams } from './Streams'
 import { Ips } from './Ips'
-import { TypesenseApi } from './services/search/typesense/TypesenseApi'
 
 export {
   Log,
@@ -28,16 +27,6 @@ export {
   Scripts,
   ObjectIds,
   Streams,
-  Ips,
-  TypesenseApi
+  Ips
 }
 export type { BuildInfo }
-export type {
-  TypesenseFieldType,
-  TypesenseCollection,
-  TypesenseDocument,
-  TypesenseDocumentGeneric,
-  TypesenseQuery,
-  TypesenseCollectionOutput,
-  TypesenseQueryResults
-} from './services/search/typesense/typesense.model'

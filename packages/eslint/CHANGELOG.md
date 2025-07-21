@@ -1,5 +1,11 @@
 # @goatlab/eslint
 
+## 0.1.6
+
+### Patch Changes
+
+- Make metabase and typesense libraries independent packages
+
 ## 0.1.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.8.48
+
+### Patch Changes
+
+- Make metabase and typesense libraries independent packages
+
 ## 0.8.47
 
 ### Patch Changes

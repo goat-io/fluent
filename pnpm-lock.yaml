@@ -987,6 +987,58 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
 
+  packages/metabase:
+    dependencies:
+      '@goatlab/js-utils':
+        specifier: workspace:*
+        version: link:../js-utils
+      '@goatlab/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+    devDependencies:
+      '@testcontainers/mysql':
+        specifier: ^11.0.3
+        version: 11.3.0
+      '@types/node':
+        specifier: ^18.15.9
+        version: 18.19.120
+      '@vitest/ui':
+        specifier: ^3.2.4
+        version: 3.2.4(vitest@3.2.4)
+      dotenv-cli:
+        specifier: ^7.1.0
+        version: 7.4.4
+      eslint:
+        specifier: ^8.36.0
+        version: 8.57.1
+      happy-dom:
+        specifier: ^18.0.1
+        version: 18.0.1
+      prettier:
+        specifier: ^2.8.7
+        version: 2.8.8
+      pretty-quick:
+        specifier: ^3.1.3
+        version: 3.3.1(prettier@2.8.8)
+      rimraf:
+        specifier: ^5.0.1
+        version: 5.0.10
+      testcontainers:
+        specifier: ^11.3.1
+        version: 11.3.1
+      ts-node:
+        specifier: ^10.9.1
+        version: 10.9.2(@swc/core@1.13.0)(@types/node@18.19.120)(typescript@5.8.3)
+      turbo:
+        specifier: ^1.1.10
+        version: 1.13.4
+      typescript:
+        specifier: ^5.0.2
+        version: 5.8.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@18.19.120)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.4.2)(jsdom@26.1.0)(tsx@4.20.3)(yaml@2.8.0)
+
   packages/node-backend:
     dependencies:
       '@goatlab/js-utils':
@@ -11416,6 +11468,9 @@ packages:
   testcontainers@11.3.0:
     resolution: {integrity: sha512-bfSfWDZl5Ima/wRkDjoyuntLIp7wFv7jc+97/BL1zJyKszMFEDHsDcH1ryv8L4kYqVfl6V0efMzY4tluypa1nw==}
 
+  testcontainers@11.3.1:
+    resolution: {integrity: sha512-5oO0oQjF7gdWdXCVYC3vH6iSTDW8rQsWq7p5xdR17ujhhiPfQgf0hptqmeCCcnht/Qw6wWk5h1JlZnaJPP/Bhg==}
+
   text-decoder@1.2.3:
     resolution: {integrity: sha512-3/o9z3X0X0fTupwsYvR03pJ/DjWuqqrfwBgTQzdWDiQSm9KitAyz/9WqsT2JQW7KV2m+bC2ol/zqpW37NHxLaA==}
 
@@ -15830,7 +15885,7 @@ snapshots:
 
   '@testcontainers/mysql@11.3.0':
     dependencies:
-      testcontainers: 11.3.0
+      testcontainers: 11.3.1
     transitivePeerDependencies:
       - bare-buffer
       - supports-color
@@ -19371,10 +19426,6 @@ snapshots:
   fd-slicer@1.1.0:
     dependencies:
       pend: 1.2.0
-
-  fdir@6.4.6(picomatch@4.0.2):
-    optionalDependencies:
-      picomatch: 4.0.2
 
   fdir@6.4.6(picomatch@4.0.3):
     optionalDependencies:
@@ -25326,6 +25377,27 @@ snapshots:
       - bare-buffer
       - supports-color
 
+  testcontainers@11.3.1:
+    dependencies:
+      '@balena/dockerignore': 1.0.2
+      '@types/dockerode': 3.3.42
+      archiver: 7.0.1
+      async-lock: 1.4.1
+      byline: 5.0.0
+      debug: 4.4.1
+      docker-compose: 1.2.0
+      dockerode: 4.0.7
+      get-port: 7.1.0
+      proper-lockfile: 4.1.2
+      properties-reader: 2.3.0
+      ssh-remote-port-forward: 1.0.4
+      tar-fs: 3.1.0
+      tmp: 0.2.3
+      undici: 7.12.0
+    transitivePeerDependencies:
+      - bare-buffer
+      - supports-color
+
   text-decoder@1.2.3:
     dependencies:
       b4a: 1.6.7
@@ -26319,8 +26391,8 @@ snapshots:
   vite@6.3.5(@types/node@17.0.45)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0):
     dependencies:
       esbuild: 0.25.7
-      fdir: 6.4.6(picomatch@4.0.2)
-      picomatch: 4.0.2
+      fdir: 6.4.6(picomatch@4.0.3)
+      picomatch: 4.0.3
       postcss: 8.5.5
       rollup: 4.43.0
       tinyglobby: 0.2.14
@@ -26334,8 +26406,8 @@ snapshots:
   vite@6.3.5(@types/node@18.19.120)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0):
     dependencies:
       esbuild: 0.25.7
-      fdir: 6.4.6(picomatch@4.0.2)
-      picomatch: 4.0.2
+      fdir: 6.4.6(picomatch@4.0.3)
+      picomatch: 4.0.3
       postcss: 8.5.5
       rollup: 4.43.0
       tinyglobby: 0.2.14
@@ -26349,8 +26421,8 @@ snapshots:
   vite@6.3.5(@types/node@24.0.15)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0):
     dependencies:
       esbuild: 0.25.7
-      fdir: 6.4.6(picomatch@4.0.2)
-      picomatch: 4.0.2
+      fdir: 6.4.6(picomatch@4.0.3)
+      picomatch: 4.0.3
       postcss: 8.5.5
       rollup: 4.43.0
       tinyglobby: 0.2.14

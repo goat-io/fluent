@@ -1,5 +1,15 @@
 # 0.5.20
 
+## 0.1.20
+
+### Patch Changes
+
+- Make metabase and typesense libraries independent packages
+- Updated dependencies
+  - @goatlab/node-utils@0.8.61
+  - @goatlab/js-utils@0.8.42
+  - @goatlab/tasks-core@0.1.16
+
 ## 0.1.19
 
 ### Patch Changes

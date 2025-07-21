@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.8.42
+
+### Patch Changes
+
+- Make metabase and typesense libraries independent packages
+
 ## 0.8.41
 
 ### Patch Changes
