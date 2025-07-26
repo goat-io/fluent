@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // npx jest -i ./src/strings.spec.ts
 
 import { Strings } from './Strings'

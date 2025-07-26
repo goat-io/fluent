@@ -142,7 +142,7 @@ export const getRelations = (Forms: FormioForm[]) => {
     )
 
     // Define ManyToMany if needed
-    const combinations = new Combinations(validRelations, 2).bitwiseIterator()
+    const combinations = new Combinations(validRelations, 2)
 
     for (const c of combinations) {
       const model = c[0]

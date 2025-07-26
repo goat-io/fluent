@@ -2,9 +2,9 @@ import { Document, Schema, Model, model } from 'mongoose'
 import baseModel from './BaseModel'
 import PermissionSchema from './PermissionSchema'
 import { FormioForm } from '../../types/FormioForm'
+import util from '../utils'
 
 const _ = require('lodash')
-const util = require('../utils').default
 
 export interface IForm extends FormioForm, Document {}
 

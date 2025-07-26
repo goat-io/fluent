@@ -1,22 +1,46 @@
 import { describe, test, it, expect, beforeAll } from 'vitest'
 import { Ids, Promises } from '@goatlab/js-utils'
+import { DataSource } from 'typeorm'
 import { CarsRepository } from './car/car.repositoryTypeOrm'
 import { RoleRepository } from './roles/roles.repositoryTypeOrm'
 import { UserRepository } from './user/user.repositoryTypeOrm'
+import { UserRepository as MongoUserRepository } from '../mongo/user.mongo.repository'
+import { CarsRepository as MongoCarsRepository } from '../mongo/car.mongo.repository'
+import { RoleRepository as MongoRoleRepository } from '../mongo/roles.mongo.repository'
 
 let User: UserRepository
 let Car: CarsRepository
 let Role: RoleRepository
 // User, Cars, Roles
 export const relationsTestSuite = (
-  UserRepo,
-  BelongsToModelF,
-  ManyToManyModelF
+  dataSourceOrRepoClasses?: DataSource | any | (() => DataSource)
 ) => {
   beforeAll(() => {
-    User = new UserRepo()
-    Car = new BelongsToModelF()
-    Role = new ManyToManyModelF()
+    // Get the data source
+    let dataSource: DataSource | (() => DataSource)
+    if (typeof dataSourceOrRepoClasses === 'function') {
+      dataSource = dataSourceOrRepoClasses
+    } else {
+      dataSource = dataSourceOrRepoClasses
+    }
+    
+    // Import the correct repository classes based on data source type
+    if (dataSource && typeof dataSource === 'function') {
+      const ds = dataSource()
+      if (ds.options.type === 'mongodb') {
+        // Use MongoDB-specific repositories
+        User = new MongoUserRepository(dataSource)
+        Car = new MongoCarsRepository(dataSource)
+        Role = new MongoRoleRepository(dataSource)
+      } else {
+        // Use SQL repositories
+        User = new UserRepository(dataSource)
+        Car = new CarsRepository(dataSource)
+        Role = new RoleRepository(dataSource)
+      }
+    } else {
+      throw new Error('Invalid dataSource provided to relationsTestSuite')
+    }
   })
 
   const insertRelatedData = async () => {

@@ -1,15 +1,17 @@
+import { DataSource } from 'typeorm'
 import {  GoatInputSchema, GoatSchema, GoatEntity } from './goat.entity'
 import { TypeOrmConnector } from '../../TypeOrmConnector'
-import { MongoDataSource } from '../mongo/mongoDatasource'
 
 export class GoatRepository extends TypeOrmConnector<
   GoatEntity,
   GoatInputSchema
 > {
-  constructor() {
+  constructor(dataSource?: DataSource | (() => DataSource)) {
     super({
       entity: GoatEntity,
-      dataSource: MongoDataSource,
+      dataSource: dataSource || (() => {
+        throw new Error('DataSource not provided to GoatRepository')
+      }),
       inputSchema: GoatSchema
     })
   }

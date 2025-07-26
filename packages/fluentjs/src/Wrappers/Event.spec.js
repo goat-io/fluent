@@ -1,9 +1,8 @@
-/* global describe, it, before */
+/* global describe, it, beforeAll */
 import 'babel-polyfill'
 import chai from 'chai'
 import Event from './Event'
 
-chai.expect()
 
 const expect = chai.expect
 let event = { name: 'myBasicEvent', data: { test: 'true' }, text: 'Some test' }
@@ -18,7 +17,7 @@ function sleep(time) {
 }
 
 describe('Given the Event Class', () => {
-  before(() => {
+  beforeAll(() => {
     Event.listen({ name: 'myBasicEvent', callback: changeEventStatus })
   })
 

@@ -1,19 +1,21 @@
+import { DataSource } from 'typeorm'
 import {
     TypeORMDataModel,
     TypeORMDataModelInputSchema,
     TypeORMDataModelSchema
   } from './typeOrm.entity'
   import { TypeOrmConnector } from '../../TypeOrmConnector'
-import { MongoDataSource } from '../mongo/mongoDatasource'
   
   export class TypeOrmRepository extends TypeOrmConnector<
     TypeORMDataModel,
     TypeORMDataModelInputSchema
   > {
-    constructor() {
+    constructor(dataSource?: DataSource | (() => DataSource)) {
       super({
         entity: TypeORMDataModel,
-        dataSource: MongoDataSource,
+        dataSource: dataSource || (() => {
+          throw new Error('DataSource not provided to TypeOrmRepository')
+        }),
         inputSchema: TypeORMDataModelSchema,
         outputSchema: TypeORMDataModelSchema
       })

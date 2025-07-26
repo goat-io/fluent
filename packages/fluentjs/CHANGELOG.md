@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.7.0
+
+### Minor Changes
+
+- Move packages to vitest, fix fluent tests
+
 ## 0.6.8
 
 ### Patch Changes

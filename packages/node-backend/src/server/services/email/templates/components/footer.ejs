@@ -1,0 +1,50 @@
+<mj-wrapper full-width="full-width">
+  <mj-section>
+    <mj-column width="100%" padding="0px">
+      <mj-text
+        color="#445566"
+        font-size="11px"
+        font-weight="bold"
+        align="center"
+        >View this email in your browser</mj-text
+      >
+      <mj-text
+        color="#445566"
+        font-size="11px"
+        align="center"
+        line-height="16px"
+        >You are receiving this email because you registered with <%=
+        theme.appName %>, and agreed to receive emails from us regarding new
+        features, events and special offers.</mj-text
+      >
+      <mj-text
+        color="#445566"
+        font-size="11px"
+        align="center"
+        line-height="16px"
+        >Copyright © <%= new Date().getFullYear();%>. <%= theme.appName %>. All
+        rights reserved.</mj-text
+      >
+    </mj-column>
+  </mj-section>
+  <mj-section padding-top="0">
+    <mj-group>
+      <mj-column width="100%" padding-right="0px">
+        <mj-text
+          color="#445566"
+          font-size="11px"
+          align="center"
+          line-height="16px"
+          font-weight="bold"
+          ><a class="footer-link" href="<%= theme.privacyPolicyLink %>"
+            >Privacy</a
+          >&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;<a
+            class="footer-link"
+            href="<%= theme.unsubscribeLink %>"
+            >Unsubscribe</a
+          ></mj-text
+        >
+      </mj-column>
+    </mj-group>
+  </mj-section>
+</mj-wrapper>

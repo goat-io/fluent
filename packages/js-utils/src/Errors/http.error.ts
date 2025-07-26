@@ -17,8 +17,8 @@ import type { HttpErrorData } from './error.model'
      configurable: true, // otherwise throws with "TypeError: Cannot redefine property: name"
    })
 
-   if (Error.captureStackTrace) {
-     Error.captureStackTrace(this, this.constructor)
+   if ((Error as any).captureStackTrace) {
+     (Error as any).captureStackTrace(this, this.constructor)
    } else {
      Object.defineProperty(this, 'stack', {
        value: new Error().stack,

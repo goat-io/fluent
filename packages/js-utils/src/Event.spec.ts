@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { BrowserEvents } from './BrowserEvents'
 /*
 const event = { data: { test: 'true' }, text: 'Some test' }

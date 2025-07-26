@@ -51,8 +51,24 @@ export const GoatSchema = z.object({
     type: z.string(),
     family: z.string()
   }).optional(),
-  created: z.date().optional(),
-  updated: z.date().optional()
+  created: z.union([z.date(), z.string()]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined) {
+      return val
+    }
+    if (typeof val === 'string') {
+      return new Date(val)
+    }
+    return val
+  }),
+  updated: z.union([z.date(), z.string()]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined) {
+      return val
+    }
+    if (typeof val === 'string') {
+      return new Date(val)
+    }
+    return val
+  })
 })
 
 export type GoatInputSchema = z.infer<typeof GoatSchema>

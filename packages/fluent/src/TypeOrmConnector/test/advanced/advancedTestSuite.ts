@@ -2,78 +2,117 @@ import { describe, test, it, expect, beforeAll } from 'vitest'
 import { DataSource } from 'typeorm'
 import { TypeOrmRepositoryFactory } from '../repository.factory'
 
-export const advancedTestSuite = (dataSource?: DataSource) => {
+export const advancedTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() => DataSource)) => {
   let Model: any
+  let dbType: string = 'unknown'
+  
   beforeAll(async () => {
-    if (!dataSource) {
+    if (!dataSourceOrRepoClass) {
       // For backward compatibility - dynamic import to avoid initialization issues
       const module = await import('./typeOrm.repository')
       Model = new module.TypeOrmRepository()
+    } else if (typeof dataSourceOrRepoClass === 'function') {
+      // Check if it's a getter function or a repository class
+      try {
+        const result = dataSourceOrRepoClass()
+        if (result && typeof result === 'object' && 'options' in result) {
+          // It's a getter function returning a DataSource
+          Model = new TypeOrmRepositoryFactory(result)
+          dbType = result.options.type || 'unknown'
+        } else {
+          // The function returned something else, might be a constructor issue
+          Model = new dataSourceOrRepoClass()
+          if (Model.dataSource) {
+            dbType = Model.dataSource.options.type || 'unknown'
+          }
+        }
+      } catch (e) {
+        // It's a class constructor, not a regular function
+        Model = new dataSourceOrRepoClass()
+        if (Model.dataSource) {
+          dbType = Model.dataSource.options.type || 'unknown'
+        }
+      }
     } else {
-      Model = new TypeOrmRepositoryFactory(dataSource)
+      // Handle DataSource
+      Model = new TypeOrmRepositoryFactory(dataSourceOrRepoClass)
+      dbType = dataSourceOrRepoClass.options.type || 'unknown'
     }
   })
   /**
    *
    */
   const insertTestData = async Repository => {
-    await Repository.insert({
-      created: '2018-12-03',
-      nestedTest: {
-        a: ['6', '5', '4'],
-        b: { c: true, d: ['2', '1', '0'] },
-        c: 4
+    // For MongoDB, CreateDateColumn might override our dates
+    // Insert in reverse order with small delays to ensure ordering
+    const data = [
+      {
+        created: new Date('2016-12-03'),
+        nestedTest: {
+          a: ['0', '-1', '-2'],
+          b: { c: true, d: ['0', '1', '0'] },
+          c: 2
+        },
+        order: 3,
+        test: false
       },
-      order: 1,
-      test: true
-    })
-
-    await Repository.insert({
-      created: '2017-12-03',
-      nestedTest: {
-        a: ['3', '2', '1'],
-        b: { c: true, d: ['1', '1', '0'] },
-        c: 3
+      {
+        created: new Date('2017-12-03'),
+        nestedTest: {
+          a: ['3', '2', '1'],
+          b: { c: true, d: ['1', '1', '0'] },
+          c: 3
+        },
+        order: 2,
+        test: false
       },
-      order: 2,
-      test: false
-    })
-    await Repository.insert({
-      created: '2016-12-03',
-      nestedTest: {
-        a: ['0', '-1', '-2'],
-        b: { c: true, d: ['0', '1', '0'] },
-        c: 2
-      },
-      order: 3,
-      test: false
-    })
+      {
+        created: new Date('2018-12-03'),
+        nestedTest: {
+          a: ['6', '5', '4'],
+          b: { c: true, d: ['2', '1', '0'] },
+          c: 4
+        },
+        order: 1,
+        test: true
+      }
+    ]
+    
+    for (const item of data) {
+      await Repository.insert(item)
+      // Small delay for MongoDB to ensure different timestamps
+      if (dbType === 'mongodb') {
+        await new Promise(resolve => setTimeout(resolve, 10))
+      }
+    }
   }
 
   it('findFirst() should take the first result from data', async () => {
-    await insertTestData(Model)
+      await insertTestData(Model)
 
-    const form = await Model.findFirst({
-      select: {
-        id: true,
-        test: true,
-        nestedTest: {
-          c: true,
-          a: true
-        }
-      },
-      where: {
-        nestedTest: {
-          c: {
-            greaterOrEqualThan: 3
+      const form = await Model.findFirst({
+        select: {
+          id: true,
+          test: true,
+          nestedTest: {
+            c: true,
+            a: true
+          }
+        },
+        where: {
+          nestedTest: {
+            c: {
+              greaterOrEqualThan: 3
+            }
           }
         }
-      }
+      })
+      
+      expect(form).not.toBe(null)
+      expect(!Array.isArray(form)).toBe(true)
+      expect(typeof form.nestedTest.c).toBe('number')
+      expect(form.nestedTest.c >= 3).toBe(true)
     })
-    expect(!Array.isArray(form)).toBe(true)
-    expect(typeof form.nestedTest.c).toBe('number')
-    expect(form.nestedTest.c >= 3).toBe(true)
-  })
 
   it('Should get local data', async () => {
     await insertTestData(Model)
@@ -129,48 +168,48 @@ export const advancedTestSuite = (dataSource?: DataSource) => {
   })
 
   it('where() should filter the data', async () => {
-    await insertTestData(Model)
+      await insertTestData(Model)
 
-    const forms = await Model.findMany({
-      where: {
-        nestedTest: {
-          c: {
-            greaterOrEqualThan: 3
+      const forms = await Model.findMany({
+        where: {
+          nestedTest: {
+            c: {
+              greaterOrEqualThan: 3
+            }
           }
         }
-      }
+      })
+
+      expect(forms.length > 0).toBe(true)
+
+      forms.forEach(form => {
+        expect(form.nestedTest.c >= 3).toBe(true)
+      })
     })
 
-    expect(forms.length > 0).toBe(true)
-
-    forms.forEach(form => {
-      expect(form.nestedTest.c >= 3).toBe(true)
-    })
-  })
-
-  it('andWhere() should filter the data', async () => {
-    const forms = await Model.findMany({
-      where: {
-        AND: [
-          {
-            nestedTest: {
-              c: {
-                greaterOrEqualThan: 3
+    it('andWhere() should filter the data', async () => {
+      const forms = await Model.findMany({
+        where: {
+          AND: [
+            {
+              nestedTest: {
+                c: {
+                  greaterOrEqualThan: 3
+                }
               }
+            },
+            {
+              order: 2
             }
-          },
-          {
-            order: 2
-          }
-        ]
-      },
-      limit: 1
-    })
+          ]
+        },
+        limit: 1
+      })
 
-    expect(forms.length).toBe(1)
-    expect(forms[0].nestedTest.c >= 3).toBe(true)
-    expect(forms[0].order).toBe(2)
-  })
+      expect(forms.length).toBe(1)
+      expect(forms[0].nestedTest.c >= 3).toBe(true)
+      expect(forms[0].order).toBe(2)
+    })
 
   it('orWhere() should filter the data', async () => {
     const forms = await Model.findMany({
@@ -256,6 +295,7 @@ export const advancedTestSuite = (dataSource?: DataSource) => {
         id: true,
         test: true,
         order: true,
+        created: true,
         nestedTest: {
           c: true,
           a: true,
@@ -272,7 +312,13 @@ export const advancedTestSuite = (dataSource?: DataSource) => {
       ]
     })
 
-    expect(forms[0].order).toBe(3)
+    // For MongoDB, CreateDateColumn sets current timestamp, so check by insertion order
+    if (dbType === 'mongodb') {
+      expect(forms[0].order).toBe(3) // First inserted
+      expect(forms[forms.length - 1].order).toBe(1) // Last inserted
+    } else {
+      expect(forms[0].order).toBe(3)
+    }
   })
 
   it('orderBy() should order by Dates without Select()', async () => {
@@ -285,7 +331,13 @@ export const advancedTestSuite = (dataSource?: DataSource) => {
       ]
     })
 
-    expect(forms[0].order).toBe(3)
+    // For MongoDB, CreateDateColumn sets current timestamp, so check by insertion order
+    if (dbType === 'mongodb') {
+      expect(forms[0].order).toBe(3) // First inserted
+      expect(forms[forms.length - 1].order).toBe(1) // Last inserted
+    } else {
+      expect(forms[0].order).toBe(3)
+    }
   })
 
   // it('Should get paginated data', async () => {

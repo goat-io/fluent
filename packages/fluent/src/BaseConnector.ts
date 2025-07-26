@@ -336,7 +336,10 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected hasMany<T extends FluentHasManyParams<T>>(
     r: T
   ): InstanceType<T['repository']> {
-    const newRepo = new r.repository() as any
+    // Handle both constructor and factory function patterns
+    const newRepo = (typeof r.repository === 'function' && r.repository.prototype && r.repository.prototype.constructor === r.repository)
+      ? new r.repository() as any
+      : (r.repository as any)() as any
 
     const calleeName = new Error('dummy')
       .stack?.split('\n')[2] || ''
@@ -379,7 +382,10 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected belongsToMany<T extends FluentBelongsToManyParams<T>>(
     r: T
   ): InstanceType<T['repository']> {
-    const newRepo = new r.repository() as any
+    // Handle both constructor and factory function patterns
+    const newRepo = (typeof r.repository === 'function' && r.repository.prototype && r.repository.prototype.constructor === r.repository)
+      ? new r.repository() as any
+      : (r.repository as any)() as any
 
     // Hacky way to get the name of the callee function
     const relationName = new Error('dummy')
@@ -388,7 +394,10 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
       .split('.')[1]
 
-    const pivot = new r.pivot() as any
+    // Handle both constructor and factory function patterns for pivot
+    const pivot = (typeof r.pivot === 'function' && r.pivot.prototype && r.pivot.prototype.constructor === r.pivot)
+      ? new r.pivot() as any
+      : (r.pivot as any)() as any
 
     pivot.setRelatedQuery({
       ...this.relatedQuery,

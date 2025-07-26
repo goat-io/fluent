@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-firebase",
-  "version": "0.7.27",
+  "version": "0.8.0",
   "description": "Readable query Interface & API generator for TS and Node",
   "dependencies": {
     "@goatlab/fluent": "workspace:*",
@@ -10,17 +10,13 @@
   },
   "devDependencies": {
     "@goatlab/tsconfig": "workspace:*",
-    "@types/jest": "^27.4.1",
     "@types/node": "^17.0.23",
     "dotenv-cli": "^5.1.0",
     "eslint": "^8.5.0",
-    "jest": "catalog:",
-    "jest-environment-node": "^27.5.1",
     "prettier": "^2.6.1",
     "pretty-quick": "^3.1.3",
     "rimraf": "^3.0.2",
     "testcontainers": "^10.11.0",
-    "ts-jest": "catalog:",
     "ts-node": "catalog:",
     "turbo": "^1.1.10",
     "typeorm": "^0.3.17",

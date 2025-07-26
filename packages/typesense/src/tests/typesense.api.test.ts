@@ -227,7 +227,7 @@ describe('TypesenseApi', () => {
         ]
       }
 
-      const result = await service.collections.update(updatePayload)
+      await service.collections.update(updatePayload)
       
       // After updating, get the full collection to verify the change
       const updatedCollection = await service.collections.get(testCollectionName)
@@ -266,6 +266,169 @@ describe('TypesenseApi', () => {
       await expect(
         tempService.documents.insert(testDocuments[0])
       ).rejects.toThrow()
+    })
+
+    it('should delete a collection using default collection name', async () => {
+      // Test deletion without passing explicit collection name
+      const tempCollectionName = 'temp-delete-default'
+      const tempCollection = { ...testCollection, name: tempCollectionName }
+
+      const tempService = new TypesenseApi<TestDocument>({
+        prefixUrl: typesenseUrl,
+        token: testApiKey,
+        collectionName: tempCollectionName
+      })
+
+      // Clean up if exists first
+      try {
+        await tempService.collections.delete()
+      } catch (error: any) {
+        // Ignore 404 errors
+      }
+
+      // Create then delete using default
+      await tempService.collections.create(tempCollection)
+      const result = await tempService.collections.delete() // No name passed
+
+      expect(result.name).toBe(tempCollectionName)
+
+      // Verify deletion
+      await expect(tempService.collections.get()).rejects.toThrow()
+    })
+
+    it('should delete a tenant collection with correct FQCN', async () => {
+      const tenantId = 'test-tenant-delete'
+      const baseCollectionName = 'products'
+      const expectedFQCN = `${tenantId}__${baseCollectionName}`
+
+      const tenantService = new TypesenseApi<TestDocument>({
+        prefixUrl: typesenseUrl,
+        token: testApiKey,
+        tenantId: tenantId,
+        collectionName: baseCollectionName
+      })
+
+      const schema: TypesenseCollection = {
+        name: baseCollectionName,
+        fields: [
+          { name: 'id', type: 'string' },
+          { name: 'name', type: 'string' }
+        ]
+      }
+
+      // Clean up if exists
+      try {
+        await tenantService.collections.delete()
+      } catch (error: any) {
+        // Ignore 404 errors
+      }
+
+      // Create tenant collection
+      await tenantService.collections.create(schema)
+
+      // Verify it exists with correct FQCN
+      const collections = await tenantService.collections.list()
+      expect(collections.map((c: TypesenseCollection) => c.name)).toContain(expectedFQCN)
+
+      // Delete collection (should use tenant-qualified name)
+      const result = await tenantService.collections.delete()
+      expect(result.name).toBe(expectedFQCN)
+
+      // Verify it's deleted
+      const collectionsAfter = await tenantService.collections.list()
+      expect(collectionsAfter.map((c: TypesenseCollection) => c.name)).not.toContain(expectedFQCN)
+    })
+
+    it('should only delete collections for the correct tenant', async () => {
+      const tenant1Id = 'tenant-alpha-del'
+      const tenant2Id = 'tenant-beta-del'
+      const baseCollectionName = 'shared-collection'
+
+      // Create services for two different tenants
+      const tenant1Service = new TypesenseApi<TestDocument>({
+        prefixUrl: typesenseUrl,
+        token: testApiKey,
+        tenantId: tenant1Id,
+        collectionName: baseCollectionName
+      })
+
+      const tenant2Service = new TypesenseApi<TestDocument>({
+        prefixUrl: typesenseUrl,
+        token: testApiKey,
+        tenantId: tenant2Id,
+        collectionName: baseCollectionName
+      })
+
+      const schema: TypesenseCollection = {
+        name: baseCollectionName,
+        fields: [
+          { name: 'id', type: 'string' },
+          { name: 'data', type: 'string' }
+        ]
+      }
+
+      // Clean up first
+      try {
+        await tenant1Service.collections.delete()
+      } catch (error) {}
+      try {
+        await tenant2Service.collections.delete()
+      } catch (error) {}
+
+      // Create collections for both tenants
+      await tenant1Service.collections.create(schema)
+      await tenant2Service.collections.create(schema)
+
+      // Verify both exist
+      const allCollections = await tenant1Service.collections.list()
+      const collectionNames = allCollections.map((c: TypesenseCollection) => c.name)
+      expect(collectionNames).toContain(`${tenant1Id}__${baseCollectionName}`)
+      expect(collectionNames).toContain(`${tenant2Id}__${baseCollectionName}`)
+
+      // Delete tenant1's collection
+      const deleteResult = await tenant1Service.collections.delete()
+      expect(deleteResult.name).toBe(`${tenant1Id}__${baseCollectionName}`)
+
+      // Verify only tenant1's collection is deleted
+      const collectionsAfter = await tenant1Service.collections.list()
+      const namesAfter = collectionsAfter.map((c: TypesenseCollection) => c.name)
+      expect(namesAfter).not.toContain(`${tenant1Id}__${baseCollectionName}`)
+      expect(namesAfter).toContain(`${tenant2Id}__${baseCollectionName}`)
+
+      // Cleanup: delete tenant2's collection
+      await tenant2Service.collections.delete()
+    })
+
+    it('should remove collection from cache after deletion', async () => {
+      const collectionName = 'test-cache-cleanup-del'
+      const cacheService = new TypesenseApi<TestDocument>({
+        prefixUrl: typesenseUrl,
+        token: testApiKey,
+        collectionName: collectionName
+      })
+
+      const schema: TypesenseCollection = {
+        name: collectionName,
+        fields: [
+          { name: 'id', type: 'string' },
+          { name: 'title', type: 'string' }
+        ]
+      }
+
+      // Clean up first
+      try {
+        await cacheService.collections.delete()
+      } catch (error) {}
+
+      // Create and get collection to populate cache
+      await cacheService.collections.create(schema)
+      await cacheService.collections.get()
+
+      // Delete collection (should also clear cache)
+      await cacheService.collections.delete()
+
+      // Try to get collection again - should fetch from server and fail
+      await expect(cacheService.collections.get()).rejects.toThrow()
     })
   })
 
@@ -1787,7 +1950,7 @@ describe('TypesenseApi', () => {
 
         // List all collections
         const allCollections = await tenant1Api.collections.list()
-        const collectionNames = allCollections.map(c => c.name)
+        const collectionNames = allCollections.map((c: TypesenseCollection) => c.name)
 
         // Verify both tenant collections exist
         expect(collectionNames).toContain(`${tenant1Id}__products`)
@@ -1855,6 +2018,79 @@ describe('TypesenseApi', () => {
 
         expect(results.hits?.length).toBe(1)
         expect(results.hits?.[0]?.document?.name).toBe('Global Product')
+      })
+
+      it('should delete a specific tenant collection', async () => {
+        const tenantId = 'delete-specific-tenant'
+        
+        // Create multiple collections for this tenant
+        const collections = ['catalog', 'inventory', 'reviews']
+        
+        for (const collName of collections) {
+          const api = new TypesenseApi({
+            prefixUrl: typesenseUrl,
+            token: testApiKey,
+            tenantId: tenantId,
+            collectionName: collName
+          })
+          
+          try {
+            await api.collections.create({
+              name: collName,
+              fields: [
+                { name: 'id', type: 'string' },
+                { name: 'data', type: 'string' }
+              ]
+            })
+          } catch (error: any) {
+            if (error.status !== 409) throw error
+          }
+        }
+
+        // Verify all collections exist
+        const listApi = new TypesenseApi({
+          prefixUrl: typesenseUrl,
+          token: testApiKey,
+          tenantId: tenantId,
+          collectionName: 'any'
+        })
+        
+        const beforeDelete = await listApi.listTenantCollections()
+        expect(beforeDelete).toContain(`${tenantId}__catalog`)
+        expect(beforeDelete).toContain(`${tenantId}__inventory`)
+        expect(beforeDelete).toContain(`${tenantId}__reviews`)
+
+        // Delete only the 'inventory' collection
+        const inventoryApi = new TypesenseApi({
+          prefixUrl: typesenseUrl,
+          token: testApiKey,
+          tenantId: tenantId,
+          collectionName: 'inventory'
+        })
+        
+        const deleteResult = await inventoryApi.collections.delete()
+        expect(deleteResult.name).toBe(`${tenantId}__inventory`)
+
+        // Verify only 'inventory' was deleted, others remain
+        const afterDelete = await listApi.listTenantCollections()
+        expect(afterDelete).not.toContain(`${tenantId}__inventory`)
+        expect(afterDelete).toContain(`${tenantId}__catalog`)
+        expect(afterDelete).toContain(`${tenantId}__reviews`)
+        
+        // Cleanup remaining collections
+        for (const collName of ['catalog', 'reviews']) {
+          const api = new TypesenseApi({
+            prefixUrl: typesenseUrl,
+            token: testApiKey,
+            tenantId: tenantId,
+            collectionName: collName
+          })
+          try {
+            await api.collections.delete()
+          } catch (error) {
+            // Ignore errors
+          }
+        }
       })
     })
 

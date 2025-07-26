@@ -4,17 +4,44 @@ import { flock } from '../flock'
 import { DataSource } from 'typeorm'
 import { GoatRepositoryFactory } from '../repository.factory'
 
-export const basicTestSuite = (dataSource?: DataSource) => {
+export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() => DataSource)) => {
   let storedId: any
+  let dbType: string = 'unknown'
 
   let Repository: any
   beforeAll(async () => {
-    if (!dataSource) {
+    if (!dataSourceOrRepoClass) {
       // For backward compatibility with SQLite tests - dynamic import to avoid initialization issues
       const module = await import('./goat.repository')
       Repository = new module.GoatRepository()
+      dbType = 'sqlite'
+    } else if (typeof dataSourceOrRepoClass === 'function') {
+      // Check if it's a getter function or a repository class
+      try {
+        const result = dataSourceOrRepoClass()
+        if (result && typeof result === 'object' && 'options' in result) {
+          // It's a getter function returning a DataSource
+          Repository = new GoatRepositoryFactory(result)
+          dbType = result.options.type || 'unknown'
+        } else {
+          // The function returned something else, might be a constructor issue
+          Repository = new dataSourceOrRepoClass()
+          if (Repository.dataSource) {
+            dbType = Repository.dataSource.options.type || 'unknown'
+          }
+        }
+      } catch (e) {
+        // It's a class constructor, not a regular function
+        Repository = new dataSourceOrRepoClass()
+        // Try to determine db type from repository
+        if (Repository.dataSource) {
+          dbType = Repository.dataSource.options.type || 'unknown'
+        }
+      }
     } else {
-      Repository = new GoatRepositoryFactory(dataSource)
+      // Handle DataSource
+      Repository = new GoatRepositoryFactory(dataSourceOrRepoClass)
+      dbType = dataSourceOrRepoClass.options.type || 'unknown'
     }
   })
 
@@ -26,13 +53,18 @@ export const basicTestSuite = (dataSource?: DataSource) => {
   })
 
   test('insert - Should  insert data with customId', async () => {
+    // Use proper UUID for PostgreSQL, MongoDB ObjectId for others
+    const customId = dbType === 'postgres' 
+      ? '550e8400-e29b-41d4-a716-446655440000'
+      : '631ce4304f9183f61ffb613a'
+      
     const a = await Repository.insert({
-      id: '631ce4304f9183f61ffb613a',
+      id: customId,
       name: 'myGoat',
       age: 13
     })
     expect(typeof a.id).toBe('string')
-    expect(a.id).toBe('631ce4304f9183f61ffb613a')
+    expect(a.id).toBe(customId)
   })
 
   it('insertMany - Should insert Multiple elements', async () => {
@@ -48,7 +80,11 @@ export const basicTestSuite = (dataSource?: DataSource) => {
     expect(goat?.id).toBe(goats[0].id)
     expect(typeof goat?.id).toBe('string')
 
-    const anotherGoat = await Repository.findById('507f1f77bcf86cd799439011')
+    // Use proper UUID for PostgreSQL
+    const nonExistentId = dbType === 'postgres'
+      ? '550e8400-e29b-41d4-a716-446655440001'
+      : '507f1f77bcf86cd799439011'
+    const anotherGoat = await Repository.findById(nonExistentId)
     expect(anotherGoat).toBe(null)
   })
 

@@ -8,6 +8,24 @@ import {
 import { isAnyObject } from './isAnyObject'
 
 /**
+ * Custom flatten function that preserves types
+ */
+function flattenWithTypes(obj: any, prefix = '', result: any = {}): any {
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const newKey = prefix ? `${prefix}.${key}` : key
+      if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        flattenWithTypes(obj[key], newKey, result)
+      } else {
+        // Preserve the original type
+        result[newKey] = obj[key]
+      }
+    }
+  }
+  return result
+}
+
+/**
  * Transforms the nested object WHERE clause into an
  * Array of clearly defined conditions
  * @param conditions
@@ -39,7 +57,8 @@ export const extractConditions = (
 
       if (isAnyObject(value)) {
         const initialKey = el
-        const flatten = Objects.flatten(value)
+        // Use a custom flatten that preserves types
+        const flatten = flattenWithTypes(value)
 
         for (const key of Object.keys(flatten)) {
           // Remove .# from keys when we have an array in the flattened object

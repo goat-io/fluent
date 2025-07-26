@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.8.0
+
+### Minor Changes
+
+- Move packages to vitest, fix fluent tests
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@0.1.0
+  - @goatlab/js-utils@0.9.0
+
 ## 0.7.43
 
 ### Patch Changes

@@ -27,6 +27,68 @@ export const getMongoWhere = ({
     return {}
   }
 
+  // For simple queries without OR/AND, we can use a simpler structure
+  const hasLogicalOperators = where['OR'] || where['AND']
+  
+  if (!hasLogicalOperators) {
+    // Simple query without logical operators
+    const conditions = extractConditions([where])
+    const simpleFilter: any = {}
+    
+    for (const condition of conditions) {
+      let { element, operator, value } = condition
+      
+      if (element === 'id') {
+        element = '_id'
+        value = (Array.isArray(value)
+          ? value.map(v => new BSONObjectID(v as string))
+          : new BSONObjectID(value as string)) as unknown as
+          | Primitives
+          | PrimitivesArray
+      }
+      
+      // Build the MongoDB query
+      switch (operator) {
+        case LogicOperator.equals:
+          simpleFilter[element] = value
+          break
+        case LogicOperator.isNot:
+          simpleFilter[element] = { $ne: value }
+          break
+        case LogicOperator.greaterThan:
+          simpleFilter[element] = { $gt: value }
+          break
+        case LogicOperator.greaterOrEqualThan:
+          simpleFilter[element] = { $gte: value }
+          break
+        case LogicOperator.lessThan:
+          simpleFilter[element] = { $lt: value }
+          break
+        case LogicOperator.lessOrEqualThan:
+          simpleFilter[element] = { $lte: value }
+          break
+        case LogicOperator.in:
+          simpleFilter[element] = { $in: value }
+          break
+        case LogicOperator.notIn:
+          simpleFilter[element] = { $nin: value }
+          break
+        case LogicOperator.exists:
+          simpleFilter[element] = { $exists: true }
+          break
+        case LogicOperator.notExists:
+          simpleFilter[element] = { $exists: false }
+          break
+        case LogicOperator.regexp:
+          simpleFilter[element] = { $regex: value }
+          break
+      }
+    }
+    
+    return simpleFilter
+  }
+
+  // Complex query with OR/AND operators
   const Filters: { filter: { $or: any[] } } = {
     filter: { $or: [{ $and: [] }] }
   }

@@ -1,0 +1,43 @@
+<mj-section>
+  <mj-column>
+    <mj-text
+      font-size="16px"
+      align="justify"
+      color="#1a1a1a"
+      font-family="Helvetica, sans-serif"
+      padding-top="30px"
+    >
+      <%- body %>
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<% if (locals.highlight) { %>
+<mj-section padding-left="30px" padding-right="30px">
+  <mj-column background-color="#ffe8e8">
+    <mj-text
+      align="center"
+      font-size="16px"
+      align="justify"
+      color="#1a1a1a"
+      font-family="Helvetica, sans-serif"
+      padding-top="30px"
+      padding-bottom="30px"
+    >
+      <%- highlight %>
+    </mj-text>
+  </mj-column>
+</mj-section>
+<% } %> <% if (locals.actionLabel) { %>
+<mj-section>
+  <mj-column>
+    <%- include('../components/button', { text: actionLabel, ref: actionUrl }) %>
+  </mj-column>
+</mj-section>
+<% } %> <% if (locals.secondaryActionLabel) { %>
+<mj-section>
+  <mj-column>
+    <%- include('../components/button', { text: secondaryActionLabel, ref: secondaryActionUrl }) %>
+  </mj-column>
+</mj-section>
+<% } %>

@@ -91,8 +91,7 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
 
     const body = err.response?.body
       ? inspectAny(err.response.body, {
-          maxLen: maxResponseLength,
-          colors: false
+          maxLen: maxResponseLength
         })
       : err.message
 
@@ -248,8 +247,7 @@ function gotBeforeRetryHook(opt: GetKyOptions): BeforeRetryHook {
     // Construct body message
     const body = error.message
       ? inspectAny(error, {
-          maxLen: maxResponseLength,
-          colors: false
+          maxLen: maxResponseLength
         })
       : error.message
 

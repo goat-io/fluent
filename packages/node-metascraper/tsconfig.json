@@ -4,6 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "outDir": "./dist",
-    "baseUrl": "./src"
+    "baseUrl": "./src",
+    "lib": ["es2022", "dom"]
   }
 }

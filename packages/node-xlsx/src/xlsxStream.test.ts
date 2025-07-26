@@ -1,5 +1,6 @@
-// npx jest -i ./src/xlsxStream.test
+// npx vitest run ./src/xlsxStream.test.ts
 
+import { describe, it, expect } from 'vitest'
 import { join } from 'path'
 import { xlsxStream } from './xlsxStream'
 

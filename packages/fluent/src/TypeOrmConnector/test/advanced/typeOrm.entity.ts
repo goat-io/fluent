@@ -53,7 +53,15 @@ export const NestedSchema = z.object({
 
 export const TypeORMDataModelSchema = z.object({
   id: z.string().optional(),
-  created: z.date().optional(),
+  created: z.union([z.date(), z.string()]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined) {
+      return val
+    }
+    if (typeof val === 'string') {
+      return new Date(val)
+    }
+    return val
+  }),
   order: z.number().optional(),
   nestedTest: NestedSchema.optional(),
   test: z.boolean()

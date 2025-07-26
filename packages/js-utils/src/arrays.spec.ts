@@ -1,4 +1,5 @@
 // yarn test arrays.spec.ts
+import { describe, it, expect } from 'vitest'
 import { Arrays, ArraysClass } from './Arrays'
 
 const arrays = new ArraysClass()

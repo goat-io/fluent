@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-pouchdb",
-  "version": "0.7.14",
+  "version": "0.8.0",
   "description": "Fluent query Interface for Pouchdb",
   "scripts": {
     "prebuild": "rimraf dist",
@@ -35,16 +35,12 @@
     "pouchdb-json": "^9.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^27.4.1",
     "@types/node": "^18.6.5",
     "@types/pouchdb": "^6.4.0",
     "dotenv-cli": "^5.1.0",
     "eslint": "^8.5.0",
-    "jest": "catalog:",
-    "jest-environment-node": "^27.5.1",
     "prettier": "^2.6.1",
     "pretty-quick": "^3.1.3",
-    "ts-jest": "catalog:",
     "ts-node": "catalog:",
     "turbo": "^1.1.10",
     "typescript": "^5.0.0",

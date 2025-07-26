@@ -1,0 +1,106 @@
+<!-- 
+   Parameters: 
+    previewText: Text that appears only on the Email Preview
+    imgSrc: Link to the image
+    imgAlt: Alt text for the given image
+    greeting: Greeting text
+-->
+<mjml>
+  <mj-head>
+    <% if (locals.previewText) { %>
+    <mj-preview><%= previewText %></mj-preview>
+    <% } %>
+    <mj-style>
+      @media all and (max-width: 600px) { img[title*=&quot;img30&quot;] {
+      width:30% !important; } }
+    </mj-style>
+    <mj-style inline="inline"
+      >.body-section { -webkit-box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15);
+      -moz-box-shadow: 1px 4px 11px 0px rgba(0, 0, 0, 0.15); box-shadow: 1px 4px
+      11px 0px rgba(0, 0, 0, 0.15); }</mj-style
+    >
+    <mj-style inline="inline">.text-link { color: #5e6ebf }</mj-style>
+    <mj-style inline="inline">.footer-link { color: #888888 }</mj-style>
+    <mj-attributes>
+      <mj-all
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+      ></mj-all>
+      <mj-text
+        font-weight="400"
+        font-size="16px"
+        color="#000000"
+        line-height="24px"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+      ></mj-text>
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#E7E7E7" width="600px">
+    <mj-section
+      full-width="full-width"
+      background-color="#E7E7E7"
+      padding-bottom="20px"
+    >
+    </mj-section>
+    <mj-section background-color="#ffffff">
+      <mj-column width="100%">
+        <%- include('../components/logo'); %>
+      </mj-column>
+      <mj-column width="100%">
+        <% if (locals.imgSrc) { %>
+        <mj-image
+          width="600px"
+          padding="0px"
+          src="<%= imgSrc %>"
+          alt="<%= imgAlt %>"
+        />
+        <% } %>
+      </mj-column>
+    </mj-section>
+    <mj-wrapper padding-top="0" padding-bottom="0px" css-class="body-section">
+      <mj-section
+        background-color="#ffffff"
+        padding-left="15px"
+        padding-right="15px"
+      >
+        <mj-column width="100%">
+          <% if (locals.title) { %>
+          <mj-text color="#212b35" font-weight="bold" font-size="20px"
+            ><%= title %></mj-text
+          >
+          <% } %> <% if (locals.greeting) { %>
+          <mj-text color="#637381" font-size="16px"><%= greeting %></mj-text>
+          <% } %>
+        </mj-column>
+      </mj-section>
+
+      <%- content %>
+
+      <mj-section
+        background-color="#ffffff"
+        padding-left="15px"
+        padding-right="15px"
+      >
+        <mj-column>
+          <mj-text
+            font-size="16px"
+            align="justify"
+            color="#1a1a1a"
+            font-family="Helvetica, sans-serif"
+          >
+            <!-- Default Footer -->
+            <% if (typeof locals.footer === 'undefined') { %>
+            <span id="ityfxn"></span>
+            <p id="ii5345">
+              <span id="iik1io">Gealium</span>
+            </p>
+            <% } else { %>
+            <span id="inw0o5"> <%- footer %></span>
+            <span id="ityfxn"></span>
+            <% } %>
+          </mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+    <%- include('../components/footer'); %>
+  </mj-body>
+</mjml>

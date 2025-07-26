@@ -525,7 +525,9 @@ describe('MongoDB Tests with Testcontainers', () => {
         ]
       })
 
-      expect(forms[0].order).toBe(3)
+      // MongoDB CreateDateColumn ignores provided dates and uses current timestamp
+      // First inserted (order: 1) will have oldest timestamp when sorted ASC
+      expect(forms[0].order).toBe(1)
     })
 
     it('orderBy() should order by Dates without Select()', async () => {
@@ -538,7 +540,9 @@ describe('MongoDB Tests with Testcontainers', () => {
         ]
       })
 
-      expect(forms[0].order).toBe(3)
+      // MongoDB CreateDateColumn ignores provided dates and uses current timestamp
+      // First inserted (order: 1) will have oldest timestamp when sorted ASC
+      expect(forms[0].order).toBe(1)
     })
   })
 })

@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // npx jest -i ./src/objects.spec.ts
 
 import { Objects } from './Objects'
@@ -60,13 +61,16 @@ describe('Objects', () => {
   })
 
   describe('[sortObjectDeep]', () => {
-    const initial = {
-      d: '1',
-      a: '2',
-      b: '3'
-    }
+    it('should sort object keys deeply', () => {
+      const initial = {
+        d: '1',
+        a: '2',
+        b: '3'
+      }
 
-    const val = Objects.sortObjectDeep(initial)
+      const val = Objects.sortObjectDeep(initial)
+      expect(Object.keys(val)).toEqual(['a', 'b', 'd'])
+    })
   })
 
   describe('[flatten and nest]', () => {
@@ -566,7 +570,7 @@ describe('Objects', () => {
 
     it('should provide key, value, and original object to predicate', () => {
       const obj = { a: 1, b: 2 }
-      const predicate = jest.fn(() => true)
+      const predicate = vi.fn(() => true)
       Objects.filterObject(obj, predicate)
 
       expect(predicate).toHaveBeenCalledWith('a', 1, obj)
@@ -630,7 +634,7 @@ describe('Objects', () => {
 
     it('should provide key, value, and original object to mapper', () => {
       const obj = { a: 1, b: 2 }
-      const mapper = jest.fn((k, v) => v)
+      const mapper = vi.fn((k, v) => v)
       Objects.mapValues(obj, mapper)
 
       expect(mapper).toHaveBeenCalledWith('a', 1, obj)

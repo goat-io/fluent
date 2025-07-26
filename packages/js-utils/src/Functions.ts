@@ -9,7 +9,7 @@ class FunctionsClass {
    * @param f
    */
   requestAnimationFrame = (f: any) => {
-    setImmediate(() => f(Date.now()))
+    setTimeout(() => f(Date.now()), 0)
   }
 
   debounce = debounce

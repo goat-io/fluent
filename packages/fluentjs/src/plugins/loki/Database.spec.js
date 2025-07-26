@@ -1,23 +1,22 @@
-/* global describe, it, before */
+/* global describe, it, beforeAll */
 import 'babel-polyfill'
 import chai from 'chai'
 import Database from './Database.js'
 import Loki from 'lokijs'
 
-chai.expect()
 
 const expect = chai.expect
 let db
 
 describe('Given the DB instance', () => {
-  before(async () => {
+  beforeAll(async () => {
     db = await Database.get({ env: 'testing' })
   })
 
   it('Should return and instance of LockiJS DB', () => {
     let isLoki = db instanceof Loki
 
-    expect(isLoki)
+    expect(isLoki).to.be.true
   })
 
   it('Should be named GOAT', () => {

@@ -31,11 +31,14 @@ export const getMongoFindAggregatedQuery = ({
     self
   })
 
-  const aggregate: any[] = [
-    {
+  const aggregate: any[] = []
+  
+  // Only add $match if there's a where clause
+  if (where && Object.keys(where).length > 0) {
+    aggregate.push({
       $match: where
-    }
-  ]
+    })
+  }
 
   if (orderBy) {
     aggregate.push(orderBy)

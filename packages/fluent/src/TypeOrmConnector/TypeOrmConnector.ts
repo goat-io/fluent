@@ -31,7 +31,7 @@ import { clearEmpties } from './util/clearEmpties'
 
 export interface TypeOrmConnectorParams<Input, Output> {
   entity: any
-  dataSource: DataSource
+  dataSource: DataSource | (() => DataSource)
   inputSchema: z.ZodType<Input>
   outputSchema?: z.ZodType<Output>
 }
@@ -45,7 +45,20 @@ export class TypeOrmConnector<
 {
   private repository: Repository<ModelDTO>
 
-  private readonly dataSource: DataSource
+  private readonly dataSourceOrGetter: DataSource | (() => DataSource)
+  
+  private _dataSource: DataSource | null = null
+  
+  private get dataSource(): DataSource {
+    if (!this._dataSource) {
+      if (typeof this.dataSourceOrGetter === 'function') {
+        this._dataSource = this.dataSourceOrGetter()
+      } else {
+        this._dataSource = this.dataSourceOrGetter
+      }
+    }
+    return this._dataSource
+  }
 
   private readonly inputSchema: z.ZodTypeAny
 
@@ -60,7 +73,7 @@ export class TypeOrmConnector<
     outputSchema
   }: TypeOrmConnectorParams<InputDTO, OutputDTO>) {
     super()
-    this.dataSource = dataSource
+    this.dataSourceOrGetter = dataSource
     this.inputSchema = inputSchema
     this.outputSchema =
       outputSchema || (inputSchema as unknown as z.ZodType<OutputDTO>)

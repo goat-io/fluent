@@ -151,7 +151,7 @@ export async function pRetry<T>(
 
   let delay = initialDelay
   let attempt = 0
-  let timer: NodeJS.Timeout | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
   let timedOut = false
 
   return await new Promise((resolve, reject) => {

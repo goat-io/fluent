@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 0.7.0
+
+### Minor Changes
+
+- Move packages to vitest, fix fluent tests
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.9.0
+  - @goatlab/fluent@0.8.0
+
 ## 0.6.18
 
 ### Patch Changes
