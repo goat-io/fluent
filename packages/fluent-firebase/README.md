@@ -16,6 +16,7 @@ pnpm add @goatlab/fluent-firebase
 
 ```typescript
 import { FirebaseInit, FirebaseConnector } from '@goatlab/fluent-firebase'
+import { Entity, ObjectType, f } from '@goatlab/fluent'
 import { z } from 'zod'
 
 // Initialize Firebase
@@ -25,19 +26,36 @@ FirebaseInit({
   emulator: false // set to true for local development
 })
 
+// Define your entity
+@Entity('users')
+@ObjectType()
+export class UserEntity {
+  @f.Column()
+  id: string
+
+  @f.Column()
+  name: string
+
+  @f.Column()
+  email: string
+
+  @f.Column()
+  created: Date
+}
+
 // Define your schema
 const UserSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   name: z.string(),
   email: z.string().email(),
-  created: z.date()
+  created: z.date().optional()
 })
 
 // Create a repository
-class UserRepository extends FirebaseConnector<User> {
+class UserRepository extends FirebaseConnector<UserEntity> {
   constructor() {
     super({
-      entity: UserEntity, // Your TypeORM-style entity class
+      entity: UserEntity,
       inputSchema: UserSchema,
       outputSchema: UserSchema // optional, defaults to inputSchema
     })
@@ -76,3 +94,7 @@ await userRepo.deleteById(user.id)
 - **Relations support** for loading related data
 - **Firebase Emulator support** for local development and testing
 - **Raw access** to Firebase Admin SDK when needed
+
+## License
+
+MIT

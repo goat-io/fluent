@@ -1,55 +1,50 @@
 # @goatlab/fluent-loki
 
-LokiJS connector for the Goat Fluent query interface. Provides in-memory database capabilities with multiple storage adapters including IndexedDB, file system, and encrypted storage.
+LokiJS connector for Goat Fluent - a fast, in-memory database adapter with optional persistence.
 
 ## Installation
 
 ```bash
 npm install @goatlab/fluent-loki
-# or
-yarn add @goatlab/fluent-loki
-# or
-pnpm add @goatlab/fluent-loki
 ```
 
-## Usage
+## Basic Usage
 
 ```typescript
 import { Loki, LokiConnector, LokiStorageType } from '@goatlab/fluent-loki'
 import { z } from 'zod'
 
-// Define your schema
+// Define schema
 const UserSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string().email(),
-  age: z.number()
+  age: z.number().optional()
 })
 
-// Create LokiJS database instance
+// Create database
 const db = Loki.createDb({
   dbName: 'myapp',
-  storage: LokiStorageType.memory // or indexedDB, file, fsStructured, cryptedFile
+  storage: LokiStorageType.memory
 })
 
-// Create a User entity
-class User {
-  static name = 'User'
-}
-
-// Initialize the connector
-const userConnector = new LokiConnector({
-  entity: User,
+// Create connector
+const users = new LokiConnector({
+  entity: { name: 'User' },
   dataSource: db,
   inputSchema: UserSchema,
   outputSchema: UserSchema
 })
 
-// Use the Fluent query interface
-const users = await userConnector.findMany({
-  where: {
-    age: { gte: 18 }
-  },
+// Use Fluent API
+const user = await users.insert({
+  name: 'John Doe',
+  email: 'john@example.com',
+  age: 30
+})
+
+const results = await users.findMany({
+  where: { age: { gte: 18 } },
   orderBy: [{ name: 'asc' }],
   limit: 10
 })
@@ -57,10 +52,14 @@ const users = await userConnector.findMany({
 
 ## Key Features
 
-- **Multiple Storage Adapters**: Memory, IndexedDB, file system, structured file system, and encrypted file storage
-- **Fluent Query Interface**: Chainable query methods compatible with Goat Fluent
-- **Schema Validation**: Built-in Zod schema validation for input and output
-- **TypeScript Support**: Full type safety with generics
-- **Automatic ID Generation**: UUID-based ID generation for new records
-- **Pagination Support**: Built-in pagination with offset and limit
-- **Complex Queries**: Support for AND/OR conditions, nested properties, and various operators
+- **In-Memory Performance** - Lightning-fast operations ideal for testing and prototyping
+- **Multiple Storage Options** - Memory, IndexedDB, file system, and encrypted storage
+- **Fluent Query Interface** - Compatible with all Goat Fluent query patterns
+- **Schema Validation** - Built-in Zod validation for type safety
+- **Complex Queries** - Support for nested properties, AND/OR conditions, regex
+- **Change Tracking** - Monitor document changes with event listeners
+- **No External Dependencies** - Pure JavaScript implementation
+
+## License
+
+MIT

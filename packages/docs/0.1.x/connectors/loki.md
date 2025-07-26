@@ -8,11 +8,12 @@ The `LokiConnector` extends the `BaseConnector` class and implements the `Fluent
 
 ### Features
 
-- **In-Memory Performance** - Lightning-fast operations
-- **Persistence Options** - Save data to file system or localStorage
+- **In-Memory Performance** - Lightning-fast operations with optional persistence
+- **Multiple Storage Adapters** - Memory, IndexedDB, file system, structured file system, encrypted file, and JSON storage
 - **No External Dependencies** - Pure JavaScript implementation
-- **Full-Text Search** - Built-in search capabilities
-- **Change Tracking** - Track document changes
+- **Automatic Timestamps** - Built-in created/updated time tracking
+- **UUID Generation** - Automatic ID generation for new records
+- **Nested Property Support** - Query nested objects with dot notation
 - **Lightweight** - Small footprint, perfect for development and testing
 
 ## Installation
@@ -26,28 +27,30 @@ npm install @goatlab/fluent-loki lokijs
 ### 1. Initialize LokiJS Database
 
 ```typescript
-import LokiJS from 'lokijs'
+import { Loki, LokiStorageType } from '@goatlab/fluent-loki'
 import { LokiConnector } from '@goatlab/fluent-loki'
 
-// In-memory database
-const db = new LokiJS('myapp.db')
-
-// Persistent database (Node.js)
-const db = new LokiJS('myapp.db', {
-  persistenceMethod: 'fs',
-  autoload: true,
-  autoloadCallback: databaseInitialize,
-  autosave: true,
-  autosaveInterval: 4000
+// Using the Loki helper class (recommended)
+const db = Loki.createDb({
+  dbName: 'myapp',
+  storage: LokiStorageType.memory // or indexedDB, file, fsStructured, cryptedFile, json
 })
 
-// Persistent database (Browser)
+// For encrypted storage
+const encryptedDb = Loki.createDb({
+  dbName: 'secure-app',
+  storage: LokiStorageType.cryptedFile,
+  secret: 'your-encryption-secret'
+})
+
+// Manual setup (alternative)
+import LokiJS from 'lokijs'
+
 const db = new LokiJS('myapp.db', {
-  persistenceMethod: 'localStorage',
   autoload: true,
-  autoloadCallback: databaseInitialize,
   autosave: true,
-  autosaveInterval: 4000
+  autosaveInterval: 1000,
+  throttledSaves: false
 })
 ```
 
@@ -125,6 +128,14 @@ export class UserRepository extends LokiConnector<User, typeof UserInputSchema._
     })
   }
 }
+
+// Or use directly without extending
+const userRepository = new LokiConnector({
+  entity: { name: 'users' }, // Simple entity object
+  dataSource: db,
+  inputSchema: UserInputSchema,
+  outputSchema: UserOutputSchema
+})
 ```
 
 ### 4. Initialize and Use
@@ -228,11 +239,11 @@ await userRepository.deleteMany({
 
 ## LokiJS-Specific Features
 
-### Collections and Indexes
+### Direct Collection Access
 
 ```typescript
 // Access the underlying LokiJS collection
-const collection = userRepository.getCollection()
+const collection = userRepository.raw()
 
 // Create indexes for better performance
 collection.ensureIndex('email')
@@ -298,6 +309,28 @@ collection.on('delete', (obj) => {
 
 ## Query Operators
 
+### Nested Properties
+
+```typescript
+// Query nested objects using dot notation
+const users = await userRepository.findMany({
+  where: {
+    'address.city': 'New York',
+    'profile.settings.notifications': true
+  }
+})
+
+// Nested object queries are automatically converted to dot notation
+const users = await userRepository.findMany({
+  where: {
+    address: {
+      city: 'New York',
+      country: 'USA'
+    }
+  }
+})
+```
+
 ### Comparison Operators
 
 ```typescript
@@ -335,44 +368,31 @@ const users = await userRepository.findMany({
 ### Array Operations
 
 ```typescript
-// Contains value in array
+// In operator for arrays
 const users = await userRepository.findMany({
-  where: { tags: { contains: 'developer' } }
+  where: { status: { in: ['active', 'pending'] } }
 })
 
-// Contains any of these values
+// Not in operator
 const users = await userRepository.findMany({
-  where: { tags: { containsAny: ['developer', 'designer'] } }
+  where: { status: { notIn: ['deleted', 'banned'] } }
 })
 
-// Size of array
+// For array fields, use 'in' to check if array contains value
 const users = await userRepository.findMany({
-  where: { tags: { size: 2 } }
+  where: { tags: { in: ['developer'] } } // finds users where tags array contains 'developer'
 })
 ```
 
 ### String Operations
 
 ```typescript
-// Contains substring
+// Regular expression (regexp operator)
 const users = await userRepository.findMany({
-  where: { name: { contains: 'John' } }
+  where: { email: { regexp: '^john.*@gmail\.com$' } }
 })
 
-// Starts with
-const users = await userRepository.findMany({
-  where: { email: { startsWith: 'john' } }
-})
-
-// Ends with
-const users = await userRepository.findMany({
-  where: { email: { endsWith: '@gmail.com' } }
-})
-
-// Regular expression
-const users = await userRepository.findMany({
-  where: { email: { regex: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/ } }
-})
+// Note: LokiJS uses $regex internally, but Fluent uses 'regexp' in the API
 ```
 
 ### Complex Queries
@@ -413,7 +433,101 @@ const users = await userRepository.findMany({
 })
 ```
 
+## Additional Operations
+
+### Pagination
+
+```typescript
+// Using paginated queries
+const paginatedUsers = await userRepository.findMany({
+  where: { status: 'active' },
+  paginated: {
+    page: 1,
+    perPage: 20
+  }
+})
+
+// Returns PaginatedData structure with metadata
+console.log(paginatedUsers.total)
+console.log(paginatedUsers.currentPage)
+console.log(paginatedUsers.data)
+```
+
+### Pluck Operation
+
+```typescript
+// Extract single field values from results
+const emails = await userRepository.pluck('email', {
+  where: { status: 'active' }
+})
+// Returns: ['john@example.com', 'jane@example.com', ...]
+
+// Pluck nested properties
+const cities = await userRepository.pluck('address.city', {
+  where: { country: 'USA' }
+})
+```
+
+### Select Fields
+
+```typescript
+// Select specific fields
+const users = await userRepository.findMany({
+  where: { status: 'active' },
+  select: ['id', 'name', 'email']
+})
+// Returns objects with only selected fields
+```
+
+### Existence Checks
+
+```typescript
+// Check if field exists
+const users = await userRepository.findMany({
+  where: { 
+    phoneNumber: { exists: true },
+    deletedAt: { notExists: true }
+  }
+})
+```
+
+### Replace vs Update
+
+```typescript
+// Update (PATCH) - partial update
+const updated = await userRepository.updateById('user-id', {
+  name: 'New Name' // Only updates name field
+})
+
+// Replace (PUT) - replaces entire document except system fields
+const replaced = await userRepository.replaceById('user-id', {
+  name: 'John Doe',
+  email: 'john@example.com'
+  // All other fields will be removed
+})
+```
+
+### Clear Collection
+
+```typescript
+// Remove all documents from collection
+await userRepository.clear()
+```
+
 ## Persistence Options
+
+### Storage Types
+
+```typescript
+export enum LokiStorageType {
+  memory = 'memory',           // In-memory only
+  indexedDB = 'indexedDB',     // Browser IndexedDB
+  file = 'file',               // Node.js file system
+  fsStructured = 'fsStructured', // Structured file system
+  cryptedFile = 'cryptedFile', // Encrypted file storage
+  json = 'json'                // JSON storage (NativeScript)
+}
+```
 
 ### File System Persistence (Node.js)
 
@@ -608,6 +722,36 @@ try {
 }
 ```
 
+## Schema Validation
+
+### Partial Validation
+
+```typescript
+// The connector automatically handles partial validation for:
+// 1. Update operations (PATCH)
+// 2. Replace operations (PUT)
+// 3. Query results with selected fields
+
+// This allows updates with only changed fields
+await userRepository.updateById('id', {
+  name: 'New Name' // Only name is validated
+})
+```
+
+### Automatic Fields
+
+```typescript
+// These fields are automatically added to new documents:
+// - id: UUID v4
+// - created: Date
+// - createdAt: Date
+// - updatedAt: Date
+
+// For updates:
+// - updated: Date (if entity has this field)
+// - modified: ISO string timestamp
+```
+
 ## Testing with LokiJS
 
 ### In-Memory Testing
@@ -659,6 +803,32 @@ describe('UserRepository', () => {
   })
 })
 ```
+
+## Limitations and Considerations
+
+### Query Limitations
+
+1. **No Aggregation Pipeline** - LokiJS doesn't support MongoDB-style aggregation
+2. **Limited Join Support** - No native join operations between collections
+3. **No Transactions** - LokiJS doesn't support ACID transactions
+4. **Memory Constraints** - All data must fit in memory
+
+### Performance Considerations
+
+1. **Default Limits** - `findMany` defaults to 10 results if no limit specified
+2. **Offset Performance** - Large offsets can be slow on big collections
+3. **Index Usage** - Not all query operators utilize indexes efficiently
+
+### Compatibility Notes
+
+1. **Operator Mapping** - Some Fluent operators map to different LokiJS operators:
+   - `isNot` → `$neq`
+   - `notIn` → `$not: { $in: ... }`
+   - `regexp` → `$regex`
+   
+2. **Nested Queries** - Automatically converted to dot notation for LokiJS
+
+3. **Pagination** - Returns Fluent's `PaginatedData` structure, not LokiJS format
 
 ## Best Practices
 

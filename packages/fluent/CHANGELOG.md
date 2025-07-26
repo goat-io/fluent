@@ -1,10 +1,22 @@
-# 0.5.20
+# Changelog
 
 ## 0.8.0
 
 ### Minor Changes
 
-- Move packages to vitest, fix fluent tests
+- **Unified Test Suite**: All databases (MongoDB, MySQL, PostgreSQL, SQLite) now pass identical test suites
+- **MongoDB Dot Notation**: Full support for nested object queries using dot notation with proper type preservation
+- **DataSource Flexibility**: TypeOrmConnector now accepts DataSource getter functions for lazy initialization
+- **Type Preservation**: Fixed type conversion issues in nested queries - numbers, booleans, and dates now maintain their types
+- **Test Framework Migration**: Migrated from Jest to Vitest for better performance and TypeScript support
+- **MongoDB Query Optimization**: Simple queries without OR/AND operators now use more efficient query structures
+
+### Bug Fixes
+
+- Fixed MongoDB nested object queries with dot notation
+- Fixed type preservation when flattening nested objects
+- Properly handle MongoDB CreateDateColumn behavior
+- Fixed various test suite issues across all databases
 
 ### Patch Changes
 
