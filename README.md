@@ -94,6 +94,7 @@ pnpm add @goatlab/node-utils       # Node.js specific utilities
 - **[@goatlab/eslint](./packages/eslint)** - Shared ESLint configuration
 - **[@goatlab/tsconfig](./packages/tsconfig)** - Shared TypeScript configuration
 - **[@goatlab/ts-package-template](./packages/base_project)** - Template for new TypeScript packages
+- **[@sodium/delphi](./packages/delphi)** - Automated self-correcting development pipeline using AutoGen agents and LangGraph orchestration
 
 ## 🗄️ Supported Databases
 

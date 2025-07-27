@@ -1,0 +1,43 @@
+{
+  "name": "@sodium/delphi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Automated self-correcting dev pipeline with AutoGen agents and LangGraph orchestration",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/graph.ts",
+    "start": "tsx src/graph.ts",
+    "autogen": "cd python && source venv/bin/activate && python autogen_service.py",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:python": "cd python && source venv/bin/activate && python -m pytest test_autogen_service.py -v"
+  },
+  "dependencies": {
+    "@goatlab/js-utils": "workspace:*",
+    "@langchain/core": "^0.3.66",
+    "@langchain/langgraph": "^0.3.11",
+    "@langchain/langgraph-checkpoint-sqlite": "^0.1.5",
+    "better-sqlite3": "^12.2.0",
+    "dotenv": "^16.4.5",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.7",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "eslint": "^8.57.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
