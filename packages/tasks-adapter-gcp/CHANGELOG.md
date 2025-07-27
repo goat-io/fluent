@@ -1,5 +1,12 @@
 # 0.5.20
 
+## 0.2.2
+
+### Patch Changes
+
+- Improve CloudTask test reliability by adding proper environment variable checks and error handling
+  EOF < /dev/null
+
 ## 0.2.1
 
 ### Patch Changes

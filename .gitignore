@@ -29,3 +29,5 @@ GOAT~
 build/**
 dist/**
 .next/**
+# Act secrets file
+.secrets
