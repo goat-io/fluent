@@ -35,7 +35,7 @@ export function getExpressTrpcApp({
   shouldEnableSentry,
   sentryService,
   logger = console,
-  customHandlers,
+  customHandlers
 }: {
   appName?: string
   appVersion?: string
@@ -62,26 +62,26 @@ export function getExpressTrpcApp({
   }
 
   app.use(
-    express.json({ limit: '1mb', type: ['application/json', 'text/plain'] }),
+    express.json({ limit: '1mb', type: ['application/json', 'text/plain'] })
   )
   app.use(express.urlencoded({ limit: '1mb', extended: true }))
 
   app.use(
     express.raw({
       inflate: true,
-      limit: '100kb',
-    }),
+      limit: '100kb'
+    })
   )
 
   app.use((req, resp, next) => expressRequestLogger(req, resp, next, logger))
 
   app.use(
     genericErrorMiddleware({
-      sentryService: shouldEnableSentry ? sentryService : undefined,
-    }),
+      sentryService: shouldEnableSentry ? sentryService : undefined
+    })
   )
 
-  customHandlers?.forEach((customHandler) => {
+  customHandlers?.forEach(customHandler => {
     app.use(customHandler)
   })
 
@@ -91,11 +91,11 @@ export function getExpressTrpcApp({
     trpcExpress.createExpressMiddleware<typeof trpcRouter>({
       router: trpcRouter,
       createContext,
-      onError: (e) => trpcErrorMiddleware({ sentryService, ...e }),
-    }),
+      onError: e => trpcErrorMiddleware({ sentryService, ...e })
+    })
   )
 
-  expressResources?.forEach((expressResource) => {
+  expressResources?.forEach(expressResource => {
     app.use(expressResource)
   })
 
@@ -105,7 +105,7 @@ export function getExpressTrpcApp({
       appName: 'somename',
       appVersion: 'someversion',
       trpcRouter,
-      baseUrl,
+      baseUrl
     })
   }
 
@@ -115,13 +115,13 @@ export function getExpressTrpcApp({
     createOpenApiExpressMiddleware({
       router: trpcRouter,
       createContext,
-      onError: trpcErrorMiddleware,
-    }),
+      onError: trpcErrorMiddleware
+    })
   )
 
   app.use(async (req, res, next) => {
     req.context = await createContext({
-      req,
+      req
     } as trpcExpress.CreateExpressContextOptions)
     next()
   })
@@ -145,7 +145,7 @@ export function getExpressTrpcApp({
   console.log(
     `App Local Url: 
     ${yellow(address)} 
-    in ${Time.ms(process.uptime() * 1000)}, used ${used}`,
+    in ${Time.ms(process.uptime() * 1000)}, used ${used}`
   )
 
   return app

@@ -35,7 +35,10 @@ export type {
 export { SendgridService } from './server/services/sendgrid/sendgridApi.service'
 export { getGcpServiceAccountFromBase64 } from './server/services/gcp/getGcpServiceAccountFromBase64'
 
-export type { SecretProvider } from './server/services/secrets/secret.service'
+export type {
+  SecretProvider,
+  VaultConfig
+} from './server/services/secrets/secret.service'
 export { SecretService } from './server/services/secrets/secret.service'
 export { UrlService } from './server/services/util/url.service'
 export { paginationUtility } from './server/services/util/pagination'

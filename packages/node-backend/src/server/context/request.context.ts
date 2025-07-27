@@ -1,7 +1,32 @@
 import type { Request } from 'express'
-import UAParser from 'ua-parser-js'
 import type { DecodedUserToken } from '../schemas/user.schema'
 import type { LocationOutput } from './context.model'
+
+// Handle both CommonJS and ESM compatibility for ua-parser-js
+let UAParser: any
+try {
+  // Try to import as ESM default
+  UAParser = require('ua-parser-js').default || require('ua-parser-js')
+} catch {
+  try {
+    // Try direct import
+    UAParser = require('ua-parser-js')
+  } catch {
+    // Fallback - create a minimal parser
+    UAParser = class {
+      constructor(ua: string) {}
+      getResult() {
+        return {
+          browser: { name: 'Unknown', version: '' },
+          engine: { name: 'Unknown', version: '' },
+          os: { name: 'Unknown', version: '' },
+          device: { type: 'desktop' },
+          cpu: { architecture: 'unknown' }
+        }
+      }
+    }
+  }
+}
 
 export const requestContext = (request: Request, token?: DecodedUserToken) => {
   const userAgent = request.headers['user-agent'] || ''
@@ -22,7 +47,7 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
         ? {
             decodedToken: token,
             email: 'email' in token ? token.email : undefined,
-            firebaseId: 'uid' in token ? token.uid : undefined,
+            firebaseId: 'uid' in token ? token.uid : undefined
           }
         : undefined,
     url: request.url,
@@ -59,11 +84,11 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
       return {
         ip,
         publicIp: publicIp || '',
-        ...location,
+        ...location
       }
     },
     endpoint: [request.method, request.path || request.url]
-      .map((s) => s.toLowerCase())
+      .map(s => s.toLowerCase())
       .join(' '),
     device: {
       isMobile: result?.device?.type === 'mobile',
@@ -73,7 +98,7 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
         result.os.name === 'Mac OS' || result?.device?.model === 'Macintosh',
       os: result.os.name,
       isIOS: result.os.name === 'iOS',
-      isAndroid: result.os.name === 'Android',
-    },
+      isAndroid: result.os.name === 'Android'
+    }
   }
 }

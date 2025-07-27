@@ -7,9 +7,9 @@ import { magenta } from 'kleur/colors'
 const memoryCache: Record<string, StringMap | undefined> = {}
 // type SecretType = typeof secrets
 
-export type SecretProvider = 'GCP' | 'FILE' | 'VAULT'
+export type SecretProvider = 'GCP' | 'FILE' | 'VAULT' | 'ENV'
 
-interface VaultConfig {
+export interface VaultConfig {
   endpoint: string
   token?: string
   mount?: string
@@ -26,7 +26,7 @@ export class SecretService<SecretType> {
     provider,
     location,
     encryptionKey,
-    vaultConfig,
+    vaultConfig
   }: {
     provider: SecretProvider
     location: string
@@ -54,20 +54,22 @@ export class SecretService<SecretType> {
     const secretEncryptedObject = JSON.parse(fileContents)
 
     console.log(
-      `🔐 Secrets loaded: ${magenta(this.location.split('/').slice(-2).join('/'))}`,
+      `🔐 Secrets loaded: ${magenta(
+        this.location.split('/').slice(-2).join('/')
+      )}`
     )
 
     try {
       const decripted = Security.decryptObject(
         secretEncryptedObject,
-        this.encryptionKey,
+        this.encryptionKey
       )
 
       memoryCache[this.location] = decripted
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
-        `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`,
+        `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`
       )
       return memoryCache[this.location] as any as SecretType
     } catch (err: unknown) {
@@ -84,6 +86,57 @@ export class SecretService<SecretType> {
     return ''
   }
 
+  loadSecretsFromEnv(): SecretType {
+    const cacheKey = `env_${this.location}`
+    if (memoryCache[cacheKey]) {
+      return memoryCache[cacheKey] as any as SecretType
+    }
+
+    const start = process.hrtime.bigint()
+
+    try {
+      // For ENV provider, location is used as a prefix for environment variables
+      // For example, if location is "APP", it will look for APP_API_KEY, APP_DB_PASSWORD, etc.
+      const prefix = this.location ? `${this.location.toUpperCase()}_` : ''
+      const secrets: StringMap = {}
+
+      // Get all environment variables that start with the prefix
+      for (const [key, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+          if (prefix && key.startsWith(prefix)) {
+            // Remove the prefix from the key
+            const secretKey = key.slice(prefix.length)
+            secrets[secretKey] = value
+          } else if (!prefix) {
+            // No prefix, include all environment variables
+            secrets[key] = value
+          }
+        }
+      }
+
+      // Log warning if no prefix is specified
+      if (!this.location) {
+        console.warn(
+          'ENV provider without location prefix - this will expose all environment variables'
+        )
+      }
+
+      memoryCache[cacheKey] = secrets
+
+      const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
+      console.log(
+        `🔐 Secrets loaded from ENV: ${magenta(
+          this.location || 'all'
+        )} (${durationMs.toFixed(3)}ms)`
+      )
+
+      return secrets as any as SecretType
+    } catch (error: any) {
+      console.error('Failed to load secrets from ENV:', error.message)
+      throw new Error(`loadSecretsFromEnv failed: ${error.message}`)
+    }
+  }
+
   async loadSecretsFromVault(): Promise<SecretType> {
     if (!this.vaultConfig) {
       throw new Error('Vault configuration is required for VAULT provider')
@@ -97,9 +150,11 @@ export class SecretService<SecretType> {
     const start = process.hrtime.bigint()
 
     try {
-      const vaultUrl = `${this.vaultConfig.endpoint}/v1/${this.vaultConfig.mount || 'secret'}/data/${this.location}`
+      const vaultUrl = `${this.vaultConfig.endpoint}/v1/${
+        this.vaultConfig.mount || 'secret'
+      }/data/${this.location}`
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       }
 
       // Add token authentication
@@ -114,15 +169,17 @@ export class SecretService<SecretType> {
 
       const response = await fetch(vaultUrl, {
         method: 'GET',
-        headers,
+        headers
       })
 
       if (!response.ok) {
-        throw new Error(`Vault request failed: ${response.status} ${response.statusText}`)
+        throw new Error(
+          `Vault request failed: ${response.status} ${response.statusText}`
+        )
       }
 
-      const data = await response.json() as any
-      
+      const data = (await response.json()) as any
+
       // Vault KV v2 stores data in data.data
       const secrets = data.data?.data || data.data || {}
 
@@ -130,7 +187,9 @@ export class SecretService<SecretType> {
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
-        `🔐 Secrets loaded from Vault: ${magenta(this.location)} (${durationMs.toFixed(3)}ms)`
+        `🔐 Secrets loaded from Vault: ${magenta(
+          this.location
+        )} (${durationMs.toFixed(3)}ms)`
       )
 
       return secrets as SecretType
@@ -146,9 +205,11 @@ export class SecretService<SecretType> {
     }
 
     try {
-      const vaultUrl = `${this.vaultConfig.endpoint}/v1/${this.vaultConfig.mount || 'secret'}/data/${this.location}`
+      const vaultUrl = `${this.vaultConfig.endpoint}/v1/${
+        this.vaultConfig.mount || 'secret'
+      }/data/${this.location}`
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       }
 
       // Add token authentication
@@ -163,17 +224,19 @@ export class SecretService<SecretType> {
 
       // For Vault KV v2, data needs to be wrapped in a data object
       const payload = {
-        data: secrets,
+        data: secrets
       }
 
       const response = await fetch(vaultUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
-        throw new Error(`Vault store request failed: ${response.status} ${response.statusText}`)
+        throw new Error(
+          `Vault store request failed: ${response.status} ${response.statusText}`
+        )
       }
 
       // Clear cache to force reload on next access
@@ -196,6 +259,10 @@ export class SecretService<SecretType> {
       return this.loadSecretsFromVault()
     }
 
+    if (this.provider === 'ENV') {
+      return this.loadSecretsFromEnv()
+    }
+
     return this.loadSecretsFromFile()
   }
 
@@ -209,7 +276,7 @@ export class SecretService<SecretType> {
 
     if (!secret) {
       throw new Error(
-        `Secret ${secretName.toString()} does not exist in ${this.location} env`,
+        `Secret ${secretName.toString()} does not exist in ${this.location} env`
       )
     }
 
@@ -221,18 +288,18 @@ export class SecretService<SecretType> {
     return JSON.parse(secretValue)
   }
 
-  // Synchronous versions for backward compatibility (FILE provider only)
+  // Synchronous versions for backward compatibility (FILE and ENV providers only)
   getSecretSync(secretName: keyof SecretType): string {
     if (this.provider === 'VAULT') {
       throw new Error('Use async getSecret() method for Vault provider')
     }
-    
+
     const secrets = this.loadSecrets() as SecretType
     const secret = secrets[secretName]
 
     if (!secret) {
       throw new Error(
-        `Secret ${secretName.toString()} does not exist in ${this.location} env`,
+        `Secret ${secretName.toString()} does not exist in ${this.location} env`
       )
     }
 
@@ -241,5 +308,12 @@ export class SecretService<SecretType> {
 
   getSecretJsonSync<T = any>(secretName: keyof SecretType): T {
     return JSON.parse(this.getSecretSync(secretName))
+  }
+
+  // Utility method to clear cache for testing
+  static clearCache() {
+    Object.keys(memoryCache).forEach(key => {
+      delete memoryCache[key]
+    })
   }
 }
