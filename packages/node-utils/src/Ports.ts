@@ -25,6 +25,10 @@ class PortClass {
       port
     })
   }
+
+  getAvailablePort = async () => {
+    return portfinder.getPortPromise()
+  }
 }
 
 export const Ports = new PortClass()

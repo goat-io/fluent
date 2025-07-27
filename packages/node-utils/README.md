@@ -81,6 +81,7 @@ const result = await Processes.run('npm list')
 // Find available port
 import { Ports } from '@goatlab/node-utils'
 const port = await Ports.findPort(3000)
+const availablePort = await Ports.getAvailablePort()
 ```
 
 ## Available Utilities

@@ -1,5 +1,12 @@
 # 0.5.20
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.9.1
+
 ## 0.2.0
 
 ### Minor Changes
