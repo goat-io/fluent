@@ -30,7 +30,7 @@
     "@yarnpkg/esbuild-plugin-pnp": "3.0.0-rc.15",
     "abort-controller": "^3.0.0",
     "dotenv-cli": "^5.1.0",
-    "esbuild": "^0.25.5",
+    "esbuild": "^0.25.8",
     "eslint": "^8.5.0",
     "ky": "^1.8.1",
     "prettier": "^2.6.1",
