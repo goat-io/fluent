@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/tasks-adapter-gcp",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Cloud Tasks adapter for Goatlab tasks",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

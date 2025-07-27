@@ -84,6 +84,26 @@ const port = await Ports.findPort(3000)
 const availablePort = await Ports.getAvailablePort()
 ```
 
+### Scripts & Command Execution
+```typescript
+import { Scripts, runScript } from '@goatlab/node-utils'
+
+// Run async scripts with automatic error handling
+runScript(async () => {
+  await doSomething()
+  console.log('Script completed')
+})
+
+// Execute shell commands with signal handling
+await Scripts.runCommand('npm build', { cwd: './packages/app' })
+
+// Capture command output
+const output = await Scripts.runCommand('git status', { 
+  captureOutput: true,
+  silent: true 
+})
+```
+
 ## Available Utilities
 
 ### Authentication & Security
@@ -100,7 +120,7 @@ const availablePort = await Ports.getAvailablePort()
 - **Processes** - Shell command execution
 - **Ports** - Find available network ports
 - **Folders** - Directory operations
-- **Scripts** - Run Node.js scripts programmatically
+- **Scripts** - Run Node.js scripts and shell commands programmatically
 
 ### Data & Utilities
 - **ObjectIds** - BSON ObjectId generation and validation

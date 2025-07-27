@@ -1,5 +1,19 @@
 # 0.5.20
 
+## 0.2.0
+
+### Minor Changes
+
+- Update dependencies and refactor Scripts module
+
+  - **@goatlab/node-backend**: Update major dependencies including Express v5, Sentry v9, and ua-parser-js v2
+  - **@goatlab/node-utils**: Refactor Scripts module to separate files and add runCommand functionality
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.9.2
+
 ## 0.1.1
 
 ### Patch Changes
