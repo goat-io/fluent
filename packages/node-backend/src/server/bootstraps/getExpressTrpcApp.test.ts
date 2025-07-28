@@ -409,4 +409,47 @@ describe('getExpressTrpcApp - Real HTTP Tests', () => {
       expect(response3.status).toBe(200)
     })
   })
+
+  describe('Express v5 Import Compatibility', () => {
+    it('should properly import and instantiate Express application', () => {
+      // This test ensures that the Express import works correctly with v5
+      // Previously failed with "(0, express_1.default) is not a function" error
+      // Fixed by using `import express = require('express')` instead of `import express from 'express'`
+      
+      // The app instance should be a function (Express application)
+      expect(typeof app).toBe('function')
+      
+      // Express app should have the expected methods
+      expect(typeof app.use).toBe('function')
+      expect(typeof app.get).toBe('function')
+      expect(typeof app.post).toBe('function')
+      expect(typeof app.listen).toBe('function')
+      expect(typeof app.set).toBe('function')
+      expect(typeof app.disable).toBe('function')
+      
+      // Should have Express-specific properties
+      expect(app.settings).toBeDefined()
+      expect(typeof app.settings).toBe('object')
+    })
+
+    it('should create Express app that can handle middleware registration', () => {
+      // This validates that the Express instance is properly constructed
+      // and can handle middleware registration, which was failing with v5 import issues
+      
+      const testPort = 9999 // Use a different port for this isolated test
+      let testApp: Express
+      
+      expect(() => {
+        testApp = getExpressTrpcApp({
+          trpcRouter,
+          port: testPort,
+          sentryService
+        })
+      }).not.toThrow()
+      
+      // Verify the app was created successfully
+      expect(testApp).toBeDefined()
+      expect(typeof testApp).toBe('function')
+    })
+  })
 })

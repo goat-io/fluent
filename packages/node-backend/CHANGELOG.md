@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 0.2.3
+
+### Patch Changes
+
+- Fix express import to use require syntax for better CommonJS compatibility
+
+  - Changed express import from ES6 import to require syntax
+  - Added ESLint disable comment for no-require-imports rule
+  - Improved compatibility with various build environments
+  - Added comprehensive test coverage for Express TRPC app initialization
+
 ## 0.2.2
 
 ### Patch Changes
