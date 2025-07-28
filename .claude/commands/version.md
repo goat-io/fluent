@@ -105,11 +105,17 @@ This will:
 # 1. Ensure everything works
 pnpm build
 pnpm test
+```
 
 # 2. Check changes
+
+```bash
 git diff --name-only
+```
 
 # 3. Create changeset for a patch fix
+
+```bash
 cat > .changeset/fix-cloudtask-tests.md << 'EOF'
 ---
 "@goatlab/tasks-adapter-gcp": patch
@@ -117,11 +123,20 @@ cat > .changeset/fix-cloudtask-tests.md << 'EOF'
 
 Improve CloudTask test reliability by adding proper environment variable checks
 EOF
+```
 
 # 4. Apply versions
+
+```bash
 pnpm cs:version
+```
 
 # 5. Review and publish
+
+Dont forget to publish the packages
+
+```bash
 git status
 pnpm cs:publish
+
 ```

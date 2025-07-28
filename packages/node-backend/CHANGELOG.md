@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 0.2.1
+
+### Patch Changes
+
+- Fix ZodError property usage, add zod compatibility layer, and resolve dependency issues
+
+  - Fixed ZodError property from `.errors` to `.issues` in node-backend middleware
+  - Added zod-compat module to handle version compatibility in node-backend
+  - Updated @hatchet-dev/typescript-sdk dependency to latest version in tasks-adapter-hatchet
+  - Added sqlite3 as dev dependency to fluent package to fix test failures
+
 ## 0.2.0
 
 ### Minor Changes

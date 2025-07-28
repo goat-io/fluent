@@ -1,6 +1,7 @@
 {
   "name": "@goatlab/benchmarks",
   "version": "0.2.0",
+  "private": true,
   "description": "Performance benchmarking suite for database tools and approaches",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -71,3 +71,8 @@ export {
   DistributedCacheInvalidator,
   getDistributedCacheInvalidator
 } from './container/DistributedCacheInvalidator'
+
+////////////////////////
+// Zod Compatibility
+////////////////////////
+export * as zodCompat from './server/zod-compat'

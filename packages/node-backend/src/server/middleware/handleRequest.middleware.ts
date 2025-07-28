@@ -38,7 +38,7 @@ export const handleRequest = <T extends ZodSchema>(
       if (err instanceof ZodError) {
         return res.status(400).json({
           error: 'Invalid request body',
-          details: err.errors, // Send detailed validation errors
+          details: err.issues, // Send detailed validation errors
         })
       }
 

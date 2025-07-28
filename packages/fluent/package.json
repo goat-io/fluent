@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "scripts": {
     "build": "tsc && cp src/core/Loopback/mapValues.js dist/core/Loopback/",
     "dev": "tsc --watch",
@@ -60,6 +60,7 @@
     "pg": "^8.16.3",
     "prettier": "^3.6.2",
     "pretty-quick": "^4.2.2",
+    "sqlite3": "^5.1.7",
     "testcontainers": "^11.0.3",
     "ts-jest": "catalog:",
     "ts-node": "catalog:",
