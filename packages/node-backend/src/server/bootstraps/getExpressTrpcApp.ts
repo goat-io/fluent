@@ -4,10 +4,12 @@ import type { Express, RequestHandler, Router } from 'express'
 import { CommonLogger, Time, Units } from '@goatlab/js-utils'
 import * as Sentry from '@sentry/node'
 import * as trpcExpress from '@trpc/server/adapters/express'
-import cors from 'cors'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const cors = require('cors')
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import express = require('express')
-import helmet from 'helmet'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const helmet = require('helmet')
 import { yellow } from 'kleur/colors'
 import { createOpenApiExpressMiddleware } from 'trpc-to-openapi'
 import { pkg } from '../consts'

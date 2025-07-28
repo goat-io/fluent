@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.2.4
+
+### Patch Changes
+
+- Re export cors
+
 ## 0.2.3
 
 ### Patch Changes
