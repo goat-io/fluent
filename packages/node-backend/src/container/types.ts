@@ -5,12 +5,23 @@
 import type { Container } from './Container'
 import { DistributedCacheInvalidator } from './DistributedCacheInvalidator'
 
+/**
+ * Interface for disposable objects
+ * Services implementing this interface will have their dispose method
+ * called when they are evicted from cache or when caches are cleared
+ */
+export interface Disposable {
+  dispose(): void | Promise<void>
+}
+
 export interface MapInterface<T> {
   clear(): void
   delete(key: string): boolean
   get(key: string): T | undefined
   set(key: string, value: T, ttl?: number): 1 | 0
   size?: number | (() => number)
+  values?(): IterableIterator<T>
+  entries?(): IterableIterator<[string, T]>
 }
 
 /**

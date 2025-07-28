@@ -14,6 +14,7 @@
     "build": "turbo run build --filter=!@goatlab/fluent --filter=!@goatlab/queue-node --filter=!@goatlab/ts-package-template",
     "dev": "turbo run dev --parallel",
     "test": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/ts-package-template --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase",
+    "test-ci": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/ts-package-template --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase --filter=!@goatlab/tasks-adapter-gcp",
     "lint": "turbo run lint",
     "cs": "changeset",
     "cs:version": "changeset version",

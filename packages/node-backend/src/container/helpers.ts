@@ -34,3 +34,24 @@ export function instantiate<T, P extends readonly unknown[]>(
   // Invalid factory type
   throw new Error(`Invalid factory: expected function or class constructor, got ${typeof factory}`)
 }
+
+/**
+ * Safely dispose of an object by calling its dispose method if available
+ * Supports both sync and async disposal patterns
+ * 
+ * @param obj - Object to dispose
+ * @returns Promise that resolves when disposal is complete
+ */
+export async function safeDispose(obj: unknown): Promise<void> {
+  try {
+    const d = (obj as any)?.dispose
+    if (typeof d === 'function') {
+      await d.call(obj)
+    }
+  } catch (error) {
+    // Swallow disposal errors to ensure cleanup continues
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Disposal error:', error)
+    }
+  }
+}

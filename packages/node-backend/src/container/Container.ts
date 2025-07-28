@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from 'async_hooks'
-import { createHash } from 'crypto'
 import { createServiceCache } from './LruCache'
 import {
   ContainerOptions,
@@ -8,7 +7,7 @@ import {
   MapInterface,
   PreloadStructure,
 } from './types'
-import { instantiate } from './helpers'
+import { instantiate, safeDispose } from './helpers'
 
 // Instantiation helper moved to helpers.ts for better performance
 
@@ -103,8 +102,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   /**
    * Service instance cache managers - one per service type
    * Each manager handles LRU caching for that specific service
+   * Lazy-allocated to save memory for unused services
    */
-  private readonly managers: Record<string, MapInterface<unknown>>
+  private readonly managers: Record<string, MapInterface<unknown>> = {}
 
   /**
    * AsyncLocalStorage provides automatic tenant context isolation
@@ -145,11 +145,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   // ⚡ PERFORMANCE OPTIMIZATION CACHES
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /**
-   * Path string cache: converts ['user', 'repo'] -> "user.repo"
-   * Optimized to avoid repeated string joins and array operations
-   */
-  private readonly pathCache = new Map<string, string>()
+  // Path cache removed - direct string concatenation is faster
 
   /**
    * Proxy object cache: reuses proxy objects for the same paths
@@ -179,23 +175,22 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
 
   /**
    * High-performance metrics using Uint32Array for better JIT optimization
-   * Indices: [hits, misses, creates, ctx, paths, proxy, initHits, resets]
+   * Indices: [hits, misses, creates, ctx, proxy, initHits, resets]
    * Auto-wraps at 2^32 without overflow checks for maximum performance
    */
-  private readonly metrics = new Uint32Array(8)
+  private readonly metrics = new Uint32Array(7)
 
   /**
    * Metric indices for Uint32Array
    */
-  private static readonly METRIC_INDICES = {
+  private static readonly METRIC = {
     HITS: 0,
     MISSES: 1,
     CREATES: 2,
     CONTEXTS: 3,
-    PATHS: 4,
-    PROXIES: 5,
-    INIT_HITS: 6,
-    RESETS: 7,
+    PROXIES: 4,
+    INIT_HITS: 5,
+    RESETS: 6,
   } as const
 
   /**
@@ -216,7 +211,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       // Legacy test behavior - reset metrics when mock threshold reached
       this.resetMetrics()
       if (this.options.enableDiagnostics) {
-        const metricNames = ['cacheHits', 'cacheMisses', 'instanceCreations', 'contextAccesses', 'pathCacheHits', 'proxyCacheHits', 'initializerCacheHits']
+        const metricNames = ['cacheHits', 'cacheMisses', 'instanceCreations', 'contextAccesses', 'proxyCacheHits', 'initializerCacheHits', 'resets']
         console.warn(
           `Container metrics reset due to overflow protection. Metric '${metricNames[idx] || 'unknown'}' reached ${this.metrics[idx]}`,
         )
@@ -262,14 +257,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       ...options,
     } as Required<ContainerOptions>
 
-    // Initialize cache managers for each service
-    this.managers = this.createManagers(this.factories, this.options.cacheSize)
-
     // Pre-cache factory lookups for better performance
     this.preloadFactoryCache()
-
-    // Pre-warm proxy cache with common paths to reduce runtime allocation
-    this.prewarmProxyCache()
 
     // Setup distributed cache invalidation if enabled
     this.setupDistributedInvalidation()
@@ -280,60 +269,21 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Recursively create cache managers for all services in the factory tree
-   * Each service gets its own LRU cache with the configured size limit
+   * Get or create a cache manager for a service - lazy allocation
+   * Saves memory by only creating caches for services that are actually used
+   * Note: Type safety is enforced at compile time through generics, not runtime
    */
-  private createManagers(
-    defs: Record<string, unknown>,
-    cacheSize: number,
-    path: string[] = [],
-  ): Record<string, MapInterface<unknown>> {
-    const managers: Record<string, MapInterface<unknown>> = {}
-
-    for (const [key, value] of Object.entries(defs)) {
-      const newPath = path.length === 0 ? [key] : [...path, key]
-
-      if (typeof value === 'function') {
-        // This is a factory function/constructor - create a cache for it
-        const flatKey = this.getOrCachePath(newPath)
-        managers[flatKey] = createServiceCache<unknown>(cacheSize)
-      } else if (typeof value === 'object' && value !== null) {
-        // This is a nested object - recurse into it
-        const subManagers = this.createManagers(
-          value as Record<string, unknown>,
-          cacheSize,
-          newPath,
-        )
-        Object.assign(managers, subManagers)
-      }
-    }
-
-    return managers
+  private getManager<S = unknown>(key: string): MapInterface<S> {
+    return (this.managers[key] ??= createServiceCache<S>(this.options.cacheSize)) as MapInterface<S>
   }
+
+  // createManagers() removed - managers are created lazily via getManager()
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ⚡ PERFORMANCE OPTIMIZATION HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /**
-   * Optimized path caching that maintains flat key strings to avoid repeated joins
-   * Uses closure to keep pre-computed cache and final keys for maximum performance
-   */
-  private getOrCachePath(path: (string | symbol)[]): string {
-    // Create cache key once and reuse the flat key computation
-    const stringPath = path.map(p => typeof p === 'symbol' ? p.toString() : p)
-    const cacheKey = stringPath.join('|') // Cache key uses pipe separator
-    
-    let cached = this.pathCache.get(cacheKey)
-    if (!cached) {
-      cached = stringPath.join('.') // Final path uses dot separator
-      this.pathCache.set(cacheKey, cached)
-    } else {
-      this.inc(Container.METRIC_INDICES.PATHS)
-    }
-
-    return cached
-  }
+  // getOrCachePath() removed - direct string concatenation in createPreloadProxy()
 
   /**
    * Pre-populate the factory cache by walking the entire factory tree
@@ -343,25 +293,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     this.walkFactories(this.factories, [])
   }
 
-  /**
-   * Pre-warm proxy cache with static builders for common paths
-   * This reduces proxy creation overhead during runtime access patterns
-   */
-  private prewarmProxyCache(): void {
-    // Pre-create proxies for all known factory paths to avoid runtime creation
-    for (const [path] of this.factoryCache.entries()) {
-      const pathParts = path.split('.')
-      // Pre-warm all parent paths (e.g., for "api.users", pre-warm "api")
-      for (let i = 1; i <= pathParts.length; i++) {
-        const subPath = pathParts.slice(0, i)
-        const pathKey = subPath.join('|')
-        if (!this.proxyCache.has(pathKey)) {
-          // Create and cache the proxy for this path
-          this.createPreloadProxy(subPath)
-        }
-      }
-    }
-  }
+  // prewarmProxyCache() removed - proxies are created lazily
 
   /**
    * Recursive factory tree walker that builds the flat factory cache
@@ -373,7 +305,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
 
       if (typeof value === 'function') {
         // Found a factory - cache it with its full path
-        const flatKey = this.getOrCachePath(newPath)
+        const flatKey = newPath.join('.')
         this.factoryCache.set(
           flatKey,
           value as Factory<unknown, readonly unknown[]>,
@@ -419,54 +351,44 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    *
    * This enables natural dot-notation access while maintaining lazy loading
    */
-  private createPreloadProxy(path: string[] = []): any {
-    const pathKey = path.join('|')
-
-    // Check cache first for performance
-    if (this.proxyCache.has(pathKey)) {
-      this.inc(Container.METRIC_INDICES.PROXIES)
-      return this.proxyCache.get(pathKey)
+  private createPreloadProxy(path = ''): any {
+    if (this.proxyCache.has(path)) {
+      this.inc(Container.METRIC.PROXIES)
+      return this.proxyCache.get(path)
     }
 
     const proxy = new Proxy(
       {}, // Empty target object - all access is intercepted
       {
         get: (_, prop) => {
-          const newPath =
-            path.length === 0 ? [prop as string] : [...path, prop as string]
-          const flatKey = this.getOrCachePath(newPath)
-          const factory = this.factoryCache.get(flatKey)
+          const newPath = path ? `${path}.${String(prop)}` : String(prop)
+          const factory = this.factoryCache.get(newPath)
 
           if (factory) {
             // Found a factory - return a function that creates/caches instances
-            return (id: string, ...params: any[]) => {
-              const mgr = this.managers[flatKey]
+            return (id: string, ...args: unknown[]) => {
+              const mgr = this.getManager(newPath)
               let inst = mgr.get(id)
-
+              
               if (!inst) {
-                // Cache miss - create new instance
-                this.inc(Container.METRIC_INDICES.MISSES)
-                this.inc(Container.METRIC_INDICES.CREATES)
-
-                inst = instantiate(factory, params as any)
+                this.inc(Container.METRIC.MISSES)
+                this.inc(Container.METRIC.CREATES)
+                inst = instantiate(factory, args as any)
                 mgr.set(id, inst)
               } else {
-                // Cache hit - reusing existing instance
-                this.inc(Container.METRIC_INDICES.HITS)
+                this.inc(Container.METRIC.HITS)
               }
-
+              
               return inst
             }
-          } else {
-            // No factory found - must be a nested path, return another proxy
-            return this.createPreloadProxy(newPath)
           }
+          // No factory found - must be a nested path, return another proxy
+          return this.createPreloadProxy(newPath)
         },
       },
     )
 
-    // Cache the proxy for reuse
-    this.proxyCache.set(pathKey, proxy)
+    this.proxyCache.set(path, proxy)
     return proxy
   }
 
@@ -497,13 +419,19 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     tenantMetadata: TenantMetadata,
     fn: () => T,
   ): T {
-    const store = { instances, tenantMetadata }
-    this.als.enterWith(store)
+    const prev = this.als.getStore()
+    this.als.enterWith({ instances, tenantMetadata })
     try {
       return fn()
     } finally {
-      // Clean up the context after synchronous execution
-      this.als.enterWith(undefined as any)
+      if (prev) {
+        this.als.enterWith(prev)
+      } else if ('disable' in this.als) {
+        // Node 20+ - fully clear context when no previous context
+        // The disable() method was added in Node.js 20.5.0 to properly clear ALS context
+        // In earlier versions, this check safely falls through without error
+        (this.als as any).disable()
+      }
     }
   }
 
@@ -526,7 +454,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       )
     }
 
-    this.inc(Container.METRIC_INDICES.CONTEXTS)
+    this.inc(Container.METRIC.CONTEXTS)
 
     return this.createContextProxy(store.instances) as InstancesStructure<Defs>
   }
@@ -553,7 +481,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       get: (target, prop) => {
         const newPath =
           path.length === 0 ? [prop] : [...path, prop]
-        const value = target[prop]
+        const value = Reflect.get(target, prop)
 
         if (value === undefined) {
           // Check if property exists but is undefined (vs completely missing)
@@ -568,9 +496,14 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
             return undefined
           }
 
+          // Special case for 'then' to avoid Promise detection issues
+          if (prop === 'then') {
+            return undefined
+          }
+
           // Property doesn't exist - provide helpful error message
-          const servicePath = this.getOrCachePath(newPath)
-          const available = Object.keys(target).join(', ')
+          const servicePath = newPath.join('.')
+          const available = Reflect.ownKeys(target).map(String).join(', ')
           throw new Error(
             `Service '${servicePath}' not initialized. ` +
               `Available services: ${available}`,
@@ -617,30 +550,37 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Create a stable cache key from tenant metadata using crypto-strong hashing
-   * Uses SHA-1 for better collision resistance than simple hash (~1:2^16 -> negligible)
+   * Simple string hash function for fallback tenant keys
+   * Uses djb2 algorithm - fast and good enough for cache keys
+   * Note: For very large metadata objects, consider upgrading to FNV-1a or crypto.createHash
+   * if collision resistance is critical. Current implementation is optimized for speed.
    */
-  private createTenantCacheKey(meta: TenantMetadata): string {
-    // Try to extract a tenant ID from common properties
-    const metaObj = meta as any
-    const tenantId = metaObj.id || metaObj.tenantId || metaObj.name || 'unknown'
-
-    // Create a stable hash from the metadata for complete uniqueness
-    try {
-      const sortedMeta = JSON.stringify(
-        meta,
-        Object.keys(meta as object).sort(),
-      )
-      // Use crypto-strong hash for better collision resistance (27 bytes vs simple hash)
-      const hash = createHash('sha1').update(sortedMeta).digest('base64url')
-      return `tenant:${tenantId}:${hash}`
-    } catch {
-      // Fallback if JSON.stringify fails (circular refs, etc.)
-      return `tenant:${tenantId}:${Date.now()}`
+  private simpleHash(str: string): string {
+    let hash = 5381
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash) + str.charCodeAt(i)
     }
+    return (hash >>> 0).toString(36)
   }
 
-  // Simple hash function removed in favor of crypto.createHash for better collision resistance
+  /**
+   * Create a stable cache key from tenant metadata
+   * Uses common tenant properties or hashed JSON as fallback
+   */
+  private createTenantCacheKey(meta: TenantMetadata): string {
+    const m = meta as any
+    if (m.id || m.tenantId || m.name) {
+      return `tenant:${m.id ?? m.tenantId ?? m.name}`
+    }
+    // Fallback to hashed JSON for complex metadata
+    try {
+      const json = JSON.stringify(meta)
+      return `tenant:hash:${this.simpleHash(json)}`
+    } catch {
+      // Last resort for circular refs
+      return `tenant:ts:${Date.now()}`
+    }
+  }
 
   /**
    * Get or create initialized instances for a tenant with race condition protection
@@ -654,7 +594,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Check if we already have initialized instances for this tenant
     const cachedInstances = this.initializerCache.get(cacheKey)
     if (cachedInstances) {
-      this.inc(Container.METRIC_INDICES.INIT_HITS)
+      this.inc(Container.METRIC.INIT_HITS)
       return cachedInstances
     }
 
@@ -741,13 +681,12 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    */
   getMetrics() {
     return {
-      cacheHits: this.metrics[Container.METRIC_INDICES.HITS],
-      cacheMisses: this.metrics[Container.METRIC_INDICES.MISSES],
-      instanceCreations: this.metrics[Container.METRIC_INDICES.CREATES],
-      contextAccesses: this.metrics[Container.METRIC_INDICES.CONTEXTS],
-      pathCacheHits: this.metrics[Container.METRIC_INDICES.PATHS],
-      proxyCacheHits: this.metrics[Container.METRIC_INDICES.PROXIES],
-      initializerCacheHits: this.metrics[Container.METRIC_INDICES.INIT_HITS],
+      cacheHits: this.metrics[Container.METRIC.HITS],
+      cacheMisses: this.metrics[Container.METRIC.MISSES],
+      instanceCreations: this.metrics[Container.METRIC.CREATES],
+      contextAccesses: this.metrics[Container.METRIC.CONTEXTS],
+      proxyCacheHits: this.metrics[Container.METRIC.PROXIES],
+      initializerCacheHits: this.metrics[Container.METRIC.INIT_HITS],
     }
   }
 
@@ -757,7 +696,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    */
   resetMetrics(): void {
     this.metrics.fill(0)
-    this.inc(Container.METRIC_INDICES.RESETS)
+    this.inc(Container.METRIC.RESETS)
   }
 
   /**
@@ -768,25 +707,46 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Dispose instances before clearing to prevent memory leaks
     for (const manager of Object.values(this.managers)) {
       // Call dispose hooks if manager supports iteration
-      if (typeof (manager as any).entries === 'function') {
-        for (const [, inst] of (manager as any).entries()) {
-          // Call optional dispose hook if available
-          if (inst && typeof (inst as any).dispose === 'function') {
-            try {
-              (inst as any).dispose()
-            } catch (err) {
-              if (this.options.enableDiagnostics) {
-                console.warn('Error disposing instance:', err)
-              }
+      if (typeof (manager as any).values === 'function') {
+        const vals = (manager as any).values?.() ?? []
+        for (const inst of vals) {
+          safeDispose(inst).catch(err => {
+            if (this.options.enableDiagnostics) {
+              console.warn('Error disposing service instance:', err)
             }
-          }
+          })
         }
       }
-      manager.clear?.()
+      manager.clear()
     }
 
     // Clear optimization caches as well
-    this.pathCache.clear()
+    this.proxyCache.clear()
+    this.initializerCache.clear()
+    this.initializerPromises.clear()
+
+    // Note: contextProxyCache is a WeakMap and will be garbage collected automatically
+  }
+
+  /**
+   * Async version of clearCaches that properly awaits all disposal operations
+   * Use this method when you need to ensure all resources are fully disposed
+   * before continuing (e.g., during graceful shutdown)
+   */
+  async clearCachesAsync(): Promise<void> {
+    // Dispose instances before clearing to prevent memory leaks
+    await Promise.all(
+      Object.values(this.managers).flatMap(m =>
+        [...(m.values?.() ?? [])].map(safeDispose)
+      )
+    )
+    
+    // Clear all managers
+    for (const manager of Object.values(this.managers)) {
+      manager.clear()
+    }
+
+    // Clear optimization caches as well
     this.proxyCache.clear()
     this.initializerCache.clear()
     this.initializerPromises.clear()
@@ -912,14 +872,12 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Clear service instance caches for this tenant with disposal
     for (const manager of Object.values(this.managers)) {
       const instance = manager.get(tenantId)
-      if (instance && typeof (instance as any).dispose === 'function') {
-        try {
-          (instance as any).dispose()
-        } catch (err) {
+      if (instance) {
+        safeDispose(instance).catch(err => {
           if (this.options.enableDiagnostics) {
             console.warn('Error disposing tenant instance:', err)
           }
-        }
+        })
       }
       manager.delete(tenantId)
     }
@@ -947,17 +905,14 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     const manager = this.managers[serviceType]
     if (manager) {
       // Dispose instances before clearing
-      if (typeof (manager as any).entries === 'function') {
-        for (const [, inst] of (manager as any).entries()) {
-          if (inst && typeof (inst as any).dispose === 'function') {
-            try {
-              (inst as any).dispose()
-            } catch (err) {
-              if (this.options.enableDiagnostics) {
-                console.warn('Error disposing service instance:', err)
-              }
+      if (typeof (manager as any).values === 'function') {
+        const vals = (manager as any).values?.() ?? []
+        for (const inst of vals) {
+          safeDispose(inst).catch(err => {
+            if (this.options.enableDiagnostics) {
+              console.warn('Error disposing service instance:', err)
             }
-          }
+          })
         }
       }
       manager.clear()
@@ -976,6 +931,23 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     }
 
     this.clearCaches()
+  }
+
+  /**
+   * Dispose all service instances across all tenants and clear caches
+   * Useful for graceful shutdown and testing cleanup
+   * Note: This also clears all caches to prevent resurrection of disposed services
+   */
+  async disposeAll(): Promise<void> {
+    // First dispose all instances
+    await Promise.all(
+      Object.values(this.managers).flatMap(manager =>
+        [...(manager.values?.() ?? [])].map(safeDispose)
+      )
+    )
+    
+    // Then clear all caches to prevent resurrection
+    await this.clearCachesAsync()
   }
 
   /**
@@ -1012,14 +984,14 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       0,
     )
     
-    const hits = this.metrics[Container.METRIC_INDICES.HITS]
-    const misses = this.metrics[Container.METRIC_INDICES.MISSES]
+    const hits = this.metrics[Container.METRIC.HITS]
+    const misses = this.metrics[Container.METRIC.MISSES]
 
     return {
       ...this.getMetrics(),
       cacheStats,
       totalCacheSize,
-      pathCacheSize: this.pathCache.size,
+      pathCacheSize: 0, // removed - no longer tracked
       proxyCacheSize: this.proxyCache.size,
       factoryCacheSize: this.factoryCache.size,
       initializerCacheSize: this.initializerCache.size,

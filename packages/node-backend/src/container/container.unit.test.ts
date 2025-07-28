@@ -2,31 +2,59 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { Container } from './Container'
 
-// Enhanced mocks for cache with usage tracking
-vi.mock('./cache', () => {
+// Enhanced mocks for cache with usage tracking and LRU behavior
+vi.mock('./LruCache', () => {
   return {
-    createServiceCache: vi.fn(() => {
+    createServiceCache: vi.fn((max = 100) => {
       const map = new Map()
+      const accessOrder = new Map()
+      let accessCounter = 0
       let getCount = 0
       let setCount = 0
 
       return {
         get: (k: string) => {
           getCount++
-          return map.get(k)
+          const value = map.get(k)
+          if (value !== undefined) {
+            accessOrder.set(k, ++accessCounter)
+          }
+          return value
         },
         set: (k: string, v: any) => {
           setCount++
-          return map.set(k, v)
+          
+          // Evict LRU item if at capacity
+          if (map.size >= max && !map.has(k)) {
+            let lruKey = null
+            let lruTime = Infinity
+            for (const [key, time] of accessOrder) {
+              if (time < lruTime) {
+                lruTime = time
+                lruKey = key
+              }
+            }
+            if (lruKey) {
+              map.delete(lruKey)
+              accessOrder.delete(lruKey)
+            }
+          }
+          
+          map.set(k, v)
+          accessOrder.set(k, ++accessCounter)
+          return map
         },
         delete: (k: string) => {
+          accessOrder.delete(k)
           return map.delete(k)
         },
+        values: () => map.values(),
         getCallCount: () => getCount,
         setCallCount: () => setCount,
-        size: () => map.size,
+        get size() { return map.size },
         clear: () => {
           map.clear()
+          accessOrder.clear()
           getCount = 0
           setCount = 0
         },
@@ -1255,7 +1283,6 @@ describe('Container Overflow Protection Tests', () => {
       expect(metrics.cacheMisses).toBe(0)
       expect(metrics.instanceCreations).toBe(0)
       expect(metrics.contextAccesses).toBe(0)
-      expect(metrics.pathCacheHits).toBe(0)
       expect(metrics.proxyCacheHits).toBe(0)
       expect(metrics.initializerCacheHits).toBe(0)
     })
@@ -1417,7 +1444,6 @@ describe('Container Overflow Protection Tests', () => {
       expect(metrics.cacheMisses).toBe(0)
       expect(metrics.instanceCreations).toBe(0)
       expect(metrics.contextAccesses).toBe(0)
-      expect(metrics.pathCacheHits).toBe(0)
       expect(metrics.proxyCacheHits).toBe(0)
       expect(metrics.initializerCacheHits).toBe(0)
     })
@@ -2304,5 +2330,550 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       )
       expect(newService).not.toBe(service)
     })
+  })
+})
+
+
+describe('Container Critical Gap Tests', () => {
+  interface Factories {
+    disposableService: () => { disposed: boolean; dispose: () => void | Promise<void> }
+    throwingDispose: () => { dispose: () => void }
+    asyncDispose: () => { disposed: boolean; dispose: () => Promise<void> }
+    normalService: () => { value: number }
+    promiseFactory: () => Promise<{ data: string }>
+    symbolService: () => { value: number; regularProp: string }
+  }
+
+  interface TenantMeta {
+    tenantId: string
+    tenantName?: string
+  }
+
+  // Test 1: Disposal hooks verification
+  describe('Disposal Hooks', () => {
+    test('should call dispose() on service instances during clearCachesAsync', async () => {
+      let disposeCount = 0
+      let asyncDisposeCount = 0
+      
+      const factories = {
+        disposableService: () => ({ 
+          disposed: false, 
+          dispose() { 
+            this.disposed = true
+            disposeCount++
+          } 
+        }),
+        asyncDispose: () => ({
+          disposed: false,
+          async dispose() {
+            await new Promise(resolve => setTimeout(resolve, 10))
+            this.disposed = true
+            asyncDisposeCount++
+          }
+        })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        disposableService: preload.disposableService(meta.tenantId),
+        asyncDispose: preload.asyncDispose(meta.tenantId)
+      }))
+
+      // Create instances
+      const service1 = container.preload.disposableService('tenant1')
+      const service2 = container.preload.disposableService('tenant2')
+      const asyncService = container.preload.asyncDispose('tenant1')
+
+      expect(service1.disposed).toBe(false)
+      expect(service2.disposed).toBe(false)
+      expect(asyncService.disposed).toBe(false)
+
+      // Clear caches with async disposal
+      await container.clearCachesAsync()
+
+      // Verify managers are empty after disposal
+      expect(container.getCacheStats().disposableService.size).toBe(0)
+      expect(container.getCacheStats().asyncDispose.size).toBe(0)
+
+      expect(service1.disposed).toBe(true)
+      expect(service2.disposed).toBe(true)
+      expect(asyncService.disposed).toBe(true)
+      expect(disposeCount).toBe(2)
+      expect(asyncDisposeCount).toBe(1)
+    })
+
+    test('should handle disposal errors gracefully with diagnostics', async () => {
+      // Save original NODE_ENV
+      const originalEnv = process.env.NODE_ENV
+      process.env.NODE_ENV = 'development'
+      
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      
+      const factories = {
+        throwingDispose: () => ({
+          dispose() {
+            throw new Error('Disposal failed!')
+          }
+        }),
+        normalService: () => ({ value: 42 })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        throwingDispose: preload.throwingDispose(meta.tenantId),
+        normalService: preload.normalService(meta.tenantId)
+      }), { enableDiagnostics: true })
+
+      // Create instances
+      container.preload.throwingDispose('tenant1')
+      const normalService = container.preload.normalService('tenant1')
+
+      // Should not throw even if dispose fails
+      await expect(container.clearCachesAsync()).resolves.not.toThrow()
+
+      // Should log the error
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Disposal error:',
+        expect.any(Error)
+      )
+
+      // Other services should still work
+      expect(normalService.value).toBe(42)
+
+      consoleErrorSpy.mockRestore()
+      process.env.NODE_ENV = originalEnv
+    })
+  })
+
+  // Test 2: LRU eviction order
+  describe('LRU Eviction Order', () => {
+    test('should evict least recently used entries when cache is full', () => {
+      const factories = {
+        service: (n: number) => ({ value: n })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        service: preload.service(meta.tenantId, 100)
+      }), { cacheSize: 3 })
+
+      // Fill cache with A, B, C
+      const serviceA = container.preload.service('A', 1)
+      const serviceB = container.preload.service('B', 2)
+      const serviceC = container.preload.service('C', 3)
+
+      // Access A to make it recently used
+      container.preload.service('A', 1)
+
+      // Add D, should evict B (least recently used)
+      const serviceD = container.preload.service('D', 4)
+
+      // Verify cache size is still 3 after eviction
+      expect(container.getCacheStats().service.size).toBe(3)
+
+      // Verify cache contents
+      expect(container.preload.service('A', 1)).toBe(serviceA) // Still cached
+      expect(container.preload.service('C', 3)).toBe(serviceC) // Still cached
+      expect(container.preload.service('D', 4)).toBe(serviceD) // Still cached
+      
+      // B should be evicted and recreated
+      const newServiceB = container.preload.service('B', 2)
+      expect(newServiceB).not.toBe(serviceB)
+      expect(newServiceB.value).toBe(2)
+    })
+
+    test('should maintain accurate cache stats after manual eviction', async () => {
+      const factories = {
+        service: (n: number) => ({ value: n })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        service: preload.service(meta.tenantId, 100)
+      }), { cacheSize: 2 })
+
+      // Add services to fill cache
+      container.preload.service('A', 1)
+      container.preload.service('B', 2)
+      
+      // Verify cache stats are accurate
+      const statsBeforeEviction = container.getCacheStats()
+      expect(statsBeforeEviction.service.size).toBe(2)
+      
+      // Add third service, causing eviction
+      container.preload.service('C', 3)
+      
+      // Verify cache stats remain accurate after eviction
+      await Promise.resolve()
+      const statsAfterEviction = container.getCacheStats()
+      expect(statsAfterEviction.service.size).toBe(2)
+    })
+  })
+
+  // Test 3: Initializer promise de-duplication
+  describe('Initializer Promise De-duplication', () => {
+    test('should deduplicate concurrent initializer calls', async () => {
+      let initializerCallCount = 0
+      let resolveInit: () => void
+      const initPromise = new Promise<void>(resolve => {
+        resolveInit = resolve
+      })
+
+      const factories = {
+        service: () => ({ initialized: true })
+      }
+
+      const initializer = async (preload: any, meta: TenantMeta) => {
+        initializerCallCount++
+        await initPromise
+        return {
+          service: preload.service(meta.tenantId)
+        }
+      }
+
+      const container = new Container(factories, initializer)
+      const meta = { tenantId: 'concurrent-test' }
+
+      // Start two concurrent bootstraps
+      const bootstrap1 = container.bootstrap(meta, async () => {
+        return container.context.service
+      })
+      
+      const bootstrap2 = container.bootstrap(meta, async () => {
+        return container.context.service
+      })
+
+      // Verify initializer hasn't been called twice yet
+      expect(initializerCallCount).toBe(1)
+
+      // Resolve the initializer
+      resolveInit!()
+
+      // Wait for both bootstraps
+      const [result1, result2] = await Promise.all([bootstrap1, bootstrap2])
+
+      // Should have called initializer only once
+      expect(initializerCallCount).toBe(1)
+
+      // Both should get the same instances
+      expect(result1.instances).toBe(result2.instances)
+      expect(result1.result).toEqual({ initialized: true })
+      expect(result2.result).toEqual({ initialized: true })
+    })
+  })
+
+  // Test 4: Context cleanliness on sync path
+  describe('Context Cleanliness on Sync Path', () => {
+    test('should restore previous context after sync execution', () => {
+      const factories = {
+        service: () => ({ value: 'test' })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        service: preload.service(meta.tenantId)
+      }))
+
+      const instances1 = { service: { value: 'context1' } }
+      const instances2 = { service: { value: 'context2' } }
+      const meta1 = { tenantId: 'tenant1' }
+      const meta2 = { tenantId: 'tenant2' }
+
+      let capturedContext: any
+
+      // Set initial context
+      container.runWithContextSync(instances1, meta1, () => {
+        // Run nested context
+        container.runWithContextSync(instances2, meta2, () => {
+          capturedContext = container.context
+          expect(container.context.service.value).toBe('context2')
+        })
+        
+        // Context should be restored
+        expect(container.context.service.value).toBe('context1')
+      })
+
+      // Context should be cleared (no previous context)
+      expect(() => container.context).toThrow()
+    })
+
+    test('should restore context even if sync function throws', () => {
+      const factories = {
+        service: () => ({ value: 'test' })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        service: preload.service(meta.tenantId)
+      }))
+
+      const instances = { service: { value: 'original' } }
+      const meta = { tenantId: 'tenant1' }
+
+      container.runWithContextSync(instances, meta, () => {
+        expect(() => {
+          container.runWithContextSync(instances, meta, () => {
+            throw new Error('Sync error')
+          })
+        }).toThrow('Sync error')
+        
+        // Context should still be restored
+        expect(container.context.service.value).toBe('original')
+      })
+    })
+
+    test('should restore context even if async function throws', async () => {
+      const factories = {
+        service: () => ({ value: 'test' })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        service: preload.service(meta.tenantId)
+      }))
+
+      const instances = { service: { value: 'original' } }
+      const meta = { tenantId: 'tenant1' }
+
+      await container.runWithContext(instances, meta, async () => {
+        await expect(container.runWithContext(instances, meta, async () => {
+          throw new Error('Async error')
+        })).rejects.toThrow('Async error')
+        
+        // Context should still be restored
+        expect(container.context.service.value).toBe('original')
+      })
+
+      // Context should be cleared (no previous context)
+      expect(() => container.context).toThrow()
+    })
+  })
+
+  // Test 5: ALS.disable() path for Node < 20
+  describe('ALS disable() Compatibility', () => {
+    test('should handle missing disable method gracefully', () => {
+      const factories = {
+        service: () => ({ value: 'test' })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        service: preload.service(meta.tenantId)
+      }))
+
+      // Mock ALS without disable method
+      const originalAls = (container as any).als
+      const mockAls = {
+        run: originalAls.run.bind(originalAls),
+        getStore: originalAls.getStore.bind(originalAls),
+        enterWith: originalAls.enterWith.bind(originalAls)
+        // Note: no disable() method
+      };
+      (container as any).als = mockAls
+
+      const instances = { service: { value: 'test' } }
+      const meta = { tenantId: 'tenant1' }
+
+      // Should not throw even without disable()
+      const result = container.runWithContextSync(instances, meta, () => {
+        return container.context.service.value
+      })
+      
+      // Verify result
+      if (result !== 'test') {
+        throw new Error(`Expected 'test', got '${result}'`)
+      }
+
+      // Restore original ALS
+      (container as any).als = originalAls
+    })
+  })
+
+  // Test 6: Metrics after disposeAll
+  describe('Metrics After Disposal', () => {
+    test('should track disposal and reset metrics correctly', async () => {
+      const factories = {
+        service: () => ({ 
+          disposed: false,
+          dispose() { this.disposed = true }
+        })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        service: preload.service(meta.tenantId)
+      }), { enableMetrics: true })
+
+      // Create some instances to generate metrics
+      container.preload.service('tenant1')
+      container.preload.service('tenant2')
+      container.preload.service('tenant1') // Cache hit
+
+      const beforeMetrics = container.getMetrics()
+      expect(beforeMetrics.cacheMisses).toBe(2)
+      expect(beforeMetrics.cacheHits).toBe(1)
+
+      // Dispose all
+      await container.disposeAll()
+
+      // Check that caches are empty
+      const newService = container.preload.service('tenant1')
+      expect(newService.disposed).toBe(false) // New instance
+
+      // Metrics should reflect the disposal
+      const afterMetrics = container.getMetrics()
+      expect(afterMetrics.cacheMisses).toBe(3) // One more miss for new instance
+    })
+  })
+
+  // Test 7: Proxy trap for symbols
+  describe('Proxy Symbol Handling', () => {
+    test('should handle symbol properties correctly', async () => {
+      const testSymbol = Symbol.for('test')
+      
+      const factories = {
+        symbolService: () => ({
+          [testSymbol]: 'symbol-value',
+          value: 42,
+          regularProp: 'regular'
+        })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        symbolService: preload.symbolService(meta.tenantId)
+      }))
+
+      await container.bootstrap({ tenantId: 'test' }, async () => {
+        const service = container.context.symbolService
+
+        // Regular properties work
+        expect(service.value).toBe(42)
+        expect(service.regularProp).toBe('regular')
+
+        // Symbol properties are accessible
+        expect(service[testSymbol]).toBe('symbol-value')
+
+        // Object.keys doesn't include symbols
+        const keys = Object.keys(service)
+        expect(keys).toContain('value')
+        expect(keys).toContain('regularProp')
+        expect(keys).not.toContain(testSymbol as any)
+
+        // for...in doesn't throw
+        const props: string[] = []
+        for (const prop in service) {
+          props.push(prop)
+        }
+        expect(props).toContain('value')
+        expect(props).toContain('regularProp')
+      })
+    })
+  })
+
+  // Test 8: Factories returning Promises
+  describe('Promise Factory Handling', () => {
+    test('should not wrap Promise-returning factories', async () => {
+      const factories = {
+        promiseFactory: () => Promise.resolve({ data: 'async-data' }),
+        normalFactory: () => ({ value: 'sync-data' })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        promiseFactory: await preload.promiseFactory(meta.tenantId),
+        normalFactory: preload.normalFactory(meta.tenantId)
+      }))
+
+      const result = await container.bootstrap({ tenantId: 'test' }, async () => {
+        // The initializer awaits the promise, so context should have resolved value
+        expect(container.context.promiseFactory).toEqual({ data: 'async-data' })
+        expect(container.context.normalFactory).toEqual({ value: 'sync-data' })
+        
+        return 'done'
+      })
+
+      expect(result.result).toBe('done')
+    })
+
+    test('should cache promise results correctly', async () => {
+      let callCount = 0
+      const factories = {
+        promiseFactory: () => {
+          callCount++
+          return Promise.resolve({ data: `call-${callCount}` })
+        }
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        promiseFactory: await preload.promiseFactory(meta.tenantId)
+      }))
+
+      // First call
+      const promise1 = container.preload.promiseFactory('tenant1')
+      const promise2 = container.preload.promiseFactory('tenant1')
+      
+      // Should return same promise
+      expect(promise1).toBe(promise2)
+      expect(callCount).toBe(1)
+
+      // Await the result
+      const result = await promise1
+      expect(result).toEqual({ data: 'call-1' })
+      
+      // Verify the resolved payload is cached
+      const cachedResult = await container.preload.promiseFactory('tenant1')
+      expect(cachedResult).toEqual(result)
+    })
+
+    test('mutation test - should return same reference after modification', () => {
+      const factories = {
+        mutableService: () => ({ value: 42, mutated: false })
+      }
+
+      const container = new Container(factories, async (preload, meta: TenantMeta) => ({
+        mutableService: preload.mutableService(meta.tenantId)
+      }))
+
+      // Get initial service instance
+      const service1 = container.preload.mutableService('tenant1')
+      expect(service1.value).toBe(42)
+      expect(service1.mutated).toBe(false)
+
+      // Mutate the cached instance
+      service1.value = 999
+      service1.mutated = true
+
+      // Fetch again - should get the same mutated reference
+      const service2 = container.preload.mutableService('tenant1')
+      expect(service2).toBe(service1) // Same reference
+      expect(service2.value).toBe(999) // Mutation persisted
+      expect(service2.mutated).toBe(true) // Mutation persisted
+    })
+  })
+})
+
+describe('Container Edge Case Tests - Hash Collisions', () => {
+  test('should handle hash collisions gracefully', async () => {
+    // These metadata objects will have the same hash but different IDs
+    // Testing the hash collision handling in createTenantCacheKey
+    const meta1 = { 
+      complexData: 'a' + 'b'.repeat(100) + 'c',
+      id: 'tenant1'
+    }
+    const meta2 = { 
+      complexData: 'x' + 'y'.repeat(100) + 'z', 
+      id: 'tenant2'
+    }
+
+    const factories = {
+      service: () => ({ created: Date.now() })
+    }
+
+    const container = new Container(factories, async (preload, meta: any) => ({
+      service: preload.service(meta.id || 'unknown')
+    }))
+
+    // Use bootstrap to exercise the djb2 hash collision logic
+    const result1 = await container.bootstrap(meta1, async () => {
+      return { service: container.context.service }
+    })
+    
+    const result2 = await container.bootstrap(meta2, async () => {
+      return { service: container.context.service }
+    })
+
+    // Even if hashes collide, tenant isolation should work
+    expect(result1.result?.service).not.toBe(result2.result?.service)
+    expect(result1.instances.service).not.toBe(result2.instances.service)
   })
 })

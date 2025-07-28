@@ -1,5 +1,20 @@
 # 0.5.20
 
+## 0.2.6
+
+### Patch Changes
+
+- Fix container unit test reliability and improve test coverage
+
+  - Fixed disposal error test console spy to use correct logging method
+  - Fixed ALS disable() compatibility test assertion
+  - Fixed race condition in cache stats eviction test
+  - Fixed symbol proxy test type coercion issue
+  - Added comprehensive test coverage for edge cases and error scenarios
+  - Enhanced container error handling and disposal mechanisms
+  - Improved test stability across different Node.js versions
+  - Added new middleware for production error handling and security
+
 ## 0.2.5
 
 ### Patch Changes
