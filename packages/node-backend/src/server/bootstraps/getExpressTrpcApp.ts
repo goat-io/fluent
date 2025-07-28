@@ -110,17 +110,17 @@ export function getExpressTrpcApp({
       trpcRouter,
       baseUrl
     })
-  }
 
-  // Apply the OpenAPI Express middleware
-  app.use(
-    '/',
-    createOpenApiExpressMiddleware({
-      router: trpcRouter,
-      createContext,
-      onError: trpcErrorMiddleware
-    })
-  )
+    // Apply the OpenAPI Express middleware only when OpenAPI docs are enabled
+    app.use(
+      '/',
+      createOpenApiExpressMiddleware({
+        router: trpcRouter,
+        createContext,
+        onError: trpcErrorMiddleware
+      })
+    )
+  }
 
   app.use(async (req, res, next) => {
     req.context = await createContext({

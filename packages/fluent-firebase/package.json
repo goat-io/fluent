@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-firebase",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Readable query Interface & API generator for TS and Node",
   "dependencies": {
     "@goatlab/fluent": "workspace:*",

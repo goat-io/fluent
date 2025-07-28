@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.2.5
+
+### Patch Changes
+
+- Update apiExpress
+
 ## 0.2.4
 
 ### Patch Changes
