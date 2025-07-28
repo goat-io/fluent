@@ -24,7 +24,7 @@ export interface RunScriptOptions {
   onError?: (error: unknown) => void
 }
 
-const { DEBUG_RUN_SCRIPT } = process.env
+// const { DEBUG_RUN_SCRIPT } = process.env
 
 /**
  * Use it in your top-level scripts like this:
@@ -59,25 +59,24 @@ export function runScript(
     if (!noExit) process.exit(code)
   }
 
-  process.on('uncaughtException', err => {
-    logger.error('uncaughtException:', err)
+  const errorHandler = (type: string) => (err: unknown) => {
+    logger.error(`${type}:`, err)
     onError?.(err)
     cleanExit(1)
-  })
-  process.on('unhandledRejection', err => {
-    logger.error('unhandledRejection:', err)
-    onError?.(err)
-    cleanExit(1)
-  })
-  ;['SIGINT', 'SIGTERM', 'SIGHUP'].forEach(sig =>
-    process.once(sig as NodeJS.Signals, () => {
+  }
+  
+  process.on('uncaughtException', errorHandler('uncaughtException'))
+  process.on('unhandledRejection', errorHandler('unhandledRejection'))
+  
+  const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP']
+  for (const sig of signals) {
+    process.once(sig, () => {
       logger.log(`Received ${sig}, shutting down…`)
       cleanExit(0)
     })
-  )
+  }
 
-  Promise.resolve()
-    .then(() => fn())
+  fn()
     .then(() => cleanExit(0))
     .catch(err => {
       logger.error('runScript error:', err)

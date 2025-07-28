@@ -20,7 +20,8 @@ describe('Firebase Connector Tests with Generic Unified Suite', () => {
       emulator: true
     })
 
-    // Initialize Fluent with empty datasources since Firebase doesn't use TypeORM
+    // Initialize Fluent with entities to ensure metadata is available
+    // Firebase doesn't use TypeORM datasources, so we pass empty array
     await Fluent.initialize([], dbEntities)
   })
 

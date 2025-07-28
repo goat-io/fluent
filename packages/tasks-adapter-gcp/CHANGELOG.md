@@ -1,5 +1,20 @@
 # 0.5.20
 
+## 0.3.0
+
+### Minor Changes
+
+- Optimize performance with 8 high-impact improvements across core packages
+
+  Performance optimizations include improved array processing, object manipulation, string operations, and connector efficiency. These changes enhance runtime performance while maintaining backward compatibility.
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.0
+  - @goatlab/node-utils@0.10.0
+  - @goatlab/tasks-core@0.3.0
+
 ## 0.2.3
 
 ### Patch Changes

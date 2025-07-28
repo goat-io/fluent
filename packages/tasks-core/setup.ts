@@ -10,10 +10,27 @@ export const rabbit = new RabbitMQContainer(
   'rabbitmq:3.12.11-management-alpine'
 )
 
-const kafka = await new KafkaContainer('confluentinc/cp-kafka:7.9.0')
+const kafka = new KafkaContainer('confluentinc/cp-kafka:7.9.0')
 
 export default async () => {
-  // Replace this with your actual async function
+  // Check if we need containers by looking for integration tests
+  // Only start containers if we have tests that actually need them
+  const hasIntegrationTests = process.env.RUN_INTEGRATION_TESTS === 'true' || 
+                              process.env.NODE_ENV === 'integration'
+  
+  const filePath = resolve(__dirname, 'tempData.json')
+  
+  if (!hasIntegrationTests) {
+    // For unit tests, just create empty tempData file and return
+    writeFileSync(filePath, JSON.stringify({}), 'utf-8')
+    return async () => {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+      }
+    }
+  }
+
+  // Start containers for integration tests
   const rabbitMQContainer = await rabbit.start()
   const kafkaContainer = await kafka.start()
 
@@ -30,7 +47,6 @@ export default async () => {
     kafkaUrl
   }
 
-  const filePath = resolve(__dirname, 'tempData.json')
   writeFileSync(filePath, JSON.stringify(data), 'utf-8')
 
   return async () => {

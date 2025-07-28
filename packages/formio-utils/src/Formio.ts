@@ -14,20 +14,29 @@ export const Formio = (() => {
    */
   const getFromJson = (forms): FormioForm[] => {
     const Forms = forms && forms.models && forms.models.Form
-    const parsedForms = []
+    if (!Forms) return []
+    
+    const formKeys = Object.keys(Forms)
+    const parsedForms = new Array(formKeys.length)
 
-    Object.keys(Forms).forEach(formId => {
-      const parsedForm = getter(JSON.parse(Forms[formId]))
-      parsedForms.push(parsedForm)
-    })
+    for (let i = 0; i < formKeys.length; i++) {
+      parsedForms[i] = getter(JSON.parse(Forms[formKeys[i]]))
+    }
     return parsedForms
   }
 
   const tableViewLabels = (form: FormioForm) => {
     const tableCols = tableViewComponents(form)
-    let cols = tableCols.map(o => `${o.path}`)
-
-    cols = [...cols, 'id', 'created', 'modified']
+    const colsLength = tableCols.length
+    const cols = new Array(colsLength + 3)
+    
+    for (let i = 0; i < colsLength; i++) {
+      cols[i] = `${tableCols[i].path}`
+    }
+    
+    cols[colsLength] = 'id'
+    cols[colsLength + 1] = 'created'
+    cols[colsLength + 2] = 'modified'
 
     return cols
   }

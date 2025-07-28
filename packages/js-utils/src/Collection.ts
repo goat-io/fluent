@@ -56,35 +56,29 @@ export class Collection<T = AnyObject | Primitives> {
    * @return static
    */
   public average(path?: TypedKeys<T>): number {
-    const stringP = path ? path(this.generatedKeyPath) : ''
-    const stringPath = stringP.toString()
-    const data = [...this.data]
+    const length = this.data.length
+    if (length === 0) return 0
+    
+    let sum = 0
 
-    const sum = Number(
-      data.reduce((acc: number, element) => {
-        let value: number = 0
-
-        if (element instanceof Object) {
+    if (path) {
+      const stringPath = path(this.generatedKeyPath).toString()
+      for (let i = 0; i < length; i++) {
+        const element = this.data[i]!
+        if (typeof element === 'object' && element !== null) {
           const extract = Objects.getFromPath(element, stringPath, undefined)
           if (typeof extract !== 'undefined' && extract.value) {
-            value = extract.value
+            sum += Number(extract.value)
           }
-        } else {
-          value = Number(element)
         }
-
-        return acc + value
-      }, 0)
-    )
-
-    try {
-      const avg = sum / data.length
-      return avg
-    } catch (e) {
-      throw new Error(
-        `Division between "${sum}" and "${data.length}" is not valid.`
-      )
+      }
+    } else {
+      for (let i = 0; i < length; i++) {
+        sum += Number(this.data[i])
+      }
     }
+
+    return sum / length
   }
 
   /**
@@ -124,7 +118,7 @@ export class Collection<T = AnyObject | Primitives> {
    * @return static
    */
   public chunk(size: number) {
-    const results = Arrays.chunk([...this.data], size)
+    const results = Arrays.chunk(this.data, size)
     return new Collection<T[]>(results)
   }
 
@@ -132,8 +126,7 @@ export class Collection<T = AnyObject | Primitives> {
    *
    */
   public collapse() {
-    const data = [...this.data] as unknown as T[][]
-
+    const data = this.data as unknown as T[][]
     return new Collection<T>(Arrays.collapse(data))
   }
 
@@ -153,10 +146,9 @@ export class Collection<T = AnyObject | Primitives> {
       throw new Error('The array to combine with must be of the same length.')
     }
 
-    const combined: Record<string, U> = {}
+    const combined = Object.create(null) as Record<string, U>
     for (let idx = 0; idx < len; idx++) {
-      const key = keys[idx]
-      combined[String(key)] = values[idx]! // ← non-null assertion
+      combined[String(keys[idx]!)] = values[idx]!
     }
 
     return new Collection([combined])
@@ -192,19 +184,20 @@ export class Collection<T = AnyObject | Primitives> {
         continue
       }
 
-      const elemValue = (() => {
-        if (value === undefined) return undefined
-        if (elem !== null && typeof elem === 'object') {
-          const stringPath = path?.(this.generatedKeyPath).toString() ?? ''
-          const extract = Objects.getFromPath(
-            elem as AnyObject,
-            stringPath,
-            undefined
-          )
-          return extract.value
-        }
-        return elem as unknown as Primitives
-      })()
+      let elemValue: any
+      if (value === undefined) {
+        elemValue = undefined
+      } else if (elem !== null && typeof elem === 'object') {
+        const stringPath = path?.(this.generatedKeyPath).toString() ?? ''
+        const extract = Objects.getFromPath(
+          elem as AnyObject,
+          stringPath,
+          undefined
+        )
+        elemValue = extract.value
+      } else {
+        elemValue = elem as unknown as Primitives
+      }
 
       if (elemValue === value) return true
     }
@@ -222,12 +215,15 @@ export class Collection<T = AnyObject | Primitives> {
   public countBy(
     callback?: (item: T) => string | number
   ): Collection<{ [key: string]: number }> {
-    const counts: { [key: string]: number } = {}
-    this.data.forEach(item => {
-      // Convert the key to a string to ensure it's a valid object index.
+    const counts = Object.create(null) as { [key: string]: number }
+    const length = this.data.length
+    
+    for (let i = 0; i < length; i++) {
+      const item = this.data[i]!
       const key = String(callback ? callback(item) : item)
       counts[key] = (counts[key] || 0) + 1
-    })
+    }
+    
     return new Collection([counts])
   }
 
@@ -273,18 +269,31 @@ export class Collection<T = AnyObject | Primitives> {
   }
 
   public diff<U>(items: U[] | Collection<U>): Collection<T> {
-    const arrayItems = (
-      items instanceof Collection ? items.get() : items
-    ) as any[]
+    const arrayItems = items instanceof Collection ? items.get() : items
+    const itemSet = new Set()
+    const objectCache = new Map()
+    
+    // Build lookup structures
+    for (const item of arrayItems) {
+      if (typeof item === 'object' && item !== null) {
+        objectCache.set(JSON.stringify(item), true)
+      } else {
+        itemSet.add(item)
+      }
+    }
 
-    const diffArray: T[] = this.data.filter(item => {
-      return !arrayItems.some(otherItem => {
-        if (typeof item === 'object' && typeof otherItem === 'object') {
-          return JSON.stringify(item) === JSON.stringify(otherItem)
-        }
-        return item === otherItem
-      })
-    })
+    const diffArray: T[] = []
+    for (const item of this.data) {
+      let found = false
+      if (typeof item === 'object' && item !== null) {
+        found = objectCache.has(JSON.stringify(item))
+      } else {
+        found = itemSet.has(item)
+      }
+      if (!found) {
+        diffArray.push(item)
+      }
+    }
 
     return new Collection(diffArray)
   }
@@ -335,17 +344,19 @@ export class Collection<T = AnyObject | Primitives> {
    */
   public duplicatesBy(keys: string[]): this {
     const duplicates: T[] = []
-    const seen: Record<string, true> = {} // <-- typed index signature
+    const seen = new Set<string>()
 
     for (const item of this.data) {
-      const finalKey = keys
-        .map(key => Objects.getFromPath(item, key, '').value)
-        .join('|')
+      const keyParts = new Array(keys.length)
+      for (let i = 0; i < keys.length; i++) {
+        keyParts[i] = Objects.getFromPath(item, keys[i]!, '').value
+      }
+      const finalKey = keyParts.join('|')
 
-      if (seen[finalKey]) {
+      if (seen.has(finalKey)) {
         duplicates.push(item)
       } else {
-        seen[finalKey] = true
+        seen.add(finalKey)
       }
     }
 

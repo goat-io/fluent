@@ -231,41 +231,61 @@ export class PouchDBConnector<
     const validatedData = this.inputSchema.array().parse(data)
     
     // Add created date if needed
-    const dataToInsert = validatedData.map((item: any) => {
-      const doc = { ...item }
-      if (this.outputKeys.includes('created') && !doc.created) {
-        doc.created = new Date()
+    const hasCreated = this.outputKeys.includes('created')
+    const dataLength = validatedData.length
+    const dataToInsert = new Array(dataLength)
+    const now = new Date()
+    
+    // Optimize loop by avoiding object spread when not needed
+    for (let i = 0; i < dataLength; i++) {
+      const item = validatedData[i] as any
+      if (hasCreated && !item.created) {
+        dataToInsert[i] = { ...item, created: now }
+      } else {
+        dataToInsert[i] = item
       }
-      return doc
-    })
+    }
 
     const inserted = await this.dataSource.bulkDocs(dataToInsert as any)
 
-    const insertedOK = (inserted as any).map((i: any) => {
-      if (i.id) {
-        return i
+    const insertedArray = inserted as any[]
+    const insertedOK: any[] = []
+    for (let i = 0; i < insertedArray.length; i++) {
+      if (insertedArray[i].id) {
+        insertedOK.push(insertedArray[i])
       }
-    }).filter(Boolean) as any
+    }
 
     const elements = await this.dataSource.bulkGet({
       docs: insertedOK
     })
 
-    const res = elements.results.map(r => {
-      if (r.id && r.docs?.[0] && r.docs[0]['ok']) {
-        const doc = { ...r.docs[0]['ok'], id: r.id }
+    const results = elements.results
+    const resultsLength = results.length
+    const res: any[] = []
+    
+    for (let i = 0; i < resultsLength; i++) {
+      const r = results[i]
+      if (!r) continue
+      const docs = r.docs
+      if (r.id && docs?.[0] && docs[0]['ok']) {
+        const okDoc = docs[0]['ok']
+        const doc = { ...okDoc, id: r.id }
         
-        // Handle date fields
-        if (doc['created'] && typeof doc['created'] === 'string') {
-          doc['created'] = new Date(doc['created'])
+        // Handle date fields more efficiently
+        const created = doc['created']
+        const updated = doc['updated']
+        
+        if (created && typeof created === 'string') {
+          doc['created'] = new Date(created)
         }
-        if (doc['updated'] && typeof doc['updated'] === 'string') {
-          doc['updated'] = new Date(doc['updated'])
+        if (updated && typeof updated === 'string') {
+          doc['updated'] = new Date(updated)
         }
         
-        return Objects.clearEmpties(Objects.deleteNulls(doc))
+        res.push(Objects.clearEmpties(Objects.deleteNulls(doc)))
       }
-    }).filter(Boolean)
+    }
 
     return this.outputSchema.array().parse(res)
   }
@@ -427,48 +447,74 @@ export class PouchDBConnector<
     const response = await this.dataSource.find(pouchQuery)
     const found = response.docs
 
-    // Process documents
-    let processed = found.map(d => {
-      const doc = { ...d }
-      doc['id'] = doc['_id']
-      if ('_id' in doc) delete (doc as any)['_id']
-      if ('_rev' in doc) delete (doc as any)['_rev']
+    // Process documents with optimized operations
+    const foundLength = found.length
+    const processed = new Array(foundLength)
+    
+    for (let i = 0; i < foundLength; i++) {
+      const d = found[i]
+      if (!d) continue
+      // Create new object without spread for better performance
+      const doc: any = {}
       
-      // Handle date fields
-      if (doc['created'] && typeof doc['created'] === 'string') {
-        doc['created'] = new Date(doc['created'])
+      // Copy properties except _id and _rev
+      for (const key in d) {
+        if (key !== '_id' && key !== '_rev') {
+          doc[key] = d[key]
+        }
       }
-      if (doc['updated'] && typeof doc['updated'] === 'string') {
-        doc['updated'] = new Date(doc['updated'])
+      doc.id = d._id
+      
+      // Handle date fields efficiently
+      const created = doc.created
+      const updated = doc.updated
+      
+      if (created && typeof created === 'string') {
+        doc.created = new Date(created)
+      }
+      if (updated && typeof updated === 'string') {
+        doc.updated = new Date(updated)
       }
       
-      return Objects.clearEmpties(Objects.deleteNulls(doc))
-    })
+      processed[i] = Objects.clearEmpties(Objects.deleteNulls(doc))
+    }
     
     // Apply in-memory sorting if needed
     if (needsSort && query?.orderBy) {
-      processed = processed.sort((a, b) => {
-        for (const order of query.orderBy!) {
-          const entries = Object.entries(order)
-          if (!entries[0]) continue
-          const [field, direction] = entries[0]
-          const aVal = a[field]
-          const bVal = b[field]
+      const orderBy = query.orderBy
+      const orderLength = orderBy.length
+      
+      // Pre-process orderBy to avoid Object.entries in sort loop
+      const sortFields = new Array(orderLength)
+      for (let i = 0; i < orderLength; i++) {
+        const order = orderBy[i]
+        const keys = Object.keys(order)
+        if (keys.length > 0 && keys[0]) {
+          sortFields[i] = { field: keys[0], direction: order[keys[0]] }
+        }
+      }
+      
+      processed.sort((a, b) => {
+        for (let i = 0; i < orderLength; i++) {
+          const sortField = sortFields[i]
+          if (!sortField) continue
+          
+          const aVal = a[sortField.field]
+          const bVal = b[sortField.field]
           
           if (aVal === bVal) continue
           
           const result = aVal < bVal ? -1 : 1
-          return direction === 'asc' ? result : -result
+          return sortField.direction === 'asc' ? result : -result
         }
         return 0
       })
       
       // Apply offset and limit after sorting
-      if (query?.offset) {
-        processed = processed.slice(query.offset)
-      }
-      if (query?.limit) {
-        processed = processed.slice(0, query.limit)
+      if (query?.offset || query?.limit) {
+        const start = query?.offset || 0
+        const end = query?.limit ? start + query.limit : undefined
+        return processed.slice(start, end) as any
       }
     }
 
@@ -492,17 +538,41 @@ export class PouchDBConnector<
     }
 
     if (query?.select) {
-      // Apply field selection
-      const selectedFields = Object.keys(query.select).filter(key => query.select![key])
-      const selected = processed.map(doc => {
+      // Apply field selection with optimized approach
+      const select = query.select
+      const selectKeys = Object.keys(select)
+      const selectKeysLength = selectKeys.length
+      
+      // Pre-filter selected fields
+      const selectedFields: string[] = []
+      for (let i = 0; i < selectKeysLength; i++) {
+        const key = selectKeys[i]
+        if (key && select[key]) {
+          selectedFields.push(key)
+        }
+      }
+      
+      const processedLength = processed.length
+      const selected = new Array(processedLength)
+      const fieldsLength = selectedFields.length
+      
+      // Optimize field selection loop
+      for (let i = 0; i < processedLength; i++) {
+        const doc = processed[i]
         const selectedDoc: any = { id: doc.id }
-        selectedFields.forEach(field => {
-          if (field in doc) {
-            selectedDoc[field] = doc[field]
+        
+        // Use direct property access instead of 'in' operator
+        for (let j = 0; j < fieldsLength; j++) {
+          const field = selectedFields[j]
+          if (field) {
+            const value = doc[field]
+            if (value !== undefined) {
+              selectedDoc[field] = value
+            }
           }
-        })
-        return selectedDoc
-      })
+        }
+        selected[i] = selectedDoc
+      }
       return selected as unknown as Promise<QueryOutput<T, ModelDTO>[]>
     }
     
@@ -516,25 +586,6 @@ export class PouchDBConnector<
   public getPouchDBWhere(
     where?: FluentQuery<ModelDTO>['where']
   ): PouchDB.Find.FindRequest<any> {
-    /*
-
-    if (this.relationQuery && this.relationQuery.data) {
-      const ids = this.relationQuery.data.map(
-        d => Ids.objectID(d.id) as unknown as ObjectID
-      )
-
-      andFilters.push([
-        this.relationQuery.relation.inverseSidePropertyPath,
-        'in',
-        ids
-      ])
-    }
-
-    if (!andFilters || andFilters.length === 0) {
-      return filters
-    }
-    */
-
     if (!where || Object.keys(where).length === 0) {
       return {
         selector: {}
@@ -549,158 +600,57 @@ export class PouchDBConnector<
     const andConditions = extractConditions(where['AND'])
 
     const copy = Objects.clone(where)
-    if (!!copy['AND']) {
-      delete copy['AND']
-    }
-
-    if (!!copy['OR']) {
-      delete copy['OR']
-    }
+    delete copy['AND']
+    delete copy['OR']
 
     const rootLevelConditions = extractConditions([copy])
 
-    for (const condition of andConditions) {
+    // Helper function to process conditions - optimized with operator map
+    const operatorMap: Record<string, (value: any) => any> = {
+      [LogicOperator.equals]: (value) => ({ $eq: value }),
+      [LogicOperator.isNot]: (value) => ({ $neq: value }),
+      [LogicOperator.greaterThan]: (value) => ({ $gt: value }),
+      [LogicOperator.greaterOrEqualThan]: (value) => ({ $gte: value }),
+      [LogicOperator.lessThan]: (value) => ({ $lt: value }),
+      [LogicOperator.lessOrEqualThan]: (value) => ({ $lte: value }),
+      [LogicOperator.in]: (value) => ({ $in: value }),
+      [LogicOperator.notIn]: (value) => ({ $not: { $in: value } }),
+      [LogicOperator.exists]: () => ({ $exists: true }),
+      [LogicOperator.notExists]: () => ({ $exists: false }),
+      [LogicOperator.regexp]: (value) => ({ $regex: value })
+    }
+    
+    const processCondition = (condition: any, target: any[]) => {
       let { element, operator, value } = condition
 
       if (element === 'id') {
         element = '_id'
-        /*
-        value = (Array.isArray(value)
-          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
-          */
       }
 
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
-          break
-        case LogicOperator.isNot:
-          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
-          break
-        case LogicOperator.lessThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
-          break
-        case LogicOperator.in:
-          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
-          break
-        case LogicOperator.notIn:
-          Filters.where.$or[0].$and.push({
-            [element]: { $not: { $in: value } }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
-          break
-        case LogicOperator.notExists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
-          break
-        case LogicOperator.regexp:
-          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
-          break
+      const operatorFn = operatorMap[operator]
+      if (operatorFn) {
+        const filter: any = {}
+        filter[element] = operatorFn(value)
+        target.push(filter)
       }
     }
 
-    for (const condition of rootLevelConditions) {
-      let { element, operator, value } = condition
-
-      if (element === 'id') {
-        element = '_id'
-        /*
-        value = (Array.isArray(value)
-          ? value.map(v => Ids.objectID(v) as unknown as ObjectID)
-          : (Ids.objectID(value) as unknown as ObjectID) as unknown as PrimitivesArray | Primitives)
-          */
-      }
-
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where.$or[0].$and.push({ [element]: { $eq: value } })
-          break
-        case LogicOperator.isNot:
-          Filters.where.$or[0].$and.push({ [element]: { $neq: value } })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gt: value } })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $gte: value } })
-          break
-        case LogicOperator.lessThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lt: value } })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where.$or[0].$and.push({ [element]: { $lte: value } })
-          break
-        case LogicOperator.in:
-          Filters.where.$or[0].$and.push({ [element]: { $in: value } })
-          break
-        case LogicOperator.notIn:
-          Filters.where.$or[0].$and.push({
-            [element]: { $not: { $in: value } }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: true } })
-          break
-        case LogicOperator.notExists:
-          Filters.where.$or[0].$and.push({ [element]: { $exists: false } })
-          break
-        case LogicOperator.regexp:
-          Filters.where.$or[0].$and.push({ [element]: { $regex: value } })
-          break
-      }
+    // Process AND conditions
+    const andLength = andConditions.length
+    for (let i = 0; i < andLength; i++) {
+      processCondition(andConditions[i], Filters.where.$or[0].$and)
     }
 
-    for (const condition of orConditions) {
-      let { element, operator, value } = condition
+    // Process root level conditions
+    const rootLength = rootLevelConditions.length
+    for (let i = 0; i < rootLength; i++) {
+      processCondition(rootLevelConditions[i], Filters.where.$or[0].$and)
+    }
 
-      switch (operator) {
-        case LogicOperator.equals:
-          Filters.where.$or.push({ [element]: { $eq: value } })
-          break
-        case LogicOperator.isNot:
-          Filters.where.$or.push({ [element]: { $neq: value } })
-          break
-        case LogicOperator.greaterThan:
-          Filters.where.$or.push({ [element]: { $gt: value } })
-          break
-        case LogicOperator.greaterOrEqualThan:
-          Filters.where.$or.push({ [element]: { $gte: value } })
-          break
-        case LogicOperator.lessThan:
-          Filters.where.$or.push({ [element]: { $lt: value } })
-          break
-        case LogicOperator.lessOrEqualThan:
-          Filters.where.$or.push({ [element]: { $lte: value } })
-          break
-        case LogicOperator.in:
-          Filters.where.$or.push({ [element]: { $in: value } })
-          break
-        case LogicOperator.notIn:
-          Filters.where.$or.push({
-            [element]: { $not: { $in: value } }
-          })
-          break
-        case LogicOperator.exists:
-          Filters.where.$or.push({ [element]: { $exists: true } })
-          break
-        case LogicOperator.notExists:
-          Filters.where.$or.push({ [element]: { $exists: false } })
-          break
-        case LogicOperator.regexp:
-          Filters.where.$or.push({ [element]: { $regex: value } })
-          break
-      }
+    // Process OR conditions
+    const orLength = orConditions.length
+    for (let i = 0; i < orLength; i++) {
+      processCondition(orConditions[i], Filters.where.$or)
     }
 
     return Objects.clearEmpties({selector: Filters.where})
@@ -757,7 +707,12 @@ export class PouchDBConnector<
   }
 
   protected clone() {
-    return new (<any>this.constructor)()
+    return new (<any>this.constructor)({
+      entity: this.entity,
+      dataSource: this.dataSource,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema
+    })
   }
 
   public async findById<T extends FindByIdFilter<ModelDTO>>(
@@ -775,12 +730,31 @@ export class PouchDBConnector<
     // Call parent implementation
     const results = await super.findByIds(ids, q)
     
-    // Sort results to match the order of input IDs
-    const orderedResults: QueryOutput<T, ModelDTO>[] = []
-    for (const id of ids) {
-      const found = results.find(r => r.id === id)
-      if (found) {
-        orderedResults.push(found)
+    // Sort results to match the order of input IDs with pre-allocated array
+    const resultsLength = results.length
+    const idsLength = ids.length
+    
+    // Quick path for single result
+    if (resultsLength <= 1) {
+      return results
+    }
+    
+    // Build map for O(1) lookup
+    const idMap = new Map<string, QueryOutput<T, ModelDTO>>()
+    for (let i = 0; i < resultsLength; i++) {
+      const result = results[i]
+      idMap.set(result.id, result)
+    }
+    
+    // Pre-allocate ordered results array
+    const orderedResults = new Array<QueryOutput<T, ModelDTO>>()
+    for (let i = 0; i < idsLength; i++) {
+      const id = ids[i]
+      if (id) {
+        const found = idMap.get(id)
+        if (found) {
+          orderedResults.push(found)
+        }
       }
     }
     
@@ -788,15 +762,29 @@ export class PouchDBConnector<
   }
 
   public async pluck(path: any, query?: FluentQuery<ModelDTO>): Promise<any[]> {
-    const allDocs = await this.findMany(query)
-    
-    // If path is a string, pluck that field
-    if (typeof path === 'string') {
-      return allDocs.map(doc => (doc as any)[path]).filter(val => val !== undefined)
+    // Early return for non-string paths
+    if (typeof path !== 'string') {
+      return []
     }
     
-    // Otherwise return empty array
-    return []
+    const allDocs = await this.findMany(query)
+    const docsLength = allDocs.length
+    
+    // Pre-allocate maximum possible size
+    const results = new Array(docsLength)
+    let resultIndex = 0
+    
+    // Pluck values efficiently
+    for (let i = 0; i < docsLength; i++) {
+      const val = (allDocs[i] as any)[path]
+      if (val !== undefined) {
+        results[resultIndex++] = val
+      }
+    }
+    
+    // Trim array to actual size
+    results.length = resultIndex
+    return results
   }
 
   public async clear(): Promise<boolean> {
@@ -804,12 +792,31 @@ export class PouchDBConnector<
       // Get all documents first
       const allDocs = await this.dataSource.allDocs()
       
-      // Delete all documents
-      const deletePromises = allDocs.rows.map(row => 
-        this.dataSource.remove(row.id, row.value.rev)
-      )
+      // Delete all documents in batches for better performance
+      const rows = allDocs.rows
+      const rowsLength = rows.length
+      const batchSize = 100
       
-      await Promise.all(deletePromises)
+      // Pre-allocate batch array
+      const maxBatchSize = Math.min(batchSize, rowsLength)
+      const deletePromises = new Array(maxBatchSize)
+      
+      for (let i = 0; i < rowsLength; i += batchSize) {
+        const end = Math.min(i + batchSize, rowsLength)
+        const currentBatchSize = end - i
+        
+        // Fill batch promises without creating new arrays
+        for (let j = 0; j < currentBatchSize; j++) {
+          const row = rows[i + j]
+          if (row) {
+            deletePromises[j] = this.dataSource.remove(row.id, row.value.rev)
+          }
+        }
+        
+        // Only wait for the actual batch size
+        await Promise.all(currentBatchSize < maxBatchSize ? deletePromises.slice(0, currentBatchSize) : deletePromises)
+      }
+      
       return true
     } catch (error) {
       console.error('Error clearing database:', error)

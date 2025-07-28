@@ -144,15 +144,15 @@ export class TypeOrmConnector<
       }
     )
 
-    return this.outputSchema.array().parse(
-      inserted.map(d => {
-        if (this.isMongoDB && d['id']) {
-          d['id'] = d['id'].toString()
-        }
-
-        return clearEmpties(Objects.deleteNulls(d))
-      })
-    ) as OutputDTO[]
+    const processedData: any[] = new Array(inserted.length)
+    for (let i = 0; i < inserted.length; i++) {
+      const d = inserted[i]!
+      if (this.isMongoDB && d['id']) {
+        d['id'] = d['id'].toString()
+      }
+      processedData[i] = clearEmpties(Objects.deleteNulls(d))
+    }
+    return this.outputSchema.array().parse(processedData) as OutputDTO[]
   }
 
   // READ
@@ -192,13 +192,14 @@ export class TypeOrmConnector<
 
     let [found, count] = await this.repository.findAndCount(generatedQuery)
 
-    found.map(d => {
+    for (let i = 0; i < found.length; i++) {
+      const d = found[i]!
       if (this.isMongoDB && d['_id']) {
         d.id = d['_id'].toString()
       }
 
       clearEmpties(Objects.deleteNulls(d))
-    })
+    }
 
     if (query?.paginated) {
       const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO>> = {

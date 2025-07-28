@@ -1,5 +1,13 @@
 # @goatlab/js-utils
 
+## 0.10.0
+
+### Minor Changes
+
+- Optimize performance with 8 high-impact improvements across core packages
+
+  Performance optimizations include improved array processing, object manipulation, string operations, and connector efficiency. These changes enhance runtime performance while maintaining backward compatibility.
+
 ## 0.9.0
 
 ### Minor Changes

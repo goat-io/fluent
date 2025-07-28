@@ -14,16 +14,30 @@ class FoldersClass {
    */
   removeSync = (dir: string) => {
     if (!fs.existsSync(dir)) return
-    for (const entry of fs.readdirSync(dir)) {
-      const fullPath = path.join(dir, entry)
-      const stat = fs.lstatSync(fullPath)
-      if (stat.isDirectory()) {
-        this.removeSync(fullPath)
-      } else {
-        fs.unlinkSync(fullPath)
+    
+    const stack = [dir]
+    const toRemove: string[] = []
+    
+    // Build list of all files and directories
+    while (stack.length > 0) {
+      const currentDir = stack.pop()!
+      toRemove.push(currentDir)
+      
+      for (const entry of fs.readdirSync(currentDir)) {
+        const fullPath = path.join(currentDir, entry)
+        const stat = fs.lstatSync(fullPath)
+        if (stat.isDirectory()) {
+          stack.push(fullPath)
+        } else {
+          fs.unlinkSync(fullPath)
+        }
       }
     }
-    fs.rmdirSync(dir)
+    
+    // Remove directories in reverse order (deepest first)
+    for (let i = toRemove.length - 1; i >= 0; i--) {
+      fs.rmdirSync(toRemove[i]!)
+    }
   }
 
   /**
@@ -53,20 +67,21 @@ class FoldersClass {
    */
   hash(directory: string): string {
     const hash = crypto.createHash('sha256')
-    const stack: string[] = [directory]
+    const stack: Array<[string, string[]]> = [[directory, fs.readdirSync(directory).sort()]]
 
-    while (stack.length) {
-      const currentDir = stack.pop()!
-      const entries = fs.readdirSync(currentDir).sort() // ensure consistent order
-
-      for (const entry of entries) {
+    while (stack.length > 0) {
+      const [currentDir, entries] = stack.pop()!
+      
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i]!
         const fullPath = path.join(currentDir, entry)
         const relativePath = path.relative(directory, fullPath)
         const stat = fs.statSync(fullPath)
 
         hash.update(relativePath) // include relative path to differentiate same-named files
         if (stat.isDirectory()) {
-          stack.push(fullPath)
+          const dirEntries = fs.readdirSync(fullPath).sort()
+          stack.push([fullPath, dirEntries])
         } else {
           hash.update(fs.readFileSync(fullPath))
         }
@@ -108,7 +123,7 @@ class FoldersClass {
           search
         })
       } else {
-        const fullPath = `${dir}/${file}`
+        const fullPath = path.join(dir, file)
         if (search) {
           if (fullPath.includes(search)) {
             fileList.push(fullPath)

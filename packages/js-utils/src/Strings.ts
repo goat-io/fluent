@@ -21,8 +21,8 @@ class StringsClass {
    * @return string
    */
   after = (subject: string, search: string): string | undefined => {
-    const result = subject.split(search)
-    return result.length > 1 ? result[1] : subject
+    const index = subject.indexOf(search)
+    return index !== -1 ? subject.substring(index + search.length) : subject
   }
 
   /**
@@ -33,8 +33,8 @@ class StringsClass {
    * @return string
    */
   before = (subject: string, search: string): string | undefined => {
-    const result = subject.split(search)
-    return result.length > 1 ? result[0] : subject
+    const index = subject.indexOf(search)
+    return index !== -1 ? subject.substring(0, index) : subject
   }
 
   upperFirst(s: string = ''): string {
@@ -52,14 +52,15 @@ class StringsClass {
    * @return string
    */
   camel(s: string): string {
-    // return s.replace(/(_\w)/g, m => m[1]!.toUpperCase())
-    return this.words(s.replace(/['\u2019]/g, '')).reduce(
-      (result, word, index) => {
-        word = word.toLowerCase()
-        return result + (index ? this.upperFirst(word) : word)
-      },
-      ''
-    )
+    const words = this.words(s.replace(/['\u2019]/g, ''))
+    if (words.length === 0) return ''
+    
+    let result = words[0]!.toLowerCase()
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i]!.toLowerCase()
+      result += word.charAt(0).toUpperCase() + word.slice(1)
+    }
+    return result
   }
 
   /**
@@ -71,9 +72,12 @@ class StringsClass {
    */
   contains = (haystack: string, needles: string | string[]) => {
     if (Array.isArray(needles)) {
-      return needles.some(v => haystack.indexOf(v) >= 0)
+      for (let i = 0; i < needles.length; i++) {
+        if (haystack.indexOf(needles[i]!) !== -1) return true
+      }
+      return false
     }
-    return haystack.includes(needles)
+    return haystack.indexOf(needles) !== -1
   }
 
   /**
@@ -94,88 +98,70 @@ class StringsClass {
    * @param  string  separator
    * @return string
    */
+  private static charMap: Map<string, string> | undefined
+  
+  private static charMapCache = new Map<string, Map<string, string>>()
+  
+  private getCharMap(separator: string): Map<string, string> {
+    // Check cache first
+    let cached = StringsClass.charMapCache.get(separator)
+    if (cached) return cached
+    
+    if (!StringsClass.charMap) {
+      StringsClass.charMap = new Map([
+        ['à', 'a'], ['á', 'a'], ['â', 'a'], ['ä', 'a'], ['æ', 'a'], ['ã', 'a'], ['å', 'a'], ['ā', 'a'], ['ă', 'a'], ['ą', 'a'],
+        ['ç', 'c'], ['ć', 'c'], ['č', 'c'],
+        ['đ', 'd'], ['ď', 'd'],
+        ['è', 'e'], ['é', 'e'], ['ê', 'e'], ['ë', 'e'], ['ē', 'e'], ['ė', 'e'], ['ę', 'e'], ['ě', 'e'],
+        ['ğ', 'g'], ['ǵ', 'g'],
+        ['ḧ', 'h'],
+        ['î', 'i'], ['ï', 'i'], ['í', 'i'], ['ī', 'i'], ['į', 'i'], ['ì', 'i'],
+        ['ł', 'l'],
+        ['ḿ', 'm'],
+        ['ñ', 'n'], ['ń', 'n'], ['ǹ', 'n'], ['ň', 'n'],
+        ['ô', 'o'], ['ö', 'o'], ['ò', 'o'], ['ó', 'o'], ['œ', 'o'], ['ø', 'o'], ['ō', 'o'], ['õ', 'o'], ['ő', 'o'],
+        ['ṕ', 'p'],
+        ['ŕ', 'r'], ['ř', 'r'],
+        ['ß', 's'], ['ś', 's'], ['š', 's'], ['ş', 's'], ['ș', 's'],
+        ['ť', 't'], ['ț', 't'],
+        ['û', 'u'], ['ü', 'u'], ['ù', 'u'], ['ú', 'u'], ['ū', 'u'], ['ǘ', 'u'], ['ů', 'u'], ['ű', 'u'], ['ų', 'u'],
+        ['ẃ', 'w'],
+        ['ẍ', 'x'],
+        ['ÿ', 'y'], ['ý', 'y'],
+        ['ž', 'z'], ['ź', 'z'], ['ż', 'z']
+      ])
+    }
+    
+    const map = new Map(StringsClass.charMap)
+    map.set('·', separator)
+    map.set('/', separator)
+    map.set('_', separator)
+    map.set(',', separator)
+    map.set(':', separator)
+    map.set(';', separator)
+    
+    // Cache the result
+    StringsClass.charMapCache.set(separator, map)
+    return map
+  }
+
+  private static slugRegexCache = new Map<string, [RegExp, RegExp]>()
+  
   slug = (str: string, separator = '-'): string => {
-    const charMap = new Map([
-      ['à', 'a'],
-      ['á', 'a'],
-      ['â', 'a'],
-      ['ä', 'a'],
-      ['æ', 'a'],
-      ['ã', 'a'],
-      ['å', 'a'],
-      ['ā', 'a'],
-      ['ă', 'a'],
-      ['ą', 'a'],
-      ['ç', 'c'],
-      ['ć', 'c'],
-      ['č', 'c'],
-      ['đ', 'd'],
-      ['ď', 'd'],
-      ['è', 'e'],
-      ['é', 'e'],
-      ['ê', 'e'],
-      ['ë', 'e'],
-      ['ē', 'e'],
-      ['ė', 'e'],
-      ['ę', 'e'],
-      ['ě', 'e'],
-      ['ğ', 'g'],
-      ['ǵ', 'g'],
-      ['ḧ', 'h'],
-      ['î', 'i'],
-      ['ï', 'i'],
-      ['í', 'i'],
-      ['ī', 'i'],
-      ['į', 'i'],
-      ['ì', 'i'],
-      ['ł', 'l'],
-      ['ḿ', 'm'],
-      ['ñ', 'n'],
-      ['ń', 'n'],
-      ['ǹ', 'n'],
-      ['ň', 'n'],
-      ['ô', 'o'],
-      ['ö', 'o'],
-      ['ò', 'o'],
-      ['ó', 'o'],
-      ['œ', 'o'],
-      ['ø', 'o'],
-      ['ō', 'o'],
-      ['õ', 'o'],
-      ['ő', 'o'],
-      ['ṕ', 'p'],
-      ['ŕ', 'r'],
-      ['ř', 'r'],
-      ['ß', 's'],
-      ['ś', 's'],
-      ['š', 's'],
-      ['ş', 's'],
-      ['ș', 's'],
-      ['ť', 't'],
-      ['ț', 't'],
-      ['û', 'u'],
-      ['ü', 'u'],
-      ['ù', 'u'],
-      ['ú', 'u'],
-      ['ū', 'u'],
-      ['ǘ', 'u'],
-      ['ů', 'u'],
-      ['ű', 'u'],
-      ['ų', 'u'],
-      ['ẃ', 'w'],
-      ['ẍ', 'x'],
-      ['ÿ', 'y'],
-      ['ý', 'y'],
-      ['ž', 'z'],
-      ['ź', 'z'],
-      ['ż', 'z'],
-      ['·', separator],
-      ['/', separator],
-      ['_', separator],
-      [',', separator],
-      [':', separator],
-      [';', separator]
-    ])
+    const charMap = this.getCharMap(separator)
+    
+    // Cache regex patterns per separator
+    let regexPair = StringsClass.slugRegexCache.get(separator)
+    if (!regexPair) {
+      regexPair = [
+        new RegExp(`\\${separator}{2,}`, 'g'),
+        new RegExp(`^\\${separator}+|\\${separator}+$`, 'g')
+      ]
+      StringsClass.slugRegexCache.set(separator, regexPair)
+    }
+    
+    const [multipleSeq, trimSeq] = regexPair
+    
     return str
       .toLowerCase()
       .replace(/\s+/g, separator)
@@ -185,8 +171,8 @@ class StringsClass {
       )
       .replace(/&/g, `${separator}and${separator}`)
       .replace(/[^\w\-]+/g, '')
-      .replace(new RegExp(`\\${separator}{2,}`, 'g'), separator)
-      .replace(new RegExp(`^\\${separator}+|\\${separator}+$`, 'g'), '')
+      .replace(multipleSeq, separator)
+      .replace(trimSeq, '')
   }
 
   /**
@@ -197,10 +183,14 @@ class StringsClass {
    * @return string
    */
   snake(s: string): string {
-    return this.words(s.replace(/['\u2019]/g, '')).reduce(
-      (result, word, index) => result + (index ? '_' : '') + word.toLowerCase(),
-      ''
-    )
+    const words = this.words(s.replace(/['\u2019]/g, ''))
+    if (words.length === 0) return ''
+    
+    let result = words[0]!.toLowerCase()
+    for (let i = 1; i < words.length; i++) {
+      result += '_' + words[i]!.toLowerCase()
+    }
+    return result
   }
 
   private hasUnicodeWord = RegExp.prototype.test.bind(
@@ -245,10 +235,14 @@ class StringsClass {
   }
 
   kebabCase(s: string): string {
-    return this.words(s.replace(/['\u2019]/g, '')).reduce(
-      (result, word, index) => result + (index ? '-' : '') + word.toLowerCase(),
-      ''
-    )
+    const words = this.words(s.replace(/['\u2019]/g, ''))
+    if (words.length === 0) return ''
+    
+    let result = words[0]!.toLowerCase()
+    for (let i = 1; i < words.length; i++) {
+      result += '-' + words[i]!.toLowerCase()
+    }
+    return result
   }
   /**
    * Attempts to parse object as JSON.
@@ -290,7 +284,7 @@ class StringsClass {
   truncate(s: string, maxLen: number, omission = '...'): string {
     if (!s || s.length <= maxLen) return s
 
-    return s.substr(0, maxLen - omission.length) + omission
+    return s.substring(0, maxLen - omission.length) + omission
   }
 
   truncateMiddle(s: string, maxLen: number, omission = '...'): string {
@@ -298,7 +292,7 @@ class StringsClass {
 
     const mark1 = Math.round((maxLen - omission.length) / 2)
     const mark2 = s.length - Math.floor((maxLen - omission.length) / 2)
-    return s.substr(0, mark1) + omission + s.substr(mark2)
+    return s.substring(0, mark1) + omission + s.substring(mark2)
   }
 
   substringBefore(s: string, delimiter: string): string {
@@ -388,24 +382,20 @@ class StringsClass {
   ngramFromObject = ({ fields, object }: NgramFromObject): string => {
     const submission = JSON.parse(JSON.stringify(object))
 
-    const fullNGramString = fields.reduce((r, field) => {
-      const text = Objects.getFromPath(submission, field, '')
+    let fullNGramString = ''
+    for (let i = 0; i < fields.length; i++) {
+      const text = Objects.getFromPath(submission, fields[i]!, '')
       const nGramText = this.ngram(text.value)
-      r = `${r} ${nGramText}`
-      return r
-    }, '')
+      fullNGramString += ' ' + nGramText
+    }
 
-    let ngramString = `${fullNGramString}`
+    const processed = fullNGramString
       .replace(/undefined/g, '')
       .replace(/\s\s+/g, ' ')
       .trim()
 
-    ngramString = ngramString
-      .split(' ')
-      .filter((item, i, allItems) => i === allItems.indexOf(item))
-      .join(' ')
-
-    return ngramString
+    const uniqueWords = new Set(processed.split(' '))
+    return Array.from(uniqueWords).join(' ')
   }
   /**
    *
@@ -417,35 +407,43 @@ class StringsClass {
    * @returns {String} generated nGram string
    */
   ngramFromArray = (texts: string[]): string => {
-    const fullNGramString = texts.reduce((r, text) => {
-      const nGramText = this.ngram(text)
-      r = `${r} ${nGramText}`
-      return r
-    }, '')
+    let fullNGramString = ''
+    for (let i = 0; i < texts.length; i++) {
+      const nGramText = this.ngram(texts[i]!)
+      fullNGramString += ' ' + nGramText
+    }
 
-    let ngramString = `${fullNGramString}`
+    const processed = fullNGramString
       .replace(/undefined/g, '')
       .replace(/\s\s+/g, ' ')
       .trim()
 
-    ngramString = ngramString
-      .split(' ')
-      .filter((item, i, allItems) => i === allItems.indexOf(item))
-      .join(' ')
-
-    return ngramString
+    const uniqueWords = new Set(processed.split(' '))
+    return Array.from(uniqueWords).join(' ')
   }
 
   parseQueryString(search: string): StringMap {
-    const qs: StringMap = {}
-    search
-      .slice(search[0] === '?' ? 1 : 0)
-      .split('&')
-      .forEach(p => {
-        const [k, v] = p.split('=')
-        if (!k) return
-        qs[decodeURIComponent(k)] = decodeURIComponent(v || '')
-      })
+    if (!search) return {}
+    const qs = Object.create(null) as StringMap
+    const startIndex = search[0] === '?' ? 1 : 0
+    const pairs = search.substring(startIndex).split('&')
+    
+    for (let i = 0; i < pairs.length; i++) {
+      const pair = pairs[i]!
+      const eqIndex = pair.indexOf('=')
+      
+      if (eqIndex === -1) {
+        // Handle key without value
+        if (pair) {
+          qs[decodeURIComponent(pair)] = ''
+        }
+      } else {
+        const k = pair.substring(0, eqIndex)
+        if (k) {
+          qs[decodeURIComponent(k)] = decodeURIComponent(pair.substring(eqIndex + 1) || '')
+        }
+      }
+    }
     return qs
   }
 

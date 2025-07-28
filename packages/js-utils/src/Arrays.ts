@@ -38,11 +38,15 @@ export class ArraysClass {
       throw new Error('Size must be greater than 0')
     }
 
+    const length = array.length
+    if (length === 0) return []
+    
     const results: T[][] = []
-    const elements = [...array]
-
-    while (elements.length) {
-      results.push(elements.splice(0, size))
+    let index = 0
+    
+    while (index < length) {
+      results.push(array.slice(index, index + size))
+      index += size
     }
 
     return results
@@ -63,13 +67,7 @@ export class ArraysClass {
    * @returns A flattened array.
    */
   collapse<T>(array: T[][]): T[] {
-    const results: T[] = []
-
-    array.forEach(chunk => {
-      results.push(...chunk)
-    })
-
-    return results
+    return array.flat()
   }
 
   /**
@@ -79,13 +77,16 @@ export class ArraysClass {
    * @returns An object containing the grouped elements.
    */
   groupBy<T>(items: readonly T[], mapper: Mapper<T, any>): StringMap<T[]> {
-    return items.reduce((map, item, index) => {
+    const map = Object.create(null) as StringMap<T[]>
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index]!
       const key = mapper(item, index) ?? 'undefined' // Coerce undefined to the string "undefined"
-      map[key] = map[key] || []
-
-      map[key]?.push(item)
-      return map
-    }, {} as StringMap<T[]>)
+      if (!map[key]) {
+        map[key] = []
+      }
+      map[key]!.push(item)
+    }
+    return map
   }
 
   /**
@@ -104,9 +105,27 @@ export class ArraysClass {
   ): T[] {
     const mod = descending ? -1 : 1
     const sortedItems = mutate ? items : [...items]
+    const mappedCache = new Map<T, any>()
+    
+    // Pre-map all values to avoid indexOf calls in the sort comparator
+    const indexMap = new Map<T, number>()
+    for (let i = 0; i < sortedItems.length; i++) {
+      indexMap.set(sortedItems[i]!, i)
+    }
+    
     return sortedItems.sort((a, b) => {
-      const mappedA = mapper(a, sortedItems.indexOf(a))
-      const mappedB = mapper(b, sortedItems.indexOf(b))
+      let mappedA = mappedCache.get(a)
+      if (mappedA === undefined) {
+        mappedA = mapper(a, indexMap.get(a)!)
+        mappedCache.set(a, mappedA)
+      }
+      
+      let mappedB = mappedCache.get(b)
+      if (mappedB === undefined) {
+        mappedB = mapper(b, indexMap.get(b)!)
+        mappedCache.set(b, mappedB)
+      }
+      
       if (typeof mappedA === 'number' && typeof mappedB === 'number') {
         return (mappedA - mappedB) * mod
       }
@@ -125,7 +144,12 @@ export class ArraysClass {
    * @returns The last element that passes the test, or undefined if no element passes.
    */
   findLast<T>(items: T[], predicate: Predicate<T>): T | undefined {
-    return [...items].reverse().find(predicate)
+    for (let i = items.length - 1; i >= 0; i--) {
+      if (predicate(items[i]!, i)) {
+        return items[i]
+      }
+    }
+    return undefined
   }
 
   /**
@@ -135,11 +159,12 @@ export class ArraysClass {
    * @returns An object with keys representing distinct elements and values their counts.
    */
   countBy<T>(items: T[], mapper: Mapper<T, any>): StringMap<number> {
-    return items.reduce((acc, item, index) => {
-      const key = mapper(item, index)
+    const acc = Object.create(null) as StringMap<number>
+    for (let index = 0; index < items.length; index++) {
+      const key = mapper(items[index]!, index)
       acc[key] = (acc[key] || 0) + 1
-      return acc
-    }, {} as StringMap<number>)
+    }
+    return acc
   }
 
   /**
@@ -148,7 +173,11 @@ export class ArraysClass {
    * @returns The sum of the elements.
    */
   sum(items: number[]): number {
-    return items.reduce((sum, n) => sum + n, 0)
+    let sum = 0
+    for (let i = 0; i < items.length; i++) {
+      sum += items[i]!
+    }
+    return sum
   }
 
   /**
@@ -158,10 +187,14 @@ export class ArraysClass {
    * @returns The sum of the transformed elements.
    */
   sumBy<T>(items: T[], mapper: Mapper<T, number | undefined>): number {
-    return items
-      .map(mapper)
-      .filter((value): value is number => typeof value === 'number')
-      .reduce((sum, n) => sum + n, 0)
+    let sum = 0
+    for (let i = 0; i < items.length; i++) {
+      const value = mapper(items[i]!, i)
+      if (typeof value === 'number') {
+        sum += value
+      }
+    }
+    return sum
   }
 
   /**
@@ -174,14 +207,15 @@ export class ArraysClass {
     array: T[],
     mapper: (item: T) => [key: any, value: V] | FalsyValue
   ): StringMap<V> {
-    return array.reduce((acc, item) => {
-      const result = mapper(item)
+    const acc = Object.create(null) as StringMap<V>
+    for (let i = 0; i < array.length; i++) {
+      const result = mapper(array[i]!)
       if (result) {
         const [key, value] = result
         acc[key] = value
       }
-      return acc
-    }, {} as StringMap<V>)
+    }
+    return acc
   }
 
   /**
@@ -209,13 +243,19 @@ export class ArraysClass {
    * @returns A new array with all nested arrays flattened.
    */
   flattenDeep<T>(array: any[]): T[] {
-    return array.reduce(
-      (acc: T[], val: any) =>
-        Array.isArray(val)
-          ? acc.concat(this.flattenDeep(val))
-          : acc.concat(val),
-      []
-    )
+    const result: T[] = []
+    const stack = [...array]
+    
+    while (stack.length) {
+      const next = stack.pop()
+      if (Array.isArray(next)) {
+        stack.push(...next)
+      } else {
+        result.push(next)
+      }
+    }
+    
+    return result.reverse()
   }
 
   /**
@@ -237,14 +277,20 @@ export class ArraysClass {
    * @returns A tuple of two arrays: the first contains elements for which the predicate returned true, the second for which it returned false.
    */
   partition<T>(array: T[], predicate: Predicate<T>): [T[], T[]] {
-    return array.reduce(
-      ([pass, fail], elem, index) => {
-        return predicate(elem, index)
-          ? [[...pass, elem], fail]
-          : [pass, [...fail, elem]]
-      },
-      [[], []] as [T[], T[]]
-    )
+    if (!Array.isArray(array)) {
+      throw new TypeError('First argument must be an array')
+    }
+    const pass: T[] = []
+    const fail: T[] = []
+    for (let index = 0; index < array.length; index++) {
+      const elem = array[index]!
+      if (predicate(elem, index)) {
+        pass.push(elem)
+      } else {
+        fail.push(elem)
+      }
+    }
+    return [pass, fail]
   }
 
   /**
@@ -271,23 +317,34 @@ export class ArraysClass {
    * @returns An array of shared elements found in all input arrays.
    */
   intersection<T>(...arrays: T[][]): T[] {
-    // Get the first array
-    const firstArray = arrays.shift() || []
-
-    // Filter unique elements from the first array
-    const uniqueElements = new Set(firstArray)
-
-    // Iterate through other arrays and filter elements that exist in all arrays
-    for (const array of arrays) {
-      const currentSet = new Set(array)
-      for (const element of uniqueElements) {
-        if (!currentSet.has(element)) {
-          uniqueElements.delete(element)
+    if (arrays.length === 0) return []
+    if (arrays.length === 1) return [...new Set(arrays[0])]
+    
+    // Find the smallest array to minimize iterations
+    let smallestIndex = 0
+    let smallestSize = arrays[0]!.length
+    for (let i = 1; i < arrays.length; i++) {
+      if (arrays[i]!.length < smallestSize) {
+        smallestSize = arrays[i]!.length
+        smallestIndex = i
+      }
+    }
+    
+    // Start with the smallest array
+    const result = new Set(arrays[smallestIndex])
+    
+    // Check each element against other arrays
+    for (const element of result) {
+      for (let i = 0; i < arrays.length; i++) {
+        if (i === smallestIndex) continue
+        if (!arrays[i]!.includes(element)) {
+          result.delete(element)
+          break
         }
       }
     }
-
-    return Array.from(uniqueElements)
+    
+    return Array.from(result)
   }
 
   /**
@@ -297,7 +354,12 @@ export class ArraysClass {
    * @returns An array containing elements unique to the first array.
    */
   difference<T>(array: T[], ...arrays: T[][]): T[] {
-    const otherElements = new Set(arrays.flat())
+    const otherElements = new Set<T>()
+    for (const arr of arrays) {
+      for (const element of arr) {
+        otherElements.add(element)
+      }
+    }
     return array.filter(element => !otherElements.has(element))
   }
 
@@ -316,7 +378,17 @@ export class ArraysClass {
    * @returns A new array consisting of all elements from the input arrays.
    */
   concatAll<T>(...arrays: T[][]): T[] {
-    return arrays.flat()
+    const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0)
+    const result = new Array<T>(totalLength)
+    let index = 0
+    
+    for (const arr of arrays) {
+      for (let i = 0; i < arr.length; i++) {
+        result[index++] = arr[i]!
+      }
+    }
+    
+    return result
   }
 
   /**

@@ -19,6 +19,9 @@ const defaultBackoffSettings: BackoffSettings = {
   initialRpcTimeoutMillis: 6000
 }
 
+// Pre-calculated constants
+const MS_TO_MINUTES = 1 / 60000
+
 function getScheduledInfo(scheduled: number): {
   minutesUntil: number
 } {
@@ -27,10 +30,9 @@ function getScheduledInfo(scheduled: number): {
       minutesUntil: 0
     }
   }
-  const scheduledMs = scheduled * 1000
-  const nowMs = Date.now()
-
-  const minutesUntil = Math.floor((scheduledMs - nowMs) / 1000 / 60)
+  
+  // Avoid multiple multiplication - calculate difference directly
+  const minutesUntil = Math.floor((scheduled * 1000 - Date.now()) * MS_TO_MINUTES)
 
   return { minutesUntil }
 }
@@ -89,49 +91,24 @@ export class CloudTaskConnector implements TaskConnector<object> {
     assert(task.httpRequest, `task.httpRequest property is required`)
 
     const { url } = task.httpRequest
-
-    const parseUrl = async (urlString?: string | null) => {
-      if (!urlString) {
-        return
-      }
-
-      // urlService.getBackendUrl({
-      //   useIP: true
-      // })
-
-      return new URL(urlString, baseUrl)
-    }
-
     assert(url, 'Task URL is required')
 
-    // Parse URL to point to the correct backend
-    const parsedURL = await parseUrl(url)
-
+    // Parse URL to point to the correct backend - simplified without async wrapper
+    const parsedURL = new URL(url, baseUrl)
     assert(parsedURL, 'Task URL is invalid')
 
     const client = await this.getCloudTasksClient()
     const parent = client.queuePath(this.gcpProject, this.location, queueName)
 
-    // According to docs it is needed
-    if (task.name && !task.name.startsWith(parent)) {
-      task = {
-        ...task,
-        name: `${parent}/tasks/${task.name}`
-      }
-    }
-
-    task = {
+    // Build the task object in one go to avoid multiple spreads
+    const finalTask = {
       ...task,
+      name: task.name && !task.name.startsWith(parent) 
+        ? `${parent}/tasks/${task.name}` 
+        : task.name,
       httpRequest: {
         ...task.httpRequest,
-        url: parsedURL.href
-      }
-    }
-
-    task = {
-      ...task,
-      httpRequest: {
-        ...task.httpRequest,
+        url: parsedURL.href,
         headers: {
           'content-type': 'application/octet-stream'
         },
@@ -165,7 +142,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
     const [response] = await client.createTask(
       {
         parent,
-        task
+        task: finalTask
       },
       {
         retry: {
@@ -212,12 +189,13 @@ export class CloudTaskConnector implements TaskConnector<object> {
    * @returns The decrypted body as a Record<string, Primitive>.
    */
   decryptBody(body?: Buffer | null | string | any) {
-    const buffer = body || Buffer.alloc(0)
+    if (!body) {
+      return {} as Record<string, Primitive>
+    }
 
+    // Direct parsing without intermediate buffer conversion for strings
     const bodyJSON = JSON.parse(
-      typeof buffer === 'string'
-        ? buffer
-        : Buffer.from(buffer).toString('ascii')
+      typeof body === 'string' ? body : Buffer.from(body).toString('ascii')
     )
 
     const decryptedBody = Security.decryptObject(
@@ -257,9 +235,11 @@ export class CloudTaskConnector implements TaskConnector<object> {
 
     // This in most cases will mean success, given that the tasks get removed once they are done
     if (error?.message.includes('The task no longer exists')) {
+      // Extract task name once
+      const taskName = name?.split('/').pop() || ''
       return {
         id: name,
-        name: name?.split('/').pop() || '',
+        name: taskName,
         output: error?.message,
         attempts: 0,
         status: 'COMPLETED',
@@ -272,35 +252,30 @@ export class CloudTaskConnector implements TaskConnector<object> {
 
     const task = resp[0]
 
-    const creation: number = Number(task.createTime?.seconds || 0) || 0
-    const scheduled: number = Number(task.scheduleTime?.seconds || 0) || 0
-    const payload = this.decryptBody(task.httpRequest?.body)
-
+    // Extract values once
+    const dispatchCount = task.dispatchCount ?? 0
+    const responseCount = task.responseCount || 0
+    const creation = Number(task.createTime?.seconds || 0) || 0
+    const scheduled = Number(task.scheduleTime?.seconds || 0) || 0
+    
+    // Determine status with simplified logic
     let status: TaskStatusName = 'RUNNING'
-
-    if (
-      (task.responseCount === 0 && (task.dispatchCount ?? 0) > 2) ||
-      (task.responseCount === 0 &&
-        (task.dispatchCount === 1 || task.dispatchCount === 0))
-    ) {
+    if (responseCount === 0 && (dispatchCount > 2 || dispatchCount <= 1)) {
       status = 'FAILED'
-    } else if (
-      typeof task.responseCount === 'number' &&
-      task.responseCount > 0
-    ) {
+    } else if (responseCount > 0) {
       status = 'COMPLETED'
     }
 
     return {
       id: task.name || '',
       name: task.name?.split('/').pop() || '',
-      attempts: task.dispatchCount ?? 0,
+      attempts: dispatchCount,
       output: task.lastAttempt?.responseStatus?.message || '',
       status,
       created: new Date(creation * 1000).toISOString(),
-      nextRun: new Date(scheduled * 1000).toISOString(),
-      nextRunMinutes: getScheduledInfo(scheduled).minutesUntil,
-      payload
+      nextRun: scheduled ? new Date(scheduled * 1000).toISOString() : null,
+      nextRunMinutes: scheduled ? getScheduledInfo(scheduled).minutesUntil : null,
+      payload: this.decryptBody(task.httpRequest?.body)
     }
   }
 
@@ -325,17 +300,18 @@ export class CloudTaskConnector implements TaskConnector<object> {
       backoffSettings: defaultBackoffSettings
     })
 
-    const creation: number = Number(task.createTime?.seconds || 0) || 0
-    const scheduled: number = Number(task.scheduleTime?.seconds || 0) || 0
+    const creation = Number(task.createTime?.seconds || 0) || 0
+    const scheduled = Number(task.scheduleTime?.seconds || 0) || 0
+    const taskName = task.name.split('/').pop() || ''
 
     return {
       id: task.name,
-      name: task.name.split('/').pop() || '',
+      name: taskName,
       output: '',
       attempts: 0,
       status: 'QUEUED',
-      created: new Date(creation * 1000).toISOString(),
-      nextRun: new Date(scheduled * 1000).toISOString(),
+      created: creation ? new Date(creation * 1000).toISOString() : new Date().toISOString(),
+      nextRun: scheduled ? new Date(scheduled * 1000).toISOString() : null,
       nextRunMinutes: null
     }
   }

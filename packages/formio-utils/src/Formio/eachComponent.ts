@@ -18,9 +18,11 @@ export const eachComponent = (
     return
   }
   path = path || ''
-  components.forEach((component: FormioComponent) => {
+  const componentsLength = components.length
+  for (let i = 0; i < componentsLength; i++) {
+    const component = components[i]
     if (!component) {
-      return
+      continue
     }
 
     const hasColumns = component.columns && Array.isArray(component.columns)
@@ -76,29 +78,33 @@ export const eachComponent = (
 
     if (!noRecurse) {
       if (hasColumns) {
-        component.columns.forEach(column =>
+        const columnsLength = component.columns.length
+        for (let j = 0; j < columnsLength; j++) {
           eachComponent(
-            column.components,
+            component.columns[j].components,
             fn,
             includeAll,
             subPath(),
             parent ? component : null
           )
-        )
+        }
       } else if (hasRows) {
-        component.rows.forEach(row => {
+        const rowsLength = component.rows.length
+        for (let j = 0; j < rowsLength; j++) {
+          const row = component.rows[j]
           if (Array.isArray(row)) {
-            row.forEach(column =>
+            const rowLength = row.length
+            for (let k = 0; k < rowLength; k++) {
               eachComponent(
-                column.components,
+                row[k].components,
                 fn,
                 includeAll,
                 subPath(),
                 parent ? component : null
               )
-            )
+            }
           }
-        })
+        }
       } else if (hasComps) {
         eachComponent(
           component.components,
@@ -109,5 +115,5 @@ export const eachComponent = (
         )
       }
     }
-  })
+  }
 }

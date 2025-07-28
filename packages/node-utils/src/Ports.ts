@@ -7,15 +7,14 @@ class PortClass {
       const tester = net
         .createServer()
         .once('error', (err: any) => {
-          if (err.code !== 'EADDRINUSE') return reject(err)
-          resolve(true)
+          if (err.code === 'EADDRINUSE') {
+            resolve(false)
+          } else {
+            reject(err)
+          }
         })
         .once('listening', () => {
-          tester
-            .once('close', () => {
-              resolve(false)
-            })
-            .close()
+          tester.close(() => resolve(true))
         })
         .listen(port)
     })

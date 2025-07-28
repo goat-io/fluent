@@ -63,10 +63,20 @@ abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     query: FluentQuery<ModelDTO>
   ): Promise<any> {
     const data = await this.findMany(query)
+    const dataLength = data.length
+    
     return { 
       avg: (key: string) => {
-        const sum = data.reduce((acc, item) => acc + (item[key] || 0), 0)
-        return sum / data.length
+        if (dataLength === 0) return 0
+        
+        let sum = 0
+        for (let i = 0; i < dataLength; i++) {
+          const value = data[i][key]
+          if (typeof value === 'number') {
+            sum += value
+          }
+        }
+        return sum / dataLength
       }
     }
   }
@@ -137,7 +147,12 @@ class FormioMockStorage<T extends { id?: string }> {
   }
 
   insertMany(data: T[]): T[] {
-    return data.map(item => this.insert(item))
+    const dataLength = data.length
+    const results = new Array(dataLength)
+    for (let i = 0; i < dataLength; i++) {
+      results[i] = this.insert(data[i])
+    }
+    return results
   }
 
   findById(id: string): T | null {
@@ -145,7 +160,17 @@ class FormioMockStorage<T extends { id?: string }> {
   }
 
   findByIds(ids: string[]): T[] {
-    return ids.map(id => this.storage.get(id)).filter(Boolean) as T[]
+    const idsLength = ids.length
+    const results: T[] = []
+    results.length = 0 // Ensure array is empty and optimized
+    
+    for (let i = 0; i < idsLength; i++) {
+      const item = this.storage.get(ids[i])
+      if (item) {
+        results.push(item)
+      }
+    }
+    return results
   }
 
   findMany(filter?: any): T[] {
@@ -200,20 +225,48 @@ class FormioMockStorage<T extends { id?: string }> {
   }
 
   private applyWhereFilter(items: T[], where: any): T[] {
-    return items.filter(item => this.matchesWhere(item, where))
+    const itemsLength = items.length
+    const results: T[] = []
+    results.length = 0 // Pre-optimize array
+    
+    for (let i = 0; i < itemsLength; i++) {
+      const item = items[i]
+      if (this.matchesWhere(item, where)) {
+        results.push(item)
+      }
+    }
+    return results
   }
 
   private matchesWhere(item: any, where: any): boolean {
-    if (where.AND) {
-      return where.AND.every((condition: any) => this.matchesWhere(item, condition))
+    // Handle AND conditions
+    const andConditions = where.AND
+    if (andConditions) {
+      const andLength = andConditions.length
+      for (let i = 0; i < andLength; i++) {
+        if (!this.matchesWhere(item, andConditions[i])) {
+          return false
+        }
+      }
+      return true
     }
 
-    if (where.OR) {
-      return where.OR.some((condition: any) => this.matchesWhere(item, condition))
+    // Handle OR conditions
+    const orConditions = where.OR
+    if (orConditions) {
+      const orLength = orConditions.length
+      for (let i = 0; i < orLength; i++) {
+        if (this.matchesWhere(item, orConditions[i])) {
+          return true
+        }
+      }
+      return false
     }
 
-    for (const [key, condition] of Object.entries(where)) {
-      if (!this.matchesCondition(item, key, condition)) {
+    // Handle regular conditions - avoid Object.entries
+    for (const key in where) {
+      if (key === 'AND' || key === 'OR') continue
+      if (!this.matchesCondition(item, key, where[key])) {
         return false
       }
     }
@@ -247,23 +300,44 @@ class FormioMockStorage<T extends { id?: string }> {
   }
 
   private isFilterCondition(obj: any): boolean {
-    const filterKeys = ['equals', 'in', 'greaterOrEqualThan', 'lessThan', 'greaterThan', 'lessOrEqualThan']
-    return filterKeys.some(key => key in obj)
+    // Direct property checks are faster than array iteration
+    return 'equals' in obj || 
+           'in' in obj || 
+           'greaterOrEqualThan' in obj || 
+           'lessThan' in obj || 
+           'greaterThan' in obj || 
+           'lessOrEqualThan' in obj
   }
 
   private applyOrderBy(items: T[], orderBy: any[]): T[] {
+    const orderLength = orderBy.length
+    
+    // Pre-process orderBy to avoid repeated Object.keys calls
+    const sortFields = new Array(orderLength)
+    for (let i = 0; i < orderLength; i++) {
+      const order = orderBy[i]
+      const keys = Object.keys(order)
+      if (keys.length > 0) {
+        sortFields[i] = { 
+          key: keys[0], 
+          direction: order[keys[0]],
+          descMultiplier: order[keys[0]] === 'desc' ? -1 : 1
+        }
+      }
+    }
+    
     return items.sort((a, b) => {
-      for (const order of orderBy) {
-        const key = Object.keys(order)[0]
-        const direction = order[key]
+      for (let i = 0; i < orderLength; i++) {
+        const field = sortFields[i]
+        if (!field) continue
         
-        const aVal = Objects.getFromPath(a, key).value
-        const bVal = Objects.getFromPath(b, key).value
+        const aVal = Objects.getFromPath(a, field.key).value
+        const bVal = Objects.getFromPath(b, field.key).value
 
         if (aVal === bVal) continue
 
         const comparison = aVal > bVal ? 1 : -1
-        return direction === 'desc' ? -comparison : comparison
+        return comparison * field.descMultiplier
       }
       return 0
     })
@@ -371,10 +445,22 @@ export class FormioConnector<
   private applySelect(items: any[], select?: any): any[] {
     if (!select || !items.length) return items
 
-    return items.map(item => {
+    const itemsLength = items.length
+    const results = new Array(itemsLength)
+    
+    // Pre-process select keys to avoid Object.entries in hot loop
+    const selectKeys: Array<{key: string, value: any}> = []
+    for (const key in select) {
+      selectKeys.push({ key, value: select[key] })
+    }
+    const selectLength = selectKeys.length
+    
+    for (let i = 0; i < itemsLength; i++) {
+      const item = items[i]
       const selected: any = {}
       
-      for (const [key, value] of Object.entries(select)) {
+      for (let j = 0; j < selectLength; j++) {
+        const { key, value } = selectKeys[j]
         if (value === true) {
           selected[key] = item[key]
         } else if (typeof value === 'object' && value !== null) {
@@ -386,17 +472,30 @@ export class FormioConnector<
         }
       }
       
-      return selected
-    })
+      results[i] = selected
+    }
+    
+    return results
   }
 
   async pluck(path: string): Promise<any[]> {
     const data = await this.findMany()
+    const dataLength = data.length
     
-    return data.map(item => {
-      const extracted = Objects.getFromPath(item, path, undefined)
-      return extracted.value
-    }).filter(value => value !== undefined)
+    // Pre-allocate with maximum possible size
+    const results = new Array(dataLength)
+    let resultIndex = 0
+    
+    for (let i = 0; i < dataLength; i++) {
+      const extracted = Objects.getFromPath(data[i], path, undefined)
+      if (extracted.value !== undefined) {
+        results[resultIndex++] = extracted.value
+      }
+    }
+    
+    // Trim to actual size
+    results.length = resultIndex
+    return results
   }
 
   // Clear all data (useful for testing)

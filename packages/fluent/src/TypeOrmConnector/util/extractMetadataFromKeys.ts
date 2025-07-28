@@ -12,24 +12,34 @@ export interface KeysMetadataResponse {
   [key: string]: KeysMetadata
 }
 
+// Cache for regex patterns
+const REGEX_CACHE = {
+  manyToOne: /___XXManyToOneXX/g,
+  oneToMany: /___XXOneToManyXX/g,
+  tripleSep: /___/g,
+  xxPattern: /XX___/g,
+  xxReplace: /XX/g
+}
+
 export const extractMetadataFromKeys = (keys: string[]): KeysMetadataResponse => {
   // Example of a key
   // Level 0:
   //    users__id
   // Level 2:
   //    users___XXOneToManyXX___cars___XXManyToOneXX___user__id
-  const keyToNestedKeyMap = {}
+  const keyToNestedKeyMap = Object.create(null)
 
-  for (const key of keys) {
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]!
     // All keys have an _ before the actual attribute name
     const preAttributeIndex = key.lastIndexOf('_')
     const fullTableAlias = key.slice(0, preAttributeIndex).replace('_', '')
-    const keyName = key.slice(preAttributeIndex + 1, key.length)
+    const keyName = key.slice(preAttributeIndex + 1)
 
     const flattened = fullTableAlias
-      .replace(/___XXManyToOneXX/g, '')
-      .replace(/___XXOneToManyXX/g, '')
-      .replace(/___/g, '.')
+      .replace(REGEX_CACHE.manyToOne, '')
+      .replace(REGEX_CACHE.oneToMany, '')
+      .replace(REGEX_CACHE.tripleSep, '.')
       .replace('__', '.')
       .replace('.XXOneToManyXX', '')
 
@@ -54,9 +64,10 @@ export const extractMetadataFromKeys = (keys: string[]): KeysMetadataResponse =>
     const parentRelation =
       key
         .substring(parentRelationKey, possibleParentTableKeyInit)
-        .replace(/___/g, '') || undefined
+        .replace(REGEX_CACHE.tripleSep, '') || undefined
 
-    var level = (key.match(/XX___/g) || []).length
+    const levelMatches = key.match(REGEX_CACHE.xxPattern)
+    const level = levelMatches ? levelMatches.length : 0
 
     keyToNestedKeyMap[key] = {
       keyName,
@@ -65,7 +76,7 @@ export const extractMetadataFromKeys = (keys: string[]): KeysMetadataResponse =>
       parentRelation,
       level,
       cardinality:
-        cardinality && cardinality.replace(/XX/g, '').replace(/___/g, '')
+        cardinality && cardinality.replace(REGEX_CACHE.xxReplace, '').replace(REGEX_CACHE.tripleSep, '')
     }
   }
 

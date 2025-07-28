@@ -116,9 +116,12 @@ class ObjectsClass {
     keyFactory: KeyFactory = (previousKey, currentKey) =>
       `${previousKey}.${currentKey}`
   ): Record<string, string> => {
-    const toReturn: Record<string, string> = {}
+    const toReturn = Object.create(null) as Record<string, string>
+    const stack: Array<[AnyObject, string]> = [[ob, '']]
 
-    const walk = (obj: AnyObject, path: string) => {
+    while (stack.length > 0) {
+      const [obj, path] = stack.pop()!
+      
       for (const key in obj) {
         if (!hasOwnProperty.call(obj, key)) continue
 
@@ -133,14 +136,12 @@ class ObjectsClass {
           if (includeBaseKeys && !(newKey in toReturn)) {
             toReturn[newKey] = 'true'
           }
-          walk(value, newKey)
+          stack.push([value, newKey])
         } else {
           toReturn[newKey] = String(value)
         }
       }
     }
-
-    walk(ob, '')
 
     return toReturn
   }
@@ -198,8 +199,17 @@ class ObjectsClass {
    * will not clone functions inside objects
    * @param {Object} object
    */
-  clone = <T extends AnyObject>(object: T): T =>
-    JSON.parse(JSON.stringify(object))
+  clone = <T extends AnyObject>(object: T): T => {
+    // Use structuredClone if available (faster and handles more types)
+    if (typeof structuredClone === 'function') {
+      try {
+        return structuredClone(object)
+      } catch {
+        // Fallback to JSON method if structuredClone fails
+      }
+    }
+    return JSON.parse(JSON.stringify(object))
+  }
 
   /**
    * Given a value, it will check if it contains
@@ -207,22 +217,18 @@ class ObjectsClass {
    * @param {string, Array, Object} value
    */
   isEmpty = (value: any): boolean => {
-    if (value === null || value === undefined) {
-      return true
-    }
-
-    if (typeof value === 'string' || Array.isArray(value)) {
-      return value.length === 0
-    }
-
-    if (value instanceof Map || value instanceof Set) {
-      return value.size === 0
-    }
-
-    if (typeof value === 'object') {
+    if (value === null || value === undefined) return true
+    
+    const type = typeof value
+    if (type === 'string' || Array.isArray(value)) return value.length === 0
+    
+    if (value instanceof Map || value instanceof Set) return value.size === 0
+    
+    if (type === 'object') {
+      // Use Object.keys for better performance on modern engines
       return Object.keys(value).length === 0
     }
-
+    
     return false
   }
 
@@ -257,13 +263,13 @@ class ObjectsClass {
     predicate: ObjectPredicate<T>,
     mutate = false
   ): T {
-    return Object.keys(obj).reduce(
-      (r, k) => {
-        if (!predicate(k as keyof T, r[k], obj)) delete r[k]
-        return r
-      },
-      mutate ? obj : { ...obj }
-    )
+    const result = mutate ? obj : { ...obj }
+    for (const k in result) {
+      if (hasOwnProperty.call(result, k) && !predicate(k as keyof T, result[k], obj)) {
+        delete result[k]
+      }
+    }
+    return result
   }
 
   /**
@@ -342,21 +348,26 @@ class ObjectsClass {
     mapper: ObjectMapper<T, any>,
     mutate = false
   ): OUT {
-    return Object.entries(obj).reduce((map, [k, v]) => {
-      map[k as keyof OUT] = mapper(k, v, obj)
-      return map
-    }, (mutate ? obj : {}) as OUT)
+    const result = (mutate ? obj : {}) as OUT
+    for (const k in obj) {
+      if (hasOwnProperty.call(obj, k)) {
+        (result as any)[k] = mapper(k, obj[k], obj)
+      }
+    }
+    return result
   }
 
   mapKeys<T extends AnyObject>(
     obj: T,
     mapper: ObjectMapper<T, string>
   ): StringMap<T[keyof T]> {
-    // eslint-disable-next-line unicorn/prefer-object-from-entries
-    return Object.entries(obj).reduce((map, [k, v]) => {
-      map[mapper(k, v, obj) as keyof T] = v
-      return map
-    }, {} as T)
+    const result = {} as StringMap<T[keyof T]>
+    for (const k in obj) {
+      if (hasOwnProperty.call(obj, k)) {
+        result[mapper(k, obj[k], obj)] = obj[k]
+      }
+    }
+    return result
   }
 
   /**
@@ -379,13 +390,16 @@ class ObjectsClass {
     obj: IN,
     mapper: ObjectMapper<IN, [key: string, value: any]>
   ): { [P in keyof IN]: OUT } {
-    return Object.entries(obj).reduce((map, [k, v]) => {
-      const r = mapper(k, v, obj) || []
-      if (r[0]) {
-        ;(map[r[0]] as any) = r[1]
+    const result = {} as { [P in keyof IN]: OUT }
+    for (const k in obj) {
+      if (hasOwnProperty.call(obj, k)) {
+        const r = mapper(k, obj[k], obj)
+        if (r && r[0]) {
+          (result[r[0]] as any) = r[1]
+        }
       }
-      return map
-    }, {} as { [P in keyof IN]: OUT })
+    }
+    return result
   }
 
   findKeyByValue<T extends AnyObject>(
@@ -434,18 +448,26 @@ class ObjectsClass {
   }
 
   sort<T extends AnyObject>(obj: T, keyOrder: (keyof T)[]): T {
-    const r = {} as T
-
-    keyOrder.forEach(key => {
+    const r = Object.create(Object.getPrototypeOf(obj)) as T
+    const keySet = new Set(keyOrder)
+    
+    // First pass: add ordered keys
+    for (let i = 0; i < keyOrder.length; i++) {
+      const key = keyOrder[i]!
       if (key in obj) {
         r[key] = obj[key]
       }
-    })
-
-    Object.entries(this.omit(obj, keyOrder)).forEach(([k, v]) => {
-      r[k as keyof T] = v
-    })
-
+    }
+    
+    // Second pass: add remaining keys
+    const objKeys = Object.keys(obj) as (keyof T)[]
+    for (let i = 0; i < objKeys.length; i++) {
+      const k = objKeys[i]!
+      if (!keySet.has(k)) {
+        r[k] = obj[k]
+      }
+    }
+    
     return r
   }
 
@@ -458,13 +480,11 @@ class ObjectsClass {
     props: readonly K[],
     mutate = false
   ): T {
-    return props.reduce(
-      (r, prop) => {
-        delete r[prop]
-        return r
-      },
-      mutate ? obj : { ...obj }
-    )
+    const result = mutate ? obj : { ...obj }
+    for (let i = 0; i < props.length; i++) {
+      delete result[props[i]!]
+    }
+    return result
   }
 
   /**
@@ -477,17 +497,22 @@ class ObjectsClass {
     mutate = false
   ): T {
     if (mutate) {
-      // Start as original object (mutable), DELETE properties that are not whitelisted
-      return Object.keys(obj).reduce((r, prop) => {
-        if (!props.includes(prop as K)) delete r[prop]
-        return r
-      }, obj)
+      const propsSet = new Set(props)
+      for (const prop in obj) {
+        if (!propsSet.has(prop as any)) {
+          delete obj[prop]
+        }
+      }
+      return obj
     } else {
-      // Start as empty object, pick/add needed properties
-      return props.reduce((r, prop) => {
-        if (prop in obj) r[prop] = obj[prop]
-        return r
-      }, {} as T)
+      const result = {} as T
+      for (let i = 0; i < props.length; i++) {
+        const prop = props[i]!
+        if (prop in obj) {
+          result[prop] = obj[prop]
+        }
+      }
+      return result
     }
   }
 

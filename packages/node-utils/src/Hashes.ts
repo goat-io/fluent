@@ -42,7 +42,7 @@ class HashesClass {
    * @returns The MD5 hash as a hexadecimal string
    */
   md5(s: string | Buffer): string {
-    return this.hash(s, 'md5')
+    return crypto.createHash('md5').update(s).digest('hex')
   }
 
   /**
@@ -61,7 +61,7 @@ class HashesClass {
    * @returns The MD5 hash as a Buffer
    */
   md5AsBuffer(s: string | Buffer): Buffer {
-    return this.hashAsBuffer(s, 'md5')
+    return crypto.createHash('md5').update(s).digest()
   }
 
   /**

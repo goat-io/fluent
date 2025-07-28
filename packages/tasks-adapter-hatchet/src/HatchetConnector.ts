@@ -6,12 +6,18 @@ import type {
 } from '@goatlab/tasks-core'
 import { Hatchet } from '@hatchet-dev/typescript-sdk'
 
+// Default configuration constants
+const DEFAULT_HOST_PORT = 'localhost:7077'
+const DEFAULT_API_URL = 'http://localhost:8888'
+const DEFAULT_LOG_LEVEL = 'INFO'
+const DEFAULT_TENANT_ID = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
+
 export class HatchetConnector implements TaskConnector<object> {
-  private token: string
-  private hostAndPort: string
-  private apiUrl: string
-  private logLevel: 'INFO' | 'OFF' | 'DEBUG' | 'WARN' | 'ERROR'
-  private tenantId: string
+  private readonly token: string
+  private readonly hostAndPort: string
+  private readonly apiUrl: string
+  private readonly logLevel: 'INFO' | 'OFF' | 'DEBUG' | 'WARN' | 'ERROR'
+  private readonly tenantId: string
 
   constructor({
     token,
@@ -27,9 +33,9 @@ export class HatchetConnector implements TaskConnector<object> {
     tenantId?: string
   }) {
     this.token = token || ''
-    this.hostAndPort = hostAndPort || 'localhost:7077'
-    this.apiUrl = apiUrl || 'http://localhost:8888'
-    this.logLevel = logLevel || 'INFO'
+    this.hostAndPort = hostAndPort || DEFAULT_HOST_PORT
+    this.apiUrl = apiUrl || DEFAULT_API_URL
+    this.logLevel = logLevel || DEFAULT_LOG_LEVEL
     this.tenantId = tenantId || ''
   }
 
@@ -37,11 +43,11 @@ export class HatchetConnector implements TaskConnector<object> {
   public getHatchetClient() {
     const hatchet = Hatchet.init({
       token: this.token,
-      host_port: this.hostAndPort || 'localhost:7077',
-      api_url: this.apiUrl || 'http://localhost:8888',
-      log_level: this.logLevel || 'INFO',
+      host_port: this.hostAndPort,
+      api_url: this.apiUrl,
+      log_level: this.logLevel,
       // This is the default tenantId for local development
-      tenant_id: this.tenantId || '707d0855-80ab-4e1f-a156-f1c4546cbf52',
+      tenant_id: this.tenantId || DEFAULT_TENANT_ID,
       namespace: '',
       tls_config: {
         tls_strategy: 'none'
@@ -68,13 +74,16 @@ export class HatchetConnector implements TaskConnector<object> {
     tasks: any[]
     slots?: number
   }) {
+    // Pre-map workflows to avoid repeated processing
+    const workflows = tasks.map(task => this.getHatchetTask(task))
+    
     const worker = await this.getHatchetClient().worker(
       `${workerName}-${Ids.nanoId(5)}`,
       {
         // 👀 Declare the workflows that the worker can execute
-        workflows: tasks.map(task => this.getHatchetTask(task)),
+        workflows,
         // 👀 Declare the number of concurrent task runs the worker can accept
-        slots: slots
+        slots
       }
     )
 
@@ -92,13 +101,17 @@ export class HatchetConnector implements TaskConnector<object> {
   async getStatus(id: string): Promise<TaskStatus> {
     const { data } = await this.getHatchetClient().api.v1TaskGet(id)
 
+    // Extract values once
+    const input = data.input as any
+    const taskName = data.actionId.split(':')[0] || ''
+    
     return {
       id,
       attempts: data.attempt || 1,
-      payload: (data.input as any).input || {},
+      payload: input?.input || {},
       status: data.status,
       created: data.metadata.createdAt,
-      name: data.actionId.split(':')[0] || '',
+      name: taskName,
       nextRun: null,
       nextRunMinutes: null,
       output: data.output as any
@@ -122,6 +135,7 @@ export class HatchetConnector implements TaskConnector<object> {
 
     const result = await hatchet.runNoWait(params.taskBody)
     const taskId = await result.runId
+    const now = new Date().toISOString()
 
     return {
       id: taskId,
@@ -129,7 +143,7 @@ export class HatchetConnector implements TaskConnector<object> {
       output: '',
       attempts: 0,
       status: 'QUEUED',
-      created: new Date().toISOString(),
+      created: now,
       nextRun: null,
       nextRunMinutes: null
     }

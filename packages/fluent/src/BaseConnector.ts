@@ -97,12 +97,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       limit: 1
     })
 
-    found.map(d => {
+    for (let i = 0; i < found.length; i++) {
+      const d = found[i]!
       if (this.isMongoDB) {
         d['id'] = d['id'].toString()
       }
       clearEmpties(Objects.deleteNulls(d))
-    })
+    }
 
     if (!found[0]) {
       throw new Error(`Object ${id} not found`)
@@ -120,12 +121,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   ): Promise<QueryOutput<T, ModelDTO>> {
     const found = await this.findMany({ ...query, limit: 1 })
 
-    found.map(d => {
+    for (let i = 0; i < found.length; i++) {
+      const d = found[i]!
       if (this.isMongoDB) {
         d['id'] = d['id'].toString()
       }
       clearEmpties(Objects.deleteNulls(d))
-    })
+    }
 
     if (!found[0]) {
       const stringQuery = query ? JSON.stringify(query) : ''
@@ -198,13 +200,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const data = await this.findMany(query)
     const paths = Object.keys(Objects.flatten(path))
 
-    const result: string[] = (data as any).map(e => {
-      const extracted = Objects.getFromPath(e, String(paths[0]), undefined)
-
+    const result: Primitives[] = []
+    const pathStr = String(paths[0])
+    
+    for (let i = 0; i < data.length; i++) {
+      const extracted = Objects.getFromPath((data as any)[i], pathStr, undefined)
       if (typeof extracted.value !== 'undefined') {
-        return extracted.value
+        result.push(extracted.value)
       }
-    })
+    }
     return result
   }
 

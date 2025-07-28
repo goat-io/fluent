@@ -58,11 +58,17 @@ export class FirebaseConnector<
     this.entity = entity
   }
 
+  private _initialized = false
+  private _relationshipBuilder: any
+  
   @Memo.syncMethod()
   initDB() {
+    if (this._initialized) return 1
+    
     const relationShipBuilder = modelGeneratorDataSource.getRepository(
       this.entity
     )
+    this._relationshipBuilder = relationShipBuilder
 
     const name = relationShipBuilder.metadata.givenTableName
 
@@ -81,6 +87,7 @@ export class FirebaseConnector<
     this.modelRelations = relations
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
+    this._initialized = true
     return 1
   }
   // CREATE
@@ -121,22 +128,31 @@ export class FirebaseConnector<
     const validatedData = this.inputSchema.array().parse(data)
 
     const batch = admin.firestore().batch()
-    const batchInserted: ModelDTO[] = []
-    validatedData.forEach(d => {
+    // Pre-allocate array for better performance
+    const dataLength = validatedData.length
+    const batchInserted: ModelDTO[] = new Array(dataLength)
+    
+    for (let i = 0; i < dataLength; i++) {
+      const d = validatedData[i]
+      if (!d) continue
       const id: string = d['id'] || Ids.uuid()
       const item = { id, ...d } as unknown as ModelDTO
-      const insert = this.collection.doc(id)
-      batch.set(insert, item)
-      batchInserted.push(item) as unknown as InputDTO[]
-    })
+      batch.set(this.collection.doc(id), item)
+      batchInserted[i] = item
+    }
 
     await batch.commit()
 
-    return this.outputSchema.array().parse(
-      batchInserted.map(d => {
-        return Objects.clearEmpties(Objects.deleteNulls(d))
-      })
-    )
+    const resultLength = batchInserted.length
+    const cleanedResults = new Array(resultLength)
+    for (let i = 0; i < resultLength; i++) {
+      const item = batchInserted[i]
+      if (item) {
+        cleanedResults[i] = Objects.clearEmpties(Objects.deleteNulls(item))
+      }
+    }
+
+    return this.outputSchema.array().parse(cleanedResults)
   }
 
   // READ
@@ -150,53 +166,99 @@ export class FirebaseConnector<
 
     if (andQuery) {
       const snapshot = await andQuery.get()
-      snapshot.forEach(doc => {
-        results.push(doc.data())
-      })
+      const docs = snapshot.docs
+      const docLength = docs.length
+      // Pre-allocate space for better performance
+      const startIdx = results.length
+      results.length = startIdx + docLength
+      for (let i = 0; i < docLength; i++) {
+        const doc = docs[i]
+        if (doc) {
+          results[startIdx + i] = doc.data()
+        }
+      }
     }
 
-    const promises: Promise<
-      admin.firestore.QuerySnapshot<admin.firestore.DocumentData>
-    >[] = []
+    // Execute OR queries in parallel if there are any
+    if (orQueries.length > 0) {
+      const orSnapshots = await Promise.all(
+        orQueries.map(q => q.get())
+      )
 
-    for (const orQuery of orQueries) {
-      promises.push(orQuery.get())
-    }
-
-    const orSnapshots = await Promise.all(promises)
-
-    for (const orSnapshot of orSnapshots) {
-      orSnapshot.forEach(doc => {
-        results.push(doc.data())
-      })
+      // Count total docs for pre-allocation
+      let totalOrDocs = 0
+      for (let i = 0; i < orSnapshots.length; i++) {
+        const snapshot = orSnapshots[i]
+        if (snapshot) {
+          totalOrDocs += snapshot.docs.length
+        }
+      }
+      
+      // Pre-allocate space
+      const startIdx = results.length
+      results.length = startIdx + totalOrDocs
+      
+      let currentIdx = startIdx
+      for (let i = 0; i < orSnapshots.length; i++) {
+        const orSnapshot = orSnapshots[i]
+        if (!orSnapshot) continue
+        const docs = orSnapshot.docs
+        const docLength = docs.length
+        for (let j = 0; j < docLength; j++) {
+          const doc = docs[j]
+          if (doc) {
+            results[currentIdx++] = doc.data()
+          }
+        }
+      }
     }
 
     // As there might be duplicated results from the queries,
-    // we will deduplicate by ID
-    let found = [...new Map(results.map(v => [v.id, v])).values()]
+    // we will deduplicate by ID using a more efficient approach
+    let found: admin.firestore.DocumentData[]
+    if (results.length > 0) {
+      const dedupeMap = new Map<string, admin.firestore.DocumentData>()
+      const resultsLength = results.length
+      for (let i = 0; i < resultsLength; i++) {
+        const item = results[i]
+        if (item && !dedupeMap.has(item.id)) {
+          dedupeMap.set(item.id, item)
+        }
+      }
+      found = Array.from(dedupeMap.values())
+    } else {
+      found = []
+    }
 
-    found.map(d => {
-      Objects.clearEmpties(Objects.deleteNulls(d))
-    })
+    // Process data cleaning in-place
+    const foundLength = found.length
+    for (let i = 0; i < foundLength; i++) {
+      const item = found[i]
+      if (item) {
+        Objects.clearEmpties(Objects.deleteNulls(item))
+      }
+    }
 
     if (query?.include) {
       found = await this.loadRelatedData(
         found,
-        Objects.flatten(query?.include || {})
+        Objects.flatten(query.include)
       )
     }
 
     if (query?.paginated) {
+      const perPage = query.paginated.perPage
+      const page = query.paginated.page
       const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO>> = {
         total: 0,
-        perPage: query.paginated.perPage,
-        currentPage: query.paginated.page,
-        nextPage: query.paginated.page + 1,
+        perPage,
+        currentPage: page,
+        nextPage: page + 1,
         firstPage: 1,
-        lastPage: Math.ceil(0 / query.paginated.perPage),
-        prevPage: query.paginated.page === 1 ? null : query.paginated.page - 1,
-        from: (query.paginated.page - 1) * query.paginated.perPage + 1,
-        to: query.paginated.perPage * query.paginated.page,
+        lastPage: Math.ceil(0 / perPage),
+        prevPage: page === 1 ? null : page - 1,
+        from: (page - 1) * perPage + 1,
+        to: perPage * page,
         data: found as unknown as QueryOutput<T, ModelDTO>[]
       }
 
@@ -225,7 +287,7 @@ export class FirebaseConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          ...{ updated: new Date() }
+          updated: new Date()
         }
       : data
 
@@ -260,11 +322,20 @@ export class FirebaseConnector<
     this.initDB()
     const value = await this.findById(id)
 
-    const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
-
-    Object.keys(flatValue).forEach(key => {
-      flatValue[key] = null as any
-    })
+    // Avoid JSON parse/stringify overhead - use structured clone if available
+    const clonedValue = typeof structuredClone !== 'undefined' ? structuredClone(value) : JSON.parse(JSON.stringify(value))
+    const flatValue = Objects.flatten(clonedValue)
+    const keys = Object.keys(flatValue)
+    const keysLength = keys.length
+    
+    // Use a more efficient nullification approach
+    const nullValue = null as any
+    for (let i = 0; i < keysLength; i++) {
+      const key = keys[i]
+      if (key) {
+        flatValue[key] = nullValue
+      }
+    }
 
     const nullObject = Objects.nest(flatValue)
 
@@ -278,7 +349,7 @@ export class FirebaseConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          ...{ updated: new Date() }
+          updated: new Date()
         }
       : data
 
@@ -367,37 +438,36 @@ export class FirebaseConnector<
     return admin.firestore()
   }
 
-  private deleteQueryBatch(db, query, batchSize, resolve, reject) {
+  private async deleteQueryBatch(db: admin.firestore.Firestore, query: FirebaseFirestore.Query, batchSize: number, resolve: Function, reject: Function) {
     this.initDB()
-    query
-      .get()
-      .then(snapshot => {
-        // When there are no documents left, we are done
-        if (snapshot.size == 0) {
-          return 0
-        }
+    try {
+      const snapshot = await query.get()
+      // When there are no documents left, we are done
+      if (snapshot.size === 0) {
+        resolve(true)
+        return
+      }
 
-        // Delete documents in a batch
-        const batch = db.batch()
-        snapshot.docs.forEach(doc => {
+      // Delete documents in a batch
+      const batch = db.batch()
+      const docs = snapshot.docs
+      const docsLength = docs.length
+      for (let i = 0; i < docsLength; i++) {
+        const doc = docs[i]
+        if (doc) {
           batch.delete(doc.ref)
-        })
-
-        return batch.commit().then(() => snapshot.size)
-      })
-      .then(numDeleted => {
-        if (numDeleted === 0) {
-          resolve()
-          return
         }
+      }
 
-        // Recurse on the next process tick, to avoid
-        // exploding the stack.
-        process.nextTick(() => {
-          this.deleteQueryBatch(db, query, batchSize, resolve, reject)
-        })
+      await batch.commit()
+      
+      // Use setImmediate for better performance than process.nextTick
+      setImmediate(() => {
+        this.deleteQueryBatch(db, query, batchSize, resolve, reject)
       })
-      .catch(reject)
+    } catch (error) {
+      reject(error)
+    }
   }
 
   /**
@@ -406,7 +476,11 @@ export class FirebaseConnector<
    */
   protected clone() {
     this.initDB()
-    return new (<any>this.constructor)()
+    return new (<any>this.constructor)({
+      entity: this.entity,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema
+    })
   }
   //////////////////////////////////////////////////////////////
   // ALL OF THESE METHODS PROBABLY SHOULD BE IN SOMEWHERE ELSE
@@ -434,9 +508,9 @@ export class FirebaseConnector<
   private getGeneratedQueries(
     query?: FluentQuery<ModelDTO>
   ): [FirebaseFirestore.Query | undefined, FirebaseFirestore.Query[]] {
-    let { andWhere, orWhere } = this.getFirebaseWhereQuery(query?.where)
+    const { andWhere, orWhere } = this.getFirebaseWhereQuery(query?.where)
 
-    let mergedQueries: FirebaseFirestore.Query[] = []
+    let mergedQueries: FirebaseFirestore.Query[]
 
     if (andWhere) {
       mergedQueries = [andWhere, ...orWhere]
@@ -444,37 +518,53 @@ export class FirebaseConnector<
       mergedQueries = orWhere
     }
 
-    const select = Object.keys(Objects.flatten(query?.select || {}))
+    const selectKeys = query?.select ? Object.keys(Objects.flatten(query.select)) : null
+    const limit = query?.limit || 10
+    const offset = query?.offset || 0
+    const orderBy = query?.orderBy
 
-    for (const [index] of mergedQueries.entries()) {
-      if (select?.length > 0) {
+    const queriesLength = mergedQueries.length
+    for (let i = 0; i < queriesLength; i++) {
+      let currentQuery = mergedQueries[i]
+      if (!currentQuery) continue
+      
+      if (selectKeys && selectKeys.length > 0) {
         // Force select the ID
-        mergedQueries[index] = mergedQueries[index]!.select(...['id', ...select])
+        currentQuery = currentQuery.select('id', ...selectKeys)
       }
 
-      mergedQueries[index] = mergedQueries[index]!.limit(query?.limit || 10)
-      mergedQueries[index] = mergedQueries[index].offset(query?.offset || 0)
+      currentQuery = currentQuery.limit(limit).offset(offset)
 
-      if (query?.orderBy) {
-        for (const order of query?.orderBy!) {
-          const flattenObject = Objects.flatten(order)
-          for (const attribute of Object.keys(flattenObject)) {
-            mergedQueries[index] = mergedQueries[index].orderBy(
-              attribute,
-              flattenObject[attribute] as FirebaseFirestore.OrderByDirection
-            )
+      if (orderBy) {
+        const orderLength = orderBy.length
+        for (let j = 0; j < orderLength; j++) {
+          const orderItem = orderBy[j]
+          if (orderItem) {
+            const flattenObject = Objects.flatten(orderItem)
+            const attributes = Object.keys(flattenObject)
+            const attrLength = attributes.length
+            for (let k = 0; k < attrLength; k++) {
+              const attribute = attributes[k]
+              if (attribute) {
+                currentQuery = currentQuery.orderBy(
+                  attribute,
+                  flattenObject[attribute] as FirebaseFirestore.OrderByDirection
+                )
+              }
+            }
           }
         }
       }
+      
+      mergedQueries[i] = currentQuery
     }
-
-    const cloned = [...mergedQueries]
 
     if (andWhere) {
-      cloned.shift()
+      const orQueries = mergedQueries.slice(1)
+      return [mergedQueries[0], orQueries]
     }
 
-    return [andWhere ? mergedQueries[0] : undefined, cloned]
+    return [undefined, mergedQueries]
   }
 
   private getFirebaseWhereQuery(where?: FluentQuery<ModelDTO>['where']): {
@@ -487,151 +577,65 @@ export class FirebaseConnector<
 
     // Every element of the array is an OR
     let andWhereQuery: FirebaseFirestore.Query = this.collection as any
-    let orWhereQueries: FirebaseFirestore.Query[] = []
+    const orWhereQueries: FirebaseFirestore.Query[] = []
 
-    const orConditions = extractConditions((where['OR'] || []) as any)
-    const andConditions = extractConditions((where['AND'] || []) as any)
+    // Avoid cloning overhead - work with original object
+    const { AND, OR, ...rootConditions } = where
+    
+    const orConditions = extractConditions((OR || []) as any)
+    const andConditions = extractConditions((AND || []) as any)
 
-    const copy = Objects.clone(where)
-    if (!!copy['AND']) {
-      delete copy['AND']
-    }
+    const rootLevelConditions = extractConditions([rootConditions])
 
-    if (!!copy['OR']) {
-      delete copy['OR']
-    }
-
-    const rootLevelConditions = extractConditions([copy])
-
-    // We can merge root level and And conditions in the same query
-    for (const condition of andConditions) {
+    // Helper function to apply conditions to a query - use a map for O(1) lookup
+    const operatorMap = new Map<LogicOperator, string>([
+      [LogicOperator.equals, '=='],
+      [LogicOperator.isNot, '!='],
+      [LogicOperator.greaterThan, '>'],
+      [LogicOperator.greaterOrEqualThan, '>='],
+      [LogicOperator.lessThan, '<'],
+      [LogicOperator.lessOrEqualThan, '<='],
+      [LogicOperator.in, 'in'],
+      [LogicOperator.arrayContains, 'array-contains'],
+      [LogicOperator.notIn, 'not-in']
+    ])
+    
+    const applyCondition = (query: FirebaseFirestore.Query, condition: any): FirebaseFirestore.Query => {
       const { element, operator, value } = condition
+      
+      const firebaseOp = operatorMap.get(operator)
+      if (firebaseOp) {
+        return query.where(element, firebaseOp as any, value)
+      }
 
       switch (operator) {
-        case LogicOperator.equals:
-          andWhereQuery = andWhereQuery.where(element, '==', value)
-          break
-        case LogicOperator.isNot:
-          andWhereQuery = andWhereQuery.where(element, '!=', value)
-          break
-        case LogicOperator.greaterThan:
-          andWhereQuery = andWhereQuery.where(element, '>', value)
-          break
-        case LogicOperator.greaterOrEqualThan:
-          andWhereQuery = andWhereQuery.where(element, '>=', value)
-          break
-        case LogicOperator.lessThan:
-          andWhereQuery = andWhereQuery.where(element, '<', value)
-          break
-        case LogicOperator.lessOrEqualThan:
-          andWhereQuery = andWhereQuery.where(element, '<=', value)
-          break
-        case LogicOperator.in:
-          andWhereQuery = andWhereQuery.where(element, 'in', value)
-          break
-        case LogicOperator.arrayContains:
-          andWhereQuery = andWhereQuery.where(element, 'array-contains', value)
-          break
-        case LogicOperator.notIn:
-          andWhereQuery = andWhereQuery.where(element, 'not-in', value)
-          break
         case LogicOperator.exists:
-          throw new Error('The nin Operator cannot be used in Firabase')
+          throw new Error('The exists Operator cannot be used in Firebase')
         case LogicOperator.notExists:
-          throw new Error('The !exists Operator cannot be used in Firabase')
+          throw new Error('The !exists Operator cannot be used in Firebase')
         case LogicOperator.regexp:
-          throw new Error('The regexp Operator cannot be used in Firabase')
+          throw new Error('The regexp Operator cannot be used in Firebase')
         default:
-          throw new Error('The regexp Operator cannot be used in Firabase')
+          throw new Error(`Unknown operator: ${operator}`)
       }
     }
 
-    for (const condition of rootLevelConditions) {
-      const { element, operator, value } = condition
+    // Apply AND conditions
+    const andLength = andConditions.length
+    for (let i = 0; i < andLength; i++) {
+      andWhereQuery = applyCondition(andWhereQuery, andConditions[i])
+    }
 
-      switch (operator) {
-        case LogicOperator.equals:
-          andWhereQuery = andWhereQuery.where(element, '==', value)
-          break
-        case LogicOperator.isNot:
-          andWhereQuery = andWhereQuery.where(element, '!=', value)
-          break
-        case LogicOperator.greaterThan:
-          andWhereQuery = andWhereQuery.where(element, '>', value)
-          break
-        case LogicOperator.greaterOrEqualThan:
-          andWhereQuery = andWhereQuery.where(element, '>=', value)
-          break
-        case LogicOperator.lessThan:
-          andWhereQuery = andWhereQuery.where(element, '<', value)
-          break
-        case LogicOperator.lessOrEqualThan:
-          andWhereQuery = andWhereQuery.where(element, '<=', value)
-          break
-        case LogicOperator.in:
-          andWhereQuery = andWhereQuery.where(element, 'in', value)
-          break
-        case LogicOperator.arrayContains:
-          andWhereQuery = andWhereQuery.where(element, 'array-contains', value)
-          break
-        case LogicOperator.notIn:
-          andWhereQuery = andWhereQuery.where(element, 'not-in', value)
-          break
-        case LogicOperator.exists:
-          throw new Error('The nin Operator cannot be used in Firabase')
-        case LogicOperator.notExists:
-          throw new Error('The !exists Operator cannot be used in Firabase')
-        case LogicOperator.regexp:
-          throw new Error('The regexp Operator cannot be used in Firabase')
-        default:
-          throw new Error('The regexp Operator cannot be used in Firabase')
-      }
+    // Apply root level conditions
+    const rootLength = rootLevelConditions.length
+    for (let i = 0; i < rootLength; i++) {
+      andWhereQuery = applyCondition(andWhereQuery, rootLevelConditions[i])
     }
 
     // Each or query needs to be an independent query in Firebase
-    for (const condition of orConditions) {
-      const { element, operator, value } = condition
-
-      let orQuery: FirebaseFirestore.Query = this.collection as any
-
-      switch (operator) {
-        case LogicOperator.equals:
-          orQuery = orQuery.where(element, '==', value)
-          break
-        case LogicOperator.isNot:
-          orQuery = orQuery.where(element, '!=', value)
-          break
-        case LogicOperator.greaterThan:
-          orQuery = orQuery.where(element, '>', value)
-          break
-        case LogicOperator.greaterOrEqualThan:
-          orQuery = orQuery.where(element, '>=', value)
-          break
-        case LogicOperator.lessThan:
-          orQuery = orQuery.where(element, '<', value)
-          break
-        case LogicOperator.lessOrEqualThan:
-          orQuery = orQuery.where(element, '<=', value)
-          break
-        case LogicOperator.in:
-          orQuery = orQuery.where(element, 'in', value)
-          break
-        case LogicOperator.arrayContains:
-          orQuery = orQuery.where(element, 'array-contains', value)
-          break
-        case LogicOperator.notIn:
-          orQuery = orQuery.where(element, 'not-in', value)
-          break
-        case LogicOperator.exists:
-          throw new Error('The nin Operator cannot be used in Firabase')
-        case LogicOperator.notExists:
-          throw new Error('The !exists Operator cannot be used in Firabase')
-        case LogicOperator.regexp:
-          throw new Error('The regexp Operator cannot be used in Firabase')
-        default:
-          throw new Error('The regexp Operator cannot be used in Firabase')
-      }
-
+    const orLength = orConditions.length
+    for (let i = 0; i < orLength; i++) {
+      const orQuery = applyCondition(this.collection as any, orConditions[i])
       orWhereQueries.push(orQuery)
     }
 
