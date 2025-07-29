@@ -453,7 +453,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         // Node 20+ - fully clear context when no previous context
         // The disable() method was added in Node.js 20.5.0 to properly clear ALS context
         // In earlier versions, this check safely falls through without error
-        ;(this.als as any).disable()
+        (this.als as any).disable()
       }
     }
   }

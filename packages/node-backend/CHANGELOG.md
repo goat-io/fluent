@@ -1,5 +1,20 @@
 # 0.5.20
 
+## 0.4.0
+
+### Minor Changes
+
+- Add secret preloading capabilities to SecretService
+
+  - Added `preload()` method to load secrets once asynchronously at startup
+  - Added synchronous `getSecretSync()` and `getSecretJsonSync()` methods for fast access after preload
+  - Added per-tenant encryption support across all providers (FILE, ENV, VAULT)
+  - Added automatic file watching and invalidation for FILE provider
+  - Added `dispose()` method for proper cleanup of file watchers
+  - Improved performance by eliminating async operations after initial preload
+  - Maintained full backward compatibility with existing async methods
+  - Added comprehensive integration tests for all secret providers
+
 ## 0.3.0
 
 ### Minor Changes

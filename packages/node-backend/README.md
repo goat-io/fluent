@@ -62,7 +62,7 @@ const result = await cache.remember('expensive-op', 300000, async () => {
 
 ## Secret Management
 
-The `SecretService` provides secure secret management with support for multiple backends:
+The `SecretService` provides secure secret management with support for multiple backends and preloading:
 
 ```typescript
 import { SecretService } from '@goatlab/node-backend'
@@ -86,29 +86,63 @@ const vaultSecrets = new SecretService({
 const envSecrets = new SecretService({
   provider: 'ENV',
   location: 'APP', // Loads APP_* env vars
-  encryptionKey: '' // Not used for ENV provider
+  encryptionKey: process.env.ENCRYPTION_KEY // Now supports encryption for all providers
 })
 
-// Async file operations (new!)
-const secrets = await fileSecrets.loadSecretsFromFileAsync()
-const apiKey = await fileSecrets.getSecret('API_KEY')
-const config = await fileSecrets.getSecretJson('CONFIG')
+// Preload secrets for synchronous access (new!)
+await fileSecrets.preload()
+const apiKey = fileSecrets.getSecretSync('API_KEY') // Synchronous!
+const config = fileSecrets.getSecretJsonSync('CONFIG') // Synchronous!
+
+// Async operations still available
+const apiKeyAsync = await fileSecrets.getSecret('API_KEY')
+const configAsync = await fileSecrets.getSecretJson('CONFIG')
 
 // Store secrets (FILE and VAULT providers)
 await fileSecrets.storeSecrets({ API_KEY: 'secret-value' })
 
-// Manual cache cleanup (new!)
+// Manual cache cleanup
 SecretService.cleanupExpiredCache()
+
+// Dispose when done (stops file watching)
+fileSecrets.dispose()
 ```
 
 ### Secret Provider Features
 
-- **FILE**: Encrypted local file storage using AES encryption with async operations
+- **FILE**: Encrypted local file storage using AES encryption with file watching
 - **VAULT**: HashiCorp Vault integration with automatic token management  
-- **ENV**: Runtime environment variable access with optional prefix filtering
+- **ENV**: Runtime environment variable access with encryption support
+- **Preloading**: Load secrets once async, access synchronously afterward
+- **Per-Tenant Encryption**: Each tenant can have its own encryption key
+- **Automatic Invalidation**: File changes trigger automatic reload (FILE provider)
 - **TTL Caching**: Configurable time-to-live caching with automatic expiration
-- **Async Operations**: Non-blocking file operations for better performance
 - **Type Safety**: Generic type support for JSON secrets
+
+### Preloading Pattern with Container
+
+```typescript
+const container = new Container(factories, async (preload, meta) => {
+  // Create and preload secret service
+  const secretService = preload.secrets(meta.tenantId, {
+    provider: 'FILE',
+    location: meta.secretsLocation,
+    encryptionKey: meta.encryptionKey
+  })
+  
+  await secretService.preload() // Load once async
+  
+  // Use sync methods for instant access
+  const dbUrl = secretService.getSecretSync('DATABASE_URL')
+  const apiKey = secretService.getSecretSync('API_KEY')
+  
+  // Create other services with preloaded secrets
+  const database = preload.database(meta.tenantId, { url: dbUrl })
+  const api = preload.api(meta.tenantId, { apiKey })
+  
+  return { secrets: secretService, database, api }
+})
+```
 
 ## Express + tRPC Integration
 

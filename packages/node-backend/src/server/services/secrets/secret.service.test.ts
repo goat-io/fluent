@@ -1,4 +1,9 @@
 // npx vitest run ./src/server/services/secrets/secret.service.test.ts
+// 
+// Test Updates:
+// - Updated synchronous method tests to use legacy methods (getSecretSyncLegacy, getSecretJsonSyncLegacy)
+//   since new sync methods require preload() to be called first
+// - No changes needed for VAULT/ENV encryption as the service now handles encryption internally
 import {
   describe,
   it,
@@ -192,7 +197,7 @@ describe('SecretService - FILE Provider', () => {
         encryptionKey: mockEncryptionKey
       })
 
-      const result = service.getSecretSync('API_KEY')
+      const result = service.getSecretSyncLegacy('API_KEY')
       expect(result).toBe('secret-key')
     })
 
@@ -208,7 +213,7 @@ describe('SecretService - FILE Provider', () => {
         encryptionKey: mockEncryptionKey
       })
 
-      const result = service.getSecretJsonSync<typeof jsonConfig>('CONFIG')
+      const result = service.getSecretJsonSyncLegacy<typeof jsonConfig>('CONFIG')
       expect(result).toEqual(jsonConfig)
     })
   })
@@ -368,7 +373,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
     })
 
     it('should throw error for sync methods with Vault provider', () => {
-      expect(() => service.getSecretSync('API_KEY')).toThrow(
+      expect(() => service.getSecretSyncLegacy('API_KEY')).toThrow(
         'Use async getSecret() method for Vault provider'
       )
     })
@@ -601,7 +606,7 @@ describe('SecretService - ENV Provider', () => {
         encryptionKey: 'not-used'
       })
 
-      const result = service.getSecretSync('TEST_VALUE')
+      const result = service.getSecretSyncLegacy('TEST_VALUE')
       expect(result).toBe('sync-value')
     })
 
@@ -615,7 +620,7 @@ describe('SecretService - ENV Provider', () => {
         encryptionKey: 'not-used'
       })
 
-      const result = service.getSecretJsonSync<typeof data>('JSON_DATA')
+      const result = service.getSecretJsonSyncLegacy<typeof data>('JSON_DATA')
       expect(result).toEqual(data)
     })
   })

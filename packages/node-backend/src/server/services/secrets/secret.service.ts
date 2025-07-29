@@ -42,6 +42,9 @@ export class SecretService<SecretType> {
   encryptionKey: string
   vaultConfig?: VaultConfig
   cacheTTL: number
+  protected preloadedSecrets?: SecretType
+  protected isPreloaded: boolean = false
+  private fileWatcher?: fs.FSWatcher
 
   constructor(config: SecretServiceConfig) {
     this.provider = config.provider
@@ -49,6 +52,102 @@ export class SecretService<SecretType> {
     this.encryptionKey = config.encryptionKey
     this.vaultConfig = config.vaultConfig
     this.cacheTTL = config.cacheTTL ?? DEFAULT_TTL_MS
+  }
+
+  /**
+   * Preload secrets asynchronously for synchronous access later
+   * This method loads secrets once and stores them in the instance
+   */
+  async preload(): Promise<void> {
+    try {
+      const secrets = await this.loadSecretsAsync()
+      this.preloadedSecrets = secrets
+      this.isPreloaded = true
+
+      // Set up file watching for automatic invalidation (FILE provider only)
+      if (this.provider === 'FILE' && !this.fileWatcher) {
+        this.setupFileWatcher()
+      }
+    } catch (error) {
+      this.isPreloaded = false
+      throw new Error(`Failed to preload secrets: ${error.message}`)
+    }
+  }
+
+  /**
+   * Invalidate preloaded secrets and stop file watching
+   */
+  async invalidate(): Promise<void> {
+    this.preloadedSecrets = undefined
+    this.isPreloaded = false
+    
+    // Clear cache to force reload
+    if (this.provider === 'FILE') {
+      delete memoryCache[this.location]
+    } else if (this.provider === 'ENV') {
+      delete memoryCache[`env_${this.location}`]
+    } else if (this.provider === 'VAULT' && this.vaultConfig) {
+      delete memoryCache[`vault_${this.vaultConfig.endpoint}_${this.location}`]
+    }
+
+    // Stop file watching
+    if (this.fileWatcher) {
+      this.fileWatcher.close()
+      this.fileWatcher = undefined
+    }
+  }
+
+  /**
+   * Set up file watching for automatic invalidation
+   */
+  private setupFileWatcher(): void {
+    if (this.provider !== 'FILE') return
+
+    try {
+      this.fileWatcher = fs.watch(this.location, async (eventType) => {
+        if (eventType === 'change') {
+          console.log(`🔄 Secret file changed: ${magenta(this.location)}`)
+          await this.invalidate()
+          // Optionally auto-reload
+          try {
+            await this.preload()
+            console.log(`✅ Secrets reloaded successfully`)
+          } catch (error) {
+            console.error(`❌ Failed to reload secrets: ${error.message}`)
+          }
+        }
+      })
+    } catch (error) {
+      console.warn(`⚠️ Failed to set up file watching: ${error.message}`)
+    }
+  }
+
+  /**
+   * Load secrets asynchronously with decryption for all providers
+   */
+  private async loadSecretsAsync(): Promise<SecretType> {
+    let secrets: any
+
+    switch (this.provider) {
+      case 'FILE':
+        secrets = await this.loadSecretsFromFileAsync()
+        break
+      case 'ENV':
+        secrets = this.loadSecretsFromEnv()
+        break
+      case 'VAULT':
+        secrets = await this.loadSecretsFromVault()
+        break
+      case 'GCP':
+        secrets = this.loadSecretsFromGCP()
+        break
+      default:
+        throw new Error(`Unknown provider: ${this.provider}`)
+    }
+
+    // No need to decrypt here as each provider method already handles decryption
+
+    return secrets as SecretType
   }
 
   // Helper method to check if cache entry is valid
@@ -165,7 +264,19 @@ export class SecretService<SecretType> {
   }
 
   loadSecretsFromGCP(): SecretType {
-    return {} as SecretType
+    // TODO: Implement GCP Secret Manager integration
+    // For now, return empty object but apply decryption if needed
+    const secrets = {} as any
+    
+    if (this.encryptionKey) {
+      try {
+        return Security.decryptObject(secrets, this.encryptionKey) as any as SecretType
+      } catch (error) {
+        console.warn(`Failed to decrypt GCP secrets: ${error.message}`)
+      }
+    }
+    
+    return secrets as SecretType
   }
 
   loadEncryptionKeyFromGCP(): string {
@@ -208,7 +319,18 @@ export class SecretService<SecretType> {
         )
       }
 
-      this.setCache(cacheKey, secrets, this.cacheTTL)
+      // Apply tenant-specific decryption if encryption key is provided
+      let decryptedSecrets = secrets
+      if (this.encryptionKey) {
+        try {
+          decryptedSecrets = Security.decryptObject(secrets, this.encryptionKey)
+        } catch (error) {
+          // If decryption fails, assume secrets are not encrypted
+          console.warn(`Failed to decrypt ENV secrets: ${error.message}`)
+        }
+      }
+
+      this.setCache(cacheKey, decryptedSecrets, this.cacheTTL)
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
@@ -217,7 +339,7 @@ export class SecretService<SecretType> {
         )} (${durationMs.toFixed(3)}ms)`
       )
 
-      return secrets as any as SecretType
+      return decryptedSecrets as any as SecretType
     } catch (error: any) {
       console.error('Failed to load secrets from ENV:', error.message)
       throw new Error(`loadSecretsFromEnv failed: ${error.message}`)
@@ -269,7 +391,17 @@ export class SecretService<SecretType> {
       const data = (await response.json()) as any
 
       // Vault KV v2 stores data in data.data
-      const secrets = data.data?.data || data.data || {}
+      let secrets = data.data?.data || data.data || {}
+
+      // Apply tenant-specific decryption if encryption key is provided
+      if (this.encryptionKey) {
+        try {
+          secrets = Security.decryptObject(secrets, this.encryptionKey)
+        } catch (error) {
+          // If decryption fails, assume secrets are not encrypted
+          console.warn(`Failed to decrypt Vault secrets: ${error.message}`)
+        }
+      }
 
       this.setCache(cacheKey, secrets, this.cacheTTL)
 
@@ -360,7 +492,7 @@ export class SecretService<SecretType> {
     return this.encryptionKey
   }
 
-  async getSecret(secretName: keyof SecretType): Promise<string> {
+  async getSecretAsync(secretName: keyof SecretType): Promise<string> {
     const secrets = await this.loadSecrets()
     const secret = secrets[secretName]
 
@@ -373,13 +505,53 @@ export class SecretService<SecretType> {
     return secret as string
   }
 
-  async getSecretJson<T = any>(secretName: keyof SecretType): Promise<T> {
-    const secretValue = await this.getSecret(secretName)
+  async getSecretJsonAsync<T = any>(secretName: keyof SecretType): Promise<T> {
+    const secretValue = await this.getSecretAsync(secretName)
     return JSON.parse(secretValue)
   }
 
-  // Synchronous versions for backward compatibility (FILE and ENV providers only)
+  // Keep async versions for backward compatibility
+  async getSecret(secretName: keyof SecretType): Promise<string> {
+    return this.getSecretAsync(secretName)
+  }
+
+  async getSecretJson<T = any>(secretName: keyof SecretType): Promise<T> {
+    return this.getSecretJsonAsync(secretName)
+  }
+
+  /**
+   * Get a secret synchronously (requires preload() to be called first)
+   */
   getSecretSync(secretName: keyof SecretType): string {
+    if (!this.isPreloaded || !this.preloadedSecrets) {
+      throw new Error(
+        'Secrets not preloaded. Call preload() before using synchronous methods.'
+      )
+    }
+
+    const secret = this.preloadedSecrets[secretName]
+
+    if (!secret) {
+      throw new Error(
+        `Secret ${secretName.toString()} does not exist in ${this.location} env`
+      )
+    }
+
+    return secret as string
+  }
+
+  /**
+   * Get a JSON secret synchronously (requires preload() to be called first)
+   */
+  getSecretJsonSync<T = any>(secretName: keyof SecretType): T {
+    const secretValue = this.getSecretSync(secretName)
+    return JSON.parse(secretValue)
+  }
+
+  // Legacy sync method that doesn't require preload (backward compatibility)
+  getSecretSyncLegacy(secretName: keyof SecretType): string {
+
+    // Fallback to old behavior for backward compatibility
     if (this.provider === 'VAULT') {
       throw new Error('Use async getSecret() method for Vault provider')
     }
@@ -405,8 +577,8 @@ export class SecretService<SecretType> {
     return secret as string
   }
 
-  getSecretJsonSync<T = any>(secretName: keyof SecretType): T {
-    return JSON.parse(this.getSecretSync(secretName))
+  getSecretJsonSyncLegacy<T = any>(secretName: keyof SecretType): T {
+    return JSON.parse(this.getSecretSyncLegacy(secretName))
   }
 
   // Utility method to clear cache for testing
@@ -424,5 +596,17 @@ export class SecretService<SecretType> {
         delete memoryCache[key]
       }
     })
+  }
+
+  /**
+   * Clean up resources (file watchers, etc.) when service is no longer needed
+   */
+  dispose(): void {
+    if (this.fileWatcher) {
+      this.fileWatcher.close()
+      this.fileWatcher = undefined
+    }
+    this.preloadedSecrets = undefined
+    this.isPreloaded = false
   }
 }
