@@ -1,10 +1,22 @@
 import * as fs from 'fs'
+import { promises as fsPromises } from 'fs'
 import { fetch } from 'undici'
 import type { StringMap } from '@goatlab/js-utils'
 import { Security } from '@goatlab/node-utils'
 import { magenta } from 'kleur/colors'
 
-const memoryCache: Record<string, StringMap | undefined> = {}
+// Cache entry interface with TTL support
+interface CacheEntry<T> {
+  data: T
+  expiresAt?: number // Unix timestamp when the entry expires
+}
+
+// Enhanced cache with TTL support
+const memoryCache: Record<string, CacheEntry<StringMap> | undefined> = {}
+
+// Default TTL in milliseconds (5 minutes)
+const DEFAULT_TTL_MS = 5 * 60 * 1000
+
 // type SecretType = typeof secrets
 
 export type SecretProvider = 'GCP' | 'FILE' | 'VAULT' | 'ENV'
@@ -16,32 +28,106 @@ export interface VaultConfig {
   namespace?: string
 }
 
+export interface SecretServiceConfig {
+  provider: SecretProvider
+  location: string
+  encryptionKey: string
+  vaultConfig?: VaultConfig
+  cacheTTL?: number // TTL in milliseconds
+}
+
 export class SecretService<SecretType> {
   provider: SecretProvider
   location: string
   encryptionKey: string
   vaultConfig?: VaultConfig
+  cacheTTL: number
 
-  constructor({
-    provider,
-    location,
-    encryptionKey,
-    vaultConfig
-  }: {
-    provider: SecretProvider
-    location: string
-    encryptionKey: string
-    vaultConfig?: VaultConfig
-  }) {
-    this.provider = provider
-    this.location = location
-    this.encryptionKey = encryptionKey
-    this.vaultConfig = vaultConfig
+  constructor(config: SecretServiceConfig) {
+    this.provider = config.provider
+    this.location = config.location
+    this.encryptionKey = config.encryptionKey
+    this.vaultConfig = config.vaultConfig
+    this.cacheTTL = config.cacheTTL ?? DEFAULT_TTL_MS
   }
-  // We should cache this call
+
+  // Helper method to check if cache entry is valid
+  private isCacheValid(entry: CacheEntry<StringMap> | undefined): boolean {
+    if (!entry) return false
+    if (!entry.expiresAt) return true // No expiration set
+    return Date.now() < entry.expiresAt
+  }
+
+  // Helper method to set cache with TTL
+  private setCache(key: string, data: StringMap, ttl?: number): void {
+    const expiresAt = ttl ? Date.now() + ttl : undefined
+    memoryCache[key] = { data, expiresAt }
+  }
+
+  // Helper method to get from cache
+  private getCache(key: string): StringMap | undefined {
+    const entry = memoryCache[key]
+    if (this.isCacheValid(entry)) {
+      return entry?.data
+    }
+    // Clear expired entry
+    if (entry) {
+      delete memoryCache[key]
+    }
+    return undefined
+  }
+  // Async version of loadSecretsFromFile
+  async loadSecretsFromFileAsync(): Promise<SecretType> {
+    const cached = this.getCache(this.location)
+    if (cached) {
+      return cached as any as SecretType
+    }
+
+    const start = process.hrtime.bigint()
+
+    try {
+      // Check if file exists using async stat
+      await fsPromises.stat(this.location)
+    } catch (error) {
+      throw new Error(`Secret file "${this.location}" does not exist`)
+    }
+
+    try {
+      const fileContents = await fsPromises.readFile(this.location, 'utf-8')
+      const secretEncryptedObject = JSON.parse(fileContents)
+
+      console.log(
+        `🔐 Secrets loaded: ${magenta(
+          this.location.split('/').slice(-2).join('/')
+        )}`
+      )
+
+      const decrypted = Security.decryptObject(
+        secretEncryptedObject,
+        this.encryptionKey
+      )
+
+      this.setCache(this.location, decrypted, this.cacheTTL)
+
+      const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
+      console.log(
+        `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`
+      )
+      return decrypted as any as SecretType
+    } catch (err: unknown) {
+      if (err instanceof SyntaxError) {
+        throw new Error(`Invalid JSON in secret file: ${this.location}`)
+      }
+      console.error(err)
+      throw new Error(`loadSecrets failed to decrypt: ${this.location}`)
+    }
+  }
+
+  // Synchronous version for backward compatibility
   loadSecretsFromFile(): SecretType {
-    if (memoryCache[this.location]) {
-      return memoryCache[this.location] as any as SecretType
+    const cached = this.getCache(this.location)
+    if (cached) {
+      return cached as any as SecretType
     }
 
     if (!fs.existsSync(this.location)) {
@@ -60,18 +146,18 @@ export class SecretService<SecretType> {
     )
 
     try {
-      const decripted = Security.decryptObject(
+      const decrypted = Security.decryptObject(
         secretEncryptedObject,
         this.encryptionKey
       )
 
-      memoryCache[this.location] = decripted
+      this.setCache(this.location, decrypted, this.cacheTTL)
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
         `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`
       )
-      return memoryCache[this.location] as any as SecretType
+      return decrypted as any as SecretType
     } catch (err: unknown) {
       console.error(err)
       throw new Error(`loadSecrets failed to decrypt: ${this.location}`)
@@ -88,8 +174,9 @@ export class SecretService<SecretType> {
 
   loadSecretsFromEnv(): SecretType {
     const cacheKey = `env_${this.location}`
-    if (memoryCache[cacheKey]) {
-      return memoryCache[cacheKey] as any as SecretType
+    const cached = this.getCache(cacheKey)
+    if (cached) {
+      return cached as any as SecretType
     }
 
     const start = process.hrtime.bigint()
@@ -121,7 +208,7 @@ export class SecretService<SecretType> {
         )
       }
 
-      memoryCache[cacheKey] = secrets
+      this.setCache(cacheKey, secrets, this.cacheTTL)
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
@@ -143,8 +230,9 @@ export class SecretService<SecretType> {
     }
 
     const cacheKey = `vault_${this.vaultConfig.endpoint}_${this.location}`
-    if (memoryCache[cacheKey]) {
-      return memoryCache[cacheKey] as any as SecretType
+    const cached = this.getCache(cacheKey)
+    if (cached) {
+      return cached as any as SecretType
     }
 
     const start = process.hrtime.bigint()
@@ -183,7 +271,7 @@ export class SecretService<SecretType> {
       // Vault KV v2 stores data in data.data
       const secrets = data.data?.data || data.data || {}
 
-      memoryCache[cacheKey] = secrets
+      this.setCache(cacheKey, secrets, this.cacheTTL)
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
@@ -263,7 +351,9 @@ export class SecretService<SecretType> {
       return this.loadSecretsFromEnv()
     }
 
-    return this.loadSecretsFromFile()
+    // For FILE provider, return async version by default
+    // The synchronous loadSecretsFromFile is still available for backward compatibility
+    return this.loadSecretsFromFileAsync()
   }
 
   loadEncryptionKey() {
@@ -294,7 +384,16 @@ export class SecretService<SecretType> {
       throw new Error('Use async getSecret() method for Vault provider')
     }
 
-    const secrets = this.loadSecrets() as SecretType
+    // Use synchronous loaders for sync methods
+    let secrets: SecretType
+    if (this.provider === 'FILE') {
+      secrets = this.loadSecretsFromFile()
+    } else if (this.provider === 'ENV') {
+      secrets = this.loadSecretsFromEnv()
+    } else {
+      secrets = this.loadSecretsFromGCP()
+    }
+    
     const secret = secrets[secretName]
 
     if (!secret) {
@@ -314,6 +413,16 @@ export class SecretService<SecretType> {
   static clearCache() {
     Object.keys(memoryCache).forEach(key => {
       delete memoryCache[key]
+    })
+  }
+
+  // Utility method to clear expired cache entries
+  static cleanupExpiredCache() {
+    const now = Date.now()
+    Object.entries(memoryCache).forEach(([key, entry]) => {
+      if (entry?.expiresAt && entry.expiresAt < now) {
+        delete memoryCache[key]
+      }
     })
   }
 }

@@ -712,7 +712,7 @@ describe('SecretService - loadSecrets method', () => {
     expect(result).toEqual({ API_KEY: 'vault-key' })
   })
 
-  it('should call loadSecretsFromFile for FILE provider', () => {
+  it('should call loadSecretsFromFile for FILE provider', async () => {
     const secrets = { API_KEY: 'file-key' }
     const encrypted = Security.encryptObject(secrets, encryptionKey)
     fs.writeFileSync(tempFile, JSON.stringify(encrypted))
@@ -723,7 +723,7 @@ describe('SecretService - loadSecrets method', () => {
       encryptionKey: encryptionKey
     })
 
-    const result = fileService.loadSecrets()
+    const result = await fileService.loadSecrets()
     expect(result).toEqual({ API_KEY: 'file-key' })
   })
 
@@ -753,6 +753,102 @@ describe('SecretService - loadSecrets method', () => {
 
     const result = gcpService.loadSecrets()
     expect(result).toEqual({}) // GCP method returns empty object for now
+  })
+})
+
+describe('SecretService - TTL Cache functionality', () => {
+  it('should respect custom cache TTL', async () => {
+    const tempDir = path.join(__dirname, 'temp-test-ttl')
+    const tempFile = path.join(tempDir, 'ttl-secrets.json')
+    
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+    
+    const secrets = { API_KEY: 'ttl-test-key' }
+    const encrypted = Security.encryptObject(secrets, 'test-key-1234567890123456789012')
+    fs.writeFileSync(tempFile, JSON.stringify(encrypted))
+    
+    // Create service with very short TTL (100ms)
+    const service = new SecretService<typeof secrets>({
+      provider: 'FILE',
+      location: tempFile,
+      encryptionKey: 'test-key-1234567890123456789012',
+      cacheTTL: 100
+    })
+    
+    // First load - should read from file
+    const result1 = await service.loadSecretsFromFileAsync()
+    expect(result1).toEqual(secrets)
+    
+    // Delete file to ensure cache is being used
+    fs.unlinkSync(tempFile)
+    
+    // Second load immediately - should use cache
+    const result2 = await service.loadSecretsFromFileAsync()
+    expect(result2).toEqual(secrets)
+    
+    // Wait for cache to expire
+    await new Promise(resolve => setTimeout(resolve, 150))
+    
+    // Third load after TTL - should fail because file is deleted and cache expired
+    await expect(service.loadSecretsFromFileAsync()).rejects.toThrow(
+      'Secret file'
+    )
+    
+    // Cleanup
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true })
+    }
+  })
+  
+  it('should use default TTL when not specified', () => {
+    const service = new SecretService({
+      provider: 'FILE',
+      location: 'dummy.json',
+      encryptionKey: 'key'
+    })
+    
+    expect(service.cacheTTL).toBe(5 * 60 * 1000) // 5 minutes default
+  })
+  
+  it('should cleanup expired cache entries', async () => {
+    const tempDir = path.join(__dirname, 'temp-test-cleanup')
+    const tempFile = path.join(tempDir, 'cleanup-secrets.json')
+    
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+    
+    const secrets = { KEY: 'value' }
+    const encrypted = Security.encryptObject(secrets, 'test-key-1234567890123456789012')
+    fs.writeFileSync(tempFile, JSON.stringify(encrypted))
+    
+    // Create service with very short TTL
+    const service = new SecretService({
+      provider: 'FILE',
+      location: tempFile,
+      encryptionKey: 'test-key-1234567890123456789012',
+      cacheTTL: 50
+    })
+    
+    // Load to populate cache
+    service.loadSecretsFromFile()
+    
+    // Wait for expiration
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Call cleanup
+    SecretService.cleanupExpiredCache()
+    
+    // Try to load again - should read from file since cache was cleaned
+    fs.unlinkSync(tempFile)
+    expect(() => service.loadSecretsFromFile()).toThrow('Secret file')
+    
+    // Cleanup
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true })
+    }
   })
 })
 

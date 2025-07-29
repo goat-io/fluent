@@ -1,5 +1,19 @@
 # 0.5.20
 
+## 0.3.0
+
+### Minor Changes
+
+- Performance optimizations and new features:
+
+  - **SecretService**: Added async file operations and TTL-based caching support
+  - **TranslationService**: Implemented template compilation caching and locale preloading
+  - **Compression Middleware**: Optimized to skip compression for small responses, SSE, and WebSocket connections
+  - **Container**: Added batch operations support for efficient multi-tenant processing
+  - **Memory Monitoring**: Added middleware for real-time memory usage tracking with automatic GC triggers
+  - Fixed CORS test reliability in production mode
+    EOF < /dev/null
+
 ## 0.2.6
 
 ### Patch Changes

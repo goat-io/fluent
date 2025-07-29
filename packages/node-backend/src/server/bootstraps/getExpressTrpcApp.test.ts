@@ -368,29 +368,40 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         await new Promise<void>((resolve) => {
           server.close(() => resolve())
         })
+        server = undefined
       }
 
+      // Wait a bit to ensure port is released
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Store original NODE_ENV
+      const originalNodeEnv = process.env.NODE_ENV
       process.env.NODE_ENV = 'prod'
       
-      const result = getExpressTrpcApp({
-        trpcRouter,
-        port: testPort,
-        sentryService,
-        shouldEnableSentry: false
-      })
+      try {
+        // Get a new port to avoid conflicts
+        const newTestPort = await Ports.nextAvailablePort(testPort + 1)
+        
+        const result = getExpressTrpcApp({
+          trpcRouter,
+          port: newTestPort,
+          sentryService,
+          shouldEnableSentry: false
+        })
+        
+        app = result.app
+        server = result.server // Use the server created by getExpressTrpcApp
+        await new Promise(resolve => setTimeout(resolve, 100))
       
-      app = result.app
-      server = app.listen(testPort)
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      const response = await request(app)
-        .get('/health')
-        .set('Origin', 'http://evil.com')
-      
-      expect(response.headers['access-control-allow-origin']).toBeUndefined()
-      
-      // Reset to test mode
-      process.env.NODE_ENV = 'test'
+        const response = await request(app)
+          .get('/health')
+          .set('Origin', 'http://evil.com')
+        
+        expect(response.headers['access-control-allow-origin']).toBeUndefined()
+      } finally {
+        // Reset to original NODE_ENV
+        process.env.NODE_ENV = originalNodeEnv
+      }
     })
   })
 

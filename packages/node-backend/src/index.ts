@@ -63,7 +63,10 @@ export type {
   ContainerMetadata,
   ContainerContext,
   MapInterface,
-  ContainerBootstrapResult
+  ContainerBootstrapResult,
+  BatchBootstrapOptions,
+  BatchBootstrapResult,
+  BatchInvalidationResult
 } from './container/types'
 
 export { createServiceCache } from './container/LruCache'

@@ -58,8 +58,8 @@ export type PreloadStructure<D> = {
   [K in keyof D]: D[K] extends Factory<infer T, infer P>
     ? (id: string, ...params: P) => T
     : D[K] extends Record<string, unknown>
-      ? PreloadStructure<D[K]>
-      : never
+    ? PreloadStructure<D[K]>
+    : never
 }
 
 /**
@@ -76,8 +76,8 @@ export type InstancesStructure<D> = {
   [K in keyof D]: D[K] extends Factory<infer T, any>
     ? T
     : D[K] extends Record<string, unknown>
-      ? InstancesStructure<D[K]>
-      : never
+    ? InstancesStructure<D[K]>
+    : never
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -88,38 +88,41 @@ export type InstancesStructure<D> = {
  * Extract the factory definitions from a Container type
  * Useful for TypeScript type manipulation and testing
  */
-export type ContainerFactories<C> =
-  C extends Container<infer Defs, any> ? Defs : never
+export type ContainerFactories<C> = C extends Container<infer Defs, any>
+  ? Defs
+  : never
 
 /**
  * Extract the tenant metadata type from a Container
  * Helps maintain type safety when working with tenant-specific data
  */
-export type ContainerMetadata<C> =
-  C extends Container<any, infer Meta> ? Meta : never
+export type ContainerMetadata<C> = C extends Container<any, infer Meta>
+  ? Meta
+  : never
 
 /**
  * Extract the runtime context type (available services) from a Container
  * This is what you get when calling `container.context`
  */
-export type ContainerContext<C> =
-  C extends Container<infer Defs, any> ? InstancesStructure<Defs> : never
+export type ContainerContext<C> = C extends Container<infer Defs, any>
+  ? InstancesStructure<Defs>
+  : never
 
 /**
  * Extract the preload structure type from a Container
  * Useful for initializer function type checking
  */
-export type ContainerPreload<C> =
-  C extends Container<infer Defs, any> ? PreloadStructure<Defs> : never
+export type ContainerPreload<C> = C extends Container<infer Defs, any>
+  ? PreloadStructure<Defs>
+  : never
 
 /**
  * Extract the bootstrap result type from a Container
  * Contains both instances and any result from the bootstrap function
  */
-export type ContainerBootstrapResult<C> =
-  C extends Container<infer Defs, any>
-    ? { instances: InstancesStructure<Defs>; result?: any }
-    : never
+export type ContainerBootstrapResult<C> = C extends Container<infer Defs, any>
+  ? { instances: InstancesStructure<Defs>; result?: any }
+  : never
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🎯 SERVICE TYPE HELPERS
@@ -129,10 +132,12 @@ export type ContainerBootstrapResult<C> =
  * Get the type of a specific service by its path (e.g., "database.userRepo")
  * Provides compile-time type safety when accessing nested services
  */
-export type ServiceType<C, ServicePath extends string> =
-  C extends Container<infer Defs, any>
-    ? GetServiceType<InstancesStructure<Defs>, ServicePath>
-    : never
+export type ServiceType<C, ServicePath extends string> = C extends Container<
+  infer Defs,
+  any
+>
+  ? GetServiceType<InstancesStructure<Defs>, ServicePath>
+  : never
 
 /**
  * Recursive type helper to resolve service types by dot-notation path
@@ -140,23 +145,22 @@ export type ServiceType<C, ServicePath extends string> =
  */
 type GetServiceType<
   T,
-  Path extends string,
+  Path extends string
 > = Path extends `${infer K}.${infer Rest}`
   ? K extends keyof T
     ? GetServiceType<T[K], Rest>
     : never
   : Path extends keyof T
-    ? T[Path]
-    : never
+  ? T[Path]
+  : never
 
 /**
  * Get all possible service paths as string literal union types
  * Enables IDE autocomplete for service paths
  */
-export type ServicePaths<C> =
-  C extends Container<infer Defs, any>
-    ? GetAllPaths<InstancesStructure<Defs>>
-    : never
+export type ServicePaths<C> = C extends Container<infer Defs, any>
+  ? GetAllPaths<InstancesStructure<Defs>>
+  : never
 
 /**
  * Recursively build all possible dot-notation paths through the service tree
@@ -173,41 +177,104 @@ type GetAllPaths<T, Prefix extends string = ''> = {
           Prefix extends '' ? K & string : `${Prefix}.${K & string}`
         >
     : Prefix extends ''
-      ? K
-      : `${Prefix}.${K & string}`
+    ? K
+    : `${Prefix}.${K & string}`
 }[keyof T]
 
 /**
  * Type-level check if a service exists at the given path
  * Returns true/false at compile time
  */
-export type HasService<C, ServicePath extends string> =
-  ServiceType<C, ServicePath> extends never ? false : true
+export type HasService<C, ServicePath extends string> = ServiceType<
+  C,
+  ServicePath
+> extends never
+  ? false
+  : true
 
 /**
  * Extract factory parameter types for a service at the given path
  * Useful for understanding what parameters a service factory expects
  */
-export type ServiceFactoryParams<C, ServicePath extends string> =
-  C extends Container<infer Defs, any>
-    ? GetFactoryParams<Defs, ServicePath>
-    : never
+export type ServiceFactoryParams<
+  C,
+  ServicePath extends string
+> = C extends Container<infer Defs, any>
+  ? GetFactoryParams<Defs, ServicePath>
+  : never
 
 /**
  * Recursive helper to extract factory parameters by path
  */
 type GetFactoryParams<
   T,
-  Path extends string,
+  Path extends string
 > = Path extends `${infer K}.${infer Rest}`
   ? K extends keyof T
     ? GetFactoryParams<T[K], Rest>
     : never
   : Path extends keyof T
-    ? T[Path] extends Factory<any, infer P>
-      ? P
-      : never
+  ? T[Path] extends Factory<any, infer P>
+    ? P
     : never
+  : never
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BATCH OPERATION TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Result of a single tenant bootstrap operation in a batch
+ */
+export interface BatchBootstrapResult<Defs, TMetadata, T> {
+  /** The tenant metadata for this operation */
+  metadata: TMetadata
+  /** Status of the operation */
+  status: 'success' | 'error'
+  /** Instances if successful */
+  instances?: InstancesStructure<Defs>
+  /** Result from the function if successful */
+  result?: T
+  /** Error if the operation failed */
+  error?: Error
+  /** Performance metrics for this operation */
+  metrics?: {
+    startTime: number
+    endTime: number
+    duration: number
+  }
+}
+
+/**
+ * Options for batch bootstrap operations
+ */
+export interface BatchBootstrapOptions<TMetadata = unknown> {
+  /** Maximum number of concurrent bootstraps (default: 10) */
+  concurrency?: number
+  /** Whether to continue on individual failures (default: true) */
+  continueOnError?: boolean
+  /** Timeout for each bootstrap operation in milliseconds */
+  timeout?: number
+  /** Progress callback */
+  onProgress?: (completed: number, total: number, current?: TMetadata) => void
+}
+
+/**
+ * Result of a batch invalidation operation
+ */
+export interface BatchInvalidationResult {
+  /** Total number of items to invalidate */
+  total: number
+  /** Number of successfully invalidated items */
+  succeeded: number
+  /** Number of failed invalidations */
+  failed: number
+  /** Errors encountered during invalidation */
+  errors: Array<{
+    key: string
+    error: Error
+  }>
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ⚙️ CONTAINER CONFIGURATION

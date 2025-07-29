@@ -1,7 +1,10 @@
 import type { StringMap } from '@goatlab/js-utils'
 import { MissingValueError } from '@goatlab/js-utils/dist/Strings/pupa'
+import { pupa } from '@goatlab/js-utils/dist/Strings/pupa'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { config } from '../../consts'
-import { templateUtil } from './template.util'
+// import { templateUtil } from './template.util' // No longer needed with direct pupa usage
 import { LANG, LANG_DEFAULT, SUPPORTED_LANGUAGES } from './translation.model'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -9,11 +12,89 @@ export interface UserLanguageOptions {
   language: LANG | null
 }
 
+// Cache for compiled templates - key format: "lang:key"
+const templateCache = new Map<string, (args: any) => string>()
+
+// Cache for loaded locale files
+const localeCache = new Map<LANG, StringMap>()
+
+// Precompile template function
+function compileTemplate(template: string): (args: any) => string {
+  // Pre-parse the template to identify placeholders
+  const doubleBraceRegex = /{{(\d+|[a-z$_][\w\-$]*?(?:\.[\w\-$]*?)*?)}}/gi
+  const braceRegex = /{(\d+|[a-z$_][\w\-$]*?(?:\.[\w\-$]*?)*?)}/gi
+  
+  const hasDoubleBraces = doubleBraceRegex.test(template)
+  const hasSingleBraces = braceRegex.test(template)
+  
+  // If no placeholders, return a function that returns the template as-is
+  if (!hasDoubleBraces && !hasSingleBraces) {
+    return () => template
+  }
+  
+  // Return optimized template function
+  return (args: any) => {
+    if (!args || Object.keys(args).length === 0) {
+      return template
+    }
+    return pupa(template, args)
+  }
+}
+
 class TranslationService {
-  // @Memo.syncMethod()
-  getLocale(lang: LANG | null): StringMap {
+  private initialized = false
+  
+  // Initialize service by preloading all locale files
+  private initialize(): void {
+    if (this.initialized) return
+    
+    // Preload all supported language files
+    if (SUPPORTED_LANGUAGES && Array.isArray(SUPPORTED_LANGUAGES)) {
+      for (const lang of SUPPORTED_LANGUAGES) {
+        this.loadLocaleSync(lang)
+      }
+    }
+    
+    this.initialized = true
+  }
+  
+  // Load locale file synchronously (used during initialization)
+  private loadLocaleSync(lang: LANG): StringMap | undefined {
+    if (localeCache.has(lang)) {
+      return localeCache.get(lang)
+    }
+    
     try {
-      return { ...require(`${config.langDir}/${lang}.json`) }
+      const filePath = join(config.langDir, `${lang}.json`)
+      const content = readFileSync(filePath, 'utf-8')
+      const locale = JSON.parse(content) as StringMap
+      localeCache.set(lang, locale)
+      return locale
+    } catch {
+      console.warn(`Failed to load locale: ${lang}`)
+      return undefined
+    }
+  }
+  // Get locale from cache (backward compatible)
+  getLocale(lang: LANG | null): StringMap {
+    if (!lang) return undefined as any
+    
+    // Ensure initialization
+    if (!this.initialized) {
+      this.initialize()
+    }
+    
+    const cached = localeCache.get(lang)
+    if (cached) {
+      // Return a copy to maintain backward compatibility
+      return { ...cached }
+    }
+    
+    // Try to load dynamically if not in cache (backward compatibility)
+    try {
+      const locale = { ...require(`${config.langDir}/${lang}.json`) }
+      localeCache.set(lang, locale)
+      return locale
     } catch {
       console.warn(`Unsupported lang ${lang}`)
       return undefined as any
@@ -21,13 +102,24 @@ class TranslationService {
   }
 
   getLocaleMap(): Record<LANG, StringMap> {
-    return SUPPORTED_LANGUAGES.reduce(
-      (map, lang) => {
-        map[lang] = this.getLocale(lang)
-        return map
-      },
-      {} as Record<LANG, StringMap>,
-    )
+    // Ensure initialization
+    if (!this.initialized) {
+      this.initialize()
+    }
+    
+    const map: Record<LANG, StringMap> = {} as Record<LANG, StringMap>
+    
+    // Use cached locales if available
+    if (SUPPORTED_LANGUAGES && Array.isArray(SUPPORTED_LANGUAGES)) {
+      for (const lang of SUPPORTED_LANGUAGES) {
+        const locale = localeCache.get(lang) || this.getLocale(lang)
+        if (locale) {
+          map[lang] = locale
+        }
+      }
+    }
+    
+    return map
   }
 
   missingKey(key: string): string {
@@ -55,9 +147,16 @@ class TranslationService {
     user: UserLanguageOptions,
     args = {},
   ): string | undefined {
-    const fallbackLocale = this.getLocale(LANG_DEFAULT)
-    const locale = this.getLocale(user.language)
-    const value = locale[key] ?? fallbackLocale[key]
+    // Ensure initialization
+    if (!this.initialized) {
+      this.initialize()
+    }
+    
+    // Get locale from cache directly for better performance
+    const locale = user.language ? localeCache.get(user.language) : undefined
+    const fallbackLocale = localeCache.get(LANG_DEFAULT) || this.getLocale(LANG_DEFAULT)
+    
+    const value = (locale && locale[key]) ?? (fallbackLocale && fallbackLocale[key])
     return value && this.formatResult(key, value, args)
   }
 
@@ -67,14 +166,24 @@ class TranslationService {
     }
 
     if (Object.keys(args).length) {
+      // Check template cache first
+      const cacheKey = `${key}:${text}`
+      let compiledTemplate = templateCache.get(cacheKey)
+      
+      if (!compiledTemplate) {
+        // Compile and cache the template
+        compiledTemplate = compileTemplate(text)
+        templateCache.set(cacheKey, compiledTemplate)
+      }
+      
       try {
-        return templateUtil.renderString(text, args)
+        return compiledTemplate(args)
       } catch (err: unknown) {
         if (err instanceof MissingValueError) {
           // sentryService.captureMessage(
           //   `template value missing for key=${key}, param=${err.key}`,
           // )
-          return templateUtil.renderString(text, args, { ignoreMissing: true })
+          return pupa(text, args, { ignoreMissing: true })
         }
 
         throw err
@@ -84,7 +193,7 @@ class TranslationService {
     }
   }
 
-  reportMissing(key: string, opt: UserLanguageOptions): void {
+  reportMissing(_key: string, opt: UserLanguageOptions): void {
     console.log(opt as any) // For Sentry
     //sentryService.captureMessage(`translation missing for key=${key}}`)
   }
@@ -101,9 +210,29 @@ class TranslationService {
       return false
     }
   }
+
+  /**
+   * Clear cache and reinitialize - useful for testing
+   */
+  clearCacheAndReinitialize(): void {
+    // Clear all caches
+    localeCache.clear()
+    templateCache.clear()
+    
+    // Reset initialization state
+    this.initialized = false
+    
+    // Reinitialize
+    this.initialize()
+  }
 }
 
 export const translationService = new TranslationService()
+
+// Initialize on module load to preload all locales
+if (typeof SUPPORTED_LANGUAGES !== 'undefined' && Array.isArray(SUPPORTED_LANGUAGES)) {
+  translationService['initialize']()
+}
 
 // Alias
 export function tr(key: string, user: UserLanguageOptions, args = {}): string {

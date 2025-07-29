@@ -26,6 +26,7 @@ import { genericErrorMiddleware } from '../middleware/error.middleware'
 import { expressRequestLogger } from '../middleware/logs.middleware'
 import { trpcErrorMiddleware } from '../middleware/trpcError.middleware'
 import { productionErrorHandler } from '../middleware/productionError.middleware'
+import { createMemoryMonitorMiddleware } from '../middleware/memoryMonitor.middleware'
 import { 
   getCorsOptions, 
   getHelmetOptions, 
@@ -71,21 +72,81 @@ export function getExpressTrpcApp({
   logger.log(`Starting ${pkg.name}`)
   const app = express()
   
-  // Performance: Enable compression
+  // Performance: Enable compression with optimized settings
   app.use(compression({
-    level: 6, // Balance between CPU and compression ratio
-    threshold: 1024, // Only compress responses > 1KB
+    // Compression level: 6 provides a good balance between speed and compression ratio
+    level: 6,
+    
+    // Skip compression for small responses (< 1KB)
+    threshold: 1024,
+    
+    // Optimize compression buffer sizes for better performance
+    chunkSize: 16 * 1024, // 16KB chunks
+    memLevel: 8, // Memory usage level (1-9)
+    
+    // Custom filter to handle various edge cases
     filter: (req: Request, res: Response) => {
-      // Don't compress for requests with Cache-Control: no-transform
-      if (req.headers['cache-control']?.includes('no-transform')) {
+      // Skip compression for already compressed content types
+      const contentType = res.getHeader('Content-Type') as string
+      const compressedTypes = [
+        'image/', 'audio/', 'video/', 'font/',
+        'application/pdf', 'application/zip',
+        'application/gzip', 'application/x-gzip',
+        'application/x-rar-compressed', 'application/x-7z-compressed',
+        'application/vnd.ms-fontobject', 'application/font-woff',
+        'application/font-woff2', 'application/x-font-ttf',
+        'application/x-font-truetype', 'application/x-font-opentype'
+      ]
+      
+      if (contentType && compressedTypes.some(type => contentType.includes(type))) {
         return false
       }
+      
+      // Skip compression for Server-Sent Events
+      if (contentType && contentType.includes('text/event-stream')) {
+        return false
+      }
+      
+      // Skip compression for WebSocket upgrade requests
+      if (req.headers.upgrade === 'websocket') {
+        return false
+      }
+      
+      // Skip compression if Cache-Control contains no-transform directive
+      const cacheControl = req.headers['cache-control'] || res.getHeader('Cache-Control') as string
+      if (cacheControl?.includes('no-transform')) {
+        return false
+      }
+      
+      // Skip compression for HEAD requests
+      if (req.method === 'HEAD') {
+        return false
+      }
+      
+      // Skip compression if response already has Content-Encoding header
+      const encoding = res.getHeader('Content-Encoding')
+      if (encoding && encoding !== 'identity') {
+        return false
+      }
+      
+      // Use the default compression filter for all other cases
       return compression.filter(req, res)
     }
   }))
   
   // Performance: Add response time header
   app.use(responseTime())
+  
+  // Performance: Add memory monitoring middleware
+  const { middleware: memoryMiddleware, monitor: memoryMonitor } = createMemoryMonitorMiddleware({
+    logger,
+    warningThreshold: 90,
+    criticalThreshold: 95,
+    monitorInterval: 30000, // Check every 30 seconds
+    enableGarbageCollection: process.env.NODE_ENV === 'prod', // Only enable GC in production
+    addHeaders: process.env.NODE_ENV !== 'prod' // Add headers in non-production environments
+  })
+  app.use(memoryMiddleware)
   
   // Security: Configure CORS with proper settings
   app.use(cors(getCorsOptions()))
@@ -221,6 +282,9 @@ export function getExpressTrpcApp({
   
   // Health check endpoints
   app.get('/health', (req: Request, res: Response) => {
+    const memoryUsage = process.memoryUsage()
+    const lastMetrics = memoryMonitor.getLastMetrics()
+    
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -228,8 +292,16 @@ export function getExpressTrpcApp({
       version: pkg.version,
       uptime: process.uptime(),
       memory: {
-        used: Units.humanByteSize(process.memoryUsage().heapUsed),
-        total: Units.humanByteSize(process.memoryUsage().heapTotal)
+        used: Units.humanByteSize(memoryUsage.heapUsed),
+        total: Units.humanByteSize(memoryUsage.heapTotal),
+        percentage: lastMetrics ? lastMetrics.heapUsedPercentage.toFixed(1) + '%' : 'N/A',
+        rss: Units.humanByteSize(memoryUsage.rss),
+        external: Units.humanByteSize(memoryUsage.external),
+        monitoring: {
+          lastCheck: lastMetrics ? new Date(lastMetrics.timestamp).toISOString() : 'N/A',
+          warningThreshold: '90%',
+          criticalThreshold: '95%'
+        }
       }
     })
   })
@@ -270,6 +342,9 @@ export function getExpressTrpcApp({
   // Graceful shutdown handler
   const gracefulShutdown = () => {
     logger.log('SIGTERM signal received: closing HTTP server')
+    
+    // Stop memory monitoring
+    memoryMonitor.stopMonitoring()
     
     if (server) {
       server.close(() => {

@@ -67,31 +67,47 @@ The `SecretService` provides secure secret management with support for multiple 
 ```typescript
 import { SecretService } from '@goatlab/node-backend'
 
-// File-based encrypted secrets
-const fileSecrets = new SecretService('FILE', '/path/to/secrets.json')
+// File-based encrypted secrets with TTL caching
+const fileSecrets = new SecretService({
+  provider: 'FILE',
+  location: '/path/to/secrets.json',
+  encryptionKey: process.env.ENCRYPTION_KEY,
+  cacheTTL: 300000 // 5 minutes (optional, default: 5 minutes)
+})
 
 // HashiCorp Vault integration
-const vaultSecrets = new SecretService('VAULT', 'my-app/secrets')
+const vaultSecrets = new SecretService({
+  provider: 'VAULT',
+  location: 'my-app/secrets',
+  encryptionKey: process.env.ENCRYPTION_KEY
+})
 
-// Environment variables (new!)
-const envSecrets = new SecretService('ENV', 'APP') // Loads APP_* env vars
-const allEnvSecrets = new SecretService('ENV', '') // Loads all env vars
+// Environment variables
+const envSecrets = new SecretService({
+  provider: 'ENV',
+  location: 'APP', // Loads APP_* env vars
+  encryptionKey: '' // Not used for ENV provider
+})
 
-// Usage
-await fileSecrets.loadSecrets()
+// Async file operations (new!)
+const secrets = await fileSecrets.loadSecretsFromFileAsync()
 const apiKey = await fileSecrets.getSecret('API_KEY')
 const config = await fileSecrets.getSecretJson('CONFIG')
 
 // Store secrets (FILE and VAULT providers)
 await fileSecrets.storeSecrets({ API_KEY: 'secret-value' })
+
+// Manual cache cleanup (new!)
+SecretService.cleanupExpiredCache()
 ```
 
 ### Secret Provider Features
 
-- **FILE**: Encrypted local file storage using AES encryption
+- **FILE**: Encrypted local file storage using AES encryption with async operations
 - **VAULT**: HashiCorp Vault integration with automatic token management  
 - **ENV**: Runtime environment variable access with optional prefix filtering
-- **Caching**: Automatic in-memory caching for improved performance
+- **TTL Caching**: Configurable time-to-live caching with automatic expiration
+- **Async Operations**: Non-blocking file operations for better performance
 - **Type Safety**: Generic type support for JSON secrets
 
 ## Express + tRPC Integration
@@ -115,6 +131,88 @@ const app = getExpressTrpcApp({
   customHandlers: [middleware1, middleware2], // Optional middleware
   shouldInitOpenApiDocs: true, // Optional OpenAPI documentation
 })
+```
+
+### Performance Features (New!)
+
+- **Optimized Compression**: Automatically skips compression for small responses (<1KB), SSE, WebSocket upgrades, and pre-compressed content
+- **Memory Monitoring**: Built-in middleware tracks heap usage and triggers garbage collection when needed
+- **Smart Rate Limiting**: Different limits for auth endpoints, API endpoints, and general routes
+
+## Container - Dependency Injection
+
+Multi-tenant dependency injection container with performance optimizations:
+
+```typescript
+import { Container } from '@goatlab/node-backend'
+
+// Define your service factories
+const factories = {
+  database: DatabaseService,
+  api: ApiService,
+  cache: CacheService
+}
+
+// Create container with initializer
+const container = new Container(factories, async (preload, tenantMeta) => {
+  const db = preload.database(tenantMeta.id, tenantMeta.dbConfig)
+  const cache = preload.cache(tenantMeta.id)
+  
+  return {
+    database: db,
+    api: preload.api(tenantMeta.id, db),
+    cache
+  }
+})
+
+// Bootstrap for a tenant
+await container.bootstrap(tenantMeta, async () => {
+  const { database, api } = container.context
+  // Use services...
+})
+
+// Batch operations (new!)
+const results = await container.bootstrapBatch([
+  { metadata: tenant1, fn: processTenant1 },
+  { metadata: tenant2, fn: processTenant2 }
+], {
+  concurrency: 10,
+  continueOnError: true,
+  onProgress: (completed, total) => console.log(`${completed}/${total}`)
+})
+
+// Batch cache invalidation (new!)
+await container.invalidateTenantBatch(['tenant1', 'tenant2', 'tenant3'])
+```
+
+### Container Features
+
+- **Multi-tenancy**: Isolated service instances per tenant
+- **Batch Operations**: Process multiple tenants in parallel with concurrency control
+- **Performance Metrics**: Built-in performance tracking and statistics
+- **Cache Management**: Efficient caching with batch invalidation support
+- **Type Safety**: Full TypeScript support with inference
+
+## Translation Service
+
+High-performance translation service with template caching:
+
+```typescript
+import { translationService } from '@goatlab/node-backend'
+
+// Translations are automatically loaded and cached
+const greeting = translationService.translate('welcome', { language: 'es' })
+
+// With template parameters
+const message = translationService.translate('user.greeting', 
+  { language: 'en' }, 
+  { name: 'John' }
+)
+
+// Performance optimized with:
+// - Compiled template caching
+// - Locale preloading at startup
+// - In-memory locale storage
 ```
 
 ## Testing Utilities
