@@ -548,38 +548,6 @@ export class SecretService<SecretType> {
     return JSON.parse(secretValue)
   }
 
-  // Legacy sync method that doesn't require preload (backward compatibility)
-  getSecretSyncLegacy(secretName: keyof SecretType): string {
-
-    // Fallback to old behavior for backward compatibility
-    if (this.provider === 'VAULT') {
-      throw new Error('Use async getSecret() method for Vault provider')
-    }
-
-    // Use synchronous loaders for sync methods
-    let secrets: SecretType
-    if (this.provider === 'FILE') {
-      secrets = this.loadSecretsFromFile()
-    } else if (this.provider === 'ENV') {
-      secrets = this.loadSecretsFromEnv()
-    } else {
-      secrets = this.loadSecretsFromGCP()
-    }
-    
-    const secret = secrets[secretName]
-
-    if (!secret) {
-      throw new Error(
-        `Secret ${secretName.toString()} does not exist in ${this.location} env`
-      )
-    }
-
-    return secret as string
-  }
-
-  getSecretJsonSyncLegacy<T = any>(secretName: keyof SecretType): T {
-    return JSON.parse(this.getSecretSyncLegacy(secretName))
-  }
 
   // Utility method to clear cache for testing
   static clearCache() {

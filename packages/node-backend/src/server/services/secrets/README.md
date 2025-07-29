@@ -47,8 +47,8 @@ const secretService = new PreloadedSecretService<AppSecrets>({
 await secretService.preload()
 
 // Use synchronous methods for fast access
-const apiKey = secretService.getSecretSyncSafe('API_KEY')
-const dbUrl = secretService.getSecretSyncSafe('DATABASE_URL')
+const apiKey = secretService.getSecretSync('API_KEY')
+const dbUrl = secretService.getSecretSync('DATABASE_URL')
 ```
 
 ### When to Use PreloadedSecretService

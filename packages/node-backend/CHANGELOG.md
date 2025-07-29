@@ -1,5 +1,33 @@
 # 0.5.20
 
+## 1.0.0
+
+### Major Changes
+
+- Remove legacy synchronous secret getter methods
+
+  This is a breaking change that removes the following deprecated methods from SecretService:
+
+  - `getSecretSyncLegacy()`
+  - `getSecretJsonSyncLegacy()`
+
+  These methods allowed synchronous access to secrets without requiring preload(). Users must now use the newer pattern:
+
+  **Before (removed):**
+
+  ```typescript
+  const secret = service.getSecretSyncLegacy('API_KEY')
+  ```
+
+  **After (required):**
+
+  ```typescript
+  await service.preload()
+  const secret = service.getSecretSync('API_KEY')
+  ```
+
+  This change enforces proper async initialization while providing fast synchronous access after preload.
+
 ## 0.4.0
 
 ### Minor Changes

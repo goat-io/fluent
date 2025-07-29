@@ -654,8 +654,8 @@ describe('SecretService Integration Tests', () => {
         }
       })
 
-      // Legacy sync method should throw for VAULT provider
-      expect(() => service.getSecretSyncLegacy('API_KEY')).toThrow('Use async getSecret() method for Vault provider')
+      // Sync method should throw without preload
+      expect(() => service.getSecretSync('API_KEY')).toThrow('Secrets not preloaded. Call preload() before using synchronous methods.')
     })
   })
 

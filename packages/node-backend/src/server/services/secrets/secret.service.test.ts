@@ -1,9 +1,9 @@
 // npx vitest run ./src/server/services/secrets/secret.service.test.ts
-// 
+//
 // Test Updates:
-// - Updated synchronous method tests to use legacy methods (getSecretSyncLegacy, getSecretJsonSyncLegacy)
-//   since new sync methods require preload() to be called first
-// - No changes needed for VAULT/ENV encryption as the service now handles encryption internally
+// - Updated synchronous method tests to use preload() before calling sync methods
+// - Removed legacy synchronous methods (getSecretSyncLegacy, getSecretJsonSyncLegacy)
+// - No changes needed for VAULT/ENV encryption as the service handles encryption internally
 import {
   describe,
   it,
@@ -186,7 +186,7 @@ describe('SecretService - FILE Provider', () => {
   })
 
   describe('Synchronous methods', () => {
-    it('should get secret synchronously', () => {
+    it('should get secret synchronously after preload', async () => {
       const secrets = { API_KEY: 'secret-key' }
       const encrypted = Security.encryptObject(secrets, mockEncryptionKey)
       fs.writeFileSync(mockLocation, JSON.stringify(encrypted))
@@ -197,11 +197,12 @@ describe('SecretService - FILE Provider', () => {
         encryptionKey: mockEncryptionKey
       })
 
-      const result = service.getSecretSyncLegacy('API_KEY')
+      await service.preload()
+      const result = service.getSecretSync('API_KEY')
       expect(result).toBe('secret-key')
     })
 
-    it('should get JSON secret synchronously', () => {
+    it('should get JSON secret synchronously after preload', async () => {
       const jsonConfig = { host: 'localhost', port: 5432 }
       const secrets = { CONFIG: JSON.stringify(jsonConfig) }
       const encrypted = Security.encryptObject(secrets, mockEncryptionKey)
@@ -213,7 +214,8 @@ describe('SecretService - FILE Provider', () => {
         encryptionKey: mockEncryptionKey
       })
 
-      const result = service.getSecretJsonSyncLegacy<typeof jsonConfig>('CONFIG')
+      await service.preload()
+      const result = service.getSecretJsonSync<typeof jsonConfig>('CONFIG')
       expect(result).toEqual(jsonConfig)
     })
   })
@@ -372,9 +374,9 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       }
     })
 
-    it('should throw error for sync methods with Vault provider', () => {
-      expect(() => service.getSecretSyncLegacy('API_KEY')).toThrow(
-        'Use async getSecret() method for Vault provider'
+    it('should throw error for sync methods without preload', () => {
+      expect(() => service.getSecretSync('API_KEY')).toThrow(
+        'Secrets not preloaded. Call preload() before using synchronous methods.'
       )
     })
 
@@ -597,7 +599,7 @@ describe('SecretService - ENV Provider', () => {
   })
 
   describe('Synchronous methods with ENV provider', () => {
-    it('should get secret synchronously from environment', () => {
+    it('should get secret synchronously from environment after preload', async () => {
       process.env.SYNC_TEST_VALUE = 'sync-value'
 
       const service = new SecretService<{ TEST_VALUE: string }>({
@@ -606,11 +608,12 @@ describe('SecretService - ENV Provider', () => {
         encryptionKey: 'not-used'
       })
 
-      const result = service.getSecretSyncLegacy('TEST_VALUE')
+      await service.preload()
+      const result = service.getSecretSync('TEST_VALUE')
       expect(result).toBe('sync-value')
     })
 
-    it('should get JSON secret synchronously from environment', () => {
+    it('should get JSON secret synchronously from environment after preload', async () => {
       const data = { name: 'test', value: 123 }
       process.env.SYNC_JSON_DATA = JSON.stringify(data)
 
@@ -620,7 +623,8 @@ describe('SecretService - ENV Provider', () => {
         encryptionKey: 'not-used'
       })
 
-      const result = service.getSecretJsonSyncLegacy<typeof data>('JSON_DATA')
+      await service.preload()
+      const result = service.getSecretJsonSync<typeof data>('JSON_DATA')
       expect(result).toEqual(data)
     })
   })
@@ -765,15 +769,18 @@ describe('SecretService - TTL Cache functionality', () => {
   it('should respect custom cache TTL', async () => {
     const tempDir = path.join(__dirname, 'temp-test-ttl')
     const tempFile = path.join(tempDir, 'ttl-secrets.json')
-    
+
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true })
     }
-    
+
     const secrets = { API_KEY: 'ttl-test-key' }
-    const encrypted = Security.encryptObject(secrets, 'test-key-1234567890123456789012')
+    const encrypted = Security.encryptObject(
+      secrets,
+      'test-key-1234567890123456789012'
+    )
     fs.writeFileSync(tempFile, JSON.stringify(encrypted))
-    
+
     // Create service with very short TTL (100ms)
     const service = new SecretService<typeof secrets>({
       provider: 'FILE',
@@ -781,54 +788,57 @@ describe('SecretService - TTL Cache functionality', () => {
       encryptionKey: 'test-key-1234567890123456789012',
       cacheTTL: 100
     })
-    
+
     // First load - should read from file
     const result1 = await service.loadSecretsFromFileAsync()
     expect(result1).toEqual(secrets)
-    
+
     // Delete file to ensure cache is being used
     fs.unlinkSync(tempFile)
-    
+
     // Second load immediately - should use cache
     const result2 = await service.loadSecretsFromFileAsync()
     expect(result2).toEqual(secrets)
-    
+
     // Wait for cache to expire
     await new Promise(resolve => setTimeout(resolve, 150))
-    
+
     // Third load after TTL - should fail because file is deleted and cache expired
     await expect(service.loadSecretsFromFileAsync()).rejects.toThrow(
       'Secret file'
     )
-    
+
     // Cleanup
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true })
     }
   })
-  
+
   it('should use default TTL when not specified', () => {
     const service = new SecretService({
       provider: 'FILE',
       location: 'dummy.json',
       encryptionKey: 'key'
     })
-    
+
     expect(service.cacheTTL).toBe(5 * 60 * 1000) // 5 minutes default
   })
-  
+
   it('should cleanup expired cache entries', async () => {
     const tempDir = path.join(__dirname, 'temp-test-cleanup')
     const tempFile = path.join(tempDir, 'cleanup-secrets.json')
-    
+
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true })
     }
-    
+
     const secrets = { KEY: 'value' }
-    const encrypted = Security.encryptObject(secrets, 'test-key-1234567890123456789012')
+    const encrypted = Security.encryptObject(
+      secrets,
+      'test-key-1234567890123456789012'
+    )
     fs.writeFileSync(tempFile, JSON.stringify(encrypted))
-    
+
     // Create service with very short TTL
     const service = new SecretService({
       provider: 'FILE',
@@ -836,20 +846,20 @@ describe('SecretService - TTL Cache functionality', () => {
       encryptionKey: 'test-key-1234567890123456789012',
       cacheTTL: 50
     })
-    
+
     // Load to populate cache
     service.loadSecretsFromFile()
-    
+
     // Wait for expiration
     await new Promise(resolve => setTimeout(resolve, 100))
-    
+
     // Call cleanup
     SecretService.cleanupExpiredCache()
-    
+
     // Try to load again - should read from file since cache was cleaned
     fs.unlinkSync(tempFile)
     expect(() => service.loadSecretsFromFile()).toThrow('Secret file')
-    
+
     // Cleanup
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true })
