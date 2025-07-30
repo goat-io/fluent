@@ -92,7 +92,8 @@ export function transformMap<IN = any, OUT = IN>(
   let index = -1
   let isSettled = false
   let errors = 0
-  const collectedErrors: Error[] = [] // only used if errorMode == THROW_AGGREGATED
+  // Only allocate collectedErrors array if needed
+  const collectedErrors: Error[] | null = errorMode === ErrorMode.THROW_AGGREGATED ? [] : null
 
   return through2Concurrent.obj(
     {
@@ -102,7 +103,7 @@ export function transformMap<IN = any, OUT = IN>(
 
         logErrorStats(true)
 
-        if (collectedErrors.length) {
+        if (collectedErrors && collectedErrors.length) {
           // emit Aggregated error
           cb(
             new AggregateError(
@@ -137,7 +138,10 @@ export function transformMap<IN = any, OUT = IN>(
           }
         )
 
-        passedResults.forEach(r => this.push(r))
+        // Use for loop for better performance with large arrays
+        for (let i = 0; i < passedResults.length; i++) {
+          this.push(passedResults[i])
+        }
 
         if (isSettled) {
           logger.log(`transformMap END received at index ${currentIndex}`)
@@ -167,7 +171,7 @@ export function transformMap<IN = any, OUT = IN>(
           return cb(err) // Emit error immediately
         }
 
-        if (errorMode === ErrorMode.THROW_AGGREGATED) {
+        if (errorMode === ErrorMode.THROW_AGGREGATED && collectedErrors) {
           collectedErrors.push(err as Error)
         }
 

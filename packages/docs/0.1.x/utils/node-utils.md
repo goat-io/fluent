@@ -289,21 +289,230 @@ await Processes.kill(child.pid, 'SIGTERM')
 
 ### Script Execution
 
+The node-utils package provides two powerful utilities for script execution: `runScript` for running async functions as top-level scripts, and `runCommand` for executing shell commands.
+
+#### runScript - Async Script Runner
+
+The `runScript` function provides a robust wrapper for running Node.js scripts with automatic error handling, signal management, and process lifecycle control.
+
 ```typescript
-import { Scripts, runScript } from '@goatlab/node-utils'
+import { runScript } from '@goatlab/node-utils'
 
-// Run npm script
-await Scripts.run('npm install')
-await Scripts.run('npm test')
-
-// Run script with options
-await Scripts.run('npm run build', {
-  cwd: './my-project',
-  silent: false
+// Basic usage - automatic error handling and clean exit
+runScript(async () => {
+  console.log('Starting my script...')
+  await doSomeWork()
+  console.log('Script completed!')
 })
+```
 
-// Run script function
-await runScript('build', './my-project')
+##### Key Features
+
+- **Automatic Error Handling**: Catches and logs all errors, exits with proper codes
+- **Signal Handling**: Gracefully handles SIGINT (Ctrl+C), SIGTERM, and SIGHUP
+- **Clean Exit**: Ensures process.exit() is called after completion
+- **Global Error Catching**: Handles uncaught exceptions and unhandled promise rejections
+- **Customizable**: Configure logging, exit behavior, and callbacks
+
+##### Signal Handling
+
+The function automatically handles these signals for graceful shutdown:
+- `SIGINT`: Interrupt signal (Ctrl+C)
+- `SIGTERM`: Termination signal (used by process managers)
+- `SIGHUP`: Hangup signal (terminal closed)
+
+##### Examples
+
+**Database Script with Cleanup**:
+```typescript
+import { runScript } from '@goatlab/node-utils'
+import { connectDB, disconnectDB } from './database'
+
+runScript(async () => {
+  const db = await connectDB()
+  
+  try {
+    await db.users.migrate()
+    await db.posts.reindex()
+    console.log('Database operations completed')
+  } finally {
+    // This cleanup runs even if script is interrupted
+    await disconnectDB()
+  }
+})
+```
+
+**Custom Logger and Error Handling**:
+```typescript
+import { runScript } from '@goatlab/node-utils'
+import { createLogger } from './logger'
+
+const logger = createLogger()
+
+runScript(async () => {
+  await processData()
+}, {
+  logger,
+  onError: (error) => {
+    logger.error('Script failed:', error)
+    // Send to monitoring service
+    sendToSentry(error)
+  },
+  onExit: (code) => {
+    logger.info(`Script exiting with code ${code}`)
+    // Cleanup resources
+    closeConnections()
+  }
+})
+```
+
+**Long-Running Process with Graceful Shutdown**:
+```typescript
+import { runScript } from '@goatlab/node-utils'
+
+let server
+
+runScript(async () => {
+  server = await startServer()
+  console.log('Server started on port 3000')
+  
+  // Keep the process running
+  await new Promise(() => {})
+}, {
+  onExit: async (code) => {
+    console.log('Shutting down server...')
+    if (server) {
+      await server.close()
+    }
+    console.log('Server stopped')
+  }
+})
+```
+
+**Testing Mode - Prevent Process Exit**:
+```typescript
+import { runScript } from '@goatlab/node-utils'
+
+runScript(async () => {
+  await runTests()
+}, {
+  noExit: true, // Useful for test runners like Jest
+  onExit: (code) => {
+    console.log(`Tests finished with code: ${code}`)
+  }
+})
+```
+
+##### Configuration Options
+
+```typescript
+interface RunScriptOptions {
+  // Prevent process.exit() after completion (default: false)
+  noExit?: boolean
+  
+  // Custom logger instance (default: console)
+  logger?: CommonLogger
+  
+  // Callback when process is about to exit
+  onExit?: (code: number) => void
+  
+  // Callback when an error occurs
+  onError?: (error: unknown) => void
+}
+```
+
+##### Why Use runScript?
+
+Traditional Node.js scripts require boilerplate code:
+```typescript
+// Without runScript - verbose and error-prone
+async function main() {
+  try {
+    await doWork()
+    process.exit(0)
+  } catch (error) {
+    console.error(error)
+    process.exit(1)
+  }
+}
+
+main().catch(console.error)
+
+// Handle signals manually
+process.on('SIGINT', () => {
+  console.log('Interrupted')
+  process.exit(0)
+})
+```
+
+With runScript, all this is handled automatically:
+```typescript
+// With runScript - clean and robust
+runScript(async () => {
+  await doWork()
+})
+```
+
+#### Advanced Command Execution
+
+The `runCommand` function provides robust command execution with signal handling:
+
+```typescript
+import { Scripts } from '@goatlab/node-utils'
+
+// Basic command execution
+await Scripts.runCommand('npm install')
+
+// Run in a specific directory
+await Scripts.runCommand('pnpm build', { cwd: '/path/to/project' })
+
+// Using workingDirectory alias for better readability
+await Scripts.runCommand('yarn install', { workingDirectory: rootPath })
+
+// Capture command output instead of displaying it
+const output = await Scripts.runCommand('echo hello', { captureOutput: true })
+console.log(output) // "hello"
+
+// Run silently (no output shown)
+await Scripts.runCommand('npm test', { silent: true })
+
+// Handle errors
+try {
+  await Scripts.runCommand('npm test')
+} catch (error) {
+  console.error('Command failed:', error.message)
+}
+
+// Running multiple commands
+await Scripts.runCommand('npm install && npm test', { cwd: './my-project' })
+```
+
+#### Signal Handling
+
+`runCommand` properly handles system signals for graceful termination:
+
+- **SIGINT** (Ctrl+C): Gracefully terminates the child process
+- **SIGTERM**: Standard termination signal, handled gracefully  
+- **SIGHUP**: Terminal hangup signal, handled gracefully
+
+On Unix systems, it kills the entire process group. On Windows, it uses taskkill to terminate the process tree.
+
+#### Command Options
+
+```typescript
+interface RunCommandOptions {
+  // Working directory for the command. Defaults to process.cwd()
+  cwd?: string
+  
+  // Alias for cwd, provides better readability
+  workingDirectory?: string
+  
+  // If true, suppresses all command output
+  silent?: boolean
+  
+  // If true, captures and returns stdout instead of displaying it
+  captureOutput?: boolean
+}
 ```
 
 ### Port Utilities

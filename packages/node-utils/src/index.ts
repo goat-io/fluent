@@ -7,6 +7,7 @@ import { Folders } from './Folders'
 import { Ports } from './Ports'
 import { Security } from './Security'
 import { runScript, Scripts } from './Scripts'
+import type { RunScriptOptions } from './scripts/runScript'
 import { Env } from './Env'
 import type { BuildInfo } from './Env'
 import { ObjectIds } from './ObjectIds'
@@ -29,4 +30,4 @@ export {
   Streams,
   Ips
 }
-export type { BuildInfo }
+export type { BuildInfo, RunScriptOptions }

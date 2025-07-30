@@ -1,5 +1,17 @@
 # 0.5.20
 
+## 1.0.1
+
+### Patch Changes
+
+- Fix test reliability and improve developer experience
+
+  - **node-utils**: Add SIGHUP signal handling to runCommand, improve documentation with comprehensive JSDoc comments, and optimize stream processing performance
+  - **node-backend**: Remove flaky performance assertions that fail in different environments, improve translation service logging to show loaded languages instead of errors
+
+- Updated dependencies
+  - @goatlab/node-utils@0.10.1
+
 ## 1.0.0
 
 ### Major Changes

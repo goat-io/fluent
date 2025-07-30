@@ -76,7 +76,8 @@ export function transformMapSync<IN = any, OUT = IN>(
   } = opt
   let isSettled = false
   let errors = 0
-  const collectedErrors: Error[] = [] // only used if errorMode == THROW_AGGREGATED
+  // Only allocate collectedErrors array if needed
+  const collectedErrors: Error[] | null = errorMode === ErrorMode.THROW_AGGREGATED ? [] : null
 
   return new TransformMapSync({
     objectMode,
@@ -91,17 +92,31 @@ export function transformMapSync<IN = any, OUT = IN>(
         // map and pass through
         const v = mapper(chunk, currentIndex)
 
-        const passedResults = (
-          flattenArrayOutput && Array.isArray(v) ? v : [v]
-        ).filter(r => {
-          if (r === END) {
-            isSettled = true // will be checked later
-            return false
+        // Optimize for common case where no filtering is needed
+        if (!predicate && !flattenArrayOutput && v !== SKIP && v !== END) {
+          this.push(v)
+        } else {
+          // Handle special cases
+          if (v === END) {
+            isSettled = true
+          } else if (v === SKIP) {
+            // Skip this item
+          } else if (flattenArrayOutput && Array.isArray(v)) {
+            // Process array results with optimized loop
+            for (let i = 0; i < v.length; i++) {
+              const item = v[i]
+              if (item === END) {
+                isSettled = true
+                break
+              }
+              if (item !== SKIP && (!predicate || predicate(item, currentIndex))) {
+                this.push(item)
+              }
+            }
+          } else if (!predicate || predicate(v, currentIndex)) {
+            this.push(v)
           }
-          return r !== SKIP && (!predicate || predicate(r, currentIndex))
-        })
-
-        passedResults.forEach(r => this.push(r))
+        }
 
         if (isSettled) {
           logger.log(`transformMapSync END received at index ${currentIndex}`)
@@ -133,7 +148,7 @@ export function transformMapSync<IN = any, OUT = IN>(
           return cb(err as Error)
         }
 
-        if (errorMode === ErrorMode.THROW_AGGREGATED) {
+        if (errorMode === ErrorMode.THROW_AGGREGATED && collectedErrors) {
           collectedErrors.push(err as Error)
         }
 
@@ -145,7 +160,7 @@ export function transformMapSync<IN = any, OUT = IN>(
 
       logErrorStats(true)
 
-      if (collectedErrors.length) {
+      if (collectedErrors && collectedErrors.length) {
         // emit Aggregated error
         cb(
           new AggregateError(

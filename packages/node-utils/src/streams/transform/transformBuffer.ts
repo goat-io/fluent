@@ -15,27 +15,32 @@ export function transformBuffer<IN = any>(
 ): TransformTyped<IN, IN[]> {
   const { batchSize } = opt
 
-  let buf: IN[] = []
+  // Pre-allocate buffer array to avoid resizing
+  let buf: IN[] = new Array(batchSize)
+  let bufIndex = 0
 
   return new Transform({
     objectMode: true,
     ...opt,
     transform(chunk, _, cb) {
-      buf.push(chunk)
+      buf[bufIndex++] = chunk
 
-      if (buf.length >= batchSize) {
-        cb(null, buf)
-        buf = []
+      if (bufIndex >= batchSize) {
+        // Pass the filled buffer and create a new pre-allocated one
+        cb(null, buf.slice(0, bufIndex))
+        buf = new Array(batchSize)
+        bufIndex = 0
       } else {
         cb()
       }
     },
     final(this: Transform, cb) {
-      if (buf.length) {
-        this.push(buf)
-        buf = []
+      if (bufIndex > 0) {
+        // Only push the filled portion of the buffer
+        this.push(buf.slice(0, bufIndex))
       }
-
+      // Clear references to help GC
+      buf = null as any
       cb()
     },
   })

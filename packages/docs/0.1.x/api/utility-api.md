@@ -517,6 +517,53 @@ const isRunning = await Processes.isRunning(12345)
 const stats = await Processes.systemStats()
 ```
 
+### Scripts
+
+Script and command execution utilities with signal handling.
+
+```typescript
+import { Scripts } from '@goatlab/node-utils'
+
+// Run npm scripts
+await Scripts.run('test')
+await Scripts.run('build')
+
+// Execute shell commands
+await Scripts.runCommand('npm install')
+
+// Run command in specific directory
+await Scripts.runCommand('pnpm build', { 
+  cwd: '/path/to/project' 
+})
+
+// Use workingDirectory alias
+await Scripts.runCommand('yarn install', { 
+  workingDirectory: rootPath 
+})
+
+// Capture command output
+const version = await Scripts.runCommand('node --version', { 
+  captureOutput: true 
+})
+
+// Run silently
+await Scripts.runCommand('npm test', { 
+  silent: true 
+})
+
+// Handle errors
+try {
+  await Scripts.runCommand('npm test')
+} catch (error) {
+  console.error('Command failed:', error.message)
+}
+
+// Complex commands with pipes
+await Scripts.runCommand('npm install && npm test', {
+  cwd: './my-project'
+})
+```
+
 ### Streams
 
 Stream processing utilities.

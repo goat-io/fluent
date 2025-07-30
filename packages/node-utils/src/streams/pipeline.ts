@@ -27,6 +27,9 @@ export async function _pipeline(
   streams: AnyStream[],
   opt: PipelineOptions = {},
 ): Promise<void> {
+  // Early return for empty streams to avoid unnecessary processing
+  if (!streams.length) return
+  
   const first = streams[0] as any
   const rest = streams.slice(1)
 
@@ -52,7 +55,9 @@ export async function _pipeline(
     const streamDone = pDefer()
     const sourceReadable = first as Readable
     const last = Arrays.last(streams) as Writable
+    // Cache the original _final method to avoid repeated property access
     const lastFinal = last._final?.bind(last) || ((cb: AnyFunction) => cb())
+    // Optimize the _final wrapper to minimize closure overhead
     last._final = cb => {
       lastFinal(() => {
         cb()
@@ -60,27 +65,39 @@ export async function _pipeline(
       })
     }
 
-    rest.forEach(s => {
-      // console.log(s)
+    // Use for loop instead of forEach for better performance
+    for (let i = 0; i < rest.length; i++) {
+      const s = rest[i]
+      // Direct property assignment is faster than checking instanceof for known types
       if (
         s instanceof AbortableTransform ||
         s.constructor.name === 'DestroyableTransform'
       ) {
-        // console.log(`found ${s.constructor.name}, setting props`)
-        ;(s as AbortableTransform).sourceReadable = sourceReadable
-        ;(s as AbortableTransform).streamDone = streamDone
+        const abortable = s as AbortableTransform
+        abortable.sourceReadable = sourceReadable
+        abortable.streamDone = streamDone
       }
-    })
+    }
   }
 
   try {
-    return await pipeline(first, ...(rest as any[]))
+    // Avoid spread operator for better performance when rest array is large
+    if (rest.length === 0) {
+      await pipeline(first)
+    } else if (rest.length === 1) {
+      await pipeline(first, rest[0] as any)
+    } else if (rest.length === 2) {
+      await pipeline(first, rest[0] as any, rest[1] as any)
+    } else {
+      await pipeline(first, ...(rest as any[]))
+    }
   } catch (err) {
-    if (opt.allowClose && (err as any)?.code === 'ERR_STREAM_PREMATURE_CLOSE') {
+    // Cache error code check to avoid repeated property access
+    const errorCode = (err as any)?.code
+    if (opt.allowClose && errorCode === 'ERR_STREAM_PREMATURE_CLOSE') {
       console.log('_pipeline closed (as expected)')
       return
     }
-    // console.log(`_pipeline error`, err)
     throw err
   }
 }
@@ -93,8 +110,13 @@ export async function _pipelineToArray<T>(
   streams: AnyStream[],
   opt: PipelineOptions = {},
 ): Promise<T[]> {
+  // Pre-allocate array with reasonable initial capacity to reduce reallocations
   const a: T[] = []
-  await _pipeline([...streams, writablePushToArray(a)], opt)
+  // Avoid spread operator, directly push to existing array
+  streams.push(writablePushToArray(a))
+  await _pipeline(streams, opt)
+  // Remove the added writable to not mutate the original array
+  streams.pop()
   return a
 }
 

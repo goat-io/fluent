@@ -49,10 +49,19 @@ class TranslationService {
     if (this.initialized) return
     
     // Preload all supported language files
+    const loadedLanguages: LANG[] = []
     if (SUPPORTED_LANGUAGES && Array.isArray(SUPPORTED_LANGUAGES)) {
       for (const lang of SUPPORTED_LANGUAGES) {
-        this.loadLocaleSync(lang)
+        if (this.loadLocaleSync(lang)) {
+          loadedLanguages.push(lang)
+        }
       }
+    }
+    
+    if (loadedLanguages.length > 0) {
+      console.log(`Translation service initialized with languages: ${loadedLanguages.join(', ')}`)
+    } else {
+      console.warn('Translation service: No language files were loaded')
     }
     
     this.initialized = true
@@ -71,7 +80,7 @@ class TranslationService {
       localeCache.set(lang, locale)
       return locale
     } catch {
-      console.warn(`Failed to load locale: ${lang}`)
+      // Silent fail - we'll log successful loads instead
       return undefined
     }
   }
@@ -96,7 +105,7 @@ class TranslationService {
       localeCache.set(lang, locale)
       return locale
     } catch {
-      console.warn(`Unsupported lang ${lang}`)
+      // Silent fail - already logged during initialization
       return undefined as any
     }
   }

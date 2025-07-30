@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.9.8
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.8
+
 ## 0.9.7
 
 ### Patch Changes
