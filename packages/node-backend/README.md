@@ -157,15 +157,55 @@ const appRouter = t.router({
   hello: t.procedure.query(() => 'Hello World!')
 })
 
-const app = getExpressTrpcApp({
+// Minimal configuration - just trpcRouter is required
+const { app, server, waitForShutdown } = getExpressTrpcApp({ 
+  trpcRouter: appRouter 
+})
+
+// Keep the process alive until shutdown
+await waitForShutdown()
+
+// With custom configuration
+const { app, server, waitForShutdown } = getExpressTrpcApp({
   trpcRouter: appRouter,
-  port: 3000,
-  sentryService,
-  expressResources: [customRouter], // Optional Express routers
-  customHandlers: [middleware1, middleware2], // Optional middleware
-  shouldInitOpenApiDocs: true, // Optional OpenAPI documentation
+  port: 8080,
+  environment: 'prod',
+  appName: 'My API',
+  
+  // Feature flags
+  features: {
+    openApiDocs: true,
+    sentry: true,
+    trustProxy: true
+  },
+  
+  // Security customization
+  security: {
+    cors: {
+      allowedOrigins: ['https://myapp.com'],
+      maxAge: 7200
+    },
+    rateLimit: {
+      api: { max: 1000 }
+    }
+  },
+  
+  // Optional extensions
+  expressResources: [customRouter],
+  customHandlers: [middleware1, middleware2],
+  sentryService
 })
 ```
+
+### Configuration (New!)
+
+The `getExpressTrpcApp` function now uses a fully typed configuration object instead of process.env variables:
+
+- **Minimal config**: Only `trpcRouter` is required
+- **Deep merging**: Customize specific settings without losing defaults
+- **Type safety**: Full TypeScript support for all configuration options
+- **Environment-aware**: Automatically adjusts defaults based on environment
+- **Graceful shutdown**: Use `waitForShutdown()` to keep the process alive until the server closes
 
 ### Performance Features (New!)
 

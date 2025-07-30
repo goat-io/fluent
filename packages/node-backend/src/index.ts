@@ -6,6 +6,8 @@ export type { Options }
 
 // New backend package
 export { getExpressTrpcApp } from './server/bootstraps/getExpressTrpcApp'
+export type { ExpressTrpcAppConfig } from './server/bootstraps/ExpressTrpcAppConfig'
+export { getDefaultConfig } from './server/bootstraps/ExpressTrpcAppConfig'
 export { SentryService } from './server/sentry/sentry.service'
 export { getSentry } from './server/sentry/getSentry'
 export { getLogger } from './server/middleware/logger/logger.service'

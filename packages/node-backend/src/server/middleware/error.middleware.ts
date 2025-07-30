@@ -75,6 +75,10 @@ export function respondWithError(
   )
 
   httpError.data.errorId = errorId
+  // Check if error has a status or statusCode property (from Express errors like PayloadTooLargeError)
+  if (!httpError.data.httpStatusCode && originalError) {
+    httpError.data.httpStatusCode = (originalError as any).status || (originalError as any).statusCode
+  }
   httpError.data.httpStatusCode ||= 500 // Default to 500
   httpError.data.headersSent = headersSent || undefined
   httpError.data.report ||= undefined // Set to undefined if false

@@ -275,9 +275,10 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       app = result.app
@@ -340,10 +341,13 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService,
-        shouldEnableSentry: false,
-        shouldInitOpenApiDocs: true
+        features: { 
+          sentry: false,
+          openApiDocs: true
+        }
       })
       
       app = result.app

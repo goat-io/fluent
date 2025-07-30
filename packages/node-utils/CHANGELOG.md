@@ -1,5 +1,24 @@
 # 0.5.20
 
+## 0.10.2
+
+### Patch Changes
+
+- fix: Add SIGHUP signal handling to runCommand for consistency with runScript
+
+  - Added SIGHUP to the list of handled signals in runCommand.ts
+  - Ensured proper cleanup of SIGHUP listeners
+  - Maintains feature parity between runCommand and runScript utilities
+
+- perf: Optimize stream processing functions for better performance
+
+  - Optimized spread operator usage in pipeline.ts
+  - Added conditional error array allocation in transformMap.ts
+  - Improved filtering logic in transformMapSync.ts
+  - Pre-allocated buffers in transformBuffer.ts for better memory efficiency
+  - Added fast paths in pFilter.ts for common cases
+  - All optimizations maintain API compatibility
+
 ## 0.10.1
 
 ### Patch Changes

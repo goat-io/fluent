@@ -1,5 +1,52 @@
 # 0.5.20
 
+## 1.1.0
+
+### Minor Changes
+
+- feat: Major refactoring of getExpressTrpcApp for improved library design
+
+  - Replaced all process.env dependencies with configuration object
+  - Added comprehensive ExpressTrpcAppConfig interface with deep merge support
+  - Added waitForShutdown() method that returns Promise<void> for graceful shutdown
+  - Improved configuration with intelligent defaults based on environment
+  - Enhanced memory monitoring with configurable thresholds
+  - Optimized compression settings with smart filtering
+  - Added proper TypeScript types for all configuration options
+  - Automatic Cloud Run detection without requiring user configuration
+  - Better separation of concerns between library and application code
+
+- feat: Add secret preloading capabilities to SecretService
+
+  - Added preload() method for async loading of secrets at startup
+  - Added getSecretSync() and getSecretJsonSync() for synchronous access after preloading
+  - Enables better performance by avoiding async operations in hot paths
+  - Maintains backward compatibility with existing async methods
+
+### Patch Changes
+
+- fix: Preserve HTTP status codes from Express errors in error middleware
+
+  - Fixed error middleware to check error.status and error.statusCode properties
+  - Ensures proper error status codes are returned (e.g., 413 for PayloadTooLargeError)
+  - Improves error handling consistency across the application
+
+- fix: Remove environment-dependent performance tests
+
+  - Removed hard-coded performance assertions from translation tests
+  - Tests were causing flaky failures in different environments
+  - Ensures more reliable test suite across different machines
+
+- fix: Improve translation service logging to show loaded languages
+
+  - Changed logging to display successfully loaded languages instead of errors
+  - Provides better visibility into which language files are available
+  - Helps with debugging translation issues in production
+
+- Updated dependencies
+- Updated dependencies
+  - @goatlab/node-utils@0.10.2
+
 ## 1.0.1
 
 ### Patch Changes

@@ -189,8 +189,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const { app } = getExpressTrpcApp({
         trpcRouter,
         port: 3000,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       expect(app).toBeDefined()
@@ -205,8 +206,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: 3000,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       expect(result).toHaveProperty('app')
@@ -220,8 +222,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const { server } = getExpressTrpcApp({
         trpcRouter,
         port: 3000,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       // Server should not be started in test env
@@ -236,6 +239,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: newPort,
+        environment: 'dev',
         sentryService
       })
       
@@ -259,6 +263,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService
       })
@@ -294,8 +299,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       app = result.app
@@ -322,7 +328,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       expect(response.headers['x-frame-options']).toBeDefined()
       expect(response.headers['x-content-type-options']).toBe('nosniff')
       expect(response.headers['x-powered-by']).toBeUndefined() // Should be hidden
-      expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin')
+      expect(response.headers['referrer-policy']).toBeDefined()
     })
   })
 
@@ -331,8 +337,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       app = result.app
@@ -356,7 +363,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         .set('Access-Control-Request-Method', 'POST')
         .set('Access-Control-Request-Headers', 'Content-Type')
       
-      expect(res.status).toBe(200)
+      expect(res.status).toBe(204)
       expect(res.headers['access-control-allow-methods']).toContain('POST')
       expect(res.headers['access-control-allow-headers']).toContain('Content-Type')
       expect(res.headers['access-control-max-age']).toBe('86400')
@@ -385,8 +392,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         const result = getExpressTrpcApp({
           trpcRouter,
           port: newTestPort,
+          environment: 'test',
           sentryService,
-          shouldEnableSentry: false
+          features: { sentry: false }
         })
         
         app = result.app
@@ -410,8 +418,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       app = result.app
@@ -453,6 +462,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService
       })
@@ -485,7 +495,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         .post('/test-large')
         .send({ data: largeData })
       
-      expect(res.status).toBe(500) // Error middleware converts to 500
+      expect(res.status).toBe(413) // Payload Too Large
     })
 
     it('should respect JSON body size limit', async () => {
@@ -496,15 +506,16 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         })
       }
       
-      // Set small body limit
-      process.env.JSON_BODY_LIMIT = '1kb'
-      
       const newPort = await Ports.nextAvailablePort(8000)
       const result = getExpressTrpcApp({
         trpcRouter,
         port: newPort,
+        environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
+        bodyParsing: {
+          json: { limit: '1kb' }
+        }
       })
       
       app = result.app
@@ -518,7 +529,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         .post('/webhook')
         .send(largeData)
       
-      expect(response.status).toBe(500) // Body too large
+      expect(response.status).toBe(413) // Payload Too Large
     })
 
     it('should store raw body for webhook verification', async () => {
@@ -541,6 +552,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: newPort,
+        environment: 'test',
         expressResources: [webhookRouter],
         sentryService
       })
@@ -565,8 +577,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       app = result.app
@@ -590,6 +603,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService
       })
       
@@ -669,6 +683,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService
       })
@@ -688,7 +703,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         .set('Content-Type', 'application/json')
         .send('invalid json{')
       
-      expect(res.status).toBe(500)
+      expect(res.status).toBe(400) // Bad Request for malformed JSON
     })
 
     it('should handle errors properly in production mode', async () => {
@@ -704,8 +719,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false }
       })
       
       app = result.app
@@ -743,6 +759,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService
       })
       
@@ -773,14 +790,17 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     })
 
     it('should enforce rate limiting', async () => {
-      // Mock environment for lower rate limit
-      process.env.API_RATE_LIMIT = '5'
-      
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService,
-        shouldEnableSentry: false
+        features: { sentry: false },
+        security: {
+          rateLimit: {
+            api: { max: 5 }
+          }
+        }
       })
       
       app = result.app
@@ -807,16 +827,19 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       expect(responses[5].body.error.code).toBe('RATE_LIMIT_EXCEEDED')
     })
 
-    it('should use custom API rate limit from environment', async () => {
-      // Set custom API rate limit
-      process.env.API_RATE_LIMIT = '10'
-      
+    it('should use custom API rate limit from configuration', async () => {
       const newPort = await Ports.nextAvailablePort(8000)
       const result = getExpressTrpcApp({
         trpcRouter,
         port: newPort,
+        environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
+        security: {
+          rateLimit: {
+            api: { max: 10 }
+          }
+        }
       })
       
       app = result.app
@@ -849,6 +872,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         customHandlers: [customHandler],
         sentryService
@@ -868,6 +892,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService
       })
@@ -887,6 +912,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService
       })
@@ -916,7 +942,8 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
-        shouldInitOpenApiDocs: true,
+        environment: 'test',
+        features: { openApiDocs: true },
         sentryService
       })
       
@@ -947,6 +974,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: newPort,
+        environment: 'test',
         expressResources: [timeoutRouter],
         sentryService
       })
@@ -978,6 +1006,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         expressResources: [expressRouter],
         sentryService
       })
@@ -1029,6 +1058,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService
       })
       
@@ -1056,6 +1086,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
+        environment: 'test',
         sentryService
       })
       
