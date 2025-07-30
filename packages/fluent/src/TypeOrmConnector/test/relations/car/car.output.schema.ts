@@ -1,6 +1,6 @@
+import { z } from 'zod'
 import { userOutputSchema } from '../user/user.schema'
 import { carInputSchema } from './car.schema'
-import { z } from 'zod'
 
 export const carOutputSchema = carInputSchema.extend({
   user: userOutputSchema.optional()

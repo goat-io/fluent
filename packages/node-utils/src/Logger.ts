@@ -1,8 +1,7 @@
 // https://github.com/winstonjs/winston
 import * as winston from 'winston'
 
-const { combine, timestamp, errors, prettyPrint } =
-  winston.format
+const { combine, timestamp, errors, prettyPrint } = winston.format
 
 const logger = winston.createLogger({
   format: combine(errors({ stack: true }), timestamp(), prettyPrint()),

@@ -8,16 +8,16 @@ Reasons:
  */
 
 // Multiple `.replace()` calls are actually faster than using replacer functions
-function _htmlEscape(s: string): string {
+function HtmlEscape(s: string): string {
   return s
     .replaceAll('&', '&amp;') // Must happen first or else it will escape other just-escaped characters.
     .replaceAll('"', '&quot;')
-    .replaceAll('\'', '&#39;')
+    .replaceAll("'", '&#39;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
 }
 
-function _htmlUnescape(html: string): string {
+function HtmlUnescape(html: string): string {
   return html
     .replaceAll('&gt;', '>')
     .replaceAll('&lt;', '<')
@@ -31,12 +31,12 @@ export function htmlEscape(
   ...values: any[]
 ): string {
   if (typeof strings === 'string') {
-    return _htmlEscape(strings)
+    return HtmlEscape(strings)
   }
 
   let output = strings[0]!
   for (const [index, value] of values.entries()) {
-    output = output + _htmlEscape(String(value)) + strings[index + 1]
+    output = output + HtmlEscape(String(value)) + strings[index + 1]
   }
 
   return output
@@ -47,12 +47,12 @@ export function htmlUnescape(
   ...values: any[]
 ): string {
   if (typeof strings === 'string') {
-    return _htmlUnescape(strings)
+    return HtmlUnescape(strings)
   }
 
   let output = strings[0]!
   for (const [index, value] of values.entries()) {
-    output = output + _htmlUnescape(String(value)) + strings[index + 1]
+    output = output + HtmlUnescape(String(value)) + strings[index + 1]
   }
 
   return output

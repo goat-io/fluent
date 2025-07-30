@@ -1,6 +1,8 @@
 /**
  * The API surface of this module has been heavily inspired by the "type-graphql" library (https://github.com/MichalLytek/type-graphql), originally designed & released by Michal Lytek.
  */
+
+import { isTargetEqual, isThrowing, isUndefined, Type } from './common'
 import { addFieldMetadata } from './decorators/field.decorator'
 import { CannotDetermineHostTypeError } from './errors/cannot-determine-host-type.error'
 import { UndefinedTypeError } from './errors/undefined-type.error'
@@ -23,7 +25,6 @@ import {
 } from './metadata/directive.metadata'
 import { InterfaceMetadata } from './metadata/interface.metadata'
 import { ObjectTypeMetadata } from './metadata/object-type.metadata'
-import { isTargetEqual, isUndefined, Type, isThrowing } from './common'
 
 export const METADATA_FACTORY_NAME = '_GRAPHQL_METADATA_FACTORY'
 
@@ -32,39 +33,39 @@ export class TypeMetadataStorageHost {
    * The implementation of this class has been heavily inspired by the following code:
    * @ref https://github.com/MichalLytek/type-graphql/blob/master/src/metadata/metadata-storage.ts
    */
-  private queries = new Array<ResolverTypeMetadata>()
+  private queries = [] as ResolverTypeMetadata[]
 
-  private mutations = new Array<ResolverTypeMetadata>()
+  private mutations = [] as ResolverTypeMetadata[]
 
-  private subscriptions = new Array<ResolverTypeMetadata>()
+  private subscriptions = [] as ResolverTypeMetadata[]
 
-  private fieldResolvers = new Array<FieldResolverMetadata>()
+  private fieldResolvers = [] as FieldResolverMetadata[]
 
-  private readonly resolvers = new Array<ResolverClassMetadata>()
+  private readonly resolvers = [] as ResolverClassMetadata[]
 
-  private readonly fields = new Array<PropertyMetadata>()
+  private readonly fields = [] as PropertyMetadata[]
 
-  private readonly params = new Array<MethodArgsMetadata>()
+  private readonly params = [] as MethodArgsMetadata[]
 
-  private readonly interfaces = new Array<InterfaceMetadata>()
+  private readonly interfaces = [] as InterfaceMetadata[]
 
-  private readonly enums = new Array<EnumMetadata>()
+  private readonly enums = [] as EnumMetadata[]
 
-  private readonly unions = new Array<UnionMetadata>()
+  private readonly unions = [] as UnionMetadata[]
 
-  private readonly classDirectives = new Array<ClassDirectiveMetadata>()
+  private readonly classDirectives = [] as ClassDirectiveMetadata[]
 
-  private readonly fieldDirectives = new Array<PropertyDirectiveMetadata>()
+  private readonly fieldDirectives = [] as PropertyDirectiveMetadata[]
 
-  private readonly classExtensions = new Array<ClassExtensionsMetadata>()
+  private readonly classExtensions = [] as ClassExtensionsMetadata[]
 
-  private readonly fieldExtensions = new Array<PropertyExtensionsMetadata>()
+  private readonly fieldExtensions = [] as PropertyExtensionsMetadata[]
 
-  private readonly objectTypes = new Array<ObjectTypeMetadata>()
+  private readonly objectTypes = [] as ObjectTypeMetadata[]
 
-  private readonly inputTypes = new Array<ClassMetadata>()
+  private readonly inputTypes = [] as ClassMetadata[]
 
-  private readonly argumentTypes = new Array<ClassMetadata>()
+  private readonly argumentTypes = [] as ClassMetadata[]
 
   addMutationMetadata(metadata: ResolverTypeMetadata) {
     this.mutations.push(metadata)
@@ -245,7 +246,7 @@ export class TypeMetadataStorageHost {
     this.compileExtendedResolversMetadata()
 
     orphanedTypes
-      .filter(type => type && type.prototype)
+      .filter(type => type?.prototype)
       .forEach(type => this.applyPluginMetadata(type.prototype))
   }
 
@@ -298,9 +299,12 @@ export class TypeMetadataStorageHost {
         item.directives = this.classDirectives.filter(belongsToClass)
       }
       if (!item.extensions) {
-        item.extensions = this.classExtensions
-          .filter(belongsToClass)
-          .reduce((curr, acc) => ({ ...curr, ...acc.value }), {})
+        const extensions = this.classExtensions.filter(belongsToClass)
+        const extensionsObj: Record<string, unknown> = {}
+        for (const ext of extensions) {
+          Object.assign(extensionsObj, ext.value)
+        }
+        item.extensions = extensionsObj
       }
     })
   }
@@ -321,9 +325,14 @@ export class TypeMetadataStorageHost {
       field.directives = this.fieldDirectives.filter(
         this.isFieldDirectiveOrExtension.bind(this, field)
       )
-      field.extensions = this.fieldExtensions
-        .filter(this.isFieldDirectiveOrExtension.bind(this, field))
-        .reduce((curr, acc) => ({ ...curr, ...acc.value }), {})
+      const fieldExtensions = this.fieldExtensions.filter(
+        this.isFieldDirectiveOrExtension.bind(this, field)
+      )
+      const fieldExtensionsObj: Record<string, unknown> = {}
+      for (const ext of fieldExtensions) {
+        Object.assign(fieldExtensionsObj, ext.value)
+      }
+      field.extensions = fieldExtensionsObj
     })
     return fields
   }
@@ -340,9 +349,14 @@ export class TypeMetadataStorageHost {
       item.directives = this.fieldDirectives.filter(
         this.isFieldDirectiveOrExtension.bind(this, item)
       )
-      item.extensions = this.fieldExtensions
-        .filter(this.isFieldDirectiveOrExtension.bind(this, item))
-        .reduce((curr, acc) => ({ ...curr, ...acc.value }), {})
+      const itemExtensions = this.fieldExtensions.filter(
+        this.isFieldDirectiveOrExtension.bind(this, item)
+      )
+      const itemExtensionsObj: Record<string, unknown> = {}
+      for (const ext of itemExtensions) {
+        Object.assign(itemExtensionsObj, ext.value)
+      }
+      item.extensions = itemExtensionsObj
     })
   }
 
@@ -354,9 +368,14 @@ export class TypeMetadataStorageHost {
       item.directives = this.fieldDirectives.filter(
         this.isFieldDirectiveOrExtension.bind(this, item)
       )
-      item.extensions = this.fieldExtensions
-        .filter(this.isFieldDirectiveOrExtension.bind(this, item))
-        .reduce((curr, acc) => ({ ...curr, ...acc.value }), {})
+      const itemFieldExtensions = this.fieldExtensions.filter(
+        this.isFieldDirectiveOrExtension.bind(this, item)
+      )
+      const itemFieldExtensionsObj: Record<string, unknown> = {}
+      for (const ext of itemFieldExtensions) {
+        Object.assign(itemFieldExtensionsObj, ext.value)
+      }
+      item.extensions = itemFieldExtensionsObj
 
       item.objectTypeFn =
         item.kind === 'external'

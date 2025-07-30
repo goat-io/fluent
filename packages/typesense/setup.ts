@@ -1,5 +1,5 @@
+import { cleanGlobalData, writeGlobalData } from './src/tests/const'
 import { typesenseContainer } from './src/tests/typesense'
-import { writeGlobalData, cleanGlobalData } from './src/tests/const'
 // This file runs before jest sets the env
 // so we need to load dotenv manually if we want to use env
 

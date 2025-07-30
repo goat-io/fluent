@@ -1,9 +1,9 @@
-import * as fs from 'fs'
-import { promises as fsPromises } from 'fs'
-import { fetch } from 'undici'
+import * as fs from 'node:fs'
+import { promises as fsPromises } from 'node:fs'
 import type { StringMap } from '@goatlab/js-utils'
 import { Security } from '@goatlab/node-utils'
 import { magenta } from 'kleur/colors'
+import { fetch } from 'undici'
 
 // Cache entry interface with TTL support
 interface CacheEntry<T> {
@@ -80,7 +80,7 @@ export class SecretService<SecretType> {
   async invalidate(): Promise<void> {
     this.preloadedSecrets = undefined
     this.isPreloaded = false
-    
+
     // Clear cache to force reload
     if (this.provider === 'FILE') {
       delete memoryCache[this.location]
@@ -101,10 +101,12 @@ export class SecretService<SecretType> {
    * Set up file watching for automatic invalidation
    */
   private setupFileWatcher(): void {
-    if (this.provider !== 'FILE') return
+    if (this.provider !== 'FILE') {
+      return
+    }
 
     try {
-      this.fileWatcher = fs.watch(this.location, async (eventType) => {
+      this.fileWatcher = fs.watch(this.location, async eventType => {
         if (eventType === 'change') {
           console.log(`🔄 Secret file changed: ${magenta(this.location)}`)
           await this.invalidate()
@@ -152,8 +154,12 @@ export class SecretService<SecretType> {
 
   // Helper method to check if cache entry is valid
   private isCacheValid(entry: CacheEntry<StringMap> | undefined): boolean {
-    if (!entry) return false
-    if (!entry.expiresAt) return true // No expiration set
+    if (!entry) {
+      return false
+    }
+    if (!entry.expiresAt) {
+      return true // No expiration set
+    }
     return Date.now() < entry.expiresAt
   }
 
@@ -187,7 +193,7 @@ export class SecretService<SecretType> {
     try {
       // Check if file exists using async stat
       await fsPromises.stat(this.location)
-    } catch (error) {
+    } catch (_error) {
       throw new Error(`Secret file "${this.location}" does not exist`)
     }
 
@@ -267,15 +273,18 @@ export class SecretService<SecretType> {
     // TODO: Implement GCP Secret Manager integration
     // For now, return empty object but apply decryption if needed
     const secrets = {} as any
-    
+
     if (this.encryptionKey) {
       try {
-        return Security.decryptObject(secrets, this.encryptionKey) as any as SecretType
+        return Security.decryptObject(
+          secrets,
+          this.encryptionKey
+        ) as any as SecretType
       } catch (error) {
         console.warn(`Failed to decrypt GCP secrets: ${error.message}`)
       }
     }
-    
+
     return secrets as SecretType
   }
 
@@ -547,7 +556,6 @@ export class SecretService<SecretType> {
     const secretValue = this.getSecretSync(secretName)
     return JSON.parse(secretValue)
   }
-
 
   // Utility method to clear cache for testing
   static clearCache() {

@@ -1,12 +1,12 @@
 // npx vitest run ./src/streams.spec.ts
 
-import { describe, it, expect } from 'vitest'
-import { Streams } from './Streams'
-import { createGunzip } from 'zlib'
-import { readFile, unlink } from 'fs/promises'
-import { join } from 'path'
-import { tmpdir } from 'os'
+import { readFile, unlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { createGunzip } from 'node:zlib'
 import { Reviver } from '@goatlab/js-utils'
+import { describe, expect, it } from 'vitest'
+import { Streams } from './Streams'
 
 describe('Streams.map (async tests)', () => {
   it('should double numbers using map in pipeline', async () => {
@@ -46,7 +46,9 @@ describe('Streams.map (async tests)', () => {
       Streams.pipeline([
         Streams.readableFrom(input),
         Streams.map(async (n: number) => {
-          if (n === 2) throw error
+          if (n === 2) {
+            throw error
+          }
           return n * 2
         }),
         Streams.map(async (n: number) => output.push(n)),
@@ -211,7 +213,9 @@ describe('Streams.filter', () => {
       Streams.pipeline([
         Streams.readableFrom(input),
         Streams.filter(async (n: number) => {
-          if (n === 2) throw err
+          if (n === 2) {
+            throw err
+          }
           return true
         }),
         Streams.closePipeline()
@@ -226,7 +230,7 @@ describe('Streams.gzip', () => {
     const chunks: Buffer[] = []
 
     await Streams.pipeline([
-      Streams.readableFrom(input.map(s => s + '\n')),
+      Streams.readableFrom(input.map(s => `${s}\n`)),
       Streams.gzip(),
       Streams.mapSync((chunk: Buffer) => {
         chunks.push(chunk)
@@ -243,7 +247,7 @@ describe('Streams.gzip', () => {
     const input = [{ id: 1 }, { id: 2 }]
     const output: string[] = []
 
-    const jsonLines = input.map(obj => JSON.stringify(obj) + '\n')
+    const jsonLines = input.map(obj => `${JSON.stringify(obj)}\n`)
 
     await Streams.pipeline([
       Streams.readableFrom(jsonLines),
@@ -333,7 +337,7 @@ describe('Streams.unGzip', () => {
     // First compress the input
     const compressed: Buffer[] = []
     await Streams.pipeline([
-      Streams.readableFrom(input.map(s => s + '\n')),
+      Streams.readableFrom(input.map(s => `${s}\n`)),
       Streams.gzip(),
       Streams.mapSync((chunk: Buffer) => {
         compressed.push(chunk)
@@ -566,7 +570,9 @@ describe('Streams.parseJson', () => {
     const output: any[] = []
 
     const reviver: Reviver = (key, value) => {
-      if (key === 'a') return parseInt(value)
+      if (key === 'a') {
+        return Number.parseInt(value)
+      }
       return value
     }
 

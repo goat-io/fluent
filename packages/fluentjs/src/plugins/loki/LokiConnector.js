@@ -1,7 +1,7 @@
-import Database from './Database'
-import Utilities from './Utilities'
 import { Id } from '../../../Helpers/Id'
 import { Interface } from '../../fluent'
+import Database from './Database'
+import Utilities from './Utilities'
 
 export default Interface.compose({
   methods: {
@@ -9,7 +9,7 @@ export default Interface.compose({
      *
      */
     async get() {
-      let filterObject = this.prepareFilter()
+      const filterObject = this.prepareFilter()
 
       let data = await (await this.getModel())
         .chain()
@@ -27,14 +27,14 @@ export default Interface.compose({
      *
      */
     prepareFilter() {
-      let andObject = { $and: [] }
-      let orObject = { $or: [] }
+      const andObject = { $and: [] }
+      const orObject = { $or: [] }
       let globalFilter = {}
 
       // All first Level AND conditions
       if (this.whereArray.length > 0) {
         this.whereArray.forEach(c => {
-          let conditionToObject = {}
+          const conditionToObject = {}
 
           if (c[0].includes('[')) {
             throw new Error(
@@ -45,37 +45,37 @@ export default Interface.compose({
           }
 
           conditionToObject[c[0]] = {}
-          let lokiOperator = this.getLokiOperator(c[1])
+          const lokiOperator = this.getLokiOperator(c[1])
 
           conditionToObject[c[0]][lokiOperator] = c[2]
           if (lokiOperator.includes('$regex|')) {
             delete conditionToObject[c[0]][lokiOperator]
-            conditionToObject[c[0]]['$regex'] = lokiOperator
+            conditionToObject[c[0]].$regex = lokiOperator
               .replace('$regex|', '')
               .replace('{{$var}}', c[2])
           }
 
-          andObject['$and'].push(conditionToObject)
+          andObject.$and.push(conditionToObject)
         })
         globalFilter = andObject
       }
       // All second level OR conditions
       if (this.orWhereArray.length > 0) {
         this.orWhereArray.forEach(c => {
-          let conditionToObject = {}
+          const conditionToObject = {}
 
           conditionToObject[c[0]] = {}
-          let lokiOperator = this.getLokiOperator(c[1])
+          const lokiOperator = this.getLokiOperator(c[1])
 
           conditionToObject[c[0]][lokiOperator] = c[2]
           if (lokiOperator.includes('$regex|')) {
             delete conditionToObject[c[0]][lokiOperator]
-            conditionToObject[c[0]]['$regex'] = lokiOperator
+            conditionToObject[c[0]].$regex = lokiOperator
               .replace('$regex|', '')
               .replace('{{$var}}', c[2])
           }
 
-          orObject['$or'].push(conditionToObject)
+          orObject.$or.push(conditionToObject)
         })
 
         globalFilter = { $or: [andObject, orObject] }
@@ -91,10 +91,10 @@ export default Interface.compose({
      */
     getLokiOperator(operator) {
       if (!this.operators.includes(operator)) {
-        throw new Error('The "' + operator + '" operator is not supported')
+        throw new Error(`The "${operator}" operator is not supported`)
       }
 
-      let lokiOperators = {
+      const lokiOperators = {
         '=': '$eq',
         '<': '$lt',
         '>': '$gt',
@@ -110,12 +110,10 @@ export default Interface.compose({
         endsWith: '$regex|{{$var}}$',
         contains: '$regex|{{$var}}'
       }
-      let converted = Utilities.get(() => lokiOperators[operator], undefined)
+      const converted = Utilities.get(() => lokiOperators[operator], undefined)
 
       if (!converted) {
-        throw new Error(
-          'The operator "' + operator + '" is not supported in Loki '
-        )
+        throw new Error(`The operator "${operator}" is not supported in Loki `)
       }
       return converted
     },
@@ -165,13 +163,13 @@ export default Interface.compose({
       if (Array.isArray(data)) {
         return this.ArrayInsert(data, options)
       }
-      data = Utilities.cloneDeep(data)
+      const clonedData = Utilities.cloneDeep(data)
 
       const model = await this.getModel()
 
-      data._id = Id.uuid() + '_local'
+      clonedData._id = `${Id.uuid()}_local`
 
-      return model.insert(data)
+      return model.insert(clonedData)
     },
     /**
      * [update description]
@@ -186,9 +184,9 @@ export default Interface.compose({
       }
       const model = await this.getModel()
 
-      document.modified = Math.round(+new Date() / 1000)
-      let local = await model.findOne({ _id: document._id })
-      let mod = { ...local, ...document }
+      document.modified = Math.round(Date.now() / 1000)
+      const local = await model.findOne({ _id: document._id })
+      const mod = { ...local, ...document }
 
       return model.update(mod)
     },
@@ -198,7 +196,7 @@ export default Interface.compose({
      */
     async updateOrCreate({ document }) {
       const model = await this.getModel()
-      let role = await model.findOne(document)
+      const role = await model.findOne(document)
 
       if (!role) {
         model.insert(document)

@@ -1,6 +1,6 @@
 export interface DirectiveMetadata {
   sdl: string
-  target: Function
+  target: new (...args: any[]) => any
 }
 
 export type ClassDirectiveMetadata = DirectiveMetadata

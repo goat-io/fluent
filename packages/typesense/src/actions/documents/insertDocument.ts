@@ -1,6 +1,10 @@
-import type { TypesenseDocument, TypesenseCollectionOptions, WithRequiredId } from '../../typesense.model'
-import { TypesenseError, isValidDocumentId } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseDocument,
+  WithRequiredId
+} from '../../typesense.model'
+import { isValidDocumentId, TypesenseError } from '../../typesense.model'
 import { getOrCreateCollection } from '../collections/getOrCreateCollection'
 
 export async function insertDocument<TDoc extends Record<string, any>>(
@@ -29,14 +33,17 @@ export async function insertDocument<TDoc extends Record<string, any>>(
       (error.status === 404 || error.response?.status === 404)
     ) {
       // Infer schema from document
-      const inferredSchema = ctx.schemaManager.inferSchemaFromDocument(document, collectionName)
-      
+      const inferredSchema = ctx.schemaManager.inferSchemaFromDocument(
+        document,
+        collectionName
+      )
+
       // Create collection
       await getOrCreateCollection(ctx, {
         ...inferredSchema,
         name: collectionName
       })
-      
+
       // Retry insert
       return await ctx.httpClient.request<TypesenseDocument<TDoc>>(
         `/collections/${collectionName}/documents`,

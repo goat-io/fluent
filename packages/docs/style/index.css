@@ -52,7 +52,7 @@ h4 a span {
 
 h3 a span::before,
 h2 a span::before {
-  content: '#';
+  content: "#";
   font-weight: 400;
   margin-left: -25px;
   position: absolute;
@@ -76,7 +76,7 @@ h2 a span::before {
 .markdown-section pre {
   -moz-osx-font-smoothing: initial;
   -webkit-font-smoothing: initial;
-  font-family: 'Roboto Mono', Monaco, courier, monospace;
+  font-family: "Roboto Mono", Monaco, courier, monospace;
   line-height: 1.5rem;
   margin: 2.2em 0;
   overflow: auto;
@@ -90,16 +90,13 @@ h2 a span::before {
 
 .markdown-section {
   line-height: 1.8em;
-  margin-bottom: 2em;
   text-align: justify;
-  max-width: 85%;
-  word-wrap: break-word;
-  margin: 0 auto;
   max-width: 800px !important;
+  word-wrap: break-word;
   padding: 50px !important;
   position: relative;
   flex: 1 1 0%;
-  margin: 0 48px !important;
+  margin: 2em 48px !important;
 }
 
 .pagination-item-title {
@@ -130,7 +127,7 @@ h2 a span::before {
 .markdown-section code {
   border-radius: 2px;
   color: var(--accent-color);
-  font-family: 'Roboto Mono', Monaco, courier, monospace;
+  font-family: "Roboto Mono", Monaco, courier, monospace;
   font-size: 0.8rem;
   margin: 0 2px;
   padding: 3px 5px;
@@ -153,8 +150,6 @@ img.medium-zoom-image {
   margin-left: auto;
   margin-right: auto;
   -o-box-shadow: 12px 12px 29px #555;
-  -icab-box-shadow: 12px 12px 29px #555;
-  -khtml-box-shadow: 12px 12px 29px #555;
   -moz-box-shadow: 12px 12px 29px #555;
   -webkit-box-shadow: 12px 12px 29px #555;
   box-shadow: 12px 12px 29px #555;
@@ -162,10 +157,6 @@ img.medium-zoom-image {
 
 .markdown-section ul > li {
   margin-bottom: 1rem;
-}
-
-.docsify-tabs--material .docsify-tabs__content {
-  padding-top: 30px;
 }
 
 #collection-method-list > p {
@@ -192,13 +183,13 @@ img.medium-zoom-image {
 Line number
 */
 
-pre[class*='language-'].line-numbers {
+pre[class*="language-"].line-numbers {
   position: relative;
   padding-left: 3.8em;
   counter-reset: linenumber;
 }
 
-pre[class*='language-'].line-numbers > code {
+pre[class*="language-"].line-numbers > code {
   position: relative;
   white-space: inherit;
 }

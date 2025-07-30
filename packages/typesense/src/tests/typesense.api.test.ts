@@ -1,23 +1,23 @@
 // npx vitest run ./src/services/search/typesense/tests/typesense.api.test.ts
 
+import { Readable } from 'node:stream'
+import { Http } from '@goatlab/js-utils'
 import {
-  describe,
-  it,
-  expect,
+  afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
-  afterEach,
-  afterAll
+  describe,
+  expect,
+  it
 } from 'vitest'
 import { TypesenseApi } from '../TypesenseApi'
-import { getGlobalData } from './const'
-import { Readable } from 'stream'
-import { Http } from '@goatlab/js-utils'
 import type {
   TypesenseCollection,
   TypesenseDocument,
   TypesenseQuery
 } from '../typesense.model'
+import { getGlobalData } from './const'
 
 // Test data interfaces
 interface TestDocument {
@@ -91,11 +91,15 @@ describe('TypesenseApi', () => {
         for (let i = 0; i < exported.length; i += batchSize) {
           const batch = exported.slice(i, i + batchSize)
           await Promise.all(
-            batch.map(doc => service.documents.delete(doc.id).catch(() => {}))
+            batch.map(doc =>
+              service.documents.delete(doc.id).catch(() => {
+                // Ignore delete errors for documents that may not exist
+              })
+            )
           )
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Collection might be empty or not exist, ignore
     }
   }
@@ -203,7 +207,7 @@ describe('TypesenseApi', () => {
       // Clean up if exists - use the service directly
       try {
         await tempService.collections.delete(tempCollectionName)
-      } catch (error: any) {
+      } catch (_error: any) {
         // Ignore 404 errors
       }
 
@@ -223,19 +227,29 @@ describe('TypesenseApi', () => {
       // Typesense PATCH only accepts fields array with add/drop operations
       const updatePayload: Partial<TypesenseCollection> = {
         fields: [
-          { name: 'author', type: 'string' as const, facet: true, optional: true }
+          {
+            name: 'author',
+            type: 'string' as const,
+            facet: true,
+            optional: true
+          }
         ]
       }
 
       await service.collections.update(updatePayload)
-      
+
       // After updating, get the full collection to verify the change
-      const updatedCollection = await service.collections.get(testCollectionName)
+      const updatedCollection =
+        await service.collections.get(testCollectionName)
 
       expect(updatedCollection.name).toBe(testCollectionName)
       // Should have the new field
-      expect(updatedCollection.fields.find((f: any) => f.name === 'author')).toBeDefined()
-      expect(updatedCollection.fields.find((f: any) => f.name === 'author')?.facet).toBe(true)
+      expect(
+        updatedCollection.fields.find((f: any) => f.name === 'author')
+      ).toBeDefined()
+      expect(
+        updatedCollection.fields.find((f: any) => f.name === 'author')?.facet
+      ).toBe(true)
     })
 
     it('should delete a collection', async () => {
@@ -252,7 +266,7 @@ describe('TypesenseApi', () => {
       // Clean up if exists first
       try {
         await tempService.collections.delete(tempCollectionName)
-      } catch (error: any) {
+      } catch (_error: any) {
         // Ignore 404 errors
       }
 
@@ -282,7 +296,7 @@ describe('TypesenseApi', () => {
       // Clean up if exists first
       try {
         await tempService.collections.delete()
-      } catch (error: any) {
+      } catch (_error: any) {
         // Ignore 404 errors
       }
 
@@ -319,7 +333,7 @@ describe('TypesenseApi', () => {
       // Clean up if exists
       try {
         await tenantService.collections.delete()
-      } catch (error: any) {
+      } catch (_error: any) {
         // Ignore 404 errors
       }
 
@@ -328,7 +342,9 @@ describe('TypesenseApi', () => {
 
       // Verify it exists with correct FQCN
       const collections = await tenantService.collections.list()
-      expect(collections.map((c: TypesenseCollection) => c.name)).toContain(expectedFQCN)
+      expect(collections.map((c: TypesenseCollection) => c.name)).toContain(
+        expectedFQCN
+      )
 
       // Delete collection (should use tenant-qualified name)
       const result = await tenantService.collections.delete()
@@ -336,7 +352,9 @@ describe('TypesenseApi', () => {
 
       // Verify it's deleted
       const collectionsAfter = await tenantService.collections.list()
-      expect(collectionsAfter.map((c: TypesenseCollection) => c.name)).not.toContain(expectedFQCN)
+      expect(
+        collectionsAfter.map((c: TypesenseCollection) => c.name)
+      ).not.toContain(expectedFQCN)
     })
 
     it('should only delete collections for the correct tenant', async () => {
@@ -370,10 +388,14 @@ describe('TypesenseApi', () => {
       // Clean up first
       try {
         await tenant1Service.collections.delete()
-      } catch (error) {}
+      } catch (_error) {
+        // Collection might not exist, ignore
+      }
       try {
         await tenant2Service.collections.delete()
-      } catch (error) {}
+      } catch (_error) {
+        // Collection might not exist, ignore
+      }
 
       // Create collections for both tenants
       await tenant1Service.collections.create(schema)
@@ -381,7 +403,9 @@ describe('TypesenseApi', () => {
 
       // Verify both exist
       const allCollections = await tenant1Service.collections.list()
-      const collectionNames = allCollections.map((c: TypesenseCollection) => c.name)
+      const collectionNames = allCollections.map(
+        (c: TypesenseCollection) => c.name
+      )
       expect(collectionNames).toContain(`${tenant1Id}__${baseCollectionName}`)
       expect(collectionNames).toContain(`${tenant2Id}__${baseCollectionName}`)
 
@@ -391,7 +415,9 @@ describe('TypesenseApi', () => {
 
       // Verify only tenant1's collection is deleted
       const collectionsAfter = await tenant1Service.collections.list()
-      const namesAfter = collectionsAfter.map((c: TypesenseCollection) => c.name)
+      const namesAfter = collectionsAfter.map(
+        (c: TypesenseCollection) => c.name
+      )
       expect(namesAfter).not.toContain(`${tenant1Id}__${baseCollectionName}`)
       expect(namesAfter).toContain(`${tenant2Id}__${baseCollectionName}`)
 
@@ -418,7 +444,9 @@ describe('TypesenseApi', () => {
       // Clean up first
       try {
         await cacheService.collections.delete()
-      } catch (error) {}
+      } catch (_error) {
+        // Collection might not exist, ignore
+      }
 
       // Create and get collection to populate cache
       await cacheService.collections.create(schema)
@@ -1175,7 +1203,7 @@ describe('TypesenseApi', () => {
 
       it('should export stream with filters', async () => {
         // First, let's check what IDs we have
-        const allDocs = (await service.documents.export(
+        const _allDocs = (await service.documents.export(
           'json'
         )) as TypesenseDocument<TestDocument>[]
 
@@ -1295,7 +1323,7 @@ describe('TypesenseApi', () => {
         // Clean up alias
         try {
           await service.aliases.delete(aliasName)
-        } catch (error) {
+        } catch (_error) {
           // Ignore if alias doesn't exist
         }
       })
@@ -1372,9 +1400,8 @@ describe('TypesenseApi', () => {
       it('should get stats for specific collection', async () => {
         // Note: This endpoint may not be available in all Typesense versions
         try {
-          const stats = await service.admin.getCollectionStats(
-            testCollectionName
-          )
+          const stats =
+            await service.admin.getCollectionStats(testCollectionName)
 
           expect(stats.collection_name).toBe(testCollectionName)
         } catch (error: any) {
@@ -1403,7 +1430,7 @@ describe('TypesenseApi', () => {
           for (const synonym of synonyms) {
             await service.synonyms.delete(synonym.id)
           }
-        } catch (error) {
+        } catch (_error) {
           // Ignore errors
         }
       })
@@ -1493,7 +1520,7 @@ describe('TypesenseApi', () => {
           for (const override of overrides) {
             await service.overrides.delete(override.id)
           }
-        } catch (error) {
+        } catch (_error) {
           // Ignore errors
         }
       })
@@ -1628,7 +1655,7 @@ describe('TypesenseApi', () => {
         // Clean up first
         try {
           await autoService.collections.delete('auto-created-collection')
-        } catch (error) {
+        } catch (_error) {
           // Ignore if doesn't exist
         }
 
@@ -1807,7 +1834,7 @@ describe('TypesenseApi', () => {
           token: testApiKey,
           collectionName: testCollectionName,
           afterResponse: [
-            async (request, response) => {
+            async (_request, _response) => {
               hookCalled = true
               // Note: afterResponse hook implementation may have compatibility issues
               // For now, just verify the hook is called
@@ -1902,7 +1929,7 @@ describe('TypesenseApi', () => {
       if (tenant1Api) {
         try {
           await tenant1Api.deleteAllTenantCollections()
-        } catch (error) {
+        } catch (_error) {
           // Ignore errors
         }
       }
@@ -1910,7 +1937,7 @@ describe('TypesenseApi', () => {
       if (tenant2Api) {
         try {
           await tenant2Api.deleteAllTenantCollections()
-        } catch (error) {
+        } catch (_error) {
           // Ignore errors
         }
       }
@@ -1918,7 +1945,7 @@ describe('TypesenseApi', () => {
       if (noTenantApi) {
         try {
           await noTenantApi.collections.delete('products')
-        } catch (error) {
+        } catch (_error) {
           // Ignore errors
         }
       }
@@ -1939,18 +1966,24 @@ describe('TypesenseApi', () => {
         try {
           await tenant1Api.collections.create(productSchema)
         } catch (error: any) {
-          if (error.status !== 409) throw error
+          if (error.status !== 409) {
+            throw error
+          }
         }
 
         try {
           await tenant2Api.collections.create(productSchema)
         } catch (error: any) {
-          if (error.status !== 409) throw error
+          if (error.status !== 409) {
+            throw error
+          }
         }
 
         // List all collections
         const allCollections = await tenant1Api.collections.list()
-        const collectionNames = allCollections.map((c: TypesenseCollection) => c.name)
+        const collectionNames = allCollections.map(
+          (c: TypesenseCollection) => c.name
+        )
 
         // Verify both tenant collections exist
         expect(collectionNames).toContain(`${tenant1Id}__products`)
@@ -2003,7 +2036,9 @@ describe('TypesenseApi', () => {
         try {
           await noTenantApi.collections.create(schema)
         } catch (error: any) {
-          if (error.status !== 409) throw error
+          if (error.status !== 409) {
+            throw error
+          }
         }
 
         await noTenantApi.documents.upsert({
@@ -2022,10 +2057,10 @@ describe('TypesenseApi', () => {
 
       it('should delete a specific tenant collection', async () => {
         const tenantId = 'delete-specific-tenant'
-        
+
         // Create multiple collections for this tenant
         const collections = ['catalog', 'inventory', 'reviews']
-        
+
         for (const collName of collections) {
           const api = new TypesenseApi({
             prefixUrl: typesenseUrl,
@@ -2033,7 +2068,7 @@ describe('TypesenseApi', () => {
             tenantId: tenantId,
             collectionName: collName
           })
-          
+
           try {
             await api.collections.create({
               name: collName,
@@ -2043,7 +2078,9 @@ describe('TypesenseApi', () => {
               ]
             })
           } catch (error: any) {
-            if (error.status !== 409) throw error
+            if (error.status !== 409) {
+              throw error
+            }
           }
         }
 
@@ -2054,7 +2091,7 @@ describe('TypesenseApi', () => {
           tenantId: tenantId,
           collectionName: 'any'
         })
-        
+
         const beforeDelete = await listApi.listTenantCollections()
         expect(beforeDelete).toContain(`${tenantId}__catalog`)
         expect(beforeDelete).toContain(`${tenantId}__inventory`)
@@ -2067,7 +2104,7 @@ describe('TypesenseApi', () => {
           tenantId: tenantId,
           collectionName: 'inventory'
         })
-        
+
         const deleteResult = await inventoryApi.collections.delete()
         expect(deleteResult.name).toBe(`${tenantId}__inventory`)
 
@@ -2076,7 +2113,7 @@ describe('TypesenseApi', () => {
         expect(afterDelete).not.toContain(`${tenantId}__inventory`)
         expect(afterDelete).toContain(`${tenantId}__catalog`)
         expect(afterDelete).toContain(`${tenantId}__reviews`)
-        
+
         // Cleanup remaining collections
         for (const collName of ['catalog', 'reviews']) {
           const api = new TypesenseApi({
@@ -2087,7 +2124,7 @@ describe('TypesenseApi', () => {
           })
           try {
             await api.collections.delete()
-          } catch (error) {
+          } catch (_error) {
             // Ignore errors
           }
         }
@@ -2097,7 +2134,7 @@ describe('TypesenseApi', () => {
     describe('Admin Operations', () => {
       beforeAll(async () => {
         // Use dedicated tenant for admin operations tests
-        const adminTestApi = new TypesenseApi({
+        const _adminTestApi = new TypesenseApi({
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: 'admin-test-tenant',
@@ -2139,7 +2176,9 @@ describe('TypesenseApi', () => {
             })
             await api.collections.create(schema)
           } catch (error: any) {
-            if (error.status !== 409) throw error
+            if (error.status !== 409) {
+              throw error
+            }
           }
         }
       })
@@ -2186,9 +2225,8 @@ describe('TypesenseApi', () => {
         })
 
         const exists = await adminTestApi.tenantCollectionExists('products')
-        const notExists = await adminTestApi.tenantCollectionExists(
-          'nonexistent'
-        )
+        const notExists =
+          await adminTestApi.tenantCollectionExists('nonexistent')
 
         expect(exists).toBe(true)
         expect(notExists).toBe(false)
@@ -2221,7 +2259,9 @@ describe('TypesenseApi', () => {
             fields: [{ name: 'id', type: 'string' }]
           })
         } catch (error: any) {
-          if (error.status !== 409) throw error
+          if (error.status !== 409) {
+            throw error
+          }
         }
 
         const collections = await upperApi.collections.list()
@@ -2232,7 +2272,7 @@ describe('TypesenseApi', () => {
         // Cleanup
         try {
           await upperApi.collections.delete('test')
-        } catch (error) {
+        } catch (_error) {
           // Ignore cleanup errors
         }
       })
@@ -2258,7 +2298,9 @@ describe('TypesenseApi', () => {
             ]
           })
         } catch (error: any) {
-          if (error.status !== 409) throw error
+          if (error.status !== 409) {
+            throw error
+          }
         }
 
         const synonym = {
@@ -2279,7 +2321,7 @@ describe('TypesenseApi', () => {
         try {
           await synonymTestApi.synonyms.delete(synonym.id)
           await synonymTestApi.collections.delete('synonym-test-collection')
-        } catch (error) {
+        } catch (_error) {
           // Ignore cleanup errors
         }
         try {

@@ -1,5 +1,5 @@
+import * as crypto from 'node:crypto'
 import { compare as comparer, genSalt, hash as hasher } from 'bcrypt'
-import * as crypto from 'crypto'
 
 class HashesClass {
   /**

@@ -13,13 +13,12 @@ interface LoginResponse {
 export async function loginAdminUser({
   userName,
   password,
-  baseUrl,
+  baseUrl
 }: {
   userName: string
   password: string
   baseUrl: string
 }): Promise<string> {
-
   try {
     const loginRes = await metabaseFetch({
       baseUrl,
@@ -27,13 +26,13 @@ export async function loginAdminUser({
       method: 'POST',
       body: {
         username: userName,
-        password: password,
-      },
+        password: password
+      }
     })
 
     const loginData = (await loginRes.json()) as LoginResponse
     return loginData.id
-  } catch (error) {
+  } catch (_error) {
     throw new Error(`Failed to login as ${userName}`)
   }
 }

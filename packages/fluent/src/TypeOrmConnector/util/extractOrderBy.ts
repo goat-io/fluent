@@ -8,7 +8,7 @@ export const extractOrderBy = <T>(orderBy?: FluentQuery<T>['orderBy']) => {
 
   // Handle both array and object formats
   const orderByArray = Array.isArray(orderBy) ? orderBy : [orderBy]
-  
+
   if (orderByArray.length === 0) {
     return {}
   }

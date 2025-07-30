@@ -1,12 +1,14 @@
 import 'reflect-metadata'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { MongoDBTestContainer } from '../testcontainers/mongodb.testcontainer'
-import { Fluent } from '../../../Fluent'
-import { dbEntities } from '../dbEntities'
-import { GoatRepositoryFactory } from '../repository.factory'
-import { TypeOrmRepositoryFactory } from '../repository.factory'
-import { flock } from '../flock'
 import { Promises } from '@goatlab/js-utils'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { initialize } from '../../../Fluent'
+import { dbEntities } from '../dbEntities'
+import { flock } from '../flock'
+import {
+  GoatRepositoryFactory,
+  TypeOrmRepositoryFactory
+} from '../repository.factory'
+import { MongoDBTestContainer } from '../testcontainers/mongodb.testcontainer'
 
 describe('MongoDB Tests with Testcontainers', () => {
   let container: MongoDBTestContainer
@@ -16,10 +18,10 @@ describe('MongoDB Tests with Testcontainers', () => {
   beforeAll(async () => {
     container = new MongoDBTestContainer()
     const dataSource = await container.start()
-    
+
     // Initialize Fluent with entities
-    await Fluent.initialize([dataSource], dbEntities)
-    
+    await initialize([dataSource], dbEntities)
+
     // Create repositories with dynamic datasource
     GoatRepo = new GoatRepositoryFactory(dataSource)
     TypeOrmRepo = new TypeOrmRepositoryFactory(dataSource)
@@ -184,7 +186,7 @@ describe('MongoDB Tests with Testcontainers', () => {
         },
         select: {
           name: true,
-          age: true,
+          age: true
         }
       })
 
@@ -194,7 +196,7 @@ describe('MongoDB Tests with Testcontainers', () => {
     })
 
     it('requireFirst - Should fail if not found', async () => {
-      const insertedUser = await GoatRepo.insert({
+      const _insertedUser = await GoatRepo.insert({
         name: 'testGoat',
         age: 20
       })

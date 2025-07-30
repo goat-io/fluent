@@ -4,10 +4,15 @@
 
 import { TypesenseApi } from '../TypesenseApi'
 import type { TypesenseCollection } from '../typesense.model'
-import { sanitizeTenantId, createFQCN, parseFQCN, filterCollectionsByTenant } from '../utils/tenant'
+import {
+  createFQCN,
+  filterCollectionsByTenant,
+  parseFQCN,
+  sanitizeTenantId
+} from '../utils/tenant'
 
 // Example 1: Creating separate API instances for different tenants
-async function example1() {
+async function _example1() {
   // API instance for tenant "acme"
   const acmeApi = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
@@ -37,7 +42,7 @@ async function example1() {
   // Create collections - each tenant gets their own prefixed collection
   // This creates "acme__products" collection
   await acmeApi.collections.create(productSchema)
-  
+
   // This creates "globex__products" collection
   await globexApi.collections.create(productSchema)
 
@@ -71,7 +76,7 @@ async function example1() {
 }
 
 // Example 2: Admin operations across tenants
-async function example2() {
+async function _example2() {
   const adminApi = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
@@ -97,7 +102,7 @@ async function example2() {
 }
 
 // Example 3: Working with multiple collections per tenant
-async function example3() {
+async function _example3() {
   const api = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
@@ -153,7 +158,7 @@ async function example3() {
 }
 
 // Example 4: Migrating existing non-tenant data
-async function example4() {
+async function _example4() {
   // API without tenant (legacy mode)
   const legacyApi = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
@@ -181,8 +186,7 @@ async function example4() {
 }
 
 // Example 5: Using tenant utilities directly
-async function example5() {
-
+async function _example5() {
   // Validate tenant ID
   try {
     const tenantId = sanitizeTenantId('ACME-Corp')

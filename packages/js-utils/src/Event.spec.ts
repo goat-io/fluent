@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { BrowserEvents } from './BrowserEvents'
+import { expect, it } from 'vitest'
+
 /*
 const event = { data: { test: 'true' }, text: 'Some test' }
 let eventWorked = false

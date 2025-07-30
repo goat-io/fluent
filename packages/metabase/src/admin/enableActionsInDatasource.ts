@@ -2,7 +2,7 @@ export async function enableActionsInDatasource({
   baseUrl,
   sessionToken,
   apiKey,
-  dbId,
+  dbId
 }: {
   baseUrl: string
   sessionToken?: string
@@ -14,15 +14,15 @@ export async function enableActionsInDatasource({
     headers: {
       'Content-Type': 'application/json',
       'X-Metabase-Session': sessionToken || '',
-      'X-Api-Key': apiKey || '',
+      'X-Api-Key': apiKey || ''
     },
-    body: JSON.stringify({ settings: { 'database-enable-actions': true } }),
+    body: JSON.stringify({ settings: { 'database-enable-actions': true } })
   })
 
   if (!response.ok) {
     console.error(
       '❌ Failed to enable actions in datasource:',
-      await response.text(),
+      await response.text()
     )
     throw new Error(`Failed to enable actions in datasource ${baseUrl}`)
   }

@@ -2,14 +2,14 @@
 // Node module: @loopback/openapi-v3
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
-import mapvalues from './mapValues.js'
+
 import {
   isSchemaObject,
   ReferenceObject,
-  SchemaObject as BaseSchemaObject,
   SchemasObject
 } from 'openapi3-ts/oas30'
 import { SchemaObject } from './build-schema'
+import mapvalues from './mapValues.js'
 /**
  * Custom LoopBack extension: a reference to Schema object that's bundled
  * inside `definitions` property.
@@ -48,7 +48,9 @@ export function jsonToSchemaObject(
   if (schema != null && isSchemaObject(schema) && schema[converted] === false) {
     return { $ref: `#/components/schemas/${json.title}` }
   }
-  if (schema != null) return schema
+  if (schema != null) {
+    return schema
+  }
 
   const result: SchemaObject = {
     [converted]: false

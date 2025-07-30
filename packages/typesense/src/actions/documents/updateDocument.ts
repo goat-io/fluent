@@ -1,6 +1,9 @@
-import type { TypesenseDocument, TypesenseCollectionOptions } from '../../typesense.model'
-import { TypesenseError, isValidDocumentId } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseDocument
+} from '../../typesense.model'
+import { isValidDocumentId, TypesenseError } from '../../typesense.model'
 
 export async function updateDocument<TDoc extends Record<string, any>>(
   ctx: TypesenseContext<TDoc>,

@@ -58,7 +58,7 @@ export function createApiPropertyDecorator(
       type: getEnumType(enumValues),
       enum: enumValues
     }
-    delete options.enum
+    options.enum = undefined
   } else if (options.enum) {
     const enumValues = getEnumValues(options.enum)
 

@@ -1,5 +1,5 @@
-import { Reviver } from '@goatlab/js-utils'
 import { Transform } from 'node:stream'
+import { Reviver } from '@goatlab/js-utils'
 import { TransformTyped } from '../streams.model'
 
 export interface TransformJsonParseOptions {
@@ -27,9 +27,9 @@ export interface TransformJsonParseOptions {
  *   consumeYourStream...
  * [)
  */
-export function transformJsonParse<OUT = any>(
+export function transformJsonParse<Out = any>(
   opt: TransformJsonParseOptions = {}
-): TransformTyped<string | Buffer, OUT> {
+): TransformTyped<string | Buffer, Out> {
   const { strict = true, reviver } = opt
 
   return new Transform({
@@ -52,7 +52,7 @@ export function transformJsonParse<OUT = any>(
 }
 
 // Based on: https://stackoverflow.com/a/34557997/4919972
-export const bufferReviver: Reviver = (k, v) => {
+export const bufferReviver: Reviver = (_k, v) => {
   if (
     v !== null &&
     typeof v === 'object' &&

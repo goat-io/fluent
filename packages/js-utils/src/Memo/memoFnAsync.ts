@@ -8,7 +8,6 @@ export interface MemoizedAsyncFunction {
   cache: AsyncMemoCache
 }
 
-
 export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   opt: AsyncMemoOptions = {}
@@ -27,7 +26,6 @@ export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
   const fnName = fn.name
 
   const memoizedFn = async function (this: any, ...args: any[]): Promise<any> {
-    const ctx = this
     const cacheKey = cacheKeyFn(args)
     let value: any
 
@@ -54,9 +52,9 @@ export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
     const started = Date.now()
 
     try {
-      value = await fn.apply(ctx, args)
+      value = await fn.apply(this, args)
 
-      void (async () => {
+      ;(async () => {
         try {
           await cache.set(cacheKey, value)
         } catch (err) {
@@ -67,7 +65,7 @@ export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
       return value
     } catch (err) {
       if (cacheRejections) {
-        void (async () => {
+        ;(async () => {
           try {
             await cache.set(cacheKey, err)
           } catch (err) {

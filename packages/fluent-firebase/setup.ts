@@ -1,8 +1,8 @@
 import 'reflect-metadata'
 
 import { Network } from 'testcontainers'
+import { cleanGlobalData } from './src/test/const'
 import { getFirebaseContainer } from './src/test/container/firebase'
-import { cleanGlobalData, writeGlobalData } from './src/test/const'
 
 export default async () => {
   // create shared network

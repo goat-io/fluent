@@ -3,9 +3,9 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 
-import { InclusionFilter } from './query'
 import { Options } from './common-types'
 import { Entity } from './model'
+import { InclusionFilter } from './query'
 import { TypeResolver } from './type-resolver'
 
 export enum RelationType {

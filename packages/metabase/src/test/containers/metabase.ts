@@ -1,5 +1,5 @@
-import { GenericContainer, Wait } from 'testcontainers'
 import type { StartedNetwork } from 'testcontainers'
+import { GenericContainer, Wait } from 'testcontainers'
 
 export const getMetabaseContainer = (network: StartedNetwork) => {
   return new GenericContainer('metabase/metabase:v0.55.8.x')

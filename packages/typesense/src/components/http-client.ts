@@ -1,6 +1,7 @@
 // TypesenseHttpClient - Handles network wrapper concerns
-import { Http } from '@goatlab/js-utils'
+
 import type { KyInstance } from '@goatlab/js-utils'
+import { Http } from '@goatlab/js-utils'
 import { TypesenseError } from '../typesense.model'
 
 export interface HttpClientOptions {
@@ -9,7 +10,15 @@ export interface HttpClientOptions {
   searchTimeout?: number
   importTimeout?: number
   defaultTimeout?: number
-  beforeRequest?: Array<(request: Request) => void | Promise<void>>
+  beforeRequest?: Array<
+    (
+      request: Request
+    ) =>
+      | Request
+      | Response
+      | undefined
+      | Promise<Request | Response | undefined>
+  >
   afterResponse?: any[]
   beforeError?: Array<(error: any) => any | Promise<any>>
   kyInstance?: KyInstance
@@ -22,15 +31,20 @@ export class TypesenseHttpClient {
   private readonly options: HttpClientOptions
 
   constructor(options: HttpClientOptions) {
-    this.enforceTLS = options.enforceTLS ?? process.env.NODE_ENV === 'production'
+    this.enforceTLS =
+      options.enforceTLS ?? process.env.NODE_ENV === 'production'
     this.options = options
-    
+
     // Security: Enforce HTTPS in production
     if (this.enforceTLS && !options.prefixUrl.startsWith('https://')) {
       throw new Error('HTTPS is required in production environment')
     }
 
     this.kyInstance = options.kyInstance || this.createDefaultClient(options)
+  }
+
+  get importTimeout(): number | undefined {
+    return this.options.importTimeout
   }
 
   private createDefaultClient(options: HttpClientOptions): KyInstance {
@@ -46,20 +60,22 @@ export class TypesenseHttpClient {
         afterResponse: options.afterResponse || [],
         beforeError: [
           ...(options.beforeError || []),
-          async (error) => {
+          async error => {
             const { response } = error
             if (response) {
               try {
                 const errorBody = await response.json()
                 // Security: Redact token from headers before throwing
-                const sanitizedHeaders = this.sanitizeHeaders(error.request.headers)
+                const sanitizedHeaders = this.sanitizeHeaders(
+                  error.request.headers
+                )
                 throw new TypesenseError(
                   (errorBody as any).message || error.message,
                   response.status,
                   errorBody,
                   sanitizedHeaders
                 )
-              } catch (parseError) {
+              } catch (_parseError) {
                 // If we can't parse the response, fall back to basic error
                 throw new TypesenseError(
                   error.message,
@@ -80,7 +96,10 @@ export class TypesenseHttpClient {
     const sanitized: Record<string, string> = {}
     headers.forEach((value, key) => {
       // Security: Redact sensitive headers
-      if (key.toLowerCase().includes('api-key') || key.toLowerCase().includes('authorization')) {
+      if (
+        key.toLowerCase().includes('api-key') ||
+        key.toLowerCase().includes('authorization')
+      ) {
         sanitized[key] = '[REDACTED]'
       } else {
         sanitized[key] = value
@@ -102,7 +121,9 @@ export class TypesenseHttpClient {
     const { method = 'GET', body, searchParams, timeout, signal } = options
 
     // Remove leading slash for prefixUrl compatibility
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
+    const cleanEndpoint = endpoint.startsWith('/')
+      ? endpoint.slice(1)
+      : endpoint
 
     const requestOptions: any = {
       method,
@@ -135,7 +156,9 @@ export class TypesenseHttpClient {
     const { method = 'GET', body, searchParams, timeout, signal } = options
 
     // Remove leading slash for prefixUrl compatibility
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
+    const cleanEndpoint = endpoint.startsWith('/')
+      ? endpoint.slice(1)
+      : endpoint
 
     const requestOptions: any = {
       method,
@@ -168,7 +191,9 @@ export class TypesenseHttpClient {
     const { method = 'GET', body, searchParams, timeout, signal } = options
 
     // Remove leading slash for prefixUrl compatibility
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
+    const cleanEndpoint = endpoint.startsWith('/')
+      ? endpoint.slice(1)
+      : endpoint
 
     const requestOptions: any = {
       method,
@@ -201,7 +226,9 @@ export class TypesenseHttpClient {
     const { method = 'GET', body, searchParams, signal } = options
 
     // Remove leading slash for prefixUrl compatibility
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
+    const cleanEndpoint = endpoint.startsWith('/')
+      ? endpoint.slice(1)
+      : endpoint
 
     const requestOptions: any = {
       method,
@@ -217,7 +244,7 @@ export class TypesenseHttpClient {
     }
 
     const response = await this.kyInstance(cleanEndpoint, requestOptions)
-    
+
     if (!response.body) {
       throw new Error('Response body is not available for streaming')
     }

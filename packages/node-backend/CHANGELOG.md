@@ -1,5 +1,15 @@
 # 0.5.20
 
+## 1.1.1
+
+### Patch Changes
+
+- Fix lint errors and test failures
+
+  - fluent-formio: Fixed lint errors for unused private class members
+  - node-backend: Fixed test failures related to Cache class property changes and email service tests
+    EOF < /dev/null
+
 ## 1.1.0
 
 ### Minor Changes
@@ -75,14 +85,14 @@
   **Before (removed):**
 
   ```typescript
-  const secret = service.getSecretSyncLegacy('API_KEY')
+  const secret = service.getSecretSyncLegacy("API_KEY");
   ```
 
   **After (required):**
 
   ```typescript
-  await service.preload()
-  const secret = service.getSecretSync('API_KEY')
+  await service.preload();
+  const secret = service.getSecretSync("API_KEY");
   ```
 
   This change enforces proper async initialization while providing fast synchronous access after preload.

@@ -1,5 +1,9 @@
-import type { TypesenseCollection, TypesenseCollectionOutput, TypesenseCollectionOptions } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollection,
+  TypesenseCollectionOptions,
+  TypesenseCollectionOutput
+} from '../../typesense.model'
 
 export async function updateCollection(
   ctx: TypesenseContext,

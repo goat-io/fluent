@@ -1,11 +1,11 @@
-import type { 
-  TypesenseQuery, 
-  TypesenseQueryResults, 
-  TypesenseCollectionOptions,
-  TypesenseTextQuery,
-  TypesenseVectorQuery 
-} from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseQuery,
+  TypesenseQueryResults,
+  TypesenseTextQuery,
+  TypesenseVectorQuery
+} from '../../typesense.model'
 
 export async function search<T extends Record<string, any>>(
   ctx: TypesenseContext,

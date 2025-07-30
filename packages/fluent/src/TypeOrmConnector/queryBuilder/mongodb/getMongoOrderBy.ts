@@ -1,5 +1,5 @@
-import { extractOrderBy } from '../../util/extractOrderBy'
 import { FluentQuery } from '../../../types'
+import { extractOrderBy } from '../../util/extractOrderBy'
 
 export const getMongoOrderBy = (orderBy?: FluentQuery<any>['orderBy']) => {
   if (!orderBy) {

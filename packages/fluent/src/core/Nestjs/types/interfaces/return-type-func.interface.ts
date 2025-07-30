@@ -8,4 +8,4 @@ export type GqlTypeReference =
   | object
   | symbol
 export type ReturnTypeFuncValue = GqlTypeReference | [GqlTypeReference]
-export type ReturnTypeFunc = (returns?: void) => ReturnTypeFuncValue
+export type ReturnTypeFunc = (returns?: undefined) => ReturnTypeFuncValue

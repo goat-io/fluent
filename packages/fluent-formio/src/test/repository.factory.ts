@@ -1,8 +1,11 @@
 import { FormioConnector } from '../FormioConnector'
-import { GoatEntity, GoatInputSchema } from './entities/goat.entity'
 import { AdvancedEntity, AdvancedInputSchema } from './entities/advanced.entity'
+import { GoatEntity, GoatInputSchema } from './entities/goat.entity'
 
-export class FormioGoatRepository extends FormioConnector<GoatEntity, GoatInputSchema> {
+export class FormioGoatRepository extends FormioConnector<
+  GoatEntity,
+  GoatInputSchema
+> {
   constructor() {
     super({
       baseEndPoint: 'http://localhost:3001/goats'
@@ -10,7 +13,10 @@ export class FormioGoatRepository extends FormioConnector<GoatEntity, GoatInputS
   }
 }
 
-export class FormioAdvancedRepository extends FormioConnector<AdvancedEntity, AdvancedInputSchema> {
+export class FormioAdvancedRepository extends FormioConnector<
+  AdvancedEntity,
+  AdvancedInputSchema
+> {
   constructor() {
     super({
       baseEndPoint: 'http://localhost:3001/advanced'

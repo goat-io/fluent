@@ -5,10 +5,10 @@ import { getOrCreateDashboard } from './actions/dashboards/getOrCreateDashboard'
 import { createGroup } from './actions/groups/createGroup'
 import {
   disableAllDatabaseAccess,
-  disableAllUsersGroupDatabaseAccess,
+  disableAllUsersGroupDatabaseAccess
 } from './actions/groups/disableAllDatabaseAccess'
-import { grantDatabaseAccessByPrefix } from './actions/groups/grantDatabaseAccessByPrefix'
 import { getOrCreateGroup } from './actions/groups/getOrCreateGroup'
+import { grantDatabaseAccessByPrefix } from './actions/groups/grantDatabaseAccessByPrefix'
 import { listGroups } from './actions/groups/listGroups'
 import { setDatabasePermissionsForGroup } from './actions/groups/setDatabasePermissionsForGroup'
 import { updateGroupPermissions } from './actions/groups/updateGroupPermissions'
@@ -48,10 +48,12 @@ type Rest<Ctx, A> = Omit<A, keyof Ctx>
  * // Now can call: enableEmbeddings() instead of enableEmbeddings({ baseUrl, sessionToken })
  */
 function bindCtx<Ctx extends object>(ctx: Ctx) {
-  type Callable<F extends (a: any) => any> =
-    Rest<Ctx, Parameters<F>[0]> extends Record<string, never>
-      ? () => ReturnType<F>
-      : (arg: Rest<Ctx, Parameters<F>[0]>) => ReturnType<F>
+  type Callable<F extends (a: any) => any> = Rest<
+    Ctx,
+    Parameters<F>[0]
+  > extends Record<string, never>
+    ? () => ReturnType<F>
+    : (arg: Rest<Ctx, Parameters<F>[0]>) => ReturnType<F>
 
   return <F extends (a: any) => any>(fn: F): Callable<F> =>
     ((arg?: object) =>
@@ -69,7 +71,7 @@ export class MetabaseApi {
   constructor({
     sessionToken,
     apiKey,
-    baseUrl,
+    baseUrl
   }: {
     sessionToken?: string
     apiKey?: string
@@ -104,7 +106,7 @@ export class MetabaseApi {
       enableActionsInDatasource: this.withCtx(enableActionsInDatasource),
       createApiKey: this.withCtx(createApiKey),
       getEmbeddingSecretKey: this.withCtx(getEmbeddingSecretKey),
-      disableTracking: this.withCtx(disableTracking),
+      disableTracking: this.withCtx(disableTracking)
     }
   }
 
@@ -115,7 +117,7 @@ export class MetabaseApi {
     return {
       getOrCreate: this.withCtx(getOrCreateCollection),
       delete: this.withCtx(deleteCollection),
-      deleteAll: this.withCtx(deleteAllCollections),
+      deleteAll: this.withCtx(deleteAllCollections)
     }
   }
 
@@ -125,7 +127,7 @@ export class MetabaseApi {
   get questions() {
     return {
       getOrCreate: this.withCtx(getOrCreateQuestion),
-      getOrCreateAccounts: this.withCtx(getOrCreateAccountsQuestion),
+      getOrCreateAccounts: this.withCtx(getOrCreateAccountsQuestion)
     }
   }
 
@@ -134,7 +136,7 @@ export class MetabaseApi {
    */
   get dashboards() {
     return {
-      getOrCreate: this.withCtx(getOrCreateDashboard),
+      getOrCreate: this.withCtx(getOrCreateDashboard)
     }
   }
 
@@ -148,11 +150,13 @@ export class MetabaseApi {
       list: this.withCtx(listGroups),
       disableAllDatabaseAccess: this.withCtx(disableAllDatabaseAccess),
       disableAllUsersGroupDatabaseAccess: this.withCtx(
-        disableAllUsersGroupDatabaseAccess,
+        disableAllUsersGroupDatabaseAccess
       ),
       grantDatabaseAccessByPrefix: this.withCtx(grantDatabaseAccessByPrefix),
-      setDatabasePermissionsForGroup: this.withCtx(setDatabasePermissionsForGroup),
-      updatePermissions: this.withCtx(updateGroupPermissions),
+      setDatabasePermissionsForGroup: this.withCtx(
+        setDatabasePermissionsForGroup
+      ),
+      updatePermissions: this.withCtx(updateGroupPermissions)
     }
   }
 }

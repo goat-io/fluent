@@ -1,7 +1,7 @@
+import { existsSync, unlinkSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { MySqlContainer, StartedMySqlContainer } from '@testcontainers/mysql'
 import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis'
-import { writeFileSync, existsSync, unlinkSync } from 'fs'
-import { resolve } from 'path'
 
 export interface ContainerData {
   mysql: {
@@ -24,7 +24,7 @@ let redisContainer: StartedRedisContainer
 
 export default async function setup() {
   console.log('🐳 Starting test containers...')
-  
+
   // Start MySQL container
   console.log('📦 Starting MySQL container...')
   mysqlContainer = await new MySqlContainer('mysql:8.0')
@@ -67,11 +67,8 @@ export default async function setup() {
 
   return async () => {
     console.log('🛑 Stopping test containers...')
-    
-    await Promise.all([
-      mysqlContainer?.stop(),
-      redisContainer?.stop()
-    ])
+
+    await Promise.all([mysqlContainer?.stop(), redisContainer?.stop()])
 
     // Cleanup temp file
     const filePath = resolve(__dirname, '../../tempData.json')

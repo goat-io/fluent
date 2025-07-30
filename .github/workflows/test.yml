@@ -33,7 +33,6 @@ jobs:
         with:
           path: |
             **/node_modules
-            **/.eslintcache
             ${{ steps.pnpm-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |

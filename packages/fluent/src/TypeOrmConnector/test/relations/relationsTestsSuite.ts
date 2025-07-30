@@ -1,12 +1,12 @@
-import { describe, test, it, expect, beforeAll } from 'vitest'
-import { Ids, Promises } from '@goatlab/js-utils'
+import { Promises } from '@goatlab/js-utils'
 import { DataSource } from 'typeorm'
+import { beforeAll, expect, test } from 'vitest'
+import { CarsRepository as MongoCarsRepository } from '../mongo/car.mongo.repository'
+import { RoleRepository as MongoRoleRepository } from '../mongo/roles.mongo.repository'
+import { UserRepository as MongoUserRepository } from '../mongo/user.mongo.repository'
 import { CarsRepository } from './car/car.repositoryTypeOrm'
 import { RoleRepository } from './roles/roles.repositoryTypeOrm'
 import { UserRepository } from './user/user.repositoryTypeOrm'
-import { UserRepository as MongoUserRepository } from '../mongo/user.mongo.repository'
-import { CarsRepository as MongoCarsRepository } from '../mongo/car.mongo.repository'
-import { RoleRepository as MongoRoleRepository } from '../mongo/roles.mongo.repository'
 
 let User: UserRepository
 let Car: CarsRepository
@@ -23,7 +23,7 @@ export const relationsTestSuite = (
     } else {
       dataSource = dataSourceOrRepoClasses
     }
-    
+
     // Import the correct repository classes based on data source type
     if (dataSource && typeof dataSource === 'function') {
       const ds = dataSource()
@@ -59,11 +59,17 @@ export const relationsTestSuite = (
     })
 
     const user = await User.loadById(insertedUser.id)
-    const attachedRole = await user.roles().attach(adminRole.id!)
-    const associatedCar1 = await user.cars().associate({ name: 'My' })
-    const associatedCar2 = await user.cars().associate({ name: 'My new car 2' })
-    const associatedCar3 = await user.cars().associate({ name: 'My new car 4' })
-    const associatedCar4 = await user.cars().associate({ name: 'My new car 4' })
+    const _attachedRole = await user.roles().attach(adminRole.id!)
+    const _associatedCar1 = await user.cars().associate({ name: 'My' })
+    const _associatedCar2 = await user
+      .cars()
+      .associate({ name: 'My new car 2' })
+    const _associatedCar3 = await user
+      .cars()
+      .associate({ name: 'My new car 4' })
+    const _associatedCar4 = await user
+      .cars()
+      .associate({ name: 'My new car 4' })
 
     return { insertedUser, adminRole }
   }
@@ -82,12 +88,12 @@ export const relationsTestSuite = (
   })
 
   test('requireById - Should fail if not found', async () => {
-    const insertedUser = await User.insert({
+    const _insertedUser = await User.insert({
       name: 'testUser',
       age: 20
     })
 
-    const [error, found] = await Promises.try(
+    const [error, _found] = await Promises.try(
       User.requireById('62ed01e4219a6ab760ae5c50')
     )
 
@@ -113,7 +119,7 @@ export const relationsTestSuite = (
     expect(user).toHaveProperty('associate')
   })
 
-  test('Attach - Many to Many - Should relate Data', async ()=>{
+  test('Attach - Many to Many - Should relate Data', async () => {
     const insertedUser = await User.insert({
       name: 'testUser1',
       age: 20
@@ -127,7 +133,7 @@ export const relationsTestSuite = (
     const attachedRoles = await user.roles().attach(adminRole.id!)
 
     expect(attachedRoles[0].userId).toBe(insertedUser.id)
-    expect(attachedRoles[0].roleId).toBe(adminRole.id)   
+    expect(attachedRoles[0].roleId).toBe(adminRole.id)
   })
 
   test('Associate - OneToMany - Should  insert data', async () => {
@@ -237,7 +243,7 @@ export const relationsTestSuite = (
     expect(results.length > 0).toBe(true)
     expect(typeof results[0].user?.name).toBe('string')
 
-    expect(results[0].user!['id']).toBe(insertedUser.id)
+    expect(results[0].user!.id).toBe(insertedUser.id)
   })
 
   test('Include - can load cyclical relations', async () => {
@@ -696,8 +702,6 @@ export const relationsTestSuite = (
     expect(typeof searchUserWithRelation[0].roles![0].name).toBe('string')
     expect(searchUserWithRelation[0].roles![0].id).toBe(adminRole.id)
     expect(searchUserWithRelation[0].roles![0].pivot.id).toBe(attached[0].id)
-
-
 
     // Query the opposite relation
     const roles = await Role.findMany({

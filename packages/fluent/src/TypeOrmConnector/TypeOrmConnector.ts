@@ -1,33 +1,34 @@
 /**
  * Inspiration: https://github.com/laravel/framework/blob/9.x/src/Illuminate/Database/Eloquent/Model.php
  */
-import { LoadedResult, QueryOutput } from './../types'
-import {
-  FindManyOptions,
-  Repository,
-  MongoRepository,
-  DeepPartial,
-  FindOptionsRelations,
-  SelectQueryBuilder,
-  ObjectLiteral
-} from 'typeorm'
-import { Objects, Strings, Memo } from '@goatlab/js-utils'
+
+import { Memo, Objects, Strings } from '@goatlab/js-utils'
 import { ObjectId as BSONObjectID } from 'bson'
+import {
+  DataSource,
+  DeepPartial,
+  FindManyOptions,
+  FindOptionsRelations,
+  MongoRepository,
+  ObjectLiteral,
+  Repository,
+  SelectQueryBuilder
+} from 'typeorm'
+import { z } from 'zod'
 import { BaseConnector } from '../BaseConnector'
 import { FluentConnectorInterface } from '../FluentConnectorInterface'
-import { getOutputKeys } from '../outputKeys'
-import type { AnyObject, FluentQuery, PaginatedData } from '../types'
-import { DataSource } from 'typeorm'
 import { modelGeneratorDataSource } from '../generatorDatasource'
-import { z } from 'zod'
-import { getMongoWhere } from './queryBuilder/mongodb/getMongoWhere'
-import { getRelationsFromModelGenerator } from './util/getRelationsFromModelGenerator'
+import { getOutputKeys } from '../outputKeys'
+import { LoadedResult, QueryOutput } from './../types'
+import type { AnyObject, FluentQuery, PaginatedData } from '../types'
 import { getMongoFindAggregatedQuery } from './queryBuilder/mongodb/getMongoFindAggregatedQuery'
+import { getMongoWhere } from './queryBuilder/mongodb/getMongoWhere'
+import { getQueryBuilderWhere } from './queryBuilder/sql/getQueryBuilderWhere'
+import { getTypeOrmWhere } from './queryBuilder/sql/getTypeOrmWhere'
+import { clearEmpties } from './util/clearEmpties'
 import { extractInclude } from './util/extractInclude'
 import { extractOrderBy } from './util/extractOrderBy'
-import { getTypeOrmWhere } from './queryBuilder/sql/getTypeOrmWhere'
-import { getQueryBuilderWhere } from './queryBuilder/sql/getQueryBuilderWhere'
-import { clearEmpties } from './util/clearEmpties'
+import { getRelationsFromModelGenerator } from './util/getRelationsFromModelGenerator'
 
 export interface TypeOrmConnectorParams<Input, Output> {
   entity: any
@@ -36,7 +37,9 @@ export interface TypeOrmConnectorParams<Input, Output> {
   outputSchema?: z.ZodType<Output>
 }
 export class TypeOrmConnector<
-    ModelDTO extends (ObjectLiteral & { id?: string}) = { id?: string} & AnyObject,
+    ModelDTO extends ObjectLiteral & { id?: string } = {
+      id?: string
+    } & AnyObject,
     InputDTO = ModelDTO,
     OutputDTO = InputDTO
   >
@@ -46,18 +49,18 @@ export class TypeOrmConnector<
   private repository: Repository<ModelDTO>
 
   private readonly dataSourceOrGetter: DataSource | (() => DataSource)
-  
-  private _dataSource: DataSource | null = null
-  
+
+  private cachedDataSource: DataSource | null = null
+
   private get dataSource(): DataSource {
-    if (!this._dataSource) {
+    if (!this.cachedDataSource) {
       if (typeof this.dataSourceOrGetter === 'function') {
-        this._dataSource = this.dataSourceOrGetter()
+        this.cachedDataSource = this.dataSourceOrGetter()
       } else {
-        this._dataSource = this.dataSourceOrGetter
+        this.cachedDataSource = this.dataSourceOrGetter
       }
     }
-    return this._dataSource
+    return this.cachedDataSource
   }
 
   private readonly inputSchema: z.ZodTypeAny
@@ -114,22 +117,24 @@ export class TypeOrmConnector<
     // Validate Input
     const validatedData = this.inputSchema.parse(data) as any
 
-    if (this.isMongoDB && validatedData['id']) {
-      validatedData['_id'] = new BSONObjectID(validatedData['id'])
-      delete validatedData['id']
+    if (this.isMongoDB && validatedData.id) {
+      validatedData._id = new BSONObjectID(validatedData.id)
+      validatedData.id = undefined
     }
 
     // Only Way to Skip the DeepPartial requirement from TypeORm
-    let datum = await this.repository.save(
-      validatedData as unknown as (DeepPartial<ModelDTO> & {id: string})
+    const datum = await this.repository.save(
+      validatedData as unknown as DeepPartial<ModelDTO> & { id: string }
     )
 
     if (this.isMongoDB) {
-      datum['id'] = datum['id'].toString()
+      datum.id = datum.id.toString()
     }
 
     // Validate Output
-    return this.outputSchema.parse(clearEmpties(Objects.deleteNulls(datum))) as OutputDTO
+    return this.outputSchema.parse(
+      clearEmpties(Objects.deleteNulls(datum))
+    ) as OutputDTO
   }
 
   public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
@@ -138,7 +143,7 @@ export class TypeOrmConnector<
 
     //
     const inserted = await this.repository.save(
-      validatedData as unknown as DeepPartial<(ModelDTO & {id: string})[]>,
+      validatedData as unknown as DeepPartial<(ModelDTO & { id: string })[]>,
       {
         chunk: data.length / 300
       }
@@ -146,9 +151,15 @@ export class TypeOrmConnector<
 
     const processedData: any[] = new Array(inserted.length)
     for (let i = 0; i < inserted.length; i++) {
-      const d = inserted[i]!
-      if (this.isMongoDB && d['id']) {
-        d['id'] = d['id'].toString()
+      const d = inserted[i]! as any
+      if (this.isMongoDB) {
+        // Handle both _id and id cases
+        if (d._id) {
+          d.id = d._id.toString()
+          delete d._id
+        } else if (d.id && typeof d.id !== 'string') {
+          d.id = d.id.toString()
+        }
       }
       processedData[i] = clearEmpties(Objects.deleteNulls(d))
     }
@@ -164,7 +175,7 @@ export class TypeOrmConnector<
     const requiresCustomQuery =
       query?.include && Object.keys(query.include).length
 
-    if (this.isMongoDB) {
+    if (this.isMongoDB && requiresCustomQuery) {
       const results = await this.customMongoRelatedFind(query)
 
       return results
@@ -180,26 +191,64 @@ export class TypeOrmConnector<
 
       // Get the count for pagination
       // TODO: do the pagination
-      let [result, count] = await customQuery.getManyAndCount()
+      const [result, _count] = await customQuery.getManyAndCount()
+
+      // Process MongoDB IDs if needed
+      for (let i = 0; i < result.length; i++) {
+        const d = result[i]! as any
+        if (this.isMongoDB) {
+          // Handle both _id and id cases
+          if (d._id) {
+            d.id = d._id.toString()
+            delete d._id
+          } else if (d.id && typeof d.id !== 'string') {
+            d.id = d.id.toString()
+          }
+        }
+        clearEmpties(Objects.deleteNulls(d))
+      }
 
       // Apply select filtering if needed
-      //TODO: We have to validate the results!
-      return result as unknown as QueryOutput<T, ModelDTO>[]
+      // Validate the results
+      const validatedResult = this.outputSchema
+        ?.array()
+        .parse(result) as unknown as QueryOutput<T, ModelDTO>[]
+      return validatedResult
     }
 
     // Generate normal TypeORM Query
     const generatedQuery = this.generateTypeOrmQuery(query)
 
-    let [found, count] = await this.repository.findAndCount(generatedQuery)
+    const [found, count] = await this.repository.findAndCount(generatedQuery)
 
     for (let i = 0; i < found.length; i++) {
-      const d = found[i]!
-      if (this.isMongoDB && d['_id']) {
-        d.id = d['_id'].toString()
+      const d = found[i]! as any
+      if (this.isMongoDB) {
+        // Handle both _id and id cases
+        if (d._id) {
+          d.id = d._id.toString()
+          delete d._id
+        } else if (d.id && typeof d.id !== 'string') {
+          d.id = d.id.toString()
+        }
       }
 
       clearEmpties(Objects.deleteNulls(d))
     }
+
+    // Apply select filter if needed
+    let processedResults = found
+    if (query?.select) {
+      // Filter out fields that are explicitly set to false
+      processedResults = this.applySelectFilter(found, query.select)
+    }
+
+    // Validate the results - skip validation if select is used (partial objects)
+    const validatedFound = query?.select
+      ? (processedResults as unknown as QueryOutput<T, ModelDTO>[])
+      : (this.outputSchema
+          ?.array()
+          .parse(processedResults) as unknown as QueryOutput<T, ModelDTO>[])
 
     if (query?.paginated) {
       const paginationInfo: PaginatedData<QueryOutput<T, ModelDTO>> = {
@@ -212,23 +261,14 @@ export class TypeOrmConnector<
         prevPage: query.paginated.page === 1 ? null : query.paginated.page - 1,
         from: (query.paginated.page - 1) * query.paginated.perPage + 1,
         to: query.paginated.perPage * query.paginated.page,
-        data: found as unknown as QueryOutput<T, ModelDTO>[]
+        data: validatedFound
       }
 
       return paginationInfo as unknown as QueryOutput<T, ModelDTO>[]
     }
 
-    if (query?.select) {
-      // Filter out fields that are explicitly set to false
-      found = this.applySelectFilter(found, query.select)
-      return found as unknown as QueryOutput<T, ModelDTO>[]
-    }
-
-    // Validate Output against schema
-    return this.outputSchema?.array().parse(found) as unknown as QueryOutput<
-      T,
-      ModelDTO
-    >[]
+    // Return the already validated results
+    return validatedFound as unknown as QueryOutput<T, ModelDTO>[]
   }
 
   // UPDATE
@@ -264,24 +304,24 @@ export class TypeOrmConnector<
    */
   public async replaceById(id: string, data: InputDTO): Promise<OutputDTO> {
     this.initDB()
-    const idFieldName = this.isMongoDB ? '_id' : 'id'
+    const _idFieldName = this.isMongoDB ? '_id' : 'id'
 
     const value = this.requireById(id)
 
     const flatValue = Objects.flatten(JSON.parse(JSON.stringify(value)))
 
     Object.keys(flatValue).forEach(key => {
-      (flatValue as any)[key] = null
+      ;(flatValue as any)[key] = null
     })
 
     const nullObject = Objects.nest(flatValue)
 
-    const newValue = { ...nullObject, ...data }
+    const newValue = { ...nullObject, ...data } as any
 
-    delete newValue._id
-    delete newValue.id
-    delete newValue.created
-    delete newValue.updated
+    newValue._id = undefined
+    newValue.id = undefined
+    newValue.created = undefined
+    newValue.updated = undefined
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
@@ -306,9 +346,7 @@ export class TypeOrmConnector<
    */
   public async deleteById(id: string): Promise<string> {
     this.initDB()
-    const parsedId = this.isMongoDB
-      ? new BSONObjectID(id)
-      : id
+    const parsedId = this.isMongoDB ? new BSONObjectID(id) : id
 
     await this.repository.delete(parsedId)
 
@@ -418,13 +456,15 @@ export class TypeOrmConnector<
     results: T[],
     select: FluentQuery<ModelDTO>['select']
   ): T[] {
-    if (!select) return results
-    
+    if (!select) {
+      return results
+    }
+
     const flatSelect = Objects.flatten(select)
     const fieldsToInclude = new Set<string>()
     const fieldsToExclude = new Set<string>()
     let hasIncludes = false
-    
+
     // Separate fields to include and exclude
     for (const [key, value] of Object.entries(flatSelect)) {
       // Convert to string for consistent comparison
@@ -436,69 +476,92 @@ export class TypeOrmConnector<
         fieldsToExclude.add(key)
       }
     }
-    
+
     return results.map(result => {
-      // If there are explicit includes, only include those fields (exclusive selection)
       if (hasIncludes) {
-        const filtered: any = {}
-        
-        // For exclusive selection, only copy fields that are explicitly included
-        for (const field of fieldsToInclude) {
-          if (field.includes('.')) {
-            // Handle nested field paths
-            const parts = field.split('.')
-            let source = result
-            let target = filtered
-            
-            for (let i = 0; i < parts.length - 1; i++) {
-              const part = parts[i]
-              if (!part || !source[part]) break
-              source = source[part]
-              if (!target[part]) target[part] = {}
-              target = target[part]
-            }
-            
-            if (source && parts.length > 0) {
-              const lastPart = parts[parts.length - 1]
-              if (lastPart) {
-                target[lastPart] = source[lastPart]
-              }
-            }
-          } else if (field in result) {
-            filtered[field] = result[field]
-          }
-        }
-        
-        return filtered
-      } else {
-        // If there are only excludes, include all fields except excluded ones
-        const filtered = { ...result }
-        
-        for (const field of fieldsToExclude) {
-          if (field.includes('.')) {
-            const parts = field.split('.')
-            let current = filtered
-            
-            for (let i = 0; i < parts.length - 1; i++) {
-              const part = parts[i]
-              if (!part || !current[part]) break
-              current = current[part]
-            }
-            
-            if (current && parts.length > 0) {
-              const lastPart = parts[parts.length - 1]
-              if (lastPart) {
-                delete current[lastPart]
-              }
-            }
-          } else {
-            delete filtered[field]
-          }
-        }
-        
-        return filtered
+        return this.applyInclusiveSelection(result, fieldsToInclude)
       }
+      return this.applyExclusiveSelection(result, fieldsToExclude)
     })
+  }
+
+  private applyInclusiveSelection(
+    result: any,
+    fieldsToInclude: Set<string>
+  ): any {
+    const filtered: any = {}
+
+    for (const field of fieldsToInclude) {
+      if (field.includes('.')) {
+        this.copyNestedField(result, filtered, field)
+      } else if (field in result) {
+        filtered[field] = result[field]
+      }
+    }
+
+    return filtered
+  }
+
+  private applyExclusiveSelection(
+    result: any,
+    fieldsToExclude: Set<string>
+  ): any {
+    const filtered = { ...result }
+
+    for (const field of fieldsToExclude) {
+      if (field.includes('.')) {
+        this.deleteNestedField(filtered, field)
+      } else {
+        delete filtered[field]
+      }
+    }
+
+    return filtered
+  }
+
+  private copyNestedField(source: any, target: any, fieldPath: string): void {
+    const parts = fieldPath.split('.')
+    let currentSource = source
+    let currentTarget = target
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]
+      if (!part || !currentSource[part]) {
+        return
+      }
+      currentSource = currentSource[part]
+      if (!currentTarget[part]) {
+        currentTarget[part] = {}
+      }
+      currentTarget = currentTarget[part]
+    }
+
+    if (currentSource && parts.length > 0) {
+      const lastPart = parts[parts.length - 1]
+      if (lastPart) {
+        currentTarget[lastPart] = currentSource[lastPart]
+      }
+    }
+  }
+
+  private deleteNestedField(target: any, fieldPath: string): void {
+    const parts = fieldPath.split('.')
+    let current = target
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]
+      if (!part || !current[part]) {
+        return
+      }
+      current = current[part]
+    }
+
+    if (current && parts.length > 0) {
+      const lastPart = parts[parts.length - 1]
+      if (lastPart) {
+        delete current[lastPart]
+      }
+    }
   }
 
   /**
@@ -507,7 +570,7 @@ export class TypeOrmConnector<
    * @returns
    */
   private generateTypeOrmQuery(query?: FluentQuery<ModelDTO>): FindManyOptions {
-    let filter: FindManyOptions = {}
+    const filter: FindManyOptions = {}
 
     filter.where = this.isMongoDB
       ? getMongoWhere({
@@ -531,14 +594,19 @@ export class TypeOrmConnector<
       // Filter out fields with false values - TypeORM only accepts fields to include
       const fieldsToSelect = Object.keys(selectQuery).filter(key => {
         const val = selectQuery[key]
-        return val !== undefined && (String(val) === 'true' || String(val) === '1')
+        return (
+          val !== undefined && (String(val) === 'true' || String(val) === '1')
+        )
       })
       if (fieldsToSelect.length > 0) {
         // TypeORM expects select to be an object with field names as keys
-        const selectObject = fieldsToSelect.reduce((acc, field) => {
-          acc[field] = true
-          return acc
-        }, {} as Record<string, boolean>)
+        const selectObject = fieldsToSelect.reduce(
+          (acc, field) => {
+            acc[field] = true
+            return acc
+          },
+          {} as Record<string, boolean>
+        )
         filter.select = selectObject
       }
     }
@@ -673,7 +741,7 @@ export class TypeOrmConnector<
       // checking "this" for the name of the relation
       let isNestedRelation = false
       for (const item of k.split('.')) {
-        if (!!self[item]) {
+        if (self[item]) {
           isNestedRelation = true
           break
         }
@@ -767,7 +835,7 @@ export class TypeOrmConnector<
         selectedKeys.push(...Array.from(keys))
 
         const shallowQuery = { ...fluentRelatedQuery }
-        delete shallowQuery['include']
+        shallowQuery.include = undefined
 
         const { queryBuilder: leftJoinBuilder, selectedKeys: deepkeys } =
           this.customTypeOrmRelatedFind({
@@ -780,8 +848,7 @@ export class TypeOrmConnector<
         selectedKeys.push(...deepkeys)
 
         const joinQuery = leftJoinBuilder.getQuery().split('WHERE')
-        const customLeftJoin =
-          joinQuery && joinQuery[1] ? joinQuery[1].trim() : '1=1'
+        const customLeftJoin = joinQuery?.[1] ? joinQuery[1].trim() : '1=1'
 
         const leftJoinParams = leftJoinBuilder.getParameters()
 
@@ -834,7 +901,7 @@ export class TypeOrmConnector<
 
         // Left join query, without including any nested tables
         const shallowQuery = { ...fluentRelatedQuery }
-        delete shallowQuery['include']
+        shallowQuery.include = undefined
 
         const { queryBuilder: leftJoinBuilder, selectedKeys: deepKeys } =
           this.customTypeOrmRelatedFind({
@@ -847,8 +914,7 @@ export class TypeOrmConnector<
         selectedKeys.push(...deepKeys)
 
         const joinQuery = leftJoinBuilder.getQuery().split('WHERE')
-        const customLeftJoin =
-          joinQuery && joinQuery[1] ? joinQuery[1].trim() : '1=1'
+        const customLeftJoin = joinQuery?.[1] ? joinQuery[1].trim() : '1=1'
 
         const leftJoinParams = leftJoinBuilder.getParameters()
 
@@ -971,12 +1037,12 @@ export class TypeOrmConnector<
 
       //   // lookUps.push({ $addFields: { id: { $toString: '$_id' } } })
       //   // lookUps.push({
-      //   //   $addFields: { parent_string_id: { $toString: '$_id' } }
+      //   //   $addFields: { parentStringId: { $toString: '$_id' } }
       //   // })
       //   // lookUps.push({
       //   //   $lookup: {
       //   //     from: pivotTableName,
-      //   //     localField: 'parent_string_id',
+      //   //     localField: 'parentStringId',
       //   //     foreignField: pivotForeignField,
       //   //     as: dbRelation.propertyName,
       //   //     pipeline: [
@@ -1055,5 +1121,4 @@ export class TypeOrmConnector<
       ModelDTO
     >[]
   }
-
 }

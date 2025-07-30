@@ -1,12 +1,12 @@
-import { Kafka, Producer, Consumer } from 'kafkajs'
+import { randomUUID } from 'node:crypto'
 import { Promises } from '@goatlab/js-utils'
+import { Consumer, Kafka, Producer } from 'kafkajs'
 import type { JobDescription } from '../types/job'
 import type {
   MessageBroker,
   MessageProducer,
   MessageSubscriber
 } from '../types/message'
-import { randomUUID } from 'crypto'
 
 export class KafkaBroker implements MessageBroker {
   private kafka: Kafka
@@ -23,7 +23,7 @@ export class KafkaBroker implements MessageBroker {
   }
 
   async publish({
-    queueName,
+    queueName: _queueName,
     data,
     topic = 'default'
   }: MessageProducer): Promise<boolean> {
@@ -59,7 +59,7 @@ export class KafkaBroker implements MessageBroker {
     }
 
     await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ topic, partition: _partition, message }) => {
         const data = JSON.parse(message.value?.toString() || '{}')
 
         const jobDescription: JobDescription = {

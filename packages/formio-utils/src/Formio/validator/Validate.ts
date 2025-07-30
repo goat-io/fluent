@@ -1,9 +1,9 @@
+import type { AnyObject } from '@goatlab/fluent'
+import { Promises } from '@goatlab/js-utils'
 import { FormioForm } from '../types/FormioForm'
 import Form from './Form/Form'
-import Submission from './Submission/Submission'
-import type { AnyObject } from '@goatlab/fluent'
 import { Validator } from './Logic/Validator'
-import { Promises } from '@goatlab/js-utils'
+import Submission from './Submission/Submission'
 
 interface FormioError {
   message: string
@@ -21,18 +21,16 @@ export const Validate = (() => {
     form: FormioForm,
     submissions: AnyObject[]
   ): Promise<AnyObject[]> => {
-    const _submissions: AnyObject[] = JSON.parse(
-      JSON.stringify(submissions)
-    )
+    const Submissions: AnyObject[] = JSON.parse(JSON.stringify(submissions))
 
     return new Promise((resolve, reject) => {
       Submission(form.path).then(model => {
         const validation = new Validator(form, model)
         const validationPromises: Promise<any>[] = []
 
-        _submissions.forEach((sub: any) => {
+        Submissions.forEach((sub: any) => {
           validationPromises.push(
-            new Promise(async (res, rej) => {
+            new Promise((res, rej) => {
               validation.validate(sub, (err: any, su: any) => {
                 if (err) {
                   return rej(err)
@@ -63,9 +61,9 @@ export const Validate = (() => {
     form: FormioForm,
     submission: AnyObject
   ): Promise<AnyObject> => {
-    const _submissions = [submission]
+    const Submissions = [submission]
     const [error, subs] = await Promises.try<AnyObject, any>(
-      validate(form, _submissions)
+      validate(form, Submissions)
     )
     if (error) {
       const errors: FormioValidationError = {
@@ -81,31 +79,31 @@ export const Validate = (() => {
    * @param forms
    */
   const form = (forms: FormioForm): Promise<FormioForm> => {
-    const _forms = JSON.parse(
-      JSON.stringify(forms, (key, value) =>
+    const Forms = JSON.parse(
+      JSON.stringify(forms, (_key, value) =>
         value === null ? undefined : value
       )
     )
 
     return new Promise((resolve, reject) => {
-      const formsIsNotArray = !Array.isArray(_forms)
+      const formsIsNotArray = !Array.isArray(Forms)
 
       if (formsIsNotArray) {
-        const f = new Form(_forms)
+        const f = new Form(Forms)
         f.validate((err: any) => {
           if (err) {
             reject(err)
             return
           }
 
-          resolve(_forms)
+          resolve(Forms)
         })
 
         return
       }
 
       const validationPromises: Promise<any>[] = []
-      _forms.forEach((f: FormioForm) => {
+      Forms.forEach((f: FormioForm) => {
         validationPromises.push(
           new Promise((res, rej) => {
             const formModel = new Form(f)

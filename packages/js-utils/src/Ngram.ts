@@ -26,9 +26,9 @@ export function nGram(n: number) {
     /** @type {T[]} */
     const nGrams: string[] = []
     /** @type {number} */
-    let index
+    let index: number
     /** @type {string|string[]} */
-    let source
+    let source: string | string[]
 
     if (value === null || value === undefined) {
       return nGrams

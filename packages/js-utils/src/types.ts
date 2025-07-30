@@ -1,5 +1,5 @@
-import { TypedPathWrapper } from 'typed-path'
 import type { ObjectId } from 'bson'
+import { TypedPathWrapper } from 'typed-path'
 
 // Basic primitive types that can be used in various contexts
 export type Primitives = boolean | string | number | ObjectId
@@ -16,7 +16,7 @@ export type Reviver = (this: any, key: string, value: any) => any
 export type Class<T = any> = new (...args: any[]) => T
 
 // No-operation function that accepts any arguments and returns undefined
-export const _noop = (..._args: any[]): undefined => undefined
+export const noop = (..._args: any[]): undefined => undefined
 
 // Map-like interface with string/number keys and optional values
 export interface StringMap<T = string> {
@@ -24,7 +24,7 @@ export interface StringMap<T = string> {
 }
 
 // Function type for mapping operations with index parameter
-export type Mapper<IN = any, OUT = any> = (input: IN, index: number) => OUT
+export type Mapper<In = any, Out = any> = (input: In, index: number) => Out
 
 // Function type for filtering operations with index parameter
 export type Predicate<T> = (item: T, index: number) => boolean
@@ -38,18 +38,18 @@ export type FalsyValue = false | '' | 0 | null | undefined
 export type AnyObject = Record<string, any>
 
 // Predicate function type for object operations
-export type ObjectPredicate<OBJ> = (
-  key: keyof OBJ,
-  value: Exclude<OBJ[keyof OBJ], undefined>,
-  obj: OBJ
+export type ObjectPredicate<Obj> = (
+  key: keyof Obj,
+  value: Exclude<Obj[keyof Obj], undefined>,
+  obj: Obj
 ) => boolean
 
 // Mapper function type for object transformations
-export type ObjectMapper<OBJ, OUT> = (
+export type ObjectMapper<Obj, Out> = (
   key: string,
-  value: Exclude<OBJ[keyof OBJ], undefined>,
-  obj: OBJ
-) => OUT
+  value: Exclude<Obj[keyof Obj], undefined>,
+  obj: Obj
+) => Out
 
 // Utility type to extract all possible values from an object type
 export type ValueOf<T> = T[keyof T]
@@ -141,12 +141,12 @@ export type Unpacked<T> = T extends (infer U)[] ? U : T
 export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
   ? (...args: ExpandRecursively<A>) => ExpandRecursively<R>
   : T extends object
-  ? T extends infer O
-    ? O extends any[]
-      ? { [K in keyof Unpacked<O>]: ExpandRecursively<Unpacked<O>[K]> }[]
-      : { [K in keyof O]: ExpandRecursively<O[K]> }
-    : never
-  : T
+    ? T extends infer O
+      ? O extends any[]
+        ? { [K in keyof Unpacked<O>]: ExpandRecursively<Unpacked<O>[K]> }[]
+        : { [K in keyof O]: ExpandRecursively<O[K]> }
+      : never
+    : T
 
 // Make all properties in T required (remove optional modifiers)
 export type Concrete<Type> = {
@@ -155,7 +155,7 @@ export type Concrete<Type> = {
 
 // Create a subset type where only keys that exist in U are preserved
 export type Subset<T, U> = {
-  [key in keyof T]: key extends keyof U ? T[key] : never
+  [Key in keyof T]: Key extends keyof U ? T[Key] : never
 }
 
 export type IterableItem<T> = T extends Iterable<infer U> ? U : never

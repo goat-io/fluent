@@ -4,14 +4,14 @@ export const knexImplementations = {
   simpleSelect: async (knex: Knex) => {
     await knex('users').select('*').limit(50)
   },
-  
+
   filteredSelect: async (knex: Knex) => {
     await knex('users')
       .where('status', 'active')
       .andWhere('age', '>', 25)
       .select('*')
   },
-  
+
   joinQuery: async (knex: Knex) => {
     await knex('users as u')
       .leftJoin('orders as o', 'u.id', 'o.user_id')
@@ -22,7 +22,7 @@ export const knexImplementations = {
       .groupBy('u.id')
       .limit(30)
   },
-  
+
   complexJoin: async (knex: Knex) => {
     await knex('products as p')
       .leftJoin('categories as c', 'p.category_id', 'c.id')
@@ -34,7 +34,7 @@ export const knexImplementations = {
       .groupBy('p.id')
       .limit(25)
   },
-  
+
   insert: async (knex: Knex, insertCounter: number) => {
     const uniqueId = `${insertCounter}_${Date.now()}`
     await knex('users').insert({
@@ -43,7 +43,7 @@ export const knexImplementations = {
       last_name: 'User',
       status: 'active',
       age: 30,
-      country: 'US',
+      country: 'US'
     })
   }
 }

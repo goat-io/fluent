@@ -1,6 +1,6 @@
 import { describe } from 'vitest'
-import { RabbitMQBroker } from './RabbitMQ'
 import { getGlobalData } from '../test/const'
+import { RabbitMQBroker } from './RabbitMQ'
 import { runMessageBrokerTestSuite } from './sharedBrokerTests'
 
 describe('RabbitMQBroker', () => {

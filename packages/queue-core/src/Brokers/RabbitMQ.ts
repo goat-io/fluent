@@ -1,12 +1,12 @@
-import { Channel, connect, Connection, Options } from 'amqplib'
+import { randomUUID } from 'node:crypto'
 import { Promises } from '@goatlab/js-utils'
+import { Channel, Connection, connect, Options } from 'amqplib'
 import type { JobDescription } from '../types/job'
 import type {
   MessageBroker,
   MessageProducer,
   MessageSubscriber
 } from '../types/message'
-import { randomUUID } from 'crypto'
 
 export class RabbitMQBroker implements MessageBroker {
   private connectionOptions: Options.Connect | string = ''
@@ -169,7 +169,9 @@ export class RabbitMQBroker implements MessageBroker {
     await this.consumerChannel.consume(
       q.queue,
       async msg => {
-        if (!msg) return
+        if (!msg) {
+          return
+        }
 
         const data = JSON.parse(msg.content.toString() || '{}')
         const topic = msg.fields.routingKey

@@ -1,9 +1,9 @@
 // npx vitest test ./src/hatchet.spec.ts
 
-import { ShouldQueue, UnknownInputType } from '@goatlab/tasks-core'
-import { HatchetConnector } from './HatchetConnector'
-import { describe, it, expect, beforeAll } from 'vitest'
 import { Ids } from '@goatlab/js-utils'
+import { ShouldQueue, UnknownInputType } from '@goatlab/tasks-core'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { HatchetConnector } from './HatchetConnector'
 import { getGlobalData } from './test/const'
 
 class TestTask extends ShouldQueue<{ text: string }> {
@@ -14,14 +14,15 @@ class TestTask extends ShouldQueue<{ text: string }> {
     return `test_task_${Ids.uuid()}`
   }
 
-  public async handle(taskBody: UnknownInputType): Promise<void> {
+  public async handle(taskBody: UnknownInputType): Promise<undefined> {
     console.log('Running task with body:', taskBody)
+    return undefined
   }
 }
 
 const hatchetConnector = new HatchetConnector({
   logLevel: 'DEBUG',
-  token: getGlobalData().token || process.env['HATCHET_JWT_TOKEN'] || '',
+  token: getGlobalData().token || process.env.HATCHET_JWT_TOKEN || '',
   hostAndPort: getGlobalData().hostAndPort,
   apiUrl: getGlobalData().apiUrl
 })

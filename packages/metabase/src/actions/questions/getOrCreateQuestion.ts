@@ -37,7 +37,7 @@ export async function getOrCreateQuestion({
   apiKey,
   collectionId,
   databaseId,
-  questionConfig,
+  questionConfig
 }: {
   baseUrl: string
   sessionToken?: string
@@ -50,9 +50,8 @@ export async function getOrCreateQuestion({
     name,
     query,
     display = 'scalar',
-    visualizationSettings = {},
+    visualizationSettings = {}
   } = questionConfig
-
 
   // Fetch existing questions
   const questionsRes = await metabaseFetch({
@@ -60,20 +59,19 @@ export async function getOrCreateQuestion({
     sessionToken,
     apiKey,
     endpoint: '/api/card',
-    method: 'GET',
+    method: 'GET'
   })
 
   const questions = (await questionsRes.json()) as MetabaseQuestion[]
 
   // Check if question already exists in the collection
   const existingQuestion = questions.find(
-    (q) => q.name === name && q.collection_id === collectionId,
+    q => q.name === name && q.collection_id === collectionId
   )
 
   if (existingQuestion) {
     return existingQuestion.id
   }
-
 
   // Create new question
   try {
@@ -89,17 +87,17 @@ export async function getOrCreateQuestion({
           type: 'native',
           native: {
             query,
-            'template-tags': {}, // Empty template tags for now
+            'template-tags': {} // Empty template tags for now
           },
-          database: databaseId,
+          database: databaseId
         },
         display,
         visualization_settings: visualizationSettings,
         collection_id: collectionId,
         description: `Auto-generated question: ${name}`,
         cache_ttl: null, // Use default caching
-        enable_embedding: false, // Can be enabled later if needed
-      },
+        enable_embedding: false // Can be enabled later if needed
+      }
     })
 
     const questionData = (await createRes.json()) as MetabaseQuestion

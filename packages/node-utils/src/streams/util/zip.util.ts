@@ -1,5 +1,5 @@
 import { promisify } from 'node:util'
-import { ZlibOptions, deflate, inflate, gzip, gunzip } from 'node:zlib'
+import { deflate, gunzip, gzip, inflate, ZlibOptions } from 'node:zlib'
 
 const zDeflate = promisify(deflate)
 const zInflate = promisify(inflate)

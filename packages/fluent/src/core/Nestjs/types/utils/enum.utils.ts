@@ -22,8 +22,8 @@ export function getEnumValues(enumType: SwaggerEnumType): string[] | number[] {
     // filter out cases where enum key also becomes its value (A: B, B: A)
     if (
       value !== undefined &&
-      !uniqueValues.hasOwnProperty(value) &&
-      !uniqueValues.hasOwnProperty(key)
+      !Object.hasOwn(uniqueValues, value) &&
+      !Object.hasOwn(uniqueValues, key)
     ) {
       values.push(value)
       uniqueValues[value] = value

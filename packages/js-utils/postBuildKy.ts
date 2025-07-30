@@ -1,6 +1,8 @@
-import { writeFileSync, readFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+
 const location = './src/Got/ky/index.js'
-import { join } from 'path'
+
+import { join } from 'node:path'
 
 let content = readFileSync(join(__dirname, location), 'utf-8')
 

@@ -1,7 +1,9 @@
-import type { TypesenseMetrics } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type { TypesenseMetrics } from '../../typesense.model'
 
-export async function getMetrics(ctx: TypesenseContext): Promise<TypesenseMetrics> {
+export async function getMetrics(
+  ctx: TypesenseContext
+): Promise<TypesenseMetrics> {
   return await ctx.httpClient.request<TypesenseMetrics>('/metrics.json')
 }
 

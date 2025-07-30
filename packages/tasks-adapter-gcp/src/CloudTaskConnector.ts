@@ -1,12 +1,12 @@
+import { GCPServiceAccount } from 'CloudTaskConnector.types'
+import { assert, Ids, Memo, Primitive, Promises } from '@goatlab/js-utils'
+import { Security } from '@goatlab/node-utils'
 import type {
   TaskConnector,
   TaskStatus,
   TaskStatusName
 } from '@goatlab/tasks-core'
 import type { BackoffSettings } from 'google-gax/build/src/gax'
-import { assert, Ids, Memo, Primitive, Promises } from '@goatlab/js-utils'
-import { Security } from '@goatlab/node-utils'
-import { GCPServiceAccount } from 'CloudTaskConnector.types'
 export type ITask = any
 
 export type { BackoffSettings }
@@ -30,9 +30,11 @@ function getScheduledInfo(scheduled: number): {
       minutesUntil: 0
     }
   }
-  
+
   // Avoid multiple multiplication - calculate difference directly
-  const minutesUntil = Math.floor((scheduled * 1000 - Date.now()) * MS_TO_MINUTES)
+  const minutesUntil = Math.floor(
+    (scheduled * 1000 - Date.now()) * MS_TO_MINUTES
+  )
 
   return { minutesUntil }
 }
@@ -103,9 +105,10 @@ export class CloudTaskConnector implements TaskConnector<object> {
     // Build the task object in one go to avoid multiple spreads
     const finalTask = {
       ...task,
-      name: task.name && !task.name.startsWith(parent) 
-        ? `${parent}/tasks/${task.name}` 
-        : task.name,
+      name:
+        task.name && !task.name.startsWith(parent)
+          ? `${parent}/tasks/${task.name}`
+          : task.name,
       httpRequest: {
         ...task.httpRequest,
         url: parsedURL.href,
@@ -257,7 +260,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
     const responseCount = task.responseCount || 0
     const creation = Number(task.createTime?.seconds || 0) || 0
     const scheduled = Number(task.scheduleTime?.seconds || 0) || 0
-    
+
     // Determine status with simplified logic
     let status: TaskStatusName = 'RUNNING'
     if (responseCount === 0 && (dispatchCount > 2 || dispatchCount <= 1)) {
@@ -274,7 +277,9 @@ export class CloudTaskConnector implements TaskConnector<object> {
       status,
       created: new Date(creation * 1000).toISOString(),
       nextRun: scheduled ? new Date(scheduled * 1000).toISOString() : null,
-      nextRunMinutes: scheduled ? getScheduledInfo(scheduled).minutesUntil : null,
+      nextRunMinutes: scheduled
+        ? getScheduledInfo(scheduled).minutesUntil
+        : null,
       payload: this.decryptBody(task.httpRequest?.body)
     }
   }
@@ -310,7 +315,9 @@ export class CloudTaskConnector implements TaskConnector<object> {
       output: '',
       attempts: 0,
       status: 'QUEUED',
-      created: creation ? new Date(creation * 1000).toISOString() : new Date().toISOString(),
+      created: creation
+        ? new Date(creation * 1000).toISOString()
+        : new Date().toISOString(),
       nextRun: scheduled ? new Date(scheduled * 1000).toISOString() : null,
       nextRunMinutes: null
     }

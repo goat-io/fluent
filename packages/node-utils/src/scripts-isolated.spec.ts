@@ -1,7 +1,7 @@
 // npx vitest run ./src/scripts-isolated.spec.ts
 
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { runScript } from './Scripts'
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 // This test file uses an isolated approach to avoid process.exit issues
 describe('runScript (isolated)', () => {
@@ -19,34 +19,38 @@ describe('runScript (isolated)', () => {
     originalOn = process.on
     originalOnce = process.once
     originalRemoveAllListeners = process.removeAllListeners
-    
+
     // Create spies
     exitSpy = vi.fn()
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+      // Intentionally empty - suppress console output in tests
+    })
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {
+      // Intentionally empty - suppress console output in tests
+    })
+
     // Mock process methods
     process.exit = exitSpy as any
-    
+
     // Track event listeners
-    const listeners = new Map<string, Function[]>()
-    
-    process.on = vi.fn((event: string, listener: Function) => {
+    const listeners = new Map<string, Array<(...args: any[]) => any>>()
+
+    process.on = vi.fn((event: string, listener: (...args: any[]) => any) => {
       if (!listeners.has(event)) {
         listeners.set(event, [])
       }
       listeners.get(event)!.push(listener)
       return process
     }) as any
-    
-    process.once = vi.fn((event: string, listener: Function) => {
+
+    process.once = vi.fn((event: string, listener: (...args: any[]) => any) => {
       if (!listeners.has(event)) {
         listeners.set(event, [])
       }
       listeners.get(event)!.push(listener)
       return process
     }) as any
-    
+
     process.removeAllListeners = vi.fn(() => {
       listeners.clear()
       return process
@@ -59,7 +63,7 @@ describe('runScript (isolated)', () => {
     process.on = originalOn
     process.once = originalOnce
     process.removeAllListeners = originalRemoveAllListeners
-    
+
     // Restore console methods
     consoleErrorSpy.mockRestore()
     consoleLogSpy.mockRestore()
@@ -67,14 +71,17 @@ describe('runScript (isolated)', () => {
 
   it('should handle successful execution', async () => {
     let resolved = false
-    
-    runScript(async () => {
-      resolved = true
-    }, { noExit: true })
-    
+
+    runScript(
+      async () => {
+        resolved = true
+      },
+      { noExit: true }
+    )
+
     // Wait for promise to resolve
     await new Promise(r => setTimeout(r, 10))
-    
+
     expect(resolved).toBe(true)
     expect(exitSpy).not.toHaveBeenCalled()
   })
@@ -82,63 +89,77 @@ describe('runScript (isolated)', () => {
   it('should handle errors and call onError callback', async () => {
     let errorHandled = false
     const testError = new Error('test error')
-    
-    runScript(async () => {
-      throw testError
-    }, { 
-      noExit: true,
-      onError: (err) => {
-        errorHandled = true
-        expect(err).toBe(testError)
+
+    runScript(
+      async () => {
+        throw testError
+      },
+      {
+        noExit: true,
+        onError: err => {
+          errorHandled = true
+          expect(err).toBe(testError)
+        }
       }
-    })
-    
+    )
+
     // Wait for promise to resolve
     await new Promise(r => setTimeout(r, 10))
-    
+
     expect(errorHandled).toBe(true)
     expect(consoleErrorSpy).toHaveBeenCalledWith('runScript error:', testError)
   })
 
   it('should call onExit callback with correct code', async () => {
     let exitCode: number | undefined
-    
-    runScript(async () => {
-      // Success case
-    }, { 
-      noExit: true,
-      onExit: (code) => {
-        exitCode = code
+
+    runScript(
+      async () => {
+        // Success case
+      },
+      {
+        noExit: true,
+        onExit: code => {
+          exitCode = code
+        }
       }
-    })
-    
+    )
+
     // Wait for promise to resolve
     await new Promise(r => setTimeout(r, 10))
-    
+
     expect(exitCode).toBe(0)
   })
 
   it('should call onExit with code 1 on error', async () => {
     let exitCode: number | undefined
-    
-    runScript(async () => {
-      throw new Error('fail')
-    }, { 
-      noExit: true,
-      onExit: (code) => {
-        exitCode = code
+
+    runScript(
+      async () => {
+        throw new Error('fail')
+      },
+      {
+        noExit: true,
+        onExit: code => {
+          exitCode = code
+        }
       }
-    })
-    
+    )
+
     // Wait for promise to resolve
     await new Promise(r => setTimeout(r, 10))
-    
+
     expect(exitCode).toBe(1)
   })
 
   it('should register signal handlers', () => {
-    runScript(async () => {}, { noExit: true })
-    
+    runScript(
+      async () => {
+        // Intentionally empty - test signal handler registration
+      },
+      { noExit: true }
+    )
+
     expect(process.once).toHaveBeenCalledWith('SIGINT', expect.any(Function))
     expect(process.once).toHaveBeenCalledWith('SIGTERM', expect.any(Function))
     expect(process.once).toHaveBeenCalledWith('SIGHUP', expect.any(Function))

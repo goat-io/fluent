@@ -1,11 +1,11 @@
-import Utilities from '../../utilities'
-import Submission from '../../models/Submission'
 import { Id } from '../../../Helpers/Id'
+import Submission from '../../models/Submission'
+import Utilities from '../../utilities'
 
-let ParallelSurvey = (() => {
+const ParallelSurvey = (() => {
   function getNewGroupWizard(vm) {
-    let progressSteps = ['1', '2', '3']
-    let steps = [
+    const progressSteps = ['1', '2', '3']
+    const steps = [
       {
         title: vm.$t('Group Name'),
         text: vm.$t('Give the group a name'),
@@ -14,7 +14,7 @@ let ParallelSurvey = (() => {
             if (value !== '') {
               resolve()
             } else {
-              let error = new Error(vm.$t('The group name is already taken'))
+              const error = new Error(vm.$t('The group name is already taken'))
 
               reject(error)
             }
@@ -35,8 +35,8 @@ let ParallelSurvey = (() => {
   }
 
   function getNewUserWizard(vm) {
-    let progressSteps = ['1']
-    let steps = [
+    const progressSteps = ['1']
+    const steps = [
       {
         title: vm.$t('Participant Name'),
         text: vm.$t('Give the next participant a name')
@@ -47,7 +47,7 @@ let ParallelSurvey = (() => {
   }
 
   function getGroupId(submission) {
-    let groupId = Utilities.get(
+    const groupId = Utilities.get(
       () => Submission().getParallelSurvey(submission).groupId
     )
 
@@ -62,7 +62,7 @@ let ParallelSurvey = (() => {
    * @param {*} param0
    */
   async function createWizard({ submission, vm }) {
-    let groupId = getGroupId(submission)
+    const groupId = getGroupId(submission)
 
     if (submissionHasGroup(groupId)) {
       return Object.assign({}, getNewUserWizard(vm), { groupId: groupId })
@@ -70,11 +70,11 @@ let ParallelSurvey = (() => {
     return Object.assign({}, getNewGroupWizard(vm), { groupId: groupId })
   }
   function prepareNewGroupObject({ submission, vm, info }) {
-    let groupName = info[0]
-    let participantName = info[1]
-    let nextParticipant = info[2]
+    const groupName = info[0]
+    const participantName = info[1]
+    const nextParticipant = info[2]
     // Format the parallelSurvey object
-    let parallelSurvey = {
+    const parallelSurvey = {
       groupId: Id.uuid(),
       groupName: groupName,
       participantName: participantName,
@@ -86,7 +86,7 @@ let ParallelSurvey = (() => {
       Submission().setParallelSurvey(parallelSurvey)
 
     // New survey Information
-    let surveyData = {
+    const surveyData = {
       parallelSurvey: Submission().setParallelSurvey({
         ...parallelSurvey,
         participantName: nextParticipant
@@ -97,12 +97,12 @@ let ParallelSurvey = (() => {
   }
 
   function prepareNewUserObject({ submission, info }) {
-    let participantName = info[0]
-    let parallelsurveyInfo = Submission().getParallelSurvey(submission)
+    const participantName = info[0]
+    const parallelsurveyInfo = Submission().getParallelSurvey(submission)
 
     parallelsurveyInfo.participantName = participantName
     // New survey Information
-    let surveyData = {
+    const surveyData = {
       parallelSurvey: Submission().setParallelSurvey(parallelsurveyInfo)
     }
 
@@ -110,7 +110,7 @@ let ParallelSurvey = (() => {
   }
 
   async function createNewSurvey({ submission, vm, info }) {
-    let groupId = getGroupId(submission)
+    const groupId = getGroupId(submission)
 
     if (submissionHasGroup(groupId)) {
       return prepareNewUserObject({ submission, vm, info })

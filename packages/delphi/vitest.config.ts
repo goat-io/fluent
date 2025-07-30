@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
@@ -8,8 +8,8 @@ export default defineConfig({
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true,
-      },
+        singleFork: true
+      }
     },
     coverage: {
       provider: 'v8',
@@ -19,21 +19,21 @@ export default defineConfig({
         'dist/',
         '**/*.d.ts',
         '**/*.config.*',
-        '**/mockData.ts',
+        '**/mockData.ts'
       ],
       thresholds: {
         global: {
           statements: 90,
           branches: 90,
           functions: 90,
-          lines: 90,
-        },
-      },
+          lines: 90
+        }
+      }
     },
     testTimeout: 30000,
-    hookTimeout: 30000,
+    hookTimeout: 30000
   },
   resolve: {
-    extensions: ['.js', '.ts', '.json'],
-  },
-});
+    extensions: ['.js', '.ts', '.json']
+  }
+})

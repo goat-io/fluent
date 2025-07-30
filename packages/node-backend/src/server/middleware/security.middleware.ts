@@ -1,7 +1,7 @@
 import type { CorsOptions } from 'cors'
-import type { HelmetOptions } from 'helmet'
 import type { RateLimitRequestHandler } from 'express-rate-limit'
 import rateLimit from 'express-rate-limit'
+import type { HelmetOptions } from 'helmet'
 
 /**
  * Get CORS configuration based on environment
@@ -132,7 +132,7 @@ export function createAuthRateLimiter(): RateLimitRequestHandler {
  */
 export function createApiRateLimiter(): RateLimitRequestHandler {
   const maxRequests = process.env.API_RATE_LIMIT
-    ? parseInt(process.env.API_RATE_LIMIT, 10)
+    ? Number.parseInt(process.env.API_RATE_LIMIT, 10)
     : 100
 
   return createRateLimiter({

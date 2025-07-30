@@ -1,4 +1,4 @@
-import { AnyObject, InstanceId } from "../types"
+import { AnyObject, InstanceId } from '../types'
 
 /**
  * @returns
@@ -13,7 +13,10 @@ export function getMethodSignature(ctx: any, keyStr: string): string {
 /**
  * @returns `NameOfYourClass.methodName`
  */
-export function getTargetMethodSignature(target: AnyObject, keyStr: string): string {
+export function getTargetMethodSignature(
+  target: AnyObject,
+  keyStr: string
+): string {
   return `${target.constructor.name}.${keyStr}`
 }
 
@@ -24,11 +27,14 @@ export function getTargetMethodSignature(target: AnyObject, keyStr: string): str
  * a, b, c
  */
 export function getArgsSignature(args: any[] = [], logArgs = true): string {
-  if (!logArgs) return ''
+  if (!logArgs) {
+    return ''
+  }
 
   return args
     .map(arg => {
-      const s = arg && typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+      const s =
+        arg && typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
 
       return s.length > 30 ? '...' : s
     })

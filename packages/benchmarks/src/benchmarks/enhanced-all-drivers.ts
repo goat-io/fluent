@@ -1,21 +1,20 @@
 #!/usr/bin/env node
-import chalk from 'chalk'
-import { performance } from 'perf_hooks'
-import { GenericContainer, StartedTestContainer } from 'testcontainers'
-import * as mysql from 'mysql2'
-import * as mysqlPromise from 'mysql2/promise'
-import { PrismaClient } from '@prisma/client'
-import { Kysely, MysqlDialect } from 'kysely'
-import { createPool } from 'mysql2'
-import { drizzle } from 'drizzle-orm/mysql2'
-import * as schema from '../database/drizzle-schema'
-import { and, eq, gt, sql as drizzleSql } from 'drizzle-orm'
-import { sql } from 'kysely'
-import knex, { Knex } from 'knex'
-import { DataSource } from 'typeorm'
-import { Sequelize } from 'sequelize'
+import { performance } from 'node:perf_hooks'
 import { MikroORM } from '@mikro-orm/core'
 import { MySqlDriver } from '@mikro-orm/mysql'
+import { PrismaClient } from '@prisma/client'
+import chalk from 'chalk'
+import { and, sql as drizzleSql, eq, gt } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/mysql2'
+import knex from 'knex'
+import { Kysely, MysqlDialect } from 'kysely'
+import * as mysql from 'mysql2'
+import { createPool } from 'mysql2'
+import * as mysqlPromise from 'mysql2/promise'
+import { Sequelize } from 'sequelize'
+import { GenericContainer, StartedTestContainer } from 'testcontainers'
+import { DataSource } from 'typeorm'
+import * as schema from '../database/drizzle-schema'
 import 'reflect-metadata'
 import { OLTP_WORKLOAD } from './transaction-types'
 
@@ -41,34 +40,51 @@ interface TestResult {
 export class EnhancedAllDriversBenchmark {
   private mysqlContainer!: StartedTestContainer
   private connections: Map<string, any> = new Map()
-  private insertCounter = 0
 
   private readonly TEST_DURATION: number
   private readonly THINK_TIME = process.env.THINK_TIME === 'true'
-  
+
   constructor() {
     // Parse time parameter from command line arguments
     const args = process.argv.slice(2)
     const timeArg = args.find(arg => arg.startsWith('--time='))
     const helpArg = args.find(arg => arg === '--help' || arg === '-h')
-    
+
     if (helpArg) {
       console.log(chalk.blue('🚀 Enhanced Database Benchmark - All Drivers\n'))
       console.log(chalk.white('Usage: pnpm benchmark [options]\n'))
       console.log(chalk.white('Options:'))
-      console.log(chalk.gray('  --time=<seconds>  Set test duration per driver (default: 10)'))
+      console.log(
+        chalk.gray(
+          '  --time=<seconds>  Set test duration per driver (default: 10)'
+        )
+      )
       console.log(chalk.gray('  --help, -h        Show this help message\n'))
       console.log(chalk.white('Examples:'))
-      console.log(chalk.gray('  pnpm benchmark                    # Run with default 10 seconds'))
-      console.log(chalk.gray('  pnpm benchmark -- --time=5        # Run for 5 seconds per driver'))
-      console.log(chalk.gray('  pnpm benchmark -- --time=30       # Run for 30 seconds per driver'))
+      console.log(
+        chalk.gray(
+          '  pnpm benchmark                    # Run with default 10 seconds'
+        )
+      )
+      console.log(
+        chalk.gray(
+          '  pnpm benchmark -- --time=5        # Run for 5 seconds per driver'
+        )
+      )
+      console.log(
+        chalk.gray(
+          '  pnpm benchmark -- --time=30       # Run for 30 seconds per driver'
+        )
+      )
       process.exit(0)
     }
-    
+
     if (timeArg) {
-      const timeValue = parseInt(timeArg.split('=')[1], 10)
-      if (isNaN(timeValue) || timeValue <= 0) {
-        console.error(chalk.red('Invalid time value. Using default of 10 seconds.'))
+      const timeValue = Number.parseInt(timeArg.split('=')[1], 10)
+      if (Number.isNaN(timeValue) || timeValue <= 0) {
+        console.error(
+          chalk.red('Invalid time value. Using default of 10 seconds.')
+        )
         this.TEST_DURATION = 10000
       } else {
         this.TEST_DURATION = timeValue * 1000 // Convert to milliseconds
@@ -177,7 +193,7 @@ export class EnhancedAllDriversBenchmark {
       const tx = this.selectTransaction()
       try {
         await transactions[tx.name]()
-      } catch (error) {
+      } catch (_error) {
         // Ignore warmup errors
       }
     }
@@ -204,7 +220,7 @@ export class EnhancedAllDriversBenchmark {
         latencies.push(opEnd - opStart)
         transactionCounts[tx.name]++
         totalOps++
-      } catch (error) {
+      } catch (_error) {
         errors++
       }
 
@@ -247,7 +263,9 @@ export class EnhancedAllDriversBenchmark {
 
     for (const tx of transactions) {
       random -= tx.weight
-      if (random <= 0) return tx
+      if (random <= 0) {
+        return tx
+      }
     }
 
     return transactions[0]
@@ -1047,7 +1065,7 @@ export class EnhancedAllDriversBenchmark {
         await connection.$connect()
         break
 
-      case 'Kysely':
+      case 'Kysely': {
         const dialect = new MysqlDialect({
           pool: createPool({
             host: this.mysqlContainer.getHost(),
@@ -1060,8 +1078,9 @@ export class EnhancedAllDriversBenchmark {
         })
         connection = new Kysely<Database>({ dialect })
         break
+      }
 
-      case 'Drizzle':
+      case 'Drizzle': {
         const pool = createPool({
           host: this.mysqlContainer.getHost(),
           port: this.mysqlContainer.getMappedPort(3306),
@@ -1072,8 +1091,9 @@ export class EnhancedAllDriversBenchmark {
         })
         connection = drizzle(pool, { schema, mode: 'default' })
         break
+      }
 
-      case 'Prisma+Kysely':
+      case 'Prisma+Kysely': {
         const basePrisma = new PrismaClient({
           datasources: {
             db: {
@@ -1106,8 +1126,9 @@ export class EnhancedAllDriversBenchmark {
 
         await connection.$connect()
         break
+      }
 
-      case 'TypeORM':
+      case 'TypeORM': {
         const { User, Product, Category, Order, OrderItem, Review } =
           await import('../database/typeorm-entities')
         connection = new DataSource({
@@ -1124,8 +1145,9 @@ export class EnhancedAllDriversBenchmark {
         })
         await connection.initialize()
         break
+      }
 
-      case 'Sequelize':
+      case 'Sequelize': {
         connection = new Sequelize({
           dialect: 'mysql',
           host: this.mysqlContainer.getHost(),
@@ -1142,8 +1164,9 @@ export class EnhancedAllDriversBenchmark {
         )
         initSequelizeModels(connection)
         break
+      }
 
-      case 'MikroORM':
+      case 'MikroORM': {
         const {
           User: MikroUser,
           Product: MikroProduct,
@@ -1171,6 +1194,7 @@ export class EnhancedAllDriversBenchmark {
           debug: false
         })
         break
+      }
 
       default:
         throw new Error(`Unknown driver: ${driver}`)
@@ -1211,7 +1235,7 @@ export class EnhancedAllDriversBenchmark {
             await connection.close()
             break
         }
-      } catch (error) {
+      } catch (_error) {
         // Ignore cleanup errors
       }
     }

@@ -1,9 +1,9 @@
-import axios from 'axios'
-import Configuration from './Configuration'
-import Utilities from '../utilities'
-import { Fluent } from '../fluent'
-import Connection from '../Wrappers/Connection'
 import to from 'await-to-js'
+import axios from 'axios'
+import { Fluent } from '../fluent'
+import Utilities from '../utilities'
+import Connection from '../Wrappers/Connection'
+import Configuration from './Configuration'
 import Form from './Form'
 
 export default Fluent.model({
@@ -18,12 +18,12 @@ export default Fluent.model({
   },
   methods: {
     async storeLocally(user) {
-      let localUser = await this.local()
+      const localUser = await this.local()
         .where('data.email', '=', user.data.email)
         .first()
 
-      user = Utilities.deleteNulls(user)
-      let isUserAlreadyStored = !!localUser && !Utilities.isEmpty(localUser)
+      const cleanedUser = Utilities.deleteNulls(user)
+      const isUserAlreadyStored = !!localUser && !Utilities.isEmpty(localUser)
 
       //  check if user is already present in local storage
       if (isUserAlreadyStored) {
@@ -31,8 +31,8 @@ export default Fluent.model({
       }
 
       if (Connection.isOnline()) {
-        let [error, onlineUser] = await to(
-          Form.getModel({ path: 'userregister' }).remote().insert(user)
+        const [error, onlineUser] = await to(
+          Form.getModel({ path: 'userregister' }).remote().insert(cleanedUser)
         )
 
         if (error) {
@@ -41,10 +41,10 @@ export default Fluent.model({
         return this.local().insert(onlineUser)
       }
 
-      return this.local().insert(user)
+      return this.local().insert(cleanedUser)
     },
     async updateUser(user) {
-      let localUser = await this.local()
+      const localUser = await this.local()
         .where('data.email', '=', user.data.email)
         .pluck('_id')
 
@@ -52,25 +52,25 @@ export default Fluent.model({
         await this.local().remove(_id)
       })
 
-      user = Utilities.deleteNulls(user)
+      const cleanedUser = Utilities.deleteNulls(user)
 
-      return this.local().insert(user)
+      return this.local().insert(cleanedUser)
     },
     async login({ credentials, role }) {
       let url = (await Configuration.local().first()).APP_URL
 
       if (role === 'admin') {
-        url = url + '/admin/login'
+        url = `${url}/admin/login`
       } else {
-        url = url + '/user/login'
+        url = `${url}/user/login`
       }
       return axios.post(url, {
         data: credentials
       })
     },
     async loopbackLogin({ credentials }) {
-      let url = (await Configuration.local().first()).LOOPBACK_URL
-      delete credentials.username
+      const url = (await Configuration.local().first()).LOOPBACK_URL
+      credentials.username = undefined
       return axios.post(`${url}users/login`, {
         email: credentials.email,
         password: credentials.password

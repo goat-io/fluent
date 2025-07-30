@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it } from 'vitest'
 // pnpm test Http.spec.ts
 
 import { Http } from './Http'

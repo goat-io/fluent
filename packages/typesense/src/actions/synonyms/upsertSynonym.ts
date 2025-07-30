@@ -1,5 +1,9 @@
-import type { TypesenseSynonym, TypesenseSynonymResponse, TypesenseCollectionOptions } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseSynonym,
+  TypesenseSynonymResponse
+} from '../../typesense.model'
 
 export async function upsertSynonym(
   ctx: TypesenseContext,

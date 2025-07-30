@@ -21,7 +21,9 @@ const REGEX_CACHE = {
   xxReplace: /XX/g
 }
 
-export const extractMetadataFromKeys = (keys: string[]): KeysMetadataResponse => {
+export const extractMetadataFromKeys = (
+  keys: string[]
+): KeysMetadataResponse => {
   // Example of a key
   // Level 0:
   //    users__id
@@ -75,8 +77,9 @@ export const extractMetadataFromKeys = (keys: string[]): KeysMetadataResponse =>
       relation,
       parentRelation,
       level,
-      cardinality:
-        cardinality && cardinality.replace(REGEX_CACHE.xxReplace, '').replace(REGEX_CACHE.tripleSep, '')
+      cardinality: cardinality
+        ?.replace(REGEX_CACHE.xxReplace, '')
+        .replace(REGEX_CACHE.tripleSep, '')
     }
   }
 

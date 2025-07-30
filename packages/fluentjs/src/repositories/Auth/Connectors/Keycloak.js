@@ -1,7 +1,5 @@
-import stampit from '@stamp/it'
-import qs from 'qs'
 import btoa from 'btoa'
-import axios from 'axios'
+import qs from 'qs'
 import AuthInterface from '../AuthInterface'
 
 export default AuthInterface.compose({
@@ -21,13 +19,15 @@ export default AuthInterface.compose({
   },
   methods: {
     checkUrl() {
-      if (this.url.baseUrl) return this.url.baseUrl
+      if (this.url.baseUrl) {
+        return this.url.baseUrl
+      }
 
       throw new Error('No url found for Keycloak connector')
     },
     async logout() {
       const url = `${this.url.baseUrl}${this.url.loginUrl}`
-      const result = await fetch(url, {
+      const _result = await fetch(url, {
         method: 'POST',
         body: qs.stringify({
           client_id: this.serviceAccount.clientId,
@@ -66,7 +66,7 @@ export default AuthInterface.compose({
       const auth = btoa(
         `${this.serviceAccount.clientId}:${this.serviceAccount.secretId}`
       )
-      let query = await fetch(url, {
+      const query = await fetch(url, {
         method: 'POST',
         body: qs.stringify({
           grant_type: 'client_credentials'
@@ -82,7 +82,7 @@ export default AuthInterface.compose({
       localStorage.setItem('token', result.access_token)
       localStorage.setItem('refreshToken', result.refresh_token)
     },
-    async attempt(credentials, role) {
+    async attempt(_credentials, _role) {
       console.log(this.url)
       await this.loginServiceAccount()
 

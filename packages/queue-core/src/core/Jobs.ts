@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events'
-import Worker from 'cluster'
+import Worker from 'node:cluster'
+import { EventEmitter } from 'node:events'
 import { Job, Scheduler } from '../types/job'
 
 export class Jobs {
@@ -17,11 +17,13 @@ export class Jobs {
 }
 
 class MyDummyScheduler implements Scheduler {
-  async schedule(props: Job): Promise<void> {
+  async schedule(_props: Job): Promise<void> {
     console.log('here')
   }
 
-  async myCustomFunction() {}
+  async myCustomFunction() {
+    // Implementation needed
+  }
 }
 
 const myScheduler = new MyDummyScheduler()

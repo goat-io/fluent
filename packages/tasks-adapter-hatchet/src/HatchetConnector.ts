@@ -60,7 +60,7 @@ export class HatchetConnector implements TaskConnector<object> {
   getHatchetTask(task: ShouldQueue) {
     return this.getHatchetClient().task({
       name: task.taskName,
-      retries: task['retries'] || 3,
+      retries: task.retries || 3,
       fn: task.handle.bind(this)
     })
   }
@@ -76,7 +76,7 @@ export class HatchetConnector implements TaskConnector<object> {
   }) {
     // Pre-map workflows to avoid repeated processing
     const workflows = tasks.map(task => this.getHatchetTask(task))
-    
+
     const worker = await this.getHatchetClient().worker(
       `${workerName}-${Ids.nanoId(5)}`,
       {
@@ -104,7 +104,7 @@ export class HatchetConnector implements TaskConnector<object> {
     // Extract values once
     const input = data.input as any
     const taskName = data.actionId.split(':')[0] || ''
-    
+
     return {
       id,
       attempts: data.attempt || 1,

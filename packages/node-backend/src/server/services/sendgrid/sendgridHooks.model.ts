@@ -14,7 +14,7 @@ export enum SendgridEventType {
   open = 'open',
   click = 'click',
   unsubscribe = 'unsubscribe',
-  spamreport = 'spamreport',
+  spamreport = 'spamreport'
 }
 
 export interface SendgridEvent {

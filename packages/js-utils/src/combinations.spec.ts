@@ -1,5 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Combination } from './Combinations'
+import { describe, expect, it } from 'vitest'
+import {
+  Combination,
+  combination,
+  factorial,
+  permutation
+} from './Combinations'
 
 describe('Combinations', () => {
   it('should create combinations of given size', () => {
@@ -53,5 +58,19 @@ describe('Combinations', () => {
     const c = new Combination([1, 2, 3, 4, 5], 2)
     const results = Array.from(c)
     expect(results.length).toBe(10)
+  })
+
+  it('should handle BigInt/number operations correctly', () => {
+    // Test basic mathematical functions with different input types
+    expect(factorial(5)).toBe(120)
+    expect(factorial(BigInt(5))).toBe(120)
+    expect(permutation(5, 3)).toBe(60)
+    expect(permutation(BigInt(5), BigInt(3))).toBe(60)
+    expect(combination(5, 3)).toBe(10)
+    expect(combination(BigInt(5), BigInt(3))).toBe(10)
+
+    // Test mixed number/bigint operations
+    expect(permutation(5, BigInt(3))).toBe(60)
+    expect(combination(BigInt(5), 3)).toBe(10)
   })
 })

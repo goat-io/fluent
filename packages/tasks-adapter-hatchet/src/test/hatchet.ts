@@ -1,5 +1,4 @@
-import { GenericContainer, StartedNetwork } from 'testcontainers'
-import { Wait } from 'testcontainers'
+import { GenericContainer, StartedNetwork, Wait } from 'testcontainers'
 
 export const getHatchetContainer = ({
   postgresConnectionString,

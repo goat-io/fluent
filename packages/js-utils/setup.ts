@@ -1,5 +1,5 @@
 // Add polyfills for Node.js globals in jsdom environment
-import { TextEncoder, TextDecoder } from 'util'
+import { TextDecoder, TextEncoder } from 'node:util'
 
 if (typeof globalThis.TextEncoder === 'undefined') {
   globalThis.TextEncoder = TextEncoder
@@ -17,5 +17,3 @@ if (typeof globalThis.fetch === 'undefined') {
   globalThis.Request = Request
   globalThis.Response = Response
 }
-
-export {}

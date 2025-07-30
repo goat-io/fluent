@@ -1,4 +1,4 @@
-import { FormioForm } from '../../../../types/FormioForm'
+import type { FormioForm } from '../../../../types/FormioForm'
 
 export const BasicForms: FormioForm[] = ((): FormioForm[] => [
   {
@@ -1816,6 +1816,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         properties: {},
         lockKey: true,
         calculateValue:
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: <formio does it like that>
           'value = `${data.country}_${data.provider}_${data.product}`;',
         mask: false,
         tabindex: 'admin@example.com'

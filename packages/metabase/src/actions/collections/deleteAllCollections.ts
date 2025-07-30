@@ -4,7 +4,7 @@ import { deleteCollection } from './deleteCollection'
 export async function deleteAllCollections({
   baseUrl,
   sessionToken,
-  apiKey,
+  apiKey
 }: {
   baseUrl: string
   sessionToken?: string
@@ -16,13 +16,13 @@ export async function deleteAllCollections({
     sessionToken,
     apiKey,
     endpoint: '/api/collection',
-    method: 'GET',
+    method: 'GET'
   })
 
   if (!collectionsRes.ok) {
     console.error(
       '❌ Failed to fetch collections:',
-      await collectionsRes.text(),
+      await collectionsRes.text()
     )
     throw new Error(`Failed to fetch collections from ${baseUrl}`)
   }
@@ -39,7 +39,7 @@ export async function deleteAllCollections({
         sessionToken,
         apiKey,
         baseUrl,
-        collectionId: Number(col.id),
+        collectionId: Number(col.id)
       })
     }
   }

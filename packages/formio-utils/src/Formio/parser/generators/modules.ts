@@ -1,9 +1,9 @@
 import { compile } from 'handlebars'
 import { join } from 'path'
 import { FluentModel } from '../../types/FluentModel'
+import { SupportedFrameworks } from '../parse'
 import { template as loopback } from './templates/Loopback4/modules/modules.hbs'
 import { template as nestModule } from './templates/Nestjs/modules/module.hbs'
-import { SupportedFrameworks } from '../parse'
 
 const FrameworkTemplates = {
   Loopback4: loopback,

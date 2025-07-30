@@ -11,10 +11,10 @@
     "nohoist": []
   },
   "scripts": {
-    "build": "turbo run build --filter=!@goatlab/fluent --filter=!@goatlab/queue-node --filter=!@goatlab/ts-package-template",
+    "build": "pnpm lint && turbo run build",
     "dev": "turbo run dev --parallel",
-    "test": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/ts-package-template --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase",
-    "test-ci": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/ts-package-template --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase --filter=!@goatlab/tasks-adapter-gcp",
+    "test": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase",
+    "test-ci": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase --filter=!@goatlab/tasks-adapter-gcp",
     "lint": "turbo run lint",
     "cs": "changeset",
     "cs:version": "changeset version",
@@ -31,6 +31,7 @@
     "@changesets/cli": "^2.29.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.1.3",
     "turbo": "^2.5.5",
     "typescript": "^5.8.3"
   },

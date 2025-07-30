@@ -1,20 +1,24 @@
+import axios from 'axios'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import jwtDecode from 'jwt-decode'
-import Utilities from './Utilities'
-import axios from 'axios'
-import { Interface, Event } from '../../fluent'
-import Connection from './Wrapers/Connection'
+import { Event, Interface } from '../../fluent'
 import AuthenticationError from './Errors/AuthenticationError'
+import Utilities from './Utilities'
+import Connection from './Wrapers/Connection'
 
 dayjs.extend(isSameOrAfter)
 
 export default Interface.compose({
   methods: {
     getToken() {
-      if (typeof localStorage === 'undefined') return
+      if (typeof localStorage === 'undefined') {
+        return
+      }
       const token = localStorage.getItem('formioToken')
-      if (!token || this.getTokenType(token) === 'x-jwt-token') return token
+      if (!token || this.getTokenType(token) === 'x-jwt-token') {
+        return token
+      }
 
       const decodedToken = jwtDecode(token)
       const expDate = dayjs.unix(decodedToken.exp)
@@ -45,7 +49,7 @@ export default Interface.compose({
 
       let result = await this.httpGET()
 
-      result = this.jsApplySelect(result && result.data)
+      result = this.jsApplySelect(result?.data)
       result = this.jsApplyOrderBy(result)
 
       return result
@@ -55,13 +59,13 @@ export default Interface.compose({
     },
     async numberOfRows() {
       let url = this.getUrl()
-      let headers = this.getHeaders()
-      let filters = this.getFilters()
-      let limit = '?limit=1'
-      let skip = this.getSkip()
-      let order = this.getOrder()
-      let select = this.getSelect()
-      let spacer = ''
+      const headers = this.getHeaders()
+      const filters = this.getFilters()
+      const limit = '?limit=1'
+      const skip = this.getSkip()
+      const order = this.getOrder()
+      const select = this.getSelect()
+      const spacer = ''
 
       url = url + spacer + limit
       url = filters ? url + this.getSpacer(url) + filters : url
@@ -127,7 +131,7 @@ export default Interface.compose({
           'Clear() method will delete everything!, you must set the "sure" parameter "clear({sure:true})" to continue'
         )
       }
-      let promises = []
+      const promises = []
 
       const data = await this.select('_id').pluck('_id')
 
@@ -179,7 +183,7 @@ export default Interface.compose({
       return baseUrl
     },
     getHeaders() {
-      let headers = {}
+      const headers = {}
       let token = {}
       if (typeof localStorage !== 'undefined') {
         token = this.getToken()
@@ -193,7 +197,7 @@ export default Interface.compose({
         return headers
       }
 
-      let type = this.getTokenType(token)
+      const type = this.getTokenType(token)
       headers[type] = token
       return headers
     },
@@ -202,13 +206,13 @@ export default Interface.compose({
     },
     async httpGET() {
       let url = this.getUrl()
-      let headers = this.getHeaders()
-      let filters = this.getFilters()
-      let limit = this.getLimit()
-      let skip = this.getSkip()
-      let order = this.getOrder()
-      let select = this.getSelect()
-      let spacer = ''
+      const headers = this.getHeaders()
+      const filters = this.getFilters()
+      const limit = this.getLimit()
+      const skip = this.getSkip()
+      const order = this.getOrder()
+      const select = this.getSelect()
+      const spacer = ''
 
       // Always limit the amount of requests
       url = url + spacer + limit
@@ -230,8 +234,8 @@ export default Interface.compose({
       return axios.get(url, { headers })
     },
     async httpPOST(data) {
-      let url = this.getUrl()
-      let headers = this.getHeaders()
+      const url = this.getUrl()
+      const headers = this.getHeaders()
       const isOnline = await Connection.isOnline()
 
       if (!isOnline) {
@@ -241,8 +245,8 @@ export default Interface.compose({
     },
     async httpPUT(data) {
       const isOnline = await Connection.isOnline()
-      let url = `${this.getUrl()}/${data._id}`
-      let headers = this.getHeaders()
+      const url = `${this.getUrl()}/${data._id}`
+      const headers = this.getHeaders()
 
       if (!isOnline) {
         throw new Error(`Cannot make request post to ${url}.You are not online`)
@@ -250,8 +254,8 @@ export default Interface.compose({
       return axios.put(url, data, { headers })
     },
     httpDelete(_id) {
-      let headers = this.getHeaders()
-      let url = `${this.getUrl()}/${_id}`
+      const headers = this.getHeaders()
+      const url = `${this.getUrl()}/${_id}`
 
       return axios.delete(url, { headers })
     },
@@ -262,7 +266,7 @@ export default Interface.compose({
       return 'x-token'
     },
     getFilters() {
-      let filter = this.whereArray
+      const filter = this.whereArray
 
       if (!filter || filter.length === 0) {
         return undefined
@@ -272,28 +276,28 @@ export default Interface.compose({
 
       filter.forEach(condition => {
         let valueString = ''
-        let element = condition[0]
-        let operator = condition[1]
-        let value = condition[2]
+        const element = condition[0]
+        const operator = condition[1]
+        const value = condition[2]
 
         switch (operator) {
           case '=':
-            filterQuery = filterQuery + element + '=' + value + '&'
+            filterQuery = `${filterQuery + element}=${value}&`
             break
           case '!=':
-            filterQuery = filterQuery + element + '__ne=' + value + '&'
+            filterQuery = `${filterQuery + element}__ne=${value}&`
             break
           case '>':
-            filterQuery = filterQuery + element + '__gt=' + value + '&'
+            filterQuery = `${filterQuery + element}__gt=${value}&`
             break
           case '>=':
-            filterQuery = filterQuery + element + '__gte=' + value + '&'
+            filterQuery = `${filterQuery + element}__gte=${value}&`
             break
           case '<':
-            filterQuery = filterQuery + element + '__lt=' + value + '&'
+            filterQuery = `${filterQuery + element}__lt=${value}&`
             break
           case '<=':
-            filterQuery = filterQuery + element + '__lte=' + value + '&'
+            filterQuery = `${filterQuery + element}__lte=${value}&`
             break
           case 'in':
             valueString = ''
@@ -301,9 +305,9 @@ export default Interface.compose({
               valueString =
                 index === array.length - 1
                   ? valueString + val
-                  : valueString + val + ','
+                  : `${valueString + val},`
             })
-            filterQuery = filterQuery + element + '__in=' + valueString + '&'
+            filterQuery = `${filterQuery + element}__in=${valueString}&`
             break
           case 'nin':
             valueString = ''
@@ -311,25 +315,25 @@ export default Interface.compose({
               valueString =
                 index === array.length - 1
                   ? valueString + val
-                  : valueString + val + ','
+                  : `${valueString + val},`
             })
-            filterQuery = filterQuery + element + '__nin=' + valueString + '&'
+            filterQuery = `${filterQuery + element}__nin=${valueString}&`
             break
           case 'exists':
-            filterQuery = filterQuery + element + '__exists=' + true + '&'
+            filterQuery = `${filterQuery + element}__exists=${true}&`
             break
           case '!exists':
-            filterQuery = filterQuery + element + '__exists=' + false + '&'
+            filterQuery = `${filterQuery + element}__exists=${false}&`
             break
           case 'regex':
-            filterQuery = filterQuery + element + '__regex=' + value + '&'
+            filterQuery = `${filterQuery + element}__regex=${value}&`
             break
         }
       })
       return filterQuery.substring(0, filterQuery.length - 1)
     },
     getLimit() {
-      let limit = '?limit='
+      const limit = '?limit='
 
       if (!this.limitNumber || this.limitNumber === 0) {
         this.limitNumber = 50
@@ -338,7 +342,7 @@ export default Interface.compose({
       return `${limit}${this.limitNumber}`
     },
     getSkip() {
-      let skip = 'skip='
+      const skip = 'skip='
 
       if (!this.offsetNumber) {
         this.offsetNumber = 0
@@ -347,7 +351,7 @@ export default Interface.compose({
       return skip + this.offsetNumber
     },
     getOrder() {
-      let order = 'sort='
+      const order = 'sort='
       const or = this.orderByArray[1] === 'DESC' ? '-' : ''
       return order + or + this.orderByArray[0]
     },
@@ -362,7 +366,7 @@ export default Interface.compose({
         return
       }
 
-      return 'select=' + select.join(',')
+      return `select=${select.join(',')}`
     }
   }
 })

@@ -1,34 +1,34 @@
-import { DatabaseConnections } from '../database/connections';
-import { createBenchmarkRunner } from '../core/BenchmarkRunner';
-import { BenchmarkReporter } from '../core/Reporter';
-import { DatabaseConfig, QueryBenchmark } from '../types';
-import { SeedData } from '../setup/seedData';
+import { createBenchmarkRunner } from '../core/BenchmarkRunner'
+import { BenchmarkReporter } from '../core/Reporter'
+import { DatabaseConnections } from '../database/connections'
+import { SeedData } from '../setup/seedData'
+import { DatabaseConfig, QueryBenchmark } from '../types'
 
 export class MySQL2VsPrismaBenchmark {
-  private config: DatabaseConfig;
-  private runner = createBenchmarkRunner();
-  private reporter = new BenchmarkReporter();
+  private config: DatabaseConfig
+  private runner = createBenchmarkRunner()
+  private reporter = new BenchmarkReporter()
 
   constructor(config: DatabaseConfig) {
-    this.config = config;
+    this.config = config
   }
 
   async runBenchmarks(): Promise<void> {
-    console.log('🚀 Starting MySQL2 vs Prisma Benchmark Suite\n');
+    console.log('🚀 Starting MySQL2 vs Prisma Benchmark Suite\n')
 
     // Test connections
-    console.log('🔌 Testing database connections...');
-    const connected = await DatabaseConnections.testConnections(this.config);
+    console.log('🔌 Testing database connections...')
+    const connected = await DatabaseConnections.testConnections(this.config)
     if (!connected) {
-      throw new Error('Failed to connect to database');
+      throw new Error('Failed to connect to database')
     }
-    console.log('✅ Database connections established\n');
+    console.log('✅ Database connections established\n')
 
     // Setup test data
-    console.log('🌱 Setting up test data...');
-    const seeder = new SeedData(this.config);
-    await seeder.seedDatabase(10000);
-    console.log('✅ Test data ready\n');
+    console.log('🌱 Setting up test data...')
+    const seeder = new SeedData(this.config)
+    await seeder.seedDatabase(10000)
+    console.log('✅ Test data ready\n')
 
     // Define benchmark queries
     const queryBenchmarks: QueryBenchmark[] = [
@@ -36,13 +36,13 @@ export class MySQL2VsPrismaBenchmark {
         name: 'Simple Select',
         description: 'SELECT * FROM users LIMIT 100',
         query: 'SELECT * FROM users LIMIT 100',
-        expectedResults: 100,
+        expectedResults: 100
       },
       {
         name: 'Filtered Select',
         description: 'SELECT * FROM users WHERE status = ? AND age > ?',
         query: 'SELECT * FROM users WHERE status = ? AND age > ?',
-        params: ['active', 25],
+        params: ['active', 25]
       },
       {
         name: 'Join Query',
@@ -56,7 +56,7 @@ export class MySQL2VsPrismaBenchmark {
           GROUP BY u.id
           LIMIT 50
         `,
-        params: [],
+        params: []
       },
       {
         name: 'Complex Join',
@@ -72,47 +72,52 @@ export class MySQL2VsPrismaBenchmark {
           ORDER BY avg_rating DESC
           LIMIT 100
         `,
-        params: [],
+        params: []
       },
       {
         name: 'Insert Operation',
         description: 'INSERT INTO users',
-        query: 'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-        params: ['test@example.com', 'Test', 'User', 'active', 30, 'US'],
+        query:
+          'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
+        params: ['test@example.com', 'Test', 'User', 'active', 30, 'US']
       },
       {
         name: 'Update Operation',
         description: 'UPDATE users SET age = ? WHERE id = ?',
         query: 'UPDATE users SET age = ? WHERE id = ?',
-        params: [35, 1],
-      },
-    ];
+        params: [35, 1]
+      }
+    ]
 
     // Run benchmarks for each query
     for (const queryBenchmark of queryBenchmarks) {
-      console.log(`\n📊 Benchmarking: ${queryBenchmark.name}`);
-      await this.runQueryBenchmark(queryBenchmark);
+      console.log(`\n📊 Benchmarking: ${queryBenchmark.name}`)
+      await this.runQueryBenchmark(queryBenchmark)
     }
 
     // Cleanup
-    await DatabaseConnections.closeConnections();
-    console.log('\n✅ Benchmark suite completed!');
+    await DatabaseConnections.closeConnections()
+    console.log('\n✅ Benchmark suite completed!')
   }
 
-  private async runQueryBenchmark(queryBenchmark: QueryBenchmark): Promise<void> {
-    const mysql2Conn = await DatabaseConnections.getMysql2Connection(this.config);
-    const prisma = await DatabaseConnections.getPrismaClient();
+  private async runQueryBenchmark(
+    queryBenchmark: QueryBenchmark
+  ): Promise<void> {
+    const mysql2Conn = await DatabaseConnections.getMysql2Connection(
+      this.config
+    )
+    const prisma = await DatabaseConnections.getPrismaClient()
 
     // MySQL2 benchmark
     const mysql2Result = await this.runner.run(
       async () => {
         if (queryBenchmark.name === 'Simple Select') {
-          await mysql2Conn.execute('SELECT * FROM users LIMIT 100');
+          await mysql2Conn.execute('SELECT * FROM users LIMIT 100')
         } else if (queryBenchmark.name === 'Filtered Select') {
           await mysql2Conn.execute(
             'SELECT * FROM users WHERE status = ? AND age > ?',
             ['active', 25]
-          );
+          )
         } else if (queryBenchmark.name === 'Join Query') {
           await mysql2Conn.execute(`
             SELECT u.id, u.email, u.first_name, u.last_name, 
@@ -122,7 +127,7 @@ export class MySQL2VsPrismaBenchmark {
             WHERE u.status = 'active'
             GROUP BY u.id
             LIMIT 50
-          `);
+          `)
         } else if (queryBenchmark.name === 'Complex Join') {
           await mysql2Conn.execute(`
             SELECT p.id, p.name, p.price, c.name as category_name,
@@ -134,19 +139,19 @@ export class MySQL2VsPrismaBenchmark {
             GROUP BY p.id
             ORDER BY avg_rating DESC
             LIMIT 100
-          `);
+          `)
         } else if (queryBenchmark.name === 'Insert Operation') {
-          const randomId = Math.floor(Math.random() * 1000000);
+          const randomId = Math.floor(Math.random() * 1000000)
           await mysql2Conn.execute(
             'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
             [`test${randomId}@example.com`, 'Test', 'User', 'active', 30, 'US']
-          );
+          )
         } else if (queryBenchmark.name === 'Update Operation') {
-          const randomId = Math.floor(Math.random() * 1000) + 1;
-          await mysql2Conn.execute(
-            'UPDATE users SET age = ? WHERE id = ?',
-            [Math.floor(Math.random() * 50) + 18, randomId]
-          );
+          const randomId = Math.floor(Math.random() * 1000) + 1
+          await mysql2Conn.execute('UPDATE users SET age = ? WHERE id = ?', [
+            Math.floor(Math.random() * 50) + 18,
+            randomId
+          ])
         }
       },
       {
@@ -154,24 +159,24 @@ export class MySQL2VsPrismaBenchmark {
         description: queryBenchmark.description,
         iterations: 1000,
         warmupRuns: 100,
-        concurrency: 1,
+        concurrency: 1
       }
-    );
+    )
 
     // Prisma benchmark
     const prismaResult = await this.runner.run(
       async () => {
         if (queryBenchmark.name === 'Simple Select') {
           await prisma.user.findMany({
-            take: 100,
-          });
+            take: 100
+          })
         } else if (queryBenchmark.name === 'Filtered Select') {
           await prisma.user.findMany({
             where: {
               status: 'active',
-              age: { gt: 25 },
-            },
-          });
+              age: { gt: 25 }
+            }
+          })
         } else if (queryBenchmark.name === 'Join Query') {
           await prisma.user.findMany({
             where: { status: 'active' },
@@ -179,29 +184,29 @@ export class MySQL2VsPrismaBenchmark {
               orders: {
                 select: {
                   id: true,
-                  totalAmount: true,
-                },
-              },
+                  totalAmount: true
+                }
+              }
             },
-            take: 50,
-          });
+            take: 50
+          })
         } else if (queryBenchmark.name === 'Complex Join') {
           await prisma.product.findMany({
             where: { isActive: true },
             include: {
               category: {
-                select: { name: true },
+                select: { name: true }
               },
               reviews: {
                 select: {
-                  rating: true,
-                },
-              },
+                  rating: true
+                }
+              }
             },
-            take: 100,
-          });
+            take: 100
+          })
         } else if (queryBenchmark.name === 'Insert Operation') {
-          const randomId = Math.floor(Math.random() * 1000000);
+          const randomId = Math.floor(Math.random() * 1000000)
           await prisma.user.create({
             data: {
               email: `test${randomId}@example.com`,
@@ -209,15 +214,15 @@ export class MySQL2VsPrismaBenchmark {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US',
-            },
-          });
+              country: 'US'
+            }
+          })
         } else if (queryBenchmark.name === 'Update Operation') {
-          const randomId = Math.floor(Math.random() * 1000) + 1;
+          const randomId = Math.floor(Math.random() * 1000) + 1
           await prisma.user.update({
             where: { id: randomId },
-            data: { age: Math.floor(Math.random() * 50) + 18 },
-          });
+            data: { age: Math.floor(Math.random() * 50) + 18 }
+          })
         }
       },
       {
@@ -225,12 +230,12 @@ export class MySQL2VsPrismaBenchmark {
         description: queryBenchmark.description,
         iterations: 1000,
         warmupRuns: 100,
-        concurrency: 1,
+        concurrency: 1
       }
-    );
+    )
 
     // Display results
-    this.reporter.compareResults([mysql2Result, prismaResult]);
+    this.reporter.compareResults([mysql2Result, prismaResult])
   }
 }
 
@@ -238,16 +243,16 @@ export class MySQL2VsPrismaBenchmark {
 async function main() {
   const config: DatabaseConfig = {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
+    port: Number.parseInt(process.env.DB_PORT || '3306'),
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'benchmark_db',
-  };
+    database: process.env.DB_NAME || 'benchmark_db'
+  }
 
-  const benchmark = new MySQL2VsPrismaBenchmark(config);
-  await benchmark.runBenchmarks();
+  const benchmark = new MySQL2VsPrismaBenchmark(config)
+  await benchmark.runBenchmarks()
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch(console.error)
 }

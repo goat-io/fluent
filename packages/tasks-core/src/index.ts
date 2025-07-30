@@ -1,12 +1,12 @@
 export { ShouldQueue } from './ShouldQueue'
 
 export type {
-  TaskStatusName,
-  JsonValue,
-  JsonObject,
   InputType,
+  JsonObject,
+  JsonValue,
   OutputType,
-  UnknownInputType,
+  TaskConnector,
   TaskStatus,
-  TaskConnector
+  TaskStatusName,
+  UnknownInputType
 } from './ShouldQueue.types'

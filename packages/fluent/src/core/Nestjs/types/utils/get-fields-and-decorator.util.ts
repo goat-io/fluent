@@ -1,13 +1,13 @@
 import 'reflect-metadata'
-import { Type, ClassType } from '../common'
+import { ClassType, Type } from '../common'
 import { ArgsType } from '../decorators/args-type.decorator'
 import { InputType } from '../decorators/input-type.decorator'
 import { InterfaceType } from '../decorators/interface-type.decorator'
 import { UnableToFindFieldsError } from '../errors/unable-to-find-fields.error'
 import { CLASS_TYPE_METADATA } from '../interfaces/add-class-type-metadata.util'
+import { LazyMetadataStorage } from '../lazy-metadata.storage'
 import { ClassMetadata, PropertyMetadata } from '../metadata'
 import { ObjectType } from '../object-type.decorator'
-import { LazyMetadataStorage } from '../lazy-metadata.storage'
 import { TypeMetadataStorage } from '../type-metadata.storage'
 
 export function getFieldsAndDecoratorForType<T>(objType: Type<T>) {
@@ -17,7 +17,7 @@ export function getFieldsAndDecoratorForType<T>(objType: Type<T>) {
     throw new UnableToFindFieldsError(objType.name)
   }
 
-  LazyMetadataStorage.load([objType], {
+  LazyMetadataStorage.load([objType as unknown as (...args: any[]) => any], {
     skipFieldLazyMetadata: true
   })
 
@@ -51,22 +51,22 @@ function getClassMetadataAndFactoryByTargetAndType(
   objType: Type<unknown>
 ): MetadataAndFactoryTuple {
   switch (classType) {
-    case ClassType.ARGS:
+    case ClassType.Args:
       return [
         TypeMetadataStorage.getArgumentsMetadataByTarget(objType),
         ArgsType
       ]
-    case ClassType.OBJECT:
+    case ClassType.Object:
       return [
         TypeMetadataStorage.getObjectTypeMetadataByTarget(objType),
         ObjectType
       ]
-    case ClassType.INPUT:
+    case ClassType.Input:
       return [
         TypeMetadataStorage.getInputTypeMetadataByTarget(objType),
         InputType
       ]
-    case ClassType.INTERFACE:
+    case ClassType.Interface:
       return [
         TypeMetadataStorage.getInterfaceMetadataByTarget(objType),
         InterfaceType
@@ -87,7 +87,7 @@ function inheritClassFields(
       parentClass as Type<unknown>
     )
     return inheritClassFields(parentClass, [...parentFields, ...fields])
-  } catch (err) {
+  } catch (_err) {
     return fields
   }
 }

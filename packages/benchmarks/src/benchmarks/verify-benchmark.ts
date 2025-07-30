@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import { MySqlContainer } from '@testcontainers/mysql'
 import { PrismaClient } from '@prisma/client'
-import mysql from 'mysql2/promise'
+import { MySqlContainer } from '@testcontainers/mysql'
 import chalk from 'chalk'
-import { Kysely, MysqlDialect, sql } from 'kysely'
-import { createPool } from 'mysql2'
+import { and, eq, gt } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/mysql2'
-import { eq, gt, and, sql as drizzleSql } from 'drizzle-orm'
+import { Kysely, MysqlDialect } from 'kysely'
+import { createPool } from 'mysql2'
+import mysql from 'mysql2/promise'
 import * as schema from '../database/drizzle-schema'
 
 // Kysely database interface
@@ -53,7 +53,7 @@ interface Database {
 
 async function main() {
   console.log(chalk.bold.blue('\n🔍 Database Query Verification Test\n'))
-  
+
   // Start MySQL container
   console.log(chalk.yellow('Starting MySQL container...'))
   const mysqlContainer = await new MySqlContainer('mysql:8.0')
@@ -66,23 +66,23 @@ async function main() {
 
   const host = mysqlContainer.getHost()
   const port = mysqlContainer.getMappedPort(3306)
-  
+
   // Setup connections
   const mysql2Connection = await mysql.createConnection({
     host,
     port,
     user: 'benchmark_user',
     password: 'benchmark_pass',
-    database: 'benchmark_db',
+    database: 'benchmark_db'
   })
 
   const prismaClient = new PrismaClient({
     datasources: {
       db: {
-        url: `mysql://benchmark_user:benchmark_pass@${host}:${port}/benchmark_db`,
-      },
+        url: `mysql://benchmark_user:benchmark_pass@${host}:${port}/benchmark_db`
+      }
     },
-    log: ['query'],
+    log: ['query']
   })
 
   const pool = createPool({
@@ -90,11 +90,11 @@ async function main() {
     port,
     user: 'benchmark_user',
     password: 'benchmark_pass',
-    database: 'benchmark_db',
+    database: 'benchmark_db'
   })
 
   const kyselyDb = new Kysely<Database>({
-    dialect: new MysqlDialect({ pool }),
+    dialect: new MysqlDialect({ pool })
   })
 
   const drizzleDb = drizzle(pool, { schema, mode: 'default' })
@@ -130,7 +130,7 @@ async function main() {
       'US'
     ])
   }
-  
+
   const placeholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
   await mysql2Connection.execute(
     `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
@@ -144,7 +144,9 @@ async function main() {
   console.log(chalk.grey('Expected: Each DB should return 50 users\n'))
 
   // MySQL2
-  const [mysql2Simple] = await mysql2Connection.execute('SELECT * FROM users LIMIT 50')
+  const [mysql2Simple] = await mysql2Connection.execute(
+    'SELECT * FROM users LIMIT 50'
+  )
   console.log(`MySQL2: Retrieved ${(mysql2Simple as any[]).length} records`)
 
   // Prisma
@@ -152,7 +154,11 @@ async function main() {
   console.log(`Prisma: Retrieved ${prismaSimple.length} records`)
 
   // Kysely
-  const kyselySimple = await kyselyDb.selectFrom('users').selectAll().limit(50).execute()
+  const kyselySimple = await kyselyDb
+    .selectFrom('users')
+    .selectAll()
+    .limit(50)
+    .execute()
   console.log(`Kysely: Retrieved ${kyselySimple.length} records`)
 
   // Drizzle
@@ -160,14 +166,20 @@ async function main() {
   console.log(`Drizzle: Retrieved ${drizzleSimple.length} records`)
 
   // Test 2: Filtered SELECT
-  console.log(chalk.cyan.bold('\nTest 2: Filtered SELECT (status = "active" AND age > 25)'))
-  
+  console.log(
+    chalk.cyan.bold(
+      '\nTest 2: Filtered SELECT (status = "active" AND age > 25)'
+    )
+  )
+
   // Count expected results
   const [expectedCount] = await mysql2Connection.execute(
     'SELECT COUNT(*) as count FROM users WHERE status = ? AND age > ?',
     ['active', 25]
   )
-  console.log(chalk.grey(`Expected: ${(expectedCount as any)[0].count} records\n`))
+  console.log(
+    chalk.grey(`Expected: ${(expectedCount as any)[0].count} records\n`)
+  )
 
   // MySQL2
   const [mysql2Filtered] = await mysql2Connection.execute(
@@ -195,15 +207,14 @@ async function main() {
   const drizzleFiltered = await drizzleDb
     .select()
     .from(schema.users)
-    .where(and(
-      eq(schema.users.status, 'active'),
-      gt(schema.users.age, 25)
-    ))
+    .where(and(eq(schema.users.status, 'active'), gt(schema.users.age, 25)))
   console.log(`Drizzle: Retrieved ${drizzleFiltered.length} records`)
 
   // Test 3: Performance measurement verification
-  console.log(chalk.cyan.bold('\nTest 3: Performance Measurement (10 iterations each)'))
-  
+  console.log(
+    chalk.cyan.bold('\nTest 3: Performance Measurement (10 iterations each)')
+  )
+
   const iterations = 10
   const drivers = ['MySQL2', 'Prisma', 'Kysely', 'Drizzle']
   const times: Record<string, number[]> = {
@@ -240,7 +251,9 @@ async function main() {
     const avg = times[driver].reduce((a, b) => a + b, 0) / iterations
     const min = Math.min(...times[driver])
     const max = Math.max(...times[driver])
-    console.log(`${driver.padEnd(8)}: avg=${avg.toFixed(2)}ms, min=${min}ms, max=${max}ms`)
+    console.log(
+      `${driver.padEnd(8)}: avg=${avg.toFixed(2)}ms, min=${min}ms, max=${max}ms`
+    )
   }
 
   // Cleanup
@@ -250,7 +263,7 @@ async function main() {
   await kyselyDb.destroy()
   await pool.end()
   await mysqlContainer.stop()
-  
+
   console.log(chalk.green('✅ Verification complete\n'))
 }
 

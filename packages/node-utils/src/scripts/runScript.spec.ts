@@ -1,12 +1,13 @@
 // npx vitest run ./src/scripts/runScript.spec.ts
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { runScript } from './runScript'
+
 import type { CommonLogger } from '@goatlab/js-utils'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { runScript } from './runScript'
 
 describe('runScript', () => {
   let mockLogger: CommonLogger
   let originalExit: typeof process.exit
-  let processListeners: Map<string, Function[]>
+  let processListeners: Map<string, Array<(...args: any[]) => any>>
   let exitSpy: any
 
   beforeEach(() => {
@@ -29,50 +30,56 @@ describe('runScript', () => {
     const originalOn = process.on.bind(process)
     const originalOnce = process.once.bind(process)
     const originalRemoveAllListeners = process.removeAllListeners.bind(process)
-    
-    vi.spyOn(process, 'on').mockImplementation((event: string | symbol, listener: any) => {
-      const eventKey = String(event)
-      if (!processListeners.has(eventKey)) {
-        processListeners.set(eventKey, [])
+
+    vi.spyOn(process, 'on').mockImplementation(
+      (event: string | symbol, listener: any) => {
+        const eventKey = String(event)
+        if (!processListeners.has(eventKey)) {
+          processListeners.set(eventKey, [])
+        }
+        processListeners.get(eventKey)!.push(listener)
+        return originalOn(event, listener) as any
       }
-      processListeners.get(eventKey)!.push(listener)
-      return originalOn(event, listener) as any
-    })
-    
-    vi.spyOn(process, 'once').mockImplementation((event: string | symbol, listener: any) => {
-      const eventKey = String(event)
-      if (!processListeners.has(eventKey)) {
-        processListeners.set(eventKey, [])
+    )
+
+    vi.spyOn(process, 'once').mockImplementation(
+      (event: string | symbol, listener: any) => {
+        const eventKey = String(event)
+        if (!processListeners.has(eventKey)) {
+          processListeners.set(eventKey, [])
+        }
+        processListeners.get(eventKey)!.push(listener)
+        return originalOnce(event, listener) as any
       }
-      processListeners.get(eventKey)!.push(listener)
-      return originalOnce(event, listener) as any
-    })
-    
-    vi.spyOn(process, 'removeAllListeners').mockImplementation((event?: string | symbol) => {
-      if (event) {
-        processListeners.delete(String(event))
-      } else {
-        processListeners.clear()
+    )
+
+    vi.spyOn(process, 'removeAllListeners').mockImplementation(
+      (event?: string | symbol) => {
+        if (event) {
+          processListeners.delete(String(event))
+        } else {
+          processListeners.clear()
+        }
+        return originalRemoveAllListeners(event) as any
       }
-      return originalRemoveAllListeners(event) as any
-    })
+    )
   })
 
   afterEach(() => {
     // Restore process.exit
     process.exit = originalExit
-    
+
     // Clean up listeners - use the real removeAllListeners
     const realRemoveAllListeners = process.removeAllListeners.bind(process)
     vi.mocked(process.removeAllListeners).mockRestore()
-    
+
     // Remove all listeners that were added during tests
     realRemoveAllListeners('uncaughtException')
     realRemoveAllListeners('unhandledRejection')
     realRemoveAllListeners('SIGINT')
     realRemoveAllListeners('SIGTERM')
     realRemoveAllListeners('SIGHUP')
-    
+
     processListeners.clear()
     vi.clearAllMocks()
   })
@@ -96,8 +103,10 @@ describe('runScript', () => {
     })
 
     test('should work with default console logger', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-      
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+        // Intentionally empty - suppress console output in tests
+      })
+
       runScript(async () => {
         // Simple function
       })
@@ -106,7 +115,7 @@ describe('runScript', () => {
 
       expect(exitSpy).toHaveBeenCalledWith(0)
       expect(consoleSpy).not.toHaveBeenCalled()
-      
+
       consoleSpy.mockRestore()
     })
 
@@ -129,7 +138,9 @@ describe('runScript', () => {
       }
 
       // This will throw synchronously, so we need to catch it
-      expect(() => runScript(fn as any, { logger: mockLogger })).toThrow('Sync error')
+      expect(() => runScript(fn as any, { logger: mockLogger })).toThrow(
+        'Sync error'
+      )
     })
   })
 
@@ -149,9 +160,12 @@ describe('runScript', () => {
     })
 
     test('should handle uncaught exceptions', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        },
+        { logger: mockLogger }
+      )
 
       // Wait for setup
       await new Promise(resolve => setImmediate(resolve))
@@ -159,40 +173,53 @@ describe('runScript', () => {
       // Simulate uncaught exception
       const uncaughtListeners = processListeners.get('uncaughtException') || []
       expect(uncaughtListeners.length).toBeGreaterThan(0)
-      
+
       const testError = new Error('Uncaught error')
       uncaughtListeners[0](testError)
 
-      expect(mockLogger.error).toHaveBeenCalledWith('uncaughtException:', testError)
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'uncaughtException:',
+        testError
+      )
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
 
     test('should handle unhandled rejections', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        },
+        { logger: mockLogger }
+      )
 
       // Wait for setup
       await new Promise(resolve => setImmediate(resolve))
 
       // Simulate unhandled rejection
-      const unhandledListeners = processListeners.get('unhandledRejection') || []
+      const unhandledListeners =
+        processListeners.get('unhandledRejection') || []
       expect(unhandledListeners.length).toBeGreaterThan(0)
-      
+
       const testError = new Error('Unhandled rejection')
       unhandledListeners[0](testError)
 
-      expect(mockLogger.error).toHaveBeenCalledWith('unhandledRejection:', testError)
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'unhandledRejection:',
+        testError
+      )
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
 
     test('should call onError callback on promise rejection', async () => {
       const error = new Error('Test error')
       const onError = vi.fn()
-      
-      runScript(async () => {
-        throw error
-      }, { logger: mockLogger, onError })
+
+      runScript(
+        async () => {
+          throw error
+        },
+        { logger: mockLogger, onError }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -202,10 +229,13 @@ describe('runScript', () => {
 
     test('should call onError callback on uncaught exception', async () => {
       const onError = vi.fn()
-      
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }, { logger: mockLogger, onError })
+
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        },
+        { logger: mockLogger, onError }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -219,9 +249,12 @@ describe('runScript', () => {
 
   describe('signal handling', () => {
     test('should handle SIGINT signal', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -230,58 +263,78 @@ describe('runScript', () => {
       expect(sigintListeners.length).toBeGreaterThan(0)
       sigintListeners[0]()
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Received SIGINT, shutting down…')
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'Received SIGINT, shutting down…'
+      )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
 
     test('should handle SIGTERM signal', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
       const sigtermListeners = processListeners.get('SIGTERM') || []
       sigtermListeners[0]()
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Received SIGTERM, shutting down…')
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'Received SIGTERM, shutting down…'
+      )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
 
     test('should handle SIGHUP signal', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
       const sighupListeners = processListeners.get('SIGHUP') || []
       sighupListeners[0]()
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Received SIGHUP, shutting down…')
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'Received SIGHUP, shutting down…'
+      )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
 
     test('should not exit on signal when noExit is true', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }, { logger: mockLogger, noExit: true })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger, noExit: true }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
       const sigintListeners = processListeners.get('SIGINT') || []
       sigintListeners[0]()
 
-      expect(mockLogger.log).toHaveBeenCalledWith('Received SIGINT, shutting down…')
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'Received SIGINT, shutting down…'
+      )
       expect(exitSpy).not.toHaveBeenCalled()
     })
   })
 
   describe('process cleanup', () => {
     test('should remove all listeners on successful completion', async () => {
-      runScript(async () => {
-        // Quick completion
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          // Quick completion
+        },
+        { logger: mockLogger }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -290,9 +343,12 @@ describe('runScript', () => {
     })
 
     test('should remove all listeners on error', async () => {
-      runScript(async () => {
-        throw new Error('Test error')
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          throw new Error('Test error')
+        },
+        { logger: mockLogger }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -301,16 +357,19 @@ describe('runScript', () => {
     })
 
     test('should prevent multiple exits', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        },
+        { logger: mockLogger }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
       // Trigger multiple exit conditions
       const sigintListeners = processListeners.get('SIGINT') || []
       const sigtermListeners = processListeners.get('SIGTERM') || []
-      
+
       sigintListeners[0]()
       sigtermListeners[0]()
 
@@ -323,10 +382,13 @@ describe('runScript', () => {
   describe('onExit callback', () => {
     test('should call onExit with code 0 on success', async () => {
       const onExit = vi.fn()
-      
-      runScript(async () => {
-        return 'done'
-      }, { logger: mockLogger, onExit })
+
+      runScript(
+        async () => {
+          return 'done'
+        },
+        { logger: mockLogger, onExit }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -336,10 +398,13 @@ describe('runScript', () => {
 
     test('should call onExit with code 1 on error', async () => {
       const onExit = vi.fn()
-      
-      runScript(async () => {
-        throw new Error('Failed')
-      }, { logger: mockLogger, onExit })
+
+      runScript(
+        async () => {
+          throw new Error('Failed')
+        },
+        { logger: mockLogger, onExit }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -349,10 +414,13 @@ describe('runScript', () => {
 
     test('should call onExit on signal', async () => {
       const onExit = vi.fn()
-      
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }, { logger: mockLogger, onExit })
+
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger, onExit }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -398,9 +466,12 @@ describe('runScript', () => {
     })
 
     test('should register signal handlers only once per signal', async () => {
-      runScript(async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }, { logger: mockLogger })
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger }
+      )
 
       await new Promise(resolve => setImmediate(resolve))
 

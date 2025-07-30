@@ -1,12 +1,16 @@
 // npx vitest run ./src/server/services/util/benchmarker.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { analyzeBenchmarkResults, type BenchmarkResult } from './benchmarker'
 
 describe('benchmarker', () => {
   beforeEach(() => {
     // Mock console methods
-    vi.spyOn(console, 'log').mockImplementation(() => {})
-    vi.spyOn(console, 'table').mockImplementation(() => {})
+    vi.spyOn(console, 'log').mockImplementation(() => {
+      /* suppress console in test */
+    })
+    vi.spyOn(console, 'table').mockImplementation(() => {
+      /* suppress console in test */
+    })
   })
 
   describe('analyzeBenchmarkResults', () => {
@@ -41,7 +45,7 @@ describe('benchmarker', () => {
       const result = analyzeBenchmarkResults(mockResults)
 
       expect(result).toHaveLength(3)
-      
+
       // Task C should be the best performer (lowest latency, highest throughput)
       expect(result[0].name).toBe('Task C')
       expect(result[0].latencyImprovement).toBe(0) // Best latency gets 0% improvement
@@ -53,7 +57,9 @@ describe('benchmarker', () => {
 
       // Task B should be the worst performer
       expect(result[2].name).toBe('Task B')
-      expect(result[2].latencyImprovement).toBeLessThan(result[1].latencyImprovement)
+      expect(result[2].latencyImprovement).toBeLessThan(
+        result[1].latencyImprovement
+      )
     })
 
     it('should handle single benchmark result', () => {
@@ -150,11 +156,11 @@ describe('benchmarker', () => {
       expect(result).toHaveLength(2)
       expect(result[0].name).toBe('Fast Task')
       expect(result[1].name).toBe('Slow Task')
-      
+
       // Fast task should have better (0%) improvement
       expect(result[0].latencyImprovement).toBe(0)
       expect(result[0].throughputImprovement).toBe(0)
-      
+
       // Slow task should have negative improvements
       expect(result[1].latencyImprovement).toBeLessThan(0)
       expect(result[1].throughputImprovement).toBeLessThan(0)
@@ -183,13 +189,13 @@ describe('benchmarker', () => {
       const result = analyzeBenchmarkResults(mockResults)
 
       expect(result).toHaveLength(2)
-      
+
       // Best latency task
       const bestLatencyTask = result.find(r => r.name === 'Best Latency')
       expect(bestLatencyTask).toBeDefined()
       expect(bestLatencyTask!.latencyImprovement).toBe(0) // Best latency
       expect(bestLatencyTask!.throughputImprovement).toBe(-50) // 50% worse throughput
-      
+
       // Best throughput task
       const bestThroughputTask = result.find(r => r.name === 'Best Throughput')
       expect(bestThroughputTask).toBeDefined()
@@ -231,10 +237,14 @@ describe('benchmarker', () => {
       expect(result[0].name).toBe('Best')
       expect(result[1].name).toBe('Middle')
       expect(result[2].name).toBe('Worst')
-      
+
       // Improvements should be in descending order
-      expect(result[0].latencyImprovement).toBeGreaterThanOrEqual(result[1].latencyImprovement)
-      expect(result[1].latencyImprovement).toBeGreaterThanOrEqual(result[2].latencyImprovement)
+      expect(result[0].latencyImprovement).toBeGreaterThanOrEqual(
+        result[1].latencyImprovement
+      )
+      expect(result[1].latencyImprovement).toBeGreaterThanOrEqual(
+        result[2].latencyImprovement
+      )
     })
 
     it('should call console.log and console.table', () => {

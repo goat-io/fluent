@@ -1,16 +1,16 @@
-import { AsyncLocalStorage } from 'async_hooks'
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { instantiate, safeDispose } from './helpers'
 import { createServiceCache } from './LruCache'
 import {
+  BatchBootstrapOptions,
+  BatchBootstrapResult,
+  BatchInvalidationResult,
   ContainerOptions,
   Factory,
   InstancesStructure,
   MapInterface,
-  PreloadStructure,
-  BatchBootstrapOptions,
-  BatchBootstrapResult,
-  BatchInvalidationResult
+  PreloadStructure
 } from './types'
-import { instantiate, safeDispose } from './helpers'
 
 // Instantiation helper moved to helpers.ts for better performance
 
@@ -212,7 +212,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Uint32Array automatically wraps at 2^32, but we maintain compatibility for tests
    */
   private inc(idx: number): void {
-    if (!this.options.enableMetrics) return
+    if (!this.options.enableMetrics) {
+      return
+    }
 
     // Check for test mock of MAX_METRIC_VALUE (legacy compatibility)
     if (
@@ -295,9 +297,10 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Note: Type safety is enforced at compile time through generics, not runtime
    */
   private getManager<S = unknown>(key: string): MapInterface<S> {
-    return (this.managers[key] ??= createServiceCache<S>(
-      this.options.cacheSize
-    )) as MapInterface<S>
+    if (!this.managers[key]) {
+      this.managers[key] = createServiceCache<S>(this.options.cacheSize)
+    }
+    return this.managers[key] as MapInterface<S>
   }
 
   // createManagers() removed - managers are created lazily via getManager()
@@ -453,7 +456,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         // Node 20+ - fully clear context when no previous context
         // The disable() method was added in Node.js 20.5.0 to properly clear ALS context
         // In earlier versions, this check safely falls through without error
-        (this.als as any).disable()
+        ;(this.als as any).disable()
       }
     }
   }
@@ -737,7 +740,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       fn?: () => Promise<T>
     }>,
     options: BatchBootstrapOptions<TMetadata> = {}
-  ): Promise<Array<BatchBootstrapResult<Defs, TMetadata, T>>> {
+  ): Promise<BatchBootstrapResult<Defs, TMetadata, T>[]> {
     const {
       concurrency = 10,
       continueOnError = true,
@@ -745,7 +748,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       onProgress
     } = options
 
-    const results: Array<BatchBootstrapResult<Defs, TMetadata, T>> = []
+    const results: BatchBootstrapResult<Defs, TMetadata, T>[] = []
     const total = tenantBatch.length
     let completed = 0
     let shouldAbort = false
@@ -1347,7 +1350,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    */
   hasService(servicePath: string): boolean {
     const store = this.als.getStore()
-    if (!store) return false
+    if (!store) {
+      return false
+    }
 
     const parts = servicePath.split('.')
     let current: any = store.instances
@@ -1430,7 +1435,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    */
   getAvailableServices(): string[] {
     const store = this.als.getStore()
-    if (!store) return []
+    if (!store) {
+      return []
+    }
 
     const services: string[] = []
     this.collectServices(store.instances, services)
@@ -1447,7 +1454,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     path: string[] = []
   ): void {
     for (const [key, value] of Object.entries(obj)) {
-      if (value === undefined) continue // Skip undefined services (partial structure)
+      if (value === undefined) {
+        continue // Skip undefined services (partial structure)
+      }
 
       const currentPath = [...path, key]
 

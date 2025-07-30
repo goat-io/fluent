@@ -11,8 +11,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
-    "lint": "eslint src --fix",
+    "format": "biome format --write .",
+    "lint": "biome check --write .",
     "prebuild": "rimraf dist",
     "predev": "rimraf dist",
     "prestart": "rimraf dist",
@@ -28,16 +28,16 @@
   "types": "./dist/index.d.ts",
   "author": "ignacio.cabrera@goatlab.io",
   "devDependencies": {
+    "@biomejs/biome": "^2.1.3",
+    "@goatlab/biome": "workspace:*",
     "@goatlab/tsconfig": "workspace:*",
-    "vitest": "^3.2.4",
     "@types/node": "^18.15.9",
     "dotenv-cli": "^7.1.0",
-    "eslint": "^8.36.0",
-    "prettier": "^2.8.7",
     "pretty-quick": "^3.1.3",
     "ts-node": "catalog:",
     "turbo": "^1.1.10",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.2",
+    "vitest": "^3.2.4"
   },
   "files": [
     "dist"

@@ -1,9 +1,9 @@
 import axios from 'axios'
 import Event from '../../Wrappers/Event'
 
-let ErrorHandler = (() => {
+const ErrorHandler = (() => {
   const parse = async error => {
-    switch (error.response && error.response.status) {
+    switch (error.response?.status) {
       case 400:
         console.log('Bad request')
         Event.emit({
@@ -21,7 +21,6 @@ let ErrorHandler = (() => {
         break
       default:
         throw error
-        break
     }
   }
   const interceptAxios = () => {

@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from 'express'
 export const requireAuthenticated = (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): void => {
   const isAuthenticated = req.context.user
   if (!isAuthenticated) {

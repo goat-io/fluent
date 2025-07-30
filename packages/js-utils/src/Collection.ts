@@ -1,12 +1,13 @@
 import { typedPath } from 'typed-path'
-import { AnyObject, Primitives, TypedKeys } from './types'
-import { Objects } from './Objects'
 import { Arrays } from './Arrays'
+import { Objects } from './Objects'
+import { AnyObject, Primitives, TypedKeys } from './types'
 
 type Contains<T> = {
   value?: Primitives
   path?: TypedKeys<T>
-  Fx?(element: T, index: number): boolean
+  fx?(element: T, index: number): boolean
+  Fx?(element: T, index: number): boolean // For backward compatibility
 }
 
 export class Collection<T = AnyObject | Primitives> {
@@ -57,8 +58,10 @@ export class Collection<T = AnyObject | Primitives> {
    */
   public average(path?: TypedKeys<T>): number {
     const length = this.data.length
-    if (length === 0) return 0
-    
+    if (length === 0) {
+      return 0
+    }
+
     let sum = 0
 
     if (path) {
@@ -169,8 +172,10 @@ export class Collection<T = AnyObject | Primitives> {
    * @param args
    */
   public contains(predicate: Contains<T>): boolean {
-    const { value, path, Fx } = predicate
-    if (!Fx && value === undefined && !path) {
+    const { value, path, fx, Fx } = predicate
+    const func = fx || Fx // Support both for backward compatibility
+
+    if (!func && value === undefined && !path) {
       throw new Error(
         'No Function nor value to compare. Please add one of them'
       )
@@ -179,8 +184,10 @@ export class Collection<T = AnyObject | Primitives> {
     for (let i = 0; i < this.data.length; i++) {
       const elem = this.data[i]
 
-      if (Fx) {
-        if (Fx(elem as T, i)) return true
+      if (func) {
+        if (func(elem as T, i)) {
+          return true
+        }
         continue
       }
 
@@ -199,7 +206,9 @@ export class Collection<T = AnyObject | Primitives> {
         elemValue = elem as unknown as Primitives
       }
 
-      if (elemValue === value) return true
+      if (elemValue === value) {
+        return true
+      }
     }
 
     return false
@@ -217,23 +226,23 @@ export class Collection<T = AnyObject | Primitives> {
   ): Collection<{ [key: string]: number }> {
     const counts = Object.create(null) as { [key: string]: number }
     const length = this.data.length
-    
+
     for (let i = 0; i < length; i++) {
       const item = this.data[i]!
       const key = String(callback ? callback(item) : item)
       counts[key] = (counts[key] || 0) + 1
     }
-    
+
     return new Collection([counts])
   }
 
   public crossJoin<U>(
     ...arrays: Array<U[] | Collection<U>>
   ): Collection<Array<T | U>> {
-    const first = this.data as Array<T>
+    const first = this.data as T[]
     const rest = arrays.map(a =>
       a instanceof Collection ? a.get() : a
-    ) as Array<U[]>
+    ) as U[][]
 
     const inputs = [first, ...rest] as Array<Array<T | U>>
 
@@ -272,7 +281,7 @@ export class Collection<T = AnyObject | Primitives> {
     const arrayItems = items instanceof Collection ? items.get() : items
     const itemSet = new Set()
     const objectCache = new Map()
-    
+
     // Build lookup structures
     for (const item of arrayItems) {
       if (typeof item === 'object' && item !== null) {

@@ -7,7 +7,7 @@ export function Debounce(
   wait: Milliseconds,
   opt: DebounceOptions = {}
 ): MethodDecorator {
-  return (target, key, descriptor) => {
+  return (_target, _key, descriptor) => {
     const originalFn = descriptor.value
     descriptor.value = debounce(originalFn as any, wait, opt)
     return descriptor
@@ -19,7 +19,7 @@ export function Throttle(
   wait: Milliseconds,
   opt: ThrottleOptions = {}
 ): MethodDecorator {
-  return (target, key, descriptor) => {
+  return (_target, _key, descriptor) => {
     const originalFn = descriptor.value
     descriptor.value = throttle(originalFn as any, wait, opt)
     return descriptor

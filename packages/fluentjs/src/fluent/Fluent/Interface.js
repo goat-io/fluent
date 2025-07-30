@@ -1,6 +1,6 @@
 import stampit from '@stamp/it'
-import Utilities from './utilities'
 import Collection from './Collection'
+import Utilities from './utilities'
 
 export default stampit({
   init({ name, remoteConnection, connector }) {
@@ -64,7 +64,7 @@ export default stampit({
     /**
      *
      */
-    find(id) {
+    find(_id) {
       throw new Error('find() method not implemented')
     },
     /**
@@ -149,7 +149,7 @@ export default stampit({
      * @return {Object} First result
      */
     async first() {
-      let data = await this.get()
+      const data = await this.get()
 
       return Utilities.get(() => data[0], [])
     },
@@ -160,7 +160,7 @@ export default stampit({
      * @returns {Collection} Fluent Collection
      */
     async collect() {
-      let data = await this.get()
+      const data = await this.get()
 
       if (!Array.isArray(data)) {
         throw new Error('Collect method only accepts arrays of data')
@@ -176,10 +176,10 @@ export default stampit({
      * @returns {Model} Fluent Model
      */
     select(...columns) {
-      columns = this.prepareInput(columns)
-      this.chainReference.push({ method: 'select', args: columns })
+      const preparedColumns = this.prepareInput(columns)
+      this.chainReference.push({ method: 'select', args: preparedColumns })
       this.selectArray = this.selectArray
-        .concat(columns)
+        .concat(preparedColumns)
         .filter((elem, pos, arr) => {
           return arr.indexOf(elem) === pos
         })
@@ -194,22 +194,22 @@ export default stampit({
      * @returns {Array} Formatted data with the selected columns
      */
     jsApplySelect(data) {
-      let _data = Array.isArray(data) ? [...data] : [data]
+      let Data = Array.isArray(data) ? [...data] : [data]
 
       if (this.selectArray.length > 0) {
-        _data = _data.map(element => {
-          let newElement = {}
+        Data = Data.map(element => {
+          const newElement = {}
 
           this.selectArray.forEach(attribute => {
-            let extract = Utilities.getFromPath(element, attribute, undefined)
+            const extract = Utilities.getFromPath(element, attribute, undefined)
 
-            let value = Utilities.get(() => extract.value, undefined)
+            const value = Utilities.get(() => extract.value, undefined)
 
             if (typeof value !== 'undefined') {
               if (
                 typeof value === 'object' &&
-                value.hasOwnProperty('data') &&
-                value.data.hasOwnProperty('name')
+                Object.hasOwn(value, 'data') &&
+                Object.hasOwn(value.data, 'name')
               ) {
                 newElement[extract.label] = value.data.name
               } else {
@@ -222,7 +222,7 @@ export default stampit({
         })
       }
 
-      return _data
+      return Data
     },
     /**
      *  Sets the offset number for
@@ -265,8 +265,8 @@ export default stampit({
     where(...args) {
       this.chainReference.push({ method: 'where', args: args })
       this.whereArray = []
-      args = Array.isArray(args[0]) ? args : [args]
-      args.forEach(arg => {
+      const whereArgs = Array.isArray(args[0]) ? args : [args]
+      whereArgs.forEach(arg => {
         if (arg.length !== 3) {
           throw new Error(
             'There where clouse is not properly formatted, expecting: ["attribute", "operator","value"] but got "' +
@@ -287,8 +287,8 @@ export default stampit({
      */
     andWhere(...args) {
       this.chainReference.push({ method: 'andWhere', args: args })
-      args = Array.isArray(args[0]) ? args : [args]
-      args.forEach(arg => {
+      const whereArgs = Array.isArray(args[0]) ? args : [args]
+      whereArgs.forEach(arg => {
         if (arg.length !== 3) {
           throw new Error(
             'There where clouse is not properly formatted, expecting: ["attribute", "operator","value"] but got "' +
@@ -309,8 +309,8 @@ export default stampit({
      */
     orWhere(...args) {
       this.chainReference.push({ method: 'orWhere', args: args })
-      args = Array.isArray(args[0]) ? args : [args]
-      args.forEach(arg => {
+      const whereArgs = Array.isArray(args[0]) ? args : [args]
+      whereArgs.forEach(arg => {
         if (arg.length !== 3) {
           throw new Error(
             'There orWhere clouse is not properly formatted, expecting: ["attribute", "operator","value"] but got "' +
@@ -352,7 +352,7 @@ export default stampit({
       let data = await this.get()
 
       data = data.map(e => {
-        let extracted = Utilities.getFromPath(e, keyPath, undefined)
+        const extracted = Utilities.getFromPath(e, keyPath, undefined)
 
         if (typeof extracted.value !== 'undefined') {
           return extracted.value
@@ -374,12 +374,12 @@ export default stampit({
      * @param {*} data
      */
     jsApplyOrderBy(data) {
-      let _data = [...data]
+      let Data = [...data]
 
       if (this.orderByArray.length === 0) {
-        return _data
+        return Data
       }
-      let field = this.orderByArray[0]
+      const field = this.orderByArray[0]
 
       if (
         this.selectArray.length > 0 &&
@@ -392,16 +392,16 @@ export default stampit({
         )
       }
 
-      let order = this.orderByArray[1]
+      const order = this.orderByArray[1]
       let type = this.orderByArray[2]
 
       if (!type) {
         type = 'string'
       }
 
-      _data = _data.sort((a, b) => {
-        let A = Utilities.getFromPath(a, field, undefined).value
-        let B = Utilities.getFromPath(b, field, undefined).value
+      Data = Data.sort((a, b) => {
+        const A = Utilities.getFromPath(a, field, undefined).value
+        const B = Utilities.getFromPath(b, field, undefined).value
 
         if (typeof A === 'undefined' || typeof B === 'undefined') {
           throw new Error(
@@ -416,14 +416,15 @@ export default stampit({
             return A > B ? 1 : A < B ? -1 : 0
           }
           return A > B ? -1 : A < B ? 1 : 0
-        } else if (type.includes('date')) {
+        }
+        if (type.includes('date')) {
           if (order === 'asc') {
             return new Date(A) - new Date(B)
           }
           return new Date(B) - new Date(A)
         }
       })
-      return _data
+      return Data
     },
     /**
      *
@@ -447,16 +448,16 @@ export default stampit({
 
       return cols
     },
-    async ArrayInsert(dataArray, options) {
+    async arrayInsert(dataArray, options) {
       let initial = 1
       const length = dataArray.length
       for (const element of dataArray) {
-        if (options && options.showProgress) {
+        if (options?.showProgress) {
           console.log(`Inserting ${initial} of ${length}`)
         }
         try {
-          const a = await this.insert(element, options)
-          if (options && options.showProgress) {
+          const _a = await this.insert(element, options)
+          if (options?.showProgress) {
             console.log(`Element ${initial} inserted`)
           }
           initial++

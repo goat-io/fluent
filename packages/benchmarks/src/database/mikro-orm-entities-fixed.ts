@@ -1,4 +1,12 @@
-import { Entity, PrimaryKey, Property, ManyToOne, OneToMany, Collection, Enum } from '@mikro-orm/core'
+import {
+  Collection,
+  Entity,
+  Enum,
+  ManyToOne,
+  OneToMany,
+  PrimaryKey,
+  Property
+} from '@mikro-orm/core'
 
 @Entity({ tableName: 'users' })
 export class User {
@@ -14,13 +22,25 @@ export class User {
   @Property({ type: 'string', length: 100, fieldName: 'last_name' })
   lastName!: string
 
-  @Property({ type: 'Date', fieldName: 'created_at', onCreate: () => new Date() })
+  @Property({
+    type: 'Date',
+    fieldName: 'created_at',
+    onCreate: () => new Date()
+  })
   createdAt: Date = new Date()
 
-  @Property({ type: 'Date', fieldName: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    type: 'Date',
+    fieldName: 'updated_at',
+    onUpdate: () => new Date()
+  })
   updatedAt: Date = new Date()
 
-  @Enum({ items: ['active', 'inactive', 'suspended'], default: 'active', type: 'string' })
+  @Enum({
+    items: ['active', 'inactive', 'suspended'],
+    default: 'active',
+    type: 'string'
+  })
   status: 'active' | 'inactive' | 'suspended' = 'active'
 
   @Property({ type: 'int', nullable: true })
@@ -29,10 +49,16 @@ export class User {
   @Property({ type: 'string', length: 100, nullable: true })
   country?: string
 
-  @OneToMany(() => Order, order => order.user)
+  @OneToMany(
+    () => Order,
+    order => order.user
+  )
   orders = new Collection<Order>(this)
 
-  @OneToMany(() => Review, review => review.user)
+  @OneToMany(
+    () => Review,
+    review => review.user
+  )
   reviews = new Collection<Review>(this)
 }
 
@@ -53,10 +79,18 @@ export class Product {
   @Property({ type: 'int', fieldName: 'stock_quantity', default: 0 })
   stockQuantity: number = 0
 
-  @Property({ type: 'Date', fieldName: 'created_at', onCreate: () => new Date() })
+  @Property({
+    type: 'Date',
+    fieldName: 'created_at',
+    onCreate: () => new Date()
+  })
   createdAt: Date = new Date()
 
-  @Property({ type: 'Date', fieldName: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    type: 'Date',
+    fieldName: 'updated_at',
+    onUpdate: () => new Date()
+  })
   updatedAt: Date = new Date()
 
   @Property({ type: 'boolean', fieldName: 'is_active', default: true })
@@ -65,10 +99,16 @@ export class Product {
   @ManyToOne(() => Category, { fieldName: 'category_id', nullable: true })
   category?: Category
 
-  @OneToMany(() => OrderItem, orderItem => orderItem.product)
+  @OneToMany(
+    () => OrderItem,
+    orderItem => orderItem.product
+  )
   orderItems = new Collection<OrderItem>(this)
 
-  @OneToMany(() => Review, review => review.product)
+  @OneToMany(
+    () => Review,
+    review => review.product
+  )
   reviews = new Collection<Review>(this)
 }
 
@@ -86,7 +126,10 @@ export class Category {
   @Property({ type: 'text', nullable: true })
   description?: string
 
-  @OneToMany(() => Product, product => product.category)
+  @OneToMany(
+    () => Product,
+    product => product.category
+  )
   products = new Collection<Product>(this)
 }
 
@@ -95,16 +138,34 @@ export class Order {
   @PrimaryKey({ type: 'int' })
   id!: number
 
-  @Enum({ items: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending', type: 'string' })
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' = 'pending'
+  @Enum({
+    items: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending',
+    type: 'string'
+  })
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' =
+    'pending'
 
-  @Property({ fieldName: 'total_amount', type: 'decimal', precision: 10, scale: 2 })
+  @Property({
+    fieldName: 'total_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2
+  })
   totalAmount!: number
 
-  @Property({ type: 'Date', fieldName: 'created_at', onCreate: () => new Date() })
+  @Property({
+    type: 'Date',
+    fieldName: 'created_at',
+    onCreate: () => new Date()
+  })
   createdAt: Date = new Date()
 
-  @Property({ type: 'Date', fieldName: 'updated_at', onUpdate: () => new Date() })
+  @Property({
+    type: 'Date',
+    fieldName: 'updated_at',
+    onUpdate: () => new Date()
+  })
   updatedAt: Date = new Date()
 
   @Property({ fieldName: 'shipping_address', type: 'text', nullable: true })
@@ -113,7 +174,10 @@ export class Order {
   @ManyToOne(() => User, { fieldName: 'user_id' })
   user!: User
 
-  @OneToMany(() => OrderItem, orderItem => orderItem.order)
+  @OneToMany(
+    () => OrderItem,
+    orderItem => orderItem.order
+  )
   orderItems = new Collection<OrderItem>(this)
 }
 
@@ -146,7 +210,11 @@ export class Review {
   @Property({ type: 'text', nullable: true })
   comment?: string
 
-  @Property({ type: 'Date', fieldName: 'created_at', onCreate: () => new Date() })
+  @Property({
+    type: 'Date',
+    fieldName: 'created_at',
+    onCreate: () => new Date()
+  })
   createdAt: Date = new Date()
 
   @ManyToOne(() => User, { fieldName: 'user_id' })

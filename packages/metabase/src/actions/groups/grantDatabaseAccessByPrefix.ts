@@ -12,7 +12,7 @@ export async function grantDatabaseAccessByPrefix({
   sessionToken,
   apiKey,
   groupName,
-  groupId,
+  groupId
 }: {
   baseUrl: string
   sessionToken?: string
@@ -20,7 +20,6 @@ export async function grantDatabaseAccessByPrefix({
   groupName: string
   groupId: number
 }): Promise<void> {
-
   try {
     // First, fetch all databases
     const databasesResponse = await metabaseFetch({
@@ -28,7 +27,7 @@ export async function grantDatabaseAccessByPrefix({
       sessionToken,
       apiKey,
       endpoint: '/api/database',
-      method: 'GET',
+      method: 'GET'
     })
 
     if (!databasesResponse.ok) {
@@ -36,13 +35,14 @@ export async function grantDatabaseAccessByPrefix({
       throw new Error(`Failed to fetch databases: ${errorText}`)
     }
 
-    const databases = await databasesResponse.json() as { data: Array<{ id: number; name: string }> }
+    const databases = (await databasesResponse.json()) as {
+      data: Array<{ id: number; name: string }>
+    }
 
     // Filter databases that start with the group name (case-insensitive)
-    const matchingDatabases = databases.data.filter((db) =>
-      db.name.toLowerCase().startsWith(groupName.toLowerCase()),
+    const matchingDatabases = databases.data.filter(db =>
+      db.name.toLowerCase().startsWith(groupName.toLowerCase())
     )
-
 
     if (matchingDatabases.length === 0) {
       return
@@ -54,7 +54,7 @@ export async function grantDatabaseAccessByPrefix({
       sessionToken,
       apiKey,
       endpoint: '/api/permissions/graph',
-      method: 'GET',
+      method: 'GET'
     })
 
     if (!permissionsResponse.ok) {
@@ -63,7 +63,6 @@ export async function grantDatabaseAccessByPrefix({
     }
 
     const permissionsGraph = await permissionsResponse.json()
-
 
     // Create a deep copy of the permissions graph
     const updatedGraph = JSON.parse(JSON.stringify(permissionsGraph))
@@ -80,26 +79,24 @@ export async function grantDatabaseAccessByPrefix({
 
     // Grant full access to matching databases
     matchingDatabases.forEach((db: any) => {
-
       // Full access permissions structure
       updatedGraph.groups[groupId][db.id] = {
         'view-data': 'unrestricted',
         'create-queries': 'query-builder-and-native',
         download: {
-          schemas: 'full',
+          schemas: 'full'
         },
         'data-model': {
-          schemas: 'all',
+          schemas: 'all'
         },
-        details: 'yes',
+        details: 'yes'
       }
     })
-
 
     // Include revision if it exists
     const payload = {
       groups: updatedGraph.groups,
-      revision: updatedGraph.revision || 0,
+      revision: updatedGraph.revision || 0
     }
 
     // Update the permissions
@@ -109,7 +106,7 @@ export async function grantDatabaseAccessByPrefix({
       apiKey,
       endpoint: '/api/permissions/graph',
       method: 'PUT',
-      body: payload,
+      body: payload
     })
 
     if (!updateResponse.ok) {
@@ -117,8 +114,6 @@ export async function grantDatabaseAccessByPrefix({
       console.error('❌ Update failed:', errorText)
       throw new Error(`Failed to update permissions: ${errorText}`)
     }
-
-
   } catch (error) {
     console.error(`❌ Error granting database access:`, error)
     throw error

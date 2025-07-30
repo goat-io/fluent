@@ -5,13 +5,13 @@ import {
   Mapper,
   Predicate
 } from '@goatlab/js-utils'
-import { AbortableTransform } from '../pipeline'
 import { END, SKIP } from '@goatlab/js-utils/dist/Promises/pMap'
-import { TransformTyped } from '../streams.model'
-import { pipelineClose } from '../pipelineClose'
 import { yellow } from 'kleur/colors'
+import { AbortableTransform } from '../pipeline'
+import { pipelineClose } from '../pipelineClose'
+import { TransformTyped } from '../streams.model'
 
-export interface TransformMapSyncOptions<IN = any, OUT = IN> {
+export interface TransformMapSyncOptions<In = any, Out = In> {
   /**
    * @default true
    */
@@ -30,7 +30,7 @@ export interface TransformMapSyncOptions<IN = any, OUT = IN> {
    * Defaults to "pass everything".
    * Simpler way to skip individual entries is to return SKIP symbol.
    */
-  predicate?: Predicate<OUT>
+  predicate?: Predicate<Out>
 
   /**
    * @default THROW_IMMEDIATELY
@@ -41,7 +41,7 @@ export interface TransformMapSyncOptions<IN = any, OUT = IN> {
    * If defined - will be called on every error happening in the stream.
    * Called BEFORE observable will emit error (unless skipErrors is set to true).
    */
-  onError?: (err: Error, input: IN) => any
+  onError?: (err: Error, input: In) => any
 
   /**
    * Progress metric
@@ -59,15 +59,15 @@ export class TransformMapSync extends AbortableTransform {}
  * Sync (not async) version of transformMap.
  * Supposedly faster, for cases when async is not needed.
  */
-export function transformMapSync<IN = any, OUT = IN>(
-  mapper: Mapper<IN, OUT | typeof SKIP | typeof END>,
+export function transformMapSync<In = any, Out = In>(
+  mapper: Mapper<In, Out | typeof SKIP | typeof END>,
   opt: TransformMapSyncOptions = {}
-): TransformTyped<IN, OUT> {
+): TransformTyped<In, Out> {
   let index = -1
 
   const {
     predicate, // defaults to "no predicate" (pass everything)
-    errorMode = ErrorMode.THROW_IMMEDIATELY,
+    errorMode = ErrorMode.ThrowImmediately,
     flattenArrayOutput = false,
     onError,
     metric = 'stream',
@@ -77,14 +77,17 @@ export function transformMapSync<IN = any, OUT = IN>(
   let isSettled = false
   let errors = 0
   // Only allocate collectedErrors array if needed
-  const collectedErrors: Error[] | null = errorMode === ErrorMode.THROW_AGGREGATED ? [] : null
+  const collectedErrors: Error[] | null =
+    errorMode === ErrorMode.ThrowAggregated ? [] : null
 
   return new TransformMapSync({
     objectMode,
     ...opt,
-    transform(this: AbortableTransform, chunk: IN, _, cb) {
+    transform(this: AbortableTransform, chunk: In, _, cb) {
       // Stop processing if isSettled
-      if (isSettled) return cb()
+      if (isSettled) {
+        return cb()
+      }
 
       const currentIndex = ++index
 
@@ -109,7 +112,10 @@ export function transformMapSync<IN = any, OUT = IN>(
                 isSettled = true
                 break
               }
-              if (item !== SKIP && (!predicate || predicate(item, currentIndex))) {
+              if (
+                item !== SKIP &&
+                (!predicate || predicate(item, currentIndex))
+              ) {
                 this.push(item)
               }
             }
@@ -139,16 +145,18 @@ export function transformMapSync<IN = any, OUT = IN>(
         if (onError) {
           try {
             onError(Errors.anyToError(err), chunk)
-          } catch {}
+          } catch {
+            // Ignore errors from error handler
+          }
         }
 
-        if (errorMode === ErrorMode.THROW_IMMEDIATELY) {
+        if (errorMode === ErrorMode.ThrowImmediately) {
           isSettled = true
           // Emit error immediately
           return cb(err as Error)
         }
 
-        if (errorMode === ErrorMode.THROW_AGGREGATED && collectedErrors) {
+        if (errorMode === ErrorMode.ThrowAggregated && collectedErrors) {
           collectedErrors.push(err as Error)
         }
 
@@ -160,7 +168,7 @@ export function transformMapSync<IN = any, OUT = IN>(
 
       logErrorStats(true)
 
-      if (collectedErrors && collectedErrors.length) {
+      if (collectedErrors?.length) {
         // emit Aggregated error
         cb(
           new AggregateError(
@@ -176,7 +184,9 @@ export function transformMapSync<IN = any, OUT = IN>(
   })
 
   function logErrorStats(final = false): void {
-    if (!errors) return
+    if (!errors) {
+      return
+    }
 
     logger.log(`${metric} ${final ? 'final ' : ''}errors: ${yellow(errors)}`)
   }

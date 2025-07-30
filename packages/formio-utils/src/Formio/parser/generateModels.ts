@@ -1,10 +1,10 @@
 import { Objects } from '@goatlab/js-utils'
-import { findComponents } from '../findComponents'
-import { FormioComponent } from '../types/FormioComponent'
-import { FormioForm } from '../types/FormioForm'
-import { FluentModel } from '../types/FluentModel'
 import { selectBox as getSelectBoxes } from '../components/selectbox'
 import { survey as getSurvey } from '../components/survey'
+import { findComponents } from '../findComponents'
+import { FluentModel } from '../types/FluentModel'
+import { FormioComponent } from '../types/FormioComponent'
+import { FormioForm } from '../types/FormioForm'
 import { baseModel } from './getBaseModel'
 import { getFormDataObject } from './getFormDataObject'
 import { getRelations } from './getRelations'
@@ -120,9 +120,9 @@ export const generateGoatModels = async (
       }).map(f => f.key)
     }
 
-    Model.__datagrids = findDataGrids(form.components)
+    Model.datagrids = findDataGrids(form.components)
 
-    Model.__objects = findObjects(form.components)
+    Model.objects = findObjects(form.components)
 
     Models.push(Model)
   }

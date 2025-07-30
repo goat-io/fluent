@@ -1,54 +1,54 @@
-import mysql from 'mysql2/promise'
 import { PrismaClient } from '@prisma/client'
-import { getMySqlConfig, getDatabaseUrl } from '../utils/containerHelpers'
+import mysql from 'mysql2/promise'
+import { getDatabaseUrl, getMySqlConfig } from '../utils/containerHelpers'
 
 export class ContainerizedConnections {
   private static mysql2Connection: mysql.Connection | null = null
   private static prismaClient: PrismaClient | null = null
 
   static async getMysql2Connection(): Promise<mysql.Connection> {
-    if (!this.mysql2Connection) {
+    if (!ContainerizedConnections.mysql2Connection) {
       const config = getMySqlConfig()
-      this.mysql2Connection = await mysql.createConnection({
+      ContainerizedConnections.mysql2Connection = await mysql.createConnection({
         host: config.host,
         port: config.port,
         user: config.user,
         password: config.password,
         database: config.database,
-        namedPlaceholders: true,
+        namedPlaceholders: true
       })
     }
-    return this.mysql2Connection
+    return ContainerizedConnections.mysql2Connection
   }
 
   static async getPrismaClient(): Promise<PrismaClient> {
-    if (!this.prismaClient) {
+    if (!ContainerizedConnections.prismaClient) {
       // Override DATABASE_URL for Prisma to use container
       process.env.DATABASE_URL = getDatabaseUrl()
-      
-      this.prismaClient = new PrismaClient({
-        log: ['error'], // Minimal logging for benchmarks
+
+      ContainerizedConnections.prismaClient = new PrismaClient({
+        log: ['error'] // Minimal logging for benchmarks
       })
-      await this.prismaClient.$connect()
+      await ContainerizedConnections.prismaClient.$connect()
     }
-    return this.prismaClient
+    return ContainerizedConnections.prismaClient
   }
 
   static async closeConnections(): Promise<void> {
-    if (this.mysql2Connection) {
-      await this.mysql2Connection.end()
-      this.mysql2Connection = null
+    if (ContainerizedConnections.mysql2Connection) {
+      await ContainerizedConnections.mysql2Connection.end()
+      ContainerizedConnections.mysql2Connection = null
     }
 
-    if (this.prismaClient) {
-      await this.prismaClient.$disconnect()
-      this.prismaClient = null
+    if (ContainerizedConnections.prismaClient) {
+      await ContainerizedConnections.prismaClient.$disconnect()
+      ContainerizedConnections.prismaClient = null
     }
   }
 
   static async setupSchema(): Promise<void> {
-    const mysql2Conn = await this.getMysql2Connection()
-    
+    const mysql2Conn = await ContainerizedConnections.getMysql2Connection()
+
     // Create tables
     await mysql2Conn.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -155,12 +155,12 @@ export class ContainerizedConnections {
     `)
 
     // Add sample data
-    await this.seedMinimalData()
+    await ContainerizedConnections.seedMinimalData()
   }
 
   private static async seedMinimalData(): Promise<void> {
-    const mysql2Conn = await this.getMysql2Connection()
-    
+    const mysql2Conn = await ContainerizedConnections.getMysql2Connection()
+
     // Add some categories
     await mysql2Conn.execute(`
       INSERT IGNORE INTO categories (id, name, description) VALUES
@@ -183,10 +183,13 @@ export class ContainerizedConnections {
     }
 
     const userPlaceholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    await mysql2Conn.execute(`
+    await mysql2Conn.execute(
+      `
       INSERT IGNORE INTO users (email, first_name, last_name, status, age, country) 
       VALUES ${userPlaceholders}
-    `, users.flat())
+    `,
+      users.flat()
+    )
 
     // Add some products
     const products = []
@@ -201,11 +204,16 @@ export class ContainerizedConnections {
       ])
     }
 
-    const productPlaceholders = products.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    await mysql2Conn.execute(`
+    const productPlaceholders = products
+      .map(() => '(?, ?, ?, ?, ?, ?)')
+      .join(', ')
+    await mysql2Conn.execute(
+      `
       INSERT IGNORE INTO products (name, description, price, category_id, stock_quantity, is_active) 
       VALUES ${productPlaceholders}
-    `, products.flat())
+    `,
+      products.flat()
+    )
 
     // Add some orders
     const orders = []
@@ -219,9 +227,12 @@ export class ContainerizedConnections {
     }
 
     const orderPlaceholders = orders.map(() => '(?, ?, ?, ?)').join(', ')
-    await mysql2Conn.execute(`
+    await mysql2Conn.execute(
+      `
       INSERT IGNORE INTO orders (user_id, status, total_amount, shipping_address) 
       VALUES ${orderPlaceholders}
-    `, orders.flat())
+    `,
+      orders.flat()
+    )
   }
 }

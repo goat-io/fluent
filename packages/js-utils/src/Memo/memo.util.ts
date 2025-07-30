@@ -1,19 +1,22 @@
 import { Is } from '../Is'
 import { Promisable } from '../types'
 
-
 export type MemoSerializer = (args: any[]) => any
 
 export const jsonMemoSerializer: MemoSerializer = args => {
-  if (args.length === 0) return undefined
-  if (args.length === 1 && Is.primitive(args[0])) return args[0]
+  if (args.length === 0) {
+    return undefined
+  }
+  if (args.length === 1 && Is.primitive(args[0])) {
+    return args[0]
+  }
   return JSON.stringify(args)
 }
 
-export interface MemoCache<KEY = any, VALUE = any> {
-  has(k: KEY): boolean
-  get(k: KEY): VALUE | Error | undefined
-  set(k: KEY, v: VALUE | Error): void
+export interface MemoCache<Key = any, Value = any> {
+  has(k: Key): boolean
+  get(k: Key): Value | Error | undefined
+  set(k: Key, v: Value | Error): void
 
   /**
    * Clear is only called when `.dropCache()` is called.
@@ -22,7 +25,7 @@ export interface MemoCache<KEY = any, VALUE = any> {
   clear(): void
 }
 
-export interface AsyncMemoCache<KEY = any, VALUE = any> {
+export interface AsyncMemoCache<Key = any, Value = any> {
   // `has` method is removed, because it is assumed that it has a cost and it's best to avoid doing both `has` and then `get`
   // has(k: any): Promise<boolean>
   /**
@@ -30,8 +33,8 @@ export interface AsyncMemoCache<KEY = any, VALUE = any> {
    * This also means that you CANNOT store `undefined` value in the Cache, as it'll be treated as a MISS.
    * You CAN store `null` value instead, it will be treated as a HIT.
    */
-  get(k: KEY): Promisable<VALUE | Error | undefined>
-  set(k: KEY, v: VALUE | Error): Promisable<void>
+  get(k: Key): Promisable<Value | Error | undefined>
+  set(k: Key, v: Value | Error): Promisable<void>
 
   /**
    * Clear is only called when `.dropCache()` is called.
@@ -40,21 +43,20 @@ export interface AsyncMemoCache<KEY = any, VALUE = any> {
   clear(): Promisable<void>
 }
 
-
-export class MapMemoCache<KEY = any, VALUE = any>
-  implements MemoCache<KEY, VALUE>, AsyncMemoCache<KEY, VALUE>
+export class MapMemoCache<Key = any, Value = any>
+  implements MemoCache<Key, Value>, AsyncMemoCache<Key, Value>
 {
-  private m = new Map<KEY, VALUE | Error>()
+  private m = new Map<Key, Value | Error>()
 
-  has(k: KEY): boolean {
+  has(k: Key): boolean {
     return this.m.has(k)
   }
 
-  get(k: KEY): VALUE | Error | undefined {
+  get(k: Key): Value | Error | undefined {
     return this.m.get(k)
   }
 
-  set(k: KEY, v: VALUE | Error): void {
+  set(k: Key, v: Value | Error): void {
     this.m.set(k, v)
   }
 

@@ -1,11 +1,11 @@
-import Auth from '../repositories/Auth/Auth'
-import dayjs from 'dayjs'
-import Utilities from '../utilities'
-import Form from './Form'
-import { Fluent } from '../fluent'
-import Columns from './repositories/Columns'
 import to from 'await-to-js'
 import axios from 'axios'
+import dayjs from 'dayjs'
+import { Fluent } from '../fluent'
+import Auth from '../repositories/Auth/Auth'
+import Utilities from '../utilities'
+import Form from './Form'
+import Columns from './repositories/Columns'
 
 export default Fluent.model({
   properties: {
@@ -16,7 +16,7 @@ export default Fluent.model({
   },
   methods: {
     async getUnsync() {
-      let unsynced = (
+      const unsynced = (
         await this.local()
           .where('sync', '=', false)
           .andWhere('draft', '=', false)
@@ -59,7 +59,8 @@ export default Fluent.model({
       let submissions = []
 
       if (from === 'remote') {
-        let error, result
+        let error
+        let result
         if (!paginator) {
           if (!timeFilter) {
             ;[error, result] = await to(
@@ -153,12 +154,12 @@ export default Fluent.model({
         submissions = [...submissions, ...remote]
       }
 
-      let templates = await Form.getFastTableTemplates({ path: this.path })
+      const templates = await Form.getFastTableTemplates({ path: this.path })
 
       if (paginator) {
         submissions.data = submissions.data.map(s => {
-          let sub = {
-            _id: s._id,
+          const sub = {
+            id: s._id,
             status: s.sync === false ? 'offline' : 'online',
             draft: s.draft,
             HumanUpdated: Number.isInteger(s.modified)
@@ -173,7 +174,7 @@ export default Fluent.model({
           // Custom templates using FAST_TABLE_TEMPLATE propertie
           templates.forEach(t => {
             /* eslint-disable */
-            let newFx = new Function('value', 'data', t.template)
+            const newFx = new Function('value', 'data', t.template)
             /* eslint-enable */
             try {
               s[t.key] = newFx(s[t.key], s)
@@ -189,14 +190,14 @@ export default Fluent.model({
         })
 
         submissions.data = submissions.data.sort((a, b) => {
-          a = new Date(a.updated)
-          b = new Date(b.updated)
-          return a > b ? -1 : a < b ? 1 : 0
+          const dateA = new Date(a.updated)
+          const dateB = new Date(b.updated)
+          return dateA > dateB ? -1 : dateA < dateB ? 1 : 0
         })
       } else {
         submissions = submissions.map(s => {
-          let sub = {
-            _id: s._id,
+          const sub = {
+            id: s._id,
             status: s.sync === false ? 'offline' : 'online',
             draft: s.draft,
             HumanUpdated: Number.isInteger(s.modified)
@@ -211,7 +212,7 @@ export default Fluent.model({
           // Custom templates using FAST_TABLE_TEMPLATE propertie
           templates.forEach(t => {
             /* eslint-disable */
-            let newFx = new Function('value', 'data', t.template)
+            const newFx = new Function('value', 'data', t.template)
             /* eslint-enable */
             try {
               s[t.key] = newFx(s[t.key], s)
@@ -227,16 +228,18 @@ export default Fluent.model({
         })
 
         submissions = submissions.sort((a, b) => {
-          a = new Date(a.updated)
-          b = new Date(b.updated)
-          return a > b ? -1 : a < b ? 1 : 0
+          const dateA = new Date(a.updated)
+          const dateB = new Date(b.updated)
+          return dateA > dateB ? -1 : dateA < dateB ? 1 : 0
         })
       }
 
       return submissions
     },
     async getParallelParticipants(_id, path) {
-      let currentSubmission = await this.local().where('_id', '=', _id).first()
+      const currentSubmission = await this.local()
+        .where('_id', '=', _id)
+        .first()
 
       let groupId = Utilities.get(() => currentSubmission.data.parallelSurvey)
 
@@ -245,9 +248,9 @@ export default Fluent.model({
           ? JSON.parse(groupId).groupId
           : undefined
 
-      let submissions = await this.local().where('path', '=', path).get()
+      const submissions = await this.local().where('path', '=', path).get()
 
-      let a = submissions.filter(submission => {
+      const a = submissions.filter(submission => {
         let parallelSurveyID = Utilities.get(
           () => submission.data.parallelSurvey
         )
@@ -257,7 +260,7 @@ export default Fluent.model({
               ? JSON.parse(parallelSurveyID).groupId
               : undefined
           return parallelSurveyID && parallelSurveyID === groupId
-        } catch (e) {
+        } catch (_e) {
           return false
         }
       })
@@ -309,14 +312,16 @@ export default Fluent.model({
       })
       return groups[0]
     },
-    async removeFromGroup(submission) {},
+    async removeFromGroup(_submission) {
+      // TODO: Implement removeFromGroup functionality
+    },
     async assingToGroup(submissionId, groupId) {
-      let group = await this.local().getGroup(groupId[0])
-      let submission = await this.local().get(submissionId)
+      const group = await this.local().getGroup(groupId[0])
+      const submission = await this.local().get(submissionId)
 
-      let parallelData = this.local().getParallelSurvey(submission)
+      const parallelData = this.local().getParallelSurvey(submission)
 
-      let parallelSurvey = {
+      const parallelSurvey = {
         ...parallelData,
         groupId: group.groupId,
         groupName: group.groupName

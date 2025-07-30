@@ -1,9 +1,9 @@
-import { FirebaseConnector } from '../FirebaseConnector'
 import {
-  TypeOrmEntity,
   TypeORMDataModelInputSchema,
-  TypeORMDataModelSchema
+  TypeORMDataModelSchema,
+  TypeOrmEntity
 } from '@goatlab/fluent'
+import { FirebaseConnector } from '../FirebaseConnector'
 
 export class TypeOrmRepository extends FirebaseConnector<
   TypeOrmEntity,

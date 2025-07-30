@@ -1,25 +1,22 @@
 // npx jest -i ./src/TypeOrmConnector/test/mongo/TypeOrmMongoConnector.spec.ts
-import { describe, beforeAll, afterAll, it, expect } from 'vitest'
+
 import { DataSource } from 'typeorm'
-import { GoatRepository } from '../basic/goat.mongo.repository'
-import { TypeOrmRepository } from '../advanced/typeOrm.mongo.repository'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { initialize } from '../../../Fluent'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'
 import { basicTestSuite } from '../basic/basicTestSuite'
-import { Fluent } from '../../../Fluent'
-import { dbEntitiesMongo } from './dbEntitiesMongo'
-import { relationsTestSuite } from '../relations/relationsTestsSuite'
-import { UserRepository } from './user.mongo.repository'
-import { CarsRepository } from './car.mongo.repository'
-import { RoleRepository } from './roles.mongo.repository'
 import getDatabase from '../docker/mongo'
+import { relationsTestSuite } from '../relations/relationsTestsSuite'
+import { dbEntitiesMongo } from './dbEntitiesMongo'
+import { UserRepository } from './user.mongo.repository'
 
 let tearDown: () => Promise<void>
 let dataSource: DataSource
 
 beforeAll(async () => {
-  const { kill, port, databaseURL } = await getDatabase()
+  const { kill, databaseURL } = await getDatabase()
   tearDown = kill
-  
+
   dataSource = new DataSource({
     type: 'mongodb',
     url: databaseURL,
@@ -28,9 +25,9 @@ beforeAll(async () => {
     entities: dbEntitiesMongo,
     logging: false
   })
-  
+
   await dataSource.initialize()
-  await Fluent.initialize([dataSource], dbEntitiesMongo)
+  await initialize([dataSource], dbEntitiesMongo)
 }, 30000)
 
 afterAll(async () => {

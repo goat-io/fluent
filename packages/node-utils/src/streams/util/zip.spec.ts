@@ -1,13 +1,13 @@
-import { test, expect } from 'vitest'
+import { expect, test } from 'vitest'
 import {
+  deflateBuffer,
+  deflateString,
   gunzipBuffer,
   gunzipToString,
   gzipBuffer,
   gzipString,
   inflateBuffer,
-  inflateToString,
-  deflateBuffer,
-  deflateString
+  inflateToString
 } from './zip.util'
 
 test('deflate/inflate', async () => {

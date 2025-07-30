@@ -1,5 +1,5 @@
+import { join } from 'node:path'
 import { cwd } from 'node:process'
-import { join } from 'path'
 
 const rootPath = cwd()
 
@@ -41,5 +41,5 @@ export const config = {
   playStoreTestEmail,
   frontendTestUser,
   testEmailRegex,
-  defaultTimeZone,
+  defaultTimeZone
 }

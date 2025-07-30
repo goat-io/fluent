@@ -1,19 +1,18 @@
 import { Transform } from 'node:stream'
-import { inspect, InspectOptions } from 'node:util'
-import { bold, grey, white, yellow } from 'kleur/colors'
-import { TransformOptions, TransformTyped } from '../streams.model'
+import { InspectOptions, inspect } from 'node:util'
 import {
   AnyObject,
   CommonLogger,
   LocalTime,
-  Numbers,
   Time,
-  Units,
+  Units
 } from '@goatlab/js-utils'
+import { bold, grey, white, yellow } from 'kleur/colors'
 import { SimpleMovingAverage } from '../math/sma'
 import { SizeStack } from '../sizeStack'
+import { TransformOptions, TransformTyped } from '../streams.model'
 
-export interface TransformLogProgressOptions<IN = any>
+export interface TransformLogProgressOptions<_In = any>
   extends TransformOptions {
   /**
    * Progress metric
@@ -101,7 +100,7 @@ export interface TransformLogProgressOptions<IN = any>
    *
    * chunk is undefined for "final" stats, otherwise is defined.
    */
-  extra?: (chunk: IN | undefined, index: number) => AnyObject
+  extra?: (chunk: _In | undefined, index: number) => AnyObject
 
   /**
    * If specified - will multiply the counter by this number.
@@ -150,15 +149,15 @@ interface LogItem extends AnyObject {
 
 const inspectOpt: InspectOptions = {
   colors: true,
-  breakLength: 300,
+  breakLength: 300
 }
 
 /**
  * Pass-through transform that optionally logs progress.
  */
-export function transformLogProgress<IN = any>(
-  opt: TransformLogProgressOptions = {},
-): TransformTyped<IN, IN> {
+export function transformLogProgress<In = any>(
+  opt: TransformLogProgressOptions = {}
+): TransformTyped<In, In> {
   const {
     metric = 'progress',
     heapTotal: logHeapTotal = false,
@@ -172,7 +171,7 @@ export function transformLogProgress<IN = any>(
     logZippedSizes = false,
     batchSize = 1,
     extra,
-    logger = console,
+    logger = console
   } = opt
   const logProgress = opt.logProgress !== false && logEvery !== 0 // true by default
   const logEvery10 = logEvery * 10
@@ -195,13 +194,15 @@ export function transformLogProgress<IN = any>(
   return new Transform({
     objectMode: true,
     ...opt,
-    transform(chunk: IN, _, cb) {
+    transform(chunk: In, _, cb) {
       progress++
       processedLastSecond++
 
       if (sizes) {
         // Check it, cause gzipping might be delayed here..
-        void SizeStack.countItem(chunk, logger, sizes, sizesZipped)
+        SizeStack.countItem(chunk, logger, sizes, sizesZipped).catch(() => {
+          // Ignore errors from size counting
+        })
       }
 
       if (logProgress && progress % logEvery === 0) {
@@ -214,11 +215,13 @@ export function transformLogProgress<IN = any>(
       logStats(undefined, true)
 
       cb()
-    },
+    }
   })
 
-  function logStats(chunk?: IN, final = false, tenx = false): void {
-    if (!logProgress) return
+  function logStats(chunk?: In, final = false, tenx = false): void {
+    if (!logProgress) {
+      return
+    }
 
     const mem = process.memoryUsage()
 
@@ -232,24 +235,42 @@ export function transformLogProgress<IN = any>(
     processedLastSecond = 0
 
     const rps10 = Math.round(sma.pushGetAvg(lastRPS))
-    if (mem.rss > peakRSS) peakRSS = mem.rss
-
-    const o: LogItem = {
-      [final ? `${metric}_final` : metric]: batchedProgress,
+    if (mem.rss > peakRSS) {
+      peakRSS = mem.rss
     }
 
-    if (extra) Object.assign(o, extra(chunk, progress))
-    if (logHeapUsed) o.heapUsed = Units.megaBytes(mem.heapUsed)
-    if (logHeapTotal) o.heapTotal = Units.megaBytes(mem.heapTotal)
-    if (logRss) o.rss = Units.megaBytes(mem.rss)
-    if (logPeakRSS) o.peakRSS = Units.megaBytes(peakRSS)
-    if (opt.rssMinusHeap)
-      o.rssMinusHeap = Units.megaBytes(mem.rss - mem.heapTotal)
-    if (opt.external) o.external = Units.megaBytes(mem.external)
-    if (opt.arrayBuffers)
-      o.arrayBuffers = Units.megaBytes(mem.arrayBuffers || 0)
+    const o: LogItem = {
+      [final ? `${metric}_final` : metric]: batchedProgress
+    }
 
-    if (logRPS) Object.assign(o, { rps10, rpsTotal })
+    if (extra) {
+      Object.assign(o, extra(chunk, progress))
+    }
+    if (logHeapUsed) {
+      o.heapUsed = Units.megaBytes(mem.heapUsed)
+    }
+    if (logHeapTotal) {
+      o.heapTotal = Units.megaBytes(mem.heapTotal)
+    }
+    if (logRss) {
+      o.rss = Units.megaBytes(mem.rss)
+    }
+    if (logPeakRSS) {
+      o.peakRSS = Units.megaBytes(peakRSS)
+    }
+    if (opt.rssMinusHeap) {
+      o.rssMinusHeap = Units.megaBytes(mem.rss - mem.heapTotal)
+    }
+    if (opt.external) {
+      o.external = Units.megaBytes(mem.external)
+    }
+    if (opt.arrayBuffers) {
+      o.arrayBuffers = Units.megaBytes(mem.arrayBuffers || 0)
+    }
+
+    if (logRPS) {
+      Object.assign(o, { rps10, rpsTotal })
+    }
 
     logger.log(inspect(o, inspectOpt))
 
@@ -265,23 +286,23 @@ export function transformLogProgress<IN = any>(
       let perHour: number | string =
         Math.round((batchedProgress * 1000 * 60 * 60) / (now - started)) || 0
       if (perHour > 900) {
-        perHour = Math.round(perHour / 1000) + 'K'
+        perHour = `${Math.round(perHour / 1000)}K`
       }
 
       logger.log(
         `${grey(LocalTime.now().toPretty())} ${white(metric)} took ${yellow(
-          Time.since(started),
+          Time.since(started)
         )} so far to process ${yellow(batchedProgress)} rows, ~${yellow(
-          perHour,
-        )}/hour`,
+          perHour
+        )}/hour`
       )
     } else if (final) {
       logger.log(
         `${bold(metric)} took ${yellow(
-          Time.since(started),
+          Time.since(started)
         )} to process ${yellow(
-          batchedProgress,
-        )} rows with total RPS of ${yellow(rpsTotal)}`,
+          batchedProgress
+        )} rows with total RPS of ${yellow(rpsTotal)}`
       )
     }
   }

@@ -10,7 +10,7 @@ export async function getOrCreateGroup({
   baseUrl,
   sessionToken,
   apiKey,
-  groupName,
+  groupName
 }: {
   baseUrl: string
   sessionToken?: string
@@ -23,7 +23,7 @@ export async function getOrCreateGroup({
     sessionToken,
     apiKey,
     endpoint: '/api/permissions/group',
-    method: 'GET',
+    method: 'GET'
   })
 
   if (!response.ok) {
@@ -32,12 +32,10 @@ export async function getOrCreateGroup({
     throw new Error(`Failed to fetch groups: ${errorText}`)
   }
 
-  const groups = await response.json() as Array<{ id: number; name: string }>
+  const groups = (await response.json()) as Array<{ id: number; name: string }>
 
   // Check if group already exists
-  const existingGroup = groups.find(
-    (group) => group.name === groupName,
-  )
+  const existingGroup = groups.find(group => group.name === groupName)
 
   if (existingGroup) {
     return existingGroup
@@ -48,6 +46,6 @@ export async function getOrCreateGroup({
     baseUrl,
     sessionToken,
     apiKey,
-    groupName,
+    groupName
   })
 }

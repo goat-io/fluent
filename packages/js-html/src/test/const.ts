@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs'
-import { join, resolve } from 'path'
+import { readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
 export type GlobalTempData = {
   redisUrl?: string

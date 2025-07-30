@@ -1,6 +1,6 @@
 // npx vitest run ./src/services/search/typesense/tests/resilience-policy.test.ts
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResiliencePolicy } from '../components/resilience-policy'
 
 describe('ResiliencePolicy', () => {

@@ -21,7 +21,7 @@ export type InputType = {
   [x: string]: JsonValue
 }
 
-export type OutputType = void | JsonObject
+export type OutputType = undefined | JsonObject
 export type UnknownInputType = {}
 
 export interface TaskStatus<T extends InputType = UnknownInputType> {

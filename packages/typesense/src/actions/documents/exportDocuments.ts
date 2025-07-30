@@ -1,13 +1,13 @@
-import { Readable } from 'stream'
-import type { 
-  TypesenseDocument, 
-  TypesenseExportFormat,
-  TypesenseExportOptions,
-  TypesenseCollectionOptions 
-} from '../../typesense.model'
-import { TypesenseError } from '../../typesense.model'
+import { Readable } from 'node:stream'
 import { ExportFormatter } from '../../components/export-formatter'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseDocument,
+  TypesenseExportFormat,
+  TypesenseExportOptions
+} from '../../typesense.model'
+import { TypesenseError } from '../../typesense.model'
 
 export async function exportDocuments<T extends Record<string, any>>(
   ctx: TypesenseContext,
@@ -21,7 +21,7 @@ export async function exportDocuments<T extends Record<string, any>>(
   }
 
   const collectionName = options?.collection || ctx.fqcn()
-  const { collection, ...exportOptions } = options || {}
+  const { collection: _, ...exportOptions } = options || {}
   const searchParams: any = {
     ...exportOptions
     // Note: Typesense export always returns JSONL regardless of format param
@@ -39,7 +39,8 @@ export async function exportDocuments<T extends Record<string, any>>(
       .split('\n')
       .filter(line => line.trim())
       .map(line => JSON.parse(line))
-  } else if (format === 'csv') {
+  }
+  if (format === 'csv') {
     // For small datasets, convert JSONL to CSV
     const documents = response
       .split('\n')
@@ -52,12 +53,12 @@ export async function exportDocuments<T extends Record<string, any>>(
   return response
 }
 
-export async function exportDocumentsStream<T extends Record<string, any>>(
+export async function exportDocumentsStream<_T extends Record<string, any>>(
   ctx: TypesenseContext,
   options?: TypesenseExportOptions & TypesenseCollectionOptions
 ): Promise<Readable> {
   const collectionName = options?.collection || ctx.fqcn()
-  const { collection, ...exportOptions } = options || {}
+  const { collection: _, ...exportOptions } = options || {}
   const searchParams: any = {
     ...exportOptions
   }

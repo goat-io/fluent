@@ -1,8 +1,5 @@
-import startContainer, {
-  Options as WithContainerOptions,
-  killOldContainers
-} from './docker'
 import { MongoClient } from 'mongodb'
+import startContainer, { Options as WithContainerOptions } from './docker'
 
 const DEFAULT_IMAGE = 'mongo:6.0.1'
 const DEFAULT_CONTAINER_NAME = `fluent-${DEFAULT_IMAGE.replace(':', '-')}-test`
@@ -46,14 +43,13 @@ export async function waitForConnection(
         const result = await db.command({
           ping: 1
         })
-     
+
         // If we have a result, the DB is running
         if (result.ok) {
           break
-        } else {
-          if (lastAttempt) {
-            throw new Error('Got unexpected result: ' + JSON.stringify(result))
-          }
+        }
+        if (lastAttempt) {
+          throw new Error(`Got unexpected result: ${JSON.stringify(result)}`)
         }
       } catch (ex) {
         console.log(ex)

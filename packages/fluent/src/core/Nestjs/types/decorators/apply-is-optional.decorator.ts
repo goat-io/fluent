@@ -182,7 +182,7 @@ export function inheritPropertyInitializers(
   target: Record<string, any>,
   sourceClass: Type<any>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isPropertyInherited = (key: string) => true
+  isPropertyInherited = (_key: string) => true
 ) {
   try {
     const tempInstance = new sourceClass()

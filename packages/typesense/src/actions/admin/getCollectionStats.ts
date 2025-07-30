@@ -1,5 +1,5 @@
-import type { TypesenseCollectionStats } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type { TypesenseCollectionStats } from '../../typesense.model'
 
 export async function getCollectionStats(
   ctx: TypesenseContext,

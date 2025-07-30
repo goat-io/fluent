@@ -31,10 +31,18 @@ export class TypesenseError extends Error {
       const retryAfter = headers['Retry-After']
       const limit = headers['X-RateLimit-Limit']
 
-      if (remaining) this.rateLimitRemaining = parseInt(remaining, 10)
-      if (resetMs) this.rateLimitReset = new Date(parseInt(resetMs, 10))
-      if (retryAfter) this.retryAfter = parseInt(retryAfter, 10)
-      if (limit) this.rateLimitLimit = parseInt(limit, 10)
+      if (remaining) {
+        this.rateLimitRemaining = Number.parseInt(remaining, 10)
+      }
+      if (resetMs) {
+        this.rateLimitReset = new Date(Number.parseInt(resetMs, 10))
+      }
+      if (retryAfter) {
+        this.retryAfter = Number.parseInt(retryAfter, 10)
+      }
+      if (limit) {
+        this.rateLimitLimit = Number.parseInt(limit, 10)
+      }
     }
   }
 
@@ -49,7 +57,9 @@ export class TypesenseError extends Error {
    * Get the time until rate limit reset (in milliseconds)
    */
   getTimeUntilReset(): number | null {
-    if (!this.rateLimitReset) return null
+    if (!this.rateLimitReset) {
+      return null
+    }
     return Math.max(0, this.rateLimitReset.getTime() - Date.now())
   }
 }
@@ -102,7 +112,9 @@ export type TypesenseCollectionOutput = TypesenseCollection & {
   num_documents: number
 }
 
-export type TypesenseDocument<T extends Record<string, any> = Record<string, any>> = {
+export type TypesenseDocument<
+  T extends Record<string, any> = Record<string, any>
+> = {
   id: string | number
 } & T
 
@@ -152,14 +164,14 @@ export interface TypesenseQuery {
   highlight_start_tag?: string
   // Default: </mark>
   highlight_end_tag?: string
-  
+
   // Vector search parameters (v29+) - mutually exclusive with page/per_page
   vector_query?: string // Format: field_name:([vector_values],k:10)
-  
+
   // Hybrid search parameters
   text_matches?: number // Minimum text matches required (must be ≤ per_page)
   vector_weight?: number // Weight for vector search (0-1)
-  
+
   // Preset search
   preset?: string // Name of the preset to use
 }
@@ -167,7 +179,8 @@ export interface TypesenseQuery {
 /**
  * Type-safe vector search query (cannot use pagination)
  */
-export interface TypesenseVectorQuery extends Omit<TypesenseQuery, 'page' | 'per_page'> {
+export interface TypesenseVectorQuery
+  extends Omit<TypesenseQuery, 'page' | 'per_page'> {
   vector_query: string
   vector_weight?: number
   text_matches?: number
@@ -303,7 +316,7 @@ export interface TypesenseResponse<T> {
      */
     found?: number
     /**
-     * Total documents that match without pagination (for search operations) 
+     * Total documents that match without pagination (for search operations)
      */
     out_of?: number
     /**
@@ -325,7 +338,15 @@ export interface TypesenseResponse<T> {
     /**
      * Operation type for clarity
      */
-    operation: 'create' | 'update' | 'delete' | 'upsert' | 'get' | 'search' | 'import' | 'export'
+    operation:
+      | 'create'
+      | 'update'
+      | 'delete'
+      | 'upsert'
+      | 'get'
+      | 'search'
+      | 'import'
+      | 'export'
   }
 }
 
@@ -333,34 +354,49 @@ export interface TypesenseResponse<T> {
  * Type guard to check if a value is a valid document ID
  */
 export function isValidDocumentId(id: any): id is string | number {
-  return (typeof id === 'string' && id.length > 0) || (typeof id === 'number' && !isNaN(id))
+  return (
+    (typeof id === 'string' && id.length > 0) ||
+    (typeof id === 'number' && !Number.isNaN(id))
+  )
 }
 
 /**
  * Validates text_matches parameter against per_page
  */
-export function validateTextMatches(textMatches: number, perPage: number): boolean {
+export function validateTextMatches(
+  textMatches: number,
+  perPage: number
+): boolean {
   return textMatches <= perPage
 }
 
 /**
  * Validates vector search parameters
  */
-export function validateVectorQuery(query: TypesenseQuery): { valid: boolean; errors: string[] } {
+export function validateVectorQuery(query: TypesenseQuery): {
+  valid: boolean
+  errors: string[]
+} {
   const errors: string[] = []
-  
+
   if (query.vector_query) {
     // Vector queries cannot use pagination
     if (query.page !== undefined || query.per_page !== undefined) {
-      errors.push('vector_query cannot be used with page or per_page parameters')
+      errors.push(
+        'vector_query cannot be used with page or per_page parameters'
+      )
     }
-    
+
     // Validate text_matches if present
-    if (query.text_matches && query.per_page && query.text_matches > query.per_page) {
+    if (
+      query.text_matches &&
+      query.per_page &&
+      query.text_matches > query.per_page
+    ) {
       errors.push('text_matches must be less than or equal to per_page')
     }
   }
-  
+
   return {
     valid: errors.length === 0,
     errors
@@ -479,7 +515,7 @@ export interface TypesenseSynonymResponse extends TypesenseSynonym {
   id: string
 }
 
-// Override types  
+// Override types
 export interface TypesenseOverride {
   id?: string
   rule: {
@@ -536,7 +572,7 @@ export interface TypesenseMetrics {
   system_memory_used_bytes: string
   system_network_received_bytes: string
   system_network_sent_bytes: string
-  
+
   // Typesense metrics
   typesense_memory_active_bytes: string
   typesense_memory_allocated_bytes: string
@@ -545,7 +581,7 @@ export interface TypesenseMetrics {
   typesense_memory_metadata_bytes: string
   typesense_memory_resident_bytes: string
   typesense_memory_retained_bytes: string
-  
+
   // Request metrics
   latency_ms?: Record<string, Record<string, number>>
   requests_per_second?: Record<string, number>
@@ -581,7 +617,7 @@ export interface TypesenseApiKeyResponse extends TypesenseApiKey {
 // Rate limit information exposed in responses (Typesense format)
 export interface TypesenseRateLimitInfo {
   limit?: number // X-RateLimit-Limit
-  remaining?: number // X-RateLimit-Remaining  
+  remaining?: number // X-RateLimit-Remaining
   resetMs?: number // X-RateLimit-ResetMs (milliseconds since epoch)
   retryAfter?: number // Retry-After (seconds)
 }

@@ -43,22 +43,22 @@ section.cover .cover-main > p:last-child a:last-child:hover {
   color: var(--cover-action-button-hover);
 }
 
-body[data-page~='README.md'] .search {
+body[data-page~="README.md"] .search {
   display: none;
 }
 
-body[data-page~='README.md'] .sidebar > h1 {
+body[data-page~="README.md"] .sidebar > h1 {
   position: absolute;
   top: 80px;
   left: 0;
   width: 100%;
 }
 
-body[data-page~='README.md'] main section {
+body[data-page~="README.md"] main section {
   display: none;
 }
 
-body[data-page~='README.md'] main {
+body[data-page~="README.md"] main {
   display: none;
   position: relative;
   width: auto;

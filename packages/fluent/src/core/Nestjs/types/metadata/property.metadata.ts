@@ -1,9 +1,9 @@
-import { GqlTypeReference } from '../interfaces/return-type-func.interface'
+import { Complexity } from '../interfaces/complexity.interface'
 import { FieldMiddleware } from '../interfaces/field-middleware.interface'
+import { GqlTypeReference } from '../interfaces/return-type-func.interface'
 import { TypeOptions } from '../interfaces/type-options.interface'
 import { DirectiveMetadata } from './directive.metadata'
 import { MethodArgsMetadata } from './param.metadata'
-import { Complexity } from '../interfaces/complexity.interface'
 
 export interface PropertyMetadata {
   schemaName: string

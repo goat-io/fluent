@@ -1,5 +1,4 @@
-import type { Falsy, Nullish, Primitive, Truthy } from './types'
-import type { AnyObject } from './types'
+import type { AnyObject, Falsy, Nullish, Primitive, Truthy } from './types'
 
 export class IsClass {
   /**
@@ -13,7 +12,9 @@ export class IsClass {
    * new Set() (empty Set)
    */
   empty(obj: any): boolean {
-    if (obj === undefined || obj === null) return true
+    if (obj === undefined || obj === null) {
+      return true
+    }
 
     if (typeof obj === 'string' || Array.isArray(obj)) {
       return obj.length === 0

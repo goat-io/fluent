@@ -27,7 +27,7 @@ export interface PMapOptions {
   concurrency?: number
 
   /**
-   * @default ErrorMode.THROW_IMMEDIATELY
+   * @default ErrorMode.ThrowImmediately
    *
    * When set to THROW_AGGREGATED, instead of stopping when a promise rejects, it will wait for all the promises to settle and then reject with an Aggregated error.
    *
@@ -71,9 +71,11 @@ export async function pMap<IN, OUT>(
   // const iterator = iterable[Symbol.iterator]()
   const items = [...iterable]
   const itemsLength = items.length
-  if (itemsLength === 0) return [] // short circuit
+  if (itemsLength === 0) {
+    return [] // short circuit
+  }
 
-  const { concurrency = itemsLength, errorMode = ErrorMode.THROW_IMMEDIATELY } =
+  const { concurrency = itemsLength, errorMode = ErrorMode.ThrowImmediately } =
     opt
 
   const errors: Error[] = []
@@ -89,11 +91,17 @@ export async function pMap<IN, OUT>(
     for await (const item of items) {
       try {
         const r = await mapper(item, currentIndex++)
-        if (r === END) break
-        if (r !== SKIP) ret.push(r)
+        if (r === END) {
+          break
+        }
+        if (r !== SKIP) {
+          ret.push(r)
+        }
       } catch (err) {
-        if (errorMode === ErrorMode.THROW_IMMEDIATELY) throw err
-        if (errorMode === ErrorMode.THROW_AGGREGATED) {
+        if (errorMode === ErrorMode.ThrowImmediately) {
+          throw err
+        }
+        if (errorMode === ErrorMode.ThrowAggregated) {
           errors.push(err as Error)
         }
         // otherwise, suppress completely
@@ -105,10 +113,11 @@ export async function pMap<IN, OUT>(
     }
 
     return ret as OUT[]
-  } else if (!opt.concurrency || items.length <= opt.concurrency) {
+  }
+  if (!opt.concurrency || items.length <= opt.concurrency) {
     // Special case for concurrency == infinity or iterable.length < concurrency
 
-    if (errorMode === ErrorMode.THROW_IMMEDIATELY) {
+    if (errorMode === ErrorMode.ThrowImmediately) {
       return (
         await Promise.all(items.map((item, i) => mapper(item, i)))
       ).filter(r => r !== SKIP && r !== END) as OUT[]
@@ -118,8 +127,10 @@ export async function pMap<IN, OUT>(
       await Promise.allSettled(items.map((item, i) => mapper(item, i)))
     ).forEach(r => {
       if (r.status === 'fulfilled') {
-        if (r.value !== SKIP && r.value !== END) ret.push(r.value)
-      } else if (errorMode === ErrorMode.THROW_AGGREGATED) {
+        if (r.value !== SKIP && r.value !== END) {
+          ret.push(r.value)
+        }
+      } else if (errorMode === ErrorMode.ThrowAggregated) {
         errors.push(r.reason)
       }
     })
@@ -170,11 +181,11 @@ export async function pMap<IN, OUT>(
             next()
           },
           err => {
-            if (errorMode === ErrorMode.THROW_IMMEDIATELY) {
+            if (errorMode === ErrorMode.ThrowImmediately) {
               isSettled = true
               reject(err)
             } else {
-              if (errorMode === ErrorMode.THROW_AGGREGATED) {
+              if (errorMode === ErrorMode.ThrowAggregated) {
                 errors.push(err)
               }
               resolvingCount--

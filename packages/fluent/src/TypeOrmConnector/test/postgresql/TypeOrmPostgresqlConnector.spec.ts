@@ -1,13 +1,13 @@
 // npx vitest run ./src/TypeOrmConnector/test/postgresql/TypeOrmPostgresqlConnector.spec.ts
 
 import 'reflect-metadata'
-import { describe, beforeAll, afterAll } from 'vitest'
+import { DataSource } from 'typeorm'
+import { afterAll, beforeAll, describe } from 'vitest'
+import { initialize } from '../../../Fluent'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'
 import { basicTestSuite } from '../basic/basicTestSuite'
-import { PostgreSQLTestContainer } from '../testcontainers/postgresql.testcontainer'
-import { Fluent } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
-import { DataSource } from 'typeorm'
+import { PostgreSQLTestContainer } from '../testcontainers/postgresql.testcontainer'
 
 let container: PostgreSQLTestContainer
 let dataSource: DataSource
@@ -16,9 +16,9 @@ describe('PostgreSQL Tests with Testcontainers', () => {
   beforeAll(async () => {
     container = new PostgreSQLTestContainer()
     dataSource = await container.start()
-    
+
     // Initialize Fluent with entities for model generator
-    await Fluent.initialize([dataSource], dbEntities)
+    await initialize([dataSource], dbEntities)
   }, 60000) // Increase timeout for container startup
 
   afterAll(async () => {

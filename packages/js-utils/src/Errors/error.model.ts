@@ -89,7 +89,7 @@ export interface Admin403ErrorData extends HttpErrorData {
  * it will be hard to transform it to ErrorObject.
  * Everything "extra" should go under `data`.
  */
-export interface ErrorObject<DATA_TYPE extends ErrorData = ErrorData> {
+export interface ErrorObject<DataType extends ErrorData = ErrorData> {
   /**
    * Name of the error / error class.
    *
@@ -115,14 +115,14 @@ export interface ErrorObject<DATA_TYPE extends ErrorData = ErrorData> {
    * Custom data to be passed with an error. Extendable.
    * It's non-optional, to save some null-checks.
    */
-  data: DATA_TYPE
+  data: DataType
 }
 
 /**
  * JSON HTTP response from the Backend that represents "Error".
  */
 export interface HttpErrorResponse<
-  DATA_TYPE extends HttpErrorData = HttpErrorData
+  DataType extends HttpErrorData = HttpErrorData
 > {
-  error: ErrorObject<DATA_TYPE>
+  error: ErrorObject<DataType>
 }

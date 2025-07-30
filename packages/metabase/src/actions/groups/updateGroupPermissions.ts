@@ -17,7 +17,7 @@ export async function updateGroupPermissions({
   apiKey,
   groupId,
   databaseId,
-  permissions,
+  permissions
 }: {
   baseUrl: string
   sessionToken?: string
@@ -26,7 +26,9 @@ export async function updateGroupPermissions({
   databaseId: number
   permissions: DatabasePermissions
 }): Promise<void> {
-  console.log(`🔐 Updating permissions for group ${groupId} on database ${databaseId}...`)
+  console.log(
+    `🔐 Updating permissions for group ${groupId} on database ${databaseId}...`
+  )
 
   try {
     // First, get the current permissions graph
@@ -35,7 +37,7 @@ export async function updateGroupPermissions({
       sessionToken,
       apiKey,
       endpoint: '/api/permissions/graph',
-      method: 'GET',
+      method: 'GET'
     })
 
     if (!permissionsResponse.ok) {
@@ -43,11 +45,14 @@ export async function updateGroupPermissions({
       throw new Error(`Failed to fetch permissions graph: ${errorText}`)
     }
 
-    const permissionsGraph = await permissionsResponse.json() as Record<string, any>
+    const permissionsGraph = (await permissionsResponse.json()) as Record<
+      string,
+      any
+    >
 
     // Create updated permissions
     const updatedGraph = { ...permissionsGraph }
-    
+
     // Ensure the group exists in the graph
     if (!updatedGraph.groups[groupId]) {
       updatedGraph.groups[groupId] = {}
@@ -65,7 +70,7 @@ export async function updateGroupPermissions({
       apiKey,
       endpoint: '/api/permissions/graph',
       method: 'PUT',
-      body: updatedGraph,
+      body: updatedGraph
     })
 
     if (!updateResponse.ok) {
@@ -73,7 +78,9 @@ export async function updateGroupPermissions({
       throw new Error(`Failed to update permissions: ${errorText}`)
     }
 
-    console.log(`✅ Successfully updated permissions for group ${groupId} on database ${databaseId}`)
+    console.log(
+      `✅ Successfully updated permissions for group ${groupId} on database ${databaseId}`
+    )
   } catch (error) {
     console.error(`❌ Error updating permissions:`, error)
     throw error

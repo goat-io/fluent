@@ -23,7 +23,7 @@ export class AggregatedError<RESULT = any> extends Error {
     })
 
     if ((Error as any).captureStackTrace) {
-      (Error as any).captureStackTrace(this, this.constructor)
+      ;(Error as any).captureStackTrace(this, this.constructor)
     } else {
       Object.defineProperty(this, 'stack', {
         value: new Error().stack, // eslint-disable-line unicorn/error-message

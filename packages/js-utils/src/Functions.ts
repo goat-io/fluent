@@ -1,7 +1,7 @@
+import { debounce, throttle } from './Functions/debounce'
 import { Debounce, Throttle } from './Functions/debounce.decorator'
 import { Retry } from './Functions/retry.decorator'
 import { Milliseconds } from './types'
-import { debounce, throttle } from './Functions/debounce'
 
 class FunctionsClass {
   /**
@@ -28,10 +28,13 @@ class FunctionsClass {
     let stop: any
 
     const intervalFunc = () => {
-      // tslint:disable-next-line: no-unused-expression
-      dateNow() - start < ms || ((start += ms), callback())
-      // tslint:disable-next-line: no-unused-expression
-      stop || requestAnimation(intervalFunc)
+      if (dateNow() - start >= ms) {
+        start += ms
+        callback()
+      }
+      if (!stop) {
+        requestAnimation(intervalFunc)
+      }
     }
 
     requestAnimation(intervalFunc)

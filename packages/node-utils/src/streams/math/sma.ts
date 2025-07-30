@@ -4,7 +4,7 @@
 export class SimpleMovingAverage {
   constructor(
     public readonly size: number,
-    public readonly data: number[] = [],
+    public readonly data: number[] = []
   ) {}
 
   /**
@@ -17,7 +17,9 @@ export class SimpleMovingAverage {
    * Returns 0 (not undefined) for empty data.
    */
   get avg(): number {
-    if (this.data.length === 0) return 0
+    if (this.data.length === 0) {
+      return 0
+    }
     return this.data.reduce((total, n) => total + n, 0) / this.data.length
   }
 

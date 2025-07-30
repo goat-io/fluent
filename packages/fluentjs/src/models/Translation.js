@@ -1,8 +1,8 @@
-import Utilities from '../utilities'
-import { Fluent } from '../fluent'
-import Configuration from './Configuration'
 import dayjs from 'dayjs'
+import { Fluent } from '../fluent'
 import isoLanguages from '../resources/isoLanguages.json'
+import Utilities from '../utilities'
+import Configuration from './Configuration'
 
 export default Fluent.model({
   properties: {
@@ -15,7 +15,7 @@ export default Fluent.model({
   },
   methods: {
     async getFormTranslations() {
-      let i18n = {}
+      const i18n = {}
 
       let localTranslations = await this.local().first()
 
@@ -38,13 +38,13 @@ export default Fluent.model({
         return []
       }
 
-      let isoLanguages = this.getIsoLanguages()
+      const isoLanguages = this.getIsoLanguages()
       let languages = []
 
       translations = Utilities.get(() => translations[0].data, [])
 
       Object.keys(translations).forEach(languageCode => {
-        let iso = isoLanguages.find(l => {
+        const iso = isoLanguages.find(l => {
           return l.code === languageCode
         })
 
@@ -54,9 +54,9 @@ export default Fluent.model({
       })
 
       languages = languages.sort((a, b) => {
-        a = a.label
-        b = b.label
-        return a > b ? 1 : a < b ? -1 : 0
+        const labelA = a.label
+        const labelB = b.label
+        return labelA > labelB ? 1 : labelA < labelB ? -1 : 0
       })
       return languages
     },
@@ -90,16 +90,16 @@ export default Fluent.model({
      * @param {*} param0
      */
     async setOffline({ appConf }) {
-      let localTranslations = await this.local().get()
-      let localDate = this.getLocalizationDate(localTranslations)
-      let config = await Configuration.local().first()
-      let offlineTranslations = appConf.offlineFiles.Translations
+      const localTranslations = await this.local().get()
+      const localDate = this.getLocalizationDate(localTranslations)
+      const config = await Configuration.local().first()
+      const offlineTranslations = appConf.offlineFiles.Translations
 
       // If the offline Json is older than the local data
       if (config.fastUpdated < localDate) {
         return localTranslations[0].data
       }
-      let trans = await this.process(offlineTranslations)
+      const trans = await this.process(offlineTranslations)
 
       return this.storeTranslations(trans)
     },
@@ -107,8 +107,8 @@ export default Fluent.model({
      *
      * @param {*} param0
      */
-    async setOnline({ appConf }) {
-      let localTranslations = await this.local().get()
+    async setOnline() {
+      const localTranslations = await this.local().get()
       let appTranslations = await this.remote().limit(50000).get()
 
       if (appTranslations) {
@@ -130,7 +130,7 @@ export default Fluent.model({
       this.local().clear({ sure: true })
 
       // Insert the new ones
-      let appTranslations = await this.local().insert({
+      const appTranslations = await this.local().insert({
         data: translationsArray,
         fastUpdated: dayjs().unix()
       })
@@ -142,14 +142,14 @@ export default Fluent.model({
      * @param {[type]} appTranslations [description]
      */
     async process(translations) {
-      let lenguages = this.getIsoLanguages()
-      let result = {}
+      const lenguages = this.getIsoLanguages()
+      const result = {}
 
       result.label = {}
       // Foreach of the locale lenguages, set the translations
       lenguages.forEach(language => {
         translations.forEach(translation => {
-          if (translation.data && translation.data[language.code]) {
+          if (translation.data?.[language.code]) {
             if (!result[language.code]) {
               result[language.code] = {}
             }
@@ -157,8 +157,8 @@ export default Fluent.model({
               translation.data[language.code]
           }
 
-          if (translation.data && translation.data.label) {
-            result['label'][translation.data.label] = translation.data.label
+          if (translation.data?.label) {
+            result.label[translation.data.label] = translation.data.label
           }
         })
       })
@@ -167,14 +167,14 @@ export default Fluent.model({
     },
 
     async updateLabel(label, translation) {
-      let trans = await this.remote().where('data.label', '=', label).first()
+      const trans = await this.remote().where('data.label', '=', label).first()
 
-      let id = trans._id
+      const id = trans._id
 
       const newTranslations = { ...trans.data, ...translation }
 
-      let result = await this.remote().update({
-        _id: id,
+      const result = await this.remote().update({
+        id: id,
         data: newTranslations
       })
 

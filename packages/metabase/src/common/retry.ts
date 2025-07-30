@@ -1,4 +1,4 @@
-import { setTimeout } from 'timers/promises'
+import { setTimeout } from 'node:timers/promises'
 
 /**
  * Options for retry behavior
@@ -38,7 +38,7 @@ export async function withRetry<T>(
       return await fn()
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
-      
+
       if (attempt === maxAttempts) {
         throw lastError
       }
@@ -78,10 +78,12 @@ export function isRetryableError(error: unknown): boolean {
   }
 
   // Server errors (5xx)
-  if (error.message.includes('500') || 
-      error.message.includes('502') || 
-      error.message.includes('503') || 
-      error.message.includes('504')) {
+  if (
+    error.message.includes('500') ||
+    error.message.includes('502') ||
+    error.message.includes('503') ||
+    error.message.includes('504')
+  ) {
     return true
   }
 

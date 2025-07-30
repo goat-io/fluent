@@ -2,10 +2,10 @@
  * The API surface of this module has been heavily inspired by the "type-graphql" library (https://github.com/MichalLytek/type-graphql), originally designed & released by Michal Lytek.
  */
 
+import { ClassType, isString } from './common'
+import { addClassTypeMetadata } from './interfaces/add-class-type-metadata.util'
 import { LazyMetadataStorage } from './lazy-metadata.storage'
 import { TypeMetadataStorage } from './type-metadata.storage'
-import { addClassTypeMetadata } from './interfaces/add-class-type-metadata.util'
-import { ClassType, isString } from './common'
 
 /**
  * Interface defining options that can be passed to `@ObjectType()` decorator
@@ -55,7 +55,7 @@ export function ObjectType(
     const addObjectTypeMetadata = () =>
       TypeMetadataStorage.addObjectTypeMetadata({
         name: name || target.name,
-        target,
+        target: target as unknown as new (...args: any[]) => any,
         description: options.description,
         interfaces: options.implements,
         isAbstract: options.isAbstract
@@ -66,6 +66,6 @@ export function ObjectType(
     addObjectTypeMetadata()
     LazyMetadataStorage.store(addObjectTypeMetadata)
 
-    addClassTypeMetadata(target, ClassType.OBJECT)
+    addClassTypeMetadata(target, ClassType.Object)
   }
 }

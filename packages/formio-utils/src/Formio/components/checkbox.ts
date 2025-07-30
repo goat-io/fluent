@@ -10,4 +10,6 @@ export const checkbox = (component: FormioComponent) => {
   return validation
 }
 
-export const validation = (component: FormioComponent) => {}
+export const validation = (_component: FormioComponent) => {
+  // Empty validation function - implement if needed
+}

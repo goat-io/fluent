@@ -1,7 +1,7 @@
 // npx vitest run ./src/xlsxStream.test.ts
 
-import { describe, it, expect } from 'vitest'
-import { join } from 'path'
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
 import { xlsxStream } from './xlsxStream'
 
 type Header = 'COLA' | 'COLB' | 'COLC' | 'COLD'
@@ -227,7 +227,7 @@ describe('xlsxStream', () => {
           sheet: 0,
           withHeader: true
         },
-        rowMapper: (row: Record<Header, string>) => {
+        rowMapper: (_row: Record<Header, string>) => {
           // Skip all rows
           return null
         },

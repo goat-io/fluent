@@ -1,5 +1,8 @@
-import type { TypesenseCollection, TypesenseCollectionOutput } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollection,
+  TypesenseCollectionOutput
+} from '../../typesense.model'
 
 export async function createCollection(
   ctx: TypesenseContext,
@@ -10,7 +13,7 @@ export async function createCollection(
     ...collection,
     name: ctx.fqcn(collection.name)
   }
-  
+
   const result = await ctx.httpClient.request<TypesenseCollectionOutput>(
     '/collections',
     {

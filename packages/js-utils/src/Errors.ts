@@ -1,33 +1,33 @@
 import {
-  _anyToError,
-  _anyToErrorObject,
-  _errorDataAppend,
-  _errorObjectToAppError,
-  _errorObjectToError,
-  _errorToErrorObject,
-  _isErrorObject,
-  _isHttpErrorObject,
-  _isHttpErrorResponse
+  anyToError,
+  anyToErrorObject,
+  errorDataAppend,
+  errorObjectToAppError,
+  errorObjectToError,
+  errorToErrorObject,
+  isErrorObject,
+  isHttpErrorObject,
+  isHttpErrorResponse
 } from './Errors/error.util'
 
 class ErrorsClass {
-  anyToError = _anyToError
+  anyToError = anyToError
 
-  anyToErrorObject = _anyToErrorObject
+  anyToErrorObject = anyToErrorObject
 
-  errorToErrorObject = _errorToErrorObject
+  errorToErrorObject = errorToErrorObject
 
-  errorObjectToAppError = _errorObjectToAppError
+  errorObjectToAppError = errorObjectToAppError
 
-  errorObjectToError = _errorObjectToError
+  errorObjectToError = errorObjectToError
 
-  isHttpErrorResponse = _isHttpErrorResponse
+  isHttpErrorResponse = isHttpErrorResponse
 
-  isHttpErrorObject = _isHttpErrorObject
+  isHttpErrorObject = isHttpErrorObject
 
-  isErrorObject = _isErrorObject
+  isErrorObject = isErrorObject
 
-  errorDataAppend = _errorDataAppend
+  errorDataAppend = errorDataAppend
 }
 
 export const Errors = new ErrorsClass()

@@ -1,7 +1,7 @@
 /**
- * 
- * @param sql 
- * @returns 
+ *
+ * @param sql
+ * @returns
  */
 export const getSelectedKeysFromRawSql = (sql: string): string[] => {
   const possibleKeys = sql.split('AS')

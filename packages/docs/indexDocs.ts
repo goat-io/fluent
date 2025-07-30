@@ -1,5 +1,5 @@
-import fs from 'fs'
 import { algoliasearch } from 'algoliasearch'
+import fs from 'fs'
 import matter from 'gray-matter'
 
 require('dotenv').config()
@@ -8,7 +8,10 @@ require('dotenv').config()
 const MAX_RECORD_SIZE = 6000 // 6KB in bytes
 
 // Function to split large content into smaller chunks
-const chunkContent = (content: string, maxSize: number = MAX_RECORD_SIZE): string[] => {
+const chunkContent = (
+  content: string,
+  maxSize: number = MAX_RECORD_SIZE
+): string[] => {
   if (Buffer.byteLength(content, 'utf8') <= maxSize) {
     return [content]
   }
@@ -20,13 +23,13 @@ const chunkContent = (content: string, maxSize: number = MAX_RECORD_SIZE): strin
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const testChunk = currentChunk + (currentChunk ? '\n' : '') + line
-    
+
     if (Buffer.byteLength(testChunk, 'utf8') > maxSize && currentChunk) {
       // Try to break at a good spot (heading, empty line, or paragraph)
       const isHeading = line.startsWith('#')
       const isEmptyLine = line.trim() === ''
       const isCodeBlock = line.startsWith('```')
-      
+
       // If current line is a good break point, break before it
       if (isHeading || isEmptyLine || isCodeBlock) {
         chunks.push(currentChunk.trim())
@@ -64,7 +67,7 @@ const findThirdLevelHashes = (text: string) => {
     if (match) {
       hits.push({
         found: match[0].replace(/#/g, '').trim(),
-        index,
+        index
       })
     }
   } while (match)
@@ -85,7 +88,7 @@ const findSecondLevelHashes = (text: string) => {
     if (match && !match[0].includes('###')) {
       hits.push({
         found: match[0].replace(/#/g, '').trim(),
-        index,
+        index
       })
     }
   } while (match)
@@ -132,7 +135,10 @@ const getMenuName = (slug: string): string => {
   if (slug.startsWith('/0.1.x/push-notifications/')) {
     return '🔌 Integrations'
   }
-  if (slug.startsWith('/0.1.x/legacy-rn/') || slug.startsWith('/0.1.x/other/')) {
+  if (
+    slug.startsWith('/0.1.x/legacy-rn/') ||
+    slug.startsWith('/0.1.x/other/')
+  ) {
     return '📖 Legacy & Other'
   }
 
@@ -145,30 +151,34 @@ const getMenuName = (slug: string): string => {
   const pages = await globby(['0.1.x/**/*.md'])
 
   const objects: any[] = []
-  
+
   pages.forEach((page: string) => {
     const fileContents = fs.readFileSync(page, 'utf8')
 
     const { content } = matter(fileContents)
     const path = page.replace('.md', '')
     let slug = path === 'docs/index' ? 'docs' : path
-    slug = '/' + slug + '/'
+    slug = `/${slug}/`
 
     const title = content.split('\n')[0].replace(/#/g, '').trim()
     const menu = getMenuName(slug)
 
     // Create search snippet from first few lines (excluding title)
-    const contentLines = content.split('\n').filter(line => line.trim() && !line.startsWith('#'))
-    const searchSnippet = contentLines.slice(0, 3).join(' ').substring(0, 200) + (contentLines.join(' ').length > 200 ? '...' : '')
+    const contentLines = content
+      .split('\n')
+      .filter(line => line.trim() && !line.startsWith('#'))
+    const searchSnippet =
+      contentLines.slice(0, 3).join(' ').substring(0, 200) +
+      (contentLines.join(' ').length > 200 ? '...' : '')
 
     // Check if content needs to be chunked
     const contentChunks = chunkContent(content)
-    
+
     if (contentChunks.length === 1) {
       // Single chunk - process normally
       const secondLevel = findSecondLevelHashes(content)
       const thirdLevel = findThirdLevelHashes(content)
-      
+
       objects.push({
         objectID: slug,
         slug,
@@ -178,18 +188,22 @@ const getMenuName = (slug: string): string => {
         searchSnippet,
         secondLevel,
         thirdLevel,
-        isChunked: false,
+        isChunked: false
       })
     } else {
       // Multiple chunks - create separate records for each chunk
       contentChunks.forEach((chunk, index) => {
         const secondLevel = findSecondLevelHashes(chunk)
         const thirdLevel = findThirdLevelHashes(chunk)
-        
+
         // Create chunk-specific snippet
-        const chunkLines = chunk.split('\n').filter(line => line.trim() && !line.startsWith('#'))
-        const chunkSnippet = chunkLines.slice(0, 2).join(' ').substring(0, 150) + (chunkLines.join(' ').length > 150 ? '...' : '')
-        
+        const chunkLines = chunk
+          .split('\n')
+          .filter(line => line.trim() && !line.startsWith('#'))
+        const chunkSnippet =
+          chunkLines.slice(0, 2).join(' ').substring(0, 150) +
+          (chunkLines.join(' ').length > 150 ? '...' : '')
+
         objects.push({
           objectID: `${slug}#chunk-${index}`,
           slug,
@@ -201,7 +215,7 @@ const getMenuName = (slug: string): string => {
           thirdLevel,
           chunkIndex: index,
           totalChunks: contentChunks.length,
-          isChunked: true,
+          isChunked: true
         })
       })
     }
@@ -212,16 +226,22 @@ const getMenuName = (slug: string): string => {
   const oversized = objects.filter(obj => {
     const size = Buffer.byteLength(JSON.stringify(obj), 'utf8')
     if (size > 10000) {
-      console.log(`WARNING: Object ${obj.objectID} is ${size} bytes (over 10KB limit)`)
+      console.log(
+        `WARNING: Object ${obj.objectID} is ${size} bytes (over 10KB limit)`
+      )
       return true
     }
     return false
   })
 
   if (oversized.length > 0) {
-    console.log(`Found ${oversized.length} oversized objects that will fail indexing`)
+    console.log(
+      `Found ${oversized.length} oversized objects that will fail indexing`
+    )
     oversized.forEach(obj => {
-      console.log(`- ${obj.objectID}: ${Buffer.byteLength(JSON.stringify(obj), 'utf8')} bytes`)
+      console.log(
+        `- ${obj.objectID}: ${Buffer.byteLength(JSON.stringify(obj), 'utf8')} bytes`
+      )
     })
   }
 
@@ -231,7 +251,7 @@ const getMenuName = (slug: string): string => {
   // await index.delete()
   await client.saveObjects({
     indexName: process.env.ALGOLIA_INDEX_NAME!,
-    objects,
+    objects
   })
 
   console.log('ALL PAGES INDEXED')

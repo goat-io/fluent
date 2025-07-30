@@ -1,6 +1,6 @@
 import { Objects } from '@goatlab/js-utils'
-import { FormioForm } from '../types/FormioForm'
 import { FluentParsedModel } from '../types/FluentParsedModel'
+import { FormioForm } from '../types/FormioForm'
 import { generateGoatModels } from './generateModels'
 import { generateControllers } from './generators/controllers'
 import { generateModels as generateBaseModels } from './generators/model'

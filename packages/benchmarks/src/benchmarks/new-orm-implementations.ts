@@ -1,26 +1,28 @@
-import { DataSource } from 'typeorm'
-import { Sequelize, Op } from 'sequelize'
-import { MikroORM, EntityManager } from '@mikro-orm/core'
+import { MikroORM } from '@mikro-orm/core'
 import { MySqlDriver } from '@mikro-orm/mysql'
+import { Op, Sequelize } from 'sequelize'
+import { DataSource } from 'typeorm'
 
 export const typeOrmImplementations = {
   simpleSelect: async (dataSource: DataSource) => {
     const { User } = await import('../database/typeorm-entities')
     await dataSource.getRepository(User).find({ take: 50 })
   },
-  
+
   filteredSelect: async (dataSource: DataSource) => {
     const { User } = await import('../database/typeorm-entities')
-    await dataSource.getRepository(User)
+    await dataSource
+      .getRepository(User)
       .createQueryBuilder('user')
       .where('user.status = :status', { status: 'active' })
       .andWhere('user.age > :age', { age: 25 })
       .getMany()
   },
-  
+
   joinQuery: async (dataSource: DataSource) => {
     const { User } = await import('../database/typeorm-entities')
-    await dataSource.getRepository(User)
+    await dataSource
+      .getRepository(User)
       .createQueryBuilder('u')
       .leftJoin('u.orders', 'o')
       .select('u.id', 'id')
@@ -34,10 +36,11 @@ export const typeOrmImplementations = {
       .limit(30)
       .getRawMany()
   },
-  
+
   complexJoin: async (dataSource: DataSource) => {
     const { Product } = await import('../database/typeorm-entities')
-    await dataSource.getRepository(Product)
+    await dataSource
+      .getRepository(Product)
       .createQueryBuilder('p')
       .leftJoin('p.category', 'c')
       .leftJoin('p.reviews', 'r')
@@ -51,7 +54,7 @@ export const typeOrmImplementations = {
       .limit(25)
       .getRawMany()
   },
-  
+
   insert: async (dataSource: DataSource, insertCounter: number) => {
     const { User } = await import('../database/typeorm-entities')
     const uniqueId = `${insertCounter}_${Date.now()}`
@@ -61,19 +64,19 @@ export const typeOrmImplementations = {
       lastName: 'User',
       status: 'active',
       age: 30,
-      country: 'US',
+      country: 'US'
     })
     await dataSource.getRepository(User).save(user)
   }
 }
 
 export const sequelizeImplementations = {
-  simpleSelect: async (sequelize: Sequelize) => {
+  simpleSelect: async (_sequelize: Sequelize) => {
     const { User } = await import('../database/sequelize-models')
     await User.findAll({ limit: 50 })
   },
-  
-  filteredSelect: async (sequelize: Sequelize) => {
+
+  filteredSelect: async (_sequelize: Sequelize) => {
     const { User } = await import('../database/sequelize-models')
     await User.findAll({
       where: {
@@ -82,10 +85,11 @@ export const sequelizeImplementations = {
       }
     })
   },
-  
+
   joinQuery: async (sequelize: Sequelize) => {
-    const { User } = await import('../database/sequelize-models')
-    await sequelize.query(`
+    await import('../database/sequelize-models')
+    await sequelize.query(
+      `
       SELECT u.id, u.email, u.first_name, u.last_name,
              COUNT(o.id) as order_count, COALESCE(SUM(o.total_amount), 0) as total_spent
       FROM users u
@@ -93,12 +97,15 @@ export const sequelizeImplementations = {
       WHERE u.status = 'active'
       GROUP BY u.id
       LIMIT 30
-    `, { type: sequelize.QueryTypes.SELECT })
+    `,
+      { type: sequelize.QueryTypes.SELECT }
+    )
   },
-  
+
   complexJoin: async (sequelize: Sequelize) => {
-    const { Product } = await import('../database/sequelize-models')
-    await sequelize.query(`
+    await import('../database/sequelize-models')
+    await sequelize.query(
+      `
       SELECT p.id, p.name, p.price, c.name as category_name,
              COUNT(r.id) as review_count
       FROM products p
@@ -107,10 +114,12 @@ export const sequelizeImplementations = {
       WHERE p.is_active = true
       GROUP BY p.id
       LIMIT 25
-    `, { type: sequelize.QueryTypes.SELECT })
+    `,
+      { type: sequelize.QueryTypes.SELECT }
+    )
   },
-  
-  insert: async (sequelize: Sequelize, insertCounter: number) => {
+
+  insert: async (_sequelize: Sequelize, insertCounter: number) => {
     const { User } = await import('../database/sequelize-models')
     const uniqueId = `${insertCounter}_${Date.now()}`
     await User.create({
@@ -119,7 +128,7 @@ export const sequelizeImplementations = {
       lastName: 'User',
       status: 'active',
       age: 30,
-      country: 'US',
+      country: 'US'
     })
   }
 }
@@ -130,7 +139,7 @@ export const mikroOrmImplementations = {
     const em = orm.em.fork()
     await em.find(User, {}, { limit: 50 })
   },
-  
+
   filteredSelect: async (orm: MikroORM<MySqlDriver>) => {
     const { User } = await import('../database/mikro-orm-entities-fixed')
     const em = orm.em.fork()
@@ -139,7 +148,7 @@ export const mikroOrmImplementations = {
       age: { $gt: 25 }
     })
   },
-  
+
   joinQuery: async (orm: MikroORM<MySqlDriver>) => {
     const em = orm.em.fork()
     await em.getConnection().execute(`
@@ -152,7 +161,7 @@ export const mikroOrmImplementations = {
       LIMIT 30
     `)
   },
-  
+
   complexJoin: async (orm: MikroORM<MySqlDriver>) => {
     const em = orm.em.fork()
     await em.getConnection().execute(`
@@ -166,7 +175,7 @@ export const mikroOrmImplementations = {
       LIMIT 25
     `)
   },
-  
+
   insert: async (orm: MikroORM<MySqlDriver>, insertCounter: number) => {
     const { User } = await import('../database/mikro-orm-entities-fixed')
     const em = orm.em.fork()
@@ -177,7 +186,7 @@ export const mikroOrmImplementations = {
       lastName: 'User',
       status: 'active',
       age: 30,
-      country: 'US',
+      country: 'US'
     })
     await em.persistAndFlush(user)
   }

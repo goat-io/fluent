@@ -1,8 +1,8 @@
-import { Document, Schema, Model, model } from 'mongoose'
+import { type Document, type Model, model, Schema } from 'mongoose'
+import type { FormioForm } from '../../types/FormioForm'
+import util from '../utils'
 import baseModel from './BaseModel'
 import PermissionSchema from './PermissionSchema'
-import { FormioForm } from '../../types/FormioForm'
-import util from '../utils'
 
 const _ = require('lodash')
 
@@ -49,7 +49,7 @@ const componentShortcuts = (components: any[]) => {
   const shortcuts: string[] = []
   util.eachComponent(
     components,
-    (component: any, path: string) => {
+    (component: any) => {
       if (component.shortcut) {
         shortcuts.push(_.capitalize(component.shortcut))
       }
@@ -68,7 +68,7 @@ const componentShortcuts = (components: any[]) => {
 }
 
 const ModelDefinition = () => {
-  const invalidRegex = /[^0-9a-zA-Z\-\/]|^\-|\-$|^\/|\/$/
+  const invalidRegex = /[^0-9a-zA-Z\-/]|^-|-$|^\/|\/$/
   const validKeyRegex = /^(\w|\w[\w-.]*\w)$/
   const validShortcutRegex = /^([A-Z]|Enter|Esc)$/i
 

@@ -19,16 +19,16 @@ export interface BuildInfo {
   dev?: boolean
 }
 
-export class Env<ENV extends BaseEnv = any> {
+export class Env<TEnv extends BaseEnv = any> {
   constructor(private cfg: EnvServiceCfg) {}
 
-  private env?: ENV
+  private env?: TEnv
 
   init(): void {
     this.getEnv()
   }
 
-  getEnv(): ENV {
+  getEnv(): TEnv {
     if (!this.env) {
       const { APP_ENV } = process.env
       if (!APP_ENV) {
@@ -53,7 +53,7 @@ export class Env<ENV extends BaseEnv = any> {
     return this.env!
   }
 
-  setEnv(env?: ENV): void {
+  setEnv(env?: TEnv): void {
     console.log(`setEnv APP_ENV=${env ? env.name : 'undefined'}`)
     this.env = env
   }

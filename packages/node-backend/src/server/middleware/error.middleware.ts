@@ -1,10 +1,10 @@
 import type {
   HttpError,
   HttpErrorData,
-  HttpErrorResponse,
+  HttpErrorResponse
 } from '@goatlab/js-utils'
-import type Express from 'express'
 import { Errors, Inspect, Objects } from '@goatlab/js-utils'
+import type Express from 'express'
 import type { SentryService } from '../sentry/sentry.service'
 
 export interface GenericErrorMiddlewareCfg {
@@ -30,7 +30,7 @@ let reportOnly5xx = false
  * Sends json payload as ErrorResponse, transformed via errorSharedUtil.
  */
 export function genericErrorMiddleware(
-  cfg: GenericErrorMiddlewareCfg = {},
+  cfg: GenericErrorMiddlewareCfg = {}
 ): any {
   sentryService ||= cfg.sentryService
   reportOnly5xx = cfg.reportOnly5xx ?? false
@@ -39,16 +39,16 @@ export function genericErrorMiddleware(
     error: Error,
     request: Express.Request,
     res: Express.Response,
-    _next: Express.NextFunction,
+    _next: Express.NextFunction
   ) => {
     respondWithError(request, res, error)
   }
 }
 
 export function respondWithError(
-  request: Express.Request,
+  _request: Express.Request,
   res: Express.Response,
-  error: any,
+  error: any
 ): void {
   const { headersSent } = res
   if (headersSent) {
@@ -58,7 +58,7 @@ export function respondWithError(
   }
 
   const originalError = Errors.anyToError(error, Error, {
-    stringifyFn: Inspect.anyStringifyFn,
+    stringifyFn: Inspect.anyStringifyFn
   })
 
   let errorId: string | undefined
@@ -67,17 +67,20 @@ export function respondWithError(
     errorId = sentryService.captureException(originalError, false)
   }
 
-  if (res.headersSent) return
+  if (res.headersSent) {
+    return
+  }
 
   const httpError = Errors.errorToErrorObject<HttpErrorData>(
     originalError,
-    includeErrorStack,
+    includeErrorStack
   )
 
   httpError.data.errorId = errorId
   // Check if error has a status or statusCode property (from Express errors like PayloadTooLargeError)
   if (!httpError.data.httpStatusCode && originalError) {
-    httpError.data.httpStatusCode = (originalError as any).status || (originalError as any).statusCode
+    httpError.data.httpStatusCode =
+      (originalError as any).status || (originalError as any).statusCode
   }
   httpError.data.httpStatusCode ||= 500 // Default to 500
   httpError.data.headersSent = headersSent || undefined
@@ -85,7 +88,7 @@ export function respondWithError(
   Objects.filterUndefinedValues(httpError.data, true)
 
   res.status(httpError.data.httpStatusCode).json({
-    error: httpError,
+    error: httpError
   } as HttpErrorResponse)
 }
 
@@ -93,11 +96,17 @@ function shouldReportToSentry(error: Error): boolean {
   const e = error as HttpError
 
   // By default - report
-  if (!e.data) return true
+  if (!e.data) {
+    return true
+  }
 
   // If `report` is set - do as it says
-  if (e.data.report === true) return true
-  if (e.data.report === false) return false
+  if (e.data.report === true) {
+    return true
+  }
+  if (e.data.report === false) {
+    return false
+  }
 
   // Report if http 5xx, otherwise not
   // If no httpCode - report

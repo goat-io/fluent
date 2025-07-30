@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { expect, it } from 'vitest'
 import { Numbers } from './Numbers'
 
 it('Should check if a string is numeric', () => {

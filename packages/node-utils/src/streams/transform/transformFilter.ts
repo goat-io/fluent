@@ -1,38 +1,38 @@
 import { Transform } from 'node:stream'
+import { Predicate } from '@goatlab/js-utils'
+import { TransformOptions, TransformTyped } from '../streams.model'
 import {
   AsyncPredicate,
-  transformMap,
   TransformMapOptions,
+  transformMap
 } from './transformMap'
-import { TransformOptions, TransformTyped } from '../streams.model'
-import { Predicate } from '@goatlab/js-utils'
 
 /**
  * Just a convenience wrapper around `transformMap` that has built-in predicate filtering support.
  */
-export function transformFilter<IN = any>(
-  predicate: AsyncPredicate<IN>,
-  opt: TransformMapOptions = {},
-): TransformTyped<IN, IN> {
+export function transformFilter<In = any>(
+  predicate: AsyncPredicate<In>,
+  opt: TransformMapOptions = {}
+): TransformTyped<In, In> {
   return transformMap(v => v, {
     predicate,
-    ...opt,
+    ...opt
   })
 }
 
 /**
  * Sync version of `transformFilter`
  */
-export function transformFilterSync<IN = any>(
-  predicate: Predicate<IN>,
-  opt: TransformOptions = {},
-): TransformTyped<IN, IN> {
+export function transformFilterSync<In = any>(
+  predicate: Predicate<In>,
+  opt: TransformOptions = {}
+): TransformTyped<In, In> {
   let index = 0
 
   return new Transform({
     objectMode: true,
     ...opt,
-    transform(chunk: IN, _, cb) {
+    transform(chunk: In, _, cb) {
       try {
         if (predicate(chunk, index++)) {
           cb(null, chunk) // pass through
@@ -42,6 +42,6 @@ export function transformFilterSync<IN = any>(
       } catch (err) {
         cb(err as Error)
       }
-    },
+    }
   })
 }

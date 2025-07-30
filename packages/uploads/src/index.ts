@@ -1,3 +1,3 @@
-import { Upload, Providers } from './Upload'
+import { Providers, Upload } from './Upload'
 
 export { Upload, Providers }

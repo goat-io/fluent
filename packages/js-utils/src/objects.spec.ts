@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 // npx jest -i ./src/objects.spec.ts
 
 import { Objects } from './Objects'
@@ -440,7 +440,7 @@ describe('Objects', () => {
         'a.b': '1'
       }
       const result = Objects.nest(flattened, true)
-      expect(result['a']).toHaveProperty('isObject', true)
+      expect(result.a).toHaveProperty('isObject', true)
     })
   })
 
@@ -561,7 +561,7 @@ describe('Objects', () => {
         b: 2,
         c: 3
       }
-      const result = Objects.filterObject(obj, (k, v) => v > 1)
+      const result = Objects.filterObject(obj, (_k, v) => v > 1)
       expect(result).toEqual({
         b: 2,
         c: 3
@@ -628,13 +628,13 @@ describe('Objects', () => {
   describe('mapValues', () => {
     it('should map object values', () => {
       const obj = { a: 1, b: 2, c: 3 }
-      const result = Objects.mapValues(obj, (k, v) => v * 2)
+      const result = Objects.mapValues(obj, (_k, v) => v * 2)
       expect(result).toEqual({ a: 2, b: 4, c: 6 })
     })
 
     it('should provide key, value, and original object to mapper', () => {
       const obj = { a: 1, b: 2 }
-      const mapper = vi.fn((k, v) => v)
+      const mapper = vi.fn((_k, v) => v)
       Objects.mapValues(obj, mapper)
 
       expect(mapper).toHaveBeenCalledWith('a', 1, obj)
@@ -643,7 +643,7 @@ describe('Objects', () => {
 
     it('should mutate original object when mutate=true', () => {
       const obj = { a: 1, b: 2 }
-      const result = Objects.mapValues(obj, (k, v) => v * 2, true)
+      const result = Objects.mapValues(obj, (_k, v) => v * 2, true)
       expect(result).toBe(obj)
       expect(obj).toEqual({ a: 2, b: 4 })
     })
@@ -652,7 +652,7 @@ describe('Objects', () => {
   describe('mapKeys', () => {
     it('should map object keys', () => {
       const obj = { a: 1, b: 2 }
-      const result = Objects.mapKeys(obj, (k, v) => k.toUpperCase())
+      const result = Objects.mapKeys(obj, (k, _v) => k.toUpperCase())
       expect(result).toEqual({ A: 1, B: 2 })
     })
   })

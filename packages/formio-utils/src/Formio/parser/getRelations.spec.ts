@@ -1,8 +1,7 @@
-import { getRelations } from './getRelations'
-
 import { AdvancedForm } from '../validator/Logic/tests/Forms/AdvancedRelationsTest'
 import { BasicForms } from '../validator/Logic/tests/Forms/BasicRelationsTest'
 import { MultiplePivots } from '../validator/Logic/tests/Forms/MultiplePivots'
+import { getRelations } from './getRelations'
 
 const relations: any = getRelations(BasicForms)
 const advancedRelations: any = getRelations(AdvancedForm)

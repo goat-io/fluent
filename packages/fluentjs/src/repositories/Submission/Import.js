@@ -1,27 +1,26 @@
 // import offlinePlugin from 'offlinePlugin/offlinePlugin';
 import Submission from '../../models/Submission'
 import Event from '../../Wrappers/Event'
-let Import = class {
+
+const Import = class {
   /**
    *
    * @param {*} file
    * @param {*} vm
    */
   static fromJsonFile(file, vm) {
-    var reader = new FileReader()
+    const reader = new FileReader()
     // Closure to capture the file information.
 
-    reader.onload = (function (theFile) {
-      return function (e) {
-        let json
+    reader.onload = (_theFile => e => {
+      let json
 
-        try {
-          json = JSON.parse(e.target.result)
-        } catch (ex) {
-          throw new Error('The Json file could not be parsed')
-        }
-        Import.parseJson(json, vm)
+      try {
+        json = JSON.parse(e.target.result)
+      } catch (_ex) {
+        throw new Error('The Json file could not be parsed')
       }
+      Import.parseJson(json, vm)
     })(file)
     reader.readAsText(file)
   }
@@ -32,14 +31,14 @@ let Import = class {
    */
   static async parseJson(json, vm) {
     // let totalSubmissions = json.length;
-    let formio = Import.getFormIOInstance(vm)
+    const formio = Import.getFormIOInstance(vm)
 
     // Loading.show({ message: 'Importing ' + totalSubmissions + ' submissions' });
     // json = json.slice(151, 200);
 
-    Promise.each(json, async function (row, index) {
+    Promise.each(json, async (row, _index) => {
       // await Uploader.sendDataToFormIO(row)
-      let submission = Import.prepareSubmission(row)
+      const submission = Import.prepareSubmission(row)
 
       await Import.saveSubmission(submission, formio, vm)
     })
@@ -72,17 +71,17 @@ let Import = class {
    */
   static prepareSubmission(row) {
     if (row.id || row._id) {
-      delete row.id
-      delete row._id
+      row.id = undefined
+      row._id = undefined
     }
     if (row.modified) {
-      delete row.modified
+      row.modified = undefined
     }
     if (row.owner) {
-      delete row.owner
+      row.owner = undefined
     }
-    let data = row.data ? row.data : row
-    let formSubmission = {
+    const data = row.data ? row.data : row
+    const formSubmission = {
       data: data,
       redirect: false,
       syncError: false,
@@ -111,7 +110,7 @@ let Import = class {
    *
    * @param {*} vm
    */
-  static async saveSubmission(submission, formio, vm) {
+  static async saveSubmission(submission, formio, _vm) {
     // let processedSubmission = PreProcess.JsonSubmission(submission);
 
     await Submission('*').add({ submission: submission, formio: formio })

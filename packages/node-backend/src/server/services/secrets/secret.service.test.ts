@@ -4,22 +4,22 @@
 // - Updated synchronous method tests to use preload() before calling sync methods
 // - Removed legacy synchronous methods (getSecretSyncLegacy, getSecretJsonSyncLegacy)
 // - No changes needed for VAULT/ENV encryption as the service handles encryption internally
+
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { Security } from '@goatlab/node-utils'
+import { VaultContainer } from '@testcontainers/vault'
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
+  afterAll,
   afterEach,
   beforeAll,
-  afterAll
+  beforeEach,
+  describe,
+  expect,
+  it
 } from 'vitest'
-import * as fs from 'fs'
-import * as path from 'path'
-import { SecretService } from './secret.service'
-import { Security } from '@goatlab/node-utils'
 import { getGlobalData, writeGlobalData } from '../../../test/const'
-import { fetch } from 'undici'
-import { VaultContainer } from '@testcontainers/vault'
+import { SecretService } from './secret.service'
 
 describe('SecretService - FILE Provider', () => {
   let tempDir: string
@@ -235,7 +235,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
         vaultToken = globalData.vaultToken
         return
       }
-    } catch (e) {
+    } catch (_e) {
       // If no global data, start our own container
     }
 
@@ -579,9 +579,8 @@ describe('SecretService - ENV Provider', () => {
         encryptionKey: 'not-used'
       })
 
-      const result = await service.getSecretJson<typeof config>(
-        'DATABASE_CONFIG'
-      )
+      const result =
+        await service.getSecretJson<typeof config>('DATABASE_CONFIG')
       expect(result).toEqual(config)
     })
 

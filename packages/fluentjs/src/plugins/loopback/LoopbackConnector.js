@@ -1,20 +1,25 @@
 import to from 'await-to-js'
-import Utilities from './Utilities'
 import axios from 'axios'
-import { Interface, Fluent, Event } from '../../fluent'
-import Connection from './Wrapers/Connection'
 import dayjs from 'dayjs'
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import jwtDecode from 'jwt-decode'
 import pluralize from 'pluralize'
+import { Event, Fluent, Interface } from '../../fluent'
+import Utilities from './Utilities'
+import Connection from './Wrapers/Connection'
+
 dayjs.extend(isSameOrAfter)
 
 export default Interface.compose({
   methods: {
     getToken() {
-      if (typeof localStorage === 'undefined') return
+      if (typeof localStorage === 'undefined') {
+        return
+      }
       const token = localStorage.getItem('formioToken')
-      if (!token || this.getTokenType(token) === 'x-jwt-token') return token
+      if (!token || this.getTokenType(token) === 'x-jwt-token') {
+        return token
+      }
 
       const decodedToken = jwtDecode(token)
       const expDate = dayjs.unix(decodedToken.exp)
@@ -59,22 +64,23 @@ export default Interface.compose({
       }
 
       if (
-        result &&
-        result.data &&
-        result.data.hasOwnProperty('meta') &&
+        result?.data &&
+        Object.hasOwn(result.data, 'meta') &&
         this.selectArray.length > 0
       ) {
         result.data.data = this.jsApplySelect(result.data.data)
         return [result.data]
       }
 
-      return this.jsApplySelect(result && result.data)
+      return this.jsApplySelect(result?.data)
     },
     async all() {
       return this.get()
     },
     async paginate(paginator) {
-      if (!paginator) throw new Error('Paginator cannot be empty')
+      if (!paginator) {
+        throw new Error('Paginator cannot be empty')
+      }
       this.paginator = paginator
       const results = {}
       const response = await this.get()
@@ -91,7 +97,9 @@ export default Interface.compose({
       return results
     },
     raw(query) {
-      if (!query) throw new Error('No query was received')
+      if (!query) {
+        throw new Error('No query was received')
+      }
       this.rawQuery = query
       return this
     },
@@ -107,7 +115,9 @@ export default Interface.compose({
         undefined
       )
       const form = await this.getForm(baseUrl, remotePath)
-      if (!form) throw new Error('Could not find form')
+      if (!form) {
+        throw new Error('Could not find form')
+      }
 
       const components = form.components
       let finalComponents = this.getTableViewComponents(components)
@@ -141,7 +151,7 @@ export default Interface.compose({
         )
       }
 
-      let result = await this.httpPUT(data)
+      const result = await this.httpPUT(data)
 
       return result.data
     },
@@ -189,8 +199,8 @@ export default Interface.compose({
 
       return data;
     }, */
-    async getForm(baseUrl, path) {
-      let Form = Fluent.model({
+    async getForm(_baseUrl, path) {
+      const Form = Fluent.model({
         properties: {
           name: 'Form',
           config: {
@@ -207,7 +217,7 @@ export default Interface.compose({
     },
     getUrl() {
       const baseUrl = this && this.baseUrl() ? this.baseUrl() : undefined
-      let path =
+      const path =
         Utilities.get(() => this.path, undefined) ||
         Utilities.get(() => this.remoteConnection.path, undefined)
 
@@ -221,7 +231,7 @@ export default Interface.compose({
       return `${baseUrl}/${path}`
     },
     getHeaders() {
-      let headers = {}
+      const headers = {}
       let token = {}
       // Get token from local storage
       token = this.getToken()
@@ -235,21 +245,21 @@ export default Interface.compose({
         return headers
       }
 
-      let type = this.getTokenType(token)
+      const type = this.getTokenType(token)
       headers[type] = token
-      headers['Authorization'] = `Bearer ${token}`
+      headers.Authorization = `Bearer ${token}`
       return headers
     },
     getPage() {
-      let page = 'page='
-      if (this.paginator && this.paginator.page) {
-        return page + this.paginator.page + '&'
+      const page = 'page='
+      if (this.paginator?.page) {
+        return `${page + this.paginator.page}&`
       }
 
       return ''
     },
     getPaginatorLimit(filter) {
-      if (this.paginator && this.paginator.rowsPerPage) {
+      if (this.paginator?.rowsPerPage) {
         return { ...filter, limit: this.paginator.rowsPerPage }
       }
 
@@ -294,8 +304,7 @@ export default Interface.compose({
         filter.skip = filter.skip || this.rawQuery.skip
         filter.order = filter.order || this.rawQuery.order
         filter.fields = { ...filter.fields, ...this.rawQuery.fields }
-        const where =
-          filter.where && filter.where.and ? filter.where.and[0] : {}
+        const where = filter.where?.and ? filter.where.and[0] : {}
         filter.where = { ...where, ...this.rawQuery.where }
       }
 
@@ -332,9 +341,9 @@ export default Interface.compose({
       return axios.get(url, { headers })
     },
     async httpPOST(data) {
-      let url = this.getUrl()
+      const url = this.getUrl()
 
-      let headers = this.getHeaders()
+      const headers = this.getHeaders()
       const isOnline = true || (await Connection.isOnline())
 
       if (!isOnline) {
@@ -344,8 +353,8 @@ export default Interface.compose({
     },
     async httpPUT(data) {
       const isOnline = true || (await Connection.isOnline())
-      let url = `${this.getUrl()}/${data._id}`
-      let headers = this.getHeaders()
+      const url = `${this.getUrl()}/${data._id}`
+      const headers = this.getHeaders()
 
       if (!isOnline) {
         throw new Error(`Cannot make request post to ${url}.You are not online`)
@@ -354,8 +363,8 @@ export default Interface.compose({
       return axios.put(url, data, { headers })
     },
     httpDelete(_id) {
-      let headers = this.getHeaders()
-      let url = `${this.getUrl()}/${_id}`
+      const headers = this.getHeaders()
+      const url = `${this.getUrl()}/${_id}`
       return axios.delete(url, { headers })
     },
     getTokenType(token) {
@@ -365,18 +374,18 @@ export default Interface.compose({
       return 'x-token'
     },
     async getFilters(filters) {
-      let filter = this.whereArray
+      const filter = this.whereArray
 
       if (!filter || filter.length === 0) {
         return filters
       }
 
-      filters['where'] = { and: [] }
+      filters.where = { and: [] }
 
       filter.forEach(condition => {
-        let element = condition[0]
-        let operator = condition[1]
-        let value = condition[2]
+        const element = condition[0]
+        const operator = condition[1]
+        const value = condition[2]
 
         switch (operator) {
           case '=':
@@ -429,14 +438,14 @@ export default Interface.compose({
     },
     getLimit(filter) {
       if (!this.limitNumber || this.limitNumber === 0) {
-        this.limitNumber = (this.rawQuery && this.rawQuery.limit) || 50
+        this.limitNumber = this.rawQuery?.limit || 50
       }
 
       return { ...filter, limit: this.limitNumber }
     },
     getSkip(filter) {
       if (!this.offsetNumber) {
-        this.offsetNumber = (this.rawQuery && this.rawQuery.skip) || 0
+        this.offsetNumber = this.rawQuery?.skip || 0
       }
 
       return { ...filter, skip: this.offsetNumber }
@@ -445,9 +454,9 @@ export default Interface.compose({
       let select = this.selectArray
 
       select = select.map(s => {
-        s = s.split(' as ')[0]
-        s = s.includes('_id') ? 'id' : s
-        return s
+        let field = s.split(' as ')[0]
+        field = field.includes('_id') ? 'id' : field
+        return field
       })
 
       if (select.find(e => e.startsWith('data.'))) {
@@ -468,7 +477,7 @@ export default Interface.compose({
     },
     getRequest(url) {
       const headers = this.getHeaders()
-      let baseUrl = this.baseUrl()
+      const baseUrl = this.baseUrl()
       return axios.get(`${baseUrl}${url}`, { headers })
     }
   }

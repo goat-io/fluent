@@ -1,7 +1,7 @@
 /* global describe, it, beforeAll */
 import 'babel-polyfill'
-import chai from 'chai'
 import { Fluent } from '@goatlab/goat-fluent'
+import chai from 'chai'
 import loki from './LokiConnector'
 
 const expect = chai.expect
@@ -63,7 +63,7 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('Should insert Data', async () => {
-    let data = await testModel.local().insert({
+    const data = await testModel.local().insert({
       test: true,
       order: 1,
       nestedTest: { a: [6, 5, 4], b: { c: true, d: [2, 1, 0] }, c: 4 },
@@ -83,7 +83,7 @@ describe.skip('Given a FLUENT Local Model', () => {
       created: '2016-12-03'
     })
 
-    let data2 = await testModel2.local().insert({
+    const data2 = await testModel2.local().insert({
       test: true,
       nestedTest: { a: [5, 4, 3], b: { c: true, d: [2, 1, 0] }, c: 1 }
     })
@@ -93,7 +93,7 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('Should get local data', async () => {
-    let data = await testModel.local().all()
+    const data = await testModel.local().all()
 
     expect(data[0].nestedTest.a[0]).to.be.equal(6)
   })
@@ -108,7 +108,7 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('select() should filter and name specific columns', async () => {
-    let data = await testModel
+    const data = await testModel
       .local()
       .select('nestedTest.b.d[2] as myCustomName', 'fake.a as myA', [
         'fake.b[1] as anotherB',
@@ -116,17 +116,17 @@ describe.skip('Given a FLUENT Local Model', () => {
       ])
       .get()
 
-    expect(data[0]['myCustomName']).to.be.equal(0)
+    expect(data[0].myCustomName).to.be.equal(0)
   })
 
   it('pluck() should return a single array', async () => {
-    let data = await testModel.local().pluck('test')
+    const data = await testModel.local().pluck('test')
 
     expect(data[0]).to.be.equal(true)
   })
 
   it('orderBy() should order results desc', async () => {
-    let forms = await testModel
+    const forms = await testModel
       .local()
       .select('test', 'nestedTest.b.d[0] as custom', 'order')
       .orderBy('custom', 'desc')
@@ -136,7 +136,7 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('orderBy() should order results asc', async () => {
-    let forms = await testModel
+    const forms = await testModel
       .local()
       .select('test', 'nestedTest.b.d[0] as custom', 'order')
       .orderBy('custom', 'asc')
@@ -146,7 +146,7 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('orderBy() should order by Dates with Select()', async () => {
-    let forms = await testModel
+    const forms = await testModel
       .local()
       .select('created', 'order')
       .orderBy('created', 'asc', 'date')
@@ -156,13 +156,16 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('orderBy() should order by Dates without Select()', async () => {
-    let forms = await testModel.local().orderBy('created', 'asc', 'date').get()
+    const forms = await testModel
+      .local()
+      .orderBy('created', 'asc', 'date')
+      .get()
 
     expect(forms[0].order).to.be.equal(3)
   })
 
   it('limit() should limit the amount of results', async () => {
-    let forms = await testModel
+    const forms = await testModel
       .local()
       .select('created', 'order')
       .orderBy('created', 'asc', 'date')
@@ -173,7 +176,7 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('offset() should start at the given position', async () => {
-    let forms = await testModel
+    const forms = await testModel
       .local()
       .select('created', 'order')
       .offset(1)
@@ -184,13 +187,13 @@ describe.skip('Given a FLUENT Local Model', () => {
   })
 
   it('where() should filter the data', async () => {
-    let forms = await testModel.local().where(['nestedTest.c', '>=', 3]).get()
+    const forms = await testModel.local().where(['nestedTest.c', '>=', 3]).get()
 
     expect(forms.length).to.be.equal(2)
   })
 
   it('first() should take the first result from data', async () => {
-    let form = await testModel
+    const form = await testModel
       .local()
       .where(['nestedTest.c', '>=', 3])
       .orderBy('order', 'desc')
@@ -203,7 +206,7 @@ describe.skip('Given a FLUENT Local Model', () => {
     await testModel.local().clear()
     await testModel2.local().clear()
 
-    let forms = await testModel.local().all()
+    const forms = await testModel.local().all()
 
     expect(forms.length).to.be.equal(0)
   })

@@ -1,4 +1,3 @@
-
 import { Time } from '../Time'
 import { getArgsSignature } from './decorator.util'
 import type { MemoOptions } from './memo.decorator'
@@ -16,7 +15,7 @@ export interface MemoizedFunction {
  */
 export function memoFn<T extends (...args: any[]) => any>(
   fn: T,
-  opt: MemoOptions = {},
+  opt: MemoOptions = {}
 ): T & MemoizedFunction {
   const {
     logHit = false,
@@ -25,14 +24,13 @@ export function memoFn<T extends (...args: any[]) => any>(
     logger = console,
     cacheErrors = true,
     cacheFactory = () => new MapMemoCache(),
-    cacheKeyFn = jsonMemoSerializer,
+    cacheKeyFn = jsonMemoSerializer
   } = opt
 
   const cache = cacheFactory()
   const fnName = fn.name
 
   const memoizedFn = function (this: any, ...args: any[]): T {
-    const ctx = this
     const cacheKey = cacheKeyFn(args)
     let value: any
 
@@ -53,7 +51,7 @@ export function memoFn<T extends (...args: any[]) => any>(
     const started = Date.now()
 
     try {
-      value = fn.apply(ctx, args)
+      value = fn.apply(this, args)
 
       try {
         cache.set(cacheKey, value)
@@ -75,7 +73,7 @@ export function memoFn<T extends (...args: any[]) => any>(
     } finally {
       if (logMiss) {
         logger.log(
-          `${fnName}(${getArgsSignature(args, logArgs)}) memoFn miss (${Time.since(started)})`,
+          `${fnName}(${getArgsSignature(args, logArgs)}) memoFn miss (${Time.since(started)})`
         )
       }
     }

@@ -1,14 +1,14 @@
+import * as crypto from 'node:crypto'
 import { StringMap, stringMapEntries } from '@goatlab/js-utils'
-import * as crypto from 'crypto'
 import { Hashes } from './Hashes'
 
 const defaultAlgorithm = 'aes-256-cbc'
 
 const charsets = {
-  NUMBERS: '0123456789',
-  LOWERCASE: 'abcdefghijklmnopqrstuvwxyz',
-  UPPERCASE: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  SYMBOLS: '!#$%&()+,-.<=>?@^_'
+  numbers: '0123456789',
+  lowercase: 'abcdefghijklmnopqrstuvwxyz',
+  uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  symbols: '!#$%&()+,-.<=>?@^_'
 }
 
 export interface GeneratedKeyPair {
@@ -123,7 +123,7 @@ class SecurityClass {
    * @returns Promise resolving to an object containing PEM-formatted public and private keys
    */
   async generateElipticCurve(): Promise<GeneratedKeyPair> {
-    const { promisify } = require('util')
+    const { promisify } = require('node:util')
     const generateKeyPairAsync = promisify(crypto.generateKeyPair)
 
     return await generateKeyPairAsync('ed25519', {
@@ -180,10 +180,10 @@ class SecurityClass {
    */
   generatePassword(length: number): string {
     const charset =
-      charsets.LOWERCASE +
-      charsets.UPPERCASE +
-      charsets.NUMBERS +
-      charsets.SYMBOLS
+      charsets.lowercase +
+      charsets.uppercase +
+      charsets.numbers +
+      charsets.symbols
 
     const bytes = crypto.randomBytes(length)
     let password = ''

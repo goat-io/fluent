@@ -1,5 +1,5 @@
-import type { TypesenseAliasResponse } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type { TypesenseAliasResponse } from '../../typesense.model'
 import { createTenantQualifiedName } from '../../utils/tenant'
 
 export async function getAlias(

@@ -1,9 +1,9 @@
-import { AnyObject, StringMap } from './types'
 import { nGram } from './Ngram'
 import { Objects } from './Objects'
-import { reUnicodeWords } from './Strings/unicodeWords'
-import { _stringifyAny } from './Strings/stringifyAny'
 import { pupa } from './Strings/pupa'
+import { _stringifyAny } from './Strings/stringifyAny'
+import { reUnicodeWords } from './Strings/unicodeWords'
+import { AnyObject, StringMap } from './types'
 
 export interface NgramFromObject {
   fields: string[]
@@ -53,8 +53,10 @@ class StringsClass {
    */
   camel(s: string): string {
     const words = this.words(s.replace(/['\u2019]/g, ''))
-    if (words.length === 0) return ''
-    
+    if (words.length === 0) {
+      return ''
+    }
+
     let result = words[0]!.toLowerCase()
     for (let i = 1; i < words.length; i++) {
       const word = words[i]!.toLowerCase()
@@ -73,7 +75,9 @@ class StringsClass {
   contains = (haystack: string, needles: string | string[]) => {
     if (Array.isArray(needles)) {
       for (let i = 0; i < needles.length; i++) {
-        if (haystack.indexOf(needles[i]!) !== -1) return true
+        if (haystack.indexOf(needles[i]!) !== -1) {
+          return true
+        }
       }
       return false
     }
@@ -99,39 +103,94 @@ class StringsClass {
    * @return string
    */
   private static charMap: Map<string, string> | undefined
-  
+
   private static charMapCache = new Map<string, Map<string, string>>()
-  
+
   private getCharMap(separator: string): Map<string, string> {
     // Check cache first
-    let cached = StringsClass.charMapCache.get(separator)
-    if (cached) return cached
-    
+    const cached = StringsClass.charMapCache.get(separator)
+    if (cached) {
+      return cached
+    }
+
     if (!StringsClass.charMap) {
       StringsClass.charMap = new Map([
-        ['à', 'a'], ['á', 'a'], ['â', 'a'], ['ä', 'a'], ['æ', 'a'], ['ã', 'a'], ['å', 'a'], ['ā', 'a'], ['ă', 'a'], ['ą', 'a'],
-        ['ç', 'c'], ['ć', 'c'], ['č', 'c'],
-        ['đ', 'd'], ['ď', 'd'],
-        ['è', 'e'], ['é', 'e'], ['ê', 'e'], ['ë', 'e'], ['ē', 'e'], ['ė', 'e'], ['ę', 'e'], ['ě', 'e'],
-        ['ğ', 'g'], ['ǵ', 'g'],
+        ['à', 'a'],
+        ['á', 'a'],
+        ['â', 'a'],
+        ['ä', 'a'],
+        ['æ', 'a'],
+        ['ã', 'a'],
+        ['å', 'a'],
+        ['ā', 'a'],
+        ['ă', 'a'],
+        ['ą', 'a'],
+        ['ç', 'c'],
+        ['ć', 'c'],
+        ['č', 'c'],
+        ['đ', 'd'],
+        ['ď', 'd'],
+        ['è', 'e'],
+        ['é', 'e'],
+        ['ê', 'e'],
+        ['ë', 'e'],
+        ['ē', 'e'],
+        ['ė', 'e'],
+        ['ę', 'e'],
+        ['ě', 'e'],
+        ['ğ', 'g'],
+        ['ǵ', 'g'],
         ['ḧ', 'h'],
-        ['î', 'i'], ['ï', 'i'], ['í', 'i'], ['ī', 'i'], ['į', 'i'], ['ì', 'i'],
+        ['î', 'i'],
+        ['ï', 'i'],
+        ['í', 'i'],
+        ['ī', 'i'],
+        ['į', 'i'],
+        ['ì', 'i'],
         ['ł', 'l'],
         ['ḿ', 'm'],
-        ['ñ', 'n'], ['ń', 'n'], ['ǹ', 'n'], ['ň', 'n'],
-        ['ô', 'o'], ['ö', 'o'], ['ò', 'o'], ['ó', 'o'], ['œ', 'o'], ['ø', 'o'], ['ō', 'o'], ['õ', 'o'], ['ő', 'o'],
+        ['ñ', 'n'],
+        ['ń', 'n'],
+        ['ǹ', 'n'],
+        ['ň', 'n'],
+        ['ô', 'o'],
+        ['ö', 'o'],
+        ['ò', 'o'],
+        ['ó', 'o'],
+        ['œ', 'o'],
+        ['ø', 'o'],
+        ['ō', 'o'],
+        ['õ', 'o'],
+        ['ő', 'o'],
         ['ṕ', 'p'],
-        ['ŕ', 'r'], ['ř', 'r'],
-        ['ß', 's'], ['ś', 's'], ['š', 's'], ['ş', 's'], ['ș', 's'],
-        ['ť', 't'], ['ț', 't'],
-        ['û', 'u'], ['ü', 'u'], ['ù', 'u'], ['ú', 'u'], ['ū', 'u'], ['ǘ', 'u'], ['ů', 'u'], ['ű', 'u'], ['ų', 'u'],
+        ['ŕ', 'r'],
+        ['ř', 'r'],
+        ['ß', 's'],
+        ['ś', 's'],
+        ['š', 's'],
+        ['ş', 's'],
+        ['ș', 's'],
+        ['ť', 't'],
+        ['ț', 't'],
+        ['û', 'u'],
+        ['ü', 'u'],
+        ['ù', 'u'],
+        ['ú', 'u'],
+        ['ū', 'u'],
+        ['ǘ', 'u'],
+        ['ů', 'u'],
+        ['ű', 'u'],
+        ['ų', 'u'],
         ['ẃ', 'w'],
         ['ẍ', 'x'],
-        ['ÿ', 'y'], ['ý', 'y'],
-        ['ž', 'z'], ['ź', 'z'], ['ż', 'z']
+        ['ÿ', 'y'],
+        ['ý', 'y'],
+        ['ž', 'z'],
+        ['ź', 'z'],
+        ['ż', 'z']
       ])
     }
-    
+
     const map = new Map(StringsClass.charMap)
     map.set('·', separator)
     map.set('/', separator)
@@ -139,17 +198,17 @@ class StringsClass {
     map.set(',', separator)
     map.set(':', separator)
     map.set(';', separator)
-    
+
     // Cache the result
     StringsClass.charMapCache.set(separator, map)
     return map
   }
 
   private static slugRegexCache = new Map<string, [RegExp, RegExp]>()
-  
+
   slug = (str: string, separator = '-'): string => {
     const charMap = this.getCharMap(separator)
-    
+
     // Cache regex patterns per separator
     let regexPair = StringsClass.slugRegexCache.get(separator)
     if (!regexPair) {
@@ -159,9 +218,9 @@ class StringsClass {
       ]
       StringsClass.slugRegexCache.set(separator, regexPair)
     }
-    
+
     const [multipleSeq, trimSeq] = regexPair
-    
+
     return str
       .toLowerCase()
       .replace(/\s+/g, separator)
@@ -170,7 +229,7 @@ class StringsClass {
         c => charMap.get(c) || separator
       )
       .replace(/&/g, `${separator}and${separator}`)
-      .replace(/[^\w\-]+/g, '')
+      .replace(/[^\w-]+/g, '')
       .replace(multipleSeq, separator)
       .replace(trimSeq, '')
   }
@@ -184,11 +243,13 @@ class StringsClass {
    */
   snake(s: string): string {
     const words = this.words(s.replace(/['\u2019]/g, ''))
-    if (words.length === 0) return ''
-    
+    if (words.length === 0) {
+      return ''
+    }
+
     let result = words[0]!.toLowerCase()
     for (let i = 1; i < words.length; i++) {
-      result += '_' + words[i]!.toLowerCase()
+      result += `_${words[i]!.toLowerCase()}`
     }
     return result
   }
@@ -236,11 +297,13 @@ class StringsClass {
 
   kebabCase(s: string): string {
     const words = this.words(s.replace(/['\u2019]/g, ''))
-    if (words.length === 0) return ''
-    
+    if (words.length === 0) {
+      return ''
+    }
+
     let result = words[0]!.toLowerCase()
     for (let i = 1; i < words.length; i++) {
-      result += '-' + words[i]!.toLowerCase()
+      result += `-${words[i]!.toLowerCase()}`
     }
     return result
   }
@@ -282,13 +345,17 @@ class StringsClass {
   }
 
   truncate(s: string, maxLen: number, omission = '...'): string {
-    if (!s || s.length <= maxLen) return s
+    if (!s || s.length <= maxLen) {
+      return s
+    }
 
     return s.substring(0, maxLen - omission.length) + omission
   }
 
   truncateMiddle(s: string, maxLen: number, omission = '...'): string {
-    if (!s || s.length <= maxLen) return s
+    if (!s || s.length <= maxLen) {
+      return s
+    }
 
     const mark1 = Math.round((maxLen - omission.length) / 2)
     const mark2 = s.length - Math.floor((maxLen - omission.length) / 2)
@@ -386,7 +453,7 @@ class StringsClass {
     for (let i = 0; i < fields.length; i++) {
       const text = Objects.getFromPath(submission, fields[i]!, '')
       const nGramText = this.ngram(text.value)
-      fullNGramString += ' ' + nGramText
+      fullNGramString += ` ${nGramText}`
     }
 
     const processed = fullNGramString
@@ -410,7 +477,7 @@ class StringsClass {
     let fullNGramString = ''
     for (let i = 0; i < texts.length; i++) {
       const nGramText = this.ngram(texts[i]!)
-      fullNGramString += ' ' + nGramText
+      fullNGramString += ` ${nGramText}`
     }
 
     const processed = fullNGramString
@@ -423,15 +490,17 @@ class StringsClass {
   }
 
   parseQueryString(search: string): StringMap {
-    if (!search) return {}
+    if (!search) {
+      return {}
+    }
     const qs = Object.create(null) as StringMap
     const startIndex = search[0] === '?' ? 1 : 0
     const pairs = search.substring(startIndex).split('&')
-    
+
     for (let i = 0; i < pairs.length; i++) {
       const pair = pairs[i]!
       const eqIndex = pair.indexOf('=')
-      
+
       if (eqIndex === -1) {
         // Handle key without value
         if (pair) {
@@ -440,7 +509,9 @@ class StringsClass {
       } else {
         const k = pair.substring(0, eqIndex)
         if (k) {
-          qs[decodeURIComponent(k)] = decodeURIComponent(pair.substring(eqIndex + 1) || '')
+          qs[decodeURIComponent(k)] = decodeURIComponent(
+            pair.substring(eqIndex + 1) || ''
+          )
         }
       }
     }

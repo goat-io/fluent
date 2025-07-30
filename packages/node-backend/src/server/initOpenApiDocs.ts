@@ -9,7 +9,7 @@ export function initOpenApiDocs({
   appName,
   appVersion,
   trpcRouter,
-  baseUrl,
+  baseUrl
 }: {
   app: express.Application
   trpcRouter: BuiltRouter<any, any>
@@ -20,10 +20,10 @@ export function initOpenApiDocs({
   const openApiDocument = generateOpenApiDocument(trpcRouter, {
     title: appName,
     version: appVersion,
-    baseUrl,
+    baseUrl
   })
   // Serve the OpenAPI document at /openapi
-  app.use('/openapi', (req, res) => {
+  app.use('/openapi', (_req, res) => {
     res.json(openApiDocument)
   })
 

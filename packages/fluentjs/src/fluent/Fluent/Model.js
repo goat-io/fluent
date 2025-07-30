@@ -37,7 +37,7 @@ export default stampit({
       let FLUENT
       if (typeof window !== 'undefined' && window && window._FLUENT_) {
         FLUENT = window._FLUENT_
-      } else if (global && global._FLUENT_) {
+      } else if (global?._FLUENT_) {
         FLUENT = global._FLUENT_
       }
 
@@ -66,27 +66,35 @@ export default stampit({
      */
     getConnectorFromArray(connectors, type, connectorName = false) {
       // Default case
-      if (connectors.length === 1) return connectors[0]
+      if (connectors.length === 1) {
+        return connectors[0]
+      }
 
       // If the model assigns specific one
-      if (this.config && this.config[type] && this.config[type].connector) {
+      if (this.config?.[type]?.connector) {
         const Lcon = connectors.find(
           c => c.name === this.config[type].connector
         )
 
-        if (Lcon instanceof Object) return Lcon
+        if (Lcon instanceof Object) {
+          return Lcon
+        }
       }
 
       // If connectorName is specified
       if (connectorName) {
         const Lcon = connectors.find(c => c.name === connectorName)
 
-        if (Lcon instanceof Object) return Lcon
+        if (Lcon instanceof Object) {
+          return Lcon
+        }
       }
 
       const base = connectors.find(c => c.default)
 
-      if (base instanceof Object) return base
+      if (base instanceof Object) {
+        return base
+      }
 
       return undefined
     },
@@ -101,7 +109,7 @@ export default stampit({
       path = undefined
     } = {}) {
       const FLUENT = this.getFluentConfig()
-      const connectors = FLUENT && FLUENT.connectors && FLUENT.connectors.remote
+      const connectors = FLUENT?.connectors?.remote
 
       if (!connectors) {
         throw new Error(
@@ -115,8 +123,7 @@ export default stampit({
         connectorName || false
       )
 
-      this.config.remote.token =
-        token || (this.config && this.config.remote && this.config.remote.token)
+      this.config.remote.token = token || this.config?.remote?.token
       this.config.remote.path = path || this.config.remote.path
 
       if (pullForm) {
@@ -140,12 +147,13 @@ export default stampit({
      */
     local({ connectorName = undefined } = {}) {
       const FLUENT = this.getFluentConfig()
-      const connectors = FLUENT && FLUENT.connectors && FLUENT.connectors.local
+      const connectors = FLUENT?.connectors?.local
 
-      if (!connectors)
+      if (!connectors) {
         throw new Error(
           'No local connector was defined. Please define it using Fluent.config()'
         )
+      }
 
       const localConnector = this.getConnector(
         connectors,
@@ -153,11 +161,12 @@ export default stampit({
         connectorName || false
       )
 
-      if (localConnector)
+      if (localConnector) {
         return localConnector.connector({
           name: this.name,
           connector: localConnector
         })
+      }
 
       throw new Error(
         'No default local connector found. Please assign one as your default in Fluent.config'
@@ -172,7 +181,7 @@ export default stampit({
       const remote = this.remote()
 
       const FLUENT = this.getFluentConfig()
-      const connectors = FLUENT && FLUENT.connectors && FLUENT.connectors.merge
+      const connectors = FLUENT?.connectors?.merge
 
       if (!connectors) {
         throw new Error(

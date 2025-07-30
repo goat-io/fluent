@@ -8,15 +8,15 @@ import { Numbers } from '@goatlab/js-utils'
  * _average([1, 2, 3, 4])
  * // 2.5
  */
-export function _average(values: number[]): number {
+export function average(values: number[]): number {
   return values.reduce((a, b) => a + b) / values.length
 }
 
 /**
- * Same as _average, but safely returns null if input array is empty or nullish.
+ * Same as average, but safely returns null if input array is empty or nullish.
  */
-export function _averageOrNull(
-  values: number[] | undefined | null,
+export function averageOrNull(
+  values: number[] | undefined | null
 ): number | null {
   return values?.length ? values.reduce((a, b) => a + b) / values.length : null
 }
@@ -24,7 +24,7 @@ export function _averageOrNull(
 /**
  * valuesArray and weightsArray length is expected to be the same.
  */
-export function _averageWeighted(values: number[], weights: number[]): number {
+export function averageWeighted(values: number[], weights: number[]): number {
   const numerator = values
     .map((value, i) => value * weights[i]!)
     .reduce((a, b) => a + b)
@@ -46,7 +46,7 @@ export function _averageWeighted(values: number[], weights: number[]): number {
  * _percentile([1, 2, 3], 100)
  * // 3
  */
-export function _percentile(values: number[], pc: number): number {
+export function percentile(values: number[], pc: number): number {
   const sorted = Numbers.sortNumbers(values)
 
   // Floating pos in the range of [0; length - 1]
@@ -55,15 +55,15 @@ export function _percentile(values: number[], pc: number): number {
   const floorPos = Math.floor(pos)
   const ceilPos = Math.ceil(pos)
 
-  return _averageWeighted([sorted[floorPos]!, sorted[ceilPos]!], [1 - dec, dec])
+  return averageWeighted([sorted[floorPos]!, sorted[ceilPos]!], [1 - dec, dec])
 }
 
 /**
- * A tiny bit more efficient function than calling _percentile individually.
+ * A tiny bit more efficient function than calling percentile individually.
  */
-export function _percentiles(
+export function percentiles(
   values: number[],
-  pcs: number[],
+  pcs: number[]
 ): Record<number, number> {
   const r = {} as Record<number, number>
 
@@ -76,9 +76,9 @@ export function _percentiles(
     const floorPos = Math.floor(pos)
     const ceilPos = Math.ceil(pos)
 
-    r[pc] = _averageWeighted(
+    r[pc] = averageWeighted(
       [sorted[floorPos]!, sorted[ceilPos]!],
-      [1 - dec, dec],
+      [1 - dec, dec]
     )
   })
 
@@ -94,6 +94,6 @@ export function _percentiles(
  * _median([1, 2, 3, 4])
  * // 2.5
  */
-export function _median(values: number[]): number {
-  return _percentile(values, 50)
+export function median(values: number[]): number {
+  return percentile(values, 50)
 }

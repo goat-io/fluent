@@ -1,0 +1,28 @@
+{
+  "name": "@goatlab/biome",
+  "version": "0.1.0",
+  "description": "Shared Biome configuration for GoatLab projects",
+  "main": "biome.json",
+  "scripts": {
+    "format": "biome format --write .",
+    "lint": "echo 'skip'"
+  },
+  "files": [
+    "biome.json",
+    "README.md"
+  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "keywords": [
+    "biome",
+    "config",
+    "linter",
+    "formatter"
+  ],
+  "peerDependencies": {
+    "@biomejs/biome": "^1.9.0"
+  }
+}

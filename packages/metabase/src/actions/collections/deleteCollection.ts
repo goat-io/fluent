@@ -4,7 +4,7 @@ export async function deleteCollection({
   baseUrl,
   sessionToken,
   apiKey,
-  collectionId,
+  collectionId
 }: {
   baseUrl: string
   sessionToken?: string
@@ -17,13 +17,13 @@ export async function deleteCollection({
     apiKey,
     endpoint: `/api/collection/${collectionId}`,
     method: 'PUT',
-    body: { archived: true },
+    body: { archived: true }
   })
 
   if (!response.ok) {
     console.error(
       `❌ Failed to delete collection ${collectionId}:`,
-      await response.text(),
+      await response.text()
     )
     throw new Error(`Failed to delete collection ${collectionId}`)
   }

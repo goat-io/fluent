@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 0.8.10
+
+### Patch Changes
+
+- Fix lint errors and test failures
+
+  - fluent-formio: Fixed lint errors for unused private class members
+  - node-backend: Fixed test failures related to Cache class property changes and email service tests
+    EOF < /dev/null
+  - @goatlab/fluent@0.9.10
+
 ## 0.8.9
 
 ### Patch Changes

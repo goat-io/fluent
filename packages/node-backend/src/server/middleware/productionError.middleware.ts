@@ -1,6 +1,6 @@
-import type { Request, Response, NextFunction } from 'express'
 import type { HttpError, HttpErrorData } from '@goatlab/js-utils'
 import { Errors } from '@goatlab/js-utils'
+import type { NextFunction, Request, Response } from 'express'
 import type { Environment } from '../types/Envinronment'
 
 /**
@@ -99,7 +99,13 @@ export function productionErrorHandler() {
 /**
  * Async error wrapper to catch errors in async route handlers
  */
-export function asyncErrorHandler(fn: Function) {
+export function asyncErrorHandler(
+  fn: (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => Promise<unknown> | unknown
+) {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next)
   }

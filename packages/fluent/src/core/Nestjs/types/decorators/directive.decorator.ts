@@ -9,19 +9,22 @@ import { TypeMetadataStorage } from '../type-metadata.storage'
 export function Directive(
   sdl: string
 ): MethodDecorator & PropertyDecorator & ClassDecorator {
-  return (target: Function | Object, key?: string | symbol) => {
+  return (
+    target: ((...args: any[]) => any) | object,
+    key?: string | symbol
+  ) => {
     validateDirective(sdl)
 
     LazyMetadataStorage.store(() => {
       if (key) {
         TypeMetadataStorage.addDirectivePropertyMetadata({
-          target: target.constructor,
+          target: target.constructor as new (...args: any[]) => any,
           fieldName: key as string,
           sdl
         })
       } else {
         TypeMetadataStorage.addDirectiveMetadata({
-          target: target as Function,
+          target: target as unknown as new (...args: any[]) => any,
           sdl
         })
       }
@@ -32,7 +35,7 @@ export function Directive(
 function validateDirective(sdl: string) {
   try {
     parse(`type String ${sdl}`)
-  } catch (err) {
+  } catch (_err) {
     throw new DirectiveParsingError(sdl)
   }
 }

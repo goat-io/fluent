@@ -1,8 +1,9 @@
 import dayjs from 'dayjs'
 import Utilities from '../../utilities'
+
 // import 'moment/min/locales';
 
-let Moment = class {
+const Moment = class {
   static setLocales() {
     dayjs.locale(Moment.getLanguage())
   }

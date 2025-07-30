@@ -11,8 +11,8 @@ export default defineConfig({
     globalSetup: './src/setup/containerSetup.ts',
     sequence: {
       hooks: 'parallel',
-      concurrent: false, // Run container tests sequentially
+      concurrent: false // Run container tests sequentially
     },
-    maxConcurrency: 1,
-  },
+    maxConcurrency: 1
+  }
 })

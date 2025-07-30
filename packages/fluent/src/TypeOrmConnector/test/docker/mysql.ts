@@ -1,87 +1,89 @@
 import startContainer, {
-  Options as WithContainerOptions,
-  killOldContainers
+  killOldContainers,
+  Options as WithContainerOptions
 } from './docker'
-const {createConnection} = require('mysql2');
 
-const DEFAULT_IMAGE = 'mysql:8.0';
+const { createConnection } = require('mysql2')
+
+const DEFAULT_IMAGE = 'mysql:8.0'
 const DEFAULT_CONTAINER_NAME = `fluent-${DEFAULT_IMAGE.replace(':', '-')}-test`
-const DEFAULT_CONNECT_TIMEOUT_SECONDS=10
-const DEFAULT_MYSQL_PORT = 3306;
-const DEFAULT_MYSQL_USER = 'test-user';
+const DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
+const DEFAULT_MYSQL_PORT = 3306
+const DEFAULT_MYSQL_USER = 'test-user'
 const DEFAULT_MYSQL_PASSWORD = 'password'
 const DEFAULT_MYSQL_DB = 'test-db'
-const DEFAULT_MYSQL_DEBUG =false
+const DEFAULT_MYSQL_DEBUG = false
 
 export interface Options
   extends Omit<
     WithContainerOptions,
     'internalPort' | 'enableDebugInstructions' | 'testConnection'
   > {
-  mysqlUser: string;
-  mysqlPassword: string;
-  mysqlDb: string;
+  mysqlUser: string
+  mysqlPassword: string
+  mysqlDb: string
 }
 
 export async function waitForConnection(
   databaseURL: string,
-  timeoutSeconds: number,
+  timeoutSeconds: number
 ) {
-  const start = Date.now();
-  const timeoutMilliseconds = timeoutSeconds * 1000;
-  let lastAttempt = false;
+  const start = Date.now()
+  const timeoutMilliseconds = timeoutSeconds * 1000
+  let lastAttempt = false
   while (true) {
-    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
-    let conn: any;
+    await new Promise<void>(resolve => setTimeout(resolve, 1000))
+    let conn: any
     try {
       try {
         await new Promise<void>((resolve, reject) => {
-          let errored = false;
-          conn = createConnection(databaseURL);
-          const createConnectionErr: any = new Error();
+          let errored = false
+          conn = createConnection(databaseURL)
+          const createConnectionErr: any = new Error()
           conn.once('connect', () => {
-            resolve();
-          });
+            resolve()
+          })
           conn.on('error', (err: any) => {
-            if (errored) return;
-            errored = true;
-            createConnectionErr.message = err.message;
-            createConnectionErr.code = err.code;
-            createConnectionErr.errno = err.errno;
-            createConnectionErr.sqlState = err.sqlState;
-            reject(createConnectionErr);
-          });
-        });
+            if (errored) {
+              return
+            }
+            errored = true
+            createConnectionErr.message = err.message
+            createConnectionErr.code = err.code
+            createConnectionErr.errno = err.errno
+            createConnectionErr.sqlState = err.sqlState
+            reject(createConnectionErr)
+          })
+        })
         const result = await new Promise<any>((resolve, reject) => {
-          const queryErr: any = new Error();
+          const queryErr: any = new Error()
           conn.query(`SELECT 1 + 1 AS foo;`, (err: any, result: any) => {
             if (err) {
-              queryErr.message = err.message;
-              reject(queryErr);
+              queryErr.message = err.message
+              reject(queryErr)
             } else {
-              resolve(result);
+              resolve(result)
             }
-          });
-        });
-        if (result && result[0] && result[0].foo === 2) {
-          break;
-        } else {
-          if (lastAttempt) {
-            throw new Error('Got unexpected result: ' + JSON.stringify(result));
-          }
+          })
+        })
+        if (result?.[0] && result[0].foo === 2) {
+          break
+        }
+        if (lastAttempt) {
+          throw new Error(`Got unexpected result: ${JSON.stringify(result)}`)
         }
       } catch (ex) {
         if (lastAttempt) {
-          throw ex;
+          throw ex
         }
       }
     } finally {
       conn.end(() => {
         // ignore error closing connection
-      });
+      })
     }
     if (Date.now() - timeoutMilliseconds > start) {
-      lastAttempt = true;
+      lastAttempt = true
     }
   }
 }
@@ -90,8 +92,8 @@ export async function killDatabase(options: Partial<Options> = {}) {
   await killOldContainers({
     debug: DEFAULT_MYSQL_DEBUG,
     containerName: DEFAULT_CONTAINER_NAME,
-    ...options,
-  });
+    ...options
+  })
 }
 
 export default async function getDatabase(options: Partial<Options> = {}) {
@@ -111,10 +113,10 @@ export default async function getDatabase(options: Partial<Options> = {}) {
     mysqlDb: DEFAULT_MYSQL_DB,
     defaultExternalPort: DEFAULT_MYSQL_PORT,
     // externalPort: config.test.port,
-    ...options,
-  };
+    ...options
+  }
 
-  const {proc, externalPort, kill} = await startContainer({
+  const { proc, externalPort, kill } = await startContainer({
     ...rawOptions,
     internalPort: DEFAULT_MYSQL_PORT,
     environment: {
@@ -123,22 +125,22 @@ export default async function getDatabase(options: Partial<Options> = {}) {
       MYSQL_ROOT_HOST: '%',
       ...environment,
       MYSQL_USER: mysqlUser,
-      MYSQL_ROOT_PASSWORD:mysqlPassword,
+      MYSQL_ROOT_PASSWORD: mysqlPassword,
       MYSQL_PASSWORD: mysqlPassword,
-      MYSQL_DATABASE: mysqlDb,
+      MYSQL_DATABASE: mysqlDb
     },
     enableDebugInstructions: `To view logs, run with MYSQL_TEST_DEBUG=true environment variable.`,
     command: [
-        '--default_authentication_plugin=mysql_native_password',
-        '--character-set-server=utf8mb4',
-        '--collation-server=utf8mb4_unicode_ci'
+      '--default_authentication_plugin=mysql_native_password',
+      '--character-set-server=utf8mb4',
+      '--collation-server=utf8mb4_unicode_ci'
     ],
-    cap_add: 'SYS_NICE'
-  });
+    capAdd: 'SYS_NICE'
+  })
 
-  const databaseURL = `mysql://${mysqlUser}:${mysqlPassword}@localhost:${externalPort}/${mysqlDb}`;
+  const databaseURL = `mysql://${mysqlUser}:${mysqlPassword}@localhost:${externalPort}/${mysqlDb}`
 
-  await waitForConnection(databaseURL, rawOptions.connectTimeoutSeconds);
+  await waitForConnection(databaseURL, rawOptions.connectTimeoutSeconds)
 
   return {
     proc,
@@ -148,5 +150,5 @@ export default async function getDatabase(options: Partial<Options> = {}) {
     password: mysqlPassword,
     port: externalPort,
     dbName: mysqlDb
-  };
+  }
 }

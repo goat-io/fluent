@@ -9,7 +9,7 @@ import { metabaseFetch } from '../common/fetch-wrapper'
 export async function enableEmbeddings({
   baseUrl,
   sessionToken,
-  apiKey,
+  apiKey
 }: {
   baseUrl: string
   sessionToken?: string
@@ -21,6 +21,6 @@ export async function enableEmbeddings({
     apiKey,
     endpoint: '/api/setting/enable-embedding-static',
     method: 'PUT',
-    body: { value: true },
+    body: { value: true }
   })
 }

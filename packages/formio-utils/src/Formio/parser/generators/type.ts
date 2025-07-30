@@ -8,10 +8,10 @@ import { template as jstypes } from './templates/types/types.hbs'
 const generateDatagrids = (Model: FluentModel) => {
   const datagrids: any = []
 
-  Object.keys(Model.__datagrids).forEach(ModelName => {
+  Object.keys(Model.datagrids).forEach(ModelName => {
     const model: any = {}
     model.name = ModelName
-    model.properties = Model.__datagrids[ModelName]
+    model.properties = Model.datagrids[ModelName]
     model.folderPath = Model.folderPath
     datagrids.push(generateType(model))
   })
@@ -20,10 +20,10 @@ const generateDatagrids = (Model: FluentModel) => {
 
 const generateObject = (Model: FluentModel) => {
   const objects: any = []
-  Object.keys(Model.__objects).forEach(ModelName => {
+  Object.keys(Model.objects).forEach(ModelName => {
     const model: any = {}
     model.name = ModelName
-    model.properties = Model.__objects[ModelName]
+    model.properties = Model.objects[ModelName]
     model.folderPath = Model.folderPath
     objects.push(generateType(model))
   })

@@ -13,13 +13,12 @@ export interface MiddlewareContext<
 
 export type NextFn<T = any> = () => Promise<T>
 
-export interface FieldMiddleware<
+export type FieldMiddleware<
   TSource = any,
   TContext = {},
   TArgs = { [argName: string]: any },
   TOutput = any
-> {
-  (ctx: MiddlewareContext<TSource, TContext, TArgs>, next: NextFn):
-    | Promise<TOutput>
-    | TOutput
-}
+> = (
+  ctx: MiddlewareContext<TSource, TContext, TArgs>,
+  next: NextFn
+) => Promise<TOutput> | TOutput

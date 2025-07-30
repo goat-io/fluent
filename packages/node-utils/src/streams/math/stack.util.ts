@@ -1,6 +1,5 @@
-import { Arrays } from '@goatlab/js-utils'
-import { _average, _percentile, _percentiles } from './math.util'
-import { _range } from './range'
+import { average, percentile, percentiles } from './math.util'
+import { range } from './range'
 
 /**
  * Implements a "round-robin" Stack ("first-in last-out" aka FILO) with a limited size.
@@ -30,7 +29,9 @@ export class Stack<T> {
    * Fill (overwrite) the whole Stack (all its items) with the passed `item`.
    */
   fill(item: T): this {
-    _range(this.size).forEach(i => (this.items[i] = item))
+    range(this.size).forEach(i => {
+      this.items[i] = item
+    })
     return this
   }
 
@@ -47,7 +48,7 @@ export class Stack<T> {
     // Buffer was filled and started to "overwrite itself", will need to return 2 slices
     return [
       ...this.items.slice(this.nextIndex),
-      ...this.items.slice(0, this.nextIndex),
+      ...this.items.slice(0, this.nextIndex)
     ]
   }
 }
@@ -59,22 +60,22 @@ export class Stack<T> {
 export class NumberStack extends Stack<number> {
   avg(): number {
     // _assert(this.items.length, 'NumberStack.avg cannot be called on empty stack')
-    return _average(this.items)
+    return average(this.items)
   }
 
   /**
    * Returns null if Stack is empty.
    */
   avgOrNull(): number | null {
-    return this.items.length === 0 ? null : _average(this.items)
+    return this.items.length === 0 ? null : average(this.items)
   }
 
   median(): number {
-    return _percentile(this.items, 50)
+    return percentile(this.items, 50)
   }
 
   medianOrNull(): number | null {
-    return this.items.length === 0 ? null : _percentile(this.items, 50)
+    return this.items.length === 0 ? null : percentile(this.items, 50)
   }
 
   /**
@@ -82,7 +83,7 @@ export class NumberStack extends Stack<number> {
    */
   percentile(pc: number): number {
     // _assert(this.items.length, 'NumberStack.percentile cannot be called on empty stack')
-    return _percentile(this.items, pc)
+    return percentile(this.items, pc)
   }
 
   /**
@@ -90,10 +91,10 @@ export class NumberStack extends Stack<number> {
    * Returns null if Stack is empty.
    */
   percentileOrNull(pc: number): number | null {
-    return this.items.length === 0 ? null : _percentile(this.items, pc)
+    return this.items.length === 0 ? null : percentile(this.items, pc)
   }
 
   percentiles(pcs: number[]): Record<number, number> {
-    return _percentiles(this.items, pcs)
+    return percentiles(this.items, pcs)
   }
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { flock } from '../TypeOrmConnector/test/flock'
 
 // Define a minimal interface for what we need from connectors
@@ -21,12 +21,20 @@ export interface GenericUnifiedTestOptions {
   // Factory functions that return connector instances
   createGoatConnector: () => TestConnector
   createTypeOrmConnector: () => TestConnector
-  dbType: 'mysql' | 'postgresql' | 'mongodb' | 'sqlite' | 'firebase' | 'formio' | 'loki' | 'pouchdb'
+  dbType:
+    | 'mysql'
+    | 'postgresql'
+    | 'mongodb'
+    | 'sqlite'
+    | 'firebase'
+    | 'formio'
+    | 'loki'
+    | 'pouchdb'
 }
 
 export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
   const { createGoatConnector, createTypeOrmConnector, dbType } = options
-  
+
   let GoatRepo: TestConnector
   let TypeOrmRepo: TestConnector
 
@@ -40,7 +48,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       // Clear data before each test to ensure clean state
       await GoatRepo.clear()
     })
-    
+
     it('insert - Should insert data', async () => {
       const a = await GoatRepo.insert({ name: 'myGoat', age: 13 })
       expect(typeof a.id).toBe('string')
@@ -48,10 +56,11 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
     })
 
     it('insert - Should insert data with customId', async () => {
-      const customId = dbType === 'postgresql' 
-        ? '550e8400-e29b-41d4-a716-446655440000'
-        : '631ce4304f9183f61ffb613a'
-        
+      const customId =
+        dbType === 'postgresql'
+          ? '550e8400-e29b-41d4-a716-446655440000'
+          : '631ce4304f9183f61ffb613a'
+
       const a = await GoatRepo.insert({
         id: customId,
         name: 'myGoat',
@@ -93,10 +102,9 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
 
     it('findByIds - Should GET selectedData', async () => {
       const goats = await GoatRepo.insertMany(flock)
-      const storedGoats = await GoatRepo.findByIds(
-        [goats[0].id, goats[1].id],
-        { select: { name: true } }
-      )
+      const storedGoats = await GoatRepo.findByIds([goats[0].id, goats[1].id], {
+        select: { name: true }
+      })
       expect(storedGoats[0]?.name).toBe(goats[0].name)
       expect((storedGoats[0] as any)?.age).toBeUndefined()
     })
@@ -221,7 +229,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
     })
 
     it('offset() should start at the given position', async () => {
-      const inserted = await TypeOrmRepo.insertMany([
+      const _inserted = await TypeOrmRepo.insertMany([
         { test: true, order: 1 },
         { test: false, order: 2 },
         { test: true, order: 3 }
@@ -245,10 +253,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
 
       const results = await TypeOrmRepo.findMany({
         where: {
-          OR: [
-            { test: true },
-            { order: 2 }
-          ]
+          OR: [{ test: true }, { order: 2 }]
         }
       })
 

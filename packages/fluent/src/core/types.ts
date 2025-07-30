@@ -1,19 +1,13 @@
-import { Column as TypeORMColumn } from 'typeorm'
 import { SchemaObject as LBSchemaObject } from 'openapi3-ts/oas30'
-import {
-  InputTypeOptions,
-  InputType as NestInputType
-} from './Nestjs/types/decorators/input-type.decorator'
-import { PartialType as NestjsPartialType } from './Nestjs/types/decorators/partial-type.helper'
-import {
-  ObjectTypeOptions,
-  ObjectType as NestObjectType
-} from './Nestjs/types/object-type.decorator'
-import { ApiProperty as NEstJSApiProperty } from './Nestjs/types/decorators/api-property.decorator'
-import { OmitType as NEstJSOmitType } from './Nestjs/types/omit-type'
-import { ApiHideProperty as NEstApiHideProperty } from './Nestjs/types/decorators/api-hide-property.decorator'
-import { jsonToSchemaObject, SchemaRef } from './Loopback/json-to-schema'
+import { Column as TypeORMColumn } from 'typeorm'
 import { getJsonSchemaRef, JsonSchemaOptions } from './Loopback/build-schema'
+import { jsonToSchemaObject, SchemaRef } from './Loopback/json-to-schema'
+import { ApiHideProperty as NEstApiHideProperty } from './Nestjs/types/decorators/api-hide-property.decorator'
+import { ApiProperty as NEstJSApiProperty } from './Nestjs/types/decorators/api-property.decorator'
+import { InputType as NestInputType } from './Nestjs/types/decorators/input-type.decorator'
+import { PartialType as NestjsPartialType } from './Nestjs/types/decorators/partial-type.helper'
+import { ObjectType as NestObjectType } from './Nestjs/types/object-type.decorator'
+import { OmitType as NEstJSOmitType } from './Nestjs/types/omit-type'
 
 export function LBgetModelSchemaRef<T extends object>(
   modelCtor: Function & { prototype: T },
@@ -35,5 +29,5 @@ export type SchemaObject = LBSchemaObject
 
 export function HideField(): PropertyDecorator {
   // tslint:disable-next-line: no-empty
-  return (target: Record<string, any>, propertyKey: string | symbol) => {}
+  return (_target: Record<string, any>, _propertyKey: string | symbol) => {}
 }

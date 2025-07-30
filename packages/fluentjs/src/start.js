@@ -1,17 +1,18 @@
+import { Fluent, MergeConnector } from './fluent'
 import Configuration from './models/Configuration'
 import Form from './models/Form'
-import Translation from './models/Translation'
 import Pages from './models/Pages'
-import SyncInterval from './repositories/Database/SyncInterval'
 import Roles from './models/Role'
-import { Fluent, MergeConnector } from './fluent'
-import loki from './plugins/loki'
+import Translation from './models/Translation'
 import formio from './plugins/formio'
+import loki from './plugins/loki'
 import loopback from './plugins/loopback'
-import Utilities from './utilities'
+import SyncInterval from './repositories/Database/SyncInterval'
 import ErrorHandler from './repositories/Errors/Errors'
+import Utilities from './utilities'
+
 /* eslint-disable no-unused-vars */
-let GOAT = (() => {
+const GOAT = (() => {
   /**
    * Loads all configuration for the GOAT app
    * This is the main start function and mandatory
@@ -55,14 +56,14 @@ let GOAT = (() => {
       SyncInterval.set(3000)
     }
     const config = await Configuration.set({ appConf })
-    let promises = [
+    const promises = [
       Roles.set({ appConf, forceOnline }),
       Pages.set({ appConf, forceOnline }),
       Form.set({ appConf, forceOnline }),
       Translation.set({ appConf, forceOnline })
     ]
 
-    let results = await Promise.all(promises)
+    const results = await Promise.all(promises)
 
     const appTranslations = results[3]
 

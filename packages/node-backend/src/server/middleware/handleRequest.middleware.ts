@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
-import type { z, ZodSchema } from 'zod'
+import type { ZodSchema, z } from 'zod'
 import { ZodError } from 'zod'
 
 export const handleRequest = <T extends ZodSchema>(
@@ -8,12 +8,12 @@ export const handleRequest = <T extends ZodSchema>(
     req: Request<any, any, z.infer<T>>
     res: Response
     body: z.infer<T>
-  }) => Promise<void>,
+  }) => Promise<void>
 ) => {
   return async (
     req: Request<any, any, any>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     try {
       // Parse and validate request body
@@ -23,7 +23,7 @@ export const handleRequest = <T extends ZodSchema>(
       await handler({
         req,
         res,
-        body: parsedBody,
+        body: parsedBody
       })
 
       // If the response hasn't been sent by the handler, send a default 200 OK
@@ -38,14 +38,14 @@ export const handleRequest = <T extends ZodSchema>(
       if (err instanceof ZodError) {
         return res.status(400).json({
           error: 'Invalid request body',
-          details: err.issues, // Send detailed validation errors
+          details: err.issues // Send detailed validation errors
         })
       }
 
       // Handle other errors and respond with a 500 status code
       return res.status(500).json({
         error: 'Internal Server Error',
-        message: err instanceof Error ? err.message : 'Unknown error',
+        message: err instanceof Error ? err.message : 'Unknown error'
       })
     }
   }

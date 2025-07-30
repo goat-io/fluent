@@ -6,7 +6,10 @@ export interface ResiliencePolicyOptions {
   resetTimeout?: number
   retryDelay?: number
   maxRetries?: number
-  onStateChange?: (state: 'open' | 'closed' | 'half-open', metadata?: any) => void
+  onStateChange?: (
+    state: 'open' | 'closed' | 'half-open',
+    metadata?: any
+  ) => void
   onRetry?: (attempt: number, error: any) => void
   onRateLimitUpdate?: (info: TypesenseRateLimitInfo) => void
   enabled?: boolean // Option to disable circuit breaker (useful for tests)
@@ -34,16 +37,16 @@ export class ResiliencePolicy {
     if (!this.options.enabled) {
       return false
     }
-    
+
     if (this.circuitOpenUntil > Date.now()) {
       return true
     }
-    
+
     // Reset circuit if timeout has passed
     if (this.circuitOpenUntil > 0 && this.circuitOpenUntil <= Date.now()) {
       this.reset()
     }
-    
+
     return false
   }
 
@@ -74,7 +77,7 @@ export class ResiliencePolicy {
   getRetryDelay(retryCount: number): number {
     // Exponential backoff with jitter
     const baseDelay = this.options.retryDelay || 1000
-    const exponentialDelay = baseDelay * Math.pow(2, retryCount)
+    const exponentialDelay = baseDelay * 2 ** retryCount
     const jitter = Math.random() * 0.1 * exponentialDelay
     return exponentialDelay + jitter
   }
@@ -83,7 +86,7 @@ export class ResiliencePolicy {
     const wasOpen = this.circuitOpenUntil > 0
     this.failures = 0
     this.circuitOpenUntil = 0
-    
+
     if (wasOpen && this.options.onStateChange) {
       this.options.onStateChange('closed', { previousFailures: this.failures })
     }
@@ -91,11 +94,11 @@ export class ResiliencePolicy {
 
   recordFailure(): void {
     this.failures++
-    
+
     if (this.failures >= (this.options.maxFailures || 5)) {
       const wasOpen = this.circuitOpenUntil > Date.now()
       this.circuitOpenUntil = Date.now() + (this.options.resetTimeout || 60000)
-      
+
       if (!wasOpen && this.options.onStateChange) {
         this.options.onStateChange('open', {
           failures: this.failures,
@@ -113,17 +116,17 @@ export class ResiliencePolicy {
     const retryAfter = headers.get('Retry-After')
 
     this.rateLimitInfo = {
-      limit: limit ? parseInt(limit, 10) : undefined,
-      remaining: remaining ? parseInt(remaining, 10) : undefined,
-      resetMs: resetMs ? parseInt(resetMs, 10) : undefined,
-      retryAfter: retryAfter ? parseInt(retryAfter, 10) : undefined
+      limit: limit ? Number.parseInt(limit, 10) : undefined,
+      remaining: remaining ? Number.parseInt(remaining, 10) : undefined,
+      resetMs: resetMs ? Number.parseInt(resetMs, 10) : undefined,
+      retryAfter: retryAfter ? Number.parseInt(retryAfter, 10) : undefined
     }
 
     // Set retry-after period if present
     if (retryAfter) {
-      this.retryAfterUntil = Date.now() + (parseInt(retryAfter, 10) * 1000)
+      this.retryAfterUntil = Date.now() + Number.parseInt(retryAfter, 10) * 1000
     }
-    
+
     // Notify about rate limit updates
     if (this.rateLimitInfo && this.options.onRateLimitUpdate) {
       this.options.onRateLimitUpdate(this.rateLimitInfo)
@@ -138,7 +141,7 @@ export class ResiliencePolicy {
     if (!this.rateLimitInfo?.resetMs) {
       return undefined
     }
-    
+
     const timeUntilReset = this.rateLimitInfo.resetMs - Date.now()
     return Math.max(0, timeUntilReset)
   }
@@ -147,8 +150,10 @@ export class ResiliencePolicy {
     if (!this.rateLimitInfo) {
       return false
     }
-    
-    return this.rateLimitInfo.remaining === 0 || this.retryAfterUntil > Date.now()
+
+    return (
+      this.rateLimitInfo.remaining === 0 || this.retryAfterUntil > Date.now()
+    )
   }
 
   reset(): void {

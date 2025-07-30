@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { expect, it } from 'vitest'
 import { Ids } from './Ids'
 
 it('Should generate a uuid', () => {

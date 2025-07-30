@@ -1,21 +1,20 @@
 #!/usr/bin/env node
-import chalk from 'chalk'
-import { performance } from 'perf_hooks'
-import { GenericContainer, StartedTestContainer } from 'testcontainers'
-import * as mysql from 'mysql2'
-import * as mysqlPromise from 'mysql2/promise'
-import { PrismaClient } from '@prisma/client'
-import { Kysely, MysqlDialect } from 'kysely'
-import { createPool } from 'mysql2'
-import { drizzle } from 'drizzle-orm/mysql2'
-import * as schema from '../database/drizzle-schema'
-import { and, eq, gt, sql as drizzleSql } from 'drizzle-orm'
-import { sql } from 'kysely'
-import knex, { Knex } from 'knex'
-import { DataSource } from 'typeorm'
-import { Sequelize } from 'sequelize'
+import { performance } from 'node:perf_hooks'
 import { MikroORM } from '@mikro-orm/core'
 import { MySqlDriver } from '@mikro-orm/mysql'
+import { PrismaClient } from '@prisma/client'
+import chalk from 'chalk'
+import { and, sql as drizzleSql, eq, gt } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/mysql2'
+import knex from 'knex'
+import { Kysely, MysqlDialect } from 'kysely'
+import * as mysql from 'mysql2'
+import { createPool } from 'mysql2'
+import * as mysqlPromise from 'mysql2/promise'
+import { Sequelize } from 'sequelize'
+import { GenericContainer, StartedTestContainer } from 'testcontainers'
+import { DataSource } from 'typeorm'
+import * as schema from '../database/drizzle-schema'
 import 'reflect-metadata'
 import { OLTP_WORKLOAD } from './transaction-types'
 
@@ -41,34 +40,51 @@ interface TestResult {
 export class EnhancedBenchmarkDemo {
   private mysqlContainer!: StartedTestContainer
   private connections: Map<string, any> = new Map()
-  private insertCounter = 0
-  
+
   private readonly TEST_DURATION: number
   private readonly THINK_TIME = process.env.THINK_TIME === 'true'
-  
+
   constructor() {
     // Parse time parameter from command line arguments
     const args = process.argv.slice(2)
     const timeArg = args.find(arg => arg.startsWith('--time='))
     const helpArg = args.find(arg => arg === '--help' || arg === '-h')
-    
+
     if (helpArg) {
       console.log(chalk.blue('🚀 Enhanced Database Benchmark Demo\n'))
       console.log(chalk.white('Usage: pnpm benchmark:demo [options]\n'))
       console.log(chalk.white('Options:'))
-      console.log(chalk.gray('  --time=<seconds>  Set test duration per driver (default: 10)'))
+      console.log(
+        chalk.gray(
+          '  --time=<seconds>  Set test duration per driver (default: 10)'
+        )
+      )
       console.log(chalk.gray('  --help, -h        Show this help message\n'))
       console.log(chalk.white('Examples:'))
-      console.log(chalk.gray('  pnpm benchmark:demo               # Run with default 10 seconds'))
-      console.log(chalk.gray('  pnpm benchmark:demo -- --time=3   # Run for 3 seconds per driver'))
-      console.log(chalk.gray('  pnpm benchmark:demo -- --time=15  # Run for 15 seconds per driver'))
+      console.log(
+        chalk.gray(
+          '  pnpm benchmark:demo               # Run with default 10 seconds'
+        )
+      )
+      console.log(
+        chalk.gray(
+          '  pnpm benchmark:demo -- --time=3   # Run for 3 seconds per driver'
+        )
+      )
+      console.log(
+        chalk.gray(
+          '  pnpm benchmark:demo -- --time=15  # Run for 15 seconds per driver'
+        )
+      )
       process.exit(0)
     }
-    
+
     if (timeArg) {
-      const timeValue = parseInt(timeArg.split('=')[1], 10)
-      if (isNaN(timeValue) || timeValue <= 0) {
-        console.error(chalk.red('Invalid time value. Using default of 10 seconds.'))
+      const timeValue = Number.parseInt(timeArg.split('=')[1], 10)
+      if (Number.isNaN(timeValue) || timeValue <= 0) {
+        console.error(
+          chalk.red('Invalid time value. Using default of 10 seconds.')
+        )
         this.TEST_DURATION = 10000
       } else {
         this.TEST_DURATION = timeValue * 1000 // Convert to milliseconds
@@ -79,17 +95,25 @@ export class EnhancedBenchmarkDemo {
   }
 
   async run(): Promise<void> {
-    console.log(chalk.bold.blue('🚀 Enhanced Database Benchmark Demo - All 10 Drivers'))
-    console.log(chalk.gray(`Testing transaction mix patterns (${this.THINK_TIME ? 'with' : 'without'} think time)`))
-    console.log(chalk.gray(`Test duration: ${this.TEST_DURATION/1000}s per driver\n`))
+    console.log(
+      chalk.bold.blue('🚀 Enhanced Database Benchmark Demo - All 10 Drivers')
+    )
+    console.log(
+      chalk.gray(
+        `Testing transaction mix patterns (${this.THINK_TIME ? 'with' : 'without'} think time)`
+      )
+    )
+    console.log(
+      chalk.gray(`Test duration: ${this.TEST_DURATION / 1000}s per driver\n`)
+    )
 
     try {
       await this.setupEnvironment()
-      
+
       // All 10 drivers
       const drivers = [
         'MySQL2',
-        'MySQL2/Promise', 
+        'MySQL2/Promise',
         'Knex',
         'Prisma',
         'Kysely',
@@ -100,19 +124,27 @@ export class EnhancedBenchmarkDemo {
         'MikroORM'
       ]
       const results: TestResult[] = []
-      
+
       for (const driver of drivers) {
         process.stdout.write(chalk.yellow(`Testing ${driver}... `))
-        
+
         try {
           const connection = await this.getConnection(driver)
           const result = await this.testDriver(driver, connection)
           results.push(result)
-          
+
           if (result.errors > 0) {
-            console.log(chalk.yellow(`✓ ${result.operations} ops @ ${result.opsPerSecond} ops/sec (${result.errors} errors)`))
+            console.log(
+              chalk.yellow(
+                `✓ ${result.operations} ops @ ${result.opsPerSecond} ops/sec (${result.errors} errors)`
+              )
+            )
           } else {
-            console.log(chalk.green(`✓ ${result.operations} ops @ ${result.opsPerSecond} ops/sec`))
+            console.log(
+              chalk.green(
+                `✓ ${result.operations} ops @ ${result.opsPerSecond} ops/sec`
+              )
+            )
           }
         } catch (error) {
           console.log(chalk.red(`✗ Setup failed: ${error.message}`))
@@ -127,9 +159,8 @@ export class EnhancedBenchmarkDemo {
           })
         }
       }
-      
+
       this.showResults(results)
-      
     } catch (error) {
       console.error(chalk.red('❌ Error:'), error)
     } finally {
@@ -137,7 +168,10 @@ export class EnhancedBenchmarkDemo {
     }
   }
 
-  private async testDriver(driver: string, connection: any): Promise<TestResult> {
+  private async testDriver(
+    driver: string,
+    connection: any
+  ): Promise<TestResult> {
     const transactions = this.getTransactionExecutors(driver, connection)
     const transactionCounts: Record<string, number> = {
       simpleSelect: 0,
@@ -146,60 +180,74 @@ export class EnhancedBenchmarkDemo {
       complexJoin: 0,
       insert: 0
     }
-    
+
     const latencies: number[] = []
     let totalOps = 0
     let errors = 0
-    
+
     // Quick warmup (reduce warmup time)
     for (let i = 0; i < 10; i++) {
       const tx = this.selectTransaction()
       try {
         await transactions[tx.name]()
-      } catch (error) {
+      } catch (_error) {
         // Ignore warmup errors
       }
     }
-    
+
     // Test phase
     const startTime = performance.now()
     const endTime = startTime + this.TEST_DURATION
-    
+
     while (performance.now() < endTime) {
       const tx = this.selectTransaction()
-      
+
       // Apply think time if enabled (but keep it short)
       if (this.THINK_TIME) {
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 50 + 25))
+        await new Promise(resolve =>
+          setTimeout(resolve, Math.random() * 50 + 25)
+        )
       }
-      
+
       const opStart = performance.now()
       try {
         await transactions[tx.name]()
         const opEnd = performance.now()
-        
+
         latencies.push(opEnd - opStart)
         transactionCounts[tx.name]++
         totalOps++
-      } catch (error) {
+      } catch (_error) {
         errors++
       }
-      
+
       // Apply thinking time if enabled (but keep it short)
       if (this.THINK_TIME) {
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50))
+        await new Promise(resolve =>
+          setTimeout(resolve, Math.random() * 100 + 50)
+        )
       }
     }
-    
+
     const duration = (performance.now() - startTime) / 1000 // Convert to seconds
     const sortedLatencies = latencies.sort((a, b) => a - b)
-    
+
     return {
       driver,
       operations: totalOps,
       opsPerSecond: Math.round(totalOps / duration),
-      avgLatency: latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length * 100) / 100 : 0,
-      p95Latency: latencies.length > 0 ? Math.round(sortedLatencies[Math.floor(sortedLatencies.length * 0.95)] * 100) / 100 : 0,
+      avgLatency:
+        latencies.length > 0
+          ? Math.round(
+              (latencies.reduce((a, b) => a + b, 0) / latencies.length) * 100
+            ) / 100
+          : 0,
+      p95Latency:
+        latencies.length > 0
+          ? Math.round(
+              sortedLatencies[Math.floor(sortedLatencies.length * 0.95)] * 100
+            ) / 100
+          : 0,
       errors,
       transactionBreakdown: transactionCounts
     }
@@ -209,50 +257,114 @@ export class EnhancedBenchmarkDemo {
     const transactions = OLTP_WORKLOAD.transactions
     const totalWeight = transactions.reduce((sum, t) => sum + t.weight, 0)
     let random = Math.random() * totalWeight
-    
+
     for (const tx of transactions) {
       random -= tx.weight
-      if (random <= 0) return tx
+      if (random <= 0) {
+        return tx
+      }
     }
-    
+
     return transactions[0]
   }
 
-  private getTransactionExecutors(driver: string, connection: any): Record<string, () => Promise<void>> {
+  private getTransactionExecutors(
+    driver: string,
+    connection: any
+  ): Record<string, () => Promise<void>> {
     const userId = () => Math.floor(Math.random() * 1000) + 1
     const age = () => 20 + Math.floor(Math.random() * 40)
-    
+
     switch (driver) {
       case 'MySQL2':
         return {
-          simpleSelect: () => connection.promise().execute('SELECT * FROM users WHERE id = ?', [userId()]),
-          filteredSelect: () => connection.promise().execute('SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50', ['active', age()]),
-          joinQuery: () => connection.promise().execute('SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30', ['active']),
-          complexJoin: () => connection.promise().execute('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25', [true]),
+          simpleSelect: () =>
+            connection
+              .promise()
+              .execute('SELECT * FROM users WHERE id = ?', [userId()]),
+          filteredSelect: () =>
+            connection
+              .promise()
+              .execute(
+                'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50',
+                ['active', age()]
+              ),
+          joinQuery: () =>
+            connection
+              .promise()
+              .execute(
+                'SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30',
+                ['active']
+              ),
+          complexJoin: () =>
+            connection
+              .promise()
+              .execute(
+                'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25',
+                [true]
+              ),
           insert: async () => {
             const id = `${++this.insertCounter}_${Date.now()}`
-            await connection.promise().execute('INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)', [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US'])
+            await connection
+              .promise()
+              .execute(
+                'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
+                [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US']
+              )
           }
         }
 
       case 'MySQL2/Promise':
         return {
-          simpleSelect: () => connection.execute('SELECT * FROM users WHERE id = ?', [userId()]),
-          filteredSelect: () => connection.execute('SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50', ['active', age()]),
-          joinQuery: () => connection.execute('SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30', ['active']),
-          complexJoin: () => connection.execute('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25', [true]),
+          simpleSelect: () =>
+            connection.execute('SELECT * FROM users WHERE id = ?', [userId()]),
+          filteredSelect: () =>
+            connection.execute(
+              'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50',
+              ['active', age()]
+            ),
+          joinQuery: () =>
+            connection.execute(
+              'SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30',
+              ['active']
+            ),
+          complexJoin: () =>
+            connection.execute(
+              'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25',
+              [true]
+            ),
           insert: async () => {
             const id = `${++this.insertCounter}_${Date.now()}`
-            await connection.execute('INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)', [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US'])
+            await connection.execute(
+              'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
+              [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US']
+            )
           }
         }
 
       case 'Knex':
         return {
           simpleSelect: () => connection('users').where('id', userId()).first(),
-          filteredSelect: () => connection('users').where('status', 'active').where('age', '>', age()).limit(50),
-          joinQuery: () => connection('users as u').leftJoin('orders as o', 'u.id', 'o.user_id').select('u.*').select(connection.raw('COUNT(o.id) as order_count')).where('u.status', 'active').groupBy('u.id').limit(30),
-          complexJoin: () => connection('products as p').leftJoin('categories as c', 'p.category_id', 'c.id').select('p.*').select('c.name as category_name').where('p.is_active', true).limit(25),
+          filteredSelect: () =>
+            connection('users')
+              .where('status', 'active')
+              .where('age', '>', age())
+              .limit(50),
+          joinQuery: () =>
+            connection('users as u')
+              .leftJoin('orders as o', 'u.id', 'o.user_id')
+              .select('u.*')
+              .select(connection.raw('COUNT(o.id) as order_count'))
+              .where('u.status', 'active')
+              .groupBy('u.id')
+              .limit(30),
+          complexJoin: () =>
+            connection('products as p')
+              .leftJoin('categories as c', 'p.category_id', 'c.id')
+              .select('p.*')
+              .select('c.name as category_name')
+              .where('p.is_active', true)
+              .limit(25),
           insert: async () => {
             const id = `${++this.insertCounter}_${Date.now()}`
             await connection('users').insert({
@@ -268,10 +380,25 @@ export class EnhancedBenchmarkDemo {
 
       case 'Prisma':
         return {
-          simpleSelect: () => connection.user.findUnique({ where: { id: userId() } }),
-          filteredSelect: () => connection.user.findMany({ where: { status: 'active', age: { gt: age() } }, take: 50 }),
-          joinQuery: () => connection.user.findMany({ where: { status: 'active' }, include: { orders: { select: { id: true } } }, take: 30 }),
-          complexJoin: () => connection.product.findMany({ where: { isActive: true }, include: { category: { select: { name: true } } }, take: 25 }),
+          simpleSelect: () =>
+            connection.user.findUnique({ where: { id: userId() } }),
+          filteredSelect: () =>
+            connection.user.findMany({
+              where: { status: 'active', age: { gt: age() } },
+              take: 50
+            }),
+          joinQuery: () =>
+            connection.user.findMany({
+              where: { status: 'active' },
+              include: { orders: { select: { id: true } } },
+              take: 30
+            }),
+          complexJoin: () =>
+            connection.product.findMany({
+              where: { isActive: true },
+              include: { category: { select: { name: true } } },
+              take: 25
+            }),
           insert: async () => {
             const id = `${++this.insertCounter}_${Date.now()}`
             await connection.user.create({
@@ -289,29 +416,102 @@ export class EnhancedBenchmarkDemo {
 
       case 'Kysely':
         return {
-          simpleSelect: () => connection.selectFrom('users').where('id', '=', userId()).selectAll().executeTakeFirst(),
-          filteredSelect: () => connection.selectFrom('users').where('status', '=', 'active').where('age', '>', age()).selectAll().limit(50).execute(),
-          joinQuery: () => connection.selectFrom('users as u').leftJoin('orders as o', 'u.id', 'o.user_id').select(['u.id', 'u.email']).select(connection.fn.count('o.id').as('order_count')).where('u.status', '=', 'active').groupBy('u.id').limit(30).execute(),
-          complexJoin: () => connection.selectFrom('products as p').leftJoin('categories as c', 'p.category_id', 'c.id').select(['p.id', 'p.name']).select('c.name as category_name').where('p.is_active', '=', true).limit(25).execute(),
+          simpleSelect: () =>
+            connection
+              .selectFrom('users')
+              .where('id', '=', userId())
+              .selectAll()
+              .executeTakeFirst(),
+          filteredSelect: () =>
+            connection
+              .selectFrom('users')
+              .where('status', '=', 'active')
+              .where('age', '>', age())
+              .selectAll()
+              .limit(50)
+              .execute(),
+          joinQuery: () =>
+            connection
+              .selectFrom('users as u')
+              .leftJoin('orders as o', 'u.id', 'o.user_id')
+              .select(['u.id', 'u.email'])
+              .select(connection.fn.count('o.id').as('order_count'))
+              .where('u.status', '=', 'active')
+              .groupBy('u.id')
+              .limit(30)
+              .execute(),
+          complexJoin: () =>
+            connection
+              .selectFrom('products as p')
+              .leftJoin('categories as c', 'p.category_id', 'c.id')
+              .select(['p.id', 'p.name'])
+              .select('c.name as category_name')
+              .where('p.is_active', '=', true)
+              .limit(25)
+              .execute(),
           insert: async () => {
             const id = `${++this.insertCounter}_${Date.now()}`
-            await connection.insertInto('users').values({
-              email: `test_${id}@example.com`,
-              first_name: 'Test',
-              last_name: 'User',
-              status: 'active',
-              age: 30,
-              country: 'US'
-            }).execute()
+            await connection
+              .insertInto('users')
+              .values({
+                email: `test_${id}@example.com`,
+                first_name: 'Test',
+                last_name: 'User',
+                status: 'active',
+                age: 30,
+                country: 'US'
+              })
+              .execute()
           }
         }
 
       case 'Drizzle':
         return {
-          simpleSelect: () => connection.select().from(schema.users).where(eq(schema.users.id, userId())),
-          filteredSelect: () => connection.select().from(schema.users).where(and(eq(schema.users.status, 'active'), gt(schema.users.age, age()))).limit(50),
-          joinQuery: () => connection.select({ id: schema.users.id, email: schema.users.email, orderCount: drizzleSql<number>`count(${schema.orders.id})` }).from(schema.users).leftJoin(schema.orders, eq(schema.users.id, schema.orders.userId)).where(eq(schema.users.status, 'active')).groupBy(schema.users.id).limit(30),
-          complexJoin: () => connection.select({ id: schema.products.id, name: schema.products.name, categoryName: schema.categories.name }).from(schema.products).leftJoin(schema.categories, eq(schema.products.categoryId, schema.categories.id)).where(eq(schema.products.isActive, true)).limit(25),
+          simpleSelect: () =>
+            connection
+              .select()
+              .from(schema.users)
+              .where(eq(schema.users.id, userId())),
+          filteredSelect: () =>
+            connection
+              .select()
+              .from(schema.users)
+              .where(
+                and(
+                  eq(schema.users.status, 'active'),
+                  gt(schema.users.age, age())
+                )
+              )
+              .limit(50),
+          joinQuery: () =>
+            connection
+              .select({
+                id: schema.users.id,
+                email: schema.users.email,
+                orderCount: drizzleSql<number>`count(${schema.orders.id})`
+              })
+              .from(schema.users)
+              .leftJoin(
+                schema.orders,
+                eq(schema.users.id, schema.orders.userId)
+              )
+              .where(eq(schema.users.status, 'active'))
+              .groupBy(schema.users.id)
+              .limit(30),
+          complexJoin: () =>
+            connection
+              .select({
+                id: schema.products.id,
+                name: schema.products.name,
+                categoryName: schema.categories.name
+              })
+              .from(schema.products)
+              .leftJoin(
+                schema.categories,
+                eq(schema.products.categoryId, schema.categories.id)
+              )
+              .where(eq(schema.products.isActive, true))
+              .limit(25),
           insert: async () => {
             const id = `${++this.insertCounter}_${Date.now()}`
             await connection.insert(schema.users).values({
@@ -327,20 +527,52 @@ export class EnhancedBenchmarkDemo {
 
       case 'Prisma+Kysely':
         return {
-          simpleSelect: () => connection.$kysely.selectFrom('users').where('id', '=', userId()).selectAll().executeTakeFirst(),
-          filteredSelect: () => connection.$kysely.selectFrom('users').where('status', '=', 'active').where('age', '>', age()).selectAll().limit(50).execute(),
-          joinQuery: () => connection.$kysely.selectFrom('users as u').leftJoin('orders as o', 'u.id', 'o.user_id').select(['u.id', 'u.email']).select(connection.$kysely.fn.count('o.id').as('order_count')).where('u.status', '=', 'active').groupBy('u.id').limit(30).execute(),
-          complexJoin: () => connection.$kysely.selectFrom('products as p').leftJoin('categories as c', 'p.category_id', 'c.id').select(['p.id', 'p.name']).select('c.name as category_name').where('p.is_active', '=', true).limit(25).execute(),
+          simpleSelect: () =>
+            connection.$kysely
+              .selectFrom('users')
+              .where('id', '=', userId())
+              .selectAll()
+              .executeTakeFirst(),
+          filteredSelect: () =>
+            connection.$kysely
+              .selectFrom('users')
+              .where('status', '=', 'active')
+              .where('age', '>', age())
+              .selectAll()
+              .limit(50)
+              .execute(),
+          joinQuery: () =>
+            connection.$kysely
+              .selectFrom('users as u')
+              .leftJoin('orders as o', 'u.id', 'o.user_id')
+              .select(['u.id', 'u.email'])
+              .select(connection.$kysely.fn.count('o.id').as('order_count'))
+              .where('u.status', '=', 'active')
+              .groupBy('u.id')
+              .limit(30)
+              .execute(),
+          complexJoin: () =>
+            connection.$kysely
+              .selectFrom('products as p')
+              .leftJoin('categories as c', 'p.category_id', 'c.id')
+              .select(['p.id', 'p.name'])
+              .select('c.name as category_name')
+              .where('p.is_active', '=', true)
+              .limit(25)
+              .execute(),
           insert: async () => {
             const id = `${++this.insertCounter}_${Date.now()}`
-            await connection.$kysely.insertInto('users').values({
-              email: `test_${id}@example.com`,
-              first_name: 'Test',
-              last_name: 'User',
-              status: 'active',
-              age: 30,
-              country: 'US'
-            }).execute()
+            await connection.$kysely
+              .insertInto('users')
+              .values({
+                email: `test_${id}@example.com`,
+                first_name: 'Test',
+                last_name: 'User',
+                status: 'active',
+                age: 30,
+                country: 'US'
+              })
+              .execute()
           }
         }
 
@@ -348,19 +580,31 @@ export class EnhancedBenchmarkDemo {
         return {
           simpleSelect: async () => {
             const { User } = await import('../database/typeorm-entities')
-            await connection.getRepository(User).findOne({ where: { id: userId() } })
+            await connection
+              .getRepository(User)
+              .findOne({ where: { id: userId() } })
           },
           filteredSelect: async () => {
             const { User } = await import('../database/typeorm-entities')
-            await connection.getRepository(User).find({ where: { status: 'active' }, take: 50 })
+            await connection
+              .getRepository(User)
+              .find({ where: { status: 'active' }, take: 50 })
           },
           joinQuery: async () => {
             const { User } = await import('../database/typeorm-entities')
-            await connection.getRepository(User).find({ where: { status: 'active' }, relations: ['orders'], take: 30 })
+            await connection.getRepository(User).find({
+              where: { status: 'active' },
+              relations: ['orders'],
+              take: 30
+            })
           },
           complexJoin: async () => {
             const { Product } = await import('../database/typeorm-entities')
-            await connection.getRepository(Product).find({ where: { isActive: true }, relations: ['category'], take: 25 })
+            await connection.getRepository(Product).find({
+              where: { isActive: true },
+              relations: ['category'],
+              take: 25
+            })
           },
           insert: async () => {
             const { User } = await import('../database/typeorm-entities')
@@ -371,7 +615,7 @@ export class EnhancedBenchmarkDemo {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US',
+              country: 'US'
             })
             await connection.getRepository(User).save(user)
           }
@@ -388,10 +632,16 @@ export class EnhancedBenchmarkDemo {
             await User.findAll({ where: { status: 'active' }, limit: 50 })
           },
           joinQuery: async () => {
-            await connection.query('SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30', { replacements: ['active'], type: connection.QueryTypes.SELECT })
+            await connection.query(
+              'SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30',
+              { replacements: ['active'], type: connection.QueryTypes.SELECT }
+            )
           },
           complexJoin: async () => {
-            await connection.query('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25', { replacements: [true], type: connection.QueryTypes.SELECT })
+            await connection.query(
+              'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25',
+              { replacements: [true], type: connection.QueryTypes.SELECT }
+            )
           },
           insert: async () => {
             const { User } = await import('../database/sequelize-models')
@@ -402,7 +652,7 @@ export class EnhancedBenchmarkDemo {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US',
+              country: 'US'
             })
           }
         }
@@ -410,25 +660,41 @@ export class EnhancedBenchmarkDemo {
       case 'MikroORM':
         return {
           simpleSelect: async () => {
-            const { User } = await import('../database/mikro-orm-entities-fixed')
+            const { User } = await import(
+              '../database/mikro-orm-entities-fixed'
+            )
             const em = connection.em.fork()
             await em.findOne(User, { id: userId() })
           },
           filteredSelect: async () => {
-            const { User } = await import('../database/mikro-orm-entities-fixed')
+            const { User } = await import(
+              '../database/mikro-orm-entities-fixed'
+            )
             const em = connection.em.fork()
             await em.find(User, { status: 'active' }, { limit: 50 })
           },
           joinQuery: async () => {
             const em = connection.em.fork()
-            await em.getConnection().execute('SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30', ['active'])
+            await em
+              .getConnection()
+              .execute(
+                'SELECT u.*, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.status = ? GROUP BY u.id LIMIT 30',
+                ['active']
+              )
           },
           complexJoin: async () => {
             const em = connection.em.fork()
-            await em.getConnection().execute('SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25', [true])
+            await em
+              .getConnection()
+              .execute(
+                'SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = ? LIMIT 25',
+                [true]
+              )
           },
           insert: async () => {
-            const { User } = await import('../database/mikro-orm-entities-fixed')
+            const { User } = await import(
+              '../database/mikro-orm-entities-fixed'
+            )
             const em = connection.em.fork()
             const id = `${++this.insertCounter}_${Date.now()}`
             const user = em.create(User, {
@@ -437,7 +703,7 @@ export class EnhancedBenchmarkDemo {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US',
+              country: 'US'
             })
             await em.persistAndFlush(user)
           }
@@ -449,73 +715,101 @@ export class EnhancedBenchmarkDemo {
   }
 
   private showResults(results: TestResult[]): void {
-    console.log(chalk.bold.blue('\n📊 Enhanced Benchmark Results - All 10 Drivers'))
+    console.log(
+      chalk.bold.blue('\n📊 Enhanced Benchmark Results - All 10 Drivers')
+    )
     console.log(chalk.gray('─'.repeat(90)))
-    
+
     // Filter out completely failed drivers for main ranking
     const workingResults = results.filter(r => r.operations > 0)
     const failedResults = results.filter(r => r.operations === 0)
-    
+
     // Sort by ops/sec
-    const sorted = workingResults.sort((a, b) => b.opsPerSecond - a.opsPerSecond)
-    
-    console.log('Driver'.padEnd(16) + 'Ops/sec'.padStart(10) + 'Latency'.padStart(10) + 'P95'.padStart(8) + 'Errors'.padStart(8) + 'Status')
+    const sorted = workingResults.sort(
+      (a, b) => b.opsPerSecond - a.opsPerSecond
+    )
+
+    console.log(
+      'Driver'.padEnd(16) +
+        'Ops/sec'.padStart(10) +
+        'Latency'.padStart(10) +
+        'P95'.padStart(8) +
+        'Errors'.padStart(8) +
+        'Status'
+    )
     console.log(chalk.gray('─'.repeat(90)))
-    
+
     // Show working drivers
     sorted.forEach((result, index) => {
       const fastest = sorted[0]?.opsPerSecond || 1
       const relative = Math.round((result.opsPerSecond / fastest) * 100)
-      
+
       let status = ''
       if (index === 0 && result.errors === 0) {
         status = chalk.green(' ✨ FASTEST')
       } else if (result.errors > 0) {
-        const errorRate = ((result.errors / (result.operations + result.errors)) * 100).toFixed(1)
+        const errorRate = (
+          (result.errors / (result.operations + result.errors)) *
+          100
+        ).toFixed(1)
         status = chalk.yellow(` (${errorRate}% errors)`)
       } else {
         status = chalk.gray(` (${relative}%)`)
       }
-      
+
       console.log(
         result.driver.padEnd(16) +
-        result.opsPerSecond.toString().padStart(10) +
-        `${result.avgLatency}ms`.padStart(10) +
-        `${result.p95Latency}ms`.padStart(8) +
-        result.errors.toString().padStart(8) +
-        status
+          result.opsPerSecond.toString().padStart(10) +
+          `${result.avgLatency}ms`.padStart(10) +
+          `${result.p95Latency}ms`.padStart(8) +
+          result.errors.toString().padStart(8) +
+          status
       )
     })
-    
+
     // Show failed drivers
     failedResults.forEach(result => {
       console.log(
         result.driver.padEnd(16) +
-        '0'.padStart(10) +
-        'N/A'.padStart(10) +
-        'N/A'.padStart(8) +
-        '1'.padStart(8) +
-        chalk.red(' ✗ FAILED')
+          '0'.padStart(10) +
+          'N/A'.padStart(10) +
+          'N/A'.padStart(8) +
+          '1'.padStart(8) +
+          chalk.red(' ✗ FAILED')
       )
     })
-    
+
     // Transaction breakdown for working drivers
     if (workingResults.length > 0) {
       console.log(chalk.bold.blue('\n📈 Transaction Mix Analysis'))
       console.log(chalk.gray('─'.repeat(90)))
-      
-      const txTypes = ['simpleSelect', 'filteredSelect', 'joinQuery', 'complexJoin', 'insert']
-      console.log('Transaction'.padEnd(16) + workingResults.slice(0, 5).map(r => r.driver.padStart(12)).join(''))
+
+      const txTypes = [
+        'simpleSelect',
+        'filteredSelect',
+        'joinQuery',
+        'complexJoin',
+        'insert'
+      ]
+      console.log(
+        'Transaction'.padEnd(16) +
+          workingResults
+            .slice(0, 5)
+            .map(r => r.driver.padStart(12))
+            .join('')
+      )
       console.log(chalk.gray('─'.repeat(90)))
-      
+
       txTypes.forEach(txType => {
-        const counts = workingResults.slice(0, 5).map(r => 
-          (r.transactionBreakdown[txType] || 0).toString().padStart(12)
-        )
+        const counts = workingResults
+          .slice(0, 5)
+          .map(r =>
+            (r.transactionBreakdown[txType] || 0).toString().padStart(12)
+          )
         console.log(txType.padEnd(16) + counts.join(''))
       })
     }
-    
+
     console.log(chalk.bold.blue('\n🎯 Summary'))
     console.log(chalk.gray('─'.repeat(90)))
     console.log(`• Working drivers: ${workingResults.length}/10`)
@@ -523,7 +817,7 @@ export class EnhancedBenchmarkDemo {
     if (failedResults.length > 0) {
       console.log(`• Failed: ${failedResults.map(r => r.driver).join(', ')}`)
     }
-    console.log(`• Test duration: ${this.TEST_DURATION/1000}s per driver`)
+    console.log(`• Test duration: ${this.TEST_DURATION / 1000}s per driver`)
     console.log(`• Think time: ${this.THINK_TIME ? 'enabled' : 'disabled'}`)
   }
 
@@ -534,14 +828,14 @@ export class EnhancedBenchmarkDemo {
         MYSQL_ROOT_PASSWORD: 'root',
         MYSQL_DATABASE: 'test_db',
         MYSQL_USER: 'test_user',
-        MYSQL_PASSWORD: 'test_pass',
+        MYSQL_PASSWORD: 'test_pass'
       })
       .withExposedPorts(3306)
       .withStartupTimeout(60000)
       .start()
 
     console.log(chalk.green('✅ Container started'))
-    
+
     // Setup database with full schema for compatibility
     await this.setupDatabase()
   }
@@ -552,11 +846,11 @@ export class EnhancedBenchmarkDemo {
       port: this.mysqlContainer.getMappedPort(3306),
       user: 'test_user',
       password: 'test_pass',
-      database: 'test_db',
+      database: 'test_db'
     })
 
     const conn = pool.promise()
-    
+
     // Create comprehensive schema for all ORMs
     await conn.execute(`
       CREATE TABLE users (
@@ -573,7 +867,7 @@ export class EnhancedBenchmarkDemo {
         INDEX idx_email (email)
       )
     `)
-    
+
     await conn.execute(`
       CREATE TABLE categories (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -585,7 +879,7 @@ export class EnhancedBenchmarkDemo {
         INDEX idx_parent (parent_id)
       )
     `)
-    
+
     await conn.execute(`
       CREATE TABLE products (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -602,7 +896,7 @@ export class EnhancedBenchmarkDemo {
         FOREIGN KEY (category_id) REFERENCES categories(id)
       )
     `)
-    
+
     await conn.execute(`
       CREATE TABLE orders (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -617,7 +911,7 @@ export class EnhancedBenchmarkDemo {
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `)
-    
+
     await conn.execute(`
       CREATE TABLE order_items (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -633,7 +927,7 @@ export class EnhancedBenchmarkDemo {
         FOREIGN KEY (product_id) REFERENCES products(id)
       )
     `)
-    
+
     await conn.execute(`
       CREATE TABLE reviews (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -653,26 +947,56 @@ export class EnhancedBenchmarkDemo {
 
     // Seed data quickly
     console.log(chalk.yellow('📝 Seeding data...'))
-    
+
     // Users
-    const users = Array.from({length: 1000}, (_, i) => [
-      `user${i+1}@test.com`, `First${i+1}`, `Last${i+1}`, 'active', 20 + (i % 50), 'US'
+    const users = Array.from({ length: 1000 }, (_, i) => [
+      `user${i + 1}@test.com`,
+      `First${i + 1}`,
+      `Last${i + 1}`,
+      'active',
+      20 + (i % 50),
+      'US'
     ])
     const userPlaceholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    await conn.execute(`INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${userPlaceholders}`, users.flat())
-    
+    await conn.execute(
+      `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${userPlaceholders}`,
+      users.flat()
+    )
+
     // Categories
-    await conn.execute(`INSERT INTO categories (name, description) VALUES ('Electronics', 'Electronic devices'), ('Books', 'Literature'), ('Clothing', 'Apparel')`)
-    
+    await conn.execute(
+      `INSERT INTO categories (name, description) VALUES ('Electronics', 'Electronic devices'), ('Books', 'Literature'), ('Clothing', 'Apparel')`
+    )
+
     // Products
-    const products = Array.from({length: 500}, (_, i) => [`Product ${i+1}`, `Description ${i+1}`, (Math.random() * 100).toFixed(2), (i % 3) + 1, Math.floor(Math.random() * 100), true])
-    const productPlaceholders = products.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    await conn.execute(`INSERT INTO products (name, description, price, category_id, stock_quantity, is_active) VALUES ${productPlaceholders}`, products.flat())
-    
+    const products = Array.from({ length: 500 }, (_, i) => [
+      `Product ${i + 1}`,
+      `Description ${i + 1}`,
+      (Math.random() * 100).toFixed(2),
+      (i % 3) + 1,
+      Math.floor(Math.random() * 100),
+      true
+    ])
+    const productPlaceholders = products
+      .map(() => '(?, ?, ?, ?, ?, ?)')
+      .join(', ')
+    await conn.execute(
+      `INSERT INTO products (name, description, price, category_id, stock_quantity, is_active) VALUES ${productPlaceholders}`,
+      products.flat()
+    )
+
     // Orders
-    const orders = Array.from({length: 1000}, (_, i) => [Math.floor(Math.random() * 1000) + 1, (Math.random() * 500).toFixed(2), 'pending', `Address ${i+1}`])
+    const orders = Array.from({ length: 1000 }, (_, i) => [
+      Math.floor(Math.random() * 1000) + 1,
+      (Math.random() * 500).toFixed(2),
+      'pending',
+      `Address ${i + 1}`
+    ])
     const orderPlaceholders = orders.map(() => '(?, ?, ?, ?)').join(', ')
-    await conn.execute(`INSERT INTO orders (user_id, total_amount, status, shipping_address) VALUES ${orderPlaceholders}`, orders.flat())
+    await conn.execute(
+      `INSERT INTO orders (user_id, total_amount, status, shipping_address) VALUES ${orderPlaceholders}`,
+      orders.flat()
+    )
 
     await pool.end()
     console.log(chalk.green('✅ Database ready'))
@@ -694,7 +1018,7 @@ export class EnhancedBenchmarkDemo {
           password: 'test_pass',
           database: 'test_db',
           waitForConnections: true,
-          connectionLimit: 10,
+          connectionLimit: 10
         })
         break
 
@@ -706,7 +1030,7 @@ export class EnhancedBenchmarkDemo {
           password: 'test_pass',
           database: 'test_db',
           waitForConnections: true,
-          connectionLimit: 10,
+          connectionLimit: 10
         })
         break
 
@@ -718,7 +1042,7 @@ export class EnhancedBenchmarkDemo {
             port: this.mysqlContainer.getMappedPort(3306),
             user: 'test_user',
             password: 'test_pass',
-            database: 'test_db',
+            database: 'test_db'
           },
           pool: { min: 2, max: 10 }
         })
@@ -736,7 +1060,7 @@ export class EnhancedBenchmarkDemo {
         await connection.$connect()
         break
 
-      case 'Kysely':
+      case 'Kysely': {
         const dialect = new MysqlDialect({
           pool: createPool({
             host: this.mysqlContainer.getHost(),
@@ -744,25 +1068,27 @@ export class EnhancedBenchmarkDemo {
             user: 'test_user',
             password: 'test_pass',
             database: 'test_db',
-            connectionLimit: 10,
+            connectionLimit: 10
           })
         })
         connection = new Kysely<Database>({ dialect })
         break
+      }
 
-      case 'Drizzle':
+      case 'Drizzle': {
         const pool = createPool({
           host: this.mysqlContainer.getHost(),
           port: this.mysqlContainer.getMappedPort(3306),
           user: 'test_user',
           password: 'test_pass',
           database: 'test_db',
-          connectionLimit: 10,
+          connectionLimit: 10
         })
         connection = drizzle(pool, { schema, mode: 'default' })
         break
+      }
 
-      case 'Prisma+Kysely':
+      case 'Prisma+Kysely': {
         const basePrisma = new PrismaClient({
           datasources: {
             db: {
@@ -771,29 +1097,33 @@ export class EnhancedBenchmarkDemo {
           },
           log: []
         })
-        
-        const kyselyExtension = (await import('prisma-extension-kysely')).default
-        const { MysqlAdapter, MysqlIntrospector, MysqlQueryCompiler } = await import('kysely')
-        
+
+        const kyselyExtension = (await import('prisma-extension-kysely'))
+          .default
+        const { MysqlAdapter, MysqlIntrospector, MysqlQueryCompiler } =
+          await import('kysely')
+
         connection = basePrisma.$extends(
           kyselyExtension({
-            kysely: (driver) =>
+            kysely: driver =>
               new Kysely<Database>({
                 dialect: {
                   createDriver: () => driver,
                   createAdapter: () => new MysqlAdapter(),
-                  createIntrospector: (db) => new MysqlIntrospector(db),
-                  createQueryCompiler: () => new MysqlQueryCompiler(),
-                },
-              }),
+                  createIntrospector: db => new MysqlIntrospector(db),
+                  createQueryCompiler: () => new MysqlQueryCompiler()
+                }
+              })
           })
         )
-        
+
         await connection.$connect()
         break
+      }
 
-      case 'TypeORM':
-        const { User, Product, Category, Order, OrderItem, Review } = await import('../database/typeorm-entities')
+      case 'TypeORM': {
+        const { User, Product, Category, Order, OrderItem, Review } =
+          await import('../database/typeorm-entities')
         connection = new DataSource({
           type: 'mysql',
           host: this.mysqlContainer.getHost(),
@@ -804,12 +1134,13 @@ export class EnhancedBenchmarkDemo {
           entities: [User, Product, Category, Order, OrderItem, Review],
           synchronize: false,
           logging: false,
-          poolSize: 10,
+          poolSize: 10
         })
         await connection.initialize()
         break
+      }
 
-      case 'Sequelize':
+      case 'Sequelize': {
         connection = new Sequelize({
           dialect: 'mysql',
           host: this.mysqlContainer.getHost(),
@@ -821,12 +1152,22 @@ export class EnhancedBenchmarkDemo {
           pool: { max: 10, min: 0, acquire: 30000, idle: 10000 }
         })
         // Initialize models
-        const { initSequelizeModels } = await import('../database/sequelize-models')
+        const { initSequelizeModels } = await import(
+          '../database/sequelize-models'
+        )
         initSequelizeModels(connection)
         break
+      }
 
-      case 'MikroORM':
-        const { User: MikroUser, Product: MikroProduct, Category: MikroCategory, Order: MikroOrder, OrderItem: MikroOrderItem, Review: MikroReview } = await import('../database/mikro-orm-entities-fixed')
+      case 'MikroORM': {
+        const {
+          User: MikroUser,
+          Product: MikroProduct,
+          Category: MikroCategory,
+          Order: MikroOrder,
+          OrderItem: MikroOrderItem,
+          Review: MikroReview
+        } = await import('../database/mikro-orm-entities-fixed')
         connection = await MikroORM.init({
           driver: MySqlDriver,
           host: this.mysqlContainer.getHost(),
@@ -834,11 +1175,19 @@ export class EnhancedBenchmarkDemo {
           user: 'test_user',
           password: 'test_pass',
           dbName: 'test_db',
-          entities: [MikroUser, MikroProduct, MikroCategory, MikroOrder, MikroOrderItem, MikroReview],
+          entities: [
+            MikroUser,
+            MikroProduct,
+            MikroCategory,
+            MikroOrder,
+            MikroOrderItem,
+            MikroReview
+          ],
           pool: { min: 2, max: 10 },
-          debug: false,
+          debug: false
         })
         break
+      }
 
       default:
         throw new Error(`Unknown driver: ${driver}`)
@@ -850,7 +1199,7 @@ export class EnhancedBenchmarkDemo {
 
   private async cleanup(): Promise<void> {
     console.log(chalk.yellow('\n🧹 Cleaning up...'))
-    
+
     for (const [driver, connection] of this.connections) {
       try {
         switch (driver) {
@@ -882,15 +1231,15 @@ export class EnhancedBenchmarkDemo {
             await connection.close()
             break
         }
-      } catch (error) {
+      } catch (_error) {
         // Ignore cleanup errors
       }
     }
-    
+
     if (this.mysqlContainer) {
       await this.mysqlContainer.stop()
     }
-    
+
     console.log(chalk.green('✅ Done'))
   }
 }

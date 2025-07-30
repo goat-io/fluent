@@ -1,25 +1,25 @@
 // npx vitest run ./src/server/bootstraps/getExpressTrpcApp.simple.test.ts
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-  beforeAll,
-  afterAll
-} from 'vitest'
-import type { Express } from 'express'
+
+import fs from 'node:fs/promises'
+import http from 'node:http'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { Ports, Security } from '@goatlab/node-utils'
 import { initTRPC } from '@trpc/server'
-import { z } from 'zod'
+import type { Express } from 'express'
 import { Router } from 'express'
-import http from 'http'
 import request from 'supertest'
-import { join } from 'path'
-import fs from 'fs/promises'
-import { tmpdir } from 'os'
-import { Security } from '@goatlab/node-utils'
-import { Ports } from '@goatlab/node-utils'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi
+} from 'vitest'
+import { z } from 'zod'
 
 // Mock Firebase Admin
 vi.mock('firebase-admin', () => ({
@@ -49,10 +49,10 @@ vi.mock('../context/trpc.context', () => ({
 
 // Import the real services
 import { Container } from '../../container/Container'
-import { SecretService } from '../services/secrets/secret.service'
-import { translationService } from '../services/translations/translation.service'
-import { LANG } from '../services/translations/translation.model'
 import { SentryService } from '../sentry/sentry.service'
+import { SecretService } from '../services/secrets/secret.service'
+import { LANG } from '../services/translations/translation.model'
+import { translationService } from '../services/translations/translation.service'
 import { getExpressTrpcApp } from './getExpressTrpcApp'
 
 describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
@@ -75,29 +75,33 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
   }
 
   // Create typed tRPC instance
-  const t = initTRPC.context<{
-    services?: any
-  }>().create()
+  const t = initTRPC
+    .context<{
+      services?: any
+    }>()
+    .create()
 
   beforeAll(async () => {
     originalNodeEnv = process.env.NODE_ENV
     process.env.NODE_ENV = 'test'
     process.setMaxListeners(20)
-    vi.spyOn(process, 'exit').mockImplementation((() => {}) as any)
+    vi.spyOn(process, 'exit').mockImplementation((() => {
+      /* prevent process exit in tests */
+    }) as any)
 
     // Create temp directory for test files
-    tempDir = join(tmpdir(), 'express-trpc-test-' + Date.now())
+    tempDir = join(tmpdir(), `express-trpc-test-${Date.now()}`)
     await fs.mkdir(tempDir, { recursive: true })
 
     // Create language files in the expected location based on where the service is looking
     const langDir = join(__dirname, '../../../test/fixtures/lang')
     await fs.mkdir(langDir, { recursive: true })
-    
+
     await fs.writeFile(
       join(langDir, 'en_us.json'),
       JSON.stringify({
-        'welcome': 'Welcome!',
-        'greeting': 'Hello {{name}}!',
+        welcome: 'Welcome!',
+        greeting: 'Hello {{name}}!',
         'user.created': 'User {{email}} created successfully'
       })
     )
@@ -105,8 +109,8 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
     await fs.writeFile(
       join(langDir, 'es_us.json'),
       JSON.stringify({
-        'welcome': '¡Bienvenido!',
-        'greeting': '¡Hola {{name}}!',
+        welcome: '¡Bienvenido!',
+        greeting: '¡Hola {{name}}!',
         'user.created': 'Usuario {{email}} creado exitosamente'
       })
     )
@@ -120,7 +124,7 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
       API_KEY: 'test-api-key-123',
       DB_PASSWORD: 'super-secret-password'
     }
-    
+
     const encryptedSecrets = Security.encryptObject(secrets, encryptionKey)
     secretsPath = join(tempDir, 'secrets.json')
     await fs.writeFile(secretsPath, JSON.stringify(encryptedSecrets))
@@ -130,7 +134,7 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
     if (originalNodeEnv) {
       process.env.NODE_ENV = originalNodeEnv
     } else {
-      delete process.env.NODE_ENV
+      process.env.NODE_ENV = undefined
     }
     process.setMaxListeners(10)
     vi.restoreAllMocks()
@@ -140,7 +144,7 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
       await fs.rm(tempDir, { recursive: true, force: true })
       const langDir = join(__dirname, '../../../test/fixtures/lang')
       await fs.rm(langDir, { recursive: true, force: true })
-    } catch (e) {
+    } catch (_e) {
       // Ignore cleanup errors
     }
   })
@@ -159,31 +163,40 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
     }
 
     // Create container with initializer
-    container = new Container(factories, async (preload, meta: TenantMetadata) => {
-      const secretService = preload.secretService(meta.tenantId, {
-        provider: 'FILE',
-        location: secretsPath,
-        encryptionKey
-      })
+    container = new Container(
+      factories,
+      async (preload, meta: TenantMetadata) => {
+        const secretService = preload.secretService(meta.tenantId, {
+          provider: 'FILE',
+          location: secretsPath,
+          encryptionKey
+        })
 
-      const sentryServiceInstance = preload.sentryService(meta.tenantId, {
-        dsn: '',
-        logger: console
-      })
+        const sentryServiceInstance = preload.sentryService(meta.tenantId, {
+          dsn: '',
+          logger: console
+        })
 
-      return {
-        secretService,
-        translationService: preload.translationService(meta.tenantId),
-        sentryService: sentryServiceInstance,
-        customService: preload.customService(meta.tenantId, `Service for ${meta.tenantId}`),
-        tenant: meta
+        return {
+          secretService,
+          translationService: preload.translationService(meta.tenantId),
+          sentryService: sentryServiceInstance,
+          customService: preload.customService(
+            meta.tenantId,
+            `Service for ${meta.tenantId}`
+          ),
+          tenant: meta
+        }
       }
-    })
+    )
 
     // Bootstrap container and store context
-    await container.bootstrap({ tenantId: 'test', locale: 'en_us' }, async () => {
-      testContainerContext = container.context
-    })
+    await container.bootstrap(
+      { tenantId: 'test', locale: 'en_us' },
+      async () => {
+        testContainerContext = container.context
+      }
+    )
 
     // Create real SentryService
     sentryService = new SentryService({
@@ -201,21 +214,28 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
         .input(z.object({ name: z.string() }))
         .query(({ input }) => {
           const lang = testContainerContext?.tenant?.locale || 'en_us'
-          return translationService.translate('greeting', { language: lang }, { name: input.name })
+          return translationService.translate(
+            'greeting',
+            { language: lang },
+            { name: input.name }
+          )
         }),
 
       getSecret: t.procedure
         .input(z.object({ key: z.string() }))
         .query(({ input }) => {
-          const secrets = testContainerContext.secretService.loadSecretsFromFile()
+          const secrets =
+            testContainerContext.secretService.loadSecretsFromFile()
           return { value: secrets[input.key] || null }
         }),
 
       translate: t.procedure
-        .input(z.object({ 
-          key: z.string(),
-          lang: z.enum(['en_us', 'es_us']).optional()
-        }))
+        .input(
+          z.object({
+            key: z.string(),
+            lang: z.enum(['en_us', 'es_us']).optional()
+          })
+        )
         .query(({ input }) => {
           const lang = input.lang || 'en_us'
           return {
@@ -228,24 +248,24 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
           }
         }),
 
-      useContainerService: t.procedure
-        .query(() => {
-          return {
-            customServiceName: testContainerContext.customService.getName(),
-            hasSecretService: !!testContainerContext.secretService,
-            hasTranslationService: !!testContainerContext.translationService
-          }
-        })
+      useContainerService: t.procedure.query(() => {
+        return {
+          customServiceName: testContainerContext.customService.getName(),
+          hasSecretService: !!testContainerContext.secretService,
+          hasTranslationService: !!testContainerContext.translationService
+        }
+      })
     })
 
     // Create express router
     expressRouter = Router()
-    
+
     expressRouter.get('/test-services', (_req, res) => {
-      res.json({ 
+      res.json({
         hasContainer: !!container,
         hasContext: !!testContainerContext,
-        customService: testContainerContext?.customService?.getName() || 'not available'
+        customService:
+          testContainerContext?.customService?.getName() || 'not available'
       })
     })
 
@@ -259,14 +279,14 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
     process.removeAllListeners('SIGINT')
     process.removeAllListeners('uncaughtException')
     process.removeAllListeners('unhandledRejection')
-    
+
     if (server && typeof server.close === 'function') {
-      await new Promise<void>((resolve) => {
+      await new Promise<void>(resolve => {
         server!.close(() => resolve())
       })
     }
-    
-    delete process.env.ALLOWED_ORIGINS
+
+    process.env.ALLOWED_ORIGINS = undefined
     vi.clearAllMocks()
   })
 
@@ -280,7 +300,7 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -288,7 +308,7 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
 
     it('should access container services in express routes', async () => {
       const res = await request(app).get('/test-services')
-      
+
       expect(res.status).toBe(200)
       expect(res.body.hasContainer).toBe(true)
       expect(res.body.hasContext).toBe(true)
@@ -296,29 +316,34 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
     })
 
     it('should load secrets through TRPC', async () => {
-      const res = await request(app)
-        .get('/trpc/getSecret?batch=1&input=' + 
-          encodeURIComponent(JSON.stringify({ "0": { key: "API_KEY" } })))
-      
+      const res = await request(app).get(
+        '/trpc/getSecret?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': { key: 'API_KEY' } }))
+      )
+
       expect(res.status).toBe(200)
       expect(res.body[0].result.data.value).toBe('test-api-key-123')
     })
 
     it('should translate messages', async () => {
-      const res = await request(app)
-        .get('/trpc/translate?batch=1&input=' + 
-          encodeURIComponent(JSON.stringify({ "0": { key: "welcome", lang: "es_us" } })))
-      
+      const res = await request(app).get(
+        '/trpc/translate?batch=1&input=' +
+          encodeURIComponent(
+            JSON.stringify({ '0': { key: 'welcome', lang: 'es_us' } })
+          )
+      )
+
       expect(res.status).toBe(200)
       expect(res.body[0].result.data.translation).toBe('¡Bienvenido!')
       expect(res.body[0].result.data.locale).toBe('es_us')
     })
 
     it('should use container services in TRPC', async () => {
-      const res = await request(app)
-        .get('/trpc/useContainerService?batch=1&input=' + 
-          encodeURIComponent(JSON.stringify({ "0": {} })))
-      
+      const res = await request(app).get(
+        '/trpc/useContainerService?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': {} }))
+      )
+
       expect(res.status).toBe(200)
       const data = res.body[0].result.data
       expect(data.customServiceName).toContain('Custom Service:')
@@ -327,10 +352,11 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
     })
 
     it('should handle translation with parameters', async () => {
-      const res = await request(app)
-        .get('/trpc/hello?batch=1&input=' + 
-          encodeURIComponent(JSON.stringify({ "0": { name: "World" } })))
-      
+      const res = await request(app).get(
+        '/trpc/hello?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': { name: 'World' } }))
+      )
+
       expect(res.status).toBe(200)
       expect(res.body[0].result.data).toBe('Hello World!')
     })
@@ -344,12 +370,12 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
         environment: 'test',
         expressResources: [expressRouter],
         sentryService,
-        features: { 
+        features: {
           sentry: false,
           openApiDocs: true
         }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -357,7 +383,7 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
 
     it('should serve OpenAPI JSON documentation', async () => {
       const res = await request(app).get('/openapi')
-      
+
       expect(res.status).toBe(200)
       expect(res.headers['content-type']).toContain('application/json')
       expect(res.body).toHaveProperty('openapi')
@@ -366,7 +392,7 @@ describe('getExpressTrpcApp - Simple Integration Test with Services', () => {
 
     it('should serve Swagger UI', async () => {
       const res = await request(app).get('/api-docs/')
-      
+
       expect(res.status).toBe(200)
       expect(res.headers['content-type']).toContain('text/html')
     })

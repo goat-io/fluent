@@ -1,7 +1,7 @@
-import { RolesUser } from './roles_user.entity'
-import { RolesUserInputSchema, RolesUserSchema } from './roles_user.schema'
 import { TypeOrmConnector } from '../../../TypeOrmConnector'
 import { MemoryDataSource } from '../../sqlite/memoryDataSource'
+import { RolesUser } from './roles_user.entity'
+import { RolesUserInputSchema, RolesUserSchema } from './roles_user.schema'
 
 export class RoleUsersRepository extends TypeOrmConnector<
   RolesUser,

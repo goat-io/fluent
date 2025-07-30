@@ -1,3 +1,3 @@
-export enum ACL {
+export enum Acl {
   'public-read' = 'public-read'
 }

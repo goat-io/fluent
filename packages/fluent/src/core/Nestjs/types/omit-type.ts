@@ -1,12 +1,12 @@
 import { Type } from './common'
 import { ApiProperty, DECORATORS } from './decorators/api-property.decorator'
-import { clonePluginMetadataFactory } from './utils/mapped-types.utils'
-import { ModelPropertiesAccessor } from './utils/model-properties-accessor'
 import {
   inheritPropertyInitializers,
   inheritTransformationMetadata,
   inheritValidationMetadata
 } from './decorators/apply-is-optional.decorator'
+import { clonePluginMetadataFactory } from './utils/mapped-types.utils'
+import { ModelPropertiesAccessor } from './utils/model-properties-accessor'
 
 const omit = (obj, props) => {
   obj = { ...obj }
@@ -19,7 +19,7 @@ const modelPropertiesAccessor = new ModelPropertiesAccessor()
 export function OmitType<T, K extends keyof T>(
   classRef: Type<T>,
   keys: readonly K[]
-): Type<Omit<T, typeof keys[number]>> {
+): Type<Omit<T, (typeof keys)[number]>> {
   const fields = modelPropertiesAccessor
     .getModelProperties(classRef.prototype)
     .filter(item => !keys.includes(item as K))
@@ -50,5 +50,5 @@ export function OmitType<T, K extends keyof T>(
     const decoratorFactory = ApiProperty(metadata)
     decoratorFactory(OmitTypeClass.prototype, propertyKey)
   })
-  return OmitTypeClass as Type<Omit<T, typeof keys[number]>>
+  return OmitTypeClass as Type<Omit<T, (typeof keys)[number]>>
 }

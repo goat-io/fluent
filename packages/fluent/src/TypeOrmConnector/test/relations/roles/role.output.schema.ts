@@ -3,7 +3,6 @@ import { userInputSchema } from '../user/user.schema'
 import { RoleInputSchema } from './role.schema'
 import { RolesUserSchema } from './roles_user.schema'
 
-
 // We need to add 1 by 1 the relations so we can
 export const userWithPivot = userInputSchema.extend({
   pivot: RolesUserSchema.optional()

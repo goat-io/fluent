@@ -1,5 +1,5 @@
-import type { TypesenseCollection } from '../typesense.model'
 import { TypesenseApi, type TypesenseApiOptions } from '../TypesenseApi'
+import type { TypesenseCollection } from '../typesense.model'
 import { type InferFromCollection } from './schema-to-types'
 
 /**
@@ -36,7 +36,9 @@ export function createSchemaTypedApi<const C extends TypesenseCollection>(
 ) {
   type DocType = InferFromCollection<C>
 
-  return (options: Omit<TypesenseApiOptions, 'collectionName'>): TypesenseApi<DocType> => {
+  return (
+    options: Omit<TypesenseApiOptions, 'collectionName'>
+  ): TypesenseApi<DocType> => {
     return new TypesenseApi<DocType>({
       ...options,
       collectionName: collection.name

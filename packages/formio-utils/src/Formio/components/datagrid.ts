@@ -8,7 +8,7 @@ export const datagrid = (component: FormioComponent) => {
   let path = component.path || component.key
   path = path.split('.').join('_')
 
-  const validation = { isDatagrid: true, dgPath: path, __key: component.key }
+  const validation = { isDatagrid: true, dgPath: path, key: component.key }
 
   return validation
 }

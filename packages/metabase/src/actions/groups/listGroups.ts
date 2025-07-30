@@ -8,7 +8,7 @@ import { metabaseFetch } from '../../common/fetch-wrapper'
 export async function listGroups({
   baseUrl,
   sessionToken,
-  apiKey,
+  apiKey
 }: {
   baseUrl: string
   sessionToken?: string
@@ -21,7 +21,7 @@ export async function listGroups({
     sessionToken,
     apiKey,
     endpoint: '/api/permissions/group',
-    method: 'GET',
+    method: 'GET'
   })
 
   if (!response.ok) {
@@ -30,8 +30,12 @@ export async function listGroups({
     throw new Error(`Failed to fetch groups: ${errorText}`)
   }
 
-  const groups = await response.json() as Array<{ id: number; name: string; member_count?: number }>
+  const groups = (await response.json()) as Array<{
+    id: number
+    name: string
+    member_count?: number
+  }>
   console.log(`✅ Found ${groups.length} groups`)
-  
+
   return groups
 }

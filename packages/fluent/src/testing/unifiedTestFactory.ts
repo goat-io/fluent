@@ -19,7 +19,15 @@ export interface TestConnector {
 export interface UnifiedTestOptions {
   createGoatConnector: () => TestConnector
   createTypeOrmConnector: () => TestConnector
-  dbType: 'mysql' | 'postgresql' | 'mongodb' | 'sqlite' | 'firebase' | 'formio' | 'loki' | 'pouchdb'
+  dbType:
+    | 'mysql'
+    | 'postgresql'
+    | 'mongodb'
+    | 'sqlite'
+    | 'firebase'
+    | 'formio'
+    | 'loki'
+    | 'pouchdb'
 }
 
 export const flock = [
@@ -63,19 +71,25 @@ export const flock = [
 
 export function createUnifiedTests(options: UnifiedTestOptions) {
   const { createGoatConnector, createTypeOrmConnector, dbType } = options
-  
+
   return {
-    runBasicTests: (describe: any, it: any, expect: any, beforeAll: any, beforeEach: any) => {
+    runBasicTests: (
+      _describe: any,
+      it: any,
+      expect: any,
+      beforeAll: any,
+      beforeEach: any
+    ) => {
       let GoatRepo: TestConnector
-      
+
       beforeAll(() => {
         GoatRepo = createGoatConnector()
       })
-      
+
       beforeEach(async () => {
         await GoatRepo.clear()
       })
-      
+
       it('insert - Should insert data', async () => {
         const a = await GoatRepo.insert({ name: 'myGoat', age: 13 })
         expect(typeof a.id).toBe('string')
@@ -83,10 +97,11 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       })
 
       it('insert - Should insert data with customId', async () => {
-        const customId = dbType === 'postgresql' 
-          ? '550e8400-e29b-41d4-a716-446655440000'
-          : '631ce4304f9183f61ffb613a'
-          
+        const customId =
+          dbType === 'postgresql'
+            ? '550e8400-e29b-41d4-a716-446655440000'
+            : '631ce4304f9183f61ffb613a'
+
         const a = await GoatRepo.insert({
           id: customId,
           name: 'myGoat',
@@ -218,14 +233,20 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         expect(findDeleted).toBe(null)
       })
     },
-    
-    runAdvancedTests: (describe: any, it: any, expect: any, beforeAll: any, beforeEach: any) => {
+
+    runAdvancedTests: (
+      _describe: any,
+      it: any,
+      expect: any,
+      beforeAll: any,
+      beforeEach: any
+    ) => {
       let TypeOrmRepo: TestConnector
-      
+
       beforeAll(() => {
         TypeOrmRepo = createTypeOrmConnector()
       })
-      
+
       beforeEach(async () => {
         await TypeOrmRepo.clear()
       })
@@ -262,7 +283,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       })
 
       it('offset() should start at the given position', async () => {
-        const inserted = await TypeOrmRepo.insertMany([
+        const _inserted = await TypeOrmRepo.insertMany([
           { test: true, order: 1 },
           { test: false, order: 2 },
           { test: true, order: 3 }
@@ -286,10 +307,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
 
         const results = await TypeOrmRepo.findMany({
           where: {
-            OR: [
-              { test: true },
-              { order: 2 }
-            ]
+            OR: [{ test: true }, { order: 2 }]
           }
         })
 

@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, ManyToMany, JoinColumn } from 'typeorm'
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn
+} from 'typeorm'
 
 @Entity('users')
 export class User {
@@ -20,7 +29,11 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date
 
-  @Column({ type: 'enum', enum: ['active', 'inactive', 'suspended'], default: 'active' })
+  @Column({
+    type: 'enum',
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active'
+  })
   status: 'active' | 'inactive' | 'suspended'
 
   @Column({ type: 'int', nullable: true })
@@ -29,10 +42,16 @@ export class User {
   @Column({ type: 'varchar', length: 100, nullable: true })
   country: string
 
-  @OneToMany(() => Order, order => order.user)
+  @OneToMany(
+    () => Order,
+    order => order.user
+  )
   orders: Order[]
 
-  @OneToMany(() => Review, review => review.user)
+  @OneToMany(
+    () => Review,
+    review => review.user
+  )
   reviews: Review[]
 }
 
@@ -65,14 +84,23 @@ export class Product {
   @Column({ type: 'boolean', name: 'is_active', default: true })
   isActive: boolean
 
-  @ManyToOne(() => Category, category => category.products)
+  @ManyToOne(
+    () => Category,
+    category => category.products
+  )
   @JoinColumn({ name: 'category_id' })
   category: Category
 
-  @OneToMany(() => OrderItem, orderItem => orderItem.product)
+  @OneToMany(
+    () => OrderItem,
+    orderItem => orderItem.product
+  )
   orderItems: OrderItem[]
 
-  @OneToMany(() => Review, review => review.product)
+  @OneToMany(
+    () => Review,
+    review => review.product
+  )
   reviews: Review[]
 }
 
@@ -90,7 +118,10 @@ export class Category {
   @Column({ type: 'text', nullable: true })
   description: string
 
-  @OneToMany(() => Product, product => product.category)
+  @OneToMany(
+    () => Product,
+    product => product.category
+  )
   products: Product[]
 }
 
@@ -102,7 +133,11 @@ export class Order {
   @Column({ type: 'int', name: 'user_id' })
   userId: number
 
-  @Column({ type: 'enum', enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' })
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
+  })
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
 
   @Column({ name: 'total_amount', type: 'decimal', precision: 10, scale: 2 })
@@ -117,11 +152,17 @@ export class Order {
   @Column({ name: 'shipping_address', type: 'text', nullable: true })
   shippingAddress: string
 
-  @ManyToOne(() => User, user => user.orders)
+  @ManyToOne(
+    () => User,
+    user => user.orders
+  )
   @JoinColumn({ name: 'user_id' })
   user: User
 
-  @OneToMany(() => OrderItem, orderItem => orderItem.order)
+  @OneToMany(
+    () => OrderItem,
+    orderItem => orderItem.order
+  )
   orderItems: OrderItem[]
 }
 
@@ -142,11 +183,17 @@ export class OrderItem {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number
 
-  @ManyToOne(() => Order, order => order.orderItems)
+  @ManyToOne(
+    () => Order,
+    order => order.orderItems
+  )
   @JoinColumn({ name: 'order_id' })
   order: Order
 
-  @ManyToOne(() => Product, product => product.orderItems)
+  @ManyToOne(
+    () => Product,
+    product => product.orderItems
+  )
   @JoinColumn({ name: 'product_id' })
   product: Product
 }
@@ -171,11 +218,17 @@ export class Review {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
-  @ManyToOne(() => User, user => user.reviews)
+  @ManyToOne(
+    () => User,
+    user => user.reviews
+  )
   @JoinColumn({ name: 'user_id' })
   user: User
 
-  @ManyToOne(() => Product, product => product.reviews)
+  @ManyToOne(
+    () => Product,
+    product => product.reviews
+  )
   @JoinColumn({ name: 'product_id' })
   product: Product
 }

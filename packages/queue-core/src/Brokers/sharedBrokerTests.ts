@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, it, expect, vi } from 'vitest'
+import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 import type { MessageBroker } from '../types/message'
 
 export function runMessageBrokerTestSuite(broker: MessageBroker) {

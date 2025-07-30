@@ -9,5 +9,5 @@ export type ComplexityEstimatorArgs = {
 
 export type ComplexityEstimator = (
   options: ComplexityEstimatorArgs
-) => number | void
+) => number | undefined
 export type Complexity = ComplexityEstimator | number

@@ -1,7 +1,8 @@
+import { AnyObject } from '@goatlab/fluent'
 import { Objects } from '@goatlab/js-utils'
 import { eachComponent } from './eachComponent'
 import { FormioComponent } from './types/FormioComponent'
-import { AnyObject } from '@goatlab/fluent'
+
 /**
  *
  * @param component

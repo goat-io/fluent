@@ -1,16 +1,16 @@
-var GoatIsSyncing = false
-let Scheduler = class {
+let GoatIsSyncing = false
+const Scheduler = class {
   static async isSyncing() {
     return GoatIsSyncing
   }
   static async startSync() {
     GoatIsSyncing = true
-    return this.isSyncing()
+    return Scheduler.isSyncing()
   }
 
   static async stopSync() {
     GoatIsSyncing = false
-    return this.isSyncing()
+    return Scheduler.isSyncing()
   }
 }
 

@@ -1,5 +1,5 @@
-import type { TypesenseAliasListResponse } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type { TypesenseAliasListResponse } from '../../typesense.model'
 
 export async function listAliases(
   ctx: TypesenseContext

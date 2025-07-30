@@ -10,7 +10,7 @@
 export function applyDecorators(
   ...decorators: Array<ClassDecorator | MethodDecorator | PropertyDecorator>
 ) {
-  return <TFunction extends Function, Y>(
+  return <TFunction extends (...args: any[]) => any, Y>(
     target: TFunction | object,
     propertyKey?: string | symbol,
     descriptor?: TypedPropertyDescriptor<Y>

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, test } from 'vitest'
+import { Ids } from '@goatlab/js-utils'
+import Keyv from 'keyv'
+import { afterEach, beforeEach, describe, expect, it, test } from 'vitest'
 import { Cache } from './Cache'
 import { KeyvLru } from './cache/KeyvLrus'
-import Keyv from 'keyv'
 import { getGlobalData } from './test/const'
-import { Ids } from '@goatlab/js-utils'
 
 const connection = getGlobalData().redisUrl || 'redis://localhost:6379'
 
@@ -19,7 +19,7 @@ describe('Cache (Memory)', () => {
     const cache = new Cache({ connection, opts: { namespace: 'test-ns' } })
     expect(cache).toBeInstanceOf(Cache)
     // @ts-expect-error accessing private property for test
-    expect(cache._ns).toBe('test-ns')
+    expect(cache.ns).toBe('test-ns')
     // @ts-expect-error accessing private property for test
     expect(cache.usesLRUMemory).toBe(false)
     // @ts-expect-error accessing private property for test
@@ -35,7 +35,7 @@ describe('Cache (Memory)', () => {
     })
     expect(cache).toBeInstanceOf(Cache)
     // @ts-expect-error accessing private property for test
-    expect(cache._ns).toBe('lru-ns')
+    expect(cache.ns).toBe('lru-ns')
     // @ts-expect-error accessing private property for test
     expect(cache.usesLRUMemory).toBe(false)
     // @ts-expect-error accessing private property for test
@@ -56,13 +56,13 @@ describe('Cache (Memory)', () => {
   it('should default namespace to empty string if not provided', () => {
     const cache = new Cache({ connection: undefined, opts: {} })
     // @ts-expect-error accessing private property for test
-    expect(cache._ns).toBe('')
+    expect(cache.ns).toBe('')
   })
 
   it('should handle undefined opts gracefully', () => {
     const cache = new Cache({ connection: undefined })
     // @ts-expect-error accessing private property for test
-    expect(cache._ns).toBe('')
+    expect(cache.ns).toBe('')
     // @ts-expect-error accessing private property for test
     expect(cache.usesLRUMemory).toBe(false)
   })
@@ -384,15 +384,15 @@ describe('Cache (Memory) - Namespace Isolation', () => {
       opts: { namespace: 'nsB2' }
     })
 
-    let calledA = 0
-    let calledB = 0
+    let _calledA = 0
+    let _calledB = 0
 
     const valA = await cacheA.remember('foo', 1000, async () => {
-      calledA++
+      _calledA++
       return 'A'
     })
     const valB = await cacheB.rememberForever('foo', async () => {
-      calledB++
+      _calledB++
       return 'B'
     })
 
@@ -468,15 +468,15 @@ describe('Cache (Redis) - Namespace Isolation', () => {
   })
 
   it('should not affect other namespaces when using remember and rememberForever (Redis)', async () => {
-    let calledA = 0
-    let calledB = 0
+    let _calledA = 0
+    let _calledB = 0
 
     const valA = await cacheA.remember('foo', 1000, async () => {
-      calledA++
+      _calledA++
       return 'A'
     })
     const valB = await cacheB.rememberForever('foo', async () => {
-      calledB++
+      _calledB++
       return 'B'
     })
 
@@ -709,7 +709,7 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
       const valuesB = await cacheB.getValueWhereKeyStartsWith('foo')
       expect(valuesA).toEqual(['a'])
       expect(valuesB).toEqual(['b'])
-      
+
       await cacheA.flush()
       await cacheB.flush()
     }, 10000)
@@ -834,7 +834,7 @@ describe('Cache - Multi-tenancy Support', () => {
       expect(cache).toBeInstanceOf(Cache)
       expect(cache.tenantId).toBe('tenant1')
       // @ts-expect-error accessing private property for test
-      expect(cache._ns).toBe('tenant1:ns1')
+      expect(cache.ns).toBe('tenant1:ns1')
     })
 
     it('should initialize with tenantId but no namespace', () => {
@@ -844,7 +844,7 @@ describe('Cache - Multi-tenancy Support', () => {
       })
       expect(cache.tenantId).toBe('tenant1')
       // @ts-expect-error accessing private property for test
-      expect(cache._ns).toBe('tenant1')
+      expect(cache.ns).toBe('tenant1')
     })
 
     it('should work without tenantId (backward compatibility)', () => {
@@ -854,7 +854,7 @@ describe('Cache - Multi-tenancy Support', () => {
       })
       expect(cache.tenantId).toBeUndefined()
       // @ts-expect-error accessing private property for test
-      expect(cache._ns).toBe('ns1')
+      expect(cache.ns).toBe('ns1')
     })
   })
 
@@ -917,7 +917,10 @@ describe('Cache - Multi-tenancy Support', () => {
       expect(called).toBe(1)
 
       // Test rememberForever
-      const forever = await cache.rememberForever('forever', async () => 'forever-value')
+      const forever = await cache.rememberForever(
+        'forever',
+        async () => 'forever-value'
+      )
       expect(forever).toBe('forever-value')
 
       // Test pull
@@ -1128,7 +1131,7 @@ describe('Cache - Multi-tenancy Support', () => {
         opts: { tenantId: '', namespace: 'ns' }
       })
       // @ts-expect-error accessing private property for test
-      expect(cache._ns).toBe('ns')
+      expect(cache.ns).toBe('ns')
       expect(cache.tenantId).toBe('')
     })
 
@@ -1154,19 +1157,23 @@ describe('Cache - Multi-tenancy Support', () => {
       await cache1.set('config:setting', { value: 'org1-setting' })
       await cache2.set('config:setting', { value: 'org2-setting' })
 
-      expect(await cache1.get('config:setting')).toEqual({ value: 'org1-setting' })
-      expect(await cache2.get('config:setting')).toEqual({ value: 'org2-setting' })
+      expect(await cache1.get('config:setting')).toEqual({
+        value: 'org1-setting'
+      })
+      expect(await cache2.get('config:setting')).toEqual({
+        value: 'org2-setting'
+      })
     })
 
     it('should handle special characters in tenantId safely', async () => {
       const specialChars = ['@', '#', '$', '%', '&', '*', '!', '~', '^']
-      
+
       for (const char of specialChars) {
         const cache = new Cache({
           connection: undefined,
           opts: { tenantId: `tenant${char}123`, namespace: 'test' }
         })
-        
+
         await cache.set('key', `value-${char}`)
         expect(await cache.get('key')).toBe(`value-${char}`)
         await cache.flush()
@@ -1174,12 +1181,12 @@ describe('Cache - Multi-tenancy Support', () => {
     })
 
     it('should handle very long tenantIds', async () => {
-      const longTenantId = 'tenant_' + 'x'.repeat(100)
+      const longTenantId = `tenant_${'x'.repeat(100)}`
       const cache = new Cache({
         connection: undefined,
         opts: { tenantId: longTenantId, namespace: 'test' }
       })
-      
+
       await cache.set('key', 'value')
       expect(await cache.get('key')).toBe('value')
     })
@@ -1193,10 +1200,10 @@ describe('Cache - Multi-tenancy Support', () => {
         connection: undefined,
         opts: { tenantId: 'tenant_🎉_مرحبا', namespace: 'test' }
       })
-      
+
       await cache1.set('key', 'emoji-japanese')
       await cache2.set('key', 'emoji-arabic')
-      
+
       expect(await cache1.get('key')).toBe('emoji-japanese')
       expect(await cache2.get('key')).toBe('emoji-arabic')
     })
@@ -1212,14 +1219,14 @@ describe('Cache - Multi-tenancy Support', () => {
         connection: undefined,
         opts: { tenantId: 'tenant2', namespace: 'array-test' }
       })
-      
+
       await cache1.set('key1', 'value1')
       await cache1.set('key2', 'value2')
       await cache2.set('key1', 'value1')
-      
+
       const results1 = await cache1.has(['key1', 'key2', 'key3'])
       const results2 = await cache2.has(['key1', 'key2', 'key3'])
-      
+
       expect(results1).toEqual([true, true, false])
       expect(results2).toEqual([true, false, false])
     })
@@ -1233,19 +1240,19 @@ describe('Cache - Multi-tenancy Support', () => {
         connection: undefined,
         opts: { tenantId: 'tenant2', namespace: 'ttl-test' }
       })
-      
+
       await cache1.set('ttl-key', 'value1', 100) // 100ms TTL
       await cache2.set('ttl-key', 'value2', 200) // 200ms TTL
-      
+
       // Immediately both should exist
       expect(await cache1.get('ttl-key')).toBe('value1')
       expect(await cache2.get('ttl-key')).toBe('value2')
-      
+
       // After 150ms, cache1 should expire but cache2 should still exist
       await new Promise(resolve => setTimeout(resolve, 150))
       expect(await cache1.get('ttl-key')).toBeUndefined()
       expect(await cache2.get('ttl-key')).toBe('value2')
-      
+
       // After another 100ms, cache2 should also expire
       await new Promise(resolve => setTimeout(resolve, 100))
       expect(await cache2.get('ttl-key')).toBeUndefined()
@@ -1256,10 +1263,10 @@ describe('Cache - Multi-tenancy Support', () => {
         connection: undefined,
         opts: { tenantId: 'tenant1', namespace: 'circular' }
       })
-      
+
       const obj: any = { a: 1 }
       obj.circular = obj // Create circular reference
-      
+
       // This should either handle it gracefully or throw a meaningful error
       try {
         await cache.set('circular', obj)
@@ -1278,7 +1285,7 @@ describe('Cache - Multi-tenancy Support', () => {
         connection: undefined,
         opts: { tenantId: 'tenant1', namespace: 'validation' }
       })
-      
+
       // Test various invalid values that shouldn't be cached
       const invalidValues = [
         null,
@@ -1289,14 +1296,14 @@ describe('Cache - Multi-tenancy Support', () => {
         {},
         { a: null, b: null } // object with all null values
       ]
-      
+
       for (const [index, value] of invalidValues.entries()) {
         await cache.remember(`key${index}`, 1000, async () => value as any)
         // These values should not be cached according to isValidResult
         const retrieved = await cache.get(`key${index}`)
         expect(retrieved).toBeUndefined()
       }
-      
+
       // Valid values should be cached
       await cache.remember('valid', 1000, async () => ({ a: 1 }))
       expect(await cache.get('valid')).toEqual({ a: 1 })
@@ -1311,17 +1318,17 @@ describe('Cache - Multi-tenancy Support', () => {
         connection: undefined,
         opts: { tenantId: 'tenant2', namespace: 'concurrent' }
       })
-      
+
       // Simulate concurrent operations
       const promises: Promise<any>[] = []
-      
+
       for (let i = 0; i < 10; i++) {
         promises.push(cache1.set(`key${i}`, `tenant1-${i}`))
         promises.push(cache2.set(`key${i}`, `tenant2-${i}`))
       }
-      
+
       await Promise.all(promises)
-      
+
       // Verify isolation is maintained
       for (let i = 0; i < 10; i++) {
         expect(await cache1.get(`key${i}`)).toBe(`tenant1-${i}`)
@@ -1334,13 +1341,13 @@ describe('Cache - Multi-tenancy Support', () => {
         connection: undefined,
         opts: { tenantId: 'tenant1' }
       })
-      
+
       await cache.set('simple', 'value')
       await cache.set('prefix:1', 'prefixed')
-      
+
       expect(await cache.get('simple')).toBe('value')
       expect(await cache.get('prefix:1')).toBe('prefixed')
-      
+
       const values = await cache.getValueWhereKeyStartsWith('prefix')
       expect(values).toContain('prefixed')
     })
@@ -1354,10 +1361,10 @@ describe('Cache - Multi-tenancy Support', () => {
         connection,
         opts: { tenantId: 'tenant@#$%', namespace: 'special' }
       })
-      
+
       await cache.set('key', 'special-value')
       expect(await cache.get('key')).toBe('special-value')
-      
+
       await cache.flush()
     })
 
@@ -1370,18 +1377,18 @@ describe('Cache - Multi-tenancy Support', () => {
         connection,
         opts: { tenantId: 'redis-tenant2', namespace: 'array' }
       })
-      
+
       await cache1.set('k1', 'v1')
       await cache1.set('k2', 'v2')
       await cache2.set('k1', 'v1')
       await cache2.set('k3', 'v3')
-      
+
       const get1 = await cache1.get(['k1', 'k2', 'k3'])
       const get2 = await cache2.get(['k1', 'k2', 'k3'])
-      
+
       expect(get1).toEqual(['v1', 'v2', undefined])
       expect(get2).toEqual(['v1', undefined, 'v3'])
-      
+
       await cache1.flush()
       await cache2.flush()
     })
@@ -1395,18 +1402,18 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'lru-write', usesLRUMemory: true }
       })
-      
+
       // Set directly in backing store, not in memory cache
       await cache.set('key', 'value')
-      
+
       // Clear memory cache to simulate a miss
       // @ts-expect-error accessing private property
       await cache.memoryCache.delete('lru-write:key')
-      
+
       // Get should fetch from backing store and write to memory cache
       const value = await cache.get('key')
       expect(value).toBe('value')
-      
+
       // Verify it's now in memory cache
       // @ts-expect-error accessing private property
       const memValue = await cache.memoryCache.get('lru-write:key')
@@ -1418,20 +1425,20 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'lru-delete', usesLRUMemory: true }
       })
-      
+
       await cache.set('key', 'value')
-      
+
       // Get to populate memory cache
       await cache.get('key')
-      
+
       // Verify it's in memory cache
       // @ts-expect-error accessing private property
       let memValue = await cache.memoryCache.get('lru-delete:key')
       expect(memValue).toBe('value')
-      
+
       // Delete should evict from both stores
       await cache.delete('key')
-      
+
       // Verify it's gone from memory cache
       // @ts-expect-error accessing private property
       memValue = await cache.memoryCache.get('lru-delete:key')
@@ -1445,10 +1452,10 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'array-has' }
       })
-      
+
       const arrayValue = ['item1', '', null, 'item4']
       await cache.set('arr-key', arrayValue)
-      
+
       const hasResult = await cache.has('arr-key')
       // isValidResult for each array element
       expect(hasResult).toEqual([true, false, false, true])
@@ -1459,10 +1466,10 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'obj-has' }
       })
-      
+
       const objWithNulls = { a: 1, b: null, c: 'value', d: null }
       await cache.set('obj-key', objWithNulls)
-      
+
       const hasResult = await cache.has('obj-key')
       expect(hasResult).toBe(true) // Has non-null values
     })
@@ -1474,10 +1481,10 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'batch-get' }
       })
-      
+
       await cache.set('k1', 'v1')
       await cache.set('k2', 'v2')
-      
+
       const values = await cache.get(['k1', 'k2', 'k3'])
       expect(values).toEqual(['v1', 'v2', undefined])
     })
@@ -1487,10 +1494,10 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'batch-has' }
       })
-      
+
       await cache.set('k1', 'v1')
       await cache.set('k2', 'v2')
-      
+
       const results = await cache.has(['k1', 'missing', 'k2'])
       expect(results).toEqual([true, false, true])
     })
@@ -1502,7 +1509,7 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'pull-missing' }
       })
-      
+
       const value = await cache.pull('missing')
       expect(value).toBeUndefined()
     })
@@ -1512,7 +1519,7 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'forget-missing' }
       })
-      
+
       const result = await cache.forget('missing')
       expect(result).toBe(false)
     })
@@ -1524,12 +1531,12 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'ttl-expire' }
       })
-      
+
       await cache.set('ttl-key', 'value', 50) // 50ms TTL
-      
+
       // Should exist immediately
       expect(await cache.get('ttl-key')).toBe('value')
-      
+
       // Should expire after TTL
       await new Promise(resolve => setTimeout(resolve, 100))
       expect(await cache.get('ttl-key')).toBeUndefined()
@@ -1540,19 +1547,19 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'ttl-lru', usesLRUMemory: true }
       })
-      
+
       await cache.set('ttl-key', 'value', 50) // 50ms TTL
-      
+
       // Should exist immediately
       expect(await cache.get('ttl-key')).toBe('value')
-      
+
       // Should expire after TTL in backing store
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       // Clear memory cache to force fetch from backing store
       // @ts-expect-error accessing private property
       await cache.memoryCache.delete('ttl-lru:ttl-key')
-      
+
       expect(await cache.get('ttl-key')).toBeUndefined()
     })
   })
@@ -1563,29 +1570,29 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'concurrent-remember' }
       })
-      
+
       let callCount = 0
       const slowFetch = async () => {
         const currentCount = ++callCount
         await new Promise(resolve => setTimeout(resolve, 50))
         return `result-${currentCount}`
       }
-      
+
       // Launch two concurrent remember calls
       const [result1, result2] = await Promise.all([
         cache.remember('same-key', 1000, slowFetch),
         cache.remember('same-key', 1000, slowFetch)
       ])
-      
+
       // Without concurrency protection, both may execute
       // The first to complete wins and gets cached
       expect(['result-1', 'result-2']).toContain(result1)
       expect(['result-1', 'result-2']).toContain(result2)
-      
+
       // Both calls may execute due to race condition
       expect(callCount).toBeGreaterThanOrEqual(1)
       expect(callCount).toBeLessThanOrEqual(2)
-      
+
       // Future calls should use cached value (whichever won the race)
       const result3 = await cache.remember('same-key', 1000, slowFetch)
       expect([result1, result2]).toContain(result3) // Should match one of the cached results
@@ -1598,13 +1605,13 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'tenant:sub:module' }
       })
-      
+
       await cache.set('prefix:1', 'a')
       await cache.set('prefix:2', 'b')
       await cache.set('other:1', 'c')
-      
+
       await cache.deleteWhereStartsWith('prefix')
-      
+
       expect(await cache.get('prefix:1')).toBeUndefined()
       expect(await cache.get('prefix:2')).toBeUndefined()
       expect(await cache.get('other:1')).toBe('c')
@@ -1615,11 +1622,11 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'org:app:module' }
       })
-      
+
       await cache.set('config:1', 'value1')
       await cache.set('config:2', 'value2')
       await cache.set('data:1', 'value3')
-      
+
       const values = await cache.getValueWhereKeyStartsWith('config')
       expect(values).toContain('value1')
       expect(values).toContain('value2')
@@ -1632,21 +1639,21 @@ describe('Missing Test Coverage', () => {
         connection,
         opts: { namespace: 'company:product:feature' }
       })
-      
+
       await cache.set('setting:1', 'val1')
       await cache.set('setting:2', 'val2')
       await cache.set('config:1', 'val3')
-      
+
       const values = await cache.getValueWhereKeyStartsWith('setting')
       expect(values).toContain('val1')
       expect(values).toContain('val2')
       expect(values).not.toContain('val3')
-      
+
       await cache.deleteWhereStartsWith('setting')
       expect(await cache.get('setting:1')).toBeUndefined()
       expect(await cache.get('setting:2')).toBeUndefined()
       expect(await cache.get('config:1')).toBe('val3')
-      
+
       await cache.flush()
     })
   })
@@ -1657,22 +1664,22 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'invalid-array' }
       })
-      
+
       let callCount = 0
       const result1 = await cache.remember('empty-arr', 1000, async () => {
         callCount++
         return [] as any
       })
-      
+
       expect(result1).toEqual([])
       expect(callCount).toBe(1)
-      
+
       // Should call function again since empty array wasn't cached
       const result2 = await cache.remember('empty-arr', 1000, async () => {
         callCount++
         return ['not-empty'] as any
       })
-      
+
       expect(result2).toEqual(['not-empty'])
       expect(callCount).toBe(2)
     })
@@ -1682,22 +1689,22 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'invalid-obj' }
       })
-      
+
       let callCount = 0
       const result1 = await cache.rememberForever('null-obj', async () => {
         callCount++
         return { a: null, b: null, c: null } as any
       })
-      
+
       expect(result1).toEqual({ a: null, b: null, c: null })
       expect(callCount).toBe(1)
-      
+
       // Should call function again since object with all nulls wasn't cached
       const result2 = await cache.rememberForever('null-obj', async () => {
         callCount++
         return { a: 1, b: null } as any
       })
-      
+
       expect(result2).toEqual({ a: 1, b: null })
       expect(callCount).toBe(2)
     })
@@ -1709,16 +1716,16 @@ describe('Missing Test Coverage', () => {
         connection,
         opts: { namespace: `ttl-redis-${Ids.nanoId(5)}` }
       })
-      
+
       await cache.set('ttl-key', 'value', 50) // 50ms TTL
-      
+
       // Should exist immediately
       expect(await cache.get('ttl-key')).toBe('value')
-      
+
       // Should expire after TTL
       await new Promise(resolve => setTimeout(resolve, 100))
       expect(await cache.get('ttl-key')).toBeUndefined()
-      
+
       await cache.flush()
     })
 
@@ -1727,19 +1734,19 @@ describe('Missing Test Coverage', () => {
         connection: undefined,
         opts: { namespace: 'lru-set-test', usesLRUMemory: true }
       })
-      
+
       // Set a value
       await cache.set('key', 'value')
-      
+
       // Memory cache should NOT have the value yet
       // @ts-expect-error accessing private property
       const memValue = await cache.memoryCache.get('lru-set-test:key')
       expect(memValue).toBeUndefined()
-      
+
       // After get(), memory cache should be populated
       const getValue = await cache.get('key')
       expect(getValue).toBe('value')
-      
+
       // Now memory cache should have it
       // @ts-expect-error accessing private property
       const memValueAfterGet = await cache.memoryCache.get('lru-set-test:key')

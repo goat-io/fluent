@@ -1,11 +1,13 @@
-import { describe, test, it, expect, beforeAll } from 'vitest'
 import { DataSource } from 'typeorm'
+import { beforeAll, expect, it } from 'vitest'
 import { TypeOrmRepositoryFactory } from '../repository.factory'
 
-export const advancedTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() => DataSource)) => {
+export const advancedTestSuite = (
+  dataSourceOrRepoClass?: DataSource | any | (() => DataSource)
+) => {
   let Model: any
   let dbType: string = 'unknown'
-  
+
   beforeAll(async () => {
     if (!dataSourceOrRepoClass) {
       // For backward compatibility - dynamic import to avoid initialization issues
@@ -26,7 +28,7 @@ export const advancedTestSuite = (dataSourceOrRepoClass?: DataSource | any | (()
             dbType = Model.dataSource.options.type || 'unknown'
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // It's a class constructor, not a regular function
         Model = new dataSourceOrRepoClass()
         if (Model.dataSource) {
@@ -77,7 +79,7 @@ export const advancedTestSuite = (dataSourceOrRepoClass?: DataSource | any | (()
         test: true
       }
     ]
-    
+
     for (const item of data) {
       await Repository.insert(item)
       // Small delay for MongoDB to ensure different timestamps
@@ -88,31 +90,31 @@ export const advancedTestSuite = (dataSourceOrRepoClass?: DataSource | any | (()
   }
 
   it('findFirst() should take the first result from data', async () => {
-      await insertTestData(Model)
+    await insertTestData(Model)
 
-      const form = await Model.findFirst({
-        select: {
-          id: true,
-          test: true,
-          nestedTest: {
-            c: true,
-            a: true
-          }
-        },
-        where: {
-          nestedTest: {
-            c: {
-              greaterOrEqualThan: 3
-            }
+    const form = await Model.findFirst({
+      select: {
+        id: true,
+        test: true,
+        nestedTest: {
+          c: true,
+          a: true
+        }
+      },
+      where: {
+        nestedTest: {
+          c: {
+            greaterOrEqualThan: 3
           }
         }
-      })
-      
-      expect(form).not.toBe(null)
-      expect(!Array.isArray(form)).toBe(true)
-      expect(typeof form.nestedTest.c).toBe('number')
-      expect(form.nestedTest.c >= 3).toBe(true)
+      }
     })
+
+    expect(form).not.toBe(null)
+    expect(!Array.isArray(form)).toBe(true)
+    expect(typeof form.nestedTest.c).toBe('number')
+    expect(form.nestedTest.c >= 3).toBe(true)
+  })
 
   it('Should get local data', async () => {
     await insertTestData(Model)
@@ -168,48 +170,48 @@ export const advancedTestSuite = (dataSourceOrRepoClass?: DataSource | any | (()
   })
 
   it('where() should filter the data', async () => {
-      await insertTestData(Model)
+    await insertTestData(Model)
 
-      const forms = await Model.findMany({
-        where: {
-          nestedTest: {
-            c: {
-              greaterOrEqualThan: 3
-            }
+    const forms = await Model.findMany({
+      where: {
+        nestedTest: {
+          c: {
+            greaterOrEqualThan: 3
           }
         }
-      })
-
-      expect(forms.length > 0).toBe(true)
-
-      forms.forEach(form => {
-        expect(form.nestedTest.c >= 3).toBe(true)
-      })
+      }
     })
 
-    it('andWhere() should filter the data', async () => {
-      const forms = await Model.findMany({
-        where: {
-          AND: [
-            {
-              nestedTest: {
-                c: {
-                  greaterOrEqualThan: 3
-                }
+    expect(forms.length > 0).toBe(true)
+
+    forms.forEach(form => {
+      expect(form.nestedTest.c >= 3).toBe(true)
+    })
+  })
+
+  it('andWhere() should filter the data', async () => {
+    const forms = await Model.findMany({
+      where: {
+        AND: [
+          {
+            nestedTest: {
+              c: {
+                greaterOrEqualThan: 3
               }
-            },
-            {
-              order: 2
             }
-          ]
-        },
-        limit: 1
-      })
-
-      expect(forms.length).toBe(1)
-      expect(forms[0].nestedTest.c >= 3).toBe(true)
-      expect(forms[0].order).toBe(2)
+          },
+          {
+            order: 2
+          }
+        ]
+      },
+      limit: 1
     })
+
+    expect(forms.length).toBe(1)
+    expect(forms[0].nestedTest.c >= 3).toBe(true)
+    expect(forms[0].order).toBe(2)
+  })
 
   it('orWhere() should filter the data', async () => {
     const forms = await Model.findMany({

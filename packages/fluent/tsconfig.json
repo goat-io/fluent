@@ -1,7 +1,11 @@
 {
   "extends": "@goatlab/tsconfig/tsconfig.json",
   "include": ["src"],
-  "exclude": ["src/**/*.spec.*", "src/**/*.test.*", "src/TypeOrmConnector/test/**"],
+  "exclude": [
+    "src/**/*.spec.*",
+    "src/**/*.test.*",
+    "src/TypeOrmConnector/test/**"
+  ],
   "compilerOptions": {
     "declaration": true,
     "outDir": "./dist",

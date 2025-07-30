@@ -16,8 +16,8 @@ export type TimeIntervalString = string
  */
 export class TimeInterval {
   private constructor(
-    private $start: UnixTimestampNumber,
-    private $end: UnixTimestampNumber
+    private _start: UnixTimestampNumber,
+    private _end: UnixTimestampNumber
   ) {}
 
   static of(start: LocalTimeConfig, end: LocalTimeConfig): TimeInterval {
@@ -28,26 +28,28 @@ export class TimeInterval {
   }
 
   get start(): UnixTimestampNumber {
-    return this.$start
+    return this._start
   }
 
   get end(): UnixTimestampNumber {
-    return this.$end
+    return this._end
   }
 
   get startTime(): LocalTime {
-    return LocalTime.of(this.$start)
+    return LocalTime.of(this._start)
   }
 
   get endTime(): LocalTime {
-    return LocalTime.of(this.$end)
+    return LocalTime.of(this._end)
   }
 
   /**
    * Parses string like `1649267185/1649267187` into a TimeInterval.
    */
   static parse(d: TimeIntervalConfig): TimeInterval {
-    if (d instanceof TimeInterval) return d
+    if (d instanceof TimeInterval) {
+      return d
+    }
 
     const [start, end] = d.split('/').map(Number)
 
@@ -81,9 +83,16 @@ export class TimeInterval {
   }
 
   includes(d: LocalTimeConfig, incl: Inclusiveness = '[)'): boolean {
-    d = LocalTime.parseToUnixTimestamp(d)
-    if (d < this.$start || (d === this.$start && incl[0] === '(')) return false
-    if (d > this.$end || (d === this.$end && incl[1] === ')')) return false
+    const timestamp = LocalTime.parseToUnixTimestamp(d)
+    if (
+      timestamp < this._start ||
+      (timestamp === this._start && incl[0] === '(')
+    ) {
+      return false
+    }
+    if (timestamp > this._end || (timestamp === this._end && incl[1] === ')')) {
+      return false
+    }
     return true
   }
 
@@ -92,16 +101,24 @@ export class TimeInterval {
    * If it's the same - then by end date.
    */
   cmp(d: TimeIntervalConfig): -1 | 0 | 1 {
-    d = TimeInterval.parse(d)
-    if (this.$start > d.$start) return 1
-    if (this.$start < d.$start) return -1
-    if (this.$end > d.$end) return 1
-    if (this.$end < d.$end) return -1
+    const interval = TimeInterval.parse(d)
+    if (this._start > interval._start) {
+      return 1
+    }
+    if (this._start < interval._start) {
+      return -1
+    }
+    if (this._end > interval._end) {
+      return 1
+    }
+    if (this._end < interval._end) {
+      return -1
+    }
     return 0
   }
 
   toString(): TimeIntervalString {
-    return [this.$start, this.$end].join('/')
+    return [this._start, this._end].join('/')
   }
 
   toJSON(): TimeIntervalString {

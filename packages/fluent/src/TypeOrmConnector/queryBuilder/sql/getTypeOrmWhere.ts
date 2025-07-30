@@ -11,11 +11,11 @@ import {
   MoreThanOrEqual,
   Not
 } from 'typeorm'
-import { clearEmpties } from '../..//util/clearEmpties'
 import { AnyObject, FluentQuery, LogicOperator } from '../../../types'
+import { clearEmpties } from '../..//util/clearEmpties'
 import { extractConditions } from '../../util/extractConditions'
 
-export interface getTypeOrmWhereParams {
+export interface GetTypeOrmWhereParams {
   where?: FluentQuery<AnyObject>['where']
 }
 
@@ -26,24 +26,76 @@ export interface getTypeOrmWhereParams {
  */
 export const getTypeOrmWhere = ({
   where
-}: getTypeOrmWhereParams): FindManyOptions['where'] => {
+}: GetTypeOrmWhereParams): FindManyOptions['where'] => {
   if (!where || Object.keys(where).length === 0) {
     return {}
   }
 
-  // Every element of the array is an OR
-  const Filters = { where: [{}] }
+  // Check if this is a simple query without AND/OR operators
+  const hasLogicalOperators = where.OR || where.AND
 
-  const orConditions = extractConditions(where['OR'])
-  const andConditions = extractConditions(where['AND'])
+  if (!hasLogicalOperators) {
+    // Simple query - just process the conditions directly
+    const conditions = extractConditions([where])
+    const simpleFilter: any = {}
 
-  const copy = Objects.clone(where)
-  if (!!copy['AND']) {
-    delete copy['AND']
+    for (const condition of conditions) {
+      const { element, operator, value } = condition
+
+      switch (operator) {
+        case LogicOperator.Equals:
+          simpleFilter[element] = Equal(value)
+          break
+        case LogicOperator.IsNot:
+          simpleFilter[element] = Not(Equal(value))
+          break
+        case LogicOperator.GreaterThan:
+          simpleFilter[element] = MoreThan(value)
+          break
+        case LogicOperator.GreaterOrEqualThan:
+          simpleFilter[element] = MoreThanOrEqual(value)
+          break
+        case LogicOperator.LessThan:
+          simpleFilter[element] = LessThan(value)
+          break
+        case LogicOperator.LessOrEqualThan:
+          simpleFilter[element] = LessThanOrEqual(value)
+          break
+        case LogicOperator.In:
+          simpleFilter[element] = In(value as string[])
+          break
+        case LogicOperator.NotIn:
+          simpleFilter[element] = Not(In(value as string[]))
+          break
+        case LogicOperator.Exists:
+          simpleFilter[element] = Not(IsNull())
+          break
+        case LogicOperator.NotExists:
+          simpleFilter[element] = IsNull()
+          break
+        case LogicOperator.Regexp:
+        case LogicOperator.Like:
+          simpleFilter[element] = Like(value)
+          break
+      }
+    }
+
+    return Objects.nest(simpleFilter)
   }
 
-  if (!!copy['OR']) {
-    delete copy['OR']
+  // Complex query with OR/AND operators
+  const Filters = { where: [{}] }
+
+  const orConditions = extractConditions(where.OR)
+  const andConditions = extractConditions(where.AND)
+
+  const copy = Objects.clone(where)
+  if (copy.AND) {
+    delete copy.AND
+  }
+
+  if (copy.OR) {
+    delete copy.OR
   }
 
   const rootLevelConditions = extractConditions([copy])
@@ -52,67 +104,68 @@ export const getTypeOrmWhere = ({
     const { element, operator, value } = condition
 
     switch (operator) {
-      case LogicOperator.equals:
+      case LogicOperator.Equals:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Equal(value) }
         })
         break
-      case LogicOperator.isNot:
+      case LogicOperator.IsNot:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Not(Equal(value)) }
         })
         break
-      case LogicOperator.greaterThan:
+      case LogicOperator.GreaterThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: MoreThan(value) }
         })
         break
-      case LogicOperator.greaterOrEqualThan:
+      case LogicOperator.GreaterOrEqualThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: MoreThanOrEqual(value) }
         })
         break
-      case LogicOperator.lessThan:
+      case LogicOperator.LessThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: LessThan(value) }
         })
         break
-      case LogicOperator.lessOrEqualThan:
+      case LogicOperator.LessOrEqualThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: LessThanOrEqual(value) }
         })
         break
-      case LogicOperator.in:
+      case LogicOperator.In:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: In(value as string[]) }
         })
         break
-      case LogicOperator.notIn:
+      case LogicOperator.NotIn:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Not(In(value as string[])) }
         })
         break
-      case LogicOperator.exists:
+      case LogicOperator.Exists:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Not(IsNull()) }
         })
         break
-      case LogicOperator.notExists:
+      case LogicOperator.NotExists:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: IsNull() }
         })
         break
-      case LogicOperator.regexp:
+      case LogicOperator.Regexp:
+      case LogicOperator.Like:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Like(value) }
@@ -125,67 +178,68 @@ export const getTypeOrmWhere = ({
     const { element, operator, value } = condition
 
     switch (operator) {
-      case LogicOperator.equals:
+      case LogicOperator.Equals:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Equal(value) }
         })
         break
-      case LogicOperator.isNot:
+      case LogicOperator.IsNot:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Not(Equal(value)) }
         })
         break
-      case LogicOperator.greaterThan:
+      case LogicOperator.GreaterThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: MoreThan(value) }
         })
         break
-      case LogicOperator.greaterOrEqualThan:
+      case LogicOperator.GreaterOrEqualThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: MoreThanOrEqual(value) }
         })
         break
-      case LogicOperator.lessThan:
+      case LogicOperator.LessThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: LessThan(value) }
         })
         break
-      case LogicOperator.lessOrEqualThan:
+      case LogicOperator.LessOrEqualThan:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: LessThanOrEqual(value) }
         })
         break
-      case LogicOperator.in:
+      case LogicOperator.In:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: In(value as string[]) }
         })
         break
-      case LogicOperator.notIn:
+      case LogicOperator.NotIn:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Not(In(value as string[])) }
         })
         break
-      case LogicOperator.exists:
+      case LogicOperator.Exists:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Not(IsNull()) }
         })
         break
-      case LogicOperator.notExists:
+      case LogicOperator.NotExists:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: IsNull() }
         })
         break
-      case LogicOperator.regexp:
+      case LogicOperator.Regexp:
+      case LogicOperator.Like:
         Filters.where[0] = Objects.nest({
           ...Filters.where[0],
           ...{ [element]: Like(value) }
@@ -198,43 +252,50 @@ export const getTypeOrmWhere = ({
     const { element, operator, value } = condition
 
     switch (operator) {
-      case LogicOperator.equals:
+      case LogicOperator.Equals:
         Filters.where.push({ [element]: Equal(value) })
         break
-      case LogicOperator.isNot:
+      case LogicOperator.IsNot:
         Filters.where.push({ [element]: Not(Equal(value)) })
         break
-      case LogicOperator.greaterThan:
+      case LogicOperator.GreaterThan:
         Filters.where.push({ [element]: MoreThan(value) })
         break
-      case LogicOperator.greaterOrEqualThan:
+      case LogicOperator.GreaterOrEqualThan:
         Filters.where.push({ [element]: MoreThanOrEqual(value) })
         break
-      case LogicOperator.lessThan:
+      case LogicOperator.LessThan:
         Filters.where.push({ [element]: LessThan(value) })
         break
-      case LogicOperator.lessOrEqualThan:
+      case LogicOperator.LessOrEqualThan:
         Filters.where.push({ [element]: LessThanOrEqual(value) })
         break
-      case LogicOperator.in:
+      case LogicOperator.In:
         Filters.where.push({ [element]: In(value as string[]) })
         break
-      case LogicOperator.notIn:
+      case LogicOperator.NotIn:
         Filters.where.push({ [element]: Not(In(value as string[])) })
         break
-      case LogicOperator.exists:
+      case LogicOperator.Exists:
         Filters.where.push({ [element]: Not(IsNull()) })
         break
-      case LogicOperator.notExists:
+      case LogicOperator.NotExists:
         Filters.where.push({ [element]: IsNull() })
         break
-      case LogicOperator.regexp:
+      case LogicOperator.Regexp:
+      case LogicOperator.Like:
         Filters.where.push({ [element]: Like(value) })
         break
     }
   }
 
   const filtered = clearEmpties(Filters.where)
+
+  // If there's only one element in the array and no OR conditions were added,
+  // return the object directly instead of an array
+  if (filtered.length === 1 && orConditions.length === 0) {
+    return filtered[0]
+  }
 
   return filtered
 }

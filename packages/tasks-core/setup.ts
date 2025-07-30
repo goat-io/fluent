@@ -1,8 +1,8 @@
-import { RabbitMQContainer } from '@testcontainers/rabbitmq'
+import * as fs from 'node:fs'
+import { writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { KafkaContainer } from '@testcontainers/kafka'
-import { writeFileSync } from 'fs'
-import * as fs from 'fs'
-import { resolve } from 'path'
+import { RabbitMQContainer } from '@testcontainers/rabbitmq'
 // This file runs before jest sets the env
 // so we need to load dotenv manually if we want to use env
 
@@ -15,11 +15,12 @@ const kafka = new KafkaContainer('confluentinc/cp-kafka:7.9.0')
 export default async () => {
   // Check if we need containers by looking for integration tests
   // Only start containers if we have tests that actually need them
-  const hasIntegrationTests = process.env.RUN_INTEGRATION_TESTS === 'true' || 
-                              process.env.NODE_ENV === 'integration'
-  
+  const hasIntegrationTests =
+    process.env.RUN_INTEGRATION_TESTS === 'true' ||
+    process.env.NODE_ENV === 'integration'
+
   const filePath = resolve(__dirname, 'tempData.json')
-  
+
   if (!hasIntegrationTests) {
     // For unit tests, just create empty tempData file and return
     writeFileSync(filePath, JSON.stringify({}), 'utf-8')

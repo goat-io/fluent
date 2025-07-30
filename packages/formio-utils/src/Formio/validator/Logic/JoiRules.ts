@@ -1,7 +1,8 @@
 import * as _ from 'lodash'
-import { checkConditional } from './conditionalCheck'
 import util from '../utils'
-const vm = require('vm')
+import { checkConditional } from './conditionalCheck'
+
+const vm = require('node:vm')
 const Joi = require('joi')
 const FormioUtils = require('formiojs/utils').default
 const request = require('request-promise-native')
@@ -26,7 +27,7 @@ export const getRules = (type: any) => [
 
       // If a component has multiple rows of data, e.g. Datagrids, validate each row of data on the backend.
       for (let b = 0; b < row.length; b++) {
-        const _row = row[b]
+        const Row = row[b]
 
         // Try a new sandboxed validation.
         try {
@@ -34,16 +35,16 @@ export const getRules = (type: any) => [
           const replace = /({{\s{0,}(.*[^\s]){1}\s{0,}}})/g
           component.validate.custom = component.validate.custom.replace(
             replace,
-            (match: any, $1: any, $2: any) => _.get(data, $2)
+            (_match: any, _$1: any, $2: any) => _.get(data, $2)
           )
 
           // Create the sandbox.
           const sandbox: any = vm.createContext({
-            input: _.isObject(_row)
-              ? util.getValue({ data: _row }, component.key)
-              : _row,
+            input: _.isObject(Row)
+              ? util.getValue({ data: Row }, component.key)
+              : Row,
             data,
-            row: _row,
+            row: Row,
             scope: { data },
             component,
             valid
@@ -92,12 +93,12 @@ export const getRules = (type: any) => [
 
       // If a component has multiple rows of data, e.g. Datagrids, validate each row of data on the backend.
       for (let b = 0; b < row.length; b++) {
-        const _row = row[b]
+        const Row = row[b]
 
         try {
           valid = util.jsonLogic.apply(component.validate.json, {
             data,
-            row: _row
+            row: Row
           })
         } catch (err) {
           valid = err.message
@@ -152,7 +153,9 @@ export const getRules = (type: any) => [
       maxWords: Joi.any()
     },
     validate(params: any, value: any, state: any, options: any): any {
-      if (value.trim().split(/\s+/).length <= parseInt(params.maxWords, 10)) {
+      if (
+        value.trim().split(/\s+/).length <= Number.parseInt(params.maxWords, 10)
+      ) {
         return value
       }
 
@@ -170,7 +173,9 @@ export const getRules = (type: any) => [
       minWords: Joi.any()
     },
     validate(params: any, value: any, state: any, options: any): any {
-      if (value.trim().split(/\s+/).length >= parseInt(params.minWords, 10)) {
+      if (
+        value.trim().split(/\s+/).length >= Number.parseInt(params.minWords, 10)
+      ) {
         return value
       }
 
@@ -191,7 +196,7 @@ export const getRules = (type: any) => [
       async: Joi.any(),
       requests: Joi.any()
     },
-    validate(params: any, value: any, state: any, options: any) {
+    validate(params: any, value: any, state: any, _options: any) {
       // Empty values are fine.
       if (!value) {
         return value
@@ -255,7 +260,7 @@ export const getRules = (type: any) => [
       })
 
       // Set custom headers.
-      if (component.data && component.data.headers) {
+      if (component.data?.headers) {
         _.each(component.data.headers, (header: any) => {
           if (header.key) {
             requestOptions.headers[header.key] = header.value
@@ -269,12 +274,12 @@ export const getRules = (type: any) => [
       }
 
       async.push(
-        new Promise((resolve: any, reject: any) => {
+        new Promise((resolve: any, _reject: any) => {
           /* eslint-disable prefer-template */
           const cacheKey =
             `${requestOptions.method}:${requestOptions.url}?` +
             Object.keys(requestOptions.qs)
-              .map(key => key + '=' + requestOptions.qs[key])
+              .map(key => `${key}=${requestOptions.qs[key]}`)
               .join('&')
           /* eslint-enable prefer-template */
           const cacheTime: any = 3 * 60 * 60 * 1000
@@ -334,7 +339,7 @@ export const getRules = (type: any) => [
       model: Joi.any(),
       async: Joi.any()
     },
-    validate(params: any, value: any, state: any, options: any) {
+    validate(params: any, value: any, state: any, _options: any) {
       const { component, submission, model, async } = params
       const path: any = `data.${state.path.join('.')}`
       // Allow empty.
@@ -348,8 +353,8 @@ export const getRules = (type: any) => [
       } else if (
         /* eslint-disable  */
         !_.isString(value) &&
-        value.hasOwnProperty('address_components') &&
-        value.hasOwnProperty('placeid')
+        Object.hasOwn(value, 'address_components') &&
+        Object.hasOwn(value, 'placeid')
       ) {
         query[`${path}.placeid`] = {
           $regex: new RegExp(`^${util.escapeRegExp(value.placeid)}$`),
@@ -366,7 +371,7 @@ export const getRules = (type: any) => [
 
       // Only search for non-deleted items.
       // eslint-disable-next-line no-prototype-builtins
-      if (!query.hasOwnProperty('deleted')) {
+      if (!Object.hasOwn(query, 'deleted')) {
         query.deleted = { $eq: null }
       }
 
@@ -383,8 +388,7 @@ export const getRules = (type: any) => [
               })
             }
             if (
-              result &&
-              result.id &&
+              result?.id &&
               submission.id &&
               result.id.toString() === submission.id
             ) {

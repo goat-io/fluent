@@ -4,7 +4,14 @@
   "name": "@goatlab/fluent-docs",
   "version": "0.2.0",
   "author": "Goat<Ignacio Cabrera>",
-  "description": "Fluent - Complete TypeScript Development Ecosystem Documentation",
+  "description": "Fluent - Complete TypeScript Development Ecosystem,Documentation",
+  "scripts": {
+    "clean": "rimraf .cache .turbo dist node_modules",
+    "index:docs": "npx tsx indexDocs.ts",
+    "serve": "npx serve -p 3003",
+    "format": "biome format --write .",
+    "lint": "biome check --write ."
+  },
   "dependencies": {
     "algoliasearch": "^5.32.0",
     "dotenv": "^16.4.5",
@@ -13,15 +20,12 @@
     "gray-matter": "^4.0.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.1.3",
+    "@goatlab/biome": "workspace:*",
     "@types/node": "^17.0.23",
     "rimraf": "^6.0.1",
     "serve": "^14.2.4",
     "tsx": "^4.7.1",
     "typescript": "^4.6.3"
-  },
-  "scripts": {
-    "clean": "rimraf .cache .turbo dist node_modules",
-    "index:docs": "npx tsx indexDocs.ts",
-    "serve": "npx serve -p 3003"
   }
 }

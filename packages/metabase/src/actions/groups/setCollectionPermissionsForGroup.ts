@@ -3,7 +3,7 @@ import { metabaseFetch } from '../../common/fetch-wrapper'
 /**
  * Sets collection permissions for a specific group and collection.
  * This is useful after creating a new collection to ensure only the intended group has access.
- * 
+ *
  * @param groupId - The ID of the group to grant permissions to
  * @param collectionId - The ID of the collection (or 'root' for the root collection)
  * @param permission - The permission level ('write', 'read', or 'none')
@@ -14,7 +14,7 @@ export async function setCollectionPermissionsForGroup({
   apiKey,
   groupId,
   collectionId,
-  permission = 'write',
+  permission = 'write'
 }: {
   baseUrl: string
   sessionToken?: string
@@ -30,16 +30,18 @@ export async function setCollectionPermissionsForGroup({
       sessionToken,
       apiKey,
       endpoint: '/api/collection/graph?skip-graph=true',
-      method: 'GET',
+      method: 'GET'
     })
 
     if (!permissionsResponse.ok) {
       const errorText = await permissionsResponse.text()
-      throw new Error(`Failed to fetch collection permissions graph: ${errorText}`)
+      throw new Error(
+        `Failed to fetch collection permissions graph: ${errorText}`
+      )
     }
 
     const permissionsGraph = await permissionsResponse.json()
-    
+
     // Create a deep copy of the permissions graph
     const updatedGraph = JSON.parse(JSON.stringify(permissionsGraph))
 
@@ -49,9 +51,9 @@ export async function setCollectionPermissionsForGroup({
     }
 
     // Update permissions for all groups
-    Object.keys(updatedGraph.groups).forEach((gId) => {
-      const groupIdNum = parseInt(gId, 10)
-      
+    Object.keys(updatedGraph.groups).forEach(gId => {
+      const groupIdNum = Number.parseInt(gId, 10)
+
       // Ensure group object exists
       if (!updatedGraph.groups[gId]) {
         updatedGraph.groups[gId] = {}
@@ -75,7 +77,7 @@ export async function setCollectionPermissionsForGroup({
     // Include revision if it exists
     const payload = {
       groups: updatedGraph.groups,
-      revision: updatedGraph.revision || 0,
+      revision: updatedGraph.revision || 0
     }
 
     // Update the permissions
@@ -85,7 +87,7 @@ export async function setCollectionPermissionsForGroup({
       apiKey,
       endpoint: '/api/collection/graph',
       method: 'PUT',
-      body: payload,
+      body: payload
     })
 
     if (!updateResponse.ok) {
@@ -93,7 +95,7 @@ export async function setCollectionPermissionsForGroup({
       throw new Error(`Failed to update collection permissions: ${errorText}`)
     }
 
-    const result = await updateResponse.json()
+    const _result = await updateResponse.json()
   } catch (error) {
     console.error(`❌ Error setting collection permissions:`, error)
     throw error

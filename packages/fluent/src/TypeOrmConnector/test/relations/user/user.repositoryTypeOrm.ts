@@ -1,15 +1,15 @@
+import { TypeOrmConnector } from '../../../TypeOrmConnector'
+import { MemoryDataSource } from '../../sqlite/memoryDataSource'
 import { CarsRepository } from '../car/car.repositoryTypeOrm'
 import { RoleRepository } from '../roles/roles.repositoryTypeOrm'
 import { RoleUsersRepository } from '../roles/roles_users.repositoryTypeOrm'
-import { TypeOrmConnector } from '../../../TypeOrmConnector'
 import { UsersEntity } from './user.entity'
 import {
-  userInputSchema,
   UsersDtoIn,
   UsersDtoOut,
+  userInputSchema,
   userOutputSchema
 } from './user.schema'
-import { MemoryDataSource } from '../../sqlite/memoryDataSource'
 
 export class UserRepository extends TypeOrmConnector<
   UsersEntity,

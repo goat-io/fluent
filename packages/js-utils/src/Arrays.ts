@@ -1,4 +1,4 @@
-import { StringMap, Mapper, Predicate, FalsyValue } from './types'
+import { FalsyValue, Mapper, Predicate, StringMap } from './types'
 
 export class ArraysClass {
   /**
@@ -39,11 +39,13 @@ export class ArraysClass {
     }
 
     const length = array.length
-    if (length === 0) return []
-    
+    if (length === 0) {
+      return []
+    }
+
     const results: T[][] = []
     let index = 0
-    
+
     while (index < length) {
       results.push(array.slice(index, index + size))
       index += size
@@ -106,26 +108,26 @@ export class ArraysClass {
     const mod = descending ? -1 : 1
     const sortedItems = mutate ? items : [...items]
     const mappedCache = new Map<T, any>()
-    
+
     // Pre-map all values to avoid indexOf calls in the sort comparator
     const indexMap = new Map<T, number>()
     for (let i = 0; i < sortedItems.length; i++) {
       indexMap.set(sortedItems[i]!, i)
     }
-    
+
     return sortedItems.sort((a, b) => {
       let mappedA = mappedCache.get(a)
       if (mappedA === undefined) {
         mappedA = mapper(a, indexMap.get(a)!)
         mappedCache.set(a, mappedA)
       }
-      
+
       let mappedB = mappedCache.get(b)
       if (mappedB === undefined) {
         mappedB = mapper(b, indexMap.get(b)!)
         mappedCache.set(b, mappedB)
       }
-      
+
       if (typeof mappedA === 'number' && typeof mappedB === 'number') {
         return (mappedA - mappedB) * mod
       }
@@ -245,7 +247,7 @@ export class ArraysClass {
   flattenDeep<T>(array: any[]): T[] {
     const result: T[] = []
     const stack = [...array]
-    
+
     while (stack.length) {
       const next = stack.pop()
       if (Array.isArray(next)) {
@@ -254,7 +256,7 @@ export class ArraysClass {
         result.push(next)
       }
     }
-    
+
     return result.reverse()
   }
 
@@ -263,7 +265,7 @@ export class ArraysClass {
    * @param arrays An array of arrays to be combined.
    * @returns An array where each element is an array of corresponding elements from the input arrays.
    */
-  zip(...arrays: Array<any[]>): Array<Array<any>> {
+  zip(...arrays: any[][]): any[][] {
     const maxLength = Math.max(...arrays.map(arr => arr.length))
     return Array.from({ length: maxLength }, (_, index) =>
       arrays.map(arr => (index < arr.length ? arr[index] : undefined))
@@ -317,9 +319,13 @@ export class ArraysClass {
    * @returns An array of shared elements found in all input arrays.
    */
   intersection<T>(...arrays: T[][]): T[] {
-    if (arrays.length === 0) return []
-    if (arrays.length === 1) return [...new Set(arrays[0])]
-    
+    if (arrays.length === 0) {
+      return []
+    }
+    if (arrays.length === 1) {
+      return [...new Set(arrays[0])]
+    }
+
     // Find the smallest array to minimize iterations
     let smallestIndex = 0
     let smallestSize = arrays[0]!.length
@@ -329,21 +335,23 @@ export class ArraysClass {
         smallestIndex = i
       }
     }
-    
+
     // Start with the smallest array
     const result = new Set(arrays[smallestIndex])
-    
+
     // Check each element against other arrays
     for (const element of result) {
       for (let i = 0; i < arrays.length; i++) {
-        if (i === smallestIndex) continue
+        if (i === smallestIndex) {
+          continue
+        }
         if (!arrays[i]!.includes(element)) {
           result.delete(element)
           break
         }
       }
     }
-    
+
     return Array.from(result)
   }
 
@@ -381,13 +389,13 @@ export class ArraysClass {
     const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0)
     const result = new Array<T>(totalLength)
     let index = 0
-    
+
     for (const arr of arrays) {
       for (let i = 0; i < arr.length; i++) {
         result[index++] = arr[i]!
       }
     }
-    
+
     return result
   }
 

@@ -1,4 +1,3 @@
-import { Ids } from '@goatlab/js-utils'
 import type {
   InputType,
   OutputType,
@@ -9,7 +8,7 @@ import type {
 
 export abstract class ShouldQueue<
   TInput extends InputType = UnknownInputType,
-  TResult extends OutputType = void
+  TResult extends OutputType = undefined
 > {
   public abstract readonly taskName: string
   public abstract readonly postUrl: string

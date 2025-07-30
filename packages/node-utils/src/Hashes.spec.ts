@@ -1,4 +1,4 @@
-import { test, it, expect } from 'vitest'
+import { expect, it, test } from 'vitest'
 import { Hashes } from './Hashes'
 
 test('md5', () => {
@@ -47,7 +47,7 @@ it('should generate a hashed password with the correct salt', async () => {
   const rounds = 10
   const hashedPassword = await Hashes.saltHash(password, rounds)
 
-  expect(hashedPassword).toMatch(/\$2[aby]?\$[\d]{1,2}\$[.\/A-Za-z0-9]{53}/)
+  expect(hashedPassword).toMatch(/\$2[aby]?\$[\d]{1,2}\$[./A-Za-z0-9]{53}/)
 })
 
 it('should correctly compare two hashed passwords', async () => {

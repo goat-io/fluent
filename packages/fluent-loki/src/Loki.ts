@@ -1,16 +1,16 @@
 import LokiJS from 'lokijs'
-import LokiIndexedAdapter from 'lokijs/src/loki-indexed-adapter'
-import lfsa from 'lokijs/src/loki-fs-structured-adapter'
 import cryptedFile from 'lokijs/src/loki-crypted-file-adapter'
+import lfsa from 'lokijs/src/loki-fs-structured-adapter'
+import LokiIndexedAdapter from 'lokijs/src/loki-indexed-adapter'
 import LokiNativescriptAdapter from 'lokijs/src/loki-nativescript-adapter'
 
 export enum LokiStorageType {
-  indexedDB = 'indexedDB',
-  memory = 'memory',
-  fsStructured = 'fsStructured',
-  file = 'file',
-  cryptedFile = 'cryptedFile',
-  json = 'json'
+  IndexedDB = 'indexedDB',
+  Memory = 'memory',
+  FsStructured = 'fsStructured',
+  File = 'file',
+  CryptedFile = 'cryptedFile',
+  Json = 'json'
 }
 
 export type LokiParams = {
@@ -21,7 +21,7 @@ export type LokiParams = {
 
 // TODO: fix this interface to make secret optional if not crypted
 export type LokiCreateParams<T extends LokiParams> = T extends {
-  storage: LokiStorageType.cryptedFile
+  storage: LokiStorageType.CryptedFile
 }
   ? {
       secret: string
@@ -42,7 +42,7 @@ export class LokiClass {
     }
 
     switch (storage) {
-      case LokiStorageType.indexedDB:
+      case LokiStorageType.IndexedDB:
         return new LokiJS(dbName, {
           ...dbConfig,
           adapter: new LokiJS.LokiPartitioningAdapter(
@@ -52,9 +52,9 @@ export class LokiClass {
             }
           )
         })
-      case LokiStorageType.file:
+      case LokiStorageType.File:
         return new LokiJS(dbName, dbConfig)
-      case LokiStorageType.memory:
+      case LokiStorageType.Memory:
         return new LokiJS(dbName, {
           ...dbConfig,
           adapter: new LokiJS.LokiPartitioningAdapter(
@@ -64,15 +64,15 @@ export class LokiClass {
             })
           )
         })
-      case LokiStorageType.fsStructured:
+      case LokiStorageType.FsStructured:
         return new LokiJS(dbName, {
           ...dbConfig,
           adapter: new lfsa()
         })
-      case LokiStorageType.cryptedFile:
+      case LokiStorageType.CryptedFile:
         cryptedFile.setSecret(secret)
         return new LokiJS(dbName, { ...dbConfig, adapter: cryptedFile })
-      case LokiStorageType.json:
+      case LokiStorageType.Json:
         return new LokiJS(dbName, {
           ...dbConfig,
           adapter: new LokiNativescriptAdapter()

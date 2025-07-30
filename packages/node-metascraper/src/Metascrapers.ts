@@ -1,6 +1,6 @@
 import { Promises } from '@goatlab/js-utils'
-import { metaScraper } from './metaScraper.service'
 import { getAssetMetadata, type MarketplaceAsset } from './getAssetMetadata'
+import { metaScraper } from './metaScraper.service'
 
 export type LinkPreviewResult = {
   url: string

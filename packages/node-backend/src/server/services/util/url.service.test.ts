@@ -1,7 +1,7 @@
 // npx vitest run ./src/server/services/util/url.service.test.ts
-import { describe, it, expect, beforeEach } from 'vitest'
-import { UrlService } from './url.service'
+import { beforeEach, describe, expect, it } from 'vitest'
 import type { Environment } from '../../types/Envinronment'
+import { UrlService } from './url.service'
 
 describe('UrlService', () => {
   let urlService: UrlService
@@ -83,7 +83,9 @@ describe('UrlService', () => {
 
     it('should return local storage URL with IP for mobile flag in local', async () => {
       const result = await urlService.getPublicStorageUrl({ isMobile: true })
-      expect(result).toMatch(/^http:\/\/\d+\.\d+\.\d+\.\d+:9199\/public-bucket$/)
+      expect(result).toMatch(
+        /^http:\/\/\d+\.\d+\.\d+\.\d+:9199\/public-bucket$/
+      )
     })
 
     it('should return production URL for prod environment', async () => {
@@ -107,7 +109,9 @@ describe('UrlService', () => {
 
     it('should return local storage URL with IP for mobile flag in local', async () => {
       const result = await urlService.getPrivateStorageUrl({ isMobile: true })
-      expect(result).toMatch(/^http:\/\/\d+\.\d+\.\d+\.\d+:9199\/private-bucket$/)
+      expect(result).toMatch(
+        /^http:\/\/\d+\.\d+\.\d+\.\d+:9199\/private-bucket$/
+      )
     })
 
     it('should return production URL for prod environment', async () => {
@@ -165,7 +169,7 @@ describe('UrlService', () => {
       process.env.K_SERVICE = 'true'
       const result = urlService.getFrontendRedirectURL()
       expect(result).toBe('https://dev.example.com')
-      delete process.env.K_SERVICE
+      process.env.K_SERVICE = undefined
     })
   })
 
@@ -176,14 +180,19 @@ describe('UrlService', () => {
         orderId: 'order123',
         storeId: 'store456'
       }
-      
-      const result = urlService.getBackendRedirectURLForTransBankPayments(params)
-      expect(result).toBe('http://localhost:8086/payments/process?origin=https://test.com&storeId=store456&orderId=order123')
+
+      const result =
+        urlService.getBackendRedirectURLForTransBankPayments(params)
+      expect(result).toBe(
+        'http://localhost:8086/payments/process?origin=https://test.com&storeId=store456&orderId=order123'
+      )
     })
 
     it('should handle undefined parameters', () => {
       const result = urlService.getBackendRedirectURLForTransBankPayments({})
-      expect(result).toBe('http://localhost:8086/payments/process?origin=undefined&storeId=undefined&orderId=undefined')
+      expect(result).toBe(
+        'http://localhost:8086/payments/process?origin=undefined&storeId=undefined&orderId=undefined'
+      )
     })
   })
 
@@ -198,13 +207,20 @@ describe('UrlService', () => {
     it('should construct correct success URL without origin', () => {
       const orderId = 'order123'
       const result = urlService.getPaymentSuccessRedirectURL(undefined, orderId)
-      expect(result).toBe('https://localhost:4430/payment/processed?orderId=order123')
+      expect(result).toBe(
+        'https://localhost:4430/payment/processed?orderId=order123'
+      )
     })
 
     it('should URL encode order ID', () => {
       const orderId = 'order with spaces & special chars'
-      const result = urlService.getPaymentSuccessRedirectURL('https://test.com', orderId)
-      expect(result).toBe('https://test.com/payment/processed?orderId=order%20with%20spaces%20%26%20special%20chars')
+      const result = urlService.getPaymentSuccessRedirectURL(
+        'https://test.com',
+        orderId
+      )
+      expect(result).toBe(
+        'https://test.com/payment/processed?orderId=order%20with%20spaces%20%26%20special%20chars'
+      )
     })
   })
 
@@ -213,19 +229,28 @@ describe('UrlService', () => {
       const origin = 'https://test.com'
       const orderId = 'order123'
       const result = urlService.getPaymentFailedRedirectURL(origin, orderId)
-      expect(result).toBe('https://test.com/payment/cancelled?paymentFailed=true&orderId=order123')
+      expect(result).toBe(
+        'https://test.com/payment/cancelled?paymentFailed=true&orderId=order123'
+      )
     })
 
     it('should construct correct failed URL without origin', () => {
       const orderId = 'order123'
       const result = urlService.getPaymentFailedRedirectURL(undefined, orderId)
-      expect(result).toBe('https://localhost:4430/payment/cancelled?paymentFailed=true&orderId=order123')
+      expect(result).toBe(
+        'https://localhost:4430/payment/cancelled?paymentFailed=true&orderId=order123'
+      )
     })
 
     it('should URL encode order ID', () => {
       const orderId = 'order with spaces & special chars'
-      const result = urlService.getPaymentFailedRedirectURL('https://test.com', orderId)
-      expect(result).toBe('https://test.com/payment/cancelled?paymentFailed=true&orderId=order%20with%20spaces%20%26%20special%20chars')
+      const result = urlService.getPaymentFailedRedirectURL(
+        'https://test.com',
+        orderId
+      )
+      expect(result).toBe(
+        'https://test.com/payment/cancelled?paymentFailed=true&orderId=order%20with%20spaces%20%26%20special%20chars'
+      )
     })
   })
 
@@ -239,14 +264,24 @@ describe('UrlService', () => {
 
     it('should construct correct cancelled URL without origin', () => {
       const orderId = 'order123'
-      const result = urlService.getPaymentCancelledRedirectURL(undefined, orderId)
-      expect(result).toBe('https://localhost:4430/payment/cancelled?orderId=order123')
+      const result = urlService.getPaymentCancelledRedirectURL(
+        undefined,
+        orderId
+      )
+      expect(result).toBe(
+        'https://localhost:4430/payment/cancelled?orderId=order123'
+      )
     })
 
     it('should URL encode order ID', () => {
       const orderId = 'order with spaces & special chars'
-      const result = urlService.getPaymentCancelledRedirectURL('https://test.com', orderId)
-      expect(result).toBe('https://test.com/payment/cancelled?orderId=order%20with%20spaces%20%26%20special%20chars')
+      const result = urlService.getPaymentCancelledRedirectURL(
+        'https://test.com',
+        orderId
+      )
+      expect(result).toBe(
+        'https://test.com/payment/cancelled?orderId=order%20with%20spaces%20%26%20special%20chars'
+      )
     })
   })
 

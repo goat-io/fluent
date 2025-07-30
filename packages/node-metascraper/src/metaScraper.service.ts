@@ -1,7 +1,7 @@
-import { URL } from 'url'
+import { URL } from 'node:url'
 import { Promises } from '@goatlab/js-utils'
-import { PuppeteerService } from './puppeteer.service'
 import * as cheerio from 'cheerio'
+import { PuppeteerService } from './puppeteer.service'
 
 const metascraper = require('metascraper')
 const metascraperAuthor = require('metascraper-author')

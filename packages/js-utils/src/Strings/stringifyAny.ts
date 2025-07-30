@@ -1,11 +1,11 @@
 import {
-  _isErrorObject,
-  _isHttpErrorObject,
-  _isHttpErrorResponse
+  isErrorObject,
+  isHttpErrorObject,
+  isHttpErrorResponse
 } from '../Errors/error.util'
 
-import { _jsonParseIfPossible } from './json.util'
-import { _safeJsonStringify } from './safeJsonStringify'
+import { jsonParseIfPossible } from './json.util'
+import { safeJsonStringify } from './safeJsonStringify'
 import { StringifyAnyOptions } from './stringifyOptions.model'
 
 /**
@@ -27,24 +27,32 @@ import { StringifyAnyOptions } from './stringifyOptions.model'
  * Returns 'undefined' if undefined is passed (default util.inspect behavior).
  */
 export function _stringifyAny(obj: any, opt: StringifyAnyOptions = {}): string {
-  if (obj === undefined) return 'undefined'
-  if (obj === null) return 'null'
-  if (typeof obj === 'function') return 'function'
-  if (typeof obj === 'symbol') return obj.toString()
+  if (obj === undefined) {
+    return 'undefined'
+  }
+  if (obj === null) {
+    return 'null'
+  }
+  if (typeof obj === 'function') {
+    return 'function'
+  }
+  if (typeof obj === 'symbol') {
+    return obj.toString()
+  }
 
   let s: string
 
   // Parse JSON string, if possible
-  obj = _jsonParseIfPossible(obj) // in case it's e.g non-pretty JSON, or even a stringified ErrorObject
+  obj = jsonParseIfPossible(obj) // in case it's e.g non-pretty JSON, or even a stringified ErrorObject
 
   //
   // HttpErrorResponse
   //
-  if (_isHttpErrorResponse(obj)) {
+  if (isHttpErrorResponse(obj)) {
     return _stringifyAny(obj.error, opt)
   }
 
-  if (obj instanceof Error || _isErrorObject(obj)) {
+  if (obj instanceof Error || isErrorObject(obj)) {
     //
     // Error or ErrorObject
     //
@@ -65,8 +73,8 @@ export function _stringifyAny(obj: any, opt: StringifyAnyOptions = {}): string {
       s = [s, ...obj.stack.split('\n').slice(1)].join('\n')
     }
 
-    if (_isErrorObject(obj)) {
-      if (_isHttpErrorObject(obj)) {
+    if (isErrorObject(obj)) {
+      if (isHttpErrorObject(obj)) {
         // `replace` here works ONCE, exactly as we need it
         s = s.replace('HttpError', `HttpError(${obj.data.httpStatusCode})`)
       }
@@ -91,7 +99,7 @@ export function _stringifyAny(obj: any, opt: StringifyAnyOptions = {}): string {
     // Other
     //
     try {
-      const { stringifyFn = _safeJsonStringify } = opt
+      const { stringifyFn = safeJsonStringify } = opt
 
       s = stringifyFn(obj, undefined, 2)
     } catch {
@@ -100,7 +108,9 @@ export function _stringifyAny(obj: any, opt: StringifyAnyOptions = {}): string {
   }
 
   // Shouldn't happen, but some weird input parameters may return this
-  if (s === undefined) return 'undefined'
+  if (s === undefined) {
+    return 'undefined'
+  }
 
   // Handle maxLen
   const { maxLen = 10_000 } = opt

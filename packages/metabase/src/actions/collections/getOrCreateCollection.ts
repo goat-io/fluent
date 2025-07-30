@@ -23,7 +23,7 @@ export async function getOrCreateCollection({
   apiKey,
   collectionName,
   baseUrl,
-  restrictToGroupId,
+  restrictToGroupId
 }: {
   baseUrl: string
   sessionToken?: string
@@ -37,14 +37,14 @@ export async function getOrCreateCollection({
     sessionToken,
     apiKey,
     endpoint: '/api/collection',
-    method: 'GET',
+    method: 'GET'
   })
 
   const collections = (await collectionsRes.json()) as MetabaseCollection[]
 
   // Find collection by name, excluding archived ones
   const existingCollection = collections.find(
-    (col) => col.name === collectionName && !col.archived,
+    col => col.name === collectionName && !col.archived
   )
 
   if (existingCollection) {
@@ -57,11 +57,11 @@ export async function getOrCreateCollection({
           apiKey,
           groupId: restrictToGroupId,
           collectionId: existingCollection.id,
-          permission: 'write',
+          permission: 'write'
         })
       } catch (error) {
         console.warn(
-          `⚠️  Failed to set group permissions for existing collection: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `⚠️  Failed to set group permissions for existing collection: ${error instanceof Error ? error.message : 'Unknown error'}`
         )
       }
     }
@@ -81,8 +81,8 @@ export async function getOrCreateCollection({
       name: collectionName,
       parent_id: null, // Root-level collection
       description: `Auto-generated collection for ${collectionName}`,
-      namespace: null,
-    },
+      namespace: null
+    }
   })
 
   const collectionData = (await createRes.json()) as MetabaseCollection
@@ -96,11 +96,11 @@ export async function getOrCreateCollection({
         apiKey,
         groupId: restrictToGroupId,
         collectionId: collectionData.id,
-        permission: 'write',
+        permission: 'write'
       })
     } catch (error) {
       console.warn(
-        `⚠️  Failed to set group permissions for collection: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `⚠️  Failed to set group permissions for collection: ${error instanceof Error ? error.message : 'Unknown error'}`
       )
       // Don't fail the entire operation if permissions can't be set
     }

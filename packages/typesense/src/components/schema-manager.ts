@@ -1,5 +1,8 @@
 // CollectionSchemaManager - Handles schema inference and caching
-import { TypesenseCollection, TypesenseSchemaCacheEntry } from '../typesense.model'
+import {
+  TypesenseCollection,
+  TypesenseSchemaCacheEntry
+} from '../typesense.model'
 
 interface SchemaManagerOptions {
   cacheSize?: number
@@ -71,7 +74,7 @@ export class CollectionSchemaManager {
     this.schemaCache = new LRUCache(this.options.cacheSize)
   }
 
-  private isVersionSupported(feature: string, minVersion: string): boolean {
+  private isVersionSupported(_feature: string, minVersion: string): boolean {
     const currentVersion = this.options.typesenseVersion
     return this.compareVersions(currentVersion, minVersion) >= 0
   }
@@ -79,30 +82,34 @@ export class CollectionSchemaManager {
   private compareVersions(version1: string, version2: string): number {
     const v1Parts = version1.split('.').map(Number)
     const v2Parts = version2.split('.').map(Number)
-    
+
     for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
       const v1Part = v1Parts[i] || 0
       const v2Part = v2Parts[i] || 0
-      
-      if (v1Part > v2Part) return 1
-      if (v1Part < v2Part) return -1
+
+      if (v1Part > v2Part) {
+        return 1
+      }
+      if (v1Part < v2Part) {
+        return -1
+      }
     }
-    
+
     return 0
   }
 
   getCachedSchema(collectionName: string): TypesenseCollection | null {
     const cacheKey = `schema:${collectionName}`
     const cached = this.schemaCache.get(cacheKey)
-    
+
     if (cached && Date.now() - cached.timestamp < this.options.cacheTtl) {
       return cached.schema
     }
-    
+
     if (cached) {
       this.schemaCache.delete(cacheKey)
     }
-    
+
     return null
   }
 
@@ -119,13 +126,22 @@ export class CollectionSchemaManager {
     this.schemaCache.delete(cacheKey)
   }
 
-  inferSchemaFromDocument(document: any, collectionName: string): TypesenseCollection {
+  inferSchemaFromDocument(
+    document: any,
+    collectionName: string
+  ): TypesenseCollection {
     const fields: any[] = []
     const processedFields = new Set<string>()
 
-    const inferFieldType = (key: string, value: any, path: string[] = []): void => {
-      if (processedFields.has(key)) return
-      
+    const inferFieldType = (
+      key: string,
+      value: any,
+      _path: string[] = []
+    ): void => {
+      if (processedFields.has(key)) {
+        return
+      }
+
       const field: any = { name: key }
 
       if (value === null || value === undefined) {
@@ -144,15 +160,18 @@ export class CollectionSchemaManager {
           // Check if array is homogeneous by sampling elements
           const sampleSize = Math.min(value.length, 10)
           const types = new Set()
-          
+
           for (let i = 0; i < sampleSize; i++) {
             const item = value[i]
-            if (typeof item === 'string') types.add('string')
-            else if (typeof item === 'number') {
+            if (typeof item === 'string') {
+              types.add('string')
+            } else if (typeof item === 'number') {
               types.add(Number.isInteger(item) ? 'int64' : 'float')
+            } else if (typeof item === 'boolean') {
+              types.add('bool')
+            } else {
+              types.add('object')
             }
-            else if (typeof item === 'boolean') types.add('bool')
-            else types.add('object')
           }
 
           if (types.size === 1) {
@@ -165,7 +184,10 @@ export class CollectionSchemaManager {
         }
       } else if (typeof value === 'object') {
         // Check if nested fields are supported
-        if (this.isVersionSupported('nested_fields', '0.25.0') && this.options.enableNestedFields) {
+        if (
+          this.isVersionSupported('nested_fields', '0.25.0') &&
+          this.options.enableNestedFields
+        ) {
           field.type = 'object'
           // Could recursively process nested fields here
         } else {
@@ -195,14 +217,20 @@ export class CollectionSchemaManager {
     }
 
     // Add version-gated features
-    if (this.isVersionSupported('nested_fields', '0.25.0') && this.options.enableNestedFields) {
+    if (
+      this.isVersionSupported('nested_fields', '0.25.0') &&
+      this.options.enableNestedFields
+    ) {
       collection.enable_nested_fields = true
     }
 
     return collection
   }
 
-  validateSchema(schema: TypesenseCollection): { valid: boolean; errors: string[] } {
+  validateSchema(schema: TypesenseCollection): {
+    valid: boolean
+    errors: string[]
+  } {
     const errors: string[] = []
 
     if (!schema.name) {
@@ -220,19 +248,37 @@ export class CollectionSchemaManager {
 
     // Validate field types
     const validTypes = [
-      'string', 'string[]', 'int32', 'int32[]', 'int64', 'int64[]',
-      'float', 'float[]', 'bool', 'bool[]', 'geopoint', 'geopoint[]',
-      'object', 'object[]', 'auto', 'image'
+      'string',
+      'string[]',
+      'int32',
+      'int32[]',
+      'int64',
+      'int64[]',
+      'float',
+      'float[]',
+      'bool',
+      'bool[]',
+      'geopoint',
+      'geopoint[]',
+      'object',
+      'object[]',
+      'auto',
+      'image'
     ]
 
     schema.fields?.forEach(field => {
       if (!validTypes.includes(field.type)) {
-        errors.push(`Invalid field type "${field.type}" for field "${field.name}"`)
+        errors.push(
+          `Invalid field type "${field.type}" for field "${field.name}"`
+        )
       }
     })
 
     // Check version-specific features
-    if (schema.enable_nested_fields && !this.isVersionSupported('nested_fields', '0.25.0')) {
+    if (
+      schema.enable_nested_fields &&
+      !this.isVersionSupported('nested_fields', '0.25.0')
+    ) {
       errors.push('enable_nested_fields requires Typesense v0.25.0 or higher')
     }
 

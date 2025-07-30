@@ -66,15 +66,16 @@ export async function pTimeout<T>(
   const { timeout, name, onTimeout, keepStackTrace = true } = opt
   const fakeError = keepStackTrace ? new Error('TimeoutError') : undefined
 
-  // eslint-disable-next-line no-async-promise-executor
-  return await new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     // Prepare the timeout timer
     const timer = setTimeout(() => {
       if (onTimeout) {
         try {
           resolve(onTimeout())
         } catch (err: any) {
-          if (fakeError) err.stack = fakeError.stack // keep original stack
+          if (fakeError) {
+            err.stack = fakeError.stack // keep original stack
+          }
           err.data = {
             ...err.data,
             ...opt.errorData
@@ -88,17 +89,22 @@ export async function pTimeout<T>(
         `"${name || 'pTimeout function'}" timed out after ${timeout} ms`,
         opt.errorData
       )
-      if (fakeError) err.stack = fakeError.stack // keep original stack
+      if (fakeError) {
+        err.stack = fakeError.stack // keep original stack
+      }
       reject(err)
     }, timeout)
 
     // Execute the Function
-    try {
-      resolve(await promise)
-    } catch (err) {
-      reject(err)
-    } finally {
-      clearTimeout(timer)
-    }
+    promise.then(
+      value => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      err => {
+        clearTimeout(timer)
+        reject(err)
+      }
+    )
   })
 }

@@ -1,5 +1,5 @@
 // npx vitest run ./src/Security.spec.ts
-import { describe, it, expect, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { GeneratedKeyPair, Security } from './Security'
 
 describe('Security', () => {
@@ -125,9 +125,9 @@ describe('Security', () => {
       const encrypted = Security.encryptObject(testObject, testSecretKey)
 
       expect(Object.keys(encrypted)).toEqual(Object.keys(testObject))
-      expect(encrypted['username']).not.toBe(testObject.username)
-      expect(encrypted['email']).not.toBe(testObject.email)
-      expect(encrypted['token']).not.toBe(testObject.token)
+      expect(encrypted.username).not.toBe(testObject.username)
+      expect(encrypted.email).not.toBe(testObject.email)
+      expect(encrypted.token).not.toBe(testObject.token)
     })
 
     it('should handle empty object', () => {

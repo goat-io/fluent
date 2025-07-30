@@ -1,6 +1,6 @@
 import 'reflect-metadata'
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { createUnifiedTests } from '@goatlab/fluent'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   PouchDBGoatRepositoryFactory,
   PouchDBTypeOrmRepositoryFactory

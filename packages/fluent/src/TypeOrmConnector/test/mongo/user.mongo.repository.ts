@@ -3,10 +3,10 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { CarsEntity } from '../relations/car/car.entity'
 import { UsersEntity } from '../relations/user/user.entity'
 import {
-  userInputSchema,
-  userOutputSchema,
   UsersDtoIn,
-  UsersDtoOut
+  UsersDtoOut,
+  userInputSchema,
+  userOutputSchema
 } from '../relations/user/user.schema'
 import { CarsRepository } from './car.mongo.repository'
 import { RoleRepository } from './roles.mongo.repository'
@@ -18,11 +18,13 @@ export class UserRepository extends TypeOrmConnector<
   UsersDtoOut
 > {
   private dataSourceRef: DataSource | (() => DataSource)
-  
+
   constructor(dataSource?: DataSource | (() => DataSource)) {
-    const ds = dataSource || (() => {
-      throw new Error('DataSource not provided to UserRepository')
-    })
+    const ds =
+      dataSource ||
+      (() => {
+        throw new Error('DataSource not provided to UserRepository')
+      })
     super({
       entity: UsersEntity,
       dataSource: ds,

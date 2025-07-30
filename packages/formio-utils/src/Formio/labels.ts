@@ -1,4 +1,5 @@
 import { eachComponent } from './eachComponent'
+import { FormioComponent } from './types/FormioComponent'
 import { FormioForm } from './types/FormioForm'
 
 const extrapolateTranslations = (text: string) => {
@@ -6,13 +7,12 @@ const extrapolateTranslations = (text: string) => {
   // formio component's instance i18n translation function (https://regexr.com/43sfm).
   // Warning: the "positive lookbehind" (?<=) feature may not be available for all browsers.
   // const regex = /(?<=\{\{\s*?instance.t\(\s*?[\'|\"])(.*?)(?=([\'|\"]\s*?\))(\s*?)\}\})/g;
-  const regex =
-    /\{\{\s*?instance.t\(\s*?[\'|\"](.*?)(?=([\'|\"]\s*?\))\s*?\}\})/g
+  const regex = /\{\{\s*?instance.t\(\s*?['|"](.*?)(?=(['|"]\s*?\))\s*?\}\})/g
   const matched = []
   let match = regex.exec(text)
   // Loop through all matches
   while (match !== null) {
-    matched.push(match[0].replace(/.*?instance\.t\(\s*[\'|\"']/, '').trim())
+    matched.push(match[0].replace(/.*?instance\.t\(\s*['|"']/, '').trim())
     match = regex.exec(text)
   }
   return matched
@@ -77,21 +77,279 @@ export interface ILabels {
   }
 }
 
+const formioLabelsPositions = [
+  'suffix',
+  'prefix',
+  'addAnother',
+  'removeRow',
+  'saveRow',
+  'legend',
+  'title',
+  'label',
+  'placeholder',
+  'errorLabel'
+]
+
+// Process common translated items
+const processCommonLabels = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  let labels = componentLabels
+
+  formioLabelsPositions.forEach(position => {
+    if (component[position] && component[position] !== '') {
+      labels = createOrAdd({
+        labels,
+        label: {
+          text: component[position],
+          type: position,
+          component: component.key,
+          form: formPath,
+          picture: null
+        }
+      })
+    }
+  })
+
+  return labels
+}
+
+// Process tooltips
+const processTooltips = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  if (!component.tooltip) {
+    return componentLabels
+  }
+
+  let labels = componentLabels
+  const texts = extrapolateTranslations(component.tooltip)
+
+  if (texts.length === 0) {
+    texts.push(component.tooltip)
+  }
+
+  texts.forEach(text => {
+    labels = createOrAdd({
+      labels,
+      label: {
+        text,
+        type: 'tooltip',
+        component: component.key,
+        form: formPath,
+        picture: null
+      }
+    })
+  })
+
+  return labels
+}
+
+// Process component values (radio, checkbox, etc.)
+const processComponentValues = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  if (!component.values) {
+    return componentLabels
+  }
+
+  let labels = componentLabels
+
+  component.values.forEach(value => {
+    if (value.label && value.label !== '') {
+      labels = createOrAdd({
+        labels,
+        label: {
+          text: value.label,
+          type: 'value',
+          component: component.key,
+          form: formPath,
+          picture: null
+        }
+      })
+    }
+  })
+
+  return labels
+}
+
+// Process HTML content
+const processHtmlContent = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  if (component.type !== 'htmlelement' && component.type !== 'content') {
+    return componentLabels
+  }
+
+  let labels = componentLabels
+  const html = (component.content || component.html || '').trim()
+
+  if (html !== '') {
+    const texts = extrapolateTranslations(html)
+    // If no interpolation found check if content is simple text (no html string)
+    if (texts.length === 0 && !/<[a-z][\s\S]*>/i.test(html)) {
+      texts.push(html)
+    }
+    // Create a label for each match (if none, don't anything)
+    texts.forEach(text => {
+      // Omit empty text strings
+      if (text !== '') {
+        labels = createOrAdd({
+          labels,
+          label: {
+            text,
+            type: 'html',
+            component: component.key,
+            form: formPath,
+            picture: null
+          }
+        })
+      }
+    })
+  }
+
+  return labels
+}
+
+// Process select components
+const processSelectComponent = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  if (component.type !== 'select' || !component.data?.values) {
+    return componentLabels
+  }
+
+  let labels = componentLabels
+
+  component.data.values.forEach(value => {
+    if (value.label && value.label !== '') {
+      labels = createOrAdd({
+        labels,
+        label: {
+          text: value.label,
+          type: 'selectValue',
+          component: component.key,
+          form: formPath,
+          picture: null
+        }
+      })
+    }
+  })
+
+  return labels
+}
+
+// Process survey components
+const processSurveyComponent = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  if (component.type !== 'survey' || !component.questions) {
+    return componentLabels
+  }
+
+  let labels = componentLabels
+
+  // Check for every question on the survey
+  component.questions.forEach(q => {
+    labels = createOrAdd({
+      labels,
+      label: {
+        text: q.label,
+        type: 'surveyLabel',
+        component: component.key,
+        form: formPath,
+        picture: null
+      }
+    })
+  })
+
+  // Check every text of the answers
+  if (component.values) {
+    component.values.forEach(v => {
+      labels = createOrAdd({
+        labels,
+        label: {
+          text: v.label,
+          type: 'surveyValues',
+          component: component.key,
+          form: formPath,
+          picture: null
+        }
+      })
+    })
+  }
+
+  return labels
+}
+
+// Process EditGrid components
+const processEditGridComponent = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  if (component.type !== 'editgrid' || !component.templates) {
+    return componentLabels
+  }
+
+  let labels = componentLabels
+  const header = extrapolateTranslations(component.templates.header || '')
+  const footer = extrapolateTranslations(component.templates.footer || '')
+  const allTexts = [...header, ...footer]
+
+  allTexts.forEach(text => {
+    // Omit empty text strings
+    if (text !== '') {
+      labels = createOrAdd({
+        labels,
+        label: {
+          text,
+          type: 'editgrid',
+          component: component.key,
+          form: formPath,
+          picture: null
+        }
+      })
+    }
+  })
+
+  return labels
+}
+
+// Process a single component
+const processComponent = (
+  component: FormioComponent,
+  componentLabels: ILabels,
+  formPath: string
+): ILabels => {
+  let labels = componentLabels
+
+  // Process different types of labels
+  labels = processCommonLabels(component, labels, formPath)
+  labels = processTooltips(component, labels, formPath)
+  labels = processComponentValues(component, labels, formPath)
+  labels = processHtmlContent(component, labels, formPath)
+  labels = processSelectComponent(component, labels, formPath)
+  labels = processSurveyComponent(component, labels, formPath)
+  labels = processEditGridComponent(component, labels, formPath)
+
+  return labels
+}
+
 export const labels = (Forms: FormioForm[]): ILabels => {
   let componentLabels = {}
-  // Extract all labels for all available forms
-  const formioLabelsPositions = [
-    'suffix',
-    'prefix',
-    'addAnother',
-    'removeRow',
-    'saveRow',
-    'legend',
-    'title',
-    'label',
-    'placeholder',
-    'errorLabel'
-  ]
 
   Forms.forEach(form => {
     // Add title of the Forms to the translations
@@ -105,170 +363,16 @@ export const labels = (Forms: FormioForm[]): ILabels => {
         picture: null
       }
     })
+
     // Go across every component
     eachComponent(
       form.components,
       component => {
-        // Check for the common translated Items listed above
-        formioLabelsPositions.forEach(position => {
-          if (component[position] && component[position] !== '') {
-            // Add the Label if is not empty
-            componentLabels = createOrAdd({
-              labels: componentLabels,
-              label: {
-                text: component[position],
-                type: position,
-                component: component.key,
-                form: form.path,
-                picture: null
-              }
-            })
-          }
-        })
-
-        // Check for components that have tooltips
-        if (component.tooltip) {
-          const texts = extrapolateTranslations(component.tooltip)
-
-          if (texts.length === 0) {
-            texts.push(component.tooltip)
-          }
-
-          texts.forEach(text => {
-            componentLabels = createOrAdd({
-              labels: componentLabels,
-              label: {
-                text,
-                type: 'tooltip',
-                component: component.key,
-                form: form.path,
-                picture: null
-              }
-            })
-          })
-        }
-
-        // Check for components that have values with labels (i.e: radio)
-        if (component.values) {
-          component.values.forEach(value => {
-            if (value.label && value.label !== '') {
-              componentLabels = createOrAdd({
-                labels: componentLabels,
-                label: {
-                  text: value.label,
-                  type: 'value',
-                  component: component.key,
-                  form: form.path,
-                  picture: null
-                }
-              })
-            }
-          })
-        }
-
-        // Check for html text in HTML or Content components
-        if (component.type === 'htmlelement' || component.type === 'content') {
-          const html = (component.content || component.html || '').trim()
-
-          if (html !== '') {
-            const texts = extrapolateTranslations(html)
-            // If no interpolation found check if content is simple text (no html string)
-            if (texts.length === 0 && !/<[a-z][\s\S]*>/i.test(html)) {
-              texts.push(html)
-            }
-            // Create a label for each match (if none, don't anything)
-            texts.forEach(text => {
-              // Omit empty text strings
-              if (text !== '') {
-                componentLabels = createOrAdd({
-                  labels: componentLabels,
-                  label: {
-                    text,
-                    type: 'html',
-                    component: component.key,
-                    form: form.path,
-                    picture: null
-                  }
-                })
-              }
-            })
-          }
-        }
-
-        // Check specificaly for select elements
-        if (component.type === 'select') {
-          if (component.data && component.data.values) {
-            component.data.values.forEach(value => {
-              if (value.label && value.label !== '') {
-                componentLabels = createOrAdd({
-                  labels: componentLabels,
-                  label: {
-                    text: value.label,
-                    type: 'selectValue',
-                    component: component.key,
-                    form: form.path,
-                    picture: null
-                  }
-                })
-              }
-            })
-          }
-        }
-
-        // Check for survey elements
-        if (component.type === 'survey') {
-          if (component.questions) {
-            // Check for every question on the survey
-            component.questions.forEach(q => {
-              componentLabels = createOrAdd({
-                labels: componentLabels,
-                label: {
-                  text: q.label,
-                  type: 'surveyLabel',
-                  component: component.key,
-                  form: form.path,
-                  picture: null
-                }
-              })
-            })
-            // Check every text of the answers
-            component.values.forEach(v => {
-              componentLabels = createOrAdd({
-                labels: componentLabels,
-                label: {
-                  text: v.label,
-                  type: 'surveyValues',
-                  component: component.key,
-                  form: form.path,
-                  picture: null
-                }
-              })
-            })
-          }
-        }
-
-        // Check for Edit Grid component header and footer templates
-        if (component.type === 'editgrid' && component.templates) {
-          const header = extrapolateTranslations(component.templates.header)
-          const footer = extrapolateTranslations(component.templates.footer)
-          const a = []
-          // Create a label for each match (if none, don't anything)
-          a.concat(header, footer).forEach(text => {
-            // Omit empty text strings
-            if (text !== '') {
-              componentLabels = createOrAdd({
-                labels: componentLabels,
-                label: {
-                  text,
-                  type: 'editgrid',
-                  component: component.key,
-                  form: form.path,
-                  picture: null
-                }
-              })
-            }
-          })
-        }
+        componentLabels = processComponent(
+          component,
+          componentLabels,
+          form.path
+        )
       },
       true
     )

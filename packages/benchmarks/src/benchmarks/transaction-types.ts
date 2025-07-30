@@ -1,28 +1,29 @@
 export interface TransactionMix {
-  name: string;
-  weight: number; // Percentage of workload (0-100)
-  complexity: 'simple' | 'moderate' | 'complex';
-  description: string;
+  name: string
+  weight: number // Percentage of workload (0-100)
+  complexity: 'simple' | 'moderate' | 'complex'
+  description: string
 }
 
 export interface ThinkTimeConfig {
-  keyingTime: { min: number; max: number }; // Time to input/prepare data (ms)
-  thinkingTime: { min: number; max: number }; // Time to process results (ms)
-  distribution: 'uniform' | 'exponential' | 'normal';
+  keyingTime: { min: number; max: number } // Time to input/prepare data (ms)
+  thinkingTime: { min: number; max: number } // Time to process results (ms)
+  distribution: 'uniform' | 'exponential' | 'normal'
 }
 
 export interface WorkloadProfile {
-  name: string;
-  description: string;
-  transactions: TransactionMix[];
-  thinkTime: ThinkTimeConfig;
-  targetThroughput?: number; // Target operations per second
+  name: string
+  description: string
+  transactions: TransactionMix[]
+  thinkTime: ThinkTimeConfig
+  targetThroughput?: number // Target operations per second
 }
 
 // Standard OLTP workload based on TPC-C patterns
 export const OLTP_WORKLOAD: WorkloadProfile = {
   name: 'OLTP Standard',
-  description: 'Transaction processing workload with mixed read/write operations',
+  description:
+    'Transaction processing workload with mixed read/write operations',
   transactions: [
     {
       name: 'simpleSelect',
@@ -60,7 +61,7 @@ export const OLTP_WORKLOAD: WorkloadProfile = {
     thinkingTime: { min: 300, max: 1500 },
     distribution: 'exponential'
   }
-};
+}
 
 // E-commerce workload pattern
 export const ECOMMERCE_WORKLOAD: WorkloadProfile = {
@@ -103,7 +104,7 @@ export const ECOMMERCE_WORKLOAD: WorkloadProfile = {
     thinkingTime: { min: 1000, max: 5000 },
     distribution: 'normal'
   }
-};
+}
 
 // Analytics workload pattern
 export const ANALYTICS_WORKLOAD: WorkloadProfile = {
@@ -140,7 +141,7 @@ export const ANALYTICS_WORKLOAD: WorkloadProfile = {
     thinkingTime: { min: 5000, max: 30000 },
     distribution: 'uniform'
   }
-};
+}
 
 // High-frequency trading pattern
 export const HIGH_FREQUENCY_WORKLOAD: WorkloadProfile = {
@@ -172,7 +173,7 @@ export const HIGH_FREQUENCY_WORKLOAD: WorkloadProfile = {
     distribution: 'uniform'
   },
   targetThroughput: 10000 // 10k ops/sec target
-};
+}
 
 // Batch processing pattern
 export const BATCH_WORKLOAD: WorkloadProfile = {
@@ -203,16 +204,16 @@ export const BATCH_WORKLOAD: WorkloadProfile = {
     thinkingTime: { min: 2000, max: 10000 },
     distribution: 'normal'
   }
-};
+}
 
 // Connection pool stress patterns
 export interface ConnectionPoolConfig {
-  name: string;
-  size: number;
-  acquisitionTimeout: number;
-  idleTimeout: number;
-  maxLifetime: number;
-  validationQuery?: string;
+  name: string
+  size: number
+  acquisitionTimeout: number
+  idleTimeout: number
+  maxLifetime: number
+  validationQuery?: string
 }
 
 export const CONNECTION_POOL_CONFIGS: ConnectionPoolConfig[] = [
@@ -251,16 +252,16 @@ export const CONNECTION_POOL_CONFIGS: ConnectionPoolConfig[] = [
     idleTimeout: 30000,
     maxLifetime: 120000
   }
-];
+]
 
 // Data distribution patterns
 export interface DataDistribution {
-  type: 'uniform' | 'hotspot' | 'zipfian' | 'temporal';
+  type: 'uniform' | 'hotspot' | 'zipfian' | 'temporal'
   parameters: {
-    hotspotPercentage?: number; // % of queries hitting hot data
-    skewFactor?: number; // For zipfian distribution (1.0 = highly skewed)
-    temporalWindow?: number; // Hours of recent data to prefer
-  };
+    hotspotPercentage?: number // % of queries hitting hot data
+    skewFactor?: number // For zipfian distribution (1.0 = highly skewed)
+    temporalWindow?: number // Hours of recent data to prefer
+  }
 }
 
 export const DATA_DISTRIBUTIONS: Record<string, DataDistribution> = {
@@ -286,4 +287,4 @@ export const DATA_DISTRIBUTIONS: Record<string, DataDistribution> = {
       temporalWindow: 24 // Prefer last 24 hours
     }
   }
-};
+}

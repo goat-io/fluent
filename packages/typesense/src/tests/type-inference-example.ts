@@ -1,8 +1,12 @@
 // Example demonstrating TypeScript type inference for Typesense
 // npx vitest run ./src/tests/type-inference-example.ts
 
-import { describe, it, expect } from 'vitest'
-import { defineCollection, createSchemaTypedApi, type InferDocumentType } from '../index'
+import { describe, expect, it } from 'vitest'
+import {
+  createSchemaTypedApi,
+  defineCollection,
+  type InferDocumentType
+} from '../index'
 
 describe('Type Inference Example', () => {
   it('should demonstrate proper type inference', () => {
@@ -21,15 +25,15 @@ describe('Type Inference Example', () => {
 
     // Verify the inferred type
     type ProductDoc = InferDocumentType<typeof ProductCollection>
-    
+
     // These should compile without errors
-    const validDoc1: ProductDoc = {
+    const _validDoc1: ProductDoc = {
       title: 'Laptop',
       price: 999.99,
       inStock: true
     }
 
-    const validDoc2: ProductDoc = {
+    const _validDoc2: ProductDoc = {
       title: 'Gaming Laptop',
       description: 'High-performance laptop',
       price: 1999.99,
@@ -47,21 +51,21 @@ describe('Type Inference Example', () => {
     expect(api).toBeDefined()
     expect(api.documents).toBeDefined()
     expect(typeof api.documents.insert).toBe('function')
-    
+
     // The following would be compile errors if uncommented:
     // ❌ Missing required field
     // const invalidDoc1: ProductDoc = {
     //   price: 99.99,
     //   inStock: true
     // }
-    
+
     // ❌ Wrong type for price
     // const invalidDoc2: ProductDoc = {
     //   title: 'Product',
     //   price: '99.99', // should be number
     //   inStock: true
     // }
-    
+
     // ❌ Wrong type for optional field
     // const invalidDoc3: ProductDoc = {
     //   title: 'Product',
@@ -85,7 +89,7 @@ describe('Type Inference Example', () => {
     } as const)
 
     type EventDoc = InferDocumentType<typeof EventCollection>
-    
+
     const validEvent: EventDoc = {
       name: 'Tech Conference',
       timestamp: Date.now(),
@@ -95,7 +99,7 @@ describe('Type Inference Example', () => {
     const validEventWithOptionals: EventDoc = {
       name: 'Meetup',
       timestamp: Date.now(),
-      location: [40.7128, -74.0060],
+      location: [40.7128, -74.006],
       attendees: [10, 20, 30],
       metadata: { organizer: 'John', venue: 'Tech Hub' }
     }

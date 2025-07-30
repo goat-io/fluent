@@ -1,4 +1,4 @@
-import { _noop } from '../types'
+import { noop } from '../types'
 
 /**
  * These levels follow console.* naming,
@@ -48,9 +48,9 @@ export interface CommonLogger {
  * @experimental
  */
 export const commonLoggerNoop: CommonLogger = {
-  log: _noop,
-  warn: _noop,
-  error: _noop
+  log: noop,
+  warn: noop,
+  error: noop
 }
 
 /**
@@ -63,32 +63,31 @@ export function commonLoggerMinLevel(
 ): CommonLogger {
   const level = commonLogLevelNumber[minLevel]
   if (mutate) {
-    if (level > commonLogLevelNumber['log']) {
-      logger.log = _noop
-      if (level > commonLogLevelNumber['warn']) {
-        logger.warn = _noop
-        if (level > commonLogLevelNumber['error']) {
-          logger.error = _noop
+    if (level > commonLogLevelNumber.log) {
+      logger.log = noop
+      if (level > commonLogLevelNumber.warn) {
+        logger.warn = noop
+        if (level > commonLogLevelNumber.error) {
+          logger.error = noop
         }
       }
     }
     return logger
   }
 
-  if (level <= commonLogLevelNumber['log']) {
+  if (level <= commonLogLevelNumber.log) {
     // All levels are kept
     return logger
   }
 
-  if (level > commonLogLevelNumber['error']) {
+  if (level > commonLogLevelNumber.error) {
     // "Log nothing" logger
     return commonLoggerNoop
   }
 
   return {
-    log: _noop, // otherwise it is "log everything" logger (same logger as input)
-    warn:
-      level <= commonLogLevelNumber['warn'] ? logger.warn.bind(logger) : _noop,
+    log: noop, // otherwise it is "log everything" logger (same logger as input)
+    warn: level <= commonLogLevelNumber.warn ? logger.warn.bind(logger) : noop,
     error: logger.error.bind(logger) // otherwise it's "log nothing" logger (same as noopLogger)
   }
 }

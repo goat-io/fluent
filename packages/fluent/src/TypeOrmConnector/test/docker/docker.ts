@@ -1,13 +1,14 @@
 // FROM: https://github.com/ForbesLindesay/atdatabases/blob/master/packages/with-container/src/index.ts
 
-import { connect } from 'net'
+import { connect } from 'node:net'
+
 import spawn = require('cross-spawn')
+
 import { spawnBuffered } from 'modern-spawn'
 
 const detectPortLib = require('detect-port')
-export const detectPort: (
-  defaultPort: number
-) => Promise<number> = detectPortLib.default || detectPortLib
+export const detectPort: (defaultPort: number) => Promise<number> =
+  detectPortLib.default || detectPortLib
 
 export interface Options {
   debug: boolean
@@ -19,7 +20,7 @@ export interface Options {
   connectTimeoutSeconds: number
   environment?: { [key: string]: string }
   command?: string[]
-  cap_add?: 'SYS_NICE' | 'IPC_LOCK'
+  capAdd?: 'SYS_NICE' | 'IPC_LOCK'
   /**
    * By default, we check if the image already exists
    * before pulling it. We only pull if there is no
@@ -56,8 +57,8 @@ export async function imageExists(
     .map(str => {
       try {
         return JSON.parse(str)
-      } catch (ex) {
-        console.log('Unable to parse: ' + str)
+      } catch (_ex) {
+        console.log(`Unable to parse: ${str}`)
         return null
       }
     })
@@ -70,7 +71,7 @@ export async function imageExists(
 export async function pullDockerImage(options: NormalizedOptions | Options) {
   if (
     !options.refreshImage &&
-    /.+\:.+/.test(options.image) &&
+    /.+:.+/.test(options.image) &&
     (await imageExists(options))
   ) {
     console.log(
@@ -79,7 +80,7 @@ export async function pullDockerImage(options: NormalizedOptions | Options) {
     )
     return
   }
-  console.log('Pulling Docker Image ' + options.image)
+  console.log(`Pulling Docker Image ${options.image}`)
   await spawnBuffered('docker', ['pull', options.image], {
     debug: options.debug
   }).getResult()
@@ -143,7 +144,9 @@ export async function waitForDatabaseToStart(options: NormalizedOptions) {
         : testConnection(options)
       ).then(
         isConnected => {
-          if (finished) return
+          if (finished) {
+            return
+          }
           if (isConnected) {
             finished = true
             clearTimeout(timeout)
@@ -185,7 +188,7 @@ export async function killOldContainers(
 }
 
 export default async function startContainer(options: Options) {
-  if (isNaN(options.connectTimeoutSeconds)) {
+  if (Number.isNaN(options.connectTimeoutSeconds)) {
     throw new Error('connectTimeoutSeconds must be a valid integer.')
   }
 
@@ -203,7 +206,7 @@ export default async function startContainer(options: Options) {
     externalPort
   }
 
-  console.log('Starting Docker Container ' + opts.containerName)
+  console.log(`Starting Docker Container ${opts.containerName}`)
   const proc = startDockerContainer(opts)
 
   await waitForDatabaseToStart(opts)

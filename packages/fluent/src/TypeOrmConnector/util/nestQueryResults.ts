@@ -5,7 +5,7 @@ export const nestQueryResults = (
   results: AnyObject[],
   keyToNestedKeyMap: AnyObject
 ): AnyObject[] => {
-  let nestableObject = {}
+  const nestableObject = {}
   let currentLevel = 0
   // For each of the keys that we need to map
   for (const key of Object.keys(keyToNestedKeyMap)) {
@@ -19,7 +19,7 @@ export const nestQueryResults = (
     // We only group by Ids of the current level
     const grouped: AnyObject = Arrays.groupBy(results, r => r[key])
 
-    const resultCount = Object.keys(grouped)?.length || 0
+    const _resultCount = Object.keys(grouped)?.length || 0
 
     // ForEach Id of the grouped results
     for (const [index, k] of Object.keys(grouped).entries()) {
@@ -35,7 +35,9 @@ export const nestQueryResults = (
         nestableObject[`${currentIndex}`] = k
       }
 
-      for (const result of results) {
+      // TODO: Process results when implementation is needed
+      for (const _result of results) {
+        // Implementation pending
       }
     }
 

@@ -18,12 +18,12 @@ export function writableVoid(opt: WritableVoidOptions = {}): Writable {
   return new Writable({
     objectMode: true,
     ...opt,
-    write(chunk, _, cb) {
+    write(_chunk, _, cb) {
       cb()
     },
     final(cb) {
       cb()
       opt.streamDone?.resolve()
-    },
+    }
   })
 }

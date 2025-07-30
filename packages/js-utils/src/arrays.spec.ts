@@ -1,5 +1,5 @@
 // yarn test arrays.spec.ts
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { Arrays, ArraysClass } from './Arrays'
 
 const arrays = new ArraysClass()
@@ -239,7 +239,7 @@ describe('ArraysClass', () => {
 
     it('applies the mapper function with index', () => {
       expect(
-        arrays.groupBy(['a', 'b', 'c'], (item, index) => index % 2)
+        arrays.groupBy(['a', 'b', 'c'], (_item, index) => index % 2)
       ).toEqual({
         '0': ['a', 'c'],
         '1': ['b']
@@ -876,7 +876,7 @@ describe('ArraysClass', () => {
 
   describe('compact method', () => {
     it('should remove falsy values from the array', () => {
-      const array = [0, false, '', null, undefined, NaN]
+      const array = [0, false, '', null, undefined, Number.NaN]
       const result = Arrays.compact(array)
       expect(result).toEqual([])
     })
@@ -894,19 +894,31 @@ describe('ArraysClass', () => {
     })
 
     it('should remove falsy values and keep truthy values in the array', () => {
-      const array = [0, false, '', null, undefined, NaN, 1, true, 'a', {}, []]
+      const array = [
+        0,
+        false,
+        '',
+        null,
+        undefined,
+        Number.NaN,
+        1,
+        true,
+        'a',
+        {},
+        []
+      ]
       const result = Arrays.compact(array)
       expect(result).toEqual([1, true, 'a', {}, []])
     })
 
     it('should remove falsy values including null and undefined from the array', () => {
-      const array = [null, undefined, 0, false, '', NaN]
+      const array = [null, undefined, 0, false, '', Number.NaN]
       const result = Arrays.compact(array)
       expect(result).toEqual([])
     })
 
     it('should remove falsy values including empty strings and zero from the array', () => {
-      const array = ['', 0, null, undefined, NaN]
+      const array = ['', 0, null, undefined, Number.NaN]
       const result = Arrays.compact(array)
       expect(result).toEqual([])
     })
@@ -987,7 +999,7 @@ describe('ArraysClass', () => {
     })
 
     it('should return false for an array containing falsy values', () => {
-      const array = [0, false, '', null, undefined, NaN]
+      const array = [0, false, '', null, undefined, Number.NaN]
       const result = Arrays.isEmpty(array)
       expect(result).toBe(false)
     })

@@ -1,12 +1,12 @@
 import { CarsEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/car/car.entity'
 import { UsersEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/user/user.entity'
 import {
-  userInputSchema,
   UsersDtoIn,
-  UsersDtoOut
+  UsersDtoOut,
+  userInputSchema
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/user/user.schema'
-import { CarsRepository } from './car.repository'
 import { FirebaseConnector } from '../FirebaseConnector'
+import { CarsRepository } from './car.repository'
 import { RoleRepository } from './roles.repository'
 import { RoleUsersRepository } from './roles_user.repository'
 

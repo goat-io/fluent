@@ -1,5 +1,8 @@
-import type { TypesenseOverrideResponse, TypesenseCollectionOptions } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseOverrideResponse
+} from '../../typesense.model'
 
 export async function getOverride(
   ctx: TypesenseContext,

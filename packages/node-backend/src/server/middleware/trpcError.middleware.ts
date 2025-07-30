@@ -8,10 +8,10 @@ const reportOnly5xx = false
 
 export function trpcErrorMiddleware({
   error,
-  sentryService,
+  sentryService
 }: { sentryService: SentryService } & any): void {
   const originalError = Errors.anyToError(error, Error, {
-    stringifyFn: Inspect.anyStringifyFn,
+    stringifyFn: Inspect.anyStringifyFn
   })
 
   let errorId: string | undefined
@@ -35,11 +35,17 @@ function shouldReportToSentry(error: Error): boolean {
   const e = error as HttpError
 
   // By default - report
-  if (!e.data) return true
+  if (!e.data) {
+    return true
+  }
 
   // If `report` is set - do as it says
-  if (e.data.report === true) return true
-  if (e.data.report === false) return false
+  if (e.data.report === true) {
+    return true
+  }
+  if (e.data.report === false) {
+    return false
+  }
 
   // Report if http 5xx, otherwise not
   // If no httpCode - report

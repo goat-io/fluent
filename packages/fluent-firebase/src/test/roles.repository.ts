@@ -1,6 +1,6 @@
 import {
-  RoleInputSchema,
-  RoleDtoInput
+  RoleDtoInput,
+  RoleInputSchema
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/role.schema'
 import { RoleEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles.entity'
 import { FirebaseConnector } from '../FirebaseConnector'

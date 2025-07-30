@@ -91,12 +91,10 @@ export const AsyncMemo =
       this: typeof target,
       ...args: any[]
     ): Promise<any> {
-      const ctx = this
-
       const cacheKey = cacheKeyFn(args)
 
-      if (!cache.has(ctx)) {
-        cache.set(ctx, cacheFactory())
+      if (!cache.has(this)) {
+        cache.set(this, cacheFactory())
         // here, no need to check the cache. It's definitely a miss, because the cacheLayers is just created
         // UPD: no! AsyncMemo supports "persistent caches" (e.g Database-backed cache)
       }
@@ -104,7 +102,7 @@ export const AsyncMemo =
       let value: any
 
       try {
-        value = await cache.get(ctx)!.get(cacheKey)
+        value = await cache.get(this)!.get(cacheKey)
       } catch (err) {
         // log error, but don't throw, treat it as a "miss"
         logger.error(err)
@@ -114,7 +112,7 @@ export const AsyncMemo =
         // hit!
         if (logHit) {
           logger.log(
-            `${getMethodSignature(ctx, keyStr)}(${getArgsSignature(
+            `${getMethodSignature(this, keyStr)}(${getArgsSignature(
               args,
               logArgs
             )}) @_AsyncMemo hit`
@@ -132,13 +130,13 @@ export const AsyncMemo =
       const started = Date.now()
 
       try {
-        value = await originalFn.apply(ctx, args)
+        value = await originalFn.apply(this, args)
 
         // Save the value in the Cache, without awaiting it
         // This is to support both sync and async functions
-        void (async () => {
+        ;(async () => {
           try {
-            await cache.get(ctx)!.set(cacheKey, value)
+            await cache.get(this)!.set(cacheKey, value)
           } catch (err) {
             // log and ignore the error
             logger.error(err)
@@ -150,9 +148,9 @@ export const AsyncMemo =
         if (cacheRejections) {
           // We put it to cache as raw Error, not Promise.reject(err)
           // This is to support both sync and async functions
-          void (async () => {
+          ;(async () => {
             try {
-              await cache.get(ctx)!.set(cacheKey, err)
+              await cache.get(this)!.set(cacheKey, err)
             } catch (err) {
               // log and ignore the error
               logger.error(err)
@@ -164,7 +162,7 @@ export const AsyncMemo =
       } finally {
         if (logMiss) {
           logger.log(
-            `${getMethodSignature(ctx, keyStr)}(${getArgsSignature(
+            `${getMethodSignature(this, keyStr)}(${getArgsSignature(
               args,
               logArgs
             )}) @_AsyncMemo miss (${Time.since(started)})`

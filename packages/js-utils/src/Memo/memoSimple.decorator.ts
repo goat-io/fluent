@@ -49,7 +49,6 @@ export const memoSimple =
     const methodSignature = getTargetMethodSignature(target, keyStr)
 
     descriptor.value = function (this: typeof target, ...args: any[]): any {
-      const ctx = this
       const cacheKey = jsonMemoSerializer(args)
 
       if (cache.has(cacheKey)) {
@@ -63,7 +62,7 @@ export const memoSimple =
 
       const d = Date.now()
 
-      const res: any = originalFn.apply(ctx, args)
+      const res: any = originalFn.apply(this, args)
 
       if (logMiss) {
         logger.log(

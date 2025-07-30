@@ -1,5 +1,5 @@
 export interface ExtensionsMetadata {
-  target: Function
+  target: new (...args: any[]) => any
   value: Record<string, unknown>
 }
 

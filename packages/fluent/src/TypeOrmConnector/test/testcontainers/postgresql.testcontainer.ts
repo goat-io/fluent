@@ -1,4 +1,7 @@
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql'
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer
+} from '@testcontainers/postgresql'
 import { DataSource } from 'typeorm'
 import { dbEntities } from '../dbEntities'
 

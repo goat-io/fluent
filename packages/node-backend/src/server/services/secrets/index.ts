@@ -1,1 +1,6 @@
-export { SecretService, SecretServiceConfig, SecretProvider, VaultConfig } from './secret.service'
+export {
+  SecretProvider,
+  SecretService,
+  SecretServiceConfig,
+  VaultConfig
+} from './secret.service'

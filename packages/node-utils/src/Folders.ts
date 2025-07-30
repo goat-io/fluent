@@ -1,11 +1,10 @@
-import { existsSync, mkdirSync } from 'fs'
-import { dirname } from 'path'
-import * as crypto from 'crypto'
-import * as fs from 'fs'
-import * as path from 'path'
+import * as crypto from 'node:crypto'
+import * as fs from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
+import { readdir, stat } from 'node:fs/promises'
+import * as path from 'node:path'
+import { dirname, join } from 'node:path'
 import { Promises } from '@goatlab/js-utils'
-import { readdir, stat } from 'fs/promises'
-import { join } from 'path'
 
 class FoldersClass {
   /**
@@ -13,16 +12,18 @@ class FoldersClass {
    * @param dir - The directory path to remove
    */
   removeSync = (dir: string) => {
-    if (!fs.existsSync(dir)) return
-    
+    if (!fs.existsSync(dir)) {
+      return
+    }
+
     const stack = [dir]
     const toRemove: string[] = []
-    
+
     // Build list of all files and directories
     while (stack.length > 0) {
       const currentDir = stack.pop()!
       toRemove.push(currentDir)
-      
+
       for (const entry of fs.readdirSync(currentDir)) {
         const fullPath = path.join(currentDir, entry)
         const stat = fs.lstatSync(fullPath)
@@ -33,7 +34,7 @@ class FoldersClass {
         }
       }
     }
-    
+
     // Remove directories in reverse order (deepest first)
     for (let i = toRemove.length - 1; i >= 0; i--) {
       fs.rmdirSync(toRemove[i]!)
@@ -67,11 +68,13 @@ class FoldersClass {
    */
   hash(directory: string): string {
     const hash = crypto.createHash('sha256')
-    const stack: Array<[string, string[]]> = [[directory, fs.readdirSync(directory).sort()]]
+    const stack: [string, string[]][] = [
+      [directory, fs.readdirSync(directory).sort()]
+    ]
 
     while (stack.length > 0) {
       const [currentDir, entries] = stack.pop()!
-      
+
       for (let i = 0; i < entries.length; i++) {
         const entry = entries[i]!
         const fullPath = path.join(currentDir, entry)

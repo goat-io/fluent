@@ -69,7 +69,7 @@ export class Upload {
       case Providers.Google:
         storage = Google(config)
         break
-      case Providers.Local:
+      case Providers.Local: {
         const folderPath = `${__dirname}/${config.folder}`
 
         if (!existsSync(folderPath)) {
@@ -77,19 +77,23 @@ export class Upload {
         }
 
         storage = multer.diskStorage({
-          destination(req, file, cb) {
+          destination(_req, _file, cb) {
             cb(null, folderPath)
           },
-          filename(req, file, cb) {
+          filename(_req, file, cb) {
             cb(null, config.fileName + extname(file.originalname))
           }
         })
         break
+      }
       default:
         storage = multer.memoryStorage()
         break
     }
 
-    return multer({ storage, limits }).array(key, 1) as unknown as RequestHandler
+    return multer({ storage, limits }).array(
+      key,
+      1
+    ) as unknown as RequestHandler
   }
 }

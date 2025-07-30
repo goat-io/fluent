@@ -1,5 +1,5 @@
-import { parse, SupportedFrameworks } from './parse'
 import { BasicForms } from '../validator/Logic/tests/Forms/BasicRelationsTest'
+import { parse, SupportedFrameworks } from './parse'
 
 test('Should parse a single FormioForm', async () => {
   const countries = BasicForms.find(f => f.path === 'countries')

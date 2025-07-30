@@ -1,16 +1,16 @@
-import { Objects, Ids, Collection } from '@goatlab/js-utils'
+import { Collection, Objects } from '@goatlab/js-utils'
+import { clearEmpties } from './TypeOrmConnector/util/clearEmpties'
 import {
+  AnyObject,
   FindByIdFilter,
-  FluentHasManyParams,
-  FluentBelongsToParams,
   FluentBelongsToManyParams,
+  FluentBelongsToParams,
+  FluentHasManyParams,
   FluentQuery,
   Primitives,
   QueryFieldSelector,
-  QueryOutput,
-  AnyObject
+  QueryOutput
 } from './types'
-import { clearEmpties } from './TypeOrmConnector/util/clearEmpties'
 
 export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected outputKeys: string[]
@@ -46,7 +46,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    *
    * @param data
    */
-  public async insertMany(data: InputDTO[]): Promise<OutputDTO[]> {
+  public async insertMany(_data: InputDTO[]): Promise<OutputDTO[]> {
     throw new Error('get() method not implemented')
   }
 
@@ -55,7 +55,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param id
    * @param data
    */
-  public async updateById(id: string, data: InputDTO): Promise<OutputDTO> {
+  public async updateById(_id: string, _data: InputDTO): Promise<OutputDTO> {
     throw new Error('get() method not implemented')
   }
 
@@ -64,7 +64,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param query
    */
   public async findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    _query?: T
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     throw new Error('findMany() method not implemented')
   }
@@ -98,9 +98,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     })
 
     for (let i = 0; i < found.length; i++) {
-      const d = found[i]!
+      const d = found[i]! as any
       if (this.isMongoDB) {
-        d['id'] = d['id'].toString()
+        // Handle both _id and id cases
+        if (d._id) {
+          d.id = d._id.toString()
+          delete d._id
+        } else if (d.id && typeof d.id !== 'string') {
+          d.id = d.id.toString()
+        }
       }
       clearEmpties(Objects.deleteNulls(d))
     }
@@ -122,9 +128,15 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const found = await this.findMany({ ...query, limit: 1 })
 
     for (let i = 0; i < found.length; i++) {
-      const d = found[i]!
+      const d = found[i]! as any
       if (this.isMongoDB) {
-        d['id'] = d['id'].toString()
+        // Handle both _id and id cases
+        if (d._id) {
+          d.id = d._id.toString()
+          delete d._id
+        } else if (d.id && typeof d.id !== 'string') {
+          d.id = d.id.toString()
+        }
       }
       clearEmpties(Objects.deleteNulls(d))
     }
@@ -151,7 +163,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       select: q?.select as any,
       include: q?.include as any
     }
-    let data = await this.findMany(query)
+    const data = await this.findMany(query)
 
     // The object should already be validated by FindMany
     return data as unknown as QueryOutput<T, ModelDTO>[]
@@ -202,9 +214,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     const result: Primitives[] = []
     const pathStr = String(paths[0])
-    
+
     for (let i = 0; i < data.length; i++) {
-      const extracted = Objects.getFromPath((data as any)[i], pathStr, undefined)
+      const extracted = Objects.getFromPath(
+        (data as any)[i],
+        pathStr,
+        undefined
+      )
       if (typeof extracted.value !== 'undefined') {
         result.push(extracted.value)
       }
@@ -243,8 +259,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     } as unknown as FluentQuery<ModelDTO>)
 
     // "Many" side of relation foreignKey
-    let foreignKeyName =
-      this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]
+    const foreignKeyName =
+      this.relatedQuery!.repository.modelRelations[this.relatedQuery.key]
         .inverseSidePropertyPath
 
     if (!foreignKeyName) {
@@ -252,7 +268,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         'The relationship was not properly defined. Please check that your Repository and Model relations have the same keys'
       )
     }
-  
+
     const relatedData = parentData.map(r => ({
       [foreignKeyName]: r.id,
       ...data
@@ -268,7 +284,6 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const insertQueries: any[] = []
 
     for (const related of relatedData) {
-
       const exists = existingData.find((d: AnyObject) => {
         // We need to manually define the id field
         const p = d as unknown as { id: string } & OutputDTO
@@ -310,11 +325,11 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     } as unknown as FluentQuery<ModelDTO>[])
 
     const foreignKeyName =
-      this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]
+      this.relatedQuery!.repository.modelRelations[this.relatedQuery.key]
         .joinColumns[0].propertyPath
 
     const inverseKeyName =
-      this.relatedQuery!['repository']['modelRelations'][this.relatedQuery.key]
+      this.relatedQuery!.repository.modelRelations[this.relatedQuery.key]
         .inverseJoinColumns[0].propertyPath
 
     if (!foreignKeyName || !inverseKeyName) {
@@ -341,15 +356,19 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     r: T
   ): InstanceType<T['repository']> {
     // Handle both constructor and factory function patterns
-    const newRepo = (typeof r.repository === 'function' && r.repository.prototype && r.repository.prototype.constructor === r.repository)
-      ? new r.repository() as any
-      : (r.repository as any)() as any
+    const newRepo =
+      typeof r.repository === 'function' &&
+      r.repository.prototype &&
+      r.repository.prototype.constructor === r.repository
+        ? (new r.repository() as any)
+        : ((r.repository as any)() as any)
 
-    const calleeName = new Error('dummy')
-      .stack?.split('\n')[2] || ''
-      // " at functionName ( ..." => "functionName"
-      .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
-      .split('.')[1]
+    const calleeName =
+      new Error('dummy').stack?.split('\n')[2] ||
+      ''
+        // " at functionName ( ..." => "functionName"
+        .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
+        .split('.')[1]
 
     if (this.relatedQuery) {
       newRepo.setRelatedQuery({
@@ -387,21 +406,28 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     r: T
   ): InstanceType<T['repository']> {
     // Handle both constructor and factory function patterns
-    const newRepo = (typeof r.repository === 'function' && r.repository.prototype && r.repository.prototype.constructor === r.repository)
-      ? new r.repository() as any
-      : (r.repository as any)() as any
+    const newRepo =
+      typeof r.repository === 'function' &&
+      r.repository.prototype &&
+      r.repository.prototype.constructor === r.repository
+        ? (new r.repository() as any)
+        : ((r.repository as any)() as any)
 
     // Hacky way to get the name of the callee function
-    const relationName = new Error('dummy')
-      .stack?.split('\n')[2] || ''
-      // " at functionName ( ..." => "functionName"
-      .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
-      .split('.')[1]
+    const relationName =
+      new Error('dummy').stack?.split('\n')[2] ||
+      ''
+        // " at functionName ( ..." => "functionName"
+        .replace(/^\s+at\s+(.+?)\s.+/g, '$1')
+        .split('.')[1]
 
     // Handle both constructor and factory function patterns for pivot
-    const pivot = (typeof r.pivot === 'function' && r.pivot.prototype && r.pivot.prototype.constructor === r.pivot)
-      ? new r.pivot() as any
-      : (r.pivot as any)() as any
+    const pivot =
+      typeof r.pivot === 'function' &&
+      r.pivot.prototype &&
+      r.pivot.prototype.constructor === r.pivot
+        ? (new r.pivot() as any)
+        : ((r.pivot as any)() as any)
 
     pivot.setRelatedQuery({
       ...this.relatedQuery,
@@ -444,7 +470,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     select: FluentQuery<ModelDTO>['select'],
     data: ModelDTO[]
   ): ModelDTO[] {
-    const _data = Array.isArray(data) ? [...data] : [data]
+    const Data = Array.isArray(data) ? [...data] : [data]
 
     if (!select) {
       return data
@@ -462,7 +488,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         ? [...this.outputKeys]
         : selectedAttributes
 
-    return _data.map(element => {
+    return Data.map(element => {
       const newElement = {}
 
       iterationArray.forEach(attribute => {
@@ -472,13 +498,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
         const extract = Objects.getFromPath(element, attribute, undefined)
 
-        let value = Objects.get(() => extract.value, undefined)
+        const value = Objects.get(() => extract.value, undefined)
 
         if (typeof value !== 'undefined' && value !== null) {
           if (
             typeof value === 'object' &&
-            value.hasOwnProperty('data') &&
-            value.data.hasOwnProperty('name')
+            Object.hasOwn(value, 'data') &&
+            Object.hasOwn(value.data, 'name')
           ) {
             newElement[extract.label] = value.data.name
           } else {

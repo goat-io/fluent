@@ -1,5 +1,9 @@
-import type { TypesenseOverride, TypesenseOverrideResponse, TypesenseCollectionOptions } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseOverride,
+  TypesenseOverrideResponse
+} from '../../typesense.model'
 
 export async function upsertOverride(
   ctx: TypesenseContext,

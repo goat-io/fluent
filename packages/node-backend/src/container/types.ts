@@ -37,7 +37,9 @@ export interface MapInterface<T> {
  */
 export type Factory<T, P extends readonly unknown[] = []> =
   | ((...params: P) => T)
-  | (new (...params: P) => T)
+  | (new (
+      ...params: P
+    ) => T)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🏗️ STRUCTURE TYPES
@@ -58,8 +60,8 @@ export type PreloadStructure<D> = {
   [K in keyof D]: D[K] extends Factory<infer T, infer P>
     ? (id: string, ...params: P) => T
     : D[K] extends Record<string, unknown>
-    ? PreloadStructure<D[K]>
-    : never
+      ? PreloadStructure<D[K]>
+      : never
 }
 
 /**
@@ -76,8 +78,8 @@ export type InstancesStructure<D> = {
   [K in keyof D]: D[K] extends Factory<infer T, any>
     ? T
     : D[K] extends Record<string, unknown>
-    ? InstancesStructure<D[K]>
-    : never
+      ? InstancesStructure<D[K]>
+      : never
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -151,8 +153,8 @@ type GetServiceType<
     ? GetServiceType<T[K], Rest>
     : never
   : Path extends keyof T
-  ? T[Path]
-  : never
+    ? T[Path]
+    : never
 
 /**
  * Get all possible service paths as string literal union types
@@ -177,8 +179,8 @@ type GetAllPaths<T, Prefix extends string = ''> = {
           Prefix extends '' ? K & string : `${Prefix}.${K & string}`
         >
     : Prefix extends ''
-    ? K
-    : `${Prefix}.${K & string}`
+      ? K
+      : `${Prefix}.${K & string}`
 }[keyof T]
 
 /**
@@ -214,10 +216,10 @@ type GetFactoryParams<
     ? GetFactoryParams<T[K], Rest>
     : never
   : Path extends keyof T
-  ? T[Path] extends Factory<any, infer P>
-    ? P
+    ? T[Path] extends Factory<any, infer P>
+      ? P
+      : never
     : never
-  : never
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BATCH OPERATION TYPES

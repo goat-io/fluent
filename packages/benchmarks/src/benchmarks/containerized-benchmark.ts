@@ -1,27 +1,37 @@
 #!/usr/bin/env node
 
-import { createBenchmarkRunner } from '../core/BenchmarkRunner'
-import { EnhancedBenchmarkReporter } from '../core/EnhancedReporter'
-import { BenchmarkResult } from '../types'
-import { MySqlContainer } from '@testcontainers/mysql'
-import { PrismaClient } from '@prisma/client'
-import mysql from 'mysql2/promise'
-import chalk from 'chalk'
-import { Kysely, MysqlDialect, sql, MysqlAdapter, MysqlIntrospector, MysqlQueryCompiler } from 'kysely'
-import { createPool } from 'mysql2'
-import { drizzle } from 'drizzle-orm/mysql2'
-import { eq, gt, and, sql as drizzleSql } from 'drizzle-orm'
-import * as schema from '../database/drizzle-schema'
-import kyselyExtension from 'prisma-extension-kysely'
-import { DataSource } from 'typeorm'
-import { Sequelize, DataTypes, Model } from 'sequelize'
-import { MikroORM, EntityManager } from '@mikro-orm/core'
+import { MikroORM } from '@mikro-orm/core'
 import { MySqlDriver } from '@mikro-orm/mysql'
+import { PrismaClient } from '@prisma/client'
+import { MySqlContainer } from '@testcontainers/mysql'
+import chalk from 'chalk'
+import { and, sql as drizzleSql, eq, gt } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/mysql2'
+import {
+  Kysely,
+  MysqlAdapter,
+  MysqlDialect,
+  MysqlIntrospector,
+  MysqlQueryCompiler,
+  sql
+} from 'kysely'
+import { createPool } from 'mysql2'
+import mysql from 'mysql2/promise'
+import kyselyExtension from 'prisma-extension-kysely'
+import { Sequelize } from 'sequelize'
+import { DataSource } from 'typeorm'
+import { EnhancedBenchmarkReporter } from '../core/EnhancedReporter'
+import * as schema from '../database/drizzle-schema'
+import { BenchmarkResult } from '../types'
 import 'reflect-metadata'
-import { typeOrmImplementations, sequelizeImplementations, mikroOrmImplementations } from './new-orm-implementations'
+import knex, { Knex } from 'knex'
 import { knexImplementations } from './knex-implementations'
 import { mysql2PromiseImplementations } from './mysql2-promise-implementations'
-import knex, { Knex } from 'knex'
+import {
+  mikroOrmImplementations,
+  sequelizeImplementations,
+  typeOrmImplementations
+} from './new-orm-implementations'
 
 // Kysely database interface
 interface Database {
@@ -80,11 +90,12 @@ interface Database {
 }
 
 // Global configuration
-const BENCHMARK_DURATION = process.env.BENCHMARK_DURATION ? parseInt(process.env.BENCHMARK_DURATION) * 1000 : 5000 // Default 5 seconds per test
+const BENCHMARK_DURATION = process.env.BENCHMARK_DURATION
+  ? Number.parseInt(process.env.BENCHMARK_DURATION) * 1000
+  : 5000 // Default 5 seconds per test
 const WARMUP_DURATION = 1000 // 1 second warmup
 
 export class ContainerizedBenchmarkRunner {
-  private runner = createBenchmarkRunner()
   private reporter = new EnhancedBenchmarkReporter()
   private mysqlContainer: any = null
   private mysql2Pool: mysql.Pool | null = null
@@ -97,11 +108,12 @@ export class ContainerizedBenchmarkRunner {
   private typeormDataSource: DataSource | null = null
   private sequelize: Sequelize | null = null
   private mikroOrm: MikroORM<MySqlDriver> | null = null
-  private insertCounter = 0
 
   async runBenchmarks(): Promise<void> {
-    console.log(chalk.bold.blue('🚀 Starting Database Driver Benchmark Suite\n'))
-    
+    console.log(
+      chalk.bold.blue('🚀 Starting Database Driver Benchmark Suite\n')
+    )
+
     this.reporter.printEnvironmentInfo()
 
     try {
@@ -117,7 +129,7 @@ export class ContainerizedBenchmarkRunner {
 
       // Override environment for container
       process.env.DATABASE_URL = `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db`
-      
+
       console.log(chalk.green('✅ MySQL container started successfully'))
       console.log(chalk.grey(`📊 Connection: ${process.env.DATABASE_URL}`))
 
@@ -142,11 +154,10 @@ export class ContainerizedBenchmarkRunner {
           node: process.version,
           platform: process.platform,
           arch: process.arch,
-          cpus: require('os').cpus().length,
-          memory: require('os').totalmem(),
-        },
+          cpus: require('node:os').cpus().length,
+          memory: require('node:os').totalmem()
+        }
       })
-
     } catch (error) {
       console.error(chalk.red('❌ Benchmark failed:'), error)
       process.exit(1)
@@ -166,7 +177,7 @@ export class ContainerizedBenchmarkRunner {
         namedPlaceholders: true,
         connectionLimit: 10, // Same as other drivers
         waitForConnections: true,
-        queueLimit: 0,
+        queueLimit: 0
       })
     }
     return this.mysql2Pool
@@ -184,7 +195,7 @@ export class ContainerizedBenchmarkRunner {
         connectionLimit: 10,
         waitForConnections: true,
         queueLimit: 0,
-        Promise: Promise, // Use native Promise
+        Promise: Promise // Use native Promise
       })
     }
     return this.mysql2PromisePool
@@ -199,12 +210,12 @@ export class ContainerizedBenchmarkRunner {
           port: this.mysqlContainer.getMappedPort(3306),
           user: 'benchmark_user',
           password: 'benchmark_pass',
-          database: 'benchmark_db',
+          database: 'benchmark_db'
         },
         pool: {
           min: 2,
-          max: 10,
-        },
+          max: 10
+        }
       })
     }
     return this.knex
@@ -213,7 +224,7 @@ export class ContainerizedBenchmarkRunner {
   private async getPrismaClient(): Promise<PrismaClient> {
     if (!this.prismaClient) {
       this.prismaClient = new PrismaClient({
-        log: ['error'],
+        log: ['error']
       })
       await this.prismaClient.$connect()
     }
@@ -229,18 +240,20 @@ export class ContainerizedBenchmarkRunner {
           user: 'benchmark_user',
           password: 'benchmark_pass',
           database: 'benchmark_db',
-          connectionLimit: 10,
+          connectionLimit: 10
         })
       })
-      
+
       this.kyselyDb = new Kysely<Database>({
-        dialect,
+        dialect
       })
     }
     return this.kyselyDb
   }
 
-  private async getDrizzleDb(): Promise<ReturnType<typeof drizzle<typeof schema>>> {
+  private async getDrizzleDb(): Promise<
+    ReturnType<typeof drizzle<typeof schema>>
+  > {
     if (!this.drizzleDb) {
       const pool = createPool({
         host: this.mysqlContainer.getHost(),
@@ -248,9 +261,9 @@ export class ContainerizedBenchmarkRunner {
         user: 'benchmark_user',
         password: 'benchmark_pass',
         database: 'benchmark_db',
-        connectionLimit: 10,
+        connectionLimit: 10
       })
-      
+
       this.drizzleDb = drizzle(pool, { schema, mode: 'default' })
     }
     return this.drizzleDb
@@ -259,23 +272,23 @@ export class ContainerizedBenchmarkRunner {
   private async getPrismaKyselyClient(): Promise<any> {
     if (!this.prismaKyselyClient) {
       const basePrisma = new PrismaClient({
-        log: ['error'],
+        log: ['error']
       })
-      
+
       this.prismaKyselyClient = basePrisma.$extends(
         kyselyExtension({
-          kysely: (driver) =>
+          kysely: driver =>
             new Kysely<Database>({
               dialect: {
                 createDriver: () => driver,
                 createAdapter: () => new MysqlAdapter(),
-                createIntrospector: (db) => new MysqlIntrospector(db),
-                createQueryCompiler: () => new MysqlQueryCompiler(),
-              },
-            }),
+                createIntrospector: db => new MysqlIntrospector(db),
+                createQueryCompiler: () => new MysqlQueryCompiler()
+              }
+            })
         })
       )
-      
+
       await this.prismaKyselyClient.$connect()
     }
     return this.prismaKyselyClient
@@ -283,8 +296,9 @@ export class ContainerizedBenchmarkRunner {
 
   private async getTypeOrmDataSource(): Promise<DataSource> {
     if (!this.typeormDataSource) {
-      const { User, Product, Category, Order, OrderItem, Review } = await import('../database/typeorm-entities')
-      
+      const { User, Product, Category, Order, OrderItem, Review } =
+        await import('../database/typeorm-entities')
+
       this.typeormDataSource = new DataSource({
         type: 'mysql',
         host: this.mysqlContainer.getHost(),
@@ -295,9 +309,9 @@ export class ContainerizedBenchmarkRunner {
         entities: [User, Product, Category, Order, OrderItem, Review],
         synchronize: false,
         logging: false,
-        poolSize: 10,
+        poolSize: 10
       })
-      
+
       await this.typeormDataSource.initialize()
     }
     return this.typeormDataSource
@@ -320,10 +334,12 @@ export class ContainerizedBenchmarkRunner {
           idle: 10000
         }
       })
-      
-      const { initSequelizeModels } = await import('../database/sequelize-models')
+
+      const { initSequelizeModels } = await import(
+        '../database/sequelize-models'
+      )
       initSequelizeModels(this.sequelize)
-      
+
       await this.sequelize.authenticate()
     }
     return this.sequelize
@@ -331,9 +347,10 @@ export class ContainerizedBenchmarkRunner {
 
   private async getMikroOrm(): Promise<MikroORM<MySqlDriver>> {
     if (!this.mikroOrm) {
-      const { User, Product, Category, Order, OrderItem, Review } = await import('../database/mikro-orm-entities-fixed')
+      const { User, Product, Category, Order, OrderItem, Review } =
+        await import('../database/mikro-orm-entities-fixed')
       const { defineConfig } = await import('@mikro-orm/mysql')
-      
+
       const config = defineConfig({
         entities: [User, Product, Category, Order, OrderItem, Review],
         dbName: 'benchmark_db',
@@ -347,10 +364,10 @@ export class ContainerizedBenchmarkRunner {
         },
         debug: false,
         discovery: {
-          disableDynamicFileAccess: true,
-        },
+          disableDynamicFileAccess: true
+        }
       })
-      
+
       this.mikroOrm = await MikroORM.init<MySqlDriver>(config)
     }
     return this.mikroOrm
@@ -358,7 +375,7 @@ export class ContainerizedBenchmarkRunner {
 
   private async setupSchema(): Promise<void> {
     const conn = await this.getMysql2Connection()
-    
+
     // Create tables
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -470,7 +487,7 @@ export class ContainerizedBenchmarkRunner {
 
   private async seedMinimalData(): Promise<void> {
     const conn = await this.getMysql2Connection()
-    
+
     // Add some categories
     await conn.execute(`
       INSERT IGNORE INTO categories (id, name, description) VALUES
@@ -493,10 +510,13 @@ export class ContainerizedBenchmarkRunner {
     }
 
     const userPlaceholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    await conn.execute(`
+    await conn.execute(
+      `
       INSERT IGNORE INTO users (email, first_name, last_name, status, age, country) 
       VALUES ${userPlaceholders}
-    `, users.flat())
+    `,
+      users.flat()
+    )
 
     // Add some products
     const products = []
@@ -511,11 +531,16 @@ export class ContainerizedBenchmarkRunner {
       ])
     }
 
-    const productPlaceholders = products.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    await conn.execute(`
+    const productPlaceholders = products
+      .map(() => '(?, ?, ?, ?, ?, ?)')
+      .join(', ')
+    await conn.execute(
+      `
       INSERT IGNORE INTO products (name, description, price, category_id, stock_quantity, is_active) 
       VALUES ${productPlaceholders}
-    `, products.flat())
+    `,
+      products.flat()
+    )
 
     // Add some orders
     const orders = []
@@ -529,10 +554,13 @@ export class ContainerizedBenchmarkRunner {
     }
 
     const orderPlaceholders = orders.map(() => '(?, ?, ?, ?)').join(', ')
-    await conn.execute(`
+    await conn.execute(
+      `
       INSERT IGNORE INTO orders (user_id, status, total_amount, shipping_address) 
       VALUES ${orderPlaceholders}
-    `, orders.flat())
+    `,
+      orders.flat()
+    )
   }
 
   private async runTimedBenchmark(
@@ -544,13 +572,13 @@ export class ContainerizedBenchmarkRunner {
     const endTime = startTime + BENCHMARK_DURATION
     let iterations = 0
     const latencies: number[] = []
-    
+
     // Warmup phase
     const warmupEnd = Date.now() + WARMUP_DURATION
     while (Date.now() < warmupEnd) {
       await fn()
     }
-    
+
     // Run benchmark for specified duration
     while (Date.now() < endTime) {
       const iterStart = performance.now()
@@ -559,15 +587,16 @@ export class ContainerizedBenchmarkRunner {
       latencies.push(iterEnd - iterStart)
       iterations++
     }
-    
+
     const totalTime = latencies.reduce((a, b) => a + b, 0)
     const averageTime = totalTime / iterations
     const sortedLatencies = latencies.sort((a, b) => a - b)
     const minTime = sortedLatencies[0]
     const maxTime = sortedLatencies[sortedLatencies.length - 1]
-    const p95Latency = sortedLatencies[Math.floor(sortedLatencies.length * 0.95)]
+    const p95Latency =
+      sortedLatencies[Math.floor(sortedLatencies.length * 0.95)]
     const operationsPerSecond = 1000 / averageTime
-    
+
     return {
       name,
       description,
@@ -591,7 +620,7 @@ export class ContainerizedBenchmarkRunner {
 
   private async runAllScenarios(): Promise<BenchmarkResult[]> {
     const results: BenchmarkResult[] = []
-    
+
     const scenarios = [
       {
         name: 'Simple SELECT',
@@ -622,7 +651,11 @@ export class ContainerizedBenchmarkRunner {
         },
         prismaKysely: async () => {
           const client = await this.getPrismaKyselyClient()
-          await client.$kysely.selectFrom('users').selectAll().limit(50).execute()
+          await client.$kysely
+            .selectFrom('users')
+            .selectAll()
+            .limit(50)
+            .execute()
         },
         typeorm: async () => {
           const dataSource = await this.getTypeOrmDataSource()
@@ -630,7 +663,7 @@ export class ContainerizedBenchmarkRunner {
           await dataSource.getRepository(User).find({ take: 50 })
         },
         sequelize: async () => {
-          const sequelize = await this.getSequelize()
+          const _sequelize = await this.getSequelize()
           const { User } = await import('../database/sequelize-models')
           await User.findAll({ limit: 50 })
         },
@@ -639,14 +672,17 @@ export class ContainerizedBenchmarkRunner {
           const { User } = await import('../database/mikro-orm-entities-fixed')
           const em = orm.em.fork()
           await em.find(User, {}, { limit: 50 })
-        },
+        }
       },
       {
         name: 'Filtered SELECT',
         description: 'SELECT with WHERE conditions',
         mysql2: async () => {
           const conn = await this.getMysql2Connection()
-          await conn.execute('SELECT * FROM users WHERE status = ? AND age > ?', ['active', 25])
+          await conn.execute(
+            'SELECT * FROM users WHERE status = ? AND age > ?',
+            ['active', 25]
+          )
         },
         mysql2Promise: async () => {
           const pool = await this.getMysql2PromiseConnection()
@@ -664,7 +700,8 @@ export class ContainerizedBenchmarkRunner {
         },
         kysely: async () => {
           const db = await this.getKyselyDb()
-          await db.selectFrom('users')
+          await db
+            .selectFrom('users')
             .selectAll()
             .where('status', '=', 'active')
             .where('age', '>', 25)
@@ -672,11 +709,12 @@ export class ContainerizedBenchmarkRunner {
         },
         drizzle: async () => {
           const db = await this.getDrizzleDb()
-          await db.select().from(schema.users)
-            .where(and(
-              eq(schema.users.status, 'active'),
-              gt(schema.users.age, 25)
-            ))
+          await db
+            .select()
+            .from(schema.users)
+            .where(
+              and(eq(schema.users.status, 'active'), gt(schema.users.age, 25))
+            )
         },
         prismaKysely: async () => {
           const client = await this.getPrismaKyselyClient()
@@ -692,7 +730,7 @@ export class ContainerizedBenchmarkRunner {
           await typeOrmImplementations.filteredSelect(dataSource)
         },
         sequelize: async () => {
-          const sequelize = await this.getSequelize()
+          const _sequelize = await this.getSequelize()
           const { User } = await import('../database/sequelize-models')
           const { Op } = await import('sequelize')
           await User.findAll({
@@ -710,7 +748,7 @@ export class ContainerizedBenchmarkRunner {
             status: 'active',
             age: { $gt: 25 }
           })
-        },
+        }
       },
       {
         name: 'JOIN Query',
@@ -740,16 +778,19 @@ export class ContainerizedBenchmarkRunner {
           await prisma.user.findMany({
             where: { status: 'active' },
             include: { orders: { select: { id: true, totalAmount: true } } },
-            take: 30,
+            take: 30
           })
         },
         kysely: async () => {
           const db = await this.getKyselyDb()
-          await db.selectFrom('users as u')
+          await db
+            .selectFrom('users as u')
             .leftJoin('orders as o', 'u.id', 'o.user_id')
             .select(['u.id', 'u.email', 'u.first_name', 'u.last_name'])
             .select(db.fn.count('o.id').as('order_count'))
-            .select(sql<number>`COALESCE(SUM(o.total_amount), 0)`.as('total_spent'))
+            .select(
+              sql<number>`COALESCE(SUM(o.total_amount), 0)`.as('total_spent')
+            )
             .where('u.status', '=', 'active')
             .groupBy('u.id')
             .limit(30)
@@ -764,7 +805,7 @@ export class ContainerizedBenchmarkRunner {
               firstName: schema.users.firstName,
               lastName: schema.users.lastName,
               orderCount: drizzleSql<number>`count(${schema.orders.id})`,
-              totalSpent: drizzleSql<number>`COALESCE(SUM(${schema.orders.totalAmount}), 0)`,
+              totalSpent: drizzleSql<number>`COALESCE(SUM(${schema.orders.totalAmount}), 0)`
             })
             .from(schema.users)
             .leftJoin(schema.orders, eq(schema.users.id, schema.orders.userId))
@@ -779,7 +820,9 @@ export class ContainerizedBenchmarkRunner {
             .leftJoin('orders as o', 'u.id', 'o.user_id')
             .select(['u.id', 'u.email', 'u.first_name', 'u.last_name'])
             .select(client.$kysely.fn.count('o.id').as('order_count'))
-            .select(sql<number>`COALESCE(SUM(o.total_amount), 0)`.as('total_spent'))
+            .select(
+              sql<number>`COALESCE(SUM(o.total_amount), 0)`.as('total_spent')
+            )
             .where('u.status', '=', 'active')
             .groupBy('u.id')
             .limit(30)
@@ -796,7 +839,7 @@ export class ContainerizedBenchmarkRunner {
         mikroorm: async () => {
           const orm = await this.getMikroOrm()
           await mikroOrmImplementations.joinQuery(orm)
-        },
+        }
       },
       {
         name: 'Complex JOIN',
@@ -828,14 +871,15 @@ export class ContainerizedBenchmarkRunner {
             where: { isActive: true },
             include: {
               category: { select: { name: true } },
-              reviews: { select: { id: true } },
+              reviews: { select: { id: true } }
             },
-            take: 25,
+            take: 25
           })
         },
         kysely: async () => {
           const db = await this.getKyselyDb()
-          await db.selectFrom('products as p')
+          await db
+            .selectFrom('products as p')
             .leftJoin('categories as c', 'p.category_id', 'c.id')
             .leftJoin('reviews as r', 'p.id', 'r.product_id')
             .select(['p.id', 'p.name', 'p.price'])
@@ -854,11 +898,17 @@ export class ContainerizedBenchmarkRunner {
               name: schema.products.name,
               price: schema.products.price,
               categoryName: schema.categories.name,
-              reviewCount: drizzleSql<number>`count(${schema.reviews.id})`,
+              reviewCount: drizzleSql<number>`count(${schema.reviews.id})`
             })
             .from(schema.products)
-            .leftJoin(schema.categories, eq(schema.products.categoryId, schema.categories.id))
-            .leftJoin(schema.reviews, eq(schema.products.id, schema.reviews.productId))
+            .leftJoin(
+              schema.categories,
+              eq(schema.products.categoryId, schema.categories.id)
+            )
+            .leftJoin(
+              schema.reviews,
+              eq(schema.products.id, schema.reviews.productId)
+            )
             .where(eq(schema.products.isActive, true))
             .groupBy(schema.products.id)
             .limit(25)
@@ -888,7 +938,7 @@ export class ContainerizedBenchmarkRunner {
         mikroorm: async () => {
           const orm = await this.getMikroOrm()
           await mikroOrmImplementations.complexJoin(orm)
-        },
+        }
       },
       {
         name: 'INSERT Operation',
@@ -898,7 +948,14 @@ export class ContainerizedBenchmarkRunner {
           const uniqueId = `${++this.insertCounter}_${Date.now()}`
           await conn.execute(
             'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-            [`mysql2_${uniqueId}@example.com`, 'Test', 'User', 'active', 30, 'US']
+            [
+              `mysql2_${uniqueId}@example.com`,
+              'Test',
+              'User',
+              'active',
+              30,
+              'US'
+            ]
           )
         },
         mysql2Promise: async () => {
@@ -919,36 +976,36 @@ export class ContainerizedBenchmarkRunner {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US',
-            },
+              country: 'US'
+            }
           })
         },
         kysely: async () => {
           const db = await this.getKyselyDb()
           const uniqueId = `${++this.insertCounter}_${Date.now()}`
-          await db.insertInto('users')
+          await db
+            .insertInto('users')
             .values({
               email: `kysely_${uniqueId}@example.com`,
               first_name: 'Test',
               last_name: 'User',
               status: 'active',
               age: 30,
-              country: 'US',
+              country: 'US'
             })
             .execute()
         },
         drizzle: async () => {
           const db = await this.getDrizzleDb()
           const uniqueId = `${++this.insertCounter}_${Date.now()}`
-          await db.insert(schema.users)
-            .values({
-              email: `drizzle_${uniqueId}@example.com`,
-              firstName: 'Test',
-              lastName: 'User',
-              status: 'active',
-              age: 30,
-              country: 'US',
-            })
+          await db.insert(schema.users).values({
+            email: `drizzle_${uniqueId}@example.com`,
+            firstName: 'Test',
+            lastName: 'User',
+            status: 'active',
+            age: 30,
+            country: 'US'
+          })
         },
         prismaKysely: async () => {
           const client = await this.getPrismaKyselyClient()
@@ -961,7 +1018,7 @@ export class ContainerizedBenchmarkRunner {
               last_name: 'User',
               status: 'active',
               age: 30,
-              country: 'US',
+              country: 'US'
             })
             .execute()
         },
@@ -976,17 +1033,25 @@ export class ContainerizedBenchmarkRunner {
         mikroorm: async () => {
           const orm = await this.getMikroOrm()
           await mikroOrmImplementations.insert(orm, this.insertCounter++)
-        },
-      },
+        }
+      }
     ]
 
-    console.log(chalk.yellow(`\n⏳ Running benchmarks... This will take approximately ${(scenarios.length * 10 * BENCHMARK_DURATION / 1000 / 60).toFixed(1)} minutes\n`))
+    console.log(
+      chalk.yellow(
+        `\n⏳ Running benchmarks... This will take approximately ${((scenarios.length * 10 * BENCHMARK_DURATION) / 1000 / 60).toFixed(1)} minutes\n`
+      )
+    )
 
     for (let i = 0; i < scenarios.length; i++) {
       const scenario = scenarios[i]
-      console.log(chalk.cyan.bold(`\nScenario ${i + 1}/${scenarios.length}: ${scenario.name}`))
+      console.log(
+        chalk.cyan.bold(
+          `\nScenario ${i + 1}/${scenarios.length}: ${scenario.name}`
+        )
+      )
       console.log(chalk.grey(`Description: ${scenario.description}\n`))
-      
+
       // Run each driver sequentially to ensure isolation
       const drivers = [
         { name: 'MySQL2', fn: scenario.mysql2 },
@@ -998,9 +1063,9 @@ export class ContainerizedBenchmarkRunner {
         { name: 'Prisma+Kysely', fn: scenario.prismaKysely },
         { name: 'TypeORM', fn: scenario.typeorm },
         { name: 'Sequelize', fn: scenario.sequelize },
-        { name: 'MikroORM', fn: scenario.mikroorm },
+        { name: 'MikroORM', fn: scenario.mikroorm }
       ]
-      
+
       for (const driver of drivers) {
         process.stdout.write(chalk.gray(`  Testing ${driver.name}... `))
         const result = await this.runTimedBenchmark(
@@ -1009,7 +1074,11 @@ export class ContainerizedBenchmarkRunner {
           driver.fn
         )
         results.push(result)
-        console.log(chalk.green(`✓ ${result.iterations} ops @ ${Math.round(result.operationsPerSecond)} ops/sec`))
+        console.log(
+          chalk.green(
+            `✓ ${result.iterations} ops @ ${Math.round(result.operationsPerSecond)} ops/sec`
+          )
+        )
       }
     }
     return results
@@ -1017,38 +1086,75 @@ export class ContainerizedBenchmarkRunner {
 
   private printSimplifiedResults(results: any[]): void {
     // Calculate overall performance across all scenarios
-    const drivers = ['MySQL2', 'MySQL2/Promise', 'Knex', 'Prisma', 'Kysely', 'Drizzle', 'Prisma+Kysely', 'TypeORM', 'Sequelize', 'MikroORM']
-    const driverStats = drivers.map(driver => {
-      const driverResults = results.filter(r => r.name.startsWith(driver))
-      const totalOps = driverResults.reduce((sum, r) => sum + r.iterations, 0)
-      const totalTime = driverResults.reduce((sum, r) => sum + (r.iterations * r.averageTime), 0)
-      const avgLatency = totalTime / totalOps
-      const avgOpsPerSec = 1000 / avgLatency
-      const avgP95 = driverResults.reduce((sum, r) => sum + r.p95Latency, 0) / driverResults.length
-      
-      return { 
-        driver, 
-        avgOpsPerSec,
-        avgLatency,
-        avgP95,
-        scenarioBreakdown: {
-          'Simple SELECT': driverResults.find(r => r.name.includes('Simple SELECT'))?.iterations || 0,
-          'Filtered SELECT': driverResults.find(r => r.name.includes('Filtered SELECT'))?.iterations || 0,
-          'JOIN Query': driverResults.find(r => r.name.includes('JOIN Query'))?.iterations || 0,
-          'Complex JOIN': driverResults.find(r => r.name.includes('Complex JOIN'))?.iterations || 0,
-          'INSERT Operation': driverResults.find(r => r.name.includes('INSERT Operation'))?.iterations || 0,
-        }
-      }
-    }).sort((a, b) => b.avgOpsPerSec - a.avgOpsPerSec)
+    const drivers = [
+      'MySQL2',
+      'MySQL2/Promise',
+      'Knex',
+      'Prisma',
+      'Kysely',
+      'Drizzle',
+      'Prisma+Kysely',
+      'TypeORM',
+      'Sequelize',
+      'MikroORM'
+    ]
+    const driverStats = drivers
+      .map(driver => {
+        const driverResults = results.filter(r => r.name.startsWith(driver))
+        const totalOps = driverResults.reduce((sum, r) => sum + r.iterations, 0)
+        const totalTime = driverResults.reduce(
+          (sum, r) => sum + r.iterations * r.averageTime,
+          0
+        )
+        const avgLatency = totalTime / totalOps
+        const avgOpsPerSec = 1000 / avgLatency
+        const avgP95 =
+          driverResults.reduce((sum, r) => sum + r.p95Latency, 0) /
+          driverResults.length
 
-    console.log(chalk.bold.blue('\n📊 Original Benchmark Results - Isolated Query Tests'))
+        return {
+          driver,
+          avgOpsPerSec,
+          avgLatency,
+          avgP95,
+          scenarioBreakdown: {
+            'Simple SELECT':
+              driverResults.find(r => r.name.includes('Simple SELECT'))
+                ?.iterations || 0,
+            'Filtered SELECT':
+              driverResults.find(r => r.name.includes('Filtered SELECT'))
+                ?.iterations || 0,
+            'JOIN Query':
+              driverResults.find(r => r.name.includes('JOIN Query'))
+                ?.iterations || 0,
+            'Complex JOIN':
+              driverResults.find(r => r.name.includes('Complex JOIN'))
+                ?.iterations || 0,
+            'INSERT Operation':
+              driverResults.find(r => r.name.includes('INSERT Operation'))
+                ?.iterations || 0
+          }
+        }
+      })
+      .sort((a, b) => b.avgOpsPerSec - a.avgOpsPerSec)
+
+    console.log(
+      chalk.bold.blue('\n📊 Original Benchmark Results - Isolated Query Tests')
+    )
     console.log(chalk.gray('─'.repeat(90)))
-    
-    console.log('Driver'.padEnd(16) + 'Ops/sec'.padStart(10) + 'Latency'.padStart(10) + 'P95'.padStart(8) + 'Errors'.padStart(8) + 'Status')
+
+    console.log(
+      'Driver'.padEnd(16) +
+        'Ops/sec'.padStart(10) +
+        'Latency'.padStart(10) +
+        'P95'.padStart(8) +
+        'Errors'.padStart(8) +
+        'Status'
+    )
     console.log(chalk.gray('─'.repeat(90)))
-    
+
     const fastest = driverStats[0]?.avgOpsPerSec || 1
-    
+
     driverStats.forEach((stat, index) => {
       const relative = Math.round((stat.avgOpsPerSec / fastest) * 100)
       let status = ''
@@ -1057,52 +1163,65 @@ export class ContainerizedBenchmarkRunner {
       } else {
         status = chalk.gray(` (${relative}%)`)
       }
-      
+
       console.log(
         stat.driver.padEnd(16) +
-        Math.round(stat.avgOpsPerSec).toString().padStart(10) +
-        `${stat.avgLatency.toFixed(2)}ms`.padStart(10) +
-        `${stat.avgP95.toFixed(2)}ms`.padStart(8) +
-        '0'.padStart(8) +
-        status
+          Math.round(stat.avgOpsPerSec).toString().padStart(10) +
+          `${stat.avgLatency.toFixed(2)}ms`.padStart(10) +
+          `${stat.avgP95.toFixed(2)}ms`.padStart(8) +
+          '0'.padStart(8) +
+          status
       )
     })
-    
+
     // Scenario breakdown
     console.log(chalk.bold.blue('\n📈 Scenario Breakdown (Operations per 5s)'))
     console.log(chalk.gray('─'.repeat(90)))
-    
-    const scenarios = ['Simple SELECT', 'Filtered SELECT', 'JOIN Query', 'Complex JOIN', 'INSERT Operation']
-    console.log('Driver'.padEnd(16) + scenarios.map(s => s.substring(0, 10).padStart(10)).join(''))
+
+    const scenarios = [
+      'Simple SELECT',
+      'Filtered SELECT',
+      'JOIN Query',
+      'Complex JOIN',
+      'INSERT Operation'
+    ]
+    console.log(
+      'Driver'.padEnd(16) +
+        scenarios.map(s => s.substring(0, 10).padStart(10)).join('')
+    )
     console.log(chalk.gray('─'.repeat(90)))
-    
+
     driverStats.slice(0, 5).forEach(stat => {
-      const counts = scenarios.map(scenario => 
+      const counts = scenarios.map(scenario =>
         stat.scenarioBreakdown[scenario].toString().padStart(10)
       )
       console.log(stat.driver.padEnd(16) + counts.join(''))
     })
-    
+
     console.log(chalk.bold.blue('\n🎯 Summary'))
     console.log(chalk.gray('─'.repeat(90)))
-    console.log(`• Test methodology: Isolated query benchmarks (5 scenarios × ${BENCHMARK_DURATION/1000}s each)`)
+    console.log(
+      `• Test methodology: Isolated query benchmarks (5 scenarios × ${BENCHMARK_DURATION / 1000}s each)`
+    )
     console.log(`• Working drivers: ${drivers.length}/10`)
     console.log(`• Failed drivers: 0/10`)
-    console.log(`• Test duration: ${BENCHMARK_DURATION/1000}s per scenario per driver`)
-    console.log('\n' + chalk.yellow('⚠️  Note: This benchmark tests each query type in isolation.'))
-    console.log(chalk.yellow('   For mixed workload results, use: pnpm benchmark'))
-  }
-
-  private formatTime(ms: number): string {
-    if (ms < 1) {
-      return `${(ms * 1000).toFixed(0)}μs`
-    }
-    return `${ms.toFixed(2)}ms`
+    console.log(
+      `• Test duration: ${BENCHMARK_DURATION / 1000}s per scenario per driver`
+    )
+    console.log(
+      '\n' +
+        chalk.yellow(
+          '⚠️  Note: This benchmark tests each query type in isolation.'
+        )
+    )
+    console.log(
+      chalk.yellow('   For mixed workload results, use: pnpm benchmark')
+    )
   }
 
   private async cleanup(): Promise<void> {
     console.log(chalk.yellow('🧹 Cleaning up resources...'))
-    
+
     try {
       if (this.mysql2Pool) {
         await this.mysql2Pool.end()
@@ -1153,11 +1272,11 @@ export class ContainerizedBenchmarkRunner {
         await this.mikroOrm.close()
         this.mikroOrm = null
       }
-      
+
       if (this.mysqlContainer) {
         await this.mysqlContainer.stop()
       }
-      
+
       console.log(chalk.green('✅ Cleanup completed'))
     } catch (error) {
       console.error(chalk.red('❌ Cleanup failed:'), error)

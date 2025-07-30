@@ -1,5 +1,5 @@
-import { SetMetadata } from '../set-metadata.decorator'
 import { ClassType } from '../common'
+import { SetMetadata } from '../set-metadata.decorator'
 
 export const CLASS_TYPE_METADATA = 'graphql:class_type'
 

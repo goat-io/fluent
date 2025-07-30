@@ -80,11 +80,13 @@ export function pupa(
   // The regex tries to match either a number inside `{{ }}` or a valid JS identifier or key path.
   const doubleBraceRegex = /{{(\d+|[a-z$_][\w\-$]*?(?:\.[\w\-$]*?)*?)}}/gi
 
-  if (doubleBraceRegex.test(template)) {
-    template = template.replaceAll(doubleBraceRegex, composeHtmlEscape(replace))
+  let result = template
+
+  if (doubleBraceRegex.test(result)) {
+    result = result.replaceAll(doubleBraceRegex, composeHtmlEscape(replace))
   }
 
   const braceRegex = /{(\d+|[a-z$_][\w\-$]*?(?:\.[\w\-$]*?)*?)}/gi
 
-  return template.replaceAll(braceRegex, replace)
+  return result.replaceAll(braceRegex, replace)
 }

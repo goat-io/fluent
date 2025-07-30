@@ -2,14 +2,14 @@
  * The API surface of this module has been heavily inspired by the "type-graphql" library (https://github.com/MichalLytek/type-graphql), originally designed & released by Michal Lytek.
  */
 
+import { isFunction, Type } from '../common'
+import { BaseTypeOptions } from '../interfaces/base-type-options.interface'
 import { Complexity } from '../interfaces/complexity.interface'
 import { FieldMiddleware } from '../interfaces/field-middleware.interface'
-import { BaseTypeOptions } from '../interfaces/base-type-options.interface'
 import { ReturnTypeFunc } from '../interfaces/return-type-func.interface'
 import { LazyMetadataStorage } from '../lazy-metadata.storage'
-import { TypeMetadataStorage } from '../type-metadata.storage'
 import { reflectTypeFromMetadata } from '../reflection.utils'
-import { Type, isFunction } from '../common'
+import { TypeMetadataStorage } from '../type-metadata.storage'
 
 /**
  * Interface defining options that can be passed to `@Field()` decorator.
@@ -76,12 +76,12 @@ export function Field(
       prototype,
       propertyKey,
       descriptor
-    )  
-  } 
+    )
+  }
 }
 
 export function addFieldMetadata(
-  typeOrOptions?: ReturnTypeFunc | FieldOptions ,
+  typeOrOptions?: ReturnTypeFunc | FieldOptions,
   fieldOptions?: FieldOptions | undefined,
   prototype?: Object,
   propertyKey?: string,
@@ -94,7 +94,7 @@ export function addFieldMetadata(
 
   const applyMetadataFn = () => {
     const isResolver = !!descriptor
-    const isResolverMethod = !!(descriptor && descriptor.value)
+    const isResolverMethod = !!descriptor?.value
 
     const { typeFn: getType, options: typeOptions } = reflectTypeFromMetadata({
       metadataKey: isResolverMethod ? 'design:returntype' : 'design:type',

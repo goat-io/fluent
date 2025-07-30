@@ -29,9 +29,7 @@ export interface Class<T> {
  * }
  * ```
  */
-export interface ConstructorFunction<T> {
-  (...args: any[]): T
-}
+export type ConstructorFunction<T> = (...args: any[]) => T
 
 /**
  * Constructor type - class or function

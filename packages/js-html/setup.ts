@@ -1,3 +1,5 @@
 export default async () => {
-  return async () => {}
+  return async () => {
+    // Empty setup function
+  }
 }

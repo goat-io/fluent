@@ -1,5 +1,5 @@
-import type { AnyObject } from '../types'
 import type { CommonLogger } from '../Logs/commonLogger'
+import type { AnyObject } from '../types'
 import type { Options } from './ky'
 
 export interface GetKyOptions extends Options {
@@ -58,6 +58,11 @@ export interface GetKyOptions extends Options {
    * @default 10_000
    */
   maxResponseLength?: number
+
+  /**
+   * Request context for tracking request metadata
+   */
+  context?: KyRequestContext
 }
 
 export interface KyRequestContext extends AnyObject {

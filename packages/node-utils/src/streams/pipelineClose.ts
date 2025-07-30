@@ -1,5 +1,5 @@
-import { CommonLogger } from '@goatlab/js-utils'
 import { Readable } from 'node:stream'
+import { CommonLogger } from '@goatlab/js-utils'
 
 export function pipelineClose(
   name: string,
@@ -24,10 +24,14 @@ export function pipelineClose(
       )
       sourceReadable.destroy()
     } else {
-      void streamDone.then(() => {
-        logger.log(`${name} streamDone, calling readable.destroy()`)
-        sourceReadable.destroy() // this throws ERR_STREAM_PREMATURE_CLOSE
-      })
+      streamDone
+        .then(() => {
+          logger.log(`${name} streamDone, calling readable.destroy()`)
+          sourceReadable.destroy() // this throws ERR_STREAM_PREMATURE_CLOSE
+        })
+        .catch(() => {
+          // Ignore errors from promise - we're just waiting for it to complete
+        })
     }
   }
 }

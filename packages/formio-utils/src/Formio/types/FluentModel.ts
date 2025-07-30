@@ -12,10 +12,10 @@ export interface FluentModel {
   properties?: {
     [key: string]: any
   }
-  __datagrids: {
+  datagrids: {
     [key: string]: any
   }
-  __objects: {
+  objects: {
     [key: string]: any
   }
 }

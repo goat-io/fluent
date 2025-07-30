@@ -6,7 +6,7 @@ class NumbersClass {
    * @returns
    */
   isNumeric = (str: string): boolean =>
-    !isNaN(parseFloat(str)) && isFinite(Number(str))
+    !Number.isNaN(Number.parseFloat(str)) && Number.isFinite(Number(str))
 
   /**
    * Converts a string into a number if the given
@@ -16,7 +16,7 @@ class NumbersClass {
    */
   parseStringToNumber = (str: string): string | number => {
     if (this.isNumeric(str)) {
-      return parseFloat(str)
+      return Number.parseFloat(str)
     }
     return str.trim()
   }
@@ -140,12 +140,22 @@ class NumbersClass {
   }
 
   humanCount(c = 0): string {
-    if (c < 10 ** 4) return String(c)
-    if (c < 10 ** 6) return (c / 10 ** 3).toPrecision(3) + ' K'
-    if (c < 10 ** 9) return (c / 10 ** 6).toPrecision(3) + ' M' // million
-    if (c < 10 ** 12) return (c / 10 ** 9).toPrecision(3) + ' B' // billion
-    if (c < 10 ** 15) return (c / 10 ** 12).toPrecision(3) + ' T' // trillion
-    return Math.round(c / 10 ** 12) + ' T'
+    if (c < 10 ** 4) {
+      return String(c)
+    }
+    if (c < 10 ** 6) {
+      return `${(c / 10 ** 3).toPrecision(3)} K`
+    }
+    if (c < 10 ** 9) {
+      return `${(c / 10 ** 6).toPrecision(3)} M` // million
+    }
+    if (c < 10 ** 12) {
+      return `${(c / 10 ** 9).toPrecision(3)} B` // billion
+    }
+    if (c < 10 ** 15) {
+      return `${(c / 10 ** 12).toPrecision(3)} T` // trillion
+    }
+    return `${Math.round(c / 10 ** 12)} T`
   }
 }
 export const Numbers = new NumbersClass()

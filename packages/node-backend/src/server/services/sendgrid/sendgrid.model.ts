@@ -11,7 +11,7 @@ export interface SendgridHTMLEmailRequest {
     {
       email: string
       name?: string
-    },
+    }
   ]
   bcc?: EmailAddress[]
   attachments?: EmailAttachment[]

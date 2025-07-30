@@ -1,22 +1,19 @@
-import { writeFileSync } from 'fs'
-import { join } from 'path'
-import { Formio } from '../../../../fluent-formio/src/Formio'
 import {
   parse,
   SupportedFrameworks
 } from '../../../../fluent-formio/src/Formio/parser/parse'
+import { FormioForm } from '../../../../fluent-formio/src/Formio/types/FormioForm'
 import { Controllers } from './Controllers'
 import { Directories } from './Directories'
 import { Models } from './Models'
-import { Repositories } from './Repositories'
 import { Module } from './Module'
+import { Repositories } from './Repositories'
 import { Types } from './Types'
-import { FormioForm } from '../../../../fluent-formio/src/Formio/types/FormioForm'
 
 export const generate = async (
   Forms: FormioForm[],
   directory: string,
-  framework: 'Loopback4' | 'Nestjs'
+  _framework: 'Loopback4' | 'Nestjs'
 ) => {
   const goatModels = await parse(Forms, SupportedFrameworks.Nest)
 

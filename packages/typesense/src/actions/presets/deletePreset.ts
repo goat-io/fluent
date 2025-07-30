@@ -1,5 +1,5 @@
-import type { TypesensePresetResponse } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type { TypesensePresetResponse } from '../../typesense.model'
 import { createTenantQualifiedName } from '../../utils/tenant'
 
 export async function deletePreset(
@@ -8,7 +8,7 @@ export async function deletePreset(
 ): Promise<TypesensePresetResponse> {
   // Apply tenant prefix to preset name
   const qualifiedName = createTenantQualifiedName(ctx.tenantId, presetName)
-  
+
   return await ctx.httpClient.request<TypesensePresetResponse>(
     `/presets/${qualifiedName}`,
     { method: 'DELETE' }

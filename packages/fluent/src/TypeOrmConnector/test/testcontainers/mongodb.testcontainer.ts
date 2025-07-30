@@ -1,4 +1,7 @@
-import { MongoDBContainer, StartedMongoDBContainer } from '@testcontainers/mongodb'
+import {
+  MongoDBContainer,
+  StartedMongoDBContainer
+} from '@testcontainers/mongodb'
 import { DataSource } from 'typeorm'
 import { dbEntities } from '../dbEntities'
 
@@ -8,8 +11,7 @@ export class MongoDBTestContainer {
 
   async start(): Promise<DataSource> {
     // Start MongoDB container with dynamic port allocation
-    this.container = await new MongoDBContainer('mongo:7.0')
-      .start()
+    this.container = await new MongoDBContainer('mongo:7.0').start()
 
     // Get connection details
     const host = this.container.getHost()

@@ -1,20 +1,21 @@
 // npx vitest run ./src/server/bootstraps/getExpressTrpcApp.test.ts
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-  beforeAll,
-  afterAll
-} from 'vitest'
-import type { Express, RequestHandler } from 'express'
+
+import http from 'node:http'
 import { initTRPC } from '@trpc/server'
-import { z } from 'zod'
+import type { Express, RequestHandler } from 'express'
 import { Router } from 'express'
-import http from 'http'
 import request from 'supertest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi
+} from 'vitest'
+import { z } from 'zod'
 
 // Mock Firebase Admin since we don't want to setup a real Firebase instance
 vi.mock('firebase-admin', () => ({
@@ -45,9 +46,9 @@ vi.mock('../sentry/sentry.service', () => ({
   }))
 }))
 
-import { getExpressTrpcApp } from './getExpressTrpcApp'
-import { SentryService } from '../sentry/sentry.service'
 import { Ports } from '@goatlab/node-utils'
+import { SentryService } from '../sentry/sentry.service'
+import { getExpressTrpcApp } from './getExpressTrpcApp'
 
 describe('getExpressTrpcApp - Consolidated Tests', () => {
   let sentryService: SentryService
@@ -56,16 +57,18 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
   let testPort: number
   let app: Express
   let server: http.Server | undefined
-  let baseUrl: string
+  let _baseUrl: string
   let originalNodeEnv: string | undefined
 
   // Create a real tRPC router with typed context
-  const t = initTRPC.context<{
-    url?: string
-    method?: string
-    ip?: string
-    user?: { email: string; firebaseId: string }
-  }>().create()
+  const t = initTRPC
+    .context<{
+      url?: string
+      method?: string
+      ip?: string
+      user?: { email: string; firebaseId: string }
+    }>()
+    .create()
 
   beforeAll(() => {
     // Store original NODE_ENV
@@ -74,7 +77,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     process.env.NODE_ENV = 'test'
     // Increase max listeners to avoid warnings
     process.setMaxListeners(20)
-    
+
     // Mock process.exit to prevent test runner from exiting
     vi.spyOn(process, 'exit').mockImplementation((() => {}) as any)
   })
@@ -84,7 +87,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     if (originalNodeEnv) {
       process.env.NODE_ENV = originalNodeEnv
     } else {
-      delete process.env.NODE_ENV
+      process.env.NODE_ENV = undefined
     }
     // Reset process listeners
     process.setMaxListeners(10)
@@ -95,7 +98,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
   beforeEach(async () => {
     // Get an available port to avoid collisions
     testPort = await Ports.nextAvailablePort(8000)
-    baseUrl = `http://localhost:${testPort}`
+    _baseUrl = `http://localhost:${testPort}`
 
     // Create real SentryService with minimal config
     sentryService = new SentryService({
@@ -135,9 +138,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         }
         return { message: 'Access granted', user: ctx.user }
       }),
-      
-      error: t.procedure.query(() => { 
-        throw new Error('Test error') 
+
+      error: t.procedure.query(() => {
+        throw new Error('Test error')
       })
     })
 
@@ -171,17 +174,17 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     process.removeAllListeners('SIGINT')
     process.removeAllListeners('uncaughtException')
     process.removeAllListeners('unhandledRejection')
-    
+
     if (server && typeof server.close === 'function') {
-      await new Promise<void>((resolve) => {
+      await new Promise<void>(resolve => {
         server.close(() => resolve())
       })
     }
     // Clear any environment variables set during tests
-    delete process.env.ALLOWED_ORIGINS
-    delete process.env.REQUEST_TIMEOUT
-    delete process.env.JSON_BODY_LIMIT
-    delete process.env.API_RATE_LIMIT
+    process.env.ALLOWED_ORIGINS = undefined
+    process.env.REQUEST_TIMEOUT = undefined
+    process.env.JSON_BODY_LIMIT = undefined
+    process.env.API_RATE_LIMIT = undefined
   })
 
   describe('Basic App Creation', () => {
@@ -193,7 +196,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       expect(app).toBeDefined()
       expect(typeof app).toBe('function')
       expect(app.use).toBeDefined()
@@ -210,7 +213,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       expect(result).toHaveProperty('app')
       expect(result).toHaveProperty('server')
       expect(result.app).toBeDefined()
@@ -226,7 +229,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       // Server should not be started in test env
       expect(server).toBeUndefined()
     })
@@ -234,7 +237,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     it('should return server instance in non-test environment', async () => {
       // Temporarily change NODE_ENV
       process.env.NODE_ENV = 'dev'
-      
+
       const newPort = await Ports.nextAvailablePort(8000)
       const result = getExpressTrpcApp({
         trpcRouter,
@@ -242,17 +245,17 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         environment: 'dev',
         sentryService
       })
-      
+
       expect(result.server).toBeDefined()
       expect(result.server).toBeInstanceOf(http.Server)
-      
+
       // Clean up
       if (result.server) {
-        await new Promise<void>((resolve) => {
+        await new Promise<void>(resolve => {
           result.server.close(() => resolve())
         })
       }
-      
+
       // Reset to test environment
       process.env.NODE_ENV = 'test'
     })
@@ -267,7 +270,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [expressRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -275,7 +278,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
     it('should respond to /health endpoint', async () => {
       const res = await request(app).get('/health')
-      
+
       expect(res.status).toBe(200)
       expect(res.body.status).toBe('ok')
       expect(res.body.timestamp).toBeDefined()
@@ -284,10 +287,10 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       expect(res.body.uptime).toBeDefined()
       expect(res.body.memory).toBeDefined()
     })
-    
+
     it('should respond to /ready endpoint', async () => {
       const res = await request(app).get('/ready')
-      
+
       expect(res.status).toBe(200)
       expect(res.body.service).toBe('ready')
       expect(res.body.timestamp).toBeDefined()
@@ -303,7 +306,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -311,7 +314,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
     it('should set all required security headers', async () => {
       const res = await request(app).get('/health')
-      
+
       expect(res.headers['x-content-type-options']).toBe('nosniff')
       expect(res.headers['x-frame-options']).toBe('DENY')
       expect(res.headers['x-xss-protection']).toBe('1; mode=block')
@@ -341,7 +344,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -351,28 +354,32 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const res = await request(app)
         .get('/health')
         .set('Origin', 'http://localhost:3000')
-      
-      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000')
+
+      expect(res.headers['access-control-allow-origin']).toBe(
+        'http://localhost:3000'
+      )
       expect(res.headers['access-control-allow-credentials']).toBe('true')
     })
-    
+
     it('should handle preflight requests', async () => {
       const res = await request(app)
         .options('/health')
         .set('Origin', 'http://localhost:3000')
         .set('Access-Control-Request-Method', 'POST')
         .set('Access-Control-Request-Headers', 'Content-Type')
-      
+
       expect(res.status).toBe(204)
       expect(res.headers['access-control-allow-methods']).toContain('POST')
-      expect(res.headers['access-control-allow-headers']).toContain('Content-Type')
+      expect(res.headers['access-control-allow-headers']).toContain(
+        'Content-Type'
+      )
       expect(res.headers['access-control-max-age']).toBe('86400')
     })
 
     it('should reject CORS requests from disallowed origins in production', async () => {
       // Stop current server
       if (server) {
-        await new Promise<void>((resolve) => {
+        await new Promise<void>(resolve => {
           server.close(() => resolve())
         })
         server = undefined
@@ -384,11 +391,11 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       // Store original NODE_ENV
       const originalNodeEnv = process.env.NODE_ENV
       process.env.NODE_ENV = 'prod'
-      
+
       try {
         // Get a new port to avoid conflicts
         const newTestPort = await Ports.nextAvailablePort(testPort + 1)
-        
+
         const result = getExpressTrpcApp({
           trpcRouter,
           port: newTestPort,
@@ -396,15 +403,15 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
           sentryService,
           features: { sentry: false }
         })
-        
+
         app = result.app
         server = result.server // Use the server created by getExpressTrpcApp
         await new Promise(resolve => setTimeout(resolve, 100))
-      
+
         const response = await request(app)
           .get('/health')
           .set('Origin', 'http://evil.com')
-        
+
         expect(response.headers['access-control-allow-origin']).toBeUndefined()
       } finally {
         // Reset to original NODE_ENV
@@ -422,7 +429,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -430,28 +437,30 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
     it('should compress large responses', async () => {
       app.get('/test-compression', (_req, res) => {
-        const data = Array(1000).fill('This is test data to be compressed. ').join('')
+        const data = Array(1000)
+          .fill('This is test data to be compressed. ')
+          .join('')
         res.json({ data })
       })
-      
+
       const response = await request(app)
         .get('/test-compression')
         .set('Accept-Encoding', 'gzip')
-      
+
       expect(response.headers['content-encoding']).toBe('gzip')
     })
 
     it('should include response time header', async () => {
       const response = await request(app).get('/health')
-      
+
       expect(response.headers['x-response-time']).toBeDefined()
       expect(response.headers['x-response-time']).toMatch(/^\d+(\.\d+)?ms$/)
     })
 
     it('should enable strong ETags', async () => {
       const response = await request(app).get('/health')
-      const etag = response.headers['etag']
-      
+      const etag = response.headers.etag
+
       expect(etag).toBeDefined()
       expect(etag).toMatch(/^"[^"]+"$/) // Strong ETag format
     })
@@ -466,7 +475,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [expressRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -474,38 +483,36 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
     it('should parse JSON bodies', async () => {
       const testData = { message: 'test webhook', id: 123 }
-      
-      const response = await request(app)
-        .post('/webhook')
-        .send(testData)
-      
+
+      const response = await request(app).post('/webhook').send(testData)
+
       expect(response.status).toBe(200)
       expect(response.body.received).toBe(true)
       expect(response.body.body).toEqual(testData)
     })
-    
+
     it('should reject oversized payloads', async () => {
       app.post('/test-large', (_req, res) => {
         res.json({ received: true })
       })
-      
+
       const largeData = 'x'.repeat(200 * 1024) // 200KB
-      
+
       const res = await request(app)
         .post('/test-large')
         .send({ data: largeData })
-      
+
       expect(res.status).toBe(413) // Payload Too Large
     })
 
     it('should respect JSON body size limit', async () => {
       // Stop current server
       if (server) {
-        await new Promise<void>((resolve) => {
+        await new Promise<void>(resolve => {
           server.close(() => resolve())
         })
       }
-      
+
       const newPort = await Ports.nextAvailablePort(8000)
       const result = getExpressTrpcApp({
         trpcRouter,
@@ -517,18 +524,16 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
           json: { limit: '1kb' }
         }
       })
-      
+
       app = result.app
       server = app.listen(newPort)
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       // Create payload larger than 1KB
       const largeData = { data: 'x'.repeat(2000) } // ~2KB
-      
-      const response = await request(app)
-        .post('/webhook')
-        .send(largeData)
-      
+
+      const response = await request(app).post('/webhook').send(largeData)
+
       expect(response.status).toBe(413) // Payload Too Large
     })
 
@@ -540,14 +545,14 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
           rawBody: req.rawBody
         })
       })
-      
+
       // Stop current server
       if (server) {
-        await new Promise<void>((resolve) => {
+        await new Promise<void>(resolve => {
           server.close(() => resolve())
         })
       }
-      
+
       const newPort = await Ports.nextAvailablePort(8000)
       const result = getExpressTrpcApp({
         trpcRouter,
@@ -556,16 +561,14 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [webhookRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(newPort)
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       const testData = { webhook: 'payload' }
-      const response = await request(app)
-        .post('/webhook-verify')
-        .send(testData)
-      
+      const response = await request(app).post('/webhook-verify').send(testData)
+
       const data = response.body
       expect(data.hasRawBody).toBe(true)
       expect(data.rawBody).toBe(JSON.stringify(testData))
@@ -581,7 +584,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -591,10 +594,12 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       app.get('/static/test.js', (_req, res) => {
         res.send('console.log("test");')
       })
-      
+
       const res = await request(app).get('/static/test.js')
-      
-      expect(res.headers['cache-control']).toBe('public, max-age=31536000, immutable')
+
+      expect(res.headers['cache-control']).toBe(
+        'public, max-age=31536000, immutable'
+      )
     })
   })
 
@@ -606,23 +611,27 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         environment: 'test',
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
     })
 
     it('should handle TRPC queries', async () => {
-      const res = await request(app)
-        .get('/trpc/ping?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": {} })))
-      
+      const res = await request(app).get(
+        '/trpc/ping?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': {} }))
+      )
+
       expect(res.status).toBe(200)
       expect(res.body[0].result.data).toBe('pong')
     })
 
     it('should handle TRPC query procedures', async () => {
-      const response = await request(app)
-        .get('/trpc/hello?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": { name: "World" } })))
+      const response = await request(app).get(
+        '/trpc/hello?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': { name: 'World' } }))
+      )
 
       expect(response.status).toBe(200)
       expect(Array.isArray(response.body)).toBe(true)
@@ -630,28 +639,35 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     })
 
     it('should handle TRPC mutation input validation', async () => {
-      const response = await request(app)
-        .post('/trpc/createUser?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": {} })))
+      const response = await request(app).post(
+        '/trpc/createUser?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': {} }))
+      )
 
       // This should return 400 or 415 because required fields are missing
       expect([400, 415]).toContain(response.status)
       // Content type might be different based on error response
       if (response.headers['content-type']) {
-        expect(['application/json', 'text/plain'].some(type => 
-          response.headers['content-type'].includes(type)
-        )).toBe(true)
+        expect(
+          ['application/json', 'text/plain'].some(type =>
+            response.headers['content-type'].includes(type)
+          )
+        ).toBe(true)
       }
     })
 
     it.skip('should handle TRPC context creation', async () => {
       // This test requires proper TRPC context setup which varies between test files
       const response = await request(app)
-        .get('/trpc/getContext?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": {} })))
+        .get(
+          '/trpc/getContext?batch=1&input=' +
+            encodeURIComponent(JSON.stringify({ '0': {} }))
+        )
         .set('X-Tenant-ID', 'test-tenant')
 
       expect(response.status).toBe(200)
       expect(Array.isArray(response.body)).toBe(true)
-      if (response.body[0] && response.body[0].result && response.body[0].result.data) {
+      if (response.body[0]?.result?.data) {
         expect(response.body[0].result.data.hasContext).toBe(true)
         expect(response.body[0].result.data.url).toBeDefined()
         expect(response.body[0].result.data.method).toBe('GET')
@@ -660,18 +676,22 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     })
 
     it('should handle TRPC error responses', async () => {
-      const response = await request(app)
-        .get('/trpc/protectedEndpoint?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": {} })))
-      
+      const response = await request(app).get(
+        '/trpc/protectedEndpoint?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': {} }))
+      )
+
       // tRPC errors are returned with 500 status when they're internal errors
       expect(response.status).toBe(500)
       expect(response.headers['content-type']).toContain('application/json')
     })
 
     it('should handle invalid TRPC procedures', async () => {
-      const response = await request(app)
-        .get('/trpc/nonExistentProcedure?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": {} })))
-      
+      const response = await request(app).get(
+        '/trpc/nonExistentProcedure?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': {} }))
+      )
+
       // Invalid procedures return 404
       expect(response.status).toBe(404)
       expect(response.headers['content-type']).toContain('application/json')
@@ -687,7 +707,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [expressRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -697,25 +717,25 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       app.post('/test-bad-json', (_req, res) => {
         res.json({ received: true })
       })
-      
+
       const res = await request(app)
         .post('/test-bad-json')
         .set('Content-Type', 'application/json')
         .send('invalid json{')
-      
+
       expect(res.status).toBe(400) // Bad Request for malformed JSON
     })
 
     it('should handle errors properly in production mode', async () => {
       // Stop current server
       if (server) {
-        await new Promise<void>((resolve) => {
+        await new Promise<void>(resolve => {
           server.close(() => resolve())
         })
       }
 
       process.env.NODE_ENV = 'prod'
-      
+
       const result = getExpressTrpcApp({
         trpcRouter,
         port: testPort,
@@ -723,32 +743,32 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         features: { sentry: false }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       // Add a route that throws an error
       app.get('/error-test', () => {
         throw new Error('This is a test error with sensitive information')
       })
-      
+
       const response = await request(app).get('/error-test')
-      
+
       expect(response.status).toBe(500)
       // Check the response body structure
       if (response.body.error) {
         const errorObj = response.body.error
         expect(errorObj).toBeDefined()
-        
+
         // Check for sanitized message
         const errorMessage = errorObj.message || errorObj.data?.message || ''
         expect(errorMessage).not.toContain('sensitive information')
-        
+
         // Check that stack is not exposed
         expect(errorObj.stack).toBeUndefined()
       }
-      
+
       // Reset to test mode
       process.env.NODE_ENV = 'test'
     })
@@ -762,7 +782,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         environment: 'test',
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -772,14 +792,14 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       for (let i = 0; i < 101; i++) {
         promises.push(request(app).get('/health'))
       }
-      
+
       const responses = await Promise.all(promises)
       const statuses = responses.map(r => r.status)
-      
+
       // Most should be 200, but the last ones should be 429
       expect(statuses.filter(s => s === 200).length).toBeGreaterThan(0)
       expect(statuses.filter(s => s === 429).length).toBeGreaterThan(0)
-      
+
       // Check rate limit headers on a 429 response
       const rateLimitedResponse = responses.find(r => r.status === 429)
       if (rateLimitedResponse) {
@@ -802,26 +822,26 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
           }
         }
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       // Add a test API endpoint
       app.get('/api/test', (_req, res) => {
         res.json({ message: 'ok' })
       })
-      
+
       // Make multiple requests to trigger rate limit
-      const requests = Array.from({ length: 6 }, () => 
+      const requests = Array.from({ length: 6 }, () =>
         request(app).get('/api/test')
       )
-      
+
       const responses = await Promise.all(requests)
-      
+
       // First 5 should succeed
       expect(responses.slice(0, 5).every(r => r.status === 200)).toBe(true)
-      
+
       // 6th should be rate limited
       expect(responses[5].status).toBe(429)
       expect(responses[5].body.error.code).toBe('RATE_LIMIT_EXCEEDED')
@@ -841,20 +861,20 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
           }
         }
       })
-      
+
       app = result.app
       server = app.listen(newPort)
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       // Make 11 requests to API endpoint
       const promises: Promise<any>[] = []
       for (let i = 0; i < 11; i++) {
         promises.push(request(app).get('/api/status'))
       }
-      
+
       const responses = await Promise.all(promises)
       const statuses = responses.map(r => r.status)
-      
+
       // First 10 should be successful, 11th should be rate limited
       expect(statuses.filter(s => s === 200).length).toBe(10)
       expect(statuses.filter(s => s === 429).length).toBe(1)
@@ -877,7 +897,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         customHandlers: [customHandler],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -896,7 +916,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [expressRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -916,19 +936,19 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [expressRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
 
       const testData = { message: 'test webhook', id: 123 }
-      
+
       const response = await request(app)
         .post('/webhook')
         .set('Content-Type', 'application/json')
         .set('User-Agent', 'test-agent')
         .send(testData)
-      
+
       expect(response.status).toBe(200)
       expect(response.body.received).toBe(true)
       expect(response.body.body).toEqual(testData)
@@ -946,7 +966,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         features: { openApiDocs: true },
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -966,10 +986,10 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         await new Promise(resolve => setTimeout(resolve, 5000)) // 5 second delay
         res.json({ status: 'complete' })
       })
-      
+
       // Set short timeout
       process.env.REQUEST_TIMEOUT = '1s'
-      
+
       const newPort = await Ports.nextAvailablePort(8000)
       const result = getExpressTrpcApp({
         trpcRouter,
@@ -978,14 +998,14 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [timeoutRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(newPort)
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 2000) // 2 second client timeout
-      
+
       try {
         const response = await fetch(`http://localhost:${newPort}/slow`, {
           signal: controller.signal
@@ -1010,7 +1030,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [expressRouter],
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -1018,13 +1038,15 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
     it('should respond to requests on the correct port', async () => {
       const response = await request(app).get('/health')
-      
+
       expect(response.status).toBe(200)
     })
 
     it('should handle concurrent requests', async () => {
-      const promises = Array.from({ length: 10 }, () => 
-        request(app).get('/health').then(r => r.body)
+      const promises = Array.from({ length: 10 }, () =>
+        request(app)
+          .get('/health')
+          .then(r => r.body)
       )
 
       const results = await Promise.all(promises)
@@ -1039,7 +1061,10 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       // Make multiple requests to ensure the server maintains its configuration
       const response1 = await request(app).get('/health')
       const response2 = await request(app).get('/api/status')
-      const response3 = await request(app).get('/trpc/ping?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": {} })))
+      const response3 = await request(app).get(
+        '/trpc/ping?batch=1&input=' +
+          encodeURIComponent(JSON.stringify({ '0': {} }))
+      )
 
       expect(response1.status).toBe(200)
       expect(response2.status).toBe(200)
@@ -1048,7 +1073,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
     it('should return 404 for non-existent routes', async () => {
       const response = await request(app).get('/non-existent-route')
-      
+
       expect(response.status).toBe(404)
     })
   })
@@ -1061,12 +1086,12 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         environment: 'test',
         sentryService
       })
-      
+
       app = result.app
-      
+
       // The app instance should be a function (Express application)
       expect(typeof app).toBe('function')
-      
+
       // Express app should have the expected methods
       expect(typeof app.use).toBe('function')
       expect(typeof app.get).toBe('function')
@@ -1074,7 +1099,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       expect(typeof app.listen).toBe('function')
       expect(typeof app.set).toBe('function')
       expect(typeof app.disable).toBe('function')
-      
+
       // Should have Express-specific properties
       expect(app.settings).toBeDefined()
       expect(typeof app.settings).toBe('object')
@@ -1089,7 +1114,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         environment: 'test',
         sentryService
       })
-      
+
       app = result.app
       server = app.listen(testPort)
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -1098,12 +1123,15 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     it.skip('should trust proxy headers', async () => {
       // This test requires proper TRPC context setup
       const response = await request(app)
-        .get('/trpc/getContext?batch=1&input=' + encodeURIComponent(JSON.stringify({ "0": {} })))
+        .get(
+          '/trpc/getContext?batch=1&input=' +
+            encodeURIComponent(JSON.stringify({ '0': {} }))
+        )
         .set('X-Forwarded-For', '203.0.113.195')
         .set('X-Forwarded-Proto', 'https')
-      
+
       const data = response.body
-      if (data[0] && data[0].result && data[0].result.data) {
+      if (data[0]?.result?.data) {
         expect(data[0].result.data.ip).toBeDefined()
       }
     })

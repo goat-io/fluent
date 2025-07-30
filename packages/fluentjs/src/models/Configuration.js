@@ -1,6 +1,6 @@
+import dayjs from 'dayjs'
 import { Fluent } from '../fluent'
 import Utilities from '../utilities'
-import dayjs from 'dayjs'
 // TODO We still have to figure out how to solve the problem of
 // The CONFIG URL and FLUENT_URL changing on APP sync
 // Every page refresh will make the urls go back to their default
@@ -32,10 +32,10 @@ export default Fluent.model({
      * @param {*} param0
      */
     async setOffline({ appConf }) {
-      let localConfig = await this.local().first()
+      const localConfig = await this.local().first()
 
-      let localConfigDate = this.getConfigDate(localConfig)
-      let offlineConfigDate = appConf.offlineFiles.lastUpdated.date
+      const localConfigDate = this.getConfigDate(localConfig)
+      const offlineConfigDate = appConf.offlineFiles.lastUpdated.date
 
       // If local config is newer than offline
       if (localConfigDate > offlineConfigDate) {
@@ -55,10 +55,10 @@ export default Fluent.model({
      *
      * @param {*} param0
      */
-    async setOnline({ appConf }) {
-      let localConfig = await this.local().first()
+    async setOnline() {
+      const localConfig = await this.local().first()
 
-      let remoteConfig = await this.remote().first()
+      const remoteConfig = await this.remote().first()
 
       if (!localConfig && !remoteConfig) {
         throw new Error(

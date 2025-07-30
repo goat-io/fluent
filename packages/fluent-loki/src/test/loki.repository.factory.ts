@@ -1,15 +1,18 @@
-import { LokiConnector } from '../LokiConnector'
-import { 
-  GoatEntity, 
-  TypeOrmEntity,
-  GoatSchema,
+import {
+  GoatEntity,
   GoatInputSchema,
+  GoatSchema,
+  TypeORMDataModelInputSchema,
   TypeORMDataModelSchema,
-  TypeORMDataModelInputSchema
+  TypeOrmEntity
 } from '@goatlab/fluent'
+import { LokiConnector } from '../LokiConnector'
 import { lokiDataSource } from './loki.datasource'
 
-export class LokiGoatRepositoryFactory extends LokiConnector<GoatEntity, GoatInputSchema> {
+export class LokiGoatRepositoryFactory extends LokiConnector<
+  GoatEntity,
+  GoatInputSchema
+> {
   constructor() {
     super({
       entity: GoatEntity,
@@ -19,7 +22,10 @@ export class LokiGoatRepositoryFactory extends LokiConnector<GoatEntity, GoatInp
   }
 }
 
-export class LokiTypeOrmRepositoryFactory extends LokiConnector<TypeOrmEntity, TypeORMDataModelInputSchema> {
+export class LokiTypeOrmRepositoryFactory extends LokiConnector<
+  TypeOrmEntity,
+  TypeORMDataModelInputSchema
+> {
   constructor() {
     super({
       entity: TypeOrmEntity,

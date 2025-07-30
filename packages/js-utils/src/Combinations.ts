@@ -17,52 +17,135 @@ export const version = '1.4.2'
  *
  * https://github.com/streamich/memfs/issues/275
  */
-type anyint = number | bigint
+type Anyint = number | bigint
 /**
  * Optional<T> will not be official so
  * @link: https://github.com/microsoft/TypeScript/issues/19944
  */
 type Optional<T> = T | undefined
 // type BigInt = number;
-declare const BigInt: typeof Number
-const _BI: typeof Number = typeof BigInt == 'function' ? BigInt : Number
+declare const BigIntPolyfill: typeof Number
+const Bi = typeof BigInt === 'function' ? BigInt : Number
 /**
  * crops BigInt
  */
-const _crop = (n: anyint): anyint =>
-  n <= Number.MAX_SAFE_INTEGER ? Number(n) : _BI(n)
+const Crop = (n: Anyint): Anyint =>
+  n <= Number.MAX_SAFE_INTEGER ? Number(n) : Bi(n)
+
+/**
+ * Safe arithmetic operations for mixed number/bigint types
+ */
+const SafeArith = {
+  multiply: (a: Anyint, b: Anyint): Anyint => {
+    const aVal = Bi(a)
+    const bVal = Bi(b)
+    if (typeof aVal === 'bigint' || typeof bVal === 'bigint') {
+      return (aVal as bigint) * (bVal as bigint)
+    }
+    return (aVal as number) * (bVal as number)
+  },
+
+  divide: (a: Anyint, b: Anyint): Anyint => {
+    const aVal = Bi(a)
+    const bVal = Bi(b)
+    if (typeof aVal === 'bigint' || typeof bVal === 'bigint') {
+      return (aVal as bigint) / (bVal as bigint)
+    }
+    return (aVal as number) / (bVal as number)
+  },
+
+  modulo: (a: Anyint, b: Anyint): Anyint => {
+    const aVal = Bi(a)
+    const bVal = Bi(b)
+    if (typeof aVal === 'bigint' || typeof bVal === 'bigint') {
+      return (aVal as bigint) % (bVal as bigint)
+    }
+    return (aVal as number) % (bVal as number)
+  },
+
+  subtract: (a: Anyint, b: Anyint): Anyint => {
+    const aVal = Bi(a)
+    const bVal = Bi(b)
+    if (typeof aVal === 'bigint' || typeof bVal === 'bigint') {
+      return (aVal as bigint) - (bVal as bigint)
+    }
+    return (aVal as number) - (bVal as number)
+  },
+
+  shiftLeft: (a: Anyint, b: Anyint): Anyint => {
+    const aVal = Bi(a)
+    const bVal = Bi(b)
+    if (typeof aVal === 'bigint' || typeof bVal === 'bigint') {
+      return (aVal as bigint) << (bVal as bigint)
+    }
+    return (aVal as number) << (bVal as number)
+  },
+
+  shiftRight: (a: Anyint, b: Anyint): Anyint => {
+    const aVal = Bi(a)
+    const bVal = Bi(b)
+    if (typeof aVal === 'bigint' || typeof bVal === 'bigint') {
+      return (aVal as bigint) >> (bVal as bigint)
+    }
+    return (aVal as number) >> (bVal as number)
+  },
+
+  bitwiseAnd: (a: Anyint, b: Anyint): Anyint => {
+    const aVal = Bi(a)
+    const bVal = Bi(b)
+    if (typeof aVal === 'bigint' || typeof bVal === 'bigint') {
+      return (aVal as bigint) & (bVal as bigint)
+    }
+    return (aVal as number) & (bVal as number)
+  }
+}
 /**
  * calculates `P(n, k)`.
  *
  * @link https://en.wikipedia.org/wiki/Permutation
  */
-export function permutation(n: anyint, k: anyint) {
-  if (0 == k) return 1
-  if (n < k) return 0
-  ;[n, k] = [_BI(n), _BI(k)]
-  let p = _BI(1)
-  while (k--) p *= n--
-  return _crop(p)
+export function permutation(n: Anyint, k: Anyint) {
+  if (0 === k) {
+    return 1
+  }
+  if (n < k) {
+    return 0
+  }
+  let nBi = Bi(n)
+  let kBi = Bi(k)
+  let p = Bi(1)
+  while (kBi > 0) {
+    p = SafeArith.multiply(p, nBi)
+    nBi = typeof nBi === 'bigint' ? nBi - 1n : nBi - 1
+    kBi = typeof kBi === 'bigint' ? kBi - 1n : kBi - 1
+  }
+  return Crop(p)
 }
 /**
  * calculates `C(n, k)`.
  *
  * @link https://en.wikipedia.org/wiki/Combination
  */
-export function combination(n: anyint, k: anyint) {
-  if (0 == k) return 1
-  if (n == k) return 1
-  if (n < k) return 0
+export function combination(n: Anyint, k: Anyint) {
+  if (0 === k) {
+    return 1
+  }
+  if (n === k) {
+    return 1
+  }
+  if (n < k) {
+    return 0
+  }
   const P = permutation
-  const c = _BI(P(n, k)) / _BI(P(k, k))
-  return _crop(c)
+  const c = SafeArith.divide(Bi(P(n, k)), Bi(P(k, k)))
+  return Crop(c)
 }
 /**
  * calculates `n!` === `P(n, n)`.
  *
  * @link https://en.wikipedia.org/wiki/Factorial
  */
-export function factorial(n: anyint) {
+export function factorial(n: Anyint) {
   return permutation(n, n)
 }
 /**
@@ -71,19 +154,31 @@ export function factorial(n: anyint) {
  * @link https://en.wikipedia.org/wiki/Factorial_number_system
  * @param {number} l the number of digits
  */
-export function factoradic(n: anyint, l = 0) {
-  if (n < 0) return undefined
-  let [bn, bf] = [_BI(n), _BI(1)]
-  if (!l) {
-    for (l = 1; bf < bn; bf *= _BI(++l));
-    if (bn < bf) bf /= _BI(l--)
-  } else {
-    bf = _BI(factorial(l))
+export function factoradic(n: Anyint, l = 0) {
+  if (n < 0) {
+    return undefined
   }
-  let digits = [0]
-  for (; l; bf /= _BI(l--)) {
-    digits[l] = Math.floor(Number(bn / bf))
-    bn %= bf
+  let [bn, bf] = [Bi(n), Bi(1)]
+  let length = l
+  if (!length) {
+    for (
+      length = 1;
+      bf < bn;
+      length++, bf = SafeArith.multiply(bf, Bi(length))
+    ) {
+      // Intentionally empty - loop is used to calculate length
+    }
+    if (bn < bf) {
+      length--
+      bf = SafeArith.divide(bf, Bi(length))
+    }
+  } else {
+    bf = Bi(factorial(length))
+  }
+  const digits = [0]
+  for (; length; length--, bf = SafeArith.divide(bf, Bi(length))) {
+    digits[length] = Math.floor(Number(SafeArith.divide(bn, bf)))
+    bn = SafeArith.modulo(bn, bf)
   }
   return digits
 }
@@ -96,18 +191,20 @@ export function factoradic(n: anyint, l = 0) {
  */
 export function combinadic(n: number, k: number) {
   const count = combination(n, k)
-  return (m: anyint): number[] => {
+  return (m: Anyint): number[] => {
     if (m < 0 || count <= m) {
       throw new Error('Uneven number of elements')
     }
-    let digits = []
+    const digits = []
     let [a, b] = [n, k]
-    let x = _BI(count) - _BI(1) - _BI(m)
+    let x = SafeArith.subtract(SafeArith.subtract(Bi(count), Bi(1)), Bi(m))
     for (let i = 0; i < k; i++) {
       a--
-      while (x < combination(a, b)) a--
+      while (x < combination(a, b)) {
+        a--
+      }
       digits.push(n - 1 - a)
-      x -= _BI(combination(a, b))
+      x = SafeArith.subtract(x, Bi(combination(a, b)))
       b--
     }
     return digits
@@ -116,13 +213,13 @@ export function combinadic(n: number, k: number) {
 /**
  *
  */
-const _crypto: any = typeof crypto !== 'undefined' ? crypto : {}
-const _randomBytes: (len: number) => Uint8Array =
-  typeof _crypto['randomBytes'] === 'function'
-    ? (len: number) => Uint8Array.from(_crypto['randomBytes'](len))
-    : typeof _crypto['getRandomValues'] === 'function'
-    ? (len: number) => _crypto['getRandomValues'](new Uint8Array(len))
-    : (len: number) => Uint8Array.from(Array(len), () => Math.random() * 256)
+const Crypto: any = typeof crypto !== 'undefined' ? crypto : {}
+const RandomBytes: (len: number) => Uint8Array =
+  typeof Crypto.randomBytes === 'function'
+    ? (len: number) => Uint8Array.from(Crypto.randomBytes(len))
+    : typeof Crypto.getRandomValues === 'function'
+      ? (len: number) => Crypto.getRandomValues(new Uint8Array(len))
+      : (len: number) => Uint8Array.from(Array(len), () => Math.random() * 256)
 /**
  * returns random integer `n` where `min` <= `n` < `max`:
  *
@@ -131,35 +228,37 @@ const _randomBytes: (len: number) => Uint8Array =
  * @param {anyint} min
  * @param {anyint} max
  */
-export function randomInteger(min: anyint = 0, max: anyint = Math.pow(2, 53)) {
-  let ctor = min.constructor
-  if (arguments.length === 0) {
+export function randomInteger(...args: [min?: Anyint, max?: Anyint]) {
+  let min: Anyint = args[0] ?? 0
+  let max: Anyint = args[1] ?? 2 ** 53
+  const ctor = min.constructor
+  if (args.length === 0) {
     return Math.floor(Math.random() * ctor(max))
   }
-  if (arguments.length == 1) {
+  if (args.length === 1) {
     ;[min, max] = [ctor(0), min]
   }
-  if (typeof min == 'number') {
+  if (typeof min === 'number') {
     // number
     ;[min, max] = [Math.ceil(Number(min)), Math.ceil(Number(max))]
     return Math.floor(Math.random() * (max - min)) + min
   }
   const mag = ctor(max) - ctor(min)
   const len = mag.toString(16).length
-  const u8s = _randomBytes(len)
+  const u8s = RandomBytes(len)
   const rnd = u8s.reduce((a, v) => (a << ctor(8)) + ctor(v), ctor(0))
   return ((ctor(rnd) * mag) >> ctor(len * 8)) + ctor(min)
 }
 /**
  * Base Class of `js-combinatorics`
  */
-class _CBase {
+class CBase {
   /**
    * does `new`
    * @param args
    */
   static of(...args: any[]): unknown {
-    return new (Function.prototype.bind.apply(this, [null, ...args]))()
+    return new (Function.prototype.bind.apply(CBase, [null, ...args]))()
   }
   /**
    * Same as `of` but takes a single array `arg`
@@ -167,14 +266,16 @@ class _CBase {
    * cf. https://stackoverflow.com/questions/1606797/use-of-apply-with-new-operator-is-this-possible
    */
   static from(arg: any[]): unknown {
-    return new (Function.prototype.bind.apply(this, [null, ...arg]))()
+    return new (Function.prototype.bind.apply(CBase, [null, ...arg]))()
   }
   /**
    * Common iterator
    */
   [Symbol.iterator]() {
     return (function* (it, len) {
-      for (let i = 0; i < len; i++) yield it.nth(i)
+      for (let i = 0; i < len; i++) {
+        yield it.nth(i)
+      }
     })(this, this.length)
   }
   /**
@@ -198,36 +299,37 @@ class _CBase {
   get isSafe() {
     return typeof BigInt !== 'undefined' || !this.isBig
   }
-  /**
-   * check n for nth
-   */
-  _check(n: anyint): Optional<anyint> {
-    if (n < 0) {
-      if (this.length < -n) return undefined
-      return _crop(_BI(this.length) + _BI(n))
-    }
-    if (this.length <= n) return undefined
-    return n
-  }
-  nth(n: anyint): Optional<any[]> {
+  nth(_n: Anyint): Optional<any[]> {
     return []
   }
   seed: any[]
   size: number
-  length: anyint
+  length: Anyint
+  /**
+   * Checks if the given index is within bounds
+   */
+  check(n: Anyint): Optional<number> {
+    const validN = Number(n)
+    if (validN < 0 || validN >= Number(this.length)) {
+      return undefined
+    }
+    return validN
+  }
   sample(): Optional<any[]> {
     return this.nth(randomInteger(this.length))
   }
   samples() {
     return (function* (it) {
-      while (true) yield it.sample()
+      while (true) {
+        yield it.sample()
+      }
     })(this)
   }
 }
 /**
  * Permutation
  */
-export class Permutation extends _CBase {
+export class Permutation extends CBase {
   constructor(seed: Iterable<any>, size = 0) {
     super()
     this.seed = [...seed]
@@ -235,16 +337,23 @@ export class Permutation extends _CBase {
     this.length = permutation(this.seed.length, this.size)
     Object.freeze(this)
   }
-  nth(n: anyint): Optional<any[]> {
-    const checked = this._check(n)
-    if (checked === undefined) return undefined
-    n = checked
+  nth(n: Anyint): Optional<any[]> {
+    const checked = this.check(n)
+    if (checked === undefined) {
+      return undefined
+    }
+    const validN = checked
     const offset = this.seed.length - this.size
     const skip = factorial(offset)
-    let digits = factoradic(_BI(n) * _BI(skip), this.seed.length)
-    if (!digits) return undefined
-    let source = this.seed.slice()
-    let result = []
+    const digits = factoradic(
+      SafeArith.multiply(Bi(validN), Bi(skip)),
+      this.seed.length
+    )
+    if (!digits) {
+      return undefined
+    }
+    const source = this.seed.slice()
+    const result = []
     for (let i = this.seed.length - 1; offset <= i; i--) {
       const index = digits[i]
       if (typeof index === 'number') {
@@ -257,8 +366,8 @@ export class Permutation extends _CBase {
 /**
  * Combination
  */
-export class Combination extends _CBase {
-  comb: (index: anyint) => number[]
+export class Combination extends CBase {
+  comb: (index: Anyint) => number[]
   constructor(seed: Iterable<any>, size = 0) {
     super()
     this.seed = [...seed]
@@ -267,45 +376,49 @@ export class Combination extends _CBase {
     this.comb = combinadic(this.seed.length, this.size)
     Object.freeze(this)
   }
-  nth(n: anyint): Optional<any[]> {
-    const checked = this._check(n)
-    if (checked === undefined) return undefined
-    n = checked
-    return this.comb(n).reduce((a, v) => a.concat(this.seed[v]), [])
+  nth(n: Anyint): Optional<any[]> {
+    const checked = this.check(n)
+    if (checked === undefined) {
+      return undefined
+    }
+    const validN = checked
+    return this.comb(validN).reduce((a, v) => a.concat(this.seed[v]), [])
   }
 }
 /**
  * Base N
  */
-export class BaseN extends _CBase {
+export class BaseN extends CBase {
   base: number
   constructor(seed: Iterable<any>, size = 1) {
     super()
     this.seed = [...seed]
     this.size = size
-    let base = this.seed.length
+    const base = this.seed.length
     this.base = base
-    let length =
+    const length =
       size < 1
         ? 0
         : Array(size)
-            .fill(_BI(base))
+            .fill(Bi(base))
             .reduce((a, v) => a * v)
-    this.length = _crop(length)
+    this.length = Crop(length)
     Object.freeze(this)
   }
-  nth(n: anyint): Optional<any[]> {
-    const checked = this._check(n)
-    if (checked === undefined) return undefined
-    n = checked
-    let bn = _BI(n)
-    const bb = _BI(this.base)
-    let result = []
+  nth(n: Anyint): Optional<any[]> {
+    const checked = this.check(n)
+    if (checked === undefined) {
+      return undefined
+    }
+    const validN = checked
+    let bn = Bi(validN)
+    const bb = Bi(this.base)
+    const result = []
     for (let i = 0; i < this.size; i++) {
-      var bd = bn % bb
+      const bd = SafeArith.modulo(bn, bb)
       result.push(this.seed[Number(bd)])
-      bn -= bd
-      bn /= bb
+      bn = SafeArith.subtract(bn, bd)
+      bn = SafeArith.divide(bn, bb)
     }
     return result
   }
@@ -313,50 +426,65 @@ export class BaseN extends _CBase {
 /**
  * Power Set
  */
-export class PowerSet extends _CBase {
+export class PowerSet extends CBase {
   constructor(seed: Iterable<any>) {
     super()
     this.seed = [...seed]
-    const length = _BI(1) << _BI(this.seed.length)
-    this.length = _crop(length)
+    const length = SafeArith.shiftLeft(Bi(1), Bi(this.seed.length))
+    this.length = Crop(length)
     Object.freeze(this)
   }
-  nth(n: anyint): Optional<any[]> {
-    const checked = this._check(n)
-    if (checked === undefined) return undefined
-    n = checked
-    let bn = _BI(n)
-    let result = []
-    for (let bi = _BI(0); bn; bn >>= _BI(1), bi++)
-      if (bn & _BI(1)) result.push(this.seed[Number(bi)])
+  nth(n: Anyint): Optional<any[]> {
+    const checked = this.check(n)
+    if (checked === undefined) {
+      return undefined
+    }
+    const validN = checked
+    let bn = Bi(validN)
+    const result = []
+    for (
+      let bi = Bi(0);
+      bn;
+      bn = SafeArith.shiftRight(bn, Bi(1)),
+        bi = typeof bi === 'bigint' ? bi + 1n : bi + 1
+    ) {
+      if (SafeArith.bitwiseAnd(bn, Bi(1))) {
+        result.push(this.seed[Number(bi)])
+      }
+    }
     return result
   }
 }
 /**
  * Cartesian Product
  */
-export class CartesianProduct extends _CBase {
+export class CartesianProduct extends CBase {
   constructor(...args: Iterable<any>[]) {
     super()
     this.seed = args.map(v => [...v])
     this.size = this.seed.length
-    const length = this.seed.reduce((a, v) => a * _BI(v.length), _BI(1))
-    this.length = _crop(length)
+    const length = this.seed.reduce(
+      (a, v) => SafeArith.multiply(a, Bi(v.length)),
+      Bi(1)
+    )
+    this.length = Crop(length)
     Object.freeze(this)
   }
-  nth(n: anyint): Optional<any[]> {
-    const checked = this._check(n)
-    if (checked === undefined) return undefined
-    n = checked
-    let bn = _BI(n)
-    let result = []
+  nth(n: Anyint): Optional<any[]> {
+    const checked = this.check(n)
+    if (checked === undefined) {
+      return undefined
+    }
+    const validN = checked
+    let bn = Bi(validN)
+    const result = []
     for (let i = 0; i < this.size; i++) {
       const base = this.seed[i].length
-      const bb = _BI(base)
-      const bd = bn % bb
+      const bb = Bi(base)
+      const bd = SafeArith.modulo(bn, bb)
       result.push(this.seed[i][Number(bd)])
-      bn -= bd
-      bn /= bb
+      bn = SafeArith.subtract(bn, bd)
+      bn = SafeArith.divide(bn, bb)
     }
     return result
   }

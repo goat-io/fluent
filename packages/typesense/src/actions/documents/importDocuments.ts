@@ -1,14 +1,14 @@
-import { Readable } from 'stream'
-import type { 
-  TypesenseDocument, 
-  TypesenseImportResult, 
-  TypesenseImportFormat,
-  TypesenseImportOptions,
-  TypesenseCollectionOptions 
-} from '../../typesense.model'
-import { TypesenseError } from '../../typesense.model'
+import { Readable } from 'node:stream'
 import { ExportFormatter } from '../../components/export-formatter'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseDocument,
+  TypesenseImportFormat,
+  TypesenseImportOptions,
+  TypesenseImportResult
+} from '../../typesense.model'
+import { TypesenseError } from '../../typesense.model'
 
 export async function importDocuments<T extends Record<string, any>>(
   ctx: TypesenseContext,
@@ -31,10 +31,13 @@ export async function importDocuments<T extends Record<string, any>>(
   } else if (typeof documents === 'string') {
     if (format === 'csv') {
       throw new TypesenseError('CSV import requires conversion', 400)
-    } else if (format === 'json') {
+    }
+    if (format === 'json') {
       // Convert JSON array string to JSONL
       const parsedDocuments = JSON.parse(documents)
-      const jsonlData = parsedDocuments.map((doc: any) => JSON.stringify(doc)).join('\n')
+      const jsonlData = parsedDocuments
+        .map((doc: any) => JSON.stringify(doc))
+        .join('\n')
       bodyStream = Readable.from([jsonlData])
     } else {
       // Assume it's already JSONL
@@ -61,7 +64,7 @@ export async function importDocuments<T extends Record<string, any>>(
       method: 'POST',
       body: bodyStream,
       searchParams,
-      timeout: ctx.httpClient['options'].importTimeout
+      timeout: ctx.httpClient.importTimeout
     }
   )
 

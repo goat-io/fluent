@@ -1,23 +1,23 @@
-import Connection from '../../Wrappers/Connection'
+import to from 'await-to-js'
+import Form from '../../models/Form'
 import Submission from '../../models/Submission'
+import Connection from '../../Wrappers/Connection'
 import Event from '../../Wrappers/Event'
 import Scheduler from '../Database/Scheduler'
-import Form from '../../models/Form'
-import to from 'await-to-js'
 
-let OfflineData = (() => {
+const OfflineData = (() => {
   const sendSubmission = async offlineSubmission => {
-    let remoteEndPoint = Form.getModel({
+    const remoteEndPoint = Form.getModel({
       path: offlineSubmission.path
     }).remote()
 
     offlineSubmission.queuedForSync = true
-    let sub = Submission(offlineSubmission.path)
+    const sub = Submission(offlineSubmission.path)
 
     // Set the submission as queuedForSync
     await sub.local().update(offlineSubmission)
 
-    let [error, insertedData] = await to(
+    const [error, insertedData] = await to(
       remoteEndPoint.insert(offlineSubmission)
     )
 
@@ -34,7 +34,7 @@ let OfflineData = (() => {
       )
     }
 
-    let [e] = await to(sub.local().remove(offlineSubmission._id))
+    const [e] = await to(sub.local().remove(offlineSubmission._id))
 
     if (e) {
       throw new Error('Sync error:Could not remove local submission after sync')
@@ -43,17 +43,19 @@ let OfflineData = (() => {
   }
 
   async function send(data) {
-    let offlineSubmissions = data
-    let isOnline = await Connection.isOnline()
+    const offlineSubmissions = data
+    const isOnline = await Connection.isOnline()
 
-    let PromiseEach = async function (arr, fn) {
-      for (const item of arr) await fn(item)
+    const PromiseEach = async (arr, fn) => {
+      for (const item of arr) {
+        await fn(item)
+      }
     }
 
     if (isOnline) {
       await Scheduler.startSync()
 
-      let [error] = await to(
+      const [error] = await to(
         PromiseEach(offlineSubmissions, async offlineSubmission => {
           await sendSubmission(offlineSubmission)
         })

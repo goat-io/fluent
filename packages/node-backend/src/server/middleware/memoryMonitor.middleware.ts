@@ -1,8 +1,8 @@
 // npx vitest run ./src/server/middleware/memoryMonitor.middleware.test.ts
 
-import type { Request, Response, NextFunction } from 'express'
 import { CommonLogger } from '@goatlab/js-utils'
-import { yellow, red } from 'kleur/colors'
+import type { NextFunction, Request, Response } from 'express'
+import { red, yellow } from 'kleur/colors'
 
 interface MemoryMonitorOptions {
   logger?: CommonLogger
@@ -39,12 +39,14 @@ class MemoryMonitor {
     this.monitorInterval = options.monitorInterval || 30000 // 30 seconds default
     this.enableGarbageCollection = options.enableGarbageCollection !== false
     this.addHeaders = options.addHeaders !== false
-    
+
     // Check if garbage collection is available
     this.gcAvailable = typeof global.gc === 'function'
-    
+
     if (this.enableGarbageCollection && !this.gcAvailable) {
-      this.logger.warn('Garbage collection is not available. Run node with --expose-gc flag to enable.')
+      this.logger.warn(
+        'Garbage collection is not available. Run node with --expose-gc flag to enable.'
+      )
     }
   }
 
@@ -70,17 +72,21 @@ class MemoryMonitor {
 
   private checkMemoryUsage(metrics: MemoryMetrics): void {
     const { heapUsedPercentage } = metrics
-    
+
     if (heapUsedPercentage >= this.criticalThreshold) {
       this.logger.error(
-        red(`CRITICAL: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`)
+        red(
+          `CRITICAL: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`
+        )
       )
-      
+
       // Attempt garbage collection if available and enabled
       if (this.enableGarbageCollection && this.gcAvailable) {
-        this.logger.warn('Triggering garbage collection due to critical memory usage')
+        this.logger.warn(
+          'Triggering garbage collection due to critical memory usage'
+        )
         global.gc!()
-        
+
         // Log memory after GC
         setTimeout(() => {
           const afterGcMetrics = this.getMemoryMetrics()
@@ -91,7 +97,9 @@ class MemoryMonitor {
       }
     } else if (heapUsedPercentage >= this.warningThreshold) {
       this.logger.warn(
-        yellow(`WARNING: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`)
+        yellow(
+          `WARNING: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`
+        )
       )
     }
   }
@@ -103,8 +111,10 @@ class MemoryMonitor {
 
     // Initial check
     const initialMetrics = this.getMemoryMetrics()
-    this.logger.log(`Memory monitoring started - ${this.formatMemoryMetrics(initialMetrics)}`)
-    
+    this.logger.log(
+      `Memory monitoring started - ${this.formatMemoryMetrics(initialMetrics)}`
+    )
+
     this.intervalTimer = setInterval(() => {
       const metrics = this.getMemoryMetrics()
       this.lastMetrics = metrics
@@ -132,7 +142,10 @@ class MemoryMonitor {
       if (this.addHeaders) {
         res.setHeader('X-Memory-Heap-Used-MB', metrics.heapUsedMB.toFixed(2))
         res.setHeader('X-Memory-Heap-Total-MB', metrics.heapTotalMB.toFixed(2))
-        res.setHeader('X-Memory-Heap-Used-Percent', metrics.heapUsedPercentage.toFixed(1))
+        res.setHeader(
+          'X-Memory-Heap-Used-Percent',
+          metrics.heapUsedPercentage.toFixed(1)
+        )
         res.setHeader('X-Memory-RSS-MB', metrics.rssMB.toFixed(2))
       }
 
@@ -157,22 +170,22 @@ export function createMemoryMonitorMiddleware(options?: MemoryMonitorOptions): {
   monitor: MemoryMonitor
 } {
   const monitor = new MemoryMonitor(options)
-  
+
   // Start background monitoring
   monitor.startMonitoring()
-  
+
   // Handle graceful shutdown - only add listeners once globally
   if (!processListenersAdded && process.env.NODE_ENV !== 'test') {
     processListenersAdded = true
-    
+
     const cleanup = () => {
       monitor.stopMonitoring()
     }
-    
+
     process.once('SIGTERM', cleanup)
     process.once('SIGINT', cleanup)
   }
-  
+
   return {
     middleware: monitor.middleware(),
     monitor

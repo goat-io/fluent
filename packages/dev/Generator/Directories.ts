@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync } from 'fs'
-import { join } from 'path'
-import { GoatModel } from '../../../../fluent-formio/src/Formio/types/GoatModel'
+import { existsSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { SupportedFrameworks } from '../../../../fluent-formio/src/Formio/parser/parse'
+import { GoatModel } from '../../../../fluent-formio/src/Formio/types/GoatModel'
 
 export const Directories = (
   Model: GoatModel,

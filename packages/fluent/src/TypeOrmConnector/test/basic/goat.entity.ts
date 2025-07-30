@@ -1,6 +1,5 @@
-import { ObjectType } from '../../../core/types'
-import { f } from '../../../decorators'
 import { z } from 'zod'
+import { f } from '../../../decorators'
 
 // tslint:disable-next-line: max-classes-per-file
 @f.entity('goat')
@@ -43,34 +42,44 @@ export const GoatSchema = z.object({
   type: z.string().optional(),
   active: z.boolean().optional(),
   weight: z.number().optional(),
-  balance: z.object({
-    id: z.number(),
-    value: z.number()
-  }).optional(),
-  breed: z.object({
-    type: z.string(),
-    family: z.string()
-  }).optional(),
-  created: z.union([z.date(), z.string()]).nullable().optional().transform((val) => {
-    if (val === null || val === undefined) {
+  balance: z
+    .object({
+      id: z.number(),
+      value: z.number()
+    })
+    .optional(),
+  breed: z
+    .object({
+      type: z.string(),
+      family: z.string()
+    })
+    .optional(),
+  created: z
+    .union([z.date(), z.string()])
+    .nullable()
+    .optional()
+    .transform(val => {
+      if (val === null || val === undefined) {
+        return val
+      }
+      if (typeof val === 'string') {
+        return new Date(val)
+      }
       return val
-    }
-    if (typeof val === 'string') {
-      return new Date(val)
-    }
-    return val
-  }),
-  updated: z.union([z.date(), z.string()]).nullable().optional().transform((val) => {
-    if (val === null || val === undefined) {
+    }),
+  updated: z
+    .union([z.date(), z.string()])
+    .nullable()
+    .optional()
+    .transform(val => {
+      if (val === null || val === undefined) {
+        return val
+      }
+      if (typeof val === 'string') {
+        return new Date(val)
+      }
       return val
-    }
-    if (typeof val === 'string') {
-      return new Date(val)
-    }
-    return val
-  })
+    })
 })
 
 export type GoatInputSchema = z.infer<typeof GoatSchema>
-
-

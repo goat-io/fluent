@@ -6,7 +6,7 @@ export type {
   JobDescription,
   Repeat,
   RepeatEvery,
-  TimeZones,
+  Scheduler,
   Schedulers,
-  Scheduler
+  TimeZones
 } from './types/job'

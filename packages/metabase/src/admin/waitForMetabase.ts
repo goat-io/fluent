@@ -1,4 +1,4 @@
-import { setTimeout } from 'timers/promises'
+import { setTimeout } from 'node:timers/promises'
 
 /**
  * Waits for Metabase instance to be ready by polling the session properties endpoint
@@ -20,7 +20,6 @@ export async function waitForMetabase(
     timeoutMs = maxRetries * retryDelayMs
   } = options
 
-
   const startTime = Date.now()
   let attempts = 0
 
@@ -32,7 +31,7 @@ export async function waitForMetabase(
 
       const res = await fetch(`${baseUrl}/api/session/properties`, {
         method: 'GET',
-        signal: controller.signal,
+        signal: controller.signal
       })
 
       global.clearTimeout(requestTimeout)
@@ -40,13 +39,12 @@ export async function waitForMetabase(
       if (res.ok) {
         return
       }
-
-    } catch (error) {
+    } catch (_error) {
       // Continue retrying silently
     }
 
     attempts++
-    
+
     // Check if we've exceeded the timeout
     if (Date.now() - startTime > timeoutMs) {
       throw new Error(

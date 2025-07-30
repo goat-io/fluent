@@ -1,27 +1,27 @@
 import { AnyObject } from '@goatlab/js-utils'
-import { verify as verifyAsync, sign } from 'jsonwebtoken'
-import type { VerifyOptions, SignOptions } from 'jsonwebtoken'
+import type { SignOptions, VerifyOptions } from 'jsonwebtoken'
+import { sign, verify as verifyAsync } from 'jsonwebtoken'
 
-enum algorithms {
-  'HS256' = 'HS256',
-  'HS384' = 'HS384',
-  'HS512' = 'HS512',
-  'RS256' = 'RS256',
-  'RS384' = 'RS384',
-  'RS512' = 'RS512',
-  'PS256' = 'PS256',
-  'PS384' = 'PS384',
-  'PS512' = 'PS512',
-  'ES256' = 'ES256',
-  'ES384' = 'ES384',
-  'ES512' = 'ES512'
+enum Algorithms {
+  Hs256 = 'HS256',
+  Hs384 = 'HS384',
+  Hs512 = 'HS512',
+  Rs256 = 'RS256',
+  Rs384 = 'RS384',
+  Rs512 = 'RS512',
+  Ps256 = 'PS256',
+  Ps384 = 'PS384',
+  Ps512 = 'PS512',
+  Es256 = 'ES256',
+  Es384 = 'ES384',
+  Es512 = 'ES512'
 }
 
 // tslint:disable-next-line: interface-name
 export interface JwtOptions {
   secret: string
   expiresIn?: string
-  algorithm?: algorithms
+  algorithm?: Algorithms
 }
 
 export const Jwt = (() => {
@@ -52,11 +52,10 @@ export const Jwt = (() => {
     payload: AnyObject,
     jwtOptions: SignOptions & { secret: string }
   ): Promise<string> => {
-    const secret = jwtOptions.secret
-    delete jwtOptions.secret
+    const { secret, ...restOptions } = jwtOptions
     return await sign(payload, secret, {
-      algorithm: jwtOptions.algorithm || algorithms.HS256,
-      ...jwtOptions
+      algorithm: restOptions.algorithm || Algorithms.Hs256,
+      ...restOptions
     })
   }
 

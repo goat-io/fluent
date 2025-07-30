@@ -5,7 +5,7 @@ import type { Reviver } from '../types'
  *
  * Based on: https://github.com/moll/json-stringify-safe/
  */
-export function _safeJsonStringify(
+export function safeJsonStringify(
   obj: any,
   replacer?: Reviver,
   spaces?: number,
@@ -26,27 +26,33 @@ function serializer(replacer?: Reviver, cycleReplacer?: Reviver): Reviver {
   const stack: any[] = []
   const keys: string[] = []
 
-  if (cycleReplacer == null) {
-    cycleReplacer = function (key, value) {
-      if (stack[0] === value) return '[Circular ~]'
-      return (
-        '[Circular ~.' + keys.slice(0, stack.indexOf(value)).join('.') + ']'
-      )
-    }
-  }
+  const actualCycleReplacer =
+    cycleReplacer ??
+    ((_key, value) => {
+      if (stack[0] === value) {
+        return '[Circular ~]'
+      }
+      return `[Circular ~.${keys.slice(0, stack.indexOf(value)).join('.')}]`
+    })
 
   return function (key, value) {
+    let processedValue = value
+
     if (stack.length > 0) {
       const thisPos = stack.indexOf(this)
       ~thisPos ? stack.splice(thisPos + 1) : stack.push(this)
-      ~thisPos ? keys.splice(thisPos, Infinity, key) : keys.push(key)
-      if (~stack.indexOf(value)) {
-        value = cycleReplacer!.call(this, key, value)
+      ~thisPos
+        ? keys.splice(thisPos, Number.POSITIVE_INFINITY, key)
+        : keys.push(key)
+      if (~stack.indexOf(processedValue)) {
+        processedValue = actualCycleReplacer.call(this, key, processedValue)
       }
     } else {
-      stack.push(value)
+      stack.push(processedValue)
     }
 
-    return replacer == null ? value : replacer.call(this, key, value)
+    return replacer == null
+      ? processedValue
+      : replacer.call(this, key, processedValue)
   }
 }

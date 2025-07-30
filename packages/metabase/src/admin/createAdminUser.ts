@@ -20,7 +20,7 @@ interface SetupResponse {
 export async function createAdminUser({
   userName,
   password,
-  baseUrl,
+  baseUrl
 }: {
   userName: string
   password: string
@@ -30,7 +30,7 @@ export async function createAdminUser({
   const propertiesRes = await metabaseFetch({
     baseUrl,
     endpoint: '/api/session/properties',
-    method: 'GET',
+    method: 'GET'
   })
 
   const properties = (await propertiesRes.json()) as SessionPropertiesResponse
@@ -43,7 +43,7 @@ export async function createAdminUser({
   const setupToken = properties['setup-token']
   if (!setupToken) {
     throw new Error(
-      'No setup token available - Metabase may already be configured',
+      'No setup token available - Metabase may already be configured'
     )
   }
 
@@ -59,15 +59,15 @@ export async function createAdminUser({
         first_name: 'Metabase',
         last_name: 'Admin',
         password: password,
-        site_name: 'Sodium Platform', // This is actually part of user object in newer versions
+        site_name: 'Sodium Platform' // This is actually part of user object in newer versions
       },
       prefs: {
         site_name: 'Sodium Metabase',
         site_locale: 'en',
-        allow_tracking: false,
+        allow_tracking: false
       },
-      database: null, // Skip database setup, we'll add it later
-    },
+      database: null // Skip database setup, we'll add it later
+    }
   })
 
   const setupData = (await setupRes.json()) as SetupResponse

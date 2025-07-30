@@ -5,7 +5,7 @@ const DETECT_JSON = /^\s*[{["\-\d]/
  * Attempts to parse object as JSON.
  * Returns original object if JSON parse failed (silently).
  */
-export function _jsonParseIfPossible(
+export function jsonParseIfPossible(
   obj: any,
   reviver?: (this: any, key: string, value: any) => any
 ): any {
@@ -13,7 +13,9 @@ export function _jsonParseIfPossible(
   if (typeof obj === 'string' && obj && DETECT_JSON.test(obj)) {
     try {
       return JSON.parse(obj, reviver)
-    } catch {}
+    } catch {
+      // Intentionally empty: return the original value if JSON parsing fails
+    }
   }
 
   return obj

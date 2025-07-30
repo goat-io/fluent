@@ -1,6 +1,7 @@
-import * as os from 'os'
+import * as os from 'node:os'
 import { Units } from '@goatlab/js-utils'
 import { BuildInfo } from './Env'
+
 class ProcessesClass {
   private timer: ReturnType<typeof setInterval>
 
@@ -83,11 +84,12 @@ class ProcessesClass {
   }
 
   private getCPUInfo() {
-    // eslint-disable-next-line unicorn/no-array-reduce
     return os.cpus().reduce(
       (r, cpu) => {
-        r['idle'] += cpu.times.idle
-        Object.values(cpu.times).forEach(m => (r['total'] += m))
+        r.idle += cpu.times.idle
+        Object.values(cpu.times).forEach(m => {
+          r.total += m
+        })
         return r
       },
       {
@@ -112,10 +114,9 @@ class ProcessesClass {
     ]
     const seconds = now.getUTCSeconds().toString().padStart(2, '0')
 
-    const tsStr =
-      dateComponents.join('-') + ' ' + timeComponents.join(':') + ':' + seconds
+    const tsStr = `${dateComponents.join('-')} ${timeComponents.join(':')}:${seconds}`
 
-    const ver = [dateComponents.join('') + '_' + timeComponents.join('')].join(
+    const ver = [`${dateComponents.join('')}_${timeComponents.join('')}`].join(
       '_'
     )
 

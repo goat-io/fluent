@@ -1,23 +1,21 @@
-import * as admin from 'firebase-admin'
-import { UpdateData } from '@google-cloud/firestore'
 import {
   AnyObject,
+  BaseConnector,
   extractConditions,
+  FluentConnectorInterface,
   FluentQuery,
+  getOutputKeys,
   getRelationsFromModelGenerator,
   LoadedResult,
   LogicOperator,
+  loadRelations,
   modelGeneratorDataSource,
   PaginatedData,
   QueryOutput
 } from '@goatlab/fluent'
-import {
-  BaseConnector,
-  FluentConnectorInterface,
-  getOutputKeys,
-  loadRelations
-} from '@goatlab/fluent'
-import { Objects, Ids, Memo } from '@goatlab/js-utils'
+import { Ids, Memo, Objects } from '@goatlab/js-utils'
+import { UpdateData } from '@google-cloud/firestore'
+import * as admin from 'firebase-admin'
 import { z } from 'zod'
 
 export interface FirebaseConnectorParams<Input, Output> {
@@ -58,17 +56,24 @@ export class FirebaseConnector<
     this.entity = entity
   }
 
-  private _initialized = false
-  private _relationshipBuilder: any
-  
+  private initialized = false
+
   @Memo.syncMethod()
   initDB() {
-    if (this._initialized) return 1
-    
+    if (this.initialized) {
+      return 1
+    }
+
+    // Check if modelGeneratorDataSource is initialized before using it
+    if (!modelGeneratorDataSource.isInitialized) {
+      throw new Error(
+        'modelGeneratorDataSource is not initialized. Please call Fluent.initialize() before using Firebase connectors.'
+      )
+    }
+
     const relationShipBuilder = modelGeneratorDataSource.getRepository(
       this.entity
     )
-    this._relationshipBuilder = relationShipBuilder
 
     const name = relationShipBuilder.metadata.givenTableName
 
@@ -87,7 +92,7 @@ export class FirebaseConnector<
     this.modelRelations = relations
 
     this.outputKeys = getOutputKeys(relationShipBuilder) || []
-    this._initialized = true
+    this.initialized = true
     return 1
   }
   // CREATE
@@ -101,15 +106,15 @@ export class FirebaseConnector<
     // Validate Input
     const validatedData = (this.inputSchema as any).parse(data)
 
-    if (data['id']) {
-      const found = await this.findById(data['id'])
+    if ((data as any).id) {
+      const found = await this.findById((data as any).id)
 
       if (found) {
-        throw new Error(`A document with id ${found[0]['id']} already exists.`)
+        throw new Error(`A document with id ${found[0].id} already exists.`)
       }
     }
 
-    const id: string = data['id'] || Ids.uuid()
+    const id: string = (data as any).id || Ids.uuid()
     const item = {
       id,
       ...validatedData
@@ -131,11 +136,13 @@ export class FirebaseConnector<
     // Pre-allocate array for better performance
     const dataLength = validatedData.length
     const batchInserted: ModelDTO[] = new Array(dataLength)
-    
+
     for (let i = 0; i < dataLength; i++) {
       const d = validatedData[i]
-      if (!d) continue
-      const id: string = d['id'] || Ids.uuid()
+      if (!d) {
+        continue
+      }
+      const id: string = (d as any).id || Ids.uuid()
       const item = { id, ...d } as unknown as ModelDTO
       batch.set(this.collection.doc(id), item)
       batchInserted[i] = item
@@ -181,9 +188,7 @@ export class FirebaseConnector<
 
     // Execute OR queries in parallel if there are any
     if (orQueries.length > 0) {
-      const orSnapshots = await Promise.all(
-        orQueries.map(q => q.get())
-      )
+      const orSnapshots = await Promise.all(orQueries.map(q => q.get()))
 
       // Count total docs for pre-allocation
       let totalOrDocs = 0
@@ -193,15 +198,17 @@ export class FirebaseConnector<
           totalOrDocs += snapshot.docs.length
         }
       }
-      
+
       // Pre-allocate space
       const startIdx = results.length
       results.length = startIdx + totalOrDocs
-      
+
       let currentIdx = startIdx
       for (let i = 0; i < orSnapshots.length; i++) {
         const orSnapshot = orSnapshots[i]
-        if (!orSnapshot) continue
+        if (!orSnapshot) {
+          continue
+        }
         const docs = orSnapshot.docs
         const docLength = docs.length
         for (let j = 0; j < docLength; j++) {
@@ -240,10 +247,7 @@ export class FirebaseConnector<
     }
 
     if (query?.include) {
-      found = await this.loadRelatedData(
-        found,
-        Objects.flatten(query.include)
-      )
+      found = await this.loadRelatedData(found, Objects.flatten(query.include))
     }
 
     if (query?.paginated) {
@@ -323,11 +327,14 @@ export class FirebaseConnector<
     const value = await this.findById(id)
 
     // Avoid JSON parse/stringify overhead - use structured clone if available
-    const clonedValue = typeof structuredClone !== 'undefined' ? structuredClone(value) : JSON.parse(JSON.stringify(value))
+    const clonedValue =
+      typeof structuredClone !== 'undefined'
+        ? structuredClone(value)
+        : JSON.parse(JSON.stringify(value))
     const flatValue = Objects.flatten(clonedValue)
     const keys = Object.keys(flatValue)
     const keysLength = keys.length
-    
+
     // Use a more efficient nullification approach
     const nullValue = null as any
     for (let i = 0; i < keysLength; i++) {
@@ -341,10 +348,10 @@ export class FirebaseConnector<
 
     const newValue = { ...nullObject, ...data }
 
-    delete newValue._id
-    delete newValue.id
-    delete newValue.created
-    delete newValue.updated
+    ;(newValue as any)._id = undefined
+    ;(newValue as any).id = undefined
+    ;(newValue as any).created = undefined
+    ;(newValue as any).updated = undefined
 
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
@@ -438,7 +445,13 @@ export class FirebaseConnector<
     return admin.firestore()
   }
 
-  private async deleteQueryBatch(db: admin.firestore.Firestore, query: FirebaseFirestore.Query, batchSize: number, resolve: Function, reject: Function) {
+  private async deleteQueryBatch(
+    db: admin.firestore.Firestore,
+    query: FirebaseFirestore.Query,
+    batchSize: number,
+    resolve: (value?: unknown) => void,
+    reject: (reason?: any) => void
+  ) {
     this.initDB()
     try {
       const snapshot = await query.get()
@@ -460,7 +473,7 @@ export class FirebaseConnector<
       }
 
       await batch.commit()
-      
+
       // Use setImmediate for better performance than process.nextTick
       setImmediate(() => {
         this.deleteQueryBatch(db, query, batchSize, resolve, reject)
@@ -518,7 +531,9 @@ export class FirebaseConnector<
       mergedQueries = orWhere
     }
 
-    const selectKeys = query?.select ? Object.keys(Objects.flatten(query.select)) : null
+    const selectKeys = query?.select
+      ? Object.keys(Objects.flatten(query.select))
+      : null
     const limit = query?.limit || 10
     const offset = query?.offset || 0
     const orderBy = query?.orderBy
@@ -526,8 +541,10 @@ export class FirebaseConnector<
     const queriesLength = mergedQueries.length
     for (let i = 0; i < queriesLength; i++) {
       let currentQuery = mergedQueries[i]
-      if (!currentQuery) continue
-      
+      if (!currentQuery) {
+        continue
+      }
+
       if (selectKeys && selectKeys.length > 0) {
         // Force select the ID
         currentQuery = currentQuery.select('id', ...selectKeys)
@@ -555,7 +572,7 @@ export class FirebaseConnector<
           }
         }
       }
-      
+
       mergedQueries[i] = currentQuery
     }
 
@@ -581,7 +598,7 @@ export class FirebaseConnector<
 
     // Avoid cloning overhead - work with original object
     const { AND, OR, ...rootConditions } = where
-    
+
     const orConditions = extractConditions((OR || []) as any)
     const andConditions = extractConditions((AND || []) as any)
 
@@ -589,31 +606,34 @@ export class FirebaseConnector<
 
     // Helper function to apply conditions to a query - use a map for O(1) lookup
     const operatorMap = new Map<LogicOperator, string>([
-      [LogicOperator.equals, '=='],
-      [LogicOperator.isNot, '!='],
-      [LogicOperator.greaterThan, '>'],
-      [LogicOperator.greaterOrEqualThan, '>='],
-      [LogicOperator.lessThan, '<'],
-      [LogicOperator.lessOrEqualThan, '<='],
-      [LogicOperator.in, 'in'],
-      [LogicOperator.arrayContains, 'array-contains'],
-      [LogicOperator.notIn, 'not-in']
+      [LogicOperator.Equals, '=='],
+      [LogicOperator.IsNot, '!='],
+      [LogicOperator.GreaterThan, '>'],
+      [LogicOperator.GreaterOrEqualThan, '>='],
+      [LogicOperator.LessThan, '<'],
+      [LogicOperator.LessOrEqualThan, '<='],
+      [LogicOperator.In, 'in'],
+      [LogicOperator.ArrayContains, 'array-contains'],
+      [LogicOperator.NotIn, 'not-in']
     ])
-    
-    const applyCondition = (query: FirebaseFirestore.Query, condition: any): FirebaseFirestore.Query => {
+
+    const applyCondition = (
+      query: FirebaseFirestore.Query,
+      condition: any
+    ): FirebaseFirestore.Query => {
       const { element, operator, value } = condition
-      
+
       const firebaseOp = operatorMap.get(operator)
       if (firebaseOp) {
         return query.where(element, firebaseOp as any, value)
       }
 
       switch (operator) {
-        case LogicOperator.exists:
+        case LogicOperator.Exists:
           throw new Error('The exists Operator cannot be used in Firebase')
-        case LogicOperator.notExists:
+        case LogicOperator.NotExists:
           throw new Error('The !exists Operator cannot be used in Firebase')
-        case LogicOperator.regexp:
+        case LogicOperator.Regexp:
           throw new Error('The regexp Operator cannot be used in Firebase')
         default:
           throw new Error(`Unknown operator: ${operator}`)
@@ -639,7 +659,7 @@ export class FirebaseConnector<
       orWhereQueries.push(orQuery)
     }
 
-    let andWhereCondition: FirebaseFirestore.Query | undefined = undefined
+    let andWhereCondition: FirebaseFirestore.Query | undefined
 
     // If there is no query, just return the collection
     if (

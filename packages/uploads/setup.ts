@@ -1,6 +1,6 @@
 import 'reflect-metadata'
-import { FirebaseInit } from './src/Providers/Firebase/FirebaseInit'
 import { join } from 'path'
+import { FirebaseInit } from './src/Providers/Firebase/FirebaseInit'
 
 const path = join(__dirname, './fluent-service-account.json')
 

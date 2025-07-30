@@ -1,76 +1,64 @@
+import { PrismaClient } from '@prisma/client'
 import chalk from 'chalk'
-import { performance } from 'perf_hooks'
-import { GenericContainer, StartedTestContainer } from 'testcontainers'
+import knex from 'knex'
 import * as mysql from 'mysql2'
 import * as mysqlPromise from 'mysql2/promise'
-import { PrismaClient } from '@prisma/client'
-import { Kysely, MysqlDialect } from 'kysely'
-import { createPool } from 'mysql2'
-import { drizzle } from 'drizzle-orm/mysql2'
-import * as schema from '../database/drizzle-schema'
-import { and, eq, gt, sql as drizzleSql } from 'drizzle-orm'
-import { sql } from 'kysely'
-import { DataSource } from 'typeorm'
-import { Sequelize } from 'sequelize'
-import { MikroORM } from '@mikro-orm/core'
-import { MySqlDriver } from '@mikro-orm/mysql'
-import knex, { Knex } from 'knex'
-import { BenchmarkReporter } from '../core/Reporter'
-import { EnhancedBenchmarkRunner, EnhancedBenchmarkResult } from './enhanced-benchmark-runner'
+import { GenericContainer, StartedTestContainer } from 'testcontainers'
 import {
-  WorkloadProfile,
-  OLTP_WORKLOAD,
-  ECOMMERCE_WORKLOAD,
-  ANALYTICS_WORKLOAD,
-  HIGH_FREQUENCY_WORKLOAD,
+  EnhancedBenchmarkResult,
+  EnhancedBenchmarkRunner
+} from './enhanced-benchmark-runner'
+import {
   CONNECTION_POOL_CONFIGS,
   DATA_DISTRIBUTIONS,
-  DataDistribution
+  DataDistribution,
+  ECOMMERCE_WORKLOAD,
+  OLTP_WORKLOAD,
+  WorkloadProfile
 } from './transaction-types'
-import { kyselyExtension } from 'prisma-extension-kysely'
-import {
-  MysqlAdapter,
-  MysqlIntrospector,
-  MysqlQueryCompiler,
-} from 'kysely'
-
-interface Database {
-  users: any
-  products: any
-  categories: any
-  orders: any
-  order_items: any
-  reviews: any
-}
 
 interface BenchmarkOptions {
-  workloadProfiles: WorkloadProfile[];
-  drivers: string[];
-  connectionPoolConfigs: typeof CONNECTION_POOL_CONFIGS;
-  dataDistributions: typeof DATA_DISTRIBUTIONS;
+  workloadProfiles: WorkloadProfile[]
+  drivers: string[]
+  connectionPoolConfigs: typeof CONNECTION_POOL_CONFIGS
+  dataDistributions: typeof DATA_DISTRIBUTIONS
   phases: {
-    warmup: number;
-    rampup: number;
-    measurement: number;
-    cooldown: number;
-  };
-  virtualUsers: number;
-  testDuration: number;
+    warmup: number
+    rampup: number
+    measurement: number
+    cooldown: number
+  }
+  virtualUsers: number
+  testDuration: number
 }
 
 export class EnhancedContainerizedBenchmark {
   private mysqlContainer!: StartedTestContainer
   private connections: Map<string, any> = new Map()
-  private reporter = new BenchmarkReporter()
   private enhancedRunner = new EnhancedBenchmarkRunner()
   private insertCounters: Map<string, number> = new Map()
 
-  async runFullBenchmark(options: Partial<BenchmarkOptions> = {}): Promise<void> {
+  async runFullBenchmark(
+    options: Partial<BenchmarkOptions> = {}
+  ): Promise<void> {
     const config: BenchmarkOptions = {
       workloadProfiles: [OLTP_WORKLOAD, ECOMMERCE_WORKLOAD],
-      drivers: ['MySQL2', 'MySQL2/Promise', 'Knex', 'Prisma', 'Kysely', 'Drizzle'],
-      connectionPoolConfigs: [CONNECTION_POOL_CONFIGS[1], CONNECTION_POOL_CONFIGS[2]], // small and medium
-      dataDistributions: { uniform: DATA_DISTRIBUTIONS.uniform, hotspot: DATA_DISTRIBUTIONS.hotspot },
+      drivers: [
+        'MySQL2',
+        'MySQL2/Promise',
+        'Knex',
+        'Prisma',
+        'Kysely',
+        'Drizzle'
+      ],
+      connectionPoolConfigs: [
+        CONNECTION_POOL_CONFIGS[1],
+        CONNECTION_POOL_CONFIGS[2]
+      ], // small and medium
+      dataDistributions: {
+        uniform: DATA_DISTRIBUTIONS.uniform,
+        hotspot: DATA_DISTRIBUTIONS.hotspot
+      },
       phases: {
         warmup: 2000,
         rampup: 3000,
@@ -80,33 +68,41 @@ export class EnhancedContainerizedBenchmark {
       virtualUsers: 10,
       testDuration: 30000,
       ...options
-    };
+    }
 
     try {
-      console.log(chalk.bold.blue('🚀 Starting Enhanced Database Benchmark Suite'))
+      console.log(
+        chalk.bold.blue('🚀 Starting Enhanced Database Benchmark Suite')
+      )
       console.log(chalk.gray('─'.repeat(80)))
-      
+
       await this.setupEnvironment()
-      
+
       const results: EnhancedBenchmarkResult[] = []
-      
+
       // Test each workload profile
       for (const workload of config.workloadProfiles) {
         console.log(chalk.cyan.bold(`\n📋 Testing Workload: ${workload.name}`))
         console.log(chalk.gray(workload.description))
-        
+
         // Test each connection pool configuration
         for (const poolConfig of config.connectionPoolConfigs) {
-          console.log(chalk.yellow(`\n🔧 Connection Pool: ${poolConfig.name} (${poolConfig.size} connections)`))
-          
+          console.log(
+            chalk.yellow(
+              `\n🔧 Connection Pool: ${poolConfig.name} (${poolConfig.size} connections)`
+            )
+          )
+
           // Test each data distribution pattern
-          for (const [distName, distribution] of Object.entries(config.dataDistributions)) {
+          for (const [distName, distribution] of Object.entries(
+            config.dataDistributions
+          )) {
             console.log(chalk.magenta(`\n📊 Data Distribution: ${distName}`))
-            
+
             // Test each driver
             for (const driver of config.drivers) {
               console.log(chalk.green(`\n🏃 Testing ${driver}...`))
-              
+
               try {
                 const connection = await this.getConnection(driver, poolConfig)
                 const result = await this.runWorkloadBenchmark(
@@ -117,7 +113,7 @@ export class EnhancedContainerizedBenchmark {
                   config
                 )
                 results.push(result)
-                
+
                 // Print immediate results
                 this.printQuickResults(result)
               } catch (error) {
@@ -127,10 +123,9 @@ export class EnhancedContainerizedBenchmark {
           }
         }
       }
-      
+
       // Generate comprehensive report
       this.generateReport(results)
-      
     } catch (error) {
       console.error(chalk.red('❌ Benchmark failed:'), error)
       process.exit(1)
@@ -147,14 +142,14 @@ export class EnhancedContainerizedBenchmark {
         MYSQL_ROOT_PASSWORD: 'root_password',
         MYSQL_DATABASE: 'benchmark_db',
         MYSQL_USER: 'benchmark_user',
-        MYSQL_PASSWORD: 'benchmark_pass',
+        MYSQL_PASSWORD: 'benchmark_pass'
       })
       .withExposedPorts(3306)
       .withStartupTimeout(120000)
       .start()
 
     console.log(chalk.green('✅ MySQL container started'))
-    
+
     // Setup schema and seed data
     await this.setupDatabase()
   }
@@ -167,11 +162,11 @@ export class EnhancedContainerizedBenchmark {
       password: 'benchmark_pass',
       database: 'benchmark_db',
       waitForConnections: true,
-      connectionLimit: 10,
+      connectionLimit: 10
     })
 
     const conn = pool.promise()
-    
+
     // Create tables (same as original)
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -195,10 +190,10 @@ export class EnhancedContainerizedBenchmark {
 
     // Create other tables...
     await this.createAdditionalTables(conn)
-    
+
     // Seed with more data for realistic testing
     await this.seedRealisticData(conn)
-    
+
     await pool.end()
   }
 
@@ -227,7 +222,7 @@ export class EnhancedContainerizedBenchmark {
 
   private async seedRealisticData(conn: any): Promise<void> {
     // Seed 10,000 users with realistic distribution
-    const userBatches = []
+    const _userBatches = []
     for (let batch = 0; batch < 10; batch++) {
       const users = []
       for (let i = 0; i < 1000; i++) {
@@ -242,45 +237,68 @@ export class EnhancedContainerizedBenchmark {
           this.getRealisticCreatedAt(id)
         ])
       }
-      
+
       const placeholders = users.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ')
-      await conn.execute(`
+      await conn.execute(
+        `
         INSERT INTO users (email, first_name, last_name, status, age, country, created_at) 
         VALUES ${placeholders}
-      `, users.flat())
+      `,
+        users.flat()
+      )
     }
 
     // Seed products with price distribution
     await this.seedProducts(conn)
   }
 
-  private getRealisticStatus(id: number): string {
+  private getRealisticStatus(_id: number): string {
     // 85% active, 10% inactive, 5% suspended
     const rand = this.enhancedRunner.nurand(100, 1, 100)
-    if (rand <= 85) return 'active'
-    if (rand <= 95) return 'inactive'
+    if (rand <= 85) {
+      return 'active'
+    }
+    if (rand <= 95) {
+      return 'inactive'
+    }
     return 'suspended'
   }
 
-  private getRealisticAge(id: number): number {
+  private getRealisticAge(_id: number): number {
     // Normal distribution centered at 35
-    return Math.max(18, Math.min(80, Math.round(35 + (Math.random() - 0.5) * 30)))
+    return Math.max(
+      18,
+      Math.min(80, Math.round(35 + (Math.random() - 0.5) * 30))
+    )
   }
 
-  private getRealisticCountry(id: number): string {
+  private getRealisticCountry(_id: number): string {
     // Weighted country distribution
-    const countries = ['US', 'UK', 'CA', 'AU', 'DE', 'FR', 'JP', 'CN', 'BR', 'IN']
+    const countries = [
+      'US',
+      'UK',
+      'CA',
+      'AU',
+      'DE',
+      'FR',
+      'JP',
+      'CN',
+      'BR',
+      'IN'
+    ]
     const weights = [35, 15, 10, 8, 7, 6, 5, 5, 5, 4]
-    
+
     let random = Math.random() * 100
     for (let i = 0; i < countries.length; i++) {
       random -= weights[i]
-      if (random <= 0) return countries[i]
+      if (random <= 0) {
+        return countries[i]
+      }
     }
     return 'US'
   }
 
-  private getRealisticCreatedAt(id: number): Date {
+  private getRealisticCreatedAt(_id: number): Date {
     // Temporal distribution - more recent users
     const daysAgo = Math.floor(Math.exp(Math.random() * 5)) // Exponential distribution
     const date = new Date()
@@ -288,13 +306,13 @@ export class EnhancedContainerizedBenchmark {
     return date
   }
 
-  private async seedProducts(conn: any): Promise<void> {
+  private async seedProducts(_conn: any): Promise<void> {
     // Implement product seeding with price distribution
   }
 
   private async getConnection(driver: string, poolConfig: any): Promise<any> {
     const key = `${driver}-${poolConfig.name}`
-    
+
     if (this.connections.has(key)) {
       return this.connections.get(key)
     }
@@ -313,7 +331,7 @@ export class EnhancedContainerizedBenchmark {
           connectionLimit: poolConfig.size,
           queueLimit: 0,
           acquireTimeout: poolConfig.acquisitionTimeout,
-          idleTimeout: poolConfig.idleTimeout,
+          idleTimeout: poolConfig.idleTimeout
         })
         break
 
@@ -328,7 +346,7 @@ export class EnhancedContainerizedBenchmark {
           connectionLimit: poolConfig.size,
           queueLimit: 0,
           acquireTimeout: poolConfig.acquisitionTimeout,
-          idleTimeout: poolConfig.idleTimeout,
+          idleTimeout: poolConfig.idleTimeout
         })
         break
 
@@ -340,13 +358,13 @@ export class EnhancedContainerizedBenchmark {
             port: this.mysqlContainer.getMappedPort(3306),
             user: 'benchmark_user',
             password: 'benchmark_pass',
-            database: 'benchmark_db',
+            database: 'benchmark_db'
           },
           pool: {
             min: Math.floor(poolConfig.size / 4),
             max: poolConfig.size,
             acquireTimeoutMillis: poolConfig.acquisitionTimeout,
-            idleTimeoutMillis: poolConfig.idleTimeout,
+            idleTimeoutMillis: poolConfig.idleTimeout
           }
         })
         break
@@ -379,7 +397,7 @@ export class EnhancedContainerizedBenchmark {
   ): Promise<EnhancedBenchmarkResult> {
     const executeTransaction = async (transactionName: string) => {
       const userId = this.enhancedRunner.generateDataId(10000, distribution)
-      
+
       switch (transactionName) {
         case 'simpleSelect':
           await this.executeSimpleSelect(driver, connection, userId)
@@ -420,10 +438,16 @@ export class EnhancedContainerizedBenchmark {
   }
 
   // Transaction implementations
-  private async executeSimpleSelect(driver: string, connection: any, userId: number): Promise<void> {
+  private async executeSimpleSelect(
+    driver: string,
+    connection: any,
+    userId: number
+  ): Promise<void> {
     switch (driver) {
       case 'MySQL2':
-        await connection.promise().execute('SELECT * FROM users WHERE id = ?', [userId])
+        await connection
+          .promise()
+          .execute('SELECT * FROM users WHERE id = ?', [userId])
         break
       case 'MySQL2/Promise':
         await connection.execute('SELECT * FROM users WHERE id = ?', [userId])
@@ -438,26 +462,40 @@ export class EnhancedContainerizedBenchmark {
     }
   }
 
-  private async executeFilteredSelect(driver: string, connection: any, distribution: DataDistribution): Promise<void> {
+  private async executeFilteredSelect(
+    driver: string,
+    connection: any,
+    _distribution: DataDistribution
+  ): Promise<void> {
     const age = this.enhancedRunner.nurand(60, 18, 65)
     const status = 'active'
-    
+
     switch (driver) {
       case 'MySQL2':
-        await connection.promise().execute(
-          'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 100',
-          [status, age]
-        )
+        await connection
+          .promise()
+          .execute(
+            'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 100',
+            [status, age]
+          )
         break
       // Add other implementations...
     }
   }
 
-  private async executeJoinQuery(driver: string, connection: any, userId: number): Promise<void> {
+  private async executeJoinQuery(
+    _driver: string,
+    _connection: any,
+    _userId: number
+  ): Promise<void> {
     // Implement join query
   }
 
-  private async executeComplexJoin(driver: string, connection: any, distribution: DataDistribution): Promise<void> {
+  private async executeComplexJoin(
+    _driver: string,
+    _connection: any,
+    _distribution: DataDistribution
+  ): Promise<void> {
     // Implement complex join
   }
 
@@ -465,23 +503,35 @@ export class EnhancedContainerizedBenchmark {
     const counter = (this.insertCounters.get(driver) || 0) + 1
     this.insertCounters.set(driver, counter)
     const uniqueId = `${counter}_${Date.now()}_${Math.random()}`
-    
+
     switch (driver) {
       case 'MySQL2':
-        await connection.promise().execute(
-          'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-          [`bench_${uniqueId}@example.com`, 'Bench', 'User', 'active', 30, 'US']
-        )
+        await connection
+          .promise()
+          .execute(
+            'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+              `bench_${uniqueId}@example.com`,
+              'Bench',
+              'User',
+              'active',
+              30,
+              'US'
+            ]
+          )
         break
       // Add other implementations...
     }
   }
 
-  private async executeBatchInsert(driver: string, connection: any): Promise<void> {
+  private async executeBatchInsert(
+    driver: string,
+    _connection: any
+  ): Promise<void> {
     // Implement batch insert (10-100 records)
     const batchSize = Math.floor(Math.random() * 90) + 10
     const records = []
-    
+
     for (let i = 0; i < batchSize; i++) {
       const counter = (this.insertCounters.get(driver) || 0) + 1
       this.insertCounters.set(driver, counter)
@@ -495,35 +545,41 @@ export class EnhancedContainerizedBenchmark {
         country: 'US'
       })
     }
-    
+
     // Implement batch insert for each driver
   }
 
   private printQuickResults(result: EnhancedBenchmarkResult): void {
     console.log(chalk.gray('─'.repeat(60)))
-    console.log(chalk.bold(`Overall: ${result.overall.throughput.toFixed(0)} ops/sec, ${result.overall.avgResponseTime.toFixed(2)}ms avg latency`))
-    
+    console.log(
+      chalk.bold(
+        `Overall: ${result.overall.throughput.toFixed(0)} ops/sec, ${result.overall.avgResponseTime.toFixed(2)}ms avg latency`
+      )
+    )
+
     // Print top 3 transaction types by volume
     const topTransactions = result.transactions
       .sort((a, b) => b.count - a.count)
       .slice(0, 3)
-    
+
     topTransactions.forEach(tx => {
       console.log(
         `  ${tx.name}: ${tx.throughput.toFixed(0)} ops/sec, ` +
-        `p50=${tx.latency.p50.toFixed(1)}ms, p95=${tx.latency.p95.toFixed(1)}ms, p99=${tx.latency.p99.toFixed(1)}ms`
+          `p50=${tx.latency.p50.toFixed(1)}ms, p95=${tx.latency.p95.toFixed(1)}ms, p99=${tx.latency.p99.toFixed(1)}ms`
       )
     })
-    
+
     if (result.overall.errorRate > 0) {
-      console.log(chalk.red(`  Error Rate: ${result.overall.errorRate.toFixed(2)}%`))
+      console.log(
+        chalk.red(`  Error Rate: ${result.overall.errorRate.toFixed(2)}%`)
+      )
     }
   }
 
   private generateReport(results: EnhancedBenchmarkResult[]): void {
     console.log(chalk.bold.blue('\n\n📊 COMPREHENSIVE BENCHMARK REPORT'))
     console.log(chalk.gray('═'.repeat(80)))
-    
+
     // Group results by workload
     const byWorkload = new Map<string, EnhancedBenchmarkResult[]>()
     results.forEach(r => {
@@ -532,72 +588,88 @@ export class EnhancedContainerizedBenchmark {
       }
       byWorkload.get(r.workloadProfile)!.push(r)
     })
-    
+
     // Print results for each workload
     byWorkload.forEach((workloadResults, workloadName) => {
       console.log(chalk.cyan.bold(`\n${workloadName} Workload Results`))
       console.log(chalk.gray('─'.repeat(60)))
-      
+
       // Sort by overall throughput
-      const sorted = workloadResults.sort((a, b) => b.overall.throughput - a.overall.throughput)
-      
+      const sorted = workloadResults.sort(
+        (a, b) => b.overall.throughput - a.overall.throughput
+      )
+
       // Create comparison table
       console.log('\nDriver Performance Comparison:')
       console.log(
         'Driver'.padEnd(15) +
-        'Throughput'.padStart(12) +
-        'Avg Latency'.padStart(12) +
-        'P95 Latency'.padStart(12) +
-        'P99 Latency'.padStart(12) +
-        'Errors'.padStart(8)
+          'Throughput'.padStart(12) +
+          'Avg Latency'.padStart(12) +
+          'P95 Latency'.padStart(12) +
+          'P99 Latency'.padStart(12) +
+          'Errors'.padStart(8)
       )
       console.log(chalk.gray('─'.repeat(80)))
-      
+
       sorted.forEach((result, index) => {
-        const avgP95 = result.transactions.reduce((sum, t) => sum + t.latency.p95, 0) / result.transactions.length
-        const avgP99 = result.transactions.reduce((sum, t) => sum + t.latency.p99, 0) / result.transactions.length
-        
-        const line = 
+        const avgP95 =
+          result.transactions.reduce((sum, t) => sum + t.latency.p95, 0) /
+          result.transactions.length
+        const avgP99 =
+          result.transactions.reduce((sum, t) => sum + t.latency.p99, 0) /
+          result.transactions.length
+
+        const line =
           result.driver.padEnd(15) +
           `${result.overall.throughput.toFixed(0)} ops/s`.padStart(12) +
           `${result.overall.avgResponseTime.toFixed(1)}ms`.padStart(12) +
           `${avgP95.toFixed(1)}ms`.padStart(12) +
           `${avgP99.toFixed(1)}ms`.padStart(12) +
           `${result.overall.errorRate.toFixed(1)}%`.padStart(8)
-        
+
         if (index === 0) {
-          console.log(chalk.green(line + ' ✨'))
+          console.log(chalk.green(`${line} ✨`))
         } else {
           console.log(line)
         }
       })
     })
-    
+
     // Export detailed results
     const filename = `enhanced-benchmark-${Date.now()}.json`
-    const fs = require('fs')
-    fs.writeFileSync(filename, JSON.stringify({
-      name: 'Enhanced Database Client Benchmark',
-      description: 'Comprehensive benchmark with realistic workloads',
-      timestamp: new Date(),
-      results: results,
-      summary: this.generateSummary(results)
-    }, null, 2))
-    
-    console.log(chalk.gray('\n' + '═'.repeat(80)))
+    const fs = require('node:fs')
+    fs.writeFileSync(
+      filename,
+      JSON.stringify(
+        {
+          name: 'Enhanced Database Client Benchmark',
+          description: 'Comprehensive benchmark with realistic workloads',
+          timestamp: new Date(),
+          results: results,
+          summary: this.generateSummary(results)
+        },
+        null,
+        2
+      )
+    )
+
+    console.log(chalk.gray(`\n${'═'.repeat(80)}`))
     console.log(chalk.green(`📁 Detailed results exported to ${filename}`))
   }
 
   private generateSummary(results: EnhancedBenchmarkResult[]): any {
     // Generate comprehensive summary with recommendations
-    const driverPerformance = new Map<string, {
-      avgThroughput: number;
-      avgLatency: number;
-      p95Latency: number;
-      errorRate: number;
-      workloadScores: Map<string, number>;
-    }>()
-    
+    const driverPerformance = new Map<
+      string,
+      {
+        avgThroughput: number
+        avgLatency: number
+        p95Latency: number
+        errorRate: number
+        workloadScores: Map<string, number>
+      }
+    >()
+
     // Calculate aggregated metrics for each driver
     results.forEach(result => {
       if (!driverPerformance.has(result.driver)) {
@@ -609,11 +681,11 @@ export class EnhancedContainerizedBenchmark {
           workloadScores: new Map()
         })
       }
-      
+
       const perf = driverPerformance.get(result.driver)!
       perf.workloadScores.set(result.workloadProfile, result.overall.throughput)
     })
-    
+
     return {
       driverRankings: Array.from(driverPerformance.entries()),
       recommendations: {
@@ -627,7 +699,7 @@ export class EnhancedContainerizedBenchmark {
 
   private async cleanup(): Promise<void> {
     console.log(chalk.yellow('\n🧹 Cleaning up resources...'))
-    
+
     // Close all connections
     for (const [key, connection] of this.connections) {
       try {
@@ -651,12 +723,12 @@ export class EnhancedContainerizedBenchmark {
         console.error(`Error closing ${key}:`, error)
       }
     }
-    
+
     // Stop container
     if (this.mysqlContainer) {
       await this.mysqlContainer.stop()
     }
-    
+
     console.log(chalk.green('✅ Cleanup completed'))
   }
 }
@@ -664,11 +736,11 @@ export class EnhancedContainerizedBenchmark {
 // CLI execution
 if (require.main === module) {
   const benchmark = new EnhancedContainerizedBenchmark()
-  
+
   // Parse command line arguments
   const args = process.argv.slice(2)
   const options: Partial<BenchmarkOptions> = {}
-  
+
   if (args.includes('--quick')) {
     options.phases = {
       warmup: 1000,
@@ -679,11 +751,11 @@ if (require.main === module) {
     options.workloadProfiles = [OLTP_WORKLOAD]
     options.drivers = ['MySQL2', 'Prisma', 'Kysely']
   }
-  
+
   if (args.includes('--full')) {
     options.testDuration = 60000 // 1 minute per test
     options.virtualUsers = 50
   }
-  
+
   benchmark.runFullBenchmark(options).catch(console.error)
 }

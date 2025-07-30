@@ -13,7 +13,7 @@ const DEFAULT = '{{ default }}'
 export const getSentry = ({
   dns,
   appVersion,
-  environment,
+  environment
 }: {
   dns?: string
   appVersion?: string
@@ -50,13 +50,13 @@ export const getSentry = ({
       }
 
       return event
-    },
+    }
   })
 
   sentryService.sentry().setTags(
     Objects.deleteNulls({
-      ver: pkg.version,
-    }),
+      ver: pkg.version
+    })
   )
 
   return sentryService

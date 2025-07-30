@@ -14,16 +14,16 @@ export const firebaseDecodedTokenSchema = z.object({
   displayName: z.string().optional(),
   name: z.string().optional(),
   ownerId: z.string().optional(),
-  user_id: z.string().optional(),
+  user_id: z.string().optional()
 })
 
 export const internalTokenSchema = z.object({
-  tokenPurpose: z.string().optional(),
+  tokenPurpose: z.string().optional()
 })
 
 export const requestTokenSchema = z.union([
   firebaseDecodedTokenSchema,
-  internalTokenSchema,
+  internalTokenSchema
 ])
 
 export type FirebaseDecodedToken = z.infer<typeof firebaseDecodedTokenSchema>

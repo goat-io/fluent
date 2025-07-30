@@ -1,4 +1,4 @@
-import { Type, isFunction, isString } from '../common'
+import { isFunction, isString, Type } from '../common'
 import 'reflect-metadata'
 import {
   createApiPropertyDecorator,

@@ -2,12 +2,12 @@ import { Knex } from 'knex'
 import { Pool } from 'mysql2/promise'
 
 interface BatchRecord {
-  email: string;
-  firstName: string;
-  lastName: string;
-  status: string;
-  age: number;
-  country: string;
+  email: string
+  firstName: string
+  lastName: string
+  status: string
+  age: number
+  country: string
 }
 
 export const batchImplementations = {
@@ -20,13 +20,15 @@ export const batchImplementations = {
       r.age,
       r.country
     ])
-    
+
     const placeholders = records.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    
-    await pool.promise().execute(
-      `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
-      values.flat()
-    )
+
+    await pool
+      .promise()
+      .execute(
+        `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
+        values.flat()
+      )
   },
 
   mysql2Promise: async (pool: Pool, records: BatchRecord[]) => {
@@ -38,9 +40,9 @@ export const batchImplementations = {
       r.age,
       r.country
     ])
-    
+
     const placeholders = records.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-    
+
     await pool.execute(
       `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
       values.flat()
@@ -56,7 +58,7 @@ export const batchImplementations = {
       age: r.age,
       country: r.country
     }))
-    
+
     await knex('users').insert(data)
   },
 
@@ -69,7 +71,7 @@ export const batchImplementations = {
       age: r.age,
       country: r.country
     }))
-    
+
     await prisma.user.createMany({ data })
   },
 
@@ -82,7 +84,7 @@ export const batchImplementations = {
       age: r.age,
       country: r.country
     }))
-    
+
     await db.insertInto('users').values(data).execute()
   },
 
@@ -95,29 +97,31 @@ export const batchImplementations = {
       age: r.age,
       country: r.country
     }))
-    
+
     await db.insert(schema.users).values(data)
   },
 
   typeorm: async (dataSource: any, records: BatchRecord[]) => {
     const { User } = await import('../database/typeorm-entities')
     const repository = dataSource.getRepository(User)
-    
-    const users = records.map(r => repository.create({
-      email: r.email,
-      firstName: r.firstName,
-      lastName: r.lastName,
-      status: r.status,
-      age: r.age,
-      country: r.country
-    }))
-    
+
+    const users = records.map(r =>
+      repository.create({
+        email: r.email,
+        firstName: r.firstName,
+        lastName: r.lastName,
+        status: r.status,
+        age: r.age,
+        country: r.country
+      })
+    )
+
     await repository.save(users)
   },
 
-  sequelize: async (sequelize: any, records: BatchRecord[]) => {
+  sequelize: async (_sequelize: any, records: BatchRecord[]) => {
     const { User } = await import('../database/sequelize-models')
-    
+
     const data = records.map(r => ({
       email: r.email,
       firstName: r.firstName,
@@ -126,23 +130,25 @@ export const batchImplementations = {
       age: r.age,
       country: r.country
     }))
-    
+
     await User.bulkCreate(data)
   },
 
   mikroorm: async (orm: any, records: BatchRecord[]) => {
     const { User } = await import('../database/mikro-orm-entities-fixed')
     const em = orm.em.fork()
-    
-    const users = records.map(r => em.create(User, {
-      email: r.email,
-      firstName: r.firstName,
-      lastName: r.lastName,
-      status: r.status,
-      age: r.age,
-      country: r.country
-    }))
-    
+
+    const users = records.map(r =>
+      em.create(User, {
+        email: r.email,
+        firstName: r.firstName,
+        lastName: r.lastName,
+        status: r.status,
+        age: r.age,
+        country: r.country
+      })
+    )
+
     await em.persistAndFlush(users)
   }
 }

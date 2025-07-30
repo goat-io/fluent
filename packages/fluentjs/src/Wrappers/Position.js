@@ -24,7 +24,7 @@ const Position = class {
         error => {
           reject(error)
         },
-        this.getConfig()
+        Position.getConfig()
       )
     })
   }
@@ -42,7 +42,7 @@ const Position = class {
         error => {
           reject(error)
         },
-        this.getConfig()
+        Position.getConfig()
       )
     })
   }

@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
-import { FormioGoatRepository, FormioAdvancedRepository } from './repository.factory'
+import { describe, expect, it } from 'vitest'
 
 // Temporarily disable unified tests due to Zod v4 TypeScript issues
 describe('FormIO Connector - Unified Tests', () => {

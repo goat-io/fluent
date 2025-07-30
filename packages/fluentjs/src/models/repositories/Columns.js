@@ -1,7 +1,7 @@
 import Utilities from '../../utilities'
 import Form from '../Form'
 
-let Columns = class {
+const Columns = class {
   static async getTableView(path) {
     const form = (await Form.local().where('data.path', '=', path).first()).data
 

@@ -1,43 +1,42 @@
-;(function () {
+;(() => {
   if (typeof Prism === 'undefined' || typeof document === 'undefined') {
     return
   }
 
   function mapClassName(name) {
-    var customClass = Prism.plugins.customClass
+    const customClass = Prism.plugins.customClass
     if (customClass) {
       return customClass.apply(name, 'none')
-    } else {
-      return name
     }
+    return name
   }
 
-  var PARTNER = {
+  const PARTNER = {
     '(': ')',
     '[': ']',
-    '{': '}',
+    '{': '}'
   }
 
   // The names for brace types.
   // These names have two purposes: 1) they can be used for styling and 2) they are used to pair braces. Only braces
   // of the same type are paired.
-  var NAMES = {
+  const NAMES = {
     '(': 'brace-round',
     '[': 'brace-square',
-    '{': 'brace-curly',
+    '{': 'brace-curly'
   }
 
   // A map for brace aliases.
   // This is useful for when some braces have a prefix/suffix as part of the punctuation token.
-  var BRACE_ALIAS_MAP = {
-    '${': '{', // JS template punctuation (e.g. `foo ${bar + 1}`)
+  const BRACE_ALIAS_MAP = {
+    '${': '{' // JS template punctuation (e.g. `foo ${bar + 1}`)
   }
 
-  var LEVEL_WARP = 12
+  const LEVEL_WARP = 12
 
-  var pairIdCounter = 0
+  let pairIdCounter = 0
 
-  var BRACE_ID_PATTERN = /^(pair-\d+-)(close|open)$/
+  const BRACE_ID_PATTERN = /^(pair-\d+-)(close|open)$/
 
   /**
    * Returns the brace partner given one brace of a brace pair.
@@ -46,9 +45,9 @@
    * @returns {HTMLElement}
    */
   function getPartnerBrace(brace) {
-    var match = BRACE_ID_PATTERN.exec(brace.id)
+    const match = BRACE_ID_PATTERN.exec(brace.id)
     return document.querySelector(
-      '#' + match[1] + (match[2] == 'open' ? 'close' : 'open'),
+      `#${match[1]}${match[2] === 'open' ? 'close' : 'open'}`
     )
   }
 
@@ -60,7 +59,7 @@
       return
     }
 
-    ;[this, getPartnerBrace(this)].forEach(function (e) {
+    ;[this, getPartnerBrace(this)].forEach(e => {
       e.classList.add(mapClassName('brace-hover'))
     })
   }
@@ -68,7 +67,7 @@
    * @this {HTMLElement}
    */
   function leaveBrace() {
-    ;[this, getPartnerBrace(this)].forEach(function (e) {
+    ;[this, getPartnerBrace(this)].forEach(e => {
       e.classList.remove(mapClassName('brace-hover'))
     })
   }
@@ -80,28 +79,28 @@
       return
     }
 
-    ;[this, getPartnerBrace(this)].forEach(function (e) {
+    ;[this, getPartnerBrace(this)].forEach(e => {
       e.classList.add(mapClassName('brace-selected'))
     })
   }
 
-  Prism.hooks.add('complete', function (env) {
+  Prism.hooks.add('complete', env => {
     /** @type {HTMLElement} */
-    var code = env.element
-    var pre = code.parentElement
+    const code = env.element
+    const pre = code.parentElement
 
-    if (!pre || pre.tagName != 'PRE') {
+    if (!pre || pre.tagName !== 'PRE') {
       return
     }
 
     // find the braces to match
     /** @type {string[]} */
-    var toMatch = []
+    const toMatch = []
     if (Prism.util.isActive(code, 'match-braces')) {
       toMatch.push('(', '[', '{')
     }
 
-    if (toMatch.length == 0) {
+    if (toMatch.length === 0) {
       // nothing to match
       return
     }
@@ -110,11 +109,11 @@
       // code blocks might be highlighted more than once
       pre.addEventListener('mousedown', function removeBraceSelected() {
         // the code element might have been replaced
-        var code = pre.querySelector('code')
-        var className = mapClassName('brace-selected')
+        const code = pre.querySelector('code')
+        const className = mapClassName('brace-selected')
         Array.prototype.slice
-          .call(code.querySelectorAll('.' + className))
-          .forEach(function (e) {
+          .call(code.querySelectorAll(`.${className}`))
+          .forEach(e => {
             e.classList.remove(className)
           })
       })
@@ -122,28 +121,28 @@
     }
 
     /** @type {HTMLSpanElement[]} */
-    var punctuation = Array.prototype.slice.call(
+    const punctuation = Array.prototype.slice.call(
       code.querySelectorAll(
-        'span.' + mapClassName('token') + '.' + mapClassName('punctuation'),
-      ),
+        `span.${mapClassName('token')}.${mapClassName('punctuation')}`
+      )
     )
 
     /** @type {{ index: number, open: boolean, element: HTMLElement }[]} */
-    var allBraces = []
+    const allBraces = []
 
-    toMatch.forEach(function (open) {
-      var close = PARTNER[open]
-      var name = mapClassName(NAMES[open])
+    toMatch.forEach(open => {
+      const close = PARTNER[open]
+      const name = mapClassName(NAMES[open])
 
       /** @type {[number, number][]} */
-      var pairs = []
+      const pairs = []
       /** @type {number[]} */
-      var openStack = []
+      const openStack = []
 
-      for (var i = 0; i < punctuation.length; i++) {
-        var element = punctuation[i]
-        if (element.childElementCount == 0) {
-          var text = element.textContent
+      for (let i = 0; i < punctuation.length; i++) {
+        const element = punctuation[i]
+        if (element.childElementCount === 0) {
+          let text = element.textContent
           text = BRACE_ALIAS_MAP[text] || text
           if (text === open) {
             allBraces.push({ index: i, open: true, element: element })
@@ -161,15 +160,15 @@
         }
       }
 
-      pairs.forEach(function (pair) {
-        var pairId = 'pair-' + pairIdCounter++ + '-'
+      pairs.forEach(pair => {
+        const pairId = `pair-${pairIdCounter++}-`
 
-        var opening = punctuation[pair[0]]
-        var closing = punctuation[pair[1]]
+        const opening = punctuation[pair[0]]
+        const closing = punctuation[pair[1]]
 
-        opening.id = pairId + 'open'
-        closing.id = pairId + 'close'
-        ;[opening, closing].forEach(function (e) {
+        opening.id = `${pairId}open`
+        closing.id = `${pairId}close`
+        ;[opening, closing].forEach(e => {
           e.addEventListener('mouseenter', hoverBrace)
           e.addEventListener('mouseleave', leaveBrace)
           e.addEventListener('click', clickBrace)
@@ -177,20 +176,18 @@
       })
     })
 
-    var level = 0
-    allBraces.sort(function (a, b) {
-      return a.index - b.index
-    })
-    allBraces.forEach(function (brace) {
+    let level = 0
+    allBraces.sort((a, b) => a.index - b.index)
+    allBraces.forEach(brace => {
       if (brace.open) {
         brace.element.classList.add(
-          mapClassName('brace-level-' + ((level % LEVEL_WARP) + 1)),
+          mapClassName(`brace-level-${(level % LEVEL_WARP) + 1}`)
         )
         level++
       } else {
         level = Math.max(0, level - 1)
         brace.element.classList.add(
-          mapClassName('brace-level-' + ((level % LEVEL_WARP) + 1)),
+          mapClassName(`brace-level-${(level % LEVEL_WARP) + 1}`)
         )
       }
     })

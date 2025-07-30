@@ -1,11 +1,13 @@
-import { Promises, type Milliseconds } from '@goatlab/js-utils'
-import { Options } from 'keyv'
+import { type Milliseconds, Promises } from '@goatlab/js-utils'
 import KeyvRedis from '@keyv/redis'
+import { Options } from 'keyv'
+
 const Keyv = require('keyv')
+
 import { KeyvLru } from './cache/KeyvLrus'
 
 export class Cache<T extends object = any> extends Keyv<T> {
-  private _ns: string
+  private ns: string
   private _tenantId?: string
   private usesLRUMemory?: boolean
   private keyvLru: KeyvLru<T>
@@ -20,10 +22,12 @@ export class Cache<T extends object = any> extends Keyv<T> {
   }) {
     const tenantId = opts?.tenantId
     const namespace = opts?.namespace || ''
-    
+
     // Build the full namespace including tenant ID if provided
-    const fullNamespace = tenantId 
-      ? (namespace ? `${tenantId}:${namespace}` : tenantId)
+    const fullNamespace = tenantId
+      ? namespace
+        ? `${tenantId}:${namespace}`
+        : tenantId
       : namespace
 
     super({
@@ -49,7 +53,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
       namespace: fullNamespace
     })
 
-    this._ns = fullNamespace
+    this.ns = fullNamespace
     this._tenantId = tenantId
     this.usesLRUMemory = opts?.usesLRUMemory || false
   }
@@ -94,7 +98,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
     // It will greatly improve performance
     // for "frequent" uses
     if (this.usesLRUMemory) {
-      const memoryVal = await this.memoryCache.get(`${this._ns}:${key}`)
+      const memoryVal = await this.memoryCache.get(`${this.ns}:${key}`)
 
       if (memoryVal) {
         return memoryVal
@@ -105,7 +109,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
     if (this.usesLRUMemory && result) {
       // We could also just overwrite the set method as well
-      await this.memoryCache.set(`${this._ns}:${key}`, result)
+      await this.memoryCache.set(`${this.ns}:${key}`, result)
     }
 
     return result
@@ -113,7 +117,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
   public async delete(key: string): Promise<boolean> {
     if (this.usesLRUMemory) {
-      await this.memoryCache.delete(`${this._ns}:${key}`)
+      await this.memoryCache.delete(`${this.ns}:${key}`)
     }
     return await super.delete(key)
   }
@@ -215,25 +219,22 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
   public async deleteWhereStartsWith(value: string): Promise<void> {
     if (!this.iterator) {
-      await Promises.map(
-        Object.keys(this.opts.store['cache']['items']),
-        async k => {
-          if (k.startsWith(`${this._ns}:${value}`)) {
-            await this.delete(k.replace(`${this._ns}:`, ''))
-          }
+      await Promises.map(Object.keys(this.opts.store.cache.items), async k => {
+        if (k.startsWith(`${this.ns}:${value}`)) {
+          await this.delete(k.replace(`${this.ns}:`, ''))
         }
-      )
+      })
       return
     }
 
     // When using iterator with compound namespaces (e.g., tenant:namespace),
     // keyv may not strip the full namespace correctly. We need to handle this.
-    const namespaceParts = this._ns.split(':')
+    const namespaceParts = this.ns.split(':')
     const hasCompoundNamespace = namespaceParts.length > 1
 
-    for await (const [key] of this.iterator(this._ns)) {
+    for await (const [key] of this.iterator(this.ns)) {
       let keyToCheck = key
-      
+
       // If we have a compound namespace and the key still contains part of it,
       // we need to strip the remaining namespace parts
       if (hasCompoundNamespace && key.includes(':')) {
@@ -246,7 +247,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
           }
         }
       }
-      
+
       if (keyToCheck.startsWith(value)) {
         // Use the processed key (without namespace parts) for deletion
         await this.delete(keyToCheck)
@@ -257,28 +258,23 @@ export class Cache<T extends object = any> extends Keyv<T> {
   public async getValueWhereKeyStartsWith<T>(value: string): Promise<T[]> {
     const result = []
     if (!this.iterator) {
-      await Promises.map(
-        Object.keys(this.opts.store['cache']['items']),
-        async k => {
-          if (k.startsWith(`${this._ns}:${value}`)) {
-            const val = JSON.parse(
-              this.opts.store['cache']['items'][k].value
-            ).value
-            result.push(val)
-          }
+      await Promises.map(Object.keys(this.opts.store.cache.items), async k => {
+        if (k.startsWith(`${this.ns}:${value}`)) {
+          const val = JSON.parse(this.opts.store.cache.items[k].value).value
+          result.push(val)
         }
-      )
+      })
       return result
     }
 
     // When using iterator with compound namespaces (e.g., tenant:namespace),
     // keyv may not strip the full namespace correctly. We need to handle this.
-    const namespaceParts = this._ns.split(':')
+    const namespaceParts = this.ns.split(':')
     const hasCompoundNamespace = namespaceParts.length > 1
 
-    for await (const [key, val] of this.iterator(this._ns)) {
+    for await (const [key, val] of this.iterator(this.ns)) {
       let keyToCheck = key
-      
+
       // If we have a compound namespace and the key still contains part of it,
       // we need to strip the remaining namespace parts
       if (hasCompoundNamespace && key.includes(':')) {
@@ -291,7 +287,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
           }
         }
       }
-      
+
       if (keyToCheck.startsWith(value)) {
         result.push(val)
       }

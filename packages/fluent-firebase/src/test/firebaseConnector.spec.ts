@@ -1,28 +1,23 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest'
-import { createUnifiedTests, Fluent } from '@goatlab/fluent'
-import { dbEntities } from '@goatlab/fluent/src/TypeOrmConnector/test/dbEntities'
-import { FirebaseInit, deleteFirebaseApps } from '../FirebaseInit'
-
-import { TypeOrmRepository } from './typeOrm.repository'
+import 'reflect-metadata'
+import { createUnifiedTests } from '@goatlab/fluent'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { deleteFirebaseApps, FirebaseInit } from '../FirebaseInit'
 import { GoatRepository } from './goat.repository'
+import { TypeOrmRepository } from './typeOrm.repository'
 
 describe('Firebase Connector Tests with Generic Unified Suite', () => {
-  const unifiedTests = createUnifiedTests({
-    createGoatConnector: () => new GoatRepository(),
-    createTypeOrmConnector: () => new TypeOrmRepository(),
-    dbType: 'firebase'
-  })
-
   beforeAll(async () => {
     // Initialize Firebase with emulator settings
     FirebaseInit({
       databaseName: 'test-project',
       emulator: true
     })
+  })
 
-    // Initialize Fluent with entities to ensure metadata is available
-    // Firebase doesn't use TypeORM datasources, so we pass empty array
-    await Fluent.initialize([], dbEntities)
+  const unifiedTests = createUnifiedTests({
+    createGoatConnector: () => new GoatRepository(),
+    createTypeOrmConnector: () => new TypeOrmRepository(),
+    dbType: 'firebase'
   })
 
   afterAll(async () => {

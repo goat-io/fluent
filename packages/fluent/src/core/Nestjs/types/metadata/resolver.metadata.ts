@@ -1,13 +1,13 @@
+import { Type } from '../common'
+import { Complexity } from '../interfaces/complexity.interface'
 import { GqlTypeReference } from '../interfaces/return-type-func.interface'
 import { TypeOptions } from '../interfaces/type-options.interface'
-import { Type } from '../common'
 import { DirectiveMetadata } from './directive.metadata'
 import { MethodArgsMetadata } from './param.metadata'
-import { Complexity } from '../interfaces/complexity.interface'
 
 export interface ResolverClassMetadata {
   target: Function
-  typeFn: (of?: void) => Type<unknown> | Function
+  typeFn: (of?: undefined) => Type<unknown> | Function
   isAbstract?: boolean
   parent?: ResolverClassMetadata
 }
@@ -26,13 +26,13 @@ export interface BaseResolverMetadata {
 }
 
 export interface ResolverTypeMetadata extends BaseResolverMetadata {
-  typeFn: (type?: void) => GqlTypeReference
+  typeFn: (type?: undefined) => GqlTypeReference
   returnTypeOptions: TypeOptions
 }
 
 export interface FieldResolverMetadata extends BaseResolverMetadata {
   kind: 'internal' | 'external'
   typeOptions?: TypeOptions
-  typeFn?: (type?: void) => GqlTypeReference
-  objectTypeFn?: (of?: void) => Type<unknown> | Function
+  typeFn?: (type?: undefined) => GqlTypeReference
+  objectTypeFn?: (of?: undefined) => Type<unknown> | Function
 }

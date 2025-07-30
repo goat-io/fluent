@@ -1,8 +1,7 @@
 import Event from './Event'
 
-import axios from 'axios'
 /* eslint-disable no-unused-vars */
-let Connection = (() => {
+const Connection = (() => {
   let online =
     typeof window !== 'undefined' && window && window.navigator
       ? window.navigator.onLine
@@ -37,14 +36,14 @@ let Connection = (() => {
   function initEventListeners() {
     Event.listen({
       name: 'online',
-      callback: function () {
+      callback: () => {
         console.log('App is now online')
         setOnline()
       }
     })
     Event.listen({
       name: 'offline',
-      callback: function () {
+      callback: () => {
         console.log('App is now offline')
         setOffline()
       }
@@ -52,7 +51,7 @@ let Connection = (() => {
   }
 
   function isOnline() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       resolve(true)
     })
   }

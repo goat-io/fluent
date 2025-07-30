@@ -1,17 +1,17 @@
 export const isString = (fn: any): fn is string => typeof fn === 'string'
 
 export enum ClassType {
-  ARGS = 'args',
-  OBJECT = 'objectType',
-  INPUT = 'inputType',
-  INTERFACE = 'interface'
+  Args = 'args',
+  Object = 'objectType',
+  Input = 'inputType',
+  Interface = 'interface'
 }
 
-export interface Type<T = any> extends Function {
+export interface Type<T = any> extends globalThis.Function {
   new (...args: any[]): T
 }
 
-export function flatten<T extends Array<unknown> = any>(
+export function flatten<T extends unknown[] = any>(
   arr: T
 ): T extends Array<infer R> ? R : never {
   const flat = [].concat(...(arr as any))
@@ -25,7 +25,7 @@ export const isUndefined = (obj: any): obj is undefined =>
 
 export const isFunction = (fn: any): boolean => typeof fn === 'function'
 
-export type TargetHost = Record<'target', Function>
+export type TargetHost = Record<'target', globalThis.Function>
 export function isTargetEqual<T extends TargetHost, U extends TargetHost>(
   a: T,
   b: U

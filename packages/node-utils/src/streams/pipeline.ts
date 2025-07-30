@@ -1,8 +1,8 @@
 import { Readable, Transform, Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { writablePushToArray } from './writablePushToArray'
 import { AnyFunction, Arrays } from '@goatlab/js-utils'
 import { DeferredPromise, pDefer } from './pDefer'
+import { writablePushToArray } from './writablePushToArray'
 
 type AnyStream =
   | NodeJS.ReadableStream
@@ -23,13 +23,16 @@ export interface PipelineOptions {
  * Supports opt.allowClose, which allows transformLimit to work (to actually stop source Readable)
  * without throwing an error (ERR_STREAM_PREMATURE_CLOSE).
  */
+
 export async function _pipeline(
   streams: AnyStream[],
-  opt: PipelineOptions = {},
+  opt: PipelineOptions = {}
 ): Promise<void> {
   // Early return for empty streams to avoid unnecessary processing
-  if (!streams.length) return
-  
+  if (!streams.length) {
+    return
+  }
+
   const first = streams[0] as any
   const rest = streams.slice(1)
 
@@ -106,9 +109,10 @@ export async function _pipeline(
  * Convenience function to make _pipeline collect all items at the end of the stream (should be Transform, not Writeable!)
  * and return.
  */
+
 export async function _pipelineToArray<T>(
   streams: AnyStream[],
-  opt: PipelineOptions = {},
+  opt: PipelineOptions = {}
 ): Promise<T[]> {
   // Pre-allocate array with reasonable initial capacity to reduce reallocations
   const a: T[] = []

@@ -54,7 +54,7 @@ export const loopbackGetPlugin = ({
       return form.data
     }
   },
-  staticRequest: async (request, options) => {
+  staticRequest: async (request, _options) => {
     if (!(request.method === 'GET') || !request.url.includes(appUrl)) {
       return undefined
     }
@@ -114,7 +114,7 @@ export const loopbackGetPlugin = ({
       (Array.isArray(currentValue) &&
         currentValue.join(',') === lbQueryUrl.searchString)
     ) {
-      delete lbQueryUrl.where
+      lbQueryUrl.where = undefined
     }
 
     // Make the fields searchable
@@ -139,7 +139,7 @@ export const loopbackGetPlugin = ({
           ? JSON.parse(lbQueryUrl.filter)
           : undefined
       }
-    } catch (error) {
+    } catch (_error) {
       console.error(
         'Could not parse FILTER one of your resource queries: ',
         formPath,
@@ -166,7 +166,7 @@ export const loopbackGetPlugin = ({
         }
         lbQueryUrl.filter.where = lbQueryUrl.where
       }
-    } catch (error) {
+    } catch (_error) {
       console.log(
         'Could not parse WHERE one of your resource queries: ',
         formPath,

@@ -1,6 +1,6 @@
 // npx vitest run ./src/Ips.test.ts
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { Ips } from './Ips'
 
 describe('Ips', () => {

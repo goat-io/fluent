@@ -1,15 +1,15 @@
+import * as fs from 'node:fs'
+import { writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { RedisContainer } from '@testcontainers/redis'
 import { VaultContainer } from '@testcontainers/vault'
-import { writeFileSync } from 'fs'
-import * as fs from 'fs'
-import { resolve } from 'path'
 // This file runs before jest sets the env
 // so we need to load dotenv manually if we want to use env
 
 export default async () => {
   // Replace this with your actual async function
   const redisContainer = await new RedisContainer('redis:7.2').start()
-  
+
   // Vault container with dev mode and test token
   const vaultContainer = await new VaultContainer('hashicorp/vault:1.13')
     .withEnvironment({

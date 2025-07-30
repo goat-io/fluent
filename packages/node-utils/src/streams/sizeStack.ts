@@ -1,10 +1,13 @@
+import { CommonLogger, Units } from '@goatlab/js-utils'
 import { yellow } from 'kleur/colors'
 import { NumberStack } from './math/stack.util'
-import { CommonLogger, Units } from '@goatlab/js-utils'
 import { gzipBuffer } from './util/zip.util'
 
 export class SizeStack extends NumberStack {
-  constructor(public name: string, size: number) {
+  constructor(
+    public name: string,
+    size: number
+  ) {
     super(size)
   }
 
@@ -19,7 +22,7 @@ export class SizeStack extends NumberStack {
     // const pcs = this.percentiles([50, 90])
 
     return [
-      '  ' + this.name,
+      `  ${this.name}`,
       'avg',
       yellow(Units.humanByteSize(this.avg())),
       // 'p50',
@@ -37,7 +40,9 @@ export class SizeStack extends NumberStack {
     sizes?: SizeStack,
     sizesZipped?: SizeStack
   ): Promise<void> {
-    if (!sizes) return
+    if (!sizes) {
+      return
+    }
 
     // try-catch, because we don't want to fail the pipeline on logProgress
     try {

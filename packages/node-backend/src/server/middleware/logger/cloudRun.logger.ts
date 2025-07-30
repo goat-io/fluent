@@ -1,7 +1,7 @@
-import type { Format } from 'logform'
-import type { LoggerOptions } from 'winston'
 import { LoggingWinston } from '@google-cloud/logging-winston'
 import { blue } from 'kleur/colors'
+import type { Format } from 'logform'
+import type { LoggerOptions } from 'winston'
 import { format, transports } from 'winston'
 import { Environment } from '../../types/Envinronment'
 import { getCurrentTimeFormatted } from '../logs.middleware'
@@ -32,7 +32,7 @@ export function getWinstonCloudRunConfig({
   production,
   environment,
   getTrace,
-  getLabels,
+  getLabels
 }: WinstonCloudRunConfig): LoggerOptions {
   const logTransports: (typeof transports.Console | LoggingWinston)[] = []
 
@@ -41,13 +41,13 @@ export function getWinstonCloudRunConfig({
       format: format.combine(
         format.colorize(),
         format.printf(
-          (info) =>
+          info =>
             `[${blue(getCurrentTimeFormatted())}] ${info.level}: ${
               info.message
-            }`,
-        ),
+            }`
+        )
       ),
-      level: 'debug',
+      level: 'debug'
     })
     logTransports.push(consoleLogger)
   } else {
@@ -55,20 +55,20 @@ export function getWinstonCloudRunConfig({
       new LoggingWinston({
         serviceContext: {
           service: appName,
-          version: appVersion,
+          version: appVersion
         },
         labels: {
           environment,
-          service: appName,
+          service: appName
         },
-        defaultCallback: (err) => {
+        defaultCallback: err => {
           if (err) {
             console.error('Logging failed:', err)
           }
         },
         level: 'error',
-        redirectToStdout: true,
-      }),
+        redirectToStdout: true
+      })
     )
   }
 
@@ -77,7 +77,7 @@ export function getWinstonCloudRunConfig({
     format: getCloudLoggingFormat({ getTrace, getLabels, environment }),
     transports: logTransports,
     handleRejections: true,
-    handleExceptions: true,
+    handleExceptions: true
   }
 }
 
@@ -88,16 +88,16 @@ export function getCloudLoggingFormat(
   {
     getTrace,
     getLabels,
-    environment,
+    environment
   }: Pick<WinstonCloudRunConfig, 'getLabels' | 'getTrace' | 'environment'> = {
-    environment: 'local',
-  },
+    environment: 'local'
+  }
 ): Format {
   const traceInfo = getTrace ? getTraceInfo(getTrace) : {}
 
   const logFormat = [
     format.errors({ stack: true }),
-    format((info) => {
+    format(info => {
       const { level } = info
       return {
         ...info,
@@ -105,10 +105,10 @@ export function getCloudLoggingFormat(
         severity: environment === 'local' ? undefined : level.toUpperCase(),
         time: environment === 'local' ? undefined : new Date().toISOString(),
         ...(getLabels && {
-          'logging.googleapis.com/labels': getLabels(),
-        }),
+          'logging.googleapis.com/labels': getLabels()
+        })
       } as never
-    })(),
+    })()
   ]
 
   if (environment !== 'local') {
@@ -124,7 +124,7 @@ function getTraceInfo(getTrace: GetTraceFn) {
     ? {
         'logging.googleapis.com/trace': traceId,
         'logging.googleapis.com/spanId': spanId,
-        'logging.googleapis.com/trace_sampled': traceSampled,
+        'logging.googleapis.com/trace_sampled': traceSampled
       }
     : {}
 }

@@ -1,9 +1,9 @@
+import type { CommonLogger } from '@goatlab/js-utils'
 import type { BuiltRouter } from '@trpc/server/unstable-core-do-not-import'
 import type { RequestHandler, Router } from 'express'
-import type { CommonLogger } from '@goatlab/js-utils'
+import { pkg } from '../consts'
 import type { SentryService } from '../sentry/sentry.service'
 import type { Environment } from '../types/Envinronment'
-import { pkg } from '../consts'
 
 // Required configuration - only what's absolutely necessary
 export interface RequiredExpressTrpcAppConfig {
@@ -158,7 +158,7 @@ function deepMerge<T extends Record<string, any>>(
   const result = { ...target }
 
   for (const key in source) {
-    if (Object.prototype.hasOwnProperty.call(source, key)) {
+    if (Object.hasOwn(source, key)) {
       const sourceValue = source[key]
       const targetValue = target[key]
 

@@ -33,14 +33,16 @@ export class AdvancedEntity {
 export const AdvancedSchema = z.object({
   id: z.string().optional(),
   created: z.date().optional(),
-  nestedTest: z.object({
-    a: z.array(z.string()),
-    b: z.object({
-      c: z.boolean(),
-      d: z.array(z.string())
-    }),
-    c: z.number().int()
-  }).optional(),
+  nestedTest: z
+    .object({
+      a: z.array(z.string()),
+      b: z.object({
+        c: z.boolean(),
+        d: z.array(z.string())
+      }),
+      c: z.number().int()
+    })
+    .optional(),
   order: z.number().int().optional(),
   test: z.boolean()
 })

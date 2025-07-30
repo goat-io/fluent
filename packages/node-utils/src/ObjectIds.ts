@@ -1,14 +1,14 @@
 class ObjectIdsClass {
-  private ObjectIdClass: any | undefined
-  
+  private objectIdClass: any | undefined
+
   private async getObjectIdClass() {
-    if (!this.ObjectIdClass) {
+    if (!this.objectIdClass) {
       const { ObjectId } = await import('bson')
-      this.ObjectIdClass = ObjectId
+      this.objectIdClass = ObjectId
     }
-    return this.ObjectIdClass
+    return this.objectIdClass
   }
-  
+
   /**
    *
    */

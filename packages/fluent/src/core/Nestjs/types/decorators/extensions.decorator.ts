@@ -7,17 +7,20 @@ import { TypeMetadataStorage } from '../type-metadata.storage'
 export function Extensions(
   value: Record<string, unknown>
 ): MethodDecorator & ClassDecorator & PropertyDecorator {
-  return (target: Function | object, propertyKey?: string | symbol) => {
+  return (
+    target: ((...args: any[]) => any) | object,
+    propertyKey?: string | symbol
+  ) => {
     LazyMetadataStorage.store(() => {
       if (propertyKey) {
         TypeMetadataStorage.addExtensionsPropertyMetadata({
-          target: target.constructor,
+          target: target.constructor as new (...args: any[]) => any,
           fieldName: propertyKey as string,
           value
         })
       } else {
         TypeMetadataStorage.addExtensionsMetadata({
-          target: target as Function,
+          target: target as unknown as new (...args: any[]) => any,
           value
         })
       }

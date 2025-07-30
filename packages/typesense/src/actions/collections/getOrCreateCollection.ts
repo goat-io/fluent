@@ -1,7 +1,10 @@
-import type { TypesenseCollection, TypesenseCollectionOutput } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
-import { getCollection } from './getCollection'
+import type {
+  TypesenseCollection,
+  TypesenseCollectionOutput
+} from '../../typesense.model'
 import { createCollection } from './createCollection'
+import { getCollection } from './getCollection'
 
 export async function getOrCreateCollection(
   ctx: TypesenseContext,

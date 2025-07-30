@@ -1,79 +1,72 @@
 // Collections
-import { createCollection } from './actions/collections/createCollection'
-import { getCollection } from './actions/collections/getCollection'
-import { updateCollection } from './actions/collections/updateCollection'
-import { deleteCollection } from './actions/collections/deleteCollection'
-import { listCollections } from './actions/collections/listCollections'
-import { getOrCreateCollection } from './actions/collections/getOrCreateCollection'
 
-// Documents
-import { insertDocument } from './actions/documents/insertDocument'
-import { upsertDocument } from './actions/documents/upsertDocument'
-import { updateDocument } from './actions/documents/updateDocument'
+import { getCollectionStats } from './actions/admin/getCollectionStats'
+// Admin
+import { health, waitForHealth } from './actions/admin/health'
+import { getMetrics, getStats } from './actions/admin/metrics'
+// Aliases
+import { createOrUpdateAlias } from './actions/aliases/createOrUpdateAlias'
+import { deleteAlias } from './actions/aliases/deleteAlias'
+import { getAlias } from './actions/aliases/getAlias'
+import { listAliases } from './actions/aliases/listAliases'
+import { createCollection } from './actions/collections/createCollection'
+import { deleteCollection } from './actions/collections/deleteCollection'
+import { getCollection } from './actions/collections/getCollection'
+import { getOrCreateCollection } from './actions/collections/getOrCreateCollection'
+import { listCollections } from './actions/collections/listCollections'
+import { updateCollection } from './actions/collections/updateCollection'
+import { clearCollection } from './actions/documents/clearCollection'
+import { deleteByFilter } from './actions/documents/deleteByFilter'
 import { deleteDocument } from './actions/documents/deleteDocument'
-import { getDocumentById } from './actions/documents/getDocumentById'
-import { importDocuments } from './actions/documents/importDocuments'
 import {
   exportDocuments,
   exportDocumentsStream
 } from './actions/documents/exportDocuments'
-import { deleteByFilter } from './actions/documents/deleteByFilter'
-import { clearCollection } from './actions/documents/clearCollection'
-
-// Search
-import { search, searchText, searchVector } from './actions/search/search'
-import { multiSearch } from './actions/search/multiSearch'
-
-// Admin
-import { health, waitForHealth } from './actions/admin/health'
-import { getMetrics, getStats } from './actions/admin/metrics'
-import { getCollectionStats } from './actions/admin/getCollectionStats'
-
-// Aliases
-import { createOrUpdateAlias } from './actions/aliases/createOrUpdateAlias'
-import { getAlias } from './actions/aliases/getAlias'
-import { listAliases } from './actions/aliases/listAliases'
-import { deleteAlias } from './actions/aliases/deleteAlias'
-
-// Synonyms
-import { upsertSynonym } from './actions/synonyms/upsertSynonym'
-import { getSynonym } from './actions/synonyms/getSynonym'
-import { listSynonyms } from './actions/synonyms/listSynonyms'
-import { deleteSynonym } from './actions/synonyms/deleteSynonym'
-
-// Overrides
-import { upsertOverride } from './actions/overrides/upsertOverride'
+import { getDocumentById } from './actions/documents/getDocumentById'
+import { importDocuments } from './actions/documents/importDocuments'
+// Documents
+import { insertDocument } from './actions/documents/insertDocument'
+import { updateDocument } from './actions/documents/updateDocument'
+import { upsertDocument } from './actions/documents/upsertDocument'
+import { deleteOverride } from './actions/overrides/deleteOverride'
 import { getOverride } from './actions/overrides/getOverride'
 import { listOverrides } from './actions/overrides/listOverrides'
-import { deleteOverride } from './actions/overrides/deleteOverride'
-
-// Presets
-import { upsertPreset } from './actions/presets/upsertPreset'
+// Overrides
+import { upsertOverride } from './actions/overrides/upsertOverride'
+import { deletePreset } from './actions/presets/deletePreset'
 import { getPreset } from './actions/presets/getPreset'
 import { listPresets } from './actions/presets/listPresets'
-import { deletePreset } from './actions/presets/deletePreset'
-
-// Types
-import type { TypesenseContext } from './types'
-import type {
-  TypesenseRateLimitInfo,
-  WithRequiredId,
-  TypesenseDocument,
-  TypesenseCollectionOptions,
-  TypesenseCollection
-} from './typesense.model'
-import { defineCollection as defineCollectionUtil, type InferFromCollection } from './utils/schema-to-types'
-import { createSchemaTypedApi as createSchemaTypedApiUtil } from './utils/schema-typed-api'
+// Presets
+import { upsertPreset } from './actions/presets/upsertPreset'
+import { multiSearch } from './actions/search/multiSearch'
+// Search
+import { search, searchText, searchVector } from './actions/search/search'
+import { deleteSynonym } from './actions/synonyms/deleteSynonym'
+import { getSynonym } from './actions/synonyms/getSynonym'
+import { listSynonyms } from './actions/synonyms/listSynonyms'
+// Synonyms
+import { upsertSynonym } from './actions/synonyms/upsertSynonym'
 import {
-  TypesenseHttpClient,
-  type HttpClientOptions
+  type HttpClientOptions,
+  TypesenseHttpClient
 } from './components/http-client'
 import {
   ResiliencePolicy,
   type ResiliencePolicyOptions
 } from './components/resilience-policy'
 import { CollectionSchemaManager } from './components/schema-manager'
-import { sanitizeTenantId, createFQCN } from './utils/tenant'
+// Types
+import type { TypesenseContext } from './types'
+import type {
+  TypesenseCollection,
+  TypesenseCollectionOptions,
+  TypesenseDocument,
+  TypesenseRateLimitInfo,
+  WithRequiredId
+} from './typesense.model'
+import { defineCollection as defineCollectionUtil } from './utils/schema-to-types'
+import { createSchemaTypedApi as createSchemaTypedApiUtil } from './utils/schema-typed-api'
+import { createFQCN, sanitizeTenantId } from './utils/tenant'
 
 export interface TypesenseApiOptions
   extends Omit<HttpClientOptions, 'prefixUrl' | 'token'> {
@@ -198,12 +191,12 @@ export class TypesenseApi<
    * @example
    * ```typescript
    * const ProductCollection = TypesenseApi.defineCollection({...})
-   * 
+   *
    * const api = TypesenseApi.createSchemaTypedApi(ProductCollection)({
    *   prefixUrl: 'http://localhost:8108',
    *   token: 'xyz'
    * })
-   * 
+   *
    * // Now all document operations are fully typed
    * await api.documents.insert({
    *   id: '1',
@@ -233,7 +226,9 @@ export class TypesenseApi<
    * ```
    */
   static createFromSchema<const C extends TypesenseCollection>(collection: C) {
-    return TypesenseApi.createSchemaTypedApi(TypesenseApi.defineCollection(collection))
+    return TypesenseApi.createSchemaTypedApi(
+      TypesenseApi.defineCollection(collection)
+    )
   }
 
   constructor(options: TypesenseApiOptions) {
@@ -258,6 +253,7 @@ export class TypesenseApi<
           ;(error as any).retriesRemaining = 0
           throw error
         }
+        return undefined
       },
       ...(options.beforeRequest || [])
     ]
@@ -354,7 +350,7 @@ export class TypesenseApi<
           console.info(`Connected to Typesense v${stats.server_version}`)
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Version check is optional, continue silently
     }
   }

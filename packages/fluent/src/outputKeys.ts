@@ -1,5 +1,5 @@
-import { Repository } from 'typeorm'
 import { Objects } from '@goatlab/js-utils'
+import { Repository } from 'typeorm'
 
 export const getOutputKeys = (repository: Repository<any>) => {
   const excludedCols: any[] = []

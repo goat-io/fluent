@@ -1,11 +1,12 @@
 import Loki from 'lokijs'
 import LokiIndexedAdapter from 'lokijs/src/loki-indexed-adapter'
+
 let LokiReactNativeAdapter
-if (typeof navigator != 'undefined' && navigator.product == 'ReactNative') {
+if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
   // LokiReactNativeAdapter = require("loki-react-native-asyncstorage-adapter");
 }
-var DB = null
-let Database = (() => {
+let DB = null
+const Database = (() => {
   /*
   |--------------------------------------------------------------------------
   | LockiDB Config
@@ -20,9 +21,9 @@ let Database = (() => {
       window._FLUENT_ &&
       window._FLUENT_.models
         ? window._FLUENT_.models
-        : global && global._FLUENT_ && global._FLUENT_.models
-        ? global._FLUENT_.models
-        : undefined
+        : global?._FLUENT_?.models
+          ? global._FLUENT_.models
+          : undefined
     return models
   }
   /**
@@ -32,13 +33,13 @@ let Database = (() => {
    * @param {string} configuration.env - Environment i.e 'production'
    * @returns
    */
-  const _create = () => {
+  const Create = () => {
     return new Promise(resolve => {
       let idbAdapter
       let pa
       let db
 
-      let dbConfig = {
+      const dbConfig = {
         autosave: true,
         autosaveInterval: 1000,
         autoload: true,
@@ -54,12 +55,12 @@ let Database = (() => {
         })
 
         db = new Loki('GOAT', { ...dbConfig, adapter: pa })
-      } catch (error) {
+      } catch (_error) {
         if (
-          typeof navigator != 'undefined' &&
-          navigator.product == 'ReactNative'
+          typeof navigator !== 'undefined' &&
+          navigator.product === 'ReactNative'
         ) {
-          adapter = new LokiReactNativeAdapter()
+          const adapter = new LokiReactNativeAdapter()
           db = new Loki('GOAT', { ...dbConfig, adapter })
         } else {
           db = new Loki('GOAT', dbConfig)
@@ -97,7 +98,7 @@ let Database = (() => {
       return acc
     }, [])
 
-    let models = []
+    const models = []
     Object.keys(windowModels).forEach(m => {
       if (!dbModels.includes(m)) {
         models.push(m)
@@ -114,9 +115,9 @@ let Database = (() => {
    * @param {string} configuration.env - Environment i.e 'production'
    * @returns
    */
-  const get = async function () {
+  const get = async () => {
     if (!DB) {
-      DB = await _create()
+      DB = await Create()
     }
     const recreateModels = shouldCreate()
     if (recreateModels.length > 0) {

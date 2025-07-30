@@ -44,14 +44,18 @@ export const GoatSchema = z.object({
   type: z.string().optional(),
   active: z.boolean().optional(),
   weight: z.number().optional(),
-  balance: z.object({
-    id: z.number(),
-    value: z.number()
-  }).optional(),
-  breed: z.object({
-    type: z.string(),
-    family: z.string()
-  }).optional(),
+  balance: z
+    .object({
+      id: z.number(),
+      value: z.number()
+    })
+    .optional(),
+  breed: z
+    .object({
+      type: z.string(),
+      family: z.string()
+    })
+    .optional(),
   createdBy: z.string().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional()

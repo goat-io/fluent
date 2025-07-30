@@ -1,8 +1,5 @@
-import { RabbitMQContainer } from '@testcontainers/rabbitmq'
 import { KafkaContainer } from '@testcontainers/kafka'
-import { writeFileSync } from 'fs'
-import * as fs from 'fs'
-import { resolve } from 'path'
+import { RabbitMQContainer } from '@testcontainers/rabbitmq'
 import { cleanGlobalData, writeGlobalData } from './src/test/const'
 // This file runs before jest sets the env
 // so we need to load dotenv manually if we want to use env

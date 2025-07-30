@@ -130,7 +130,7 @@ class XlsxStream {
     file: IXlsxStreamOptions
     batchSize: number
     rowMapper: RowMapper
-    fx: (mappedRows: Array<ReturnType<RowMapper>>) => Promise<void>
+    fx: (mappedRows: ReturnType<RowMapper>[]) => Promise<void>
     mapOptions: {
       concurrency: number
     }

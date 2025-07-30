@@ -11,6 +11,3 @@ export class RolesUser {
   @f.property({ required: false })
   roleId: string
 }
-
-
-

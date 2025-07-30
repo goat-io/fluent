@@ -1,5 +1,5 @@
 // npx vitest run ./src/server/services/util/pagination.test.ts
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { paginationUtility } from './pagination'
 
@@ -256,7 +256,11 @@ describe('PaginationUtility', () => {
 
       expect(result).toEqual({ id: 3, createdAt: '2023-01-03' })
       expect(items).toHaveLength(2) // Last item should be removed
-      expect(items[items.length - 1]).toEqual({ id: 2, createdAt: '2023-01-02', name: 'Item 2' })
+      expect(items[items.length - 1]).toEqual({
+        id: 2,
+        createdAt: '2023-01-02',
+        name: 'Item 2'
+      })
     })
 
     it('should handle invalid schema data gracefully', () => {
@@ -313,23 +317,23 @@ describe('PaginationUtility', () => {
 
     it('should handle items with extra properties', () => {
       const items = [
-        { 
-          id: 1, 
-          createdAt: '2023-01-01', 
+        {
+          id: 1,
+          createdAt: '2023-01-01',
           name: 'Item 1',
           extraProp: 'extra',
           anotherProp: 123
         },
-        { 
-          id: 2, 
-          createdAt: '2023-01-02', 
+        {
+          id: 2,
+          createdAt: '2023-01-02',
           name: 'Item 2',
           extraProp: 'extra2',
           anotherProp: 456
         },
-        { 
-          id: 3, 
-          createdAt: '2023-01-03', 
+        {
+          id: 3,
+          createdAt: '2023-01-03',
           name: 'Item 3',
           extraProp: 'extra3',
           anotherProp: 789

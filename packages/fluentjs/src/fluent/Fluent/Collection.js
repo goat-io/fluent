@@ -41,12 +41,12 @@ export default stampit({
      * @return static
      */
     average(path = '') {
-      let data = [...this.data]
+      const data = [...this.data]
       const sum = data.reduce((acc, element) => {
         let value = element
 
         if (element instanceof Object) {
-          let extract = Utilities.getFromPath(element, path, undefined)
+          const extract = Utilities.getFromPath(element, path, undefined)
           if (typeof extract !== 'undefined' && extract.value) {
             value = extract.value
           }
@@ -57,7 +57,7 @@ export default stampit({
       try {
         const avg = sum / data.length
         return avg
-      } catch (e) {
+      } catch (_e) {
         throw new Error(
           'Division between "' +
             sum +
@@ -113,8 +113,8 @@ export default stampit({
      * @return static
      */
     chunks(size) {
-      let data = [...this.data]
-      var results = []
+      const data = [...this.data]
+      const results = []
 
       while (data.length) {
         results.push(data.splice(0, size))
@@ -127,8 +127,8 @@ export default stampit({
      *
      */
     collapse() {
-      let data = [...this.data]
-      var results = []
+      const data = [...this.data]
+      const results = []
 
       data.forEach(chunk => {
         if (Array.isArray(chunk)) {
@@ -159,7 +159,7 @@ export default stampit({
           if (!result) {
             result = []
           }
-          result[index] = { ...e, _value: array[index] }
+          result[index] = { ...e, value: array[index] }
         }
       })
 
@@ -183,7 +183,7 @@ export default stampit({
         value = args[1]
         path = args[0]
       }
-      let data = [...this.data]
+      const data = [...this.data]
 
       return data.some((e, index) => {
         if (Fx) {
@@ -191,7 +191,7 @@ export default stampit({
         }
         let val = e
         if (e instanceof Object) {
-          let extract = Utilities.getFromPath(e, path, undefined)
+          const extract = Utilities.getFromPath(e, path, undefined)
           if (extract.value) {
             val = extract.value
           }
@@ -214,7 +214,7 @@ export default stampit({
           ''
         )
 
-        if (object.hasOwnProperty(finalKey)) {
+        if (Object.hasOwn(object, finalKey)) {
           duplicates.push(submission)
         } else {
           object[finalKey] = true

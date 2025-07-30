@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events'
+import { EventEmitter } from 'node:events'
 import Redis from 'ioredis'
 
 /**
@@ -75,7 +75,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
     // Subscribe to channels (fire-and-forget, will handle errors via event listeners)
     this.subscriber
       .subscribe(invalidationChannel, heartbeatChannel)
-      .catch((err) => {
+      .catch(err => {
         console.error('Failed to subscribe to Redis channels:', err)
         if (this.enableFallback) {
           this.emit('redis-error', err)
@@ -94,7 +94,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
       }
     })
 
-    this.subscriber.on('error', (error) => {
+    this.subscriber.on('error', error => {
       console.error('Redis subscriber error:', error)
       if (this.enableFallback) {
         this.emit('redis-error', error)
@@ -119,7 +119,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
     const message = {
       instanceId: this.instanceId,
       timestamp: Date.now(),
-      status: 'alive',
+      status: 'alive'
     }
 
     await this.redis.publish(heartbeatChannel, JSON.stringify(message))
@@ -136,7 +136,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
 
     console.log(
       `Received cache invalidation from ${message.instanceId}:`,
-      message,
+      message
     )
 
     // Emit events for container to handle
@@ -175,7 +175,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
       tenantId,
       reason: reason || 'Tenant credentials changed',
       timestamp: Date.now(),
-      instanceId: this.instanceId,
+      instanceId: this.instanceId
     }
 
     await this.publishInvalidation(message)
@@ -190,7 +190,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
       serviceType,
       reason: reason || 'Service configuration changed',
       timestamp: Date.now(),
-      instanceId: this.instanceId,
+      instanceId: this.instanceId
     }
 
     await this.publishInvalidation(message)
@@ -204,7 +204,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
       type: 'INVALIDATE_ALL',
       reason: reason || 'Global cache refresh',
       timestamp: Date.now(),
-      instanceId: this.instanceId,
+      instanceId: this.instanceId
     }
 
     await this.publishInvalidation(message)
@@ -214,7 +214,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
    * Publish invalidation message to Redis
    */
   private async publishInvalidation(
-    message: CacheInvalidationMessage,
+    message: CacheInvalidationMessage
   ): Promise<void> {
     const channel = `${this.channelPrefix}:${this.INVALIDATION_CHANNEL}`
 
@@ -260,7 +260,7 @@ export class DistributedCacheInvalidator extends EventEmitter {
 let globalInvalidator: DistributedCacheInvalidator | null = null
 
 export function getDistributedCacheInvalidator(
-  options?: DistributedCacheOptions,
+  options?: DistributedCacheOptions
 ): DistributedCacheInvalidator {
   if (!globalInvalidator) {
     globalInvalidator = new DistributedCacheInvalidator(options)

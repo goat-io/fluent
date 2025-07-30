@@ -2,7 +2,7 @@ import { createLogger } from 'winston'
 import { pkg } from '../../consts'
 import {
   getWinstonCloudRunConfig,
-  WinstonCloudRunConfig,
+  WinstonCloudRunConfig
 } from './cloudRun.logger'
 
 export type GetLoggerConfig = Omit<
@@ -18,7 +18,7 @@ export const getLogger = (cfg: GetLoggerConfig) => {
     ...getWinstonCloudRunConfig({
       ...cfg,
       appName: cfg.appName || pkg.name,
-      appVersion: cfg.appVersion || pkg.version,
-    }),
+      appVersion: cfg.appVersion || pkg.version
+    })
   })
 }

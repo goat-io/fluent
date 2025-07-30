@@ -1,10 +1,10 @@
+import Submission from '../../models/Submission'
 import User from '../../models/User'
 import Auth from '../Auth/Auth'
-import Submission from '../../models/Submission'
 import OfflineData from '../Submission/OfflineData'
 import Scheduler from './Scheduler'
 
-let Sync = class {
+const Sync = class {
   /**
    *
    * @param {*} vm
@@ -22,15 +22,15 @@ let Sync = class {
    * @param {*} vm
    */
   static async syncSubmission() {
-    let usersAreSync = await Sync.areUsersSynced()
+    const usersAreSync = await Sync.areUsersSynced()
 
     if (!usersAreSync) {
       return
     }
 
-    let unsyncSubmissions = await Submission().getUnsync()
+    const unsyncSubmissions = await Submission().getUnsync()
 
-    let isSyncing = await Scheduler.isSyncing()
+    const isSyncing = await Scheduler.isSyncing()
 
     if (unsyncSubmissions.length > 0 && !isSyncing) {
       OfflineData.send(unsyncSubmissions)
@@ -50,7 +50,7 @@ let Sync = class {
    *
    */
   static async areUsersSynced() {
-    let users = await Sync.getUsersToSync()
+    const users = await Sync.getUsersToSync()
 
     return !!users && Array.isArray(users) && users.length === 0
   }
@@ -59,9 +59,9 @@ let Sync = class {
    * @param {*} param
    */
   static async syncUsers() {
-    let users = await Sync.getUsersToSync()
+    const users = await Sync.getUsersToSync()
 
-    let isSyncing = await Scheduler.isSyncing()
+    const isSyncing = await Scheduler.isSyncing()
 
     if (Array.isArray(users) && users.length > 0 && !isSyncing) {
       OfflineData.syncUsers(users)

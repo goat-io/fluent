@@ -1,15 +1,16 @@
 // npx vitest test ./src/cloudtask.spec.ts
 
 import { ShouldQueue, UnknownInputType } from '@goatlab/tasks-core'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { CloudTaskConnector } from './CloudTaskConnector'
-import { describe, it, expect, beforeAll } from 'vitest'
 
 class TestTask extends ShouldQueue<{ text: string }> {
   postUrl = `http://localhost/task/this/url`
   taskName = 'this_is_the_task_name'
 
-  public async handle(taskBody: UnknownInputType): Promise<void> {
+  public async handle(taskBody: UnknownInputType): Promise<undefined> {
     console.log('Running task with body:', taskBody)
+    return undefined
   }
 }
 
@@ -19,18 +20,23 @@ describe('CloudTaskQueue', () => {
 
   beforeAll(() => {
     // Check if we have the required environment variable
-    const serviceAccountBase64 = process.env['FIREBASE_SERVICE_ACCOUNT']
-    
+    const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT
+
     if (!serviceAccountBase64) {
-      console.warn('FIREBASE_SERVICE_ACCOUNT not found, skipping CloudTask tests')
+      console.warn(
+        'FIREBASE_SERVICE_ACCOUNT not found, skipping CloudTask tests'
+      )
       return
     }
 
     try {
       // Decode and parse the service account
-      const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('utf8')
+      const serviceAccountJson = Buffer.from(
+        serviceAccountBase64,
+        'base64'
+      ).toString('utf8')
       const gcpServiceAccount = JSON.parse(serviceAccountJson)
-      
+
       cloudTask = new CloudTaskConnector({
         gcpServiceAccount,
         location: 'europe-west1',
@@ -43,7 +49,9 @@ describe('CloudTaskQueue', () => {
       })
     } catch (error) {
       console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', error)
-      throw new Error(`Invalid FIREBASE_SERVICE_ACCOUNT format: ${error.message}`)
+      throw new Error(
+        `Invalid FIREBASE_SERVICE_ACCOUNT format: ${error.message}`
+      )
     }
   })
 

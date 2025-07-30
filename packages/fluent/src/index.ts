@@ -1,39 +1,26 @@
+import { Collection } from '@goatlab/js-utils'
+import { Cache } from '@goatlab/node-backend'
+import { ValidationError } from 'class-validator'
+import { BaseConnector } from './BaseConnector'
+import type { SchemaObject } from './core/types'
 import {
   ApiHideProperty,
   ApiProperty,
   Column,
+  getModelSchemaRef,
   HideField,
   InputType,
   ObjectType,
   OmitType,
-  PartialType,
-  getModelSchemaRef
+  PartialType
 } from './core/types'
-import type {
-  AnyObject,
-  Deleted,
-  PaginatedData,
-  Paginator,
-  Primitives,
-  PrimitivesArray,
-  FluentQuery,
-  QueryOutput,
-  LoadedResult,
-  FindByIdFilter
-} from './types'
-import { LogicOperator } from './types'
-import { BaseConnector } from './BaseConnector'
-import { Collection } from '@goatlab/js-utils'
 import { f } from './decorators'
-import { Fluent } from './Fluent'
+import { collect, initialize } from './Fluent'
 import type { FluentConnectorInterface } from './FluentConnectorInterface'
-import type { SchemaObject } from './core/types'
-import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
-import { getOutputKeys } from './outputKeys'
-import { loadRelations } from './loadRelations'
 import { modelGeneratorDataSource } from './generatorDatasource'
-import { Cache } from '@goatlab/node-backend'
-import { ValidationError } from 'class-validator'
+import { loadRelations } from './loadRelations'
+import { getOutputKeys } from './outputKeys'
+import { TypeOrmConnector } from './TypeOrmConnector/TypeOrmConnector'
 import { extractConditions } from './TypeOrmConnector/util/extractConditions'
 import { extractInclude } from './TypeOrmConnector/util/extractInclude'
 import { extractMetadataFromKeys } from './TypeOrmConnector/util/extractMetadataFromKeys'
@@ -41,15 +28,44 @@ import { extractOrderBy } from './TypeOrmConnector/util/extractOrderBy'
 import { getRelationsFromModelGenerator } from './TypeOrmConnector/util/getRelationsFromModelGenerator'
 import { getSelectedKeysFromRawSql } from './TypeOrmConnector/util/getSelectedKeysFromRawSql'
 import { nestQueryResults } from './TypeOrmConnector/util/nestQueryResults'
+import type {
+  AnyObject,
+  Deleted,
+  FindByIdFilter,
+  FluentQuery,
+  LoadedResult,
+  PaginatedData,
+  Paginator,
+  Primitives,
+  PrimitivesArray,
+  QueryOutput
+} from './types'
+import { LogicOperator } from './types'
 
-export { DataSource } from 'typeorm'
 export type { Relation } from 'typeorm'
-
+export { DataSource } from 'typeorm'
+export {
+  TypeORMDataModel as TypeOrmEntity,
+  type TypeORMDataModelInputSchema,
+  TypeORMDataModelSchema
+} from './TypeOrmConnector/test/advanced/typeOrm.entity'
+export {
+  GoatEntity,
+  type GoatInputSchema,
+  GoatSchema
+} from './TypeOrmConnector/test/basic/goat.entity'
+export type {
+  TestConnector,
+  UnifiedTestOptions
+} from './testing/unifiedTestFactory'
 // Export test utilities for connector packages
 export { createUnifiedTests } from './testing/unifiedTestFactory'
-export type { UnifiedTestOptions, TestConnector } from './testing/unifiedTestFactory'
-export { GoatEntity, GoatSchema, type GoatInputSchema } from './TypeOrmConnector/test/basic/goat.entity'
-export { TypeORMDataModel as TypeOrmEntity, TypeORMDataModelSchema, type TypeORMDataModelInputSchema } from './TypeOrmConnector/test/advanced/typeOrm.entity'
+// Export Fluent object for backward compatibility
+export const Fluent = {
+  initialize,
+  collect
+}
+
 export {
   ApiHideProperty,
   ApiProperty,
@@ -57,7 +73,8 @@ export {
   Collection,
   Column,
   f,
-  Fluent,
+  collect,
+  initialize,
   getModelSchemaRef,
   getOutputKeys,
   HideField,

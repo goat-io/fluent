@@ -4,18 +4,20 @@ import {
   END,
   SKIP
 } from '@goatlab/js-utils/dist/Promises/pMap'
+
 import through2Concurrent = require('through2-concurrent')
-import { TransformTyped } from '../streams.model'
-import { AbortableTransform } from '../pipeline'
-import { pFilter } from '../pFilter'
-import { pipelineClose } from '../pipelineClose'
+
 import { yellow } from 'kleur/colors'
+import { pFilter } from '../pFilter'
+import { AbortableTransform } from '../pipeline'
+import { pipelineClose } from '../pipelineClose'
+import { TransformTyped } from '../streams.model'
 export type AsyncPredicate<T> = (
   item: T,
   index: number
 ) => boolean | PromiseLike<boolean>
 
-export interface TransformMapOptions<IN = any, OUT = IN> {
+export interface TransformMapOptions<In = any, Out = In> {
   /**
    * Set true to support "multiMap" - possibility to return [] and emit 1 result for each item in the array.
    *
@@ -30,7 +32,7 @@ export interface TransformMapOptions<IN = any, OUT = IN> {
    * Defaults to "pass everything" (including null, undefined, etc).
    * Simpler way to exclude certain cases is to return SKIP symbol from the mapper.
    */
-  predicate?: AsyncPredicate<OUT>
+  predicate?: AsyncPredicate<Out>
 
   /**
    * Number of concurrently pending promises returned by `mapper`.
@@ -48,7 +50,7 @@ export interface TransformMapOptions<IN = any, OUT = IN> {
    * If defined - will be called on every error happening in the stream.
    * Called BEFORE observable will emit error (unless skipErrors is set to true).
    */
-  onError?: (err: Error, input: IN) => any
+  onError?: (err: Error, input: In) => any
 
   /**
    * Progress metric
@@ -75,14 +77,14 @@ export interface TransformMapOptions<IN = any, OUT = IN> {
  *
  * If an Array is returned by `mapper` - it will be flattened and multiple results will be emitted from it. Tested by Array.isArray().
  */
-export function transformMap<IN = any, OUT = IN>(
-  mapper: AbortableAsyncMapper<IN, OUT | typeof SKIP | typeof END>,
-  opt: TransformMapOptions<IN, OUT> = {}
-): TransformTyped<IN, OUT> {
+export function transformMap<In = any, Out = In>(
+  mapper: AbortableAsyncMapper<In, Out | typeof SKIP | typeof END>,
+  opt: TransformMapOptions<In, Out> = {}
+): TransformTyped<In, Out> {
   const {
     concurrency = 16,
     predicate, // we now default to "no predicate" (meaning pass-everything)
-    errorMode = ErrorMode.THROW_IMMEDIATELY,
+    errorMode = ErrorMode.ThrowImmediately,
     flattenArrayOutput,
     onError,
     metric = 'stream',
@@ -93,7 +95,8 @@ export function transformMap<IN = any, OUT = IN>(
   let isSettled = false
   let errors = 0
   // Only allocate collectedErrors array if needed
-  const collectedErrors: Error[] | null = errorMode === ErrorMode.THROW_AGGREGATED ? [] : null
+  const collectedErrors: Error[] | null =
+    errorMode === ErrorMode.ThrowAggregated ? [] : null
 
   return through2Concurrent.obj(
     {
@@ -103,7 +106,7 @@ export function transformMap<IN = any, OUT = IN>(
 
         logErrorStats(true)
 
-        if (collectedErrors && collectedErrors.length) {
+        if (collectedErrors?.length) {
           // emit Aggregated error
           cb(
             new AggregateError(
@@ -117,9 +120,11 @@ export function transformMap<IN = any, OUT = IN>(
         }
       }
     },
-    async function transformMapFn(this: AbortableTransform, chunk: IN, _, cb) {
+    async function transformMapFn(this: AbortableTransform, chunk: In, _, cb) {
       // Stop processing if isSettled (either THROW_IMMEDIATELY was fired or END received)
-      if (isSettled) return cb()
+      if (isSettled) {
+        return cb()
+      }
 
       const currentIndex = ++index
 
@@ -163,15 +168,17 @@ export function transformMap<IN = any, OUT = IN>(
         if (onError) {
           try {
             onError(Errors.anyToError(err), chunk)
-          } catch {}
+          } catch {
+            // Ignore errors from error handler
+          }
         }
 
-        if (errorMode === ErrorMode.THROW_IMMEDIATELY) {
+        if (errorMode === ErrorMode.ThrowImmediately) {
           isSettled = true
           return cb(err) // Emit error immediately
         }
 
-        if (errorMode === ErrorMode.THROW_AGGREGATED && collectedErrors) {
+        if (errorMode === ErrorMode.ThrowAggregated && collectedErrors) {
           collectedErrors.push(err as Error)
         }
 
@@ -182,7 +189,9 @@ export function transformMap<IN = any, OUT = IN>(
   )
 
   function logErrorStats(final = false): void {
-    if (!errors) return
+    if (!errors) {
+      return
+    }
     logger.log(`${metric} ${final ? 'final ' : ''}errors: ${yellow(errors)}`)
   }
 }

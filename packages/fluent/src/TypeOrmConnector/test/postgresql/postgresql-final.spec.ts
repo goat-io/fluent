@@ -1,12 +1,14 @@
 import 'reflect-metadata'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { PostgreSQLTestContainer } from '../testcontainers/postgresql.testcontainer'
-import { Fluent } from '../../../Fluent'
-import { dbEntities } from '../dbEntities'
-import { GoatRepositoryFactory } from '../repository.factory'
-import { TypeOrmRepositoryFactory } from '../repository.factory'
-import { flock } from '../flock'
 import { Promises } from '@goatlab/js-utils'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { initialize } from '../../../Fluent'
+import { dbEntities } from '../dbEntities'
+import { flock } from '../flock'
+import {
+  GoatRepositoryFactory,
+  TypeOrmRepositoryFactory
+} from '../repository.factory'
+import { PostgreSQLTestContainer } from '../testcontainers/postgresql.testcontainer'
 
 describe('PostgreSQL Tests with Testcontainers', () => {
   let container: PostgreSQLTestContainer
@@ -16,10 +18,10 @@ describe('PostgreSQL Tests with Testcontainers', () => {
   beforeAll(async () => {
     container = new PostgreSQLTestContainer()
     const dataSource = await container.start()
-    
+
     // Initialize Fluent with entities
-    await Fluent.initialize([dataSource], dbEntities)
-    
+    await initialize([dataSource], dbEntities)
+
     // Create repositories with dynamic datasource
     GoatRepo = new GoatRepositoryFactory(dataSource)
     TypeOrmRepo = new TypeOrmRepositoryFactory(dataSource)
@@ -58,7 +60,9 @@ describe('PostgreSQL Tests with Testcontainers', () => {
       expect(goat?.id).toBe(goats[0].id)
       expect(typeof goat?.id).toBe('string')
 
-      const anotherGoat = await GoatRepo.findById('550e8400-e29b-41d4-a716-446655440001')
+      const anotherGoat = await GoatRepo.findById(
+        '550e8400-e29b-41d4-a716-446655440001'
+      )
       expect(anotherGoat).toBe(null)
     })
 
@@ -184,7 +188,7 @@ describe('PostgreSQL Tests with Testcontainers', () => {
         },
         select: {
           name: true,
-          age: true,
+          age: true
         }
       })
 
@@ -194,7 +198,7 @@ describe('PostgreSQL Tests with Testcontainers', () => {
     })
 
     it('requireFirst - Should fail if not found', async () => {
-      const insertedUser = await GoatRepo.insert({
+      const _insertedUser = await GoatRepo.insert({
         name: 'testGoat',
         age: 20
       })

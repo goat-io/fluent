@@ -21,7 +21,9 @@ export default stampit({
       return this.connectors[connector]({ baseUrl: this.baseUrl })
     },
     connector(connectorName) {
-      if (!connectorName) return this.getConnector(this.default)
+      if (!connectorName) {
+        return this.getConnector(this.default)
+      }
 
       return this.getConnector(connectorName)
     }

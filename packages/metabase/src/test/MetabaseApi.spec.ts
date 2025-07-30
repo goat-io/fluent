@@ -1,6 +1,6 @@
 // npx vitest run ./src/test/MetabaseApi.spec.ts
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { MetabaseApi } from '../MetabaseApi'
 import { getGlobalData } from './const'
 
@@ -55,7 +55,7 @@ describe('MetabaseApi', () => {
     it('should be able to get embedding secret key', async () => {
       // First enable embeddings
       await api.admin.enableEmbeddings()
-      
+
       const secretKey = await api.admin.getEmbeddingSecretKey()
       expect(secretKey).toBeDefined()
       expect(typeof secretKey).toBe('string')
@@ -73,7 +73,7 @@ describe('MetabaseApi', () => {
       expect(collectionId).toBeDefined()
       expect(typeof collectionId).toBe('number')
       expect(collectionId).toBeGreaterThan(0)
-      
+
       // Store for later tests
       testCollectionId = collectionId
     })
@@ -101,14 +101,20 @@ describe('MetabaseApi', () => {
       })
 
       // Delete it
-      await expect(api.collections.delete({ collectionId })).resolves.not.toThrow()
+      await expect(
+        api.collections.delete({ collectionId })
+      ).resolves.not.toThrow()
     })
 
     it('should be able to delete all collections', async () => {
       // Create a few collections first
-      await api.collections.getOrCreate({ collectionName: 'Temp Collection to Delete 1' })
-      await api.collections.getOrCreate({ collectionName: 'Temp Collection to Delete 2' })
-      
+      await api.collections.getOrCreate({
+        collectionName: 'Temp Collection to Delete 1'
+      })
+      await api.collections.getOrCreate({
+        collectionName: 'Temp Collection to Delete 2'
+      })
+
       // Note: deleteAll might fail on personal collections, so we just test it doesn't throw
       // The implementation already handles personal collections by skipping them
       try {
@@ -136,7 +142,7 @@ describe('MetabaseApi', () => {
       expect(databaseId).toBeDefined()
       expect(typeof databaseId).toBe('number')
       expect(databaseId).toBeGreaterThan(0)
-      
+
       // Store for later tests
       testDatabaseId = databaseId
     })
@@ -176,7 +182,9 @@ describe('MetabaseApi', () => {
       })
 
       // Enable actions
-      await expect(api.admin.enableActionsInDatasource({ dbId: databaseId })).resolves.not.toThrow()
+      await expect(
+        api.admin.enableActionsInDatasource({ dbId: databaseId })
+      ).resolves.not.toThrow()
     })
   })
 
@@ -200,21 +208,21 @@ describe('MetabaseApi', () => {
       expect(group.id).toBeDefined()
       expect(typeof group.id).toBe('number')
       expect(group.name).toBe('Test GetOrCreate Group')
-      
+
       // Calling again should return same group
       const sameGroup = await api.groups.getOrCreate({
         groupName: 'Test GetOrCreate Group'
       })
-      
+
       expect(sameGroup.id).toBe(group.id)
     })
 
     it('should be able to list groups', async () => {
       const groups = await api.groups.list()
-      
+
       expect(Array.isArray(groups)).toBe(true)
       expect(groups.length).toBeGreaterThan(0)
-      
+
       // Should have at least the default groups
       const groupNames = groups.map(g => g.name)
       expect(groupNames).toContain('All Users')
@@ -229,11 +237,13 @@ describe('MetabaseApi', () => {
       const groupId = group.id
 
       // Set permissions
-      await expect(api.groups.setDatabasePermissionsForGroup({
-        groupId,
-        databaseId: testDatabaseId,
-        allowAccess: true
-      })).resolves.not.toThrow()
+      await expect(
+        api.groups.setDatabasePermissionsForGroup({
+          groupId,
+          databaseId: testDatabaseId,
+          allowAccess: true
+        })
+      ).resolves.not.toThrow()
     })
 
     // Skip this test - permissions graph operations have issues in test environment
@@ -243,13 +253,17 @@ describe('MetabaseApi', () => {
       })
       const groupId = group.id
 
-      await expect(api.groups.disableAllDatabaseAccess({
-        groupId
-      })).resolves.not.toThrow()
+      await expect(
+        api.groups.disableAllDatabaseAccess({
+          groupId
+        })
+      ).resolves.not.toThrow()
     })
 
     it('should be able to disable All Users group database access', async () => {
-      await expect(api.groups.disableAllUsersGroupDatabaseAccess()).resolves.not.toThrow()
+      await expect(
+        api.groups.disableAllUsersGroupDatabaseAccess()
+      ).resolves.not.toThrow()
     })
 
     it('should be able to grant database access by prefix', async () => {
@@ -259,10 +273,12 @@ describe('MetabaseApi', () => {
       })
       const groupId = group.id
 
-      await expect(api.groups.grantDatabaseAccessByPrefix({
-        groupId,
-        groupName
-      })).resolves.not.toThrow()
+      await expect(
+        api.groups.grantDatabaseAccessByPrefix({
+          groupId,
+          groupName
+        })
+      ).resolves.not.toThrow()
     })
 
     // Skip this test - permissions graph operations have issues in test environment
@@ -272,14 +288,16 @@ describe('MetabaseApi', () => {
       })
       const groupId = group.id
 
-      await expect(api.groups.updatePermissions({
-        groupId,
-        databaseId: testDatabaseId,
-        permissions: {
-          schemas: 'all',
-          native: 'write'
-        }
-      })).resolves.not.toThrow()
+      await expect(
+        api.groups.updatePermissions({
+          groupId,
+          databaseId: testDatabaseId,
+          permissions: {
+            schemas: 'all',
+            native: 'write'
+          }
+        })
+      ).resolves.not.toThrow()
     })
   })
 
@@ -297,7 +315,7 @@ describe('MetabaseApi', () => {
           dbPassword: testData.mysqlPassword!
         })
       }
-      
+
       if (!testCollectionId) {
         testCollectionId = await api.collections.getOrCreate({
           collectionName: 'Question Test Collection'
@@ -311,7 +329,8 @@ describe('MetabaseApi', () => {
         databaseId: testDatabaseId,
         questionConfig: {
           name: 'Test SQL Question',
-          query: 'SELECT COUNT(*) as total_count FROM information_schema.tables',
+          query:
+            'SELECT COUNT(*) as total_count FROM information_schema.tables',
           display: 'scalar'
         }
       })
@@ -328,7 +347,8 @@ describe('MetabaseApi', () => {
         databaseId: testDatabaseId,
         questionConfig: {
           name: 'Table Display Question',
-          query: 'SELECT table_name, table_type FROM information_schema.tables LIMIT 5',
+          query:
+            'SELECT table_name, table_type FROM information_schema.tables LIMIT 5',
           display: 'table'
         }
       })

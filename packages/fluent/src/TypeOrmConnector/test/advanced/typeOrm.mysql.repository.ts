@@ -1,10 +1,10 @@
+import { TypeOrmConnector } from '../../TypeOrmConnector'
+import { MYSQLDataSource } from '../mysql/mysqlDataSource'
 import {
   TypeORMDataModel,
   TypeORMDataModelInputSchema,
   TypeORMDataModelSchema
 } from './typeOrm.entity'
-import { TypeOrmConnector } from '../../TypeOrmConnector'
-import { MYSQLDataSource } from '../mysql/mysqlDataSource'
 
 export class TypeOrmRepository extends TypeOrmConnector<
   TypeORMDataModel,

@@ -1,5 +1,7 @@
 // Original Source: https://github.com/NaturalCycles/js-lib/blob/master/src/datetime/timeInterval.ts
 
+import { assert } from '../Assert'
+import { Time } from '../Time'
 import type {
   IsoDateString,
   IsoDateTimeString,
@@ -8,8 +10,6 @@ import type {
 } from '../types'
 import type { Inclusiveness } from './localDate'
 import { LocalDate } from './localDate'
-import { Time } from '../Time'
-import { assert } from '../Assert'
 
 export type LocalTimeUnit =
   | 'year'
@@ -59,14 +59,14 @@ const VALID_DAYS_OF_WEEK = new Set([1, 2, 3, 4, 5, 6, 7])
  * @experimental
  */
 export class LocalTime {
-  private constructor(private $date: Date) {}
+  private constructor(private date: Date) {}
 
   /**
    * Parses input String into LocalDate.
    * Input can already be a LocalDate - it is returned as-is in that case.
    */
   static of(d: LocalTimeConfig): LocalTime {
-    const t = this.parseOrNull(d)
+    const t = LocalTime.parseOrNull(d)
 
     if (t === null) {
       throw new TypeError(`Cannot parse "${d}" into LocalTime`)
@@ -86,10 +86,14 @@ export class LocalTime {
    * Returns null if invalid
    */
   static parseOrNull(d: LocalTimeConfig | undefined | null): LocalTime | null {
-    if (!d) return null
-    if (d instanceof LocalTime) return d
+    if (!d) {
+      return null
+    }
+    if (d instanceof LocalTime) {
+      return d
+    }
 
-    let date
+    let date: Date
 
     if (d instanceof Date) {
       date = d
@@ -100,7 +104,7 @@ export class LocalTime {
     }
 
     // validation
-    if (isNaN(date.getDate())) {
+    if (Number.isNaN(date.getDate())) {
       // throw new TypeError(`Cannot parse "${d}" into LocalTime`)
       return null
     }
@@ -113,12 +117,16 @@ export class LocalTime {
   }
 
   static parseToDate(d: LocalTimeConfig): Date {
-    if (d instanceof LocalTime) return d.$date
-    if (d instanceof Date) return d
+    if (d instanceof LocalTime) {
+      return d.getDate()
+    }
+    if (d instanceof Date) {
+      return d
+    }
 
     const date = typeof d === 'number' ? new Date(d * 1000) : new Date(d)
 
-    if (isNaN(date.getDate())) {
+    if (Number.isNaN(date.getDate())) {
       throw new TypeError(`Cannot parse "${d}" to Date`)
     }
 
@@ -126,12 +134,16 @@ export class LocalTime {
   }
 
   static parseToUnixTimestamp(d: LocalTimeConfig): UnixTimestampNumber {
-    if (typeof d === 'number') return d
-    if (d instanceof LocalTime) return d.unix()
+    if (typeof d === 'number') {
+      return d
+    }
+    if (d instanceof LocalTime) {
+      return d.unix()
+    }
 
     const date = d instanceof Date ? d : new Date(d)
 
-    if (isNaN(date.getDate())) {
+    if (Number.isNaN(date.getDate())) {
       throw new TypeError(`Cannot parse "${d}" to UnixTimestamp`)
     }
 
@@ -139,7 +151,7 @@ export class LocalTime {
   }
 
   static isValid(d: LocalTimeConfig | undefined | null): boolean {
-    return this.parseOrNull(d) !== null
+    return LocalTime.parseOrNull(d) !== null
   }
 
   static now(): LocalTime {
@@ -163,44 +175,44 @@ export class LocalTime {
 
   get(unit: LocalTimeUnit): number {
     if (unit === 'year') {
-      return this.$date.getFullYear()
+      return this.date.getFullYear()
     }
     if (unit === 'month') {
-      return this.$date.getMonth() + 1
+      return this.date.getMonth() + 1
     }
     if (unit === 'day') {
-      return this.$date.getDate()
+      return this.date.getDate()
     }
     if (unit === 'hour') {
-      return this.$date.getHours()
+      return this.date.getHours()
     }
     if (unit === 'minute') {
-      return this.$date.getMinutes()
+      return this.date.getMinutes()
     }
     if (unit === 'week') {
-      return getWeek(this.$date)
+      return getWeek(this.date)
     }
     // second
-    return this.$date.getSeconds()
+    return this.date.getSeconds()
   }
 
   set(unit: LocalTimeUnit, v: number, mutate = false): LocalTime {
     const t = mutate ? this : this.clone()
 
     if (unit === 'year') {
-      t.$date.setFullYear(v)
+      t.date.setFullYear(v)
     } else if (unit === 'month') {
-      t.$date.setMonth(v - 1)
+      t.date.setMonth(v - 1)
     } else if (unit === 'day') {
-      t.$date.setDate(v)
+      t.date.setDate(v)
     } else if (unit === 'hour') {
-      t.$date.setHours(v)
+      t.date.setHours(v)
     } else if (unit === 'minute') {
-      t.$date.setMinutes(v)
+      t.date.setMinutes(v)
     } else if (unit === 'second') {
-      t.$date.setSeconds(v)
+      t.date.setSeconds(v)
     } else if (unit === 'week') {
-      setWeek(t.$date, v, true)
+      setWeek(t.date, v, true)
     }
 
     return t
@@ -219,7 +231,7 @@ export class LocalTime {
   week(): number
   week(v: number): LocalTime
   week(v?: number): number | LocalTime {
-    return v === undefined ? getWeek(this.$date) : this.set('week', v)
+    return v === undefined ? getWeek(this.date) : this.set('week', v)
   }
   day(): number
   day(v: number): LocalTime
@@ -233,13 +245,15 @@ export class LocalTime {
   dayOfWeek(): ISODayOfWeek
   dayOfWeek(v: ISODayOfWeek): LocalTime
   dayOfWeek(v?: ISODayOfWeek): ISODayOfWeek | LocalTime {
-    const dow = (this.$date.getDay() || 7) as ISODayOfWeek
+    const dow = (this.date.getDay() || 7) as ISODayOfWeek
 
     if (v === undefined) {
       return dow
     }
 
-    if (!VALID_DAYS_OF_WEEK.has(v)) throw new Error(`Invalid dayOfWeek: ${v}`)
+    if (!VALID_DAYS_OF_WEEK.has(v)) {
+      throw new Error(`Invalid dayOfWeek: ${v}`)
+    }
 
     return this.add(v - dow, 'day')
   }
@@ -260,7 +274,7 @@ export class LocalTime {
   }
 
   setComponents(c: Partial<LocalTimeComponents>, mutate = false): LocalTime {
-    const d = mutate ? this.$date : new Date(this.$date)
+    const d = mutate ? this.date : new Date(this.date)
 
     // Year, month and day set all-at-once, to avoid 30/31 (and 28/29) mishap
     if (c.day || c.month !== undefined || c.year !== undefined) {
@@ -285,17 +299,24 @@ export class LocalTime {
   }
 
   add(num: number, unit: LocalTimeUnit, mutate = false): LocalTime {
+    let actualNum = num
+    let actualUnit = unit
+
     if (unit === 'week') {
-      num *= 7
-      unit = 'day'
+      actualNum = num * 7
+      actualUnit = 'day'
     }
 
-    if (unit === 'year' || unit === 'month') {
-      const d = addMonths(this.$date, unit === 'month' ? num : num * 12, mutate)
+    if (actualUnit === 'year' || actualUnit === 'month') {
+      const d = addMonths(
+        this.date,
+        actualUnit === 'month' ? actualNum : actualNum * 12,
+        mutate
+      )
       return mutate ? this : LocalTime.of(d)
     }
 
-    return this.set(unit, this.get(unit) + num, mutate)
+    return this.set(actualUnit, this.get(actualUnit) + actualNum, mutate)
   }
 
   subtract(num: number, unit: LocalTimeUnit, mutate = false): LocalTime {
@@ -309,10 +330,12 @@ export class LocalTime {
   diff(other: LocalTimeConfig, unit: LocalTimeUnit): number {
     const date2 = LocalTime.parseToDate(other)
 
-    const secDiff = (this.$date.valueOf() - date2.valueOf()) / 1000
-    if (!secDiff) return 0
+    const secDiff = (this.date.valueOf() - date2.valueOf()) / 1000
+    if (!secDiff) {
+      return 0
+    }
 
-    let r
+    let r: number
 
     if (unit === 'year') {
       r = differenceInMonths(this.getDate(), date2) / 12
@@ -336,8 +359,10 @@ export class LocalTime {
   }
 
   startOf(unit: LocalTimeUnit, mutate = false): LocalTime {
-    if (unit === 'second') return this
-    const d = mutate ? this.$date : new Date(this.$date)
+    if (unit === 'second') {
+      return this
+    }
+    const d = mutate ? this.date : new Date(this.date)
     d.setSeconds(0, 0)
 
     if (unit !== 'minute') {
@@ -364,8 +389,10 @@ export class LocalTime {
   }
 
   endOf(unit: LocalTimeUnit, mutate = false): LocalTime {
-    if (unit === 'second') return this
-    const d = mutate ? this.$date : new Date(this.$date)
+    if (unit === 'second') {
+      return this
+    }
+    const d = mutate ? this.date : new Date(this.date)
     d.setSeconds(59, 0)
 
     if (unit !== 'minute') {
@@ -403,9 +430,11 @@ export class LocalTime {
   ): LocalTime[] {
     const mod = descending ? -1 : 1
     return (mutate ? items : [...items]).sort((a, b) => {
-      const v1 = a.$date.valueOf()
-      const v2 = b.$date.valueOf()
-      if (v1 === v2) return 0
+      const v1 = a.getDate().valueOf()
+      const v2 = b.getDate().valueOf()
+      if (v1 === v2) {
+        return 0
+      }
       return (v1 < v2 ? -1 : 1) * mod
     })
   }
@@ -462,9 +491,13 @@ export class LocalTime {
     incl: Inclusiveness = '[)'
   ): boolean {
     let r = this.cmp(min)
-    if (r < 0 || (r === 0 && incl[0] === '(')) return false
+    if (r < 0 || (r === 0 && incl[0] === '(')) {
+      return false
+    }
     r = this.cmp(max)
-    if (r > 0 || (r === 0 && incl[1] === ')')) return false
+    if (r > 0 || (r === 0 && incl[1] === ')')) {
+      return false
+    }
     return true
   }
 
@@ -474,27 +507,31 @@ export class LocalTime {
    * returns -1 if this < d
    */
   cmp(d: LocalTimeConfig): -1 | 0 | 1 {
-    const t1 = this.$date.valueOf()
+    const t1 = this.date.valueOf()
     const t2 = LocalTime.parseToDate(d).valueOf()
-    if (t1 === t2) return 0
+    if (t1 === t2) {
+      return 0
+    }
     return t1 < t2 ? -1 : 1
   }
 
   components(): LocalTimeComponents {
     return {
-      year: this.$date.getFullYear(),
-      month: this.$date.getMonth() + 1,
-      day: this.$date.getDate(),
-      hour: this.$date.getHours(),
-      minute: this.$date.getMinutes(),
-      second: this.$date.getSeconds()
+      year: this.date.getFullYear(),
+      month: this.date.getMonth() + 1,
+      day: this.date.getDate(),
+      hour: this.date.getHours(),
+      minute: this.date.getMinutes(),
+      second: this.date.getSeconds()
     }
   }
 
   fromNow(now: LocalTimeConfig = new Date()): string {
-    const msDiff = LocalTime.parseToDate(now).valueOf() - this.$date.valueOf()
+    const msDiff = LocalTime.parseToDate(now).valueOf() - this.date.valueOf()
 
-    if (msDiff === 0) return 'now'
+    if (msDiff === 0) {
+      return 'now'
+    }
 
     if (msDiff >= 0) {
       return `${Time.ms(msDiff)} ago`
@@ -504,30 +541,30 @@ export class LocalTime {
   }
 
   getDate(): Date {
-    return this.$date
+    return this.date
   }
 
   clone(): LocalTime {
-    return new LocalTime(new Date(this.$date))
+    return new LocalTime(new Date(this.date))
   }
 
   unix(): UnixTimestampNumber {
-    return Math.floor(this.$date.valueOf() / 1000)
+    return Math.floor(this.date.valueOf() / 1000)
   }
 
   unixMillis(): UnixTimestampMillisNumber {
-    return this.$date.valueOf()
+    return this.date.valueOf()
   }
 
   valueOf(): UnixTimestampNumber {
-    return Math.floor(this.$date.valueOf() / 1000)
+    return Math.floor(this.date.valueOf() / 1000)
   }
 
   toLocalDate(): LocalDate {
     return LocalDate.create(
-      this.$date.getFullYear(),
-      this.$date.getMonth() + 1,
-      this.$date.getDate()
+      this.date.getFullYear(),
+      this.date.getMonth() + 1,
+      this.date.getDate()
     )
   }
 
@@ -550,7 +587,7 @@ export class LocalTime {
         .join(':')
     )
 
-    // return this.$date
+    // return this.date
     //   .toISOString()
     //   .slice(0, seconds ? 19 : 16)
     //   .split('T')
@@ -561,7 +598,7 @@ export class LocalTime {
    * Returns e.g: `1984-06-21T17:56:21`
    */
   toISODateTime(): IsoDateTimeString {
-    return this.$date.toISOString().slice(0, 19)
+    return this.date.toISOString().slice(0, 19)
   }
 
   /**
@@ -576,14 +613,14 @@ export class LocalTime {
       String(day).padStart(2, '0')
     ].join('-')
 
-    // return this.$date.toISOString().slice(0, 10)
+    // return this.date.toISOString().slice(0, 10)
   }
 
   /**
    * Returns e.g: `17:03:15` (or `17:03` with seconds=false)
    */
   toISOTime(seconds = true): string {
-    // return this.$date.toISOString().slice(11, seconds ? 19 : 16)
+    // return this.date.toISOString().slice(11, seconds ? 19 : 16)
     const { hour, minute, second } = this.components()
 
     return [
@@ -670,11 +707,11 @@ function getWeekYear(date: Date): number {
 
   if (date.getTime() >= startOfNextYear.getTime()) {
     return year + 1
-  } else if (date.getTime() >= startOfThisYear.getTime()) {
-    return year
-  } else {
-    return year - 1
   }
+  if (date.getTime() >= startOfThisYear.getTime()) {
+    return year
+  }
+  return year - 1
 }
 
 // based on: https://github.com/date-fns/date-fns/blob/fd6bb1a0bab143f2da068c05a9c562b9bee1357d/src/startOfWeek/index.ts
@@ -701,17 +738,17 @@ function endOfWeek(date: Date, mutate = false): Date {
 }
 
 function addMonths(d: Date, num: number, mutate = false): Date {
-  if (!mutate) d = new Date(d)
+  const dateToUse = mutate ? d : new Date(d)
 
-  let day = d.getDate()
-  let month = d.getMonth() + 1 + num
+  let day = dateToUse.getDate()
+  let month = dateToUse.getMonth() + 1 + num
 
   if (day < 29) {
-    d.setMonth(month - 1)
-    return d
+    dateToUse.setMonth(month - 1)
+    return dateToUse
   }
 
-  let year = d.getFullYear()
+  let year = dateToUse.getFullYear()
 
   while (month > 12) {
     year++
@@ -723,14 +760,18 @@ function addMonths(d: Date, num: number, mutate = false): Date {
   }
 
   const monthLen = LocalDate.getMonthLength(year, month)
-  if (day > monthLen) day = monthLen
+  if (day > monthLen) {
+    day = monthLen
+  }
 
-  d.setFullYear(year, month - 1, day)
-  return d
+  dateToUse.setFullYear(year, month - 1, day)
+  return dateToUse
 }
 
 function differenceInMonths(a: Date, b: Date): number {
-  if (a.getDate() < b.getDate()) return -differenceInMonths(b, a)
+  if (a.getDate() < b.getDate()) {
+    return -differenceInMonths(b, a)
+  }
   const wholeMonthDiff =
     (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth())
   const anchor = addMonths(a, wholeMonthDiff).getTime()

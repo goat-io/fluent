@@ -2,8 +2,9 @@
 // Node module: @loopback/repository-json-schema
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
-import { MetadataInspector, MetadataAccessor } from '@loopback/metadata'
-import { inspect } from 'util'
+
+import { inspect } from 'node:util'
+import { MetadataAccessor, MetadataInspector } from '@loopback/metadata'
 import { SchemaObject as JsonSchema } from 'openapi3-ts/oas30'
 
 // Extended schema type that includes definitions
@@ -11,10 +12,11 @@ export interface SchemaObject extends JsonSchema {
   definitions?: { [key: string]: SchemaObject }
   $ref?: string
 }
-import { RelationMetadata } from './relation.types'
-import { ModelDefinition, PropertyDefinition, PropertyType } from './model'
-import { Null, resolveType, isBuiltinType } from './type-resolver'
+
 import { ModelMetadataHelper } from './metadata'
+import { ModelDefinition, PropertyDefinition, PropertyType } from './model'
+import { RelationMetadata } from './relation.types'
+import { isBuiltinType, Null, resolveType } from './type-resolver'
 
 export const JSON_SCHEMA_KEY = MetadataAccessor.create<
   { [key: string]: SchemaObject },
@@ -180,11 +182,13 @@ export function getJsonSchemaRef<T extends object>(
   const key = schemaWithDefinitions.title
 
   // ctor is not a model
-  if (!key) return schemaWithDefinitions
+  if (!key) {
+    return schemaWithDefinitions
+  }
 
   const definitions = { ...schemaWithDefinitions.definitions }
   const schema = { ...schemaWithDefinitions }
-  delete schema.definitions
+  schema.definitions = undefined
   definitions[key] = schema
 
   return {
@@ -201,9 +205,9 @@ export function stringTypeToWrapper(type: string | Function): Function {
   if (typeof type === 'function') {
     return type
   }
-  type = type.toLowerCase()
-  let wrapper
-  switch (type) {
+  const lowerType = type.toLowerCase()
+  let wrapper: Function
+  switch (lowerType) {
     case 'number': {
       wrapper = Number
       break
@@ -335,7 +339,9 @@ function buildSchemaTitle<T extends object>(
   meta: ModelDefinition,
   options: JsonSchemaOptions<T>
 ) {
-  if (options.title) return options.title
+  if (options.title) {
+    return options.title
+  }
   const title = meta.title || ctor.name
   return title + getTitleSuffix(options)
 }
@@ -364,9 +370,9 @@ function getTitleSuffix<T extends object>(options: JsonSchemaOptions<T> = {}) {
 
 function stringifyOptions(modelSettings: object = {}) {
   return inspect(modelSettings, {
-    depth: Infinity,
-    maxArrayLength: Infinity,
-    breakLength: Infinity
+    depth: Number.POSITIVE_INFINITY,
+    maxArrayLength: Number.POSITIVE_INFINITY,
+    breakLength: Number.POSITIVE_INFINITY
   })
 }
 
@@ -386,9 +392,9 @@ function getDescriptionSuffix<T extends object>(
 ) {
   const options = { ...rawOptions }
 
-  delete options.visited
+  options.visited = undefined
   if (options.optional && !options.optional.length) {
-    delete options.optional
+    options.optional = undefined
   }
 
   const type = typeName
@@ -434,7 +440,7 @@ export function modelToJsonSchema<T extends object>(
 
   if (options.partial && !partial) {
     debug('Overriding "partial" option with "optional" option')
-    delete options.partial
+    options.partial = undefined
   }
 
   debug('Creating schema for model %s', ctor.name)
@@ -452,7 +458,9 @@ export function modelToJsonSchema<T extends object>(
   debug('Model settings', meta.settings)
 
   const title = buildSchemaTitle(ctor, meta, options)
-  if (options.visited[title]) return options.visited[title]
+  if (options.visited[title]) {
+    return options.visited[title]
+  }
 
   const result: SchemaObject = { title }
   options.visited[title] = result
@@ -491,7 +499,9 @@ export function modelToJsonSchema<T extends object>(
     }
 
     // populating "properties" key
-    result.properties[p] = metaToJsonProperty(metaProperty as PropertyDefinition)
+    result.properties[p] = metaToJsonProperty(
+      metaProperty as PropertyDefinition
+    )
 
     // handling 'required' metadata
     const optional = options.optional.includes(p as keyof T)
@@ -518,16 +528,16 @@ export function modelToJsonSchema<T extends object>(
     const propOptions = { ...options }
     if (propOptions.partial !== 'deep') {
       // Do not cascade `partial` to nested properties
-      delete propOptions.partial
+      propOptions.partial = undefined
     }
     if (propOptions.includeRelations === true) {
       // Do not cascade `includeRelations` to nested properties
-      delete propOptions.includeRelations
+      propOptions.includeRelations = undefined
     }
     // `title` is the unique identity of a schema,
     // it should be removed from the `options`
     // when generating the relation or property schemas
-    delete propOptions.title
+    propOptions.title = undefined
 
     const propSchema = getJsonSchema(referenceType, propOptions)
 
@@ -554,14 +564,16 @@ export function modelToJsonSchema<T extends object>(
     for (const r in meta.relations) {
       result.properties = result.properties ?? {}
       const relMeta = meta.relations[r]
-      if (!relMeta) continue
+      if (!relMeta) {
+        continue
+      }
       const targetType = resolveType(relMeta.target)
 
       // `title` is the unique identity of a schema,
       // it should be removed from the `options`
       // when generating the relation or property schemas
       const targetOptions = { ...options }
-      delete targetOptions.title
+      targetOptions.title = undefined
 
       const targetSchema = getJsonSchema(targetType, targetOptions)
       const targetRef = { $ref: `#/definitions/${targetSchema.title}` }
@@ -574,16 +586,20 @@ export function modelToJsonSchema<T extends object>(
   }
 
   function includeReferencedSchema(name: string, schema: SchemaObject) {
-    if (!schema || !Object.keys(schema).length) return
+    if (!schema || !Object.keys(schema).length) {
+      return
+    }
 
     // promote nested definition to the top level
     if (result !== schema?.definitions) {
       for (const key in schema.definitions) {
-        if (key === title) continue
+        if (key === title) {
+          continue
+        }
         result.definitions = result.definitions ?? {}
         result.definitions[key] = schema.definitions[key]!
       }
-      delete schema.definitions
+      schema.definitions = undefined
     }
 
     if (result !== schema) {

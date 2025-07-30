@@ -1,7 +1,7 @@
-import * as fastq from 'fastq'
-import type { queueAsPromised } from 'fastq'
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import { Promises } from '@goatlab/js-utils'
+import type { queueAsPromised } from 'fastq'
+import * as fastq from 'fastq'
 import type { JobDescription } from '../types/job'
 import type {
   MessageBroker,
@@ -59,7 +59,9 @@ export class FastQBroker implements MessageBroker {
     const key = this.getKey(task.queueName, task.topic)
     const handler = this.handlerMap.get(key)
 
-    if (!handler) return
+    if (!handler) {
+      return
+    }
 
     const job: JobDescription = {
       id: task.id,

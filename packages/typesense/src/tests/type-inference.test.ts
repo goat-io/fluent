@@ -1,7 +1,7 @@
 // npx vitest run ./src/tests/type-inference.test.ts
 
-import { defineCollection, createSchemaTypedApi } from '../index'
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { createSchemaTypedApi, defineCollection } from '../index'
 
 describe('Type Inference', () => {
   it('should properly infer types from collection definition', () => {
@@ -26,13 +26,13 @@ describe('Type Inference', () => {
     })
 
     // Type checks - these should compile without errors
-    const validDoc = {
+    const _validDoc = {
       title: 'Test Product',
       price: 29.99,
       inStock: true
     }
 
-    const validDocWithOptional = {
+    const _validDocWithOptional = {
       title: 'Test Product',
       description: 'A great product',
       price: 29.99,
@@ -71,13 +71,13 @@ describe('Type Inference', () => {
     })
 
     // Valid documents
-    const event1 = {
+    const _event1 = {
       name: 'Tech Conference',
       location: [37.7749, -122.4194] as [number, number],
       attendees: [100, 200, 300]
     }
 
-    const event2 = {
+    const _event2 = {
       name: 'Meetup',
       location: [40.7128, -74.006] as [number, number],
       attendees: [10, 20],

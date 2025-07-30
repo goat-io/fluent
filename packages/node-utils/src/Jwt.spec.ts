@@ -1,5 +1,5 @@
-import { test, expect } from 'vitest'
 import { Promises } from '@goatlab/js-utils'
+import { expect, test } from 'vitest'
 import { Jwt } from './Jwt'
 
 const validJWT =
@@ -52,5 +52,5 @@ test('Should verify a valid JWT token HS256', async () => {
     Jwt.verify(SignedPayload, validSecret)
   )
   expect(error).toBe(null)
-  expect(decoded['id']).toBe('5c741eab765055001832aef1')
+  expect(decoded.id).toBe('5c741eab765055001832aef1')
 })

@@ -57,8 +57,7 @@
 }
 
 @media screen and (max-width: 800px) {
-  .search .results-panel.show {
-  }
+  /* Styles for mobile view can be added here if needed */
 }
 
 .search .clear-button svg {

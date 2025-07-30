@@ -1,9 +1,9 @@
 // npx vitest run ./src/server/services/email/email.service.test.ts
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { EmailService } from './email.service'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SendgridService } from '../sendgrid/sendgridApi.service'
-import type { Theme, EmailTemplates, EmailTest } from './email.model'
-import { EmailCategory, Layout, Content } from './email.model'
+import type { EmailTemplates, EmailTest, Theme } from './email.model'
+import { Content, EmailCategory, Layout } from './email.model'
+import { EmailService } from './email.service'
 
 // Mock dependencies
 vi.mock('ejs', () => ({
@@ -16,7 +16,7 @@ vi.mock('mjml', () => ({
 
 vi.mock('@goatlab/js-utils', () => ({
   Strings: {
-    capitalize: vi.fn((str) => str.charAt(0).toUpperCase() + str.slice(1))
+    capitalize: vi.fn(str => str.charAt(0).toUpperCase() + str.slice(1))
   }
 }))
 
@@ -72,10 +72,10 @@ describe('EmailService', () => {
     })
 
     // Reset environment variables
-    delete process.env.TEST_EMAIL_ADDRESS
-    delete process.env.K_SERVICE
-    delete process.env.CLOUD_RUN_JOB
-    
+    process.env.TEST_EMAIL_ADDRESS = undefined
+    process.env.K_SERVICE = undefined
+    process.env.CLOUD_RUN_JOB = undefined
+
     // Mock process.platform
     Object.defineProperty(process, 'platform', {
       value: 'darwin',
@@ -207,6 +207,9 @@ describe('EmailService', () => {
     })
 
     it('should fail when TEST_EMAIL_ADDRESS is not set for non-base domain emails', async () => {
+      // Ensure TEST_EMAIL_ADDRESS is not set
+      delete process.env.TEST_EMAIL_ADDRESS
+
       const result = await emailService.sendEmailFromTemplate({
         template: mockTemplate,
         to: 'user@external.com',

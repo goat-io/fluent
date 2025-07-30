@@ -14,7 +14,6 @@ try {
   } catch {
     // Fallback - create a minimal parser
     UAParser = class {
-      constructor(ua: string) {}
       getResult() {
         return {
           browser: { name: 'Unknown', version: '' },

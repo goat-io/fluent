@@ -7,4 +7,3 @@ export const carInputSchema = z.object({
 })
 
 export type CarDtoInput = z.infer<typeof carInputSchema>
-

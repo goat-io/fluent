@@ -13,8 +13,8 @@ import {
   RelationMetadata,
   RelationType
 } from './relation.types'
-import { TypeResolver } from './type-resolver'
 import { Type } from './type'
+import { TypeResolver } from './type-resolver'
 
 /**
  * This module defines the key classes representing building blocks for Domain
@@ -128,10 +128,9 @@ export class ModelDefinition {
   [attribute: string]: any // Other attributes
 
   constructor(nameOrDef: string | ModelDefinitionSyntax) {
-    if (typeof nameOrDef === 'string') {
-      nameOrDef = { name: nameOrDef }
-    }
-    const { name, properties, settings, relations } = nameOrDef
+    const definition =
+      typeof nameOrDef === 'string' ? { name: nameOrDef } : nameOrDef
+    const { name, properties, settings, relations } = definition
 
     this.name = name
 
@@ -282,7 +281,9 @@ export class ModelDefinition {
 }
 
 function asJSON(value: any): any {
-  if (value == null) return value
+  if (value == null) {
+    return value
+  }
   if (typeof value.toJSON === 'function') {
     return value.toJSON()
   }
@@ -305,7 +306,9 @@ function asJSON(value: any): any {
  * @param options the options
  */
 function asObject(value: any, options?: Options): any {
-  if (value == null) return value
+  if (value == null) {
+    return value
+  }
   if (typeof value.toObject === 'function') {
     return value.toObject(options)
   }
@@ -321,7 +324,7 @@ function asObject(value: any, options?: Options): any {
 // tslint:disable-next-line: max-classes-per-file
 export class Model {
   static get modelName(): string {
-    return this.definition?.name || this.name
+    return Model.definition?.name || Model.name
   }
 
   static definition: ModelDefinition
@@ -352,7 +355,9 @@ export class Model {
 
     for (const r in def.relations) {
       const rel = def.relations[r]
-      if (!rel) continue
+      if (!rel) {
+        continue
+      }
       const relName = rel.name
       if (relName in this) {
         copyPropertyAsJson(relName)
@@ -390,8 +395,10 @@ export class Model {
       // tslint:disable-next-line: forin
       for (const r in def.relations) {
         const rel = def.relations[r]
-      if (!rel) continue
-      const relName = rel.name
+        if (!rel) {
+          continue
+        }
+        const relName = rel.name
         if (relName in this) {
           obj[relName] = asObject((this as AnyObject)[relName], {
             ...options,
@@ -407,10 +414,14 @@ export class Model {
     // tslint:disable-next-line: forin
     for (const i in keys) {
       const propertyName = keys[i]
-      if (!propertyName) continue
+      if (!propertyName) {
+        continue
+      }
       const val = (this as AnyObject)[propertyName]
 
-      if (val === undefined) continue
+      if (val === undefined) {
+        continue
+      }
       obj[propertyName] = asObject(val, options)
     }
 
@@ -422,9 +433,7 @@ export class Model {
   }
 }
 
-export interface Persistable {
-  // isNew: boolean;
-}
+export type Persistable = {}
 
 /**
  * Base class for value objects - An object that contains attributes but has no
@@ -440,7 +449,7 @@ export class Entity extends Model implements Persistable {
    * Get the names of identity properties (primary keys).
    */
   static getIdProperties(): string[] {
-    return this.definition.idProperties()
+    return Entity.definition.idProperties()
   }
 
   /**
@@ -454,8 +463,10 @@ export class Entity extends Model implements Persistable {
       return entityOrData.getId()
     }
 
-    const idName = this.getIdProperties()[0]
-    if (!idName) return undefined
+    const idName = Entity.getIdProperties()[0]
+    if (!idName) {
+      return undefined
+    }
     return entityOrData[idName]
   }
 
@@ -468,7 +479,9 @@ export class Entity extends Model implements Persistable {
     const idProps = definition.idProperties()
     if (idProps.length === 1) {
       const firstId = idProps[0]
-      if (!firstId) return undefined
+      if (!firstId) {
+        return undefined
+      }
       return (this as AnyObject)[firstId]
     }
     if (!idProps.length) {
@@ -500,7 +513,7 @@ export class Entity extends Model implements Persistable {
    */
   static buildWhereForId(id: any) {
     const where = {} as any
-    const idProps = this.definition.idProperties()
+    const idProps = Entity.definition.idProperties()
     if (idProps.length === 1) {
       const firstId = idProps[0]
       if (firstId) {
@@ -545,9 +558,13 @@ export function rejectNavigationalPropertiesInData<M extends typeof Entity>(
 
   for (const r in def.relations) {
     const rel = def.relations[r]
-    if (!rel) continue
+    if (!rel) {
+      continue
+    }
     const relName = rel.name
-    if (!(relName in data)) continue
+    if (!(relName in data)) {
+      continue
+    }
 
     let msg =
       'Navigational properties are not allowed in model data ' +

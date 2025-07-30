@@ -34,7 +34,6 @@
 .sidebar ul li a {
   border-bottom: none;
   display: block;
-  display: block;
   font-size: 0.98em;
   font-weight: 500;
   color: var(--sidebar-first-level-links-color);
@@ -58,7 +57,6 @@
 
 .sidebar ul li ul li a {
   border-bottom: none;
-  display: block;
   display: block;
   font-size: 0.98em;
   font-weight: 400;
@@ -101,7 +99,6 @@
 }
 
 .sidebar-toggle {
-  background-color: transparent;
   background-color: transparent;
 }
 .sidebar-toggle span {

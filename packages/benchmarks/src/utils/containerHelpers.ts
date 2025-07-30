@@ -1,12 +1,14 @@
-import { readFileSync, existsSync } from 'fs'
-import { resolve } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { ContainerData } from '../setup/containerSetup'
 
 export function getContainerData(): ContainerData {
   const filePath = resolve(__dirname, '../../tempData.json')
-  
+
   if (!existsSync(filePath)) {
-    throw new Error('Container data file not found. Make sure to run tests with container setup.')
+    throw new Error(
+      'Container data file not found. Make sure to run tests with container setup.'
+    )
   }
 
   const data = JSON.parse(readFileSync(filePath, 'utf-8'))
@@ -20,7 +22,7 @@ export function getMySqlConfig() {
     port: containerData.mysql.port,
     user: containerData.mysql.username,
     password: containerData.mysql.password,
-    database: containerData.mysql.database,
+    database: containerData.mysql.database
   }
 }
 
@@ -29,7 +31,7 @@ export function getRedisConfig() {
   return {
     host: containerData.redis.host,
     port: containerData.redis.port,
-    connectionString: containerData.redis.connectionString,
+    connectionString: containerData.redis.connectionString
   }
 }
 

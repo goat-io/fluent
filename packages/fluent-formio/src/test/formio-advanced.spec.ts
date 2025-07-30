@@ -1,4 +1,4 @@
-import { describe, beforeEach, afterEach, test, expect } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { FormioAdvancedRepository } from './repository.factory'
 
 // Mock implementation of the advanced test suite for FormIO connector
@@ -146,7 +146,7 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
 
   test('andWhere() should filter the data', async () => {
     await insertTestData(Repository)
-    
+
     const forms = await Repository.findMany({
       where: {
         AND: [
@@ -172,7 +172,7 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
 
   test('orWhere() should filter the data', async () => {
     await insertTestData(Repository)
-    
+
     const forms = await Repository.findMany({
       where: {
         OR: [

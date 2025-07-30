@@ -1,13 +1,21 @@
 // npx vitest run ./src/server/services/secrets/secret.service.integration.test.ts
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
-import { promises as fs } from 'fs'
-import * as path from 'path'
-import * as os from 'os'
+import { promises as fs } from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
 import { Security } from '@goatlab/node-utils'
-import { SecretService } from './secret.service'
-import { VaultContainer } from '@testcontainers/vault'
 import type { StartedVaultContainer } from '@testcontainers/vault'
+import { VaultContainer } from '@testcontainers/vault'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it
+} from 'vitest'
+import { SecretService } from './secret.service'
 
 interface TestSecrets {
   API_KEY: string
@@ -65,7 +73,7 @@ describe('SecretService Integration Tests', () => {
 
   async function initializeVault() {
     const vaultUrl = `http://${vaultContainer.getHost()}:${vaultContainer.getMappedPort(8200)}`
-    
+
     // Enable KV v2 secret engine
     await fetch(`${vaultUrl}/v1/sys/mounts/secret`, {
       method: 'POST',
@@ -80,7 +88,10 @@ describe('SecretService Integration Tests', () => {
     })
 
     // Store tenant 1 secrets (encrypted)
-    const encryptedTenant1Secrets = Security.encryptObject(tenant1Secrets, TENANT_1_KEY)
+    const encryptedTenant1Secrets = Security.encryptObject(
+      tenant1Secrets,
+      TENANT_1_KEY
+    )
     await fetch(`${vaultUrl}/v1/secret/data/tenant1/secrets`, {
       method: 'POST',
       headers: {
@@ -91,7 +102,10 @@ describe('SecretService Integration Tests', () => {
     })
 
     // Store tenant 2 secrets (encrypted)
-    const encryptedTenant2Secrets = Security.encryptObject(tenant2Secrets, TENANT_2_KEY)
+    const encryptedTenant2Secrets = Security.encryptObject(
+      tenant2Secrets,
+      TENANT_2_KEY
+    )
     await fetch(`${vaultUrl}/v1/secret/data/tenant2/secrets`, {
       method: 'POST',
       headers: {
@@ -139,7 +153,7 @@ describe('SecretService Integration Tests', () => {
       // Dispose services to clean up file watchers
       service1?.dispose()
       service2?.dispose()
-      
+
       // Clean up test files
       await fs.unlink(tenant1FilePath).catch(() => {})
       await fs.unlink(tenant2FilePath).catch(() => {})
@@ -152,20 +166,38 @@ describe('SecretService Integration Tests', () => {
 
       // Verify tenant 1 secrets
       expect(service1.getSecretSync('API_KEY')).toBe(tenant1Secrets.API_KEY)
-      expect(service1.getSecretSync('DATABASE_URL')).toBe(tenant1Secrets.DATABASE_URL)
-      expect(service1.getSecretSync('SECRET_TOKEN')).toBe(tenant1Secrets.SECRET_TOKEN)
-      expect(service1.getSecretJsonSync('JSON_CONFIG')).toEqual({ tenant: 1, feature: 'enabled' })
+      expect(service1.getSecretSync('DATABASE_URL')).toBe(
+        tenant1Secrets.DATABASE_URL
+      )
+      expect(service1.getSecretSync('SECRET_TOKEN')).toBe(
+        tenant1Secrets.SECRET_TOKEN
+      )
+      expect(service1.getSecretJsonSync('JSON_CONFIG')).toEqual({
+        tenant: 1,
+        feature: 'enabled'
+      })
 
       // Verify tenant 2 secrets
       expect(service2.getSecretSync('API_KEY')).toBe(tenant2Secrets.API_KEY)
-      expect(service2.getSecretSync('DATABASE_URL')).toBe(tenant2Secrets.DATABASE_URL)
-      expect(service2.getSecretSync('SECRET_TOKEN')).toBe(tenant2Secrets.SECRET_TOKEN)
-      expect(service2.getSecretJsonSync('JSON_CONFIG')).toEqual({ tenant: 2, feature: 'disabled' })
+      expect(service2.getSecretSync('DATABASE_URL')).toBe(
+        tenant2Secrets.DATABASE_URL
+      )
+      expect(service2.getSecretSync('SECRET_TOKEN')).toBe(
+        tenant2Secrets.SECRET_TOKEN
+      )
+      expect(service2.getSecretJsonSync('JSON_CONFIG')).toEqual({
+        tenant: 2,
+        feature: 'disabled'
+      })
     })
 
     it('should throw error when sync methods are called before preload', () => {
-      expect(() => service1.getSecretSync('API_KEY')).toThrow('Secrets not preloaded')
-      expect(() => service1.getSecretJsonSync('JSON_CONFIG')).toThrow('Secrets not preloaded')
+      expect(() => service1.getSecretSync('API_KEY')).toThrow(
+        'Secrets not preloaded'
+      )
+      expect(() => service1.getSecretJsonSync('JSON_CONFIG')).toThrow(
+        'Secrets not preloaded'
+      )
     })
 
     it('should automatically reload when file changes', async () => {
@@ -179,7 +211,10 @@ describe('SecretService Integration Tests', () => {
         ...tenant1Secrets,
         API_KEY: 'updated-api-key-99999'
       }
-      const encryptedUpdated = Security.encryptObject(updatedSecrets, TENANT_1_KEY)
+      const encryptedUpdated = Security.encryptObject(
+        updatedSecrets,
+        TENANT_1_KEY
+      )
       await fs.writeFile(tenant1FilePath, JSON.stringify(encryptedUpdated))
 
       // Wait for file watcher to detect change and reload
@@ -196,7 +231,9 @@ describe('SecretService Integration Tests', () => {
         encryptionKey: TENANT_1_KEY
       })
 
-      await expect(nonExistentService.preload()).rejects.toThrow('does not exist')
+      await expect(nonExistentService.preload()).rejects.toThrow(
+        'does not exist'
+      )
     })
 
     it('should handle invalid JSON in secret file', async () => {
@@ -234,7 +271,10 @@ describe('SecretService Integration Tests', () => {
         ...tenant1Secrets,
         API_KEY: 'cache-test-updated'
       }
-      const encryptedUpdated = Security.encryptObject(updatedSecrets, TENANT_1_KEY)
+      const encryptedUpdated = Security.encryptObject(
+        updatedSecrets,
+        TENANT_1_KEY
+      )
       await fs.writeFile(cacheTestFilePath, JSON.stringify(encryptedUpdated))
 
       // Load again immediately - should hit cache
@@ -263,16 +303,40 @@ describe('SecretService Integration Tests', () => {
 
       // Set up test environment variables
       // Tenant 1 uses APP prefix
-      process.env.APP_API_KEY = Security.encryptString(tenant1Secrets.API_KEY, TENANT_1_KEY)
-      process.env.APP_DATABASE_URL = Security.encryptString(tenant1Secrets.DATABASE_URL, TENANT_1_KEY)
-      process.env.APP_SECRET_TOKEN = Security.encryptString(tenant1Secrets.SECRET_TOKEN, TENANT_1_KEY)
-      process.env.APP_JSON_CONFIG = Security.encryptString(tenant1Secrets.JSON_CONFIG, TENANT_1_KEY)
+      process.env.APP_API_KEY = Security.encryptString(
+        tenant1Secrets.API_KEY,
+        TENANT_1_KEY
+      )
+      process.env.APP_DATABASE_URL = Security.encryptString(
+        tenant1Secrets.DATABASE_URL,
+        TENANT_1_KEY
+      )
+      process.env.APP_SECRET_TOKEN = Security.encryptString(
+        tenant1Secrets.SECRET_TOKEN,
+        TENANT_1_KEY
+      )
+      process.env.APP_JSON_CONFIG = Security.encryptString(
+        tenant1Secrets.JSON_CONFIG,
+        TENANT_1_KEY
+      )
 
       // Tenant 2 uses SERVICE prefix
-      process.env.SERVICE_API_KEY = Security.encryptString(tenant2Secrets.API_KEY, TENANT_2_KEY)
-      process.env.SERVICE_DATABASE_URL = Security.encryptString(tenant2Secrets.DATABASE_URL, TENANT_2_KEY)
-      process.env.SERVICE_SECRET_TOKEN = Security.encryptString(tenant2Secrets.SECRET_TOKEN, TENANT_2_KEY)
-      process.env.SERVICE_JSON_CONFIG = Security.encryptString(tenant2Secrets.JSON_CONFIG, TENANT_2_KEY)
+      process.env.SERVICE_API_KEY = Security.encryptString(
+        tenant2Secrets.API_KEY,
+        TENANT_2_KEY
+      )
+      process.env.SERVICE_DATABASE_URL = Security.encryptString(
+        tenant2Secrets.DATABASE_URL,
+        TENANT_2_KEY
+      )
+      process.env.SERVICE_SECRET_TOKEN = Security.encryptString(
+        tenant2Secrets.SECRET_TOKEN,
+        TENANT_2_KEY
+      )
+      process.env.SERVICE_JSON_CONFIG = Security.encryptString(
+        tenant2Secrets.JSON_CONFIG,
+        TENANT_2_KEY
+      )
 
       // Clear any cache from previous tests
       SecretService.clearCache()
@@ -301,15 +365,29 @@ describe('SecretService Integration Tests', () => {
 
       // Verify tenant 1 secrets
       expect(service1.getSecretSync('API_KEY')).toBe(tenant1Secrets.API_KEY)
-      expect(service1.getSecretSync('DATABASE_URL')).toBe(tenant1Secrets.DATABASE_URL)
-      expect(service1.getSecretSync('SECRET_TOKEN')).toBe(tenant1Secrets.SECRET_TOKEN)
-      expect(service1.getSecretJsonSync('JSON_CONFIG')).toEqual({ tenant: 1, feature: 'enabled' })
+      expect(service1.getSecretSync('DATABASE_URL')).toBe(
+        tenant1Secrets.DATABASE_URL
+      )
+      expect(service1.getSecretSync('SECRET_TOKEN')).toBe(
+        tenant1Secrets.SECRET_TOKEN
+      )
+      expect(service1.getSecretJsonSync('JSON_CONFIG')).toEqual({
+        tenant: 1,
+        feature: 'enabled'
+      })
 
       // Verify tenant 2 secrets
       expect(service2.getSecretSync('API_KEY')).toBe(tenant2Secrets.API_KEY)
-      expect(service2.getSecretSync('DATABASE_URL')).toBe(tenant2Secrets.DATABASE_URL)
-      expect(service2.getSecretSync('SECRET_TOKEN')).toBe(tenant2Secrets.SECRET_TOKEN)
-      expect(service2.getSecretJsonSync('JSON_CONFIG')).toEqual({ tenant: 2, feature: 'disabled' })
+      expect(service2.getSecretSync('DATABASE_URL')).toBe(
+        tenant2Secrets.DATABASE_URL
+      )
+      expect(service2.getSecretSync('SECRET_TOKEN')).toBe(
+        tenant2Secrets.SECRET_TOKEN
+      )
+      expect(service2.getSecretJsonSync('JSON_CONFIG')).toEqual({
+        tenant: 2,
+        feature: 'disabled'
+      })
     })
 
     it('should handle plain text ENV variables when decryption fails', async () => {
@@ -317,7 +395,10 @@ describe('SecretService Integration Tests', () => {
       process.env.PLAIN_API_KEY = 'plain-text-api-key'
       process.env.PLAIN_DATABASE_URL = 'plain-text-db-url'
 
-      const service = new SecretService<{ API_KEY: string; DATABASE_URL: string }>({
+      const service = new SecretService<{
+        API_KEY: string
+        DATABASE_URL: string
+      }>({
         provider: 'ENV',
         location: 'PLAIN',
         encryptionKey: 'some-key-that-wont-decrypt'
@@ -383,15 +464,29 @@ describe('SecretService Integration Tests', () => {
 
       // Verify tenant 1 secrets
       expect(service1.getSecretSync('API_KEY')).toBe(tenant1Secrets.API_KEY)
-      expect(service1.getSecretSync('DATABASE_URL')).toBe(tenant1Secrets.DATABASE_URL)
-      expect(service1.getSecretSync('SECRET_TOKEN')).toBe(tenant1Secrets.SECRET_TOKEN)
-      expect(service1.getSecretJsonSync('JSON_CONFIG')).toEqual({ tenant: 1, feature: 'enabled' })
+      expect(service1.getSecretSync('DATABASE_URL')).toBe(
+        tenant1Secrets.DATABASE_URL
+      )
+      expect(service1.getSecretSync('SECRET_TOKEN')).toBe(
+        tenant1Secrets.SECRET_TOKEN
+      )
+      expect(service1.getSecretJsonSync('JSON_CONFIG')).toEqual({
+        tenant: 1,
+        feature: 'enabled'
+      })
 
       // Verify tenant 2 secrets
       expect(service2.getSecretSync('API_KEY')).toBe(tenant2Secrets.API_KEY)
-      expect(service2.getSecretSync('DATABASE_URL')).toBe(tenant2Secrets.DATABASE_URL)
-      expect(service2.getSecretSync('SECRET_TOKEN')).toBe(tenant2Secrets.SECRET_TOKEN)
-      expect(service2.getSecretJsonSync('JSON_CONFIG')).toEqual({ tenant: 2, feature: 'disabled' })
+      expect(service2.getSecretSync('DATABASE_URL')).toBe(
+        tenant2Secrets.DATABASE_URL
+      )
+      expect(service2.getSecretSync('SECRET_TOKEN')).toBe(
+        tenant2Secrets.SECRET_TOKEN
+      )
+      expect(service2.getSecretJsonSync('JSON_CONFIG')).toEqual({
+        tenant: 2,
+        feature: 'disabled'
+      })
     })
 
     it('should handle missing vault configuration', async () => {
@@ -402,7 +497,9 @@ describe('SecretService Integration Tests', () => {
         // Missing vaultConfig
       })
 
-      await expect(service.preload()).rejects.toThrow('Vault configuration is required')
+      await expect(service.preload()).rejects.toThrow(
+        'Vault configuration is required'
+      )
     })
 
     it('should handle vault authentication errors', async () => {
@@ -467,7 +564,10 @@ describe('SecretService Integration Tests', () => {
         ...tenant1Secrets,
         API_KEY: 'vault-cache-test-updated'
       }
-      const encryptedUpdated = Security.encryptObject(updatedSecrets, TENANT_1_KEY)
+      const encryptedUpdated = Security.encryptObject(
+        updatedSecrets,
+        TENANT_1_KEY
+      )
       await fetch(`${vaultUrl}/v1/secret/data/tenant1/secrets`, {
         method: 'POST',
         headers: {
@@ -522,7 +622,9 @@ describe('SecretService Integration Tests', () => {
 
       // Service 2 should fail to decrypt with wrong key
       // The error will be "Failed to preload secrets: loadSecrets failed to decrypt: <path>"
-      await expect(service2.preload()).rejects.toThrow('Failed to preload secrets')
+      await expect(service2.preload()).rejects.toThrow(
+        'Failed to preload secrets'
+      )
 
       // Clean up
       service1.dispose()
@@ -560,32 +662,41 @@ describe('SecretService Integration Tests', () => {
       expect(service2.getSecretSync('API_KEY')).toBe('api-key-123')
 
       // For true isolation, values should be encrypted in ENV vars
-      delete process.env.ISOLATED_SECRET
-      delete process.env.ISOLATED_API_KEY
+      process.env.ISOLATED_SECRET = undefined
+      process.env.ISOLATED_API_KEY = undefined
 
       // Set encrypted values that only tenant 1 can decrypt
-      const encryptedForTenant1 = Security.encryptObject({
-        SECRET: 'tenant1-only',
-        API_KEY: 'tenant1-api'
-      }, TENANT_1_KEY)
+      const encryptedForTenant1 = Security.encryptObject(
+        {
+          SECRET: 'tenant1-only',
+          API_KEY: 'tenant1-api'
+        },
+        TENANT_1_KEY
+      )
 
       // Store encrypted values with TENANT1 prefix
       Object.entries(encryptedForTenant1).forEach(([key, value]) => {
         process.env[`TENANT1_${key}`] = value
       })
 
-      const isolatedService1 = new SecretService<{ SECRET: string; API_KEY: string }>({
+      const isolatedService1 = new SecretService<{
+        SECRET: string
+        API_KEY: string
+      }>({
         provider: 'ENV',
         location: 'TENANT1',
         encryptionKey: TENANT_1_KEY
       })
 
       await isolatedService1.preload()
-      
+
       // Clear cache to ensure service2 loads fresh
       SecretService.clearCache()
 
-      const isolatedService2 = new SecretService<{ SECRET: string; API_KEY: string }>({
+      const isolatedService2 = new SecretService<{
+        SECRET: string
+        API_KEY: string
+      }>({
         provider: 'ENV',
         location: 'TENANT1',
         encryptionKey: TENANT_2_KEY // Wrong key!
@@ -601,22 +712,22 @@ describe('SecretService Integration Tests', () => {
       // When decryption fails, it falls back to the original encrypted values
       // However, since we're decrypting an object, not individual values,
       // the fallback will still have the encrypted values as-is
-      
+
       // Get the actual values service 2 sees
       const secret2 = isolatedService2.getSecretSync('SECRET')
       const apiKey2 = isolatedService2.getSecretSync('API_KEY')
-      
+
       // Due to how ENV provider works with object decryption,
       // when it fails to decrypt, it returns the encrypted base64 strings
       // These should be different from the decrypted values
       expect(secret2).toBeTruthy()
       expect(apiKey2).toBeTruthy()
-      
+
       // Verify they are base64 encrypted strings (not the decrypted values)
       // The encrypted values will be base64 strings
       expect(secret2).toMatch(/^[A-Za-z0-9+/=]+$/)
       expect(apiKey2).toMatch(/^[A-Za-z0-9+/=]+$/)
-      
+
       // Most importantly, they should not equal the decrypted values
       expect(secret2).not.toBe('tenant1-only')
       expect(apiKey2).not.toBe('tenant1-api')
@@ -640,7 +751,9 @@ describe('SecretService Integration Tests', () => {
 
       await service.preload()
 
-      expect(() => service.getSecretSync('API_KEY')).toThrow('Secret API_KEY does not exist in NONEXISTENT env')
+      expect(() => service.getSecretSync('API_KEY')).toThrow(
+        'Secret API_KEY does not exist in NONEXISTENT env'
+      )
     })
 
     it('should handle legacy sync methods appropriately', () => {
@@ -655,17 +768,25 @@ describe('SecretService Integration Tests', () => {
       })
 
       // Sync method should throw without preload
-      expect(() => service.getSecretSync('API_KEY')).toThrow('Secrets not preloaded. Call preload() before using synchronous methods.')
+      expect(() => service.getSecretSync('API_KEY')).toThrow(
+        'Secrets not preloaded. Call preload() before using synchronous methods.'
+      )
     })
   })
 
   describe('Cache Management Tests', () => {
     it('should cleanup expired cache entries', async () => {
       // Create multiple services with short TTL
-      const services: Array<{ service: SecretService<{ TEST: string }>, filePath: string }> = []
+      const services: Array<{
+        service: SecretService<{ TEST: string }>
+        filePath: string
+      }> = []
       for (let i = 0; i < 5; i++) {
         const filePath = path.join(tempDir, `cache-test-${i}.json`)
-        const secrets = Security.encryptObject({ TEST: `value-${i}` }, TENANT_1_KEY)
+        const secrets = Security.encryptObject(
+          { TEST: `value-${i}` },
+          TENANT_1_KEY
+        )
         await fs.writeFile(filePath, JSON.stringify(secrets))
 
         const service = new SecretService<{ TEST: string }>({
@@ -688,13 +809,16 @@ describe('SecretService Integration Tests', () => {
       // Load again from services with different TTLs
       for (let i = 0; i < services.length; i++) {
         const { service, filePath } = services[i]
-        
+
         // Update file to detect cache hits
-        const updatedSecrets = Security.encryptObject({ TEST: `updated-${i}` }, TENANT_1_KEY)
+        const updatedSecrets = Security.encryptObject(
+          { TEST: `updated-${i}` },
+          TENANT_1_KEY
+        )
         await fs.writeFile(filePath, JSON.stringify(updatedSecrets))
 
         const result = await service.loadSecretsFromFileAsync()
-        
+
         if (i < 3) {
           // These should have expired and show updated value
           expect(result.TEST).toBe(`updated-${i}`)
@@ -737,7 +861,9 @@ describe('SecretService Integration Tests', () => {
       const duration = performance.now() - start
       const avgTime = duration / iterations
 
-      console.log(`Sync access performance: ${iterations} iterations in ${duration.toFixed(2)}ms`)
+      console.log(
+        `Sync access performance: ${iterations} iterations in ${duration.toFixed(2)}ms`
+      )
       console.log(`Average time per operation: ${avgTime.toFixed(4)}ms`)
 
       // Performance varies by environment, so we just log it
@@ -791,7 +917,10 @@ describe('SecretService Integration Tests', () => {
       expect(fileService.getSecretSync('API_KEY')).toBe(tenant1Secrets.API_KEY)
 
       // ENV provider
-      process.env.SYNC_API_KEY = Security.encryptString(tenant1Secrets.API_KEY, TENANT_1_KEY)
+      process.env.SYNC_API_KEY = Security.encryptString(
+        tenant1Secrets.API_KEY,
+        TENANT_1_KEY
+      )
       const envService = new SecretService<{ API_KEY: string }>({
         provider: 'ENV',
         location: 'SYNC',
@@ -804,7 +933,7 @@ describe('SecretService Integration Tests', () => {
       // Clean up
       fileService.dispose()
       await fs.unlink(filePath)
-      delete process.env.SYNC_API_KEY
+      process.env.SYNC_API_KEY = undefined
     })
   })
 })

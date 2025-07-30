@@ -1,3 +1,5 @@
+import { Ids } from '@goatlab/js-utils'
+import { GraphQLID } from 'graphql'
 import {
   Column,
   ColumnType,
@@ -14,17 +16,15 @@ import {
   UpdateDateColumn,
   VersionColumn
 } from 'typeorm'
-import { GraphQLID } from 'graphql'
-import {
-  ApiProperty,
-  HideField,
-  ObjectType,
-  ApiHideProperty
-} from './core/types'
-import { Primitives } from './types'
 import { applyDecorators } from './core/Nestjs/applyDecorators'
 import { Field } from './core/Nestjs/types/decorators/field.decorator'
-import { Ids } from '@goatlab/js-utils'
+import {
+  ApiHideProperty,
+  ApiProperty,
+  HideField,
+  ObjectType
+} from './core/types'
+import { Primitives } from './types'
 
 interface PropertyInterface {
   required?: boolean
@@ -53,7 +53,7 @@ interface BelongsToInterface<T> {
   pivotColumnName?: string
 }
 
-interface hasManyInterface<T> {
+interface HasManyInterface<T> {
   entity: (type?: any) => DbEntity<T>
   inverse: string | ((object: T) => any)
 }
@@ -97,7 +97,7 @@ export class DecoratorsClass {
    * @param params
    */
   public property(params?: PropertyInterface): PropertyDecorator {
-    if (params && params.hidden) {
+    if (params?.hidden) {
       return applyDecorators(
         HideField(),
         Column({
@@ -130,7 +130,7 @@ export class DecoratorsClass {
    */
   public embed(e: any): PropertyDecorator {
     return applyDecorators(
-      Column(type => e) as PropertyDecorator,
+      Column(_type => e) as PropertyDecorator,
       ApiProperty({ type: e })
       // Attribute({ memberType: dynamoEmbed(e) })
     )
@@ -142,7 +142,7 @@ export class DecoratorsClass {
    */
   public embedArray(e: any, params?: PropertyInterface): PropertyDecorator {
     return applyDecorators(
-      Column(type => e) as PropertyDecorator,
+      Column(_type => e) as PropertyDecorator,
       ApiProperty({
         isArray: true,
         type: e,
@@ -197,7 +197,7 @@ export class DecoratorsClass {
    *
    * @param e
    */
-  public created(e?: any): PropertyDecorator {
+  public created(_e?: any): PropertyDecorator {
     return applyDecorators(CreateDateColumn(), ApiProperty())
   }
 
@@ -205,7 +205,7 @@ export class DecoratorsClass {
    *
    * @param e
    */
-  public updated(e?: any): PropertyDecorator {
+  public updated(_e?: any): PropertyDecorator {
     return applyDecorators(UpdateDateColumn(), ApiProperty())
   }
 
@@ -213,7 +213,7 @@ export class DecoratorsClass {
    *
    * @param e
    */
-  public deleted(e?: any): PropertyDecorator {
+  public deleted(_e?: any): PropertyDecorator {
     return applyDecorators(DeleteDateColumn(), ApiProperty())
   }
 
@@ -221,7 +221,7 @@ export class DecoratorsClass {
    *
    * @param e
    */
-  public version(e?: any): PropertyDecorator {
+  public version(_e?: any): PropertyDecorator {
     return applyDecorators(VersionColumn(), ApiProperty())
   }
 
@@ -259,7 +259,7 @@ export class DecoratorsClass {
   public hasMany<T>({
     entity,
     inverse
-  }: hasManyInterface<T>): PropertyDecorator {
+  }: HasManyInterface<T>): PropertyDecorator {
     return applyDecorators(OneToMany(entity, inverse))
   }
 }

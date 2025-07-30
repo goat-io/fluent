@@ -1,19 +1,18 @@
 // npx jest -i ./src/TypeOrmConnector/test/sqlite/TypeOrmSqliteConnector.spec.ts
-import { describe, beforeAll, it, expect } from 'vitest'
-import { GoatRepository } from '../basic/goat.repository'
-import { TypeOrmRepository } from '../advanced/typeOrm.repository'
+import { beforeAll, describe, expect, it } from 'vitest'
+import { initialize } from '../../../index'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'
 import { basicTestSuite } from '../basic/basicTestSuite'
-import { Fluent } from '../../../index'
+import { GoatRepository } from '../basic/goat.repository'
 import { dbEntities } from '../dbEntities'
 import { MemoryDataSource } from './memoryDataSource'
-import { relationsTestSuite } from '../relations/relationsTestsSuite'
+
 // import { UserRepository } from '../relations/user/user.repositoryTypeOrm'
 // import { CarsRepository } from '../relations/car/car.repositoryTypeOrm'
 // import { RoleRepository } from '../relations/roles/roles.repositoryTypeOrm'
 
 beforeAll(async () => {
-  await Fluent.initialize([MemoryDataSource], dbEntities)
+  await initialize([MemoryDataSource], dbEntities)
 })
 
 const goatRepo = new GoatRepository()

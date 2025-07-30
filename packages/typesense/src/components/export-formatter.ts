@@ -1,6 +1,6 @@
 // ExportFormatter - Handles CSV/gzip helpers with streaming support
-import { Transform, Readable } from 'stream'
-import { createGzip } from 'zlib'
+import { Readable, Transform } from 'node:stream'
+import { createGzip } from 'node:zlib'
 import { TypesenseDocument, TypesenseExportFormat } from '../typesense.model'
 
 export class ExportFormatter {
@@ -14,7 +14,7 @@ export class ExportFormatter {
       case 'jsonl':
         return documents.map(doc => JSON.stringify(doc)).join('\n')
       case 'csv':
-        return this.formatCSV(documents)
+        return ExportFormatter.formatCSV(documents)
       default:
         throw new Error(`Unsupported export format: ${format}`)
     }
@@ -37,7 +37,7 @@ export class ExportFormatter {
     for (const doc of documents) {
       const row = headers.map(header => {
         const value = (doc as any)[header]
-        return this.escapeCsvValue(value)
+        return ExportFormatter.escapeCsvValue(value)
       })
       csvLines.push(row.join(','))
     }
@@ -51,12 +51,12 @@ export class ExportFormatter {
 
     return new Transform({
       objectMode: true,
-      transform(chunk: TypesenseDocument<T>, encoding, callback) {
+      transform(chunk: TypesenseDocument<T>, _encoding, callback) {
         try {
           if (isFirstRow) {
             // Extract headers from first document
             headers = Object.keys(chunk).sort()
-            this.push(headers.join(',') + '\n')
+            this.push(`${headers.join(',')}\n`)
             isFirstRow = false
           }
 
@@ -65,8 +65,8 @@ export class ExportFormatter {
             const value = (chunk as any)[header]
             return ExportFormatter.escapeCsvValue(value)
           })
-          
-          this.push(row.join(',') + '\n')
+
+          this.push(`${row.join(',')}\n`)
           callback()
         } catch (error) {
           callback(error)
@@ -78,9 +78,9 @@ export class ExportFormatter {
   static createStreamingJSONLTransform<T>(): Transform {
     return new Transform({
       objectMode: true,
-      transform(chunk: TypesenseDocument<T>, encoding, callback) {
+      transform(chunk: TypesenseDocument<T>, _encoding, callback) {
         try {
-          this.push(JSON.stringify(chunk) + '\n')
+          this.push(`${JSON.stringify(chunk)}\n`)
           callback()
         } catch (error) {
           callback(error)
@@ -96,9 +96,9 @@ export class ExportFormatter {
   static createDocumentParser(format: TypesenseExportFormat): Transform {
     switch (format) {
       case 'jsonl':
-        return this.createJSONLParser()
+        return ExportFormatter.createJSONLParser()
       case 'json':
-        return this.createJSONParser()
+        return ExportFormatter.createJSONParser()
       default:
         throw new Error(`Parsing not supported for format: ${format}`)
     }
@@ -109,33 +109,33 @@ export class ExportFormatter {
 
     return new Transform({
       objectMode: true,
-      transform(chunk: Buffer, encoding, callback) {
+      transform(chunk: Buffer, _encoding, callback) {
         buffer += chunk.toString()
         const lines = buffer.split('\n')
-        
+
         // Keep the last incomplete line in buffer
         buffer = lines.pop() || ''
-        
+
         for (const line of lines) {
           if (line.trim()) {
             try {
               const document = JSON.parse(line)
               this.push(document)
-            } catch (error) {
+            } catch (_error) {
               return callback(new Error(`Invalid JSON in line: ${line}`))
             }
           }
         }
-        
+
         callback()
       },
-      
+
       flush(callback) {
         if (buffer.trim()) {
           try {
             const document = JSON.parse(buffer)
             this.push(document)
-          } catch (error) {
+          } catch (_error) {
             return callback(new Error(`Invalid JSON in final line: ${buffer}`))
           }
         }
@@ -149,11 +149,11 @@ export class ExportFormatter {
 
     return new Transform({
       objectMode: true,
-      transform(chunk: Buffer, encoding, callback) {
+      transform(chunk: Buffer, _encoding, callback) {
         buffer += chunk.toString()
         callback()
       },
-      
+
       flush(callback) {
         try {
           const documents = JSON.parse(buffer)
@@ -188,10 +188,11 @@ export class ExportFormatter {
     }
 
     // Escape quotes and wrap in quotes if needed
-    const needsQuoting = stringValue.includes(',') || 
-                        stringValue.includes('"') || 
-                        stringValue.includes('\n') || 
-                        stringValue.includes('\r')
+    const needsQuoting =
+      stringValue.includes(',') ||
+      stringValue.includes('"') ||
+      stringValue.includes('\n') ||
+      stringValue.includes('\r')
 
     if (needsQuoting) {
       // Escape existing quotes by doubling them
@@ -204,7 +205,7 @@ export class ExportFormatter {
 
   static async streamToString(stream: Readable): Promise<string> {
     const chunks: Buffer[] = []
-    
+
     return new Promise((resolve, reject) => {
       stream.on('data', chunk => chunks.push(chunk))
       stream.on('error', reject)
@@ -224,13 +225,13 @@ export class ExportFormatter {
     } else {
       // Fallback for streams without async iterator support
       const chunks: T[] = []
-      
+
       await new Promise<void>((resolve, reject) => {
         stream.on('data', (chunk: T) => chunks.push(chunk))
         stream.on('error', reject)
         stream.on('end', resolve)
       })
-      
+
       for (const chunk of chunks) {
         yield chunk
       }
@@ -239,7 +240,7 @@ export class ExportFormatter {
 
   static createDocumentStream<T>(documents: TypesenseDocument<T>[]): Readable {
     let index = 0
-    
+
     return new Readable({
       objectMode: true,
       read() {

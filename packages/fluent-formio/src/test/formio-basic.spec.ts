@@ -1,9 +1,9 @@
-import { describe, beforeEach, afterEach, test, expect } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { FormioGoatRepository } from './repository.factory'
 
 // Mock implementation of the basic test suite for FormIO connector
 const basicTestSuite = (Repository: FormioGoatRepository) => {
-  let storedId: any
+  let _storedId: any
 
   beforeEach(async () => {
     await Repository.clear()
@@ -39,7 +39,7 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
   test('insertMany - Should insert Multiple elements', async () => {
     const insertedFlock = await Repository.insertMany(flock)
     expect(insertedFlock[0].name).toBe('Goatee')
-    storedId = insertedFlock[0].id
+    _storedId = insertedFlock[0].id
   })
 
   test('findById - Should GET an object by its ID', async () => {
@@ -163,7 +163,7 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
       },
       select: {
         name: true,
-        age: true,
+        age: true
       }
     })
 

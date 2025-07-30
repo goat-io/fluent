@@ -3,12 +3,15 @@ import 'babel-polyfill'
 import chai from 'chai'
 import Event from './Event'
 
-
 const expect = chai.expect
-let event = { name: 'myBasicEvent', data: { test: 'true' }, text: 'Some test' }
+const event = {
+  name: 'myBasicEvent',
+  data: { test: 'true' },
+  text: 'Some test'
+}
 let eventWorked = false
 
-let changeEventStatus = function () {
+const changeEventStatus = () => {
   eventWorked = !eventWorked
 }
 

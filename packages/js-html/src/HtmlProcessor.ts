@@ -13,7 +13,7 @@ const isEmptyHTML = (html: string) => {
 
   const parser = new Parser(
     {
-      onopentag(name, attribs) {
+      onopentag(_name, attribs) {
         if (Object.keys(attribs).length > 0) {
           isEmpty = false
         }
@@ -41,12 +41,13 @@ export class HtmlProcessor {
   private keywords: string[] = []
 
   public parsingOptions: Opts = {
-    attributes: (href, element) => {
+    attributes: (_href, element) => {
       if (element === 'keyword') {
         return {
           style: 'color: gray;text-decoration: none;'
         }
-      } else if (element === 'hashtag') {
+      }
+      if (element === 'hashtag') {
         return {
           style: 'color: green;text-decoration: none;'
         }
@@ -55,18 +56,18 @@ export class HtmlProcessor {
     },
     className: {},
     defaultProtocol: 'https',
-    format: (value, type) => value,
+    format: (value, _type) => value,
     formatHref: {
       keyword: keyword => {
         if (keyword === this.expandKeyWord) {
           return '/expand'
         }
 
-        return '/tags/' + keyword.toLowerCase()
+        return `/tags/${keyword.toLowerCase()}`
       },
-      hashtag: href => '/hashtag/' + href.substr(1),
-      ticket: href => '/issues/' + href.substr(1),
-      mention: href => 'account' + href //TODO: Cambiar luego x la url real
+      hashtag: href => `/hashtag/${href.substr(1)}`,
+      ticket: href => `/issues/${href.substr(1)}`,
+      mention: href => `account${href}` //TODO: Cambiar luego x la url real
     },
     ignoreTags: ['script', 'style'],
     nl2br: false,
@@ -136,7 +137,7 @@ export class HtmlProcessor {
         div: ['style']
       },
       transformTags: {
-        br: (tagname, attr) => {
+        br: (_tagname, _attr) => {
           return {
             tagName: 'div',
             attribs: {
@@ -150,7 +151,7 @@ export class HtmlProcessor {
   }
 
   getTruncatedHtml({
-    truncate = Infinity,
+    truncate = Number.POSITIVE_INFINITY,
     ellipsis = 'See more'
   }: {
     truncate?: number

@@ -1,5 +1,5 @@
+import * as fs from 'node:fs'
 import { StringMap } from '@goatlab/js-utils'
-import * as fs from 'fs'
 import { Hashes } from './Hashes'
 import { Security } from './Security'
 
@@ -50,7 +50,6 @@ class SecretsClass {
    * Whole file is encrypted.
    * For "json-values encrypted" style - use `loadSecretsFromEncryptedJsonFileValues`
    */
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   loadSecretsFromEncryptedJsonFile(
     filePath: string,
     secretEncryptionKey?: string
@@ -75,9 +74,9 @@ class SecretsClass {
       secrets = JSON.parse(fs.readFileSync(filePath, 'utf8'))
     }
 
-    Object.entries(secrets).forEach(
-      ([k, v]) => (secretMap[k.toUpperCase()] = v)
-    )
+    Object.entries(secrets).forEach(([k, v]) => {
+      secretMap[k.toUpperCase()] = v
+    })
 
     loaded = true
     console.log(
@@ -109,9 +108,9 @@ class SecretsClass {
       secrets = Security.decryptObject(secrets, secretEncryptionKey)
     }
 
-    Object.entries(secrets).forEach(
-      ([k, v]) => (secretMap[k.toUpperCase()] = v)
-    )
+    Object.entries(secrets).forEach(([k, v]) => {
+      secretMap[k.toUpperCase()] = v
+    })
 
     loaded = true
     console.log(
@@ -154,7 +153,9 @@ class SecretsClass {
    */
   setSecretMap(map: StringMap): void {
     Object.keys(secretMap).forEach(k => delete secretMap[k])
-    Object.entries(map).forEach(([k, v]) => (secretMap[k.toUpperCase()] = v))
+    Object.entries(map).forEach(([k, v]) => {
+      secretMap[k.toUpperCase()] = v
+    })
     console.log(
       `setSecretMap set ${
         Object.keys(secretMap).length

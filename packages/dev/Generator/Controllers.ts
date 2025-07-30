@@ -1,5 +1,5 @@
-import { writeFileSync } from 'fs'
-import { join } from 'path'
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { ParsedController } from '@goatlab/formio'
 
 export const Controllers = (controller: ParsedController, basePath: string) => {

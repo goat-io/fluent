@@ -1,8 +1,8 @@
 import { Network } from 'testcontainers'
-import { writeGlobalData, cleanGlobalData } from './src/test/const'
-import { getMysqlContainer } from './src/test/containers/mysql'
-import { getMetabaseContainer } from './src/test/containers/metabase'
 import { MetabaseApi } from './src/MetabaseApi'
+import { cleanGlobalData, writeGlobalData } from './src/test/const'
+import { getMetabaseContainer } from './src/test/containers/metabase'
+import { getMysqlContainer } from './src/test/containers/mysql'
 
 export default async () => {
   console.log('Starting test containers...')

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-let Utilities = (() => {
+const Utilities = (() => {
   /**
    * Deep clones a JS object using JSON.parse
    * This function will not clone object
@@ -19,7 +19,7 @@ let Utilities = (() => {
   const get = (fn, def) => {
     try {
       return fn()
-    } catch (e) {
+    } catch (_e) {
       return def
     }
   }
@@ -30,38 +30,43 @@ let Utilities = (() => {
    * @param {*} def
    */
   const getFromPath = (obj, path, def) => {
-    let _path = path
+    let Path = path
+    let pathParts = path
 
     if (path.includes(' as ')) {
-      path = path.split(' as ')
-      _path = path[0]
+      pathParts = path.split(' as ')
+      Path = pathParts[0]
     }
 
-    let assignedName = get(() => {
-      return Array.isArray(path) && path[1].trim()
+    const assignedName = get(() => {
+      return Array.isArray(pathParts) && pathParts[1].trim()
     }, undefined)
 
-    let fullPath = _path
-      .replace(/\[/g, '.')
+    const fullPath = Path.replace(/\[/g, '.')
       .replace(/]/g, '')
       .split('.')
       .filter(Boolean)
       .map(e => e.trim())
 
+    let currentObj = obj
     function everyFunc(step) {
-      return !(step && (obj = obj[step]) === undefined)
+      if (!step) {
+        return true
+      }
+      currentObj = currentObj[step]
+      return currentObj !== undefined
     }
 
-    let result = fullPath.every(everyFunc) ? obj : def
+    const result = fullPath.every(everyFunc) ? currentObj : def
 
-    return { label: assignedName || _path, value: result }
+    return { label: assignedName || Path, value: result }
   }
   /**
    *
    * @param {*} arr
    * @param {*} predicate
    */
-  const uniqBy = (arr, predicate) => {
+  const _uniqBy = (arr, predicate) => {
     const cb = typeof predicate === 'function' ? predicate : o => o[predicate]
 
     return [
@@ -79,7 +84,9 @@ let Utilities = (() => {
   /**
    *
    */
-  const orderBy = () => {}
+  const orderBy = () => {
+    // TODO: Implement orderBy functionality
+  }
   /**
    *
    * @param {*} value
@@ -91,7 +98,7 @@ let Utilities = (() => {
     if (Array.isArray(value) || typeof value === 'string') {
       return !value.length
     }
-    for (let key in value) {
+    for (const key in value) {
       if (hasOwnProperty.call(value, key)) {
         return false
       }
@@ -106,8 +113,8 @@ let Utilities = (() => {
   const debounce = (fn, time) => {
     let timeout
 
-    return function () {
-      const functionCall = () => fn.apply(this, arguments)
+    return function (...args) {
+      const functionCall = () => fn.apply(this, args)
 
       clearTimeout(timeout)
       timeout = setTimeout(functionCall, time)
@@ -122,19 +129,24 @@ let Utilities = (() => {
    * @returns {Array|Object} returns the cleaned value
    */
   const deleteNulls = object => {
-    let obj = object
-    var isArray = obj instanceof Array
+    const obj = object
+    const isArray = Array.isArray(obj)
 
-    for (let k in obj) {
-      if (obj[k] === null) isArray ? obj.splice(k, 1) : delete obj[k]
-      else if (typeof obj[k] === 'object') deleteNulls(obj[k])
+    for (const k in obj) {
+      if (obj[k] === null) {
+        isArray ? obj.splice(k, 1) : delete obj[k]
+      } else if (typeof obj[k] === 'object') {
+        deleteNulls(obj[k])
+      }
     }
     return obj
   }
 
   const eachComponent = (components, fn, includeAll, path, parent) => {
-    if (!components) return
-    path = path || ''
+    if (!components) {
+      return
+    }
+    const currentPath = path || ''
     components.forEach(component => {
       if (!component) {
         return
@@ -145,8 +157,8 @@ let Utilities = (() => {
         component.components && Array.isArray(component.components)
       let noRecurse = false
       const newPath = component.key
-        ? path
-          ? `${path}.${component.key}`
+        ? currentPath
+          ? `${currentPath}.${component.key}`
           : component.key
         : ''
 
@@ -154,10 +166,10 @@ let Utilities = (() => {
       if (parent) {
         // Ensure we don't create infinite JSON structures.
         component.parent = { ...parent }
-        delete component.parent.components
-        delete component.parent.componentMap
-        delete component.parent.columns
-        delete component.parent.rows
+        component.parent.components = undefined
+        component.parent.componentMap = undefined
+        component.parent.columns = undefined
+        component.parent.rows = undefined
       }
 
       if (
@@ -184,10 +196,11 @@ let Utilities = (() => {
             component.tree)
         ) {
           return newPath
-        } else if (component.key && component.type === 'form') {
+        }
+        if (component.key && component.type === 'form') {
           return `${newPath}.data`
         }
-        return path
+        return currentPath
       }
 
       if (!noRecurse) {
@@ -260,7 +273,7 @@ let Utilities = (() => {
   }
 
   const unixDate = () => {
-    return Math.round(+new Date() / 1000)
+    return Math.round(Date.now() / 1000)
   }
 
   return Object.freeze({

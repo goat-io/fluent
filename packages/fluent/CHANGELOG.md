@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.10
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.1
+
 ## 0.9.9
 
 ### Patch Changes

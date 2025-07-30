@@ -1,12 +1,11 @@
 import * as _ from 'lodash'
+import type { FormioComponent } from '../../types/FormioComponent'
+import type { FormioForm } from '../../types/FormioForm'
 import util from '../utils'
-import { Errors } from '@goatlab/node-utils'
-import { FormioForm } from '../../types/FormioForm'
 import { checkConditional } from './conditionalCheck'
 import { JoiX } from './JoiExtended'
-import { FormioComponent } from '../../types/FormioComponent'
 
-const vm = require('vm')
+const vm = require('node:vm')
 const FormioUtils = require('formiojs/utils').default
 const moment = require('moment')
 
@@ -19,7 +18,7 @@ const moment = require('moment')
  * @constructor
  */
 export class Validator {
-  private async: any
+  private _async: any
 
   private requests: any
 
@@ -29,7 +28,7 @@ export class Validator {
     private token?: any
   ) {
     this.model = model
-    this.async = []
+    this._async = []
     this.requests = {}
     this.form = form
     this.token = token
@@ -64,9 +63,9 @@ export class Validator {
 
       // The value is persistent if it doesn't say otherwise or explicitly says so.
       const isPersistent: boolean =
-        !component.hasOwnProperty('persistent') || component.persistent
+        !Object.hasOwn(component, 'persistent') || component.persistent
 
-      let objectSchema
+      let objectSchema: any
       const stringValidators: any = {
         minLength: 'min',
         maxLength: 'max',
@@ -180,7 +179,7 @@ export class Validator {
               const funcName = stringValidators[name]
               if (
                 component.validate &&
-                component.validate.hasOwnProperty(name) &&
+                Object.hasOwn(component.validate, name) &&
                 _.isNumber(component.validate[name]) &&
                 component.validate[name] >= 0
               ) {
@@ -192,12 +191,12 @@ export class Validator {
           }
           break
         case 'select':
-          if (component.validate && component.validate.select) {
+          if (component.validate?.select) {
             fieldValidator = JoiX.any().select(
               component,
               submission,
               this.token,
-              this.async,
+              this._async,
               this.requests
             )
           }
@@ -221,7 +220,7 @@ export class Validator {
 
             _.each(['min', 'max', 'greater', 'less'], (check: any) => {
               if (
-                component.validate.hasOwnProperty(check) &&
+                Object.hasOwn(component.validate, check) &&
                 _.isNumber(component.validate[check])
               ) {
                 fieldValidator = fieldValidator[check](
@@ -282,12 +281,12 @@ export class Validator {
         }
 
         // Add the custom validations.
-        if (component.validate && component.validate.custom) {
+        if (component.validate?.custom) {
           fieldValidator = fieldValidator.custom(component, submission.data)
         }
 
         // Add the json logic validations.
-        if (component.validate && component.validate.json) {
+        if (component.validate?.json) {
           fieldValidator = fieldValidator.json(component, submission.data)
         }
       }
@@ -298,7 +297,7 @@ export class Validator {
           component,
           submission,
           this.model,
-          this.async
+          this._async
         )
       }
 
@@ -309,7 +308,7 @@ export class Validator {
           maskName: JoiX.string()
         })
         //  additionally apply required rule to the field itself
-        if (component.validate && component.validate.required) {
+        if (component.validate?.required) {
           fieldValidator = fieldValidator.required()
         }
       }
@@ -323,7 +322,7 @@ export class Validator {
           .items(fieldValidator.allow(null))
           .options({ stripUnknown: false })
         // If a multi-value is required, make sure there is at least one.
-        if (component.validate && component.validate.required) {
+        if (component.validate?.required) {
           fieldValidator = fieldValidator.min(1).required()
         }
       }
@@ -370,7 +369,7 @@ export class Validator {
                 result
               )
               break
-            case 'value':
+            case 'value': {
               // Create the sandbox.
               const sandbox: any = vm.createContext({
                 value: _.get(row, component.key),
@@ -388,6 +387,7 @@ export class Validator {
 
               _.set(row, component.key, sandbox.value.toString())
               break
+            }
           }
         })
       }
@@ -414,7 +414,7 @@ export class Validator {
           })
 
           _.set(row, component.key, sandbox.value)
-        } catch (e) {
+        } catch (_e) {
           // Need to log error for calculated value.
         }
       } else {
@@ -428,7 +428,7 @@ export class Validator {
               _
             })
           )
-        } catch (e) {
+        } catch (_e) {
           // Need to log error for calculated value.
         }
       }
@@ -472,7 +472,7 @@ export class Validator {
     FormioUtils.eachComponent(
       this.form.components,
       (component: any, path: any) => {
-        if (component.hasOwnProperty('key')) {
+        if (Object.hasOwn(component, 'key')) {
           components[path] = component
         }
       },
@@ -487,7 +487,7 @@ export class Validator {
       { stripUnknown: true, abortEarly: false },
       (validateErr: any, value: any) => {
         // Wait for all async validators to complete and add any errors.
-        Promise.all(this.async).then((errors: any) => {
+        Promise.all(this._async).then((errors: any) => {
           errors = errors.filter((item: any) => item)
           // Add in any asyncronous errors.
           if (errors.length) {
@@ -508,7 +508,7 @@ export class Validator {
               }
               if (detail.type.includes('.hidden')) {
                 const component =
-                  components[detail.path.filter(isNaN).join('.')]
+                  components[detail.path.filter(Number.isNaN).join('.')]
 
                 const clearOnHide = util.isBoolean(
                   _.get(component, 'clearOnHide')
@@ -528,7 +528,7 @@ export class Validator {
                     result.path.push(key)
 
                     const component: any =
-                      components[result.path.filter(isNaN).join('.')]
+                      components[result.path.filter(Number.isNaN).join('.')]
 
                     // Form "data" keys don't have components.
                     if (component) {

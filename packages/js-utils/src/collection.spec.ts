@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it } from 'vitest'
 // yarn test collection.spec.ts
 
 import { Collection } from './Collection'

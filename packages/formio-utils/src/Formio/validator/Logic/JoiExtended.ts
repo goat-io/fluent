@@ -1,4 +1,3 @@
-import * as _ from 'lodash'
 import { getRules } from './JoiRules'
 
 const Joi = require('joi')

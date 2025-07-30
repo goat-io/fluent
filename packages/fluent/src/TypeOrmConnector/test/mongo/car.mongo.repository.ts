@@ -15,11 +15,13 @@ export class CarsRepository extends TypeOrmConnector<
   CarDtoOutput
 > {
   private dataSourceRef: DataSource | (() => DataSource)
-  
+
   constructor(dataSource?: DataSource | (() => DataSource)) {
-    const ds = dataSource || (() => {
-      throw new Error('DataSource not provided to CarsRepository')
-    })
+    const ds =
+      dataSource ||
+      (() => {
+        throw new Error('DataSource not provided to CarsRepository')
+      })
     super({
       entity: CarsEntity,
       dataSource: ds,

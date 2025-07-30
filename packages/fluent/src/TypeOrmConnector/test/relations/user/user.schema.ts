@@ -1,10 +1,9 @@
 import { z } from 'zod'
 import { carInputSchema } from '../car/car.schema'
-import { carOutputSchema } from '../car/car.output.schema'
 import { RoleInputSchema } from '../roles/role.schema'
 import { RolesUserSchema } from '../roles/roles_user.schema'
 
-interface zodManyToOneProps {
+interface ZodManyToOneProps {
   manySchema: z.AnyZodObject
   manyKey: string
   oneSchema: z.AnyZodObject
@@ -17,37 +16,39 @@ const ZodManyToOne = ({
   oneSchema,
   manyKey,
   oneKey
-}: zodManyToOneProps) => {
+}: ZodManyToOneProps) => {
   return manySchema
     .extend({
-      [oneKey]: oneSchema.extend({
-        [manyKey]: manySchema
-          .extend({
-            [oneKey]: oneSchema
-              .extend({
-                [manyKey]: manySchema
-                  .extend({
-                    [oneKey]: oneSchema.extend({
-                      [manyKey]: manySchema
-                        .extend({
-                          [oneKey]: oneSchema
-                            .extend({
-                              [manyKey]: manySchema.optional().array()
-                            })
-                            .optional()
-                        })
-                        .optional()
-                        .array()
+      [oneKey]: oneSchema
+        .extend({
+          [manyKey]: manySchema
+            .extend({
+              [oneKey]: oneSchema
+                .extend({
+                  [manyKey]: manySchema
+                    .extend({
+                      [oneKey]: oneSchema.extend({
+                        [manyKey]: manySchema
+                          .extend({
+                            [oneKey]: oneSchema
+                              .extend({
+                                [manyKey]: manySchema.optional().array()
+                              })
+                              .optional()
+                          })
+                          .optional()
+                          .array()
+                      })
                     })
-                  })
-                  .array()
-                  .optional()
-              })
-              .optional()
-          })
-          .optional()
-          .array()
-      }).optional()
+                    .array()
+                    .optional()
+                })
+                .optional()
+            })
+            .optional()
+            .array()
+        })
+        .optional()
     })
     .array()
     .optional()
@@ -76,7 +77,7 @@ export const userWithRoles = userInputSchema.extend({
 })
 
 // The final Output for the user
-export const userOutputSchema = userWithRoles.extend({  
+export const userOutputSchema = userWithRoles.extend({
   cars: ZodManyToOne({
     manySchema: carInputSchema,
     oneSchema: userWithRoles,

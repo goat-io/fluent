@@ -1,6 +1,10 @@
-import type { TypesenseDocument, TypesenseCollectionOptions, WithRequiredId } from '../../typesense.model'
-import { TypesenseError, isValidDocumentId } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseDocument,
+  WithRequiredId
+} from '../../typesense.model'
+import { isValidDocumentId, TypesenseError } from '../../typesense.model'
 
 export async function upsertDocument<TDoc extends Record<string, any>>(
   ctx: TypesenseContext<TDoc>,

@@ -59,16 +59,21 @@ export function createPropertyDecorator<T extends Record<string, any> = any>(
 }
 
 export function getTypeIsArrayTuple(
-  input: Function | [Function] | undefined | string | Record<string, any>,
+  input:
+    | ((...args: any[]) => any)
+    | [(...args: any[]) => any]
+    | undefined
+    | string
+    | Record<string, any>,
   isArrayFlag: boolean
-): [Function | undefined, boolean] {
+): [((...args: any[]) => any) | undefined, boolean] {
   if (!input) {
     return [input as undefined, isArrayFlag]
   }
   if (isArrayFlag) {
-    return [input as Function, isArrayFlag]
+    return [input as (...args: any[]) => any, isArrayFlag]
   }
   const isInputArray = Array.isArray(input)
   const type = isInputArray ? input[0] : input
-  return [type as Function, isInputArray]
+  return [type as (...args: any[]) => any, isInputArray]
 }

@@ -1,16 +1,20 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { buildGraph } from '../../graph.js';
-import { initializeMemory, checkpointer, cleanupDatabase } from '../../memory.js';
-import type { FlowState } from '../../types.js';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { buildGraph } from '../../graph.js'
+import {
+  checkpointer,
+  cleanupDatabase,
+  initializeMemory
+} from '../../memory.js'
+import type { FlowState } from '../../types.js'
 
 describe('E2E Test - Full Pipeline', () => {
   beforeAll(async () => {
-    await initializeMemory();
-  });
+    await initializeMemory()
+  })
 
   afterAll(async () => {
-    await cleanupDatabase();
-  });
+    await cleanupDatabase()
+  })
 
   it('should complete "Add pino logging to all Fastify routes" scenario', async () => {
     // Mock the AutoGen service responses for E2E test
@@ -25,7 +29,8 @@ describe('E2E Test - Full Pipeline', () => {
 5. Log request/response times and status codes`
         }
       }),
-      refine: vi.fn()
+      refine: vi
+        .fn()
         .mockResolvedValueOnce({
           data: {
             refined: `Technical Specification: Add Pino Logging to Fastify
@@ -106,10 +111,11 @@ CLEAR: TRUE`,
       review: vi.fn().mockResolvedValue({
         data: {
           ok: true,
-          feedback: '✅ Approved - Implementation correctly adds pino logging with proper configuration'
+          feedback:
+            '✅ Approved - Implementation correctly adds pino logging with proper configuration'
         }
       })
-    };
+    }
 
     // Mock Claude Code execution
     const mockDiff = `diff --git a/package.json b/package.json
@@ -161,64 +167,77 @@ index 1234567..890abcd 100644
 +      statusCode: reply.statusCode
 +    })
 +  }
-+});`;
++});`
 
     // Build graph with mocked dependencies
     const graph = buildGraph({
       enableTests: true,
-      testCommand: 'echo "All tests passed"',
-    });
+      testCommand: 'echo "All tests passed"'
+    })
 
-    const app = graph.compile({ checkpointer });
+    const app = graph.compile({ checkpointer })
 
     const initialState: FlowState = {
       task: 'Add pino logging to all Fastify routes',
       spec: '',
       repoPath: '/tmp/test-repo',
       iterationCount: 0,
-      timestamp: Date.now(),
-    };
+      timestamp: Date.now()
+    }
 
     // Patch Http client to use our mock
-    const jsUtils = await import('@goatlab/js-utils');
-    vi.mocked(jsUtils.Http.getClient).mockImplementation(() => ({
-      post: vi.fn((endpoint: string) => ({
-        json: vi.fn(async () => {
-          if (endpoint === 'plan') return (await mockServer.plan({})).data;
-          if (endpoint === 'refine') return (await mockServer.refine({})).data;
-          if (endpoint === 'review') return (await mockServer.review({})).data;
-          throw new Error(`Unexpected endpoint: ${endpoint}`);
-        }),
-      })),
-    } as any));
+    const jsUtils = await import('@goatlab/js-utils')
+    vi.mocked(jsUtils.Http.getClient).mockImplementation(
+      () =>
+        ({
+          post: vi.fn((endpoint: string) => ({
+            json: vi.fn(async () => {
+              if (endpoint === 'plan') {
+                return (await mockServer.plan({})).data
+              }
+              if (endpoint === 'refine') {
+                return (await mockServer.refine({})).data
+              }
+              if (endpoint === 'review') {
+                return (await mockServer.review({})).data
+              }
+              throw new Error(`Unexpected endpoint: ${endpoint}`)
+            })
+          }))
+        }) as any
+    )
 
     // Mock spawn for Claude
-    const childProcess = await import('child_process');
-    const spawnMock = vi.mocked(childProcess.spawn);
+    const childProcess = await import('node:child_process')
+    const spawnMock = vi.mocked(childProcess.spawn)
     spawnMock.mockReturnValue({
       stdout: {
         on: vi.fn((event, cb) => {
-          if (event === 'data') cb(Buffer.from(mockDiff));
-        }),
+          if (event === 'data') {
+            cb(Buffer.from(mockDiff))
+          }
+        })
       },
       stderr: { on: vi.fn() },
       on: vi.fn((event, cb) => {
-        if (event === 'close') cb(0);
+        if (event === 'close') {
+          cb(0)
+        }
       }),
-      kill: vi.fn(),
-    } as any);
+      kill: vi.fn()
+    } as any)
 
     // Run the pipeline
-    const threadId = `e2e-test-${Date.now()}`;
+    const threadId = `e2e-test-${Date.now()}`
     const result = await app.invoke(initialState, {
-      configurable: { thread_id: threadId },
-    });
+      configurable: { thread_id: threadId }
+    })
 
     // Assertions
-    expect(result.approved).toBe(true);
-    expect(result.codeDiff).toContain('import pino');
-    expect(result.codeDiff).toContain('fastify-pino');
-    expect(result.testResults).toMatch(/exit code: 0/i);
-    expect(mockServer.refine).toHaveBeenCalledTimes(2); // Should refine twice before clear=true
-  });
-});
+    expect(result.approved).toBe(true)
+    expect(result.codeDiff).toContain('import pino')
+    expect(result.codeDiff).toContain('fastify-pino')
+    expect(result.testResults).toMatch(/exit code: 0/i)
+    expect(mockServer.refine).toHaveBeenCalledTimes(2) // Should refine twice before clear=true
+  })
+})

@@ -1,9 +1,10 @@
+import type { AnyObject } from '@goatlab/fluent'
+import { Promises } from '@goatlab/js-utils'
+import { expect, test } from 'vitest'
+import { type FormioValidationError, Validate } from '../Validate'
+import { ComplexNumberForm } from './tests/Forms/ComplexNumberComponent'
 import { Form } from './tests/Forms/SingleNumerComponent'
 import { textForm } from './tests/Forms/SingleTextComponent'
-import { Validate, FormioValidationError } from '../Validate'
-import { Promises } from '@goatlab/js-utils'
-import type { AnyObject } from '@goatlab/fluent'
-import { ComplexNumberForm } from './tests/Forms/ComplexNumberComponent'
 
 process.env.NODE_ENV = 'test'
 // Start the MongoDB database before
@@ -22,7 +23,7 @@ beforeAll(async () => {
 
 test('Should validate number component', async () => {
   const wrongSubmission = { data: { number: 'HELLO WORLD' } }
-  const [error, submission] = await Promises.try<
+  const [error, _submission] = await Promises.try<
     FormioValidationError,
     AnyObject
   >(Validate.submission(Form, wrongSubmission))
@@ -42,7 +43,7 @@ test('Should validate number component', async () => {
 
 test('Should validate required number', async () => {
   const wrongSubmission = { data: { number: undefined } }
-  const [error, submission] = await Promises.try<
+  const [error, _submission] = await Promises.try<
     FormioValidationError,
     AnyObject
   >(Validate.submission(Form, wrongSubmission))
@@ -51,8 +52,8 @@ test('Should validate required number', async () => {
 })
 
 test('Should validate minimum and maximum number', async () => {
-  let error
-  let submission
+  let error: any
+  let submission: any
   const wrongSubmissionMIN = { data: { number: 4 } }
   ;[error, submission] = await Promises.try<FormioValidationError, AnyObject>(
     Validate.submission(ComplexNumberForm, wrongSubmissionMIN)
@@ -81,7 +82,7 @@ test('Should validate minimum and maximum number', async () => {
 
 test('Should validate required text', async () => {
   const wrongSubmission = { data: { text: undefined } }
-  const [error, submission] = await Promises.try<
+  const [error, _submission] = await Promises.try<
     FormioValidationError,
     AnyObject
   >(Validate.submission(textForm, wrongSubmission))
@@ -91,7 +92,7 @@ test('Should validate required text', async () => {
 
 test('Should validate text Type', async () => {
   const wrongSubmission = { data: { text: 3 } }
-  const [error, submission] = await Promises.try<
+  const [error, _submission] = await Promises.try<
     FormioValidationError,
     AnyObject
   >(Validate.submission(textForm, wrongSubmission))
@@ -172,6 +173,3 @@ test("Should return the valid Form", async () => {
   expect(form.id).toBe("5d24e91176853baf2b663a60");
 });
 */
-afterAll(() => {
-  // mongoose.connection.close()
-})

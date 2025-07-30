@@ -1,17 +1,17 @@
 import { Readable, ReadableOptions } from 'node:stream'
 import { _pipeline } from './streams/pipeline'
 import { ReadableTyped } from './streams/streams.model'
-import { transformMap } from './streams/transform/transformMap'
 import { transformBuffer } from './streams/transform/transformBuffer'
 import { transformFilter } from './streams/transform/transformFilter'
 import { transformGzip } from './streams/transform/transformGzip'
+import { transformJsonParse } from './streams/transform/transformJsonParse'
 import { transformLogProgress } from './streams/transform/transformLogProgress'
+import { transformMap } from './streams/transform/transformMap'
+import { transformMapSync } from './streams/transform/transformMapSync'
 import { transformToFile } from './streams/transform/transformToFile'
 import { transformToNDJson } from './streams/transform/transformToNDJson'
-import { writableVoid } from './streams/writableVoid'
-import { transformMapSync } from './streams/transform/transformMapSync'
 import { transformUnGzip } from './streams/transform/transformUnGZip'
-import { transformJsonParse } from './streams/transform/transformJsonParse'
+import { writableVoid } from './streams/writableVoid'
 
 class StreamClass {
   pipeline = _pipeline

@@ -1,6 +1,6 @@
 // npx vitest run ./src/services/search/typesense/tests/typesense.filter-builder.test.ts
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { filterBuilder } from '../components/typesense.filter-builder'
 
 describe('TypesenseFilterBuilder', () => {

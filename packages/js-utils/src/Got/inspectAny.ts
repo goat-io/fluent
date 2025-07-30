@@ -1,6 +1,6 @@
-import { inspect, InspectOptions } from 'util'
+import { InspectOptions, inspect } from 'node:util'
+import type { JsonStringifyFunction, StringifyAnyOptions } from '../index'
 import { Strings } from '../Strings'
-import type { StringifyAnyOptions, JsonStringifyFunction } from '../index'
 
 export interface InspectAnyOptions
   extends StringifyAnyOptions,

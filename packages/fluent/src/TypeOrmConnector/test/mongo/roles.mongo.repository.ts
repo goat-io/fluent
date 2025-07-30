@@ -1,13 +1,13 @@
 import { DataSource } from 'typeorm'
 import { TypeOrmConnector } from '../../TypeOrmConnector'
-import { RoleDtoInput, RoleInputSchema } from '../relations/roles/role.schema'
-import { RoleUsersRepository } from './roles_user.mongo.repository'
-import { RoleEntity } from '../relations/roles/roles.entity'
-import { UserRepository } from './user.mongo.repository'
 import {
   RoleDtoOut,
   RoleOuputSchema
 } from '../relations/roles/role.output.schema'
+import { RoleDtoInput, RoleInputSchema } from '../relations/roles/role.schema'
+import { RoleEntity } from '../relations/roles/roles.entity'
+import { RoleUsersRepository } from './roles_user.mongo.repository'
+import { UserRepository } from './user.mongo.repository'
 
 export class RoleRepository extends TypeOrmConnector<
   RoleEntity,
@@ -15,11 +15,13 @@ export class RoleRepository extends TypeOrmConnector<
   RoleDtoOut
 > {
   private dataSourceRef: DataSource | (() => DataSource)
-  
+
   constructor(dataSource?: DataSource | (() => DataSource)) {
-    const ds = dataSource || (() => {
-      throw new Error('DataSource not provided to RoleRepository')
-    })
+    const ds =
+      dataSource ||
+      (() => {
+        throw new Error('DataSource not provided to RoleRepository')
+      })
     super({
       entity: RoleEntity,
       dataSource: ds,

@@ -2,7 +2,7 @@ import { AnyObject, FluentQuery } from '../../../types'
 import { GeneratedModelRelations } from '../../util/getRelationsFromModelGenerator'
 import { getMongoWhere } from './getMongoWhere'
 
-export interface getMongoBaseAggregationParams {
+export interface GetMongoBaseAggregationParams {
   include: FluentQuery<AnyObject>['include']
   self: any
   alias?: string
@@ -15,7 +15,7 @@ export interface getMongoBaseAggregationParams {
 export const getMongoBaseAggregation = ({
   include,
   self
-}: getMongoBaseAggregationParams): any[] => {
+}: GetMongoBaseAggregationParams): any[] => {
   self.initDB()
   if (!include) {
     return []
@@ -36,11 +36,15 @@ export const getMongoBaseAggregation = ({
 
     // Nested Includes
     const relationInclude = include[relation]
-    if (relationInclude && typeof relationInclude === 'object' && 'include' in relationInclude) {
-      const newSelf = self[relation] && self[relation]()
+    if (
+      relationInclude &&
+      typeof relationInclude === 'object' &&
+      'include' in relationInclude
+    ) {
+      const newSelf = self[relation]?.()
 
       const innerRelations = getMongoBaseAggregation({
-        include: relationInclude['include'],
+        include: relationInclude.include,
         self: newSelf
       })
 
@@ -48,7 +52,12 @@ export const getMongoBaseAggregation = ({
     }
 
     const where = getMongoWhere({
-      where: relationInclude && typeof relationInclude === 'object' && 'where' in relationInclude ? relationInclude['where'] : undefined
+      where:
+        relationInclude &&
+        typeof relationInclude === 'object' &&
+        'where' in relationInclude
+          ? relationInclude.where
+          : undefined
     })
 
     if (dbRelation.isManyToOne) {
@@ -86,12 +95,12 @@ export const getMongoBaseAggregation = ({
     }
 
     if (dbRelation.isOneToMany) {
-      aggregations.push({ $addFields: { string_id: { $toString: '$_id' } } })
+      aggregations.push({ $addFields: { stringId: { $toString: '$_id' } } })
       aggregations.push({ $addFields: { id: { $toString: '$_id' } } })
       aggregations.push({
         $lookup: {
           from: dbRelation.tableName,
-          localField: 'string_id',
+          localField: 'stringId',
           foreignField: dbRelation.inverseSidePropertyPath,
           as: dbRelation.propertyName,
           pipeline: [
@@ -126,12 +135,12 @@ export const getMongoBaseAggregation = ({
 
       aggregations.push({ $addFields: { id: { $toString: '$_id' } } })
       aggregations.push({
-        $addFields: { parent_string_id: { $toString: '$_id' } }
+        $addFields: { parentStringId: { $toString: '$_id' } }
       })
       aggregations.push({
         $lookup: {
           from: pivotTableName,
-          localField: 'parent_string_id',
+          localField: 'parentStringId',
           foreignField: pivotForeignField,
           as: dbRelation.propertyName,
           pipeline: [

@@ -13,14 +13,13 @@ export async function disableAllDatabaseAccess({
   baseUrl,
   sessionToken,
   apiKey,
-  groupId,
+  groupId
 }: {
   baseUrl: string
   sessionToken?: string
   apiKey?: string
   groupId: number
 }): Promise<void> {
-
   try {
     // First, fetch all databases to ensure we have the complete list
     const databasesResponse = await metabaseFetch({
@@ -28,7 +27,7 @@ export async function disableAllDatabaseAccess({
       sessionToken,
       apiKey,
       endpoint: '/api/database',
-      method: 'GET',
+      method: 'GET'
     })
 
     if (!databasesResponse.ok) {
@@ -36,7 +35,9 @@ export async function disableAllDatabaseAccess({
       throw new Error(`Failed to fetch databases: ${errorText}`)
     }
 
-    const databases = await databasesResponse.json() as { data: Array<{ id: number; name: string }> }
+    const databases = (await databasesResponse.json()) as {
+      data: Array<{ id: number; name: string }>
+    }
 
     // Get current permissions
     const permissionsResponse = await metabaseFetch({
@@ -44,7 +45,7 @@ export async function disableAllDatabaseAccess({
       sessionToken,
       apiKey,
       endpoint: '/api/permissions/graph',
-      method: 'GET',
+      method: 'GET'
     })
 
     if (!permissionsResponse.ok) {
@@ -53,7 +54,6 @@ export async function disableAllDatabaseAccess({
     }
 
     const permissionsGraph = await permissionsResponse.json()
-
 
     // Create a deep copy of the permissions graph
     const updatedGraph = JSON.parse(JSON.stringify(permissionsGraph))
@@ -70,31 +70,30 @@ export async function disableAllDatabaseAccess({
 
     // Set permissions to match what Metabase dashboard does for "All Users" group
     // This prevents query creation while still showing in the UI
-    databases.data.forEach((db) => {
-
+    databases.data.forEach(db => {
       // Match the exact structure from Metabase dashboard
       updatedGraph.groups[groupId][db.id] = {
         'create-queries': 'no',
         'view-data': 'unrestricted',
         download: {
-          schemas: 'full',
-        },
+          schemas: 'full'
+        }
       }
     })
 
     // Also update any existing database permissions for this group
     if (updatedGraph.groups[groupId]) {
-      Object.keys(updatedGraph.groups[groupId]).forEach((dbId) => {
+      Object.keys(updatedGraph.groups[groupId]).forEach(dbId => {
         if (
           dbId !== 'null' &&
-          !databases.data.find((db) => String(db.id) === dbId)
+          !databases.data.find(db => String(db.id) === dbId)
         ) {
           updatedGraph.groups[groupId][dbId] = {
             'create-queries': 'no',
             'view-data': 'unrestricted',
             download: {
-              schemas: 'full',
-            },
+              schemas: 'full'
+            }
           }
         }
       })
@@ -103,7 +102,7 @@ export async function disableAllDatabaseAccess({
     // Include revision if it exists
     const payload = {
       groups: updatedGraph.groups,
-      revision: updatedGraph.revision || 0,
+      revision: updatedGraph.revision || 0
     }
 
     // Update the permissions
@@ -113,7 +112,7 @@ export async function disableAllDatabaseAccess({
       apiKey,
       endpoint: '/api/permissions/graph',
       method: 'PUT',
-      body: payload,
+      body: payload
     })
 
     if (!updateResponse.ok) {
@@ -121,9 +120,6 @@ export async function disableAllDatabaseAccess({
       console.error('❌ Update failed:', errorText)
       throw new Error(`Failed to update permissions: ${errorText}`)
     }
-
-
-
   } catch (error) {
     console.error(`❌ Error disabling database access:`, error)
     throw error
@@ -136,7 +132,7 @@ export async function disableAllDatabaseAccess({
 export async function disableAllUsersGroupDatabaseAccess({
   baseUrl,
   sessionToken,
-  apiKey,
+  apiKey
 }: {
   baseUrl: string
   sessionToken?: string
@@ -144,11 +140,10 @@ export async function disableAllUsersGroupDatabaseAccess({
 }): Promise<void> {
   const ALL_USERS_GROUP_ID = 1
 
-
   return disableAllDatabaseAccess({
     baseUrl,
     sessionToken,
     apiKey,
-    groupId: ALL_USERS_GROUP_ID,
+    groupId: ALL_USERS_GROUP_ID
   })
 }

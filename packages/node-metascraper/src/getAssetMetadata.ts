@@ -1,7 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { Http } from '@goatlab/js-utils'
 import { Jimp } from 'jimp'
 import filetype from 'magic-bytes.js'
-import { readFileSync } from 'fs'
 
 export type MarketplaceAsset = {
   id?: string
@@ -51,8 +51,7 @@ export const getAssetMetadata = async (
 
     // Detect MIME type using magic-bytes.js
     const mimeType = filetype(buffer)
-    const mime =
-      mimeType && mimeType[0] ? `${mimeType[0].mime}` : 'image/unknown'
+    const mime = mimeType?.[0] ? `${mimeType[0].mime}` : 'image/unknown'
 
     // Determine if it's an image or not
     const isImage = mime?.startsWith('image/') || false

@@ -1,21 +1,23 @@
-type Primitive = null | undefined | string | number | boolean | symbol | bigint;
-type LiteralUnion<LiteralType extends BaseType, BaseType extends Primitive> = LiteralType | (BaseType & {
-    _?: never;
-});
+type Primitive = null | undefined | string | number | boolean | symbol | bigint
+type LiteralUnion<LiteralType extends BaseType, BaseType extends Primitive> =
+  | LiteralType
+  | (BaseType & {
+      _?: never
+    })
 
 type KyResponse<T = unknown> = {
-    json: <J = T>() => Promise<J>;
-} & Response;
+  json: <J = T>() => Promise<J>
+} & Response
 
 /**
 Returns a `Response` object with `Body` methods added for convenience. So you can, for example, call `ky.get(input).json()` directly without having to await the `Response` first. When called like that, an appropriate `Accept` header will be set depending on the body method used. Unlike the `Body` methods of `window.Fetch`; these will throw an `HTTPError` if the response status is not in the range of `200...299`. Also, `.json()` will return an empty string if body is empty or the response status is `204` instead of throwing a parse error due to an empty body.
 */
 
 type ResponsePromise<T = unknown> = {
-    arrayBuffer: () => Promise<ArrayBuffer>;
-    blob: () => Promise<Blob>;
-    formData: () => Promise<FormData>;
-    /**
+  arrayBuffer: () => Promise<ArrayBuffer>
+  blob: () => Promise<Blob>
+  formData: () => Promise<FormData>
+  /**
     Get the response body as JSON.
 
     @example
@@ -38,46 +40,55 @@ type ResponsePromise<T = unknown> = {
     const result2 = await ky<Result>(…).json();
     ```
     */
-    json: <J = T>() => Promise<J>;
-    text: () => Promise<string>;
-} & Promise<KyResponse<T>>;
+  json: <J = T>() => Promise<J>
+  text: () => Promise<string>
+} & Promise<KyResponse<T>>
 
 type KyRequest<T = unknown> = {
-    json: <J = T>() => Promise<J>;
-} & Request;
+  json: <J = T>() => Promise<J>
+} & Request
 
 declare class HTTPError<T = unknown> extends Error {
-    response: KyResponse<T>;
-    request: KyRequest;
-    options: NormalizedOptions;
-    constructor(response: Response, request: Request, options: NormalizedOptions);
+  response: KyResponse<T>
+  request: KyRequest
+  options: NormalizedOptions
+  constructor(response: Response, request: Request, options: NormalizedOptions)
 }
 
 declare class TimeoutError extends Error {
-    request: KyRequest;
-    constructor(request: Request);
+  request: KyRequest
+  constructor(request: Request)
 }
 
-type BeforeRequestHook = (request: KyRequest, options: NormalizedOptions) => Request | Response | void | Promise<Request | Response | void>;
+type BeforeRequestHook = (
+  request: KyRequest,
+  options: NormalizedOptions
+) => Request | Response | void | Promise<Request | Response | void>
 type BeforeRetryState = {
-    request: KyRequest;
-    options: NormalizedOptions;
-    error: Error;
-    retryCount: number;
-};
-type BeforeRetryHook = (options: BeforeRetryState) => typeof stop | void | Promise<typeof stop | void>;
-type AfterResponseHook = (request: KyRequest, options: NormalizedOptions, response: KyResponse) => Response | void | Promise<Response | void>;
-type BeforeErrorHook = (error: HTTPError) => HTTPError | Promise<HTTPError>;
+  request: KyRequest
+  options: NormalizedOptions
+  error: Error
+  retryCount: number
+}
+type BeforeRetryHook = (
+  options: BeforeRetryState
+) => typeof stop | void | Promise<typeof stop | void>
+type AfterResponseHook = (
+  request: KyRequest,
+  options: NormalizedOptions,
+  response: KyResponse
+) => Response | void | Promise<Response | void>
+type BeforeErrorHook = (error: HTTPError) => HTTPError | Promise<HTTPError>
 type Hooks = {
-    /**
+  /**
     This hook enables you to modify the request right before it is sent. Ky will make no further changes to the request after this. The hook function receives normalized input and options as arguments. You could, for example, modify `options.headers` here.
 
     A [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) can be returned from this hook to completely avoid making a HTTP request. This can be used to mock a request, check an internal cache, etc. An **important** consideration when returning a `Response` from this hook is that all the following hooks will be skipped, so **ensure you only return a `Response` from the last hook**.
 
     @default []
     */
-    beforeRequest?: BeforeRequestHook[];
-    /**
+  beforeRequest?: BeforeRequestHook[]
+  /**
     This hook enables you to modify the request right before retry. Ky will make no further changes to the request after this. The hook function receives an object with the normalized request and options, an error instance, and the retry count. You could, for example, modify `request.headers` here.
 
     If the request received a response, the error will be of type `HTTPError` and the `Response` object will be available at `error.response`. Be aware that some types of errors, such as network errors, inherently mean that a response was not received. In that case, the error will not be an instance of `HTTPError`.
@@ -102,8 +113,8 @@ type Hooks = {
 
     @default []
     */
-    beforeRetry?: BeforeRetryHook[];
-    /**
+  beforeRetry?: BeforeRetryHook[]
+  /**
     This hook enables you to read and optionally modify the response. The hook function receives normalized input, options, and a clone of the response as arguments. The return value of the hook function will be used by Ky as the response object if it's an instance of [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response).
 
     @default []
@@ -140,8 +151,8 @@ type Hooks = {
     });
     ```
     */
-    afterResponse?: AfterResponseHook[];
-    /**
+  afterResponse?: AfterResponseHook[]
+  /**
     This hook enables you to modify the `HTTPError` right before it is thrown. The hook function receives a `HTTPError` as an argument and should return an instance of `HTTPError`.
 
     @default []
@@ -167,41 +178,41 @@ type Hooks = {
     });
     ```
     */
-    beforeError?: BeforeErrorHook[];
-};
+  beforeError?: BeforeErrorHook[]
+}
 
 type RetryOptions = {
-    /**
+  /**
     The number of times to retry failed requests.
 
     @default 2
     */
-    limit?: number;
-    /**
+  limit?: number
+  /**
     The HTTP methods allowed to retry.
 
     @default ['get', 'put', 'head', 'delete', 'options', 'trace']
     */
-    methods?: string[];
-    /**
+  methods?: string[]
+  /**
     The HTTP status codes allowed to retry.
 
     @default [408, 413, 429, 500, 502, 503, 504]
     */
-    statusCodes?: number[];
-    /**
+  statusCodes?: number[]
+  /**
     The HTTP status codes allowed to retry with a `Retry-After` header.
 
     @default [413, 429, 503]
     */
-    afterStatusCodes?: number[];
-    /**
+  afterStatusCodes?: number[]
+  /**
     If the `Retry-After` header is greater than `maxRetryAfter`, the request will be canceled.
 
     @default Infinity
     */
-    maxRetryAfter?: number;
-    /**
+  maxRetryAfter?: number
+  /**
     The upper limit of the delay per retry in milliseconds.
     To clamp the delay, set `backoffLimit` to 1000, for example.
 
@@ -215,39 +226,49 @@ type RetryOptions = {
 
     @default Infinity
     */
-    backoffLimit?: number;
-    /**
+  backoffLimit?: number
+  /**
     A function to calculate the delay between retries given `attemptCount` (starts from 1).
 
     @default attemptCount => 0.3 * (2 ** (attemptCount - 1)) * 1000
     */
-    delay?: (attemptCount: number) => number;
-};
+  delay?: (attemptCount: number) => number
+}
 
-type SearchParamsInit = string | string[][] | Record<string, string> | URLSearchParams | undefined;
-type SearchParamsOption = SearchParamsInit | Record<string, string | number | boolean> | Array<Array<string | number | boolean>>;
-type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'head' | 'delete';
-type Input = string | URL | Request;
+type SearchParamsInit =
+  | string
+  | string[][]
+  | Record<string, string>
+  | URLSearchParams
+  | undefined
+type SearchParamsOption =
+  | SearchParamsInit
+  | Record<string, string | number | boolean>
+  | Array<Array<string | number | boolean>>
+type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'head' | 'delete'
+type Input = string | URL | Request
 type Progress = {
-    percent: number;
-    transferredBytes: number;
-    /**
+  percent: number
+  transferredBytes: number
+  /**
     Note: If it's not possible to retrieve the body size, it will be `0`.
     */
-    totalBytes: number;
-};
-type KyHeadersInit = NonNullable<RequestInit['headers']> | Record<string, string | undefined>;
+  totalBytes: number
+}
+type KyHeadersInit =
+  | NonNullable<RequestInit['headers']>
+  | Record<string, string | undefined>
 /**
 Custom Ky options
 */
 type KyOptions = {
-    /**
+  /**
     Shortcut for sending JSON. Use this instead of the `body` option.
 
     Accepts any plain object or value, which will be `JSON.stringify()`'d and sent in the body with the correct header set.
     */
-    json?: unknown;
-    /**
+  json?: unknown
+  /**
     User-defined JSON-parsing function.
 
     Use-cases:
@@ -266,8 +287,8 @@ type KyOptions = {
     }).json();
     ```
     */
-    parseJson?: (text: string) => unknown;
-    /**
+  parseJson?: (text: string) => unknown
+  /**
     User-defined JSON-stringifying function.
 
     Use-cases:
@@ -291,14 +312,14 @@ type KyOptions = {
     }).json();
     ```
     */
-    stringifyJson?: (data: unknown) => string;
-    /**
+  stringifyJson?: (data: unknown) => string
+  /**
     Search parameters to include in the request URL. Setting this will override all existing search parameters in the input URL.
 
     Accepts any value supported by [`URLSearchParams()`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams/URLSearchParams).
     */
-    searchParams?: SearchParamsOption;
-    /**
+  searchParams?: SearchParamsOption
+  /**
     A prefix to prepend to the `input` URL when making the request. It can be any valid URL, either relative or absolute. A trailing slash `/` is optional and will be added automatically, if needed, when it is joined with `input`. Only takes effect when `input` is a string. The `input` argument cannot start with a slash `/` when using this option.
 
     Useful when used with [`ky.extend()`](#kyextenddefaultoptions) to create niche-specific Ky-instances.
@@ -320,8 +341,8 @@ type KyOptions = {
     //=> 'https://cats.com/unicorn'
     ```
     */
-    prefixUrl?: URL | string;
-    /**
+  prefixUrl?: URL | string
+  /**
     An object representing `limit`, `methods`, `statusCodes`, `afterStatusCodes`, and `maxRetryAfter` fields for maximum retry count, allowed methods, allowed status codes, status codes allowed to use the [`Retry-After`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After) time, and maximum [`Retry-After`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After) time.
 
     If `retry` is a number, it will be used as `limit` and other defaults will remain in place.
@@ -347,19 +368,19 @@ type KyOptions = {
     }).json();
     ```
     */
-    retry?: RetryOptions | number;
-    /**
+  retry?: RetryOptions | number
+  /**
     Timeout in milliseconds for getting a response, including any retries. Can not be greater than 2147483647.
     If set to `false`, there will be no timeout.
 
     @default 10000
     */
-    timeout?: number | false;
-    /**
+  timeout?: number | false
+  /**
     Hooks allow modifications during the request lifecycle. Hook functions may be async and are run serially.
     */
-    hooks?: Hooks;
-    /**
+  hooks?: Hooks
+  /**
     Throw an `HTTPError` when, after following redirects, the response has a non-2xx status code. To also throw for redirects instead of following them, set the [`redirect`](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Parameters) option to `'manual'`.
 
     Setting this to `false` may be useful if you are checking for resource availability and are expecting error responses.
@@ -368,8 +389,8 @@ type KyOptions = {
 
     @default true
     */
-    throwHttpErrors?: boolean;
-    /**
+  throwHttpErrors?: boolean
+  /**
     Download progress event handler.
 
     @param progress - Object containing download progress information.
@@ -389,8 +410,8 @@ type KyOptions = {
     });
     ```
     */
-    onDownloadProgress?: (progress: Progress, chunk: Uint8Array) => void;
-    /**
+  onDownloadProgress?: (progress: Progress, chunk: Uint8Array) => void
+  /**
     Upload progress event handler.
 
     @param progress - Object containing upload progress information.
@@ -411,8 +432,8 @@ type KyOptions = {
     });
     ```
     */
-    onUploadProgress?: (progress: Progress, chunk: Uint8Array) => void;
-    /**
+  onUploadProgress?: (progress: Progress, chunk: Uint8Array) => void
+  /**
     User-defined `fetch` function.
     Has to be fully compatible with the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) standard.
 
@@ -430,19 +451,19 @@ type KyOptions = {
     const json = await ky('https://example.com', {fetch}).json();
     ```
     */
-    fetch?: (input: Input, init?: RequestInit) => Promise<Response>;
-};
+  fetch?: (input: Input, init?: RequestInit) => Promise<Response>
+}
 /**
 Options are the same as `window.fetch`, except for the KyOptions
 */
 interface Options extends KyOptions, Omit<RequestInit, 'headers'> {
-    /**
+  /**
     HTTP method used to make the request.
 
     Internally, the standard methods (`GET`, `POST`, `PUT`, `PATCH`, `HEAD` and `DELETE`) are uppercased in order to avoid server errors due to case sensitivity.
     */
-    method?: LiteralUnion<HttpMethod, string>;
-    /**
+  method?: LiteralUnion<HttpMethod, string>
+  /**
     HTTP headers used to make the request.
 
     You can pass a `Headers` instance or a plain object.
@@ -477,24 +498,24 @@ interface Options extends KyOptions, Omit<RequestInit, 'headers'> {
     //=> true
     ```
     */
-    headers?: KyHeadersInit;
+  headers?: KyHeadersInit
 }
 /**
 Normalized options passed to the `fetch` call and the `beforeRequest` hooks.
 */
 interface NormalizedOptions extends RequestInit {
-    method: NonNullable<RequestInit['method']>;
-    credentials?: NonNullable<RequestInit['credentials']>;
-    retry: RetryOptions;
-    prefixUrl: string;
-    onDownloadProgress: Options['onDownloadProgress'];
-    onUploadProgress: Options['onUploadProgress'];
+  method: NonNullable<RequestInit['method']>
+  credentials?: NonNullable<RequestInit['credentials']>
+  retry: RetryOptions
+  prefixUrl: string
+  onDownloadProgress: Options['onDownloadProgress']
+  onUploadProgress: Options['onUploadProgress']
 }
 
-declare const stop: unique symbol;
+declare const stop: unique symbol
 
 type KyInstance = {
-    /**
+  /**
     Fetch the given `url`.
 
     @param url - `Request` object, `URL` object, or URL string.
@@ -510,56 +531,56 @@ type KyInstance = {
     //=> `{data: '🦄'}`
     ```
     */
-    <T>(url: Input, options?: Options): ResponsePromise<T>;
-    /**
+  <T>(url: Input, options?: Options): ResponsePromise<T>
+  /**
     Fetch the given `url` using the option `{method: 'get'}`.
 
     @param url - `Request` object, `URL` object, or URL string.
     @returns A promise with `Body` methods added.
     */
-    get: <T>(url: Input, options?: Options) => ResponsePromise<T>;
-    /**
+  get: <T>(url: Input, options?: Options) => ResponsePromise<T>
+  /**
     Fetch the given `url` using the option `{method: 'post'}`.
 
     @param url - `Request` object, `URL` object, or URL string.
     @returns A promise with `Body` methods added.
     */
-    post: <T>(url: Input, options?: Options) => ResponsePromise<T>;
-    /**
+  post: <T>(url: Input, options?: Options) => ResponsePromise<T>
+  /**
     Fetch the given `url` using the option `{method: 'put'}`.
 
     @param url - `Request` object, `URL` object, or URL string.
     @returns A promise with `Body` methods added.
     */
-    put: <T>(url: Input, options?: Options) => ResponsePromise<T>;
-    /**
+  put: <T>(url: Input, options?: Options) => ResponsePromise<T>
+  /**
     Fetch the given `url` using the option `{method: 'delete'}`.
 
     @param url - `Request` object, `URL` object, or URL string.
     @returns A promise with `Body` methods added.
     */
-    delete: <T>(url: Input, options?: Options) => ResponsePromise<T>;
-    /**
+  delete: <T>(url: Input, options?: Options) => ResponsePromise<T>
+  /**
     Fetch the given `url` using the option `{method: 'patch'}`.
 
     @param url - `Request` object, `URL` object, or URL string.
     @returns A promise with `Body` methods added.
     */
-    patch: <T>(url: Input, options?: Options) => ResponsePromise<T>;
-    /**
+  patch: <T>(url: Input, options?: Options) => ResponsePromise<T>
+  /**
     Fetch the given `url` using the option `{method: 'head'}`.
 
     @param url - `Request` object, `URL` object, or URL string.
     @returns A promise with `Body` methods added.
     */
-    head: (url: Input, options?: Options) => ResponsePromise;
-    /**
+  head: (url: Input, options?: Options) => ResponsePromise
+  /**
     Create a new Ky instance with complete new defaults.
 
     @returns A new Ky instance.
     */
-    create: (defaultOptions?: Options) => KyInstance;
-    /**
+  create: (defaultOptions?: Options) => KyInstance
+  /**
     Create a new Ky instance with some defaults overridden with your own.
 
     In contrast to `ky.create()`, `ky.extend()` inherits defaults from its parent.
@@ -583,8 +604,10 @@ type KyInstance = {
 
     @returns A new Ky instance.
     */
-    extend: (defaultOptions: Options | ((parentOptions: Options) => Options)) => KyInstance;
-    /**
+  extend: (
+    defaultOptions: Options | ((parentOptions: Options) => Options)
+  ) => KyInstance
+  /**
     A `Symbol` that can be returned by a `beforeRetry` hook to stop the retry. This will also short circuit the remaining `beforeRetry` hooks.
 
     Note: Returning this symbol makes Ky abort and return with an `undefined` response. Be sure to check for a response before accessing any properties on it or use [optional chaining](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining). It is also incompatible with body methods, such as `.json()` or `.text()`, because there is no response to parse. In general, we recommend throwing an error instead of returning this symbol, as that will cause Ky to abort and then throw, which avoids these limitations.
@@ -615,11 +638,31 @@ type KyInstance = {
     const text = await ky('https://example.com', options).text();
     ```
     */
-    readonly stop: typeof stop;
-};
+  readonly stop: typeof stop
+}
 
 /*! MIT License © Sindre Sorhus */
 
-declare const ky: KyInstance;
+declare const ky: KyInstance
 
-export { type AfterResponseHook, type BeforeErrorHook, type BeforeRequestHook, type BeforeRetryHook, type BeforeRetryState, HTTPError, type Hooks, type Input, type KyInstance, type KyRequest, type KyResponse, type NormalizedOptions, type Options, type Progress, type ResponsePromise, type RetryOptions, type SearchParamsOption, TimeoutError, ky as default };
+export {
+  type AfterResponseHook,
+  type BeforeErrorHook,
+  type BeforeRequestHook,
+  type BeforeRetryHook,
+  type BeforeRetryState,
+  HTTPError,
+  type Hooks,
+  type Input,
+  type KyInstance,
+  type KyRequest,
+  type KyResponse,
+  type NormalizedOptions,
+  type Options,
+  type Progress,
+  type ResponsePromise,
+  type RetryOptions,
+  type SearchParamsOption,
+  TimeoutError,
+  ky as default
+}

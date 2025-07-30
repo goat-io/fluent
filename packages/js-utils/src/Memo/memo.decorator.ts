@@ -103,63 +103,79 @@ export const Memo =
     const keyStr = String(key)
     const methodSignature = getTargetMethodSignature(target, keyStr)
 
+    const getOrCreateCache = (instance: typeof target) => {
+      if (!cache.has(instance)) {
+        cache.set(instance, cacheFactory())
+      }
+      return cache.get(instance)!
+    }
+
+    const logCacheHit = (instance: typeof target, args: any[]) => {
+      if (logHit) {
+        logger.log(
+          `${getMethodSignature(instance, keyStr)}(${getArgsSignature(
+            args,
+            logArgs
+          )}) @Memo hit`
+        )
+      }
+    }
+
+    const logCacheMiss = (
+      instance: typeof target,
+      args: any[],
+      started: number
+    ) => {
+      if (logMiss) {
+        logger.log(
+          `${getMethodSignature(instance, keyStr)}(${getArgsSignature(
+            args,
+            logArgs
+          )}) @Memo miss (${Time.since(started)})`
+        )
+      }
+    }
+
+    const setCacheValue = (
+      instance: typeof target,
+      key: string,
+      value: any
+    ) => {
+      try {
+        getOrCreateCache(instance).set(key, value)
+      } catch (err) {
+        logger.error(err)
+      }
+    }
+
     descriptor.value = function (this: typeof target, ...args: any[]): any {
-      const ctx = this
       const cacheKey = cacheKeyFn(args)
-      let value: any
+      const instanceCache = getOrCreateCache(this)
 
-      if (!cache.has(ctx)) {
-        cache.set(ctx, cacheFactory())
-      } else if (cache.get(ctx)!.has(cacheKey)) {
-        if (logHit) {
-          logger.log(
-            `${getMethodSignature(ctx, keyStr)}(${getArgsSignature(
-              args,
-              logArgs
-            )}) @Memo hit`
-          )
+      if (instanceCache.has(cacheKey)) {
+        logCacheHit(this, args)
+        const cachedValue = instanceCache.get(cacheKey)
+
+        if (cachedValue instanceof Error) {
+          throw cachedValue
         }
 
-        value = cache.get(ctx)!.get(cacheKey)
-
-        if (value instanceof Error) {
-          throw value
-        }
-
-        return value
+        return cachedValue
       }
 
       const started = Date.now()
 
       try {
-        value = originalFn.apply(ctx, args)
-
-        try {
-          cache.get(ctx)!.set(cacheKey, value)
-        } catch (err) {
-          logger.error(err)
-        }
-
+        const value = originalFn.apply(this, args)
+        setCacheValue(this, cacheKey, value)
         return value
       } catch (err) {
         if (cacheErrors) {
-          try {
-            cache.get(ctx)!.set(cacheKey, err)
-          } catch (err) {
-            logger.error(err)
-          }
+          setCacheValue(this, cacheKey, err)
         }
-
         throw err
       } finally {
-        if (logMiss) {
-          logger.log(
-            `${getMethodSignature(ctx, keyStr)}(${getArgsSignature(
-              args,
-              logArgs
-            )}) @Memo miss (${Time.since(started)})`
-          )
-        }
+        logCacheMiss(this, args, started)
       }
     } as any
     ;(descriptor.value as any).dropCache = () => {

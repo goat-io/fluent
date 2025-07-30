@@ -1,8 +1,9 @@
-import type { Express, Request, Response, NextFunction } from 'express'
-import type { Server } from 'http'
+import type { Server } from 'node:http'
 import { Time, Units } from '@goatlab/js-utils'
 import * as Sentry from '@sentry/node'
 import * as trpcExpress from '@trpc/server/adapters/express'
+import type { Express, NextFunction, Request, Response } from 'express'
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const cors = require('cors')
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -15,21 +16,22 @@ const compression = require('compression')
 const timeout = require('connect-timeout')
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const responseTime = require('response-time')
+
 import { yellow } from 'kleur/colors'
 import { createOpenApiExpressMiddleware } from 'trpc-to-openapi'
 import { createContext } from '../context/trpc.context'
 import { initOpenApiDocs } from '../initOpenApiDocs'
 import { genericErrorMiddleware } from '../middleware/error.middleware'
 import { expressRequestLogger } from '../middleware/logs.middleware'
-import { trpcErrorMiddleware } from '../middleware/trpcError.middleware'
-import { productionErrorHandler } from '../middleware/productionError.middleware'
 import { createMemoryMonitorMiddleware } from '../middleware/memoryMonitor.middleware'
+import { productionErrorHandler } from '../middleware/productionError.middleware'
 import {
-  getCorsOptions,
-  getHelmetOptions,
+  additionalSecurityHeaders,
   createRateLimiter,
-  additionalSecurityHeaders
+  getCorsOptions,
+  getHelmetOptions
 } from '../middleware/security.middleware'
+import { trpcErrorMiddleware } from '../middleware/trpcError.middleware'
 import type { ExpressTrpcAppConfigInput } from './ExpressTrpcAppConfig'
 import { getDefaultConfig } from './ExpressTrpcAppConfig'
 
@@ -110,7 +112,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
           }
 
           // Skip compression for Server-Sent Events
-          if (contentType && contentType.includes('text/event-stream')) {
+          if (contentType?.includes('text/event-stream')) {
             return false
           }
 
@@ -197,7 +199,9 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
   if (security?.requestTimeout) {
     app.use(timeout(security.requestTimeout))
     app.use((req: Request, _res: Response, next: NextFunction) => {
-      if (!(req as any).timedout) next()
+      if (!(req as any).timedout) {
+        next()
+      }
     })
   }
 
@@ -388,7 +392,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
           used: Units.humanByteSize(memoryUsage.heapUsed),
           total: Units.humanByteSize(memoryUsage.heapTotal),
           percentage: lastMetrics
-            ? lastMetrics.heapUsedPercentage.toFixed(1) + '%'
+            ? `${lastMetrics.heapUsedPercentage.toFixed(1)}%`
             : 'N/A',
           rss: Units.humanByteSize(memoryUsage.rss),
           external: Units.humanByteSize(memoryUsage.external),
@@ -542,8 +546,8 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       // If no server (test environment), resolve immediately
       return Promise.resolve()
     }
-    
-    return new Promise<void>((resolve) => {
+
+    return new Promise<void>(resolve => {
       server.once('close', () => {
         logger.log('Server closed')
         resolve()

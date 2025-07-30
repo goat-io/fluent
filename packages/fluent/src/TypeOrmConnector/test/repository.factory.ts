@@ -1,9 +1,16 @@
 import { DataSource } from 'typeorm'
 import { TypeOrmConnector } from '../TypeOrmConnector'
+import {
+  TypeORMDataModel,
+  TypeORMDataModelInputSchema,
+  TypeORMDataModelSchema
+} from './advanced/typeOrm.entity'
 import { GoatEntity, GoatInputSchema, GoatSchema } from './basic/goat.entity'
-import { TypeORMDataModel, TypeORMDataModelInputSchema, TypeORMDataModelSchema } from './advanced/typeOrm.entity'
 
-export class GoatRepositoryFactory extends TypeOrmConnector<GoatEntity, GoatInputSchema> {
+export class GoatRepositoryFactory extends TypeOrmConnector<
+  GoatEntity,
+  GoatInputSchema
+> {
   constructor(dataSource: DataSource) {
     super({
       entity: GoatEntity,
@@ -13,7 +20,10 @@ export class GoatRepositoryFactory extends TypeOrmConnector<GoatEntity, GoatInpu
   }
 }
 
-export class TypeOrmRepositoryFactory extends TypeOrmConnector<TypeORMDataModel, TypeORMDataModelInputSchema> {
+export class TypeOrmRepositoryFactory extends TypeOrmConnector<
+  TypeORMDataModel,
+  TypeORMDataModelInputSchema
+> {
   constructor(dataSource: DataSource) {
     super({
       entity: TypeORMDataModel,

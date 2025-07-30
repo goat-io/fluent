@@ -1,4 +1,4 @@
-;(function () {
+;(() => {
   if (typeof Prism === 'undefined' || typeof document === 'undefined') {
     return
   }
@@ -8,19 +8,19 @@
    *
    * @type {string}
    */
-  var PLUGIN_NAME = 'line-numbers'
+  const PLUGIN_NAME = 'line-numbers'
 
   /**
    * Regular expression used for determining line breaks
    *
    * @type {RegExp}
    */
-  var NEW_LINE_EXP = /\n(?!$)/g
+  const NEW_LINE_EXP = /\n(?!$)/g
 
   /**
    * Global exports
    */
-  var config = (Prism.plugins.lineNumbers = {
+  const config = {
     /**
      * Get node for provided line number
      *
@@ -28,7 +28,7 @@
      * @param {number} number line number
      * @returns {Element|undefined}
      */
-    getLine: function (element, number) {
+    getLine: (element, number) => {
       if (
         element.tagName !== 'PRE' ||
         !element.classList.contains(PLUGIN_NAME)
@@ -36,22 +36,24 @@
         return
       }
 
-      var lineNumberRows = element.querySelector('.line-numbers-rows')
+      const lineNumberRows = element.querySelector('.line-numbers-rows')
       if (!lineNumberRows) {
         return
       }
-      var lineNumberStart =
-        parseInt(element.getAttribute('data-start'), 10) || 1
-      var lineNumberEnd = lineNumberStart + (lineNumberRows.children.length - 1)
+      const lineNumberStart =
+        Number.parseInt(element.getAttribute('data-start'), 10) || 1
+      const lineNumberEnd =
+        lineNumberStart + (lineNumberRows.children.length - 1)
 
-      if (number < lineNumberStart) {
-        number = lineNumberStart
+      let adjustedNumber = number
+      if (adjustedNumber < lineNumberStart) {
+        adjustedNumber = lineNumberStart
       }
-      if (number > lineNumberEnd) {
-        number = lineNumberEnd
+      if (adjustedNumber > lineNumberEnd) {
+        adjustedNumber = lineNumberEnd
       }
 
-      var lineIndex = number - lineNumberStart
+      const lineIndex = adjustedNumber - lineNumberStart
 
       return lineNumberRows.children[lineIndex]
     },
@@ -64,7 +66,7 @@
      * @param {HTMLElement} element A `<pre>` element with line numbers.
      * @returns {void}
      */
-    resize: function (element) {
+    resize: element => {
       resizeElements([element])
     },
 
@@ -78,8 +80,10 @@
      *
      * @type {boolean}
      */
-    assumeViewportIndependence: true,
-  })
+    assumeViewportIndependence: true
+  }
+
+  Prism.plugins.lineNumbers = config
 
   /**
    * Resizes the given elements.
@@ -87,27 +91,27 @@
    * @param {HTMLElement[]} elements
    */
   function resizeElements(elements) {
-    elements = elements.filter(function (e) {
-      var codeStyles = getStyles(e)
-      var whiteSpace = codeStyles['white-space']
+    const filteredElements = elements.filter(e => {
+      const codeStyles = getStyles(e)
+      const whiteSpace = codeStyles['white-space']
       return whiteSpace === 'pre-wrap' || whiteSpace === 'pre-line'
     })
 
-    if (elements.length == 0) {
+    if (filteredElements.length === 0) {
       return
     }
 
-    var infos = elements
-      .map(function (element) {
-        var codeElement = element.querySelector('code')
-        var lineNumbersWrapper = element.querySelector('.line-numbers-rows')
+    const infos = filteredElements
+      .map(element => {
+        const codeElement = element.querySelector('code')
+        const lineNumbersWrapper = element.querySelector('.line-numbers-rows')
         if (!codeElement || !lineNumbersWrapper) {
           return undefined
         }
 
         /** @type {HTMLElement} */
-        var lineNumberSizer = element.querySelector('.line-numbers-sizer')
-        var codeLines = codeElement.textContent.split(NEW_LINE_EXP)
+        let lineNumberSizer = element.querySelector('.line-numbers-sizer')
+        const codeLines = codeElement.textContent.split(NEW_LINE_EXP)
 
         if (!lineNumberSizer) {
           lineNumberSizer = document.createElement('span')
@@ -119,7 +123,7 @@
         lineNumberSizer.innerHTML = '0'
         lineNumberSizer.style.display = 'block'
 
-        var oneLinerHeight = lineNumberSizer.getBoundingClientRect().height
+        const oneLinerHeight = lineNumberSizer.getBoundingClientRect().height
         lineNumberSizer.innerHTML = ''
 
         return {
@@ -127,21 +131,21 @@
           lines: codeLines,
           lineHeights: [],
           oneLinerHeight: oneLinerHeight,
-          sizer: lineNumberSizer,
+          sizer: lineNumberSizer
         }
       })
       .filter(Boolean)
 
-    infos.forEach(function (info) {
-      var lineNumberSizer = info.sizer
-      var lines = info.lines
-      var lineHeights = info.lineHeights
-      var oneLinerHeight = info.oneLinerHeight
+    infos.forEach(info => {
+      const lineNumberSizer = info.sizer
+      const lines = info.lines
+      const lineHeights = info.lineHeights
+      const oneLinerHeight = info.oneLinerHeight
 
       lineHeights[lines.length - 1] = undefined
-      lines.forEach(function (line, index) {
+      lines.forEach((line, index) => {
         if (line && line.length > 1) {
-          var e = lineNumberSizer.appendChild(document.createElement('span'))
+          const e = lineNumberSizer.appendChild(document.createElement('span'))
           e.style.display = 'block'
           e.textContent = line
         } else {
@@ -150,12 +154,12 @@
       })
     })
 
-    infos.forEach(function (info) {
-      var lineNumberSizer = info.sizer
-      var lineHeights = info.lineHeights
+    infos.forEach(info => {
+      const lineNumberSizer = info.sizer
+      const lineHeights = info.lineHeights
 
-      var childIndex = 0
-      for (var i = 0; i < lineHeights.length; i++) {
+      let childIndex = 0
+      for (let i = 0; i < lineHeights.length; i++) {
         if (lineHeights[i] === undefined) {
           lineHeights[i] =
             lineNumberSizer.children[
@@ -165,15 +169,15 @@
       }
     })
 
-    infos.forEach(function (info) {
-      var lineNumberSizer = info.sizer
-      var wrapper = info.element.querySelector('.line-numbers-rows')
+    infos.forEach(info => {
+      const lineNumberSizer = info.sizer
+      const wrapper = info.element.querySelector('.line-numbers-rows')
 
       lineNumberSizer.style.display = 'none'
       lineNumberSizer.innerHTML = ''
 
-      info.lineHeights.forEach(function (height, lineNumber) {
-        wrapper.children[lineNumber].style.height = height + 'px'
+      info.lineHeights.forEach((height, lineNumber) => {
+        wrapper.children[lineNumber].style.height = `${height}px`
       })
     })
   }
@@ -193,8 +197,8 @@
       : element.currentStyle || null
   }
 
-  var lastWidth = undefined
-  window.addEventListener('resize', function () {
+  let lastWidth
+  window.addEventListener('resize', () => {
     if (config.assumeViewportIndependence && lastWidth === window.innerWidth) {
       return
     }
@@ -202,18 +206,18 @@
 
     resizeElements(
       Array.prototype.slice.call(
-        document.querySelectorAll('pre.' + PLUGIN_NAME),
-      ),
+        document.querySelectorAll(`pre.${PLUGIN_NAME}`)
+      )
     )
   })
 
-  Prism.hooks.add('complete', function (env) {
+  Prism.hooks.add('complete', env => {
     if (!env.code) {
       return
     }
 
-    var code = /** @type {Element} */ (env.element)
-    var pre = /** @type {HTMLElement} */ (code.parentNode)
+    const code = /** @type {Element} */ (env.element)
+    const pre = /** @type {HTMLElement} */ (code.parentNode)
 
     // works only for <code> wrapped inside <pre> (not inline)
     if (!pre || !/pre/i.test(pre.nodeName)) {
@@ -235,20 +239,19 @@
     // Add the class 'line-numbers' to the <pre>
     pre.classList.add(PLUGIN_NAME)
 
-    var match = env.code.match(NEW_LINE_EXP)
-    var linesNum = match ? match.length + 1 : 1
-    var lineNumbersWrapper
+    const match = env.code.match(NEW_LINE_EXP)
+    const linesNum = match ? match.length + 1 : 1
+    const lines = new Array(linesNum + 1).join('<span></span>')
 
-    var lines = new Array(linesNum + 1).join('<span></span>')
-
-    lineNumbersWrapper = document.createElement('span')
+    const lineNumbersWrapper = document.createElement('span')
     lineNumbersWrapper.setAttribute('aria-hidden', 'true')
     lineNumbersWrapper.className = 'line-numbers-rows'
     lineNumbersWrapper.innerHTML = lines
 
     if (pre.hasAttribute('data-start')) {
       pre.style.counterReset =
-        'linenumber ' + (parseInt(pre.getAttribute('data-start'), 10) - 1)
+        'linenumber ' +
+        (Number.parseInt(pre.getAttribute('data-start'), 10) - 1)
     }
 
     env.element.appendChild(lineNumbersWrapper)
@@ -258,7 +261,7 @@
     Prism.hooks.run('line-numbers', env)
   })
 
-  Prism.hooks.add('line-numbers', function (env) {
+  Prism.hooks.add('line-numbers', env => {
     env.plugins = env.plugins || {}
     env.plugins.lineNumbers = true
   })

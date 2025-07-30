@@ -5,10 +5,14 @@ class TimeClass {
 
   ms(millis: number): string {
     // <1 sec
-    if (millis < 1000) return `${Math.round(millis)} ms`
+    if (millis < 1000) {
+      return `${Math.round(millis)} ms`
+    }
 
     // < 5 sec
-    if (millis < 5000) return `${(millis / 1000).toFixed(3)} sec`
+    if (millis < 5000) {
+      return `${(millis / 1000).toFixed(3)} sec`
+    }
 
     const sec = Math.floor(millis / 1000) % 60
     const min = Math.floor(millis / (60 * 1000)) % 60
@@ -17,7 +21,9 @@ class TimeClass {
     // <1 hr
     if (hrs === 0) {
       // <1 min
-      if (min === 0) return `${sec} sec`
+      if (min === 0) {
+        return `${sec} sec`
+      }
 
       return `${min}m${sec}s`
     }

@@ -9,6 +9,6 @@ export default defineConfig({
     teardownTimeout: 30000,
     include: ['src/**/*.test.ts'],
     exclude: ['src/**/*.container.test.ts'],
-    passWithNoTests: true,
-  },
+    passWithNoTests: true
+  }
 })

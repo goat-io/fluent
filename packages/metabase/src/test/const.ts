@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
-import { join, resolve } from 'path'
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
 export type GlobalTempData = {
   metabaseUrl?: string

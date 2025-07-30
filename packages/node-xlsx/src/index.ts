@@ -1,5 +1,3 @@
-import { xlsxStream } from "./xlsxStream";
+import { xlsxStream } from './xlsxStream'
 
-export {
-  xlsxStream
-}
+export { xlsxStream }

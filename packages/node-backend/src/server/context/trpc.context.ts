@@ -1,6 +1,6 @@
-import type * as trpcExpress from '@trpc/server/adapters/express'
 // import { tokenService } from '@src/services/token.service'
 import { TRPCError } from '@trpc/server'
+import type * as trpcExpress from '@trpc/server/adapters/express'
 import * as admin from 'firebase-admin'
 import { ExtractJwt } from 'passport-jwt'
 import { firebaseDecodedTokenSchema } from '../schemas/user.schema'
@@ -18,7 +18,7 @@ declare global {
  * Validate Firebase Token
  */
 const validateFirebaseToken = async (
-  idToken: string,
+  idToken: string
 ): Promise<admin.auth.DecodedIdToken | null> => {
   try {
     return await admin.auth().verifyIdToken(idToken)
@@ -32,7 +32,7 @@ const validateFirebaseToken = async (
  * Validate Internal Token
  */
 const validateInternalToken = async (
-  token: string,
+  _token: string
 ): Promise<{
   ownerId?: string | null
   purpose?: 'API_ACCESS' | 'INTERNAL_SERVICE'
@@ -55,7 +55,7 @@ const validateInternalToken = async (
 }
 
 export const createContext = async ({
-  req,
+  req
 }: trpcExpress.CreateExpressContextOptions): Promise<
   ReturnType<typeof requestContext>
 > => {
@@ -73,7 +73,7 @@ export const createContext = async ({
         //sentryService.setUserId(firebaseUser.uid)
         return requestContext(
           req,
-          firebaseDecodedTokenSchema.parse(firebaseUser),
+          firebaseDecodedTokenSchema.parse(firebaseUser)
         )
       }
 

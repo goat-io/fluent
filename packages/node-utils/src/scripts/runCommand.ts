@@ -1,4 +1,4 @@
-import { spawn, execSync } from 'child_process'
+import { execSync, spawn } from 'node:child_process'
 
 /**
  * Options for configuring command execution behavior
@@ -16,7 +16,7 @@ export interface RunCommandOptions {
 
 /**
  * Execute a shell command with comprehensive signal handling and cross-platform support.
- * 
+ *
  * This function provides a robust way to run shell commands with proper cleanup,
  * signal forwarding, and graceful termination handling. It supports both Windows
  * and Unix-like systems with platform-specific optimizations.
@@ -26,32 +26,32 @@ export interface RunCommandOptions {
  * // Basic command execution
  * await runCommand('npm install')
  * ```
- * 
+ *
  * @example
  * ```ts
  * // Run in a specific directory
  * await runCommand('pnpm build', { cwd: '/path/to/project' })
  * ```
- * 
+ *
  * @example
  * ```ts
  * // Using workingDirectory alias for better readability
  * await runCommand('yarn install', { workingDirectory: rootPath })
  * ```
- * 
+ *
  * @example
  * ```ts
  * // Capture command output instead of displaying it
  * const output = await runCommand('echo hello', { captureOutput: true })
  * console.log(output) // "hello"
  * ```
- * 
+ *
  * @example
  * ```ts
  * // Run silently (no output shown)
  * await runCommand('npm test', { silent: true })
  * ```
- * 
+ *
  * @example
  * ```ts
  * // Handle errors
@@ -61,7 +61,7 @@ export interface RunCommandOptions {
  *   console.error('Command failed:', error.message)
  * }
  * ```
- * 
+ *
  * @example
  * ```ts
  * // Running multiple commands
@@ -74,45 +74,45 @@ export interface RunCommandOptions {
  * @param options.workingDirectory - Alias for cwd, provides better readability
  * @param options.silent - If true, suppresses all command output
  * @param options.captureOutput - If true, captures and returns stdout instead of displaying it
- * 
- * @returns Promise that resolves to void when the command completes successfully, 
+ *
+ * @returns Promise that resolves to void when the command completes successfully,
  *          or to a string containing stdout if captureOutput is true
- * 
+ *
  * @throws {Error} Throws an error if:
  *   - The command exits with a non-zero exit code
  *   - The command cannot be spawned (e.g., command not found)
  *   - The process is terminated by a signal
  *   - captureOutput is true and stderr contains error output
- * 
+ *
  * @remarks
  * ## Signal Handling
- * 
+ *
  * The function sets up handlers for the following signals:
  * - **SIGINT** (Ctrl+C): Gracefully terminates the child process
  * - **SIGTERM**: Standard termination signal, handled gracefully
  * - **SIGHUP**: Terminal hangup signal, handled gracefully
- * 
+ *
  * On Unix systems, the function attempts to kill the entire process group
  * to ensure all child processes are terminated. On Windows, it uses
  * taskkill with the /T flag to terminate the process tree.
- * 
+ *
  * ## Platform Differences
- * 
+ *
  * - **Unix/Linux/macOS**: Uses `sh -c` to execute commands
  * - **Windows**: Uses `cmd /c` to execute commands
- * 
+ *
  * ## Output Handling
- * 
+ *
  * - **Default**: Command output is inherited (shown in console)
  * - **silent: true**: All output is suppressed
  * - **captureOutput: true**: stdout is captured and returned, stderr is captured for error messages
- * 
+ *
  * @since 1.0.0
  */
 export const runCommand = (
   command: string,
   options: RunCommandOptions = {}
-): Promise<void | string> => {
+): Promise<undefined | string> => {
   return new Promise((resolve, reject) => {
     // Allow both cwd and workingDirectory for flexibility
     // workingDirectory is provided as a more readable alias for cwd
@@ -177,7 +177,7 @@ export const runCommand = (
           // Negative PID targets all processes in the group
           try {
             process.kill(-child.pid!, 'SIGTERM')
-          } catch (e) {
+          } catch (_e) {
             // If process group kill fails, kill the child directly
             child.kill('SIGTERM')
           }
@@ -186,7 +186,7 @@ export const runCommand = (
           // /T flag kills child processes, /F forces termination
           try {
             execSync(`taskkill /pid ${child.pid} /T /F`, { stdio: 'ignore' })
-          } catch (e) {
+          } catch (_e) {
             // Fallback to standard kill if taskkill fails
             child.kill('SIGTERM')
           }
@@ -210,7 +210,7 @@ export const runCommand = (
         if (options.captureOutput) {
           resolve(stdout.trim())
         } else {
-          resolve()
+          resolve(undefined as any)
         }
       } else if (code === null) {
         // Process was killed by a signal
@@ -238,7 +238,7 @@ export const runCommand = (
       try {
         // Use the child_process module's kill with negative PID to kill process group
         // The setpgid approach doesn't work in Node.js
-      } catch (e) {
+      } catch (_e) {
         // Ignore errors, some systems don't support this
       }
     }

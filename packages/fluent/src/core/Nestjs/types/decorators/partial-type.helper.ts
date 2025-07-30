@@ -1,7 +1,6 @@
 import { isFunction, Type } from '../common'
-import { Field } from './field.decorator'
-import { METADATA_FACTORY_NAME } from '../type-metadata.storage'
 import { ClassDecoratorFactory } from '../interfaces/class-decorator-factory.interface'
+import { METADATA_FACTORY_NAME } from '../type-metadata.storage'
 import { getFieldsAndDecoratorForType } from '../utils/get-fields-and-decorator.util'
 import { applyFieldDecorators } from '../utils/type-helpers.utils'
 import {
@@ -10,6 +9,7 @@ import {
   inheritTransformationMetadata,
   inheritValidationMetadata
 } from './apply-is-optional.decorator'
+import { Field } from './field.decorator'
 
 export function PartialType<T>(
   classRef: Type<T>,

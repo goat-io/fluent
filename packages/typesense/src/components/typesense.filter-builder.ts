@@ -95,7 +95,9 @@ export class TypesenseFilterBuilder {
    * @param max - Maximum value (inclusive)
    */
   range(field: string, min: number, max: number): this {
-    this.filters.push(`${this.escapeField(field)}:>=${min} && ${this.escapeField(field)}:<=${max}`)
+    this.filters.push(
+      `${this.escapeField(field)}:>=${min} && ${this.escapeField(field)}:<=${max}`
+    )
     return this
   }
 
@@ -207,7 +209,9 @@ export class TypesenseFilterBuilder {
   private escapeField(field: string): string {
     // Field names in Typesense can contain alphanumeric characters and underscores
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)) {
-      throw new Error(`Invalid field name: ${field}. Field names must start with a letter or underscore and contain only alphanumeric characters and underscores.`)
+      throw new Error(
+        `Invalid field name: ${field}. Field names must start with a letter or underscore and contain only alphanumeric characters and underscores.`
+      )
     }
     return field
   }

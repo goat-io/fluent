@@ -242,7 +242,9 @@ export type FilterExcludingWhere<MT extends object = AnyObject> = Omit<
 export function isFilter<MT extends object>(
   candidate: any
 ): candidate is Filter<MT> {
-  if (typeof candidate !== 'object') return false
+  if (typeof candidate !== 'object') {
+    return false
+  }
   for (const key in candidate) {
     if (!filterFields.includes(key)) {
       return false
@@ -540,7 +542,7 @@ export class FilterBuilder<MT extends object = AnyObject> {
    * @param limit - Maximum number of records to be returned
    */
   limit(limit: number): this {
-    if(!(limit >= 1)) {
+    if (!(limit >= 1)) {
       throw new Error(`Limit ${limit} must a positive number`)
     }
     this.filter.limit = limit
@@ -573,15 +575,18 @@ export class FilterBuilder<MT extends object = AnyObject> {
     if (!this.filter.fields) {
       this.filter.fields = {}
     } else if (Array.isArray(this.filter.fields)) {
-      this.filter.fields = this.filter.fields.reduce(
-        (prev, current) => ({ ...prev, [current]: true }),
-        {}
-      )
+      const fieldsObj: Record<string, boolean> = {}
+      for (const field of this.filter.fields) {
+        fieldsObj[field] = true
+      }
+      this.filter.fields = fieldsObj
     }
     const { fields } = this.filter
     for (const field of f) {
       if (Array.isArray(field)) {
-        field.forEach(i => (fields[i] = true))
+        field.forEach(i => {
+          fields[i] = true
+        })
       } else if (typeof field === 'string') {
         fields[field] = true
       } else {
@@ -592,7 +597,7 @@ export class FilterBuilder<MT extends object = AnyObject> {
   }
 
   private validateOrder(order: string) {
-    if(!(order.match(/^[^\s]+( (ASC|DESC))?$/))) {
+    if (!order.match(/^[^\s]+( (ASC|DESC))?$/)) {
       throw new Error(`Invalid order: ${order}`)
     }
   }
@@ -606,29 +611,27 @@ export class FilterBuilder<MT extends object = AnyObject> {
     if (!this.filter.order) {
       this.filter.order = []
     }
-    o.forEach(order => {
-      if (typeof order === 'string') {
-        this.validateOrder(order)
-        if (!order.endsWith(' ASC') && !order.endsWith(' DESC')) {
-          order += ' ASC'
-        }
-        this.filter.order!.push(order)
+    o.forEach(orderItem => {
+      if (typeof orderItem === 'string') {
+        this.validateOrder(orderItem)
+        const finalOrder =
+          !orderItem.endsWith(' ASC') && !orderItem.endsWith(' DESC')
+            ? `${orderItem} ASC`
+            : orderItem
+        this.filter.order!.push(finalOrder)
         return this
       }
-      if (Array.isArray(order)) {
-        order.forEach(this.validateOrder)
-        order = order.map(i => {
-          if (!i.endsWith(' ASC') && !i.endsWith(' DESC')) {
-            i += ' ASC'
-          }
-          return i
+      if (Array.isArray(orderItem)) {
+        orderItem.forEach(this.validateOrder)
+        const mappedOrder = orderItem.map(i => {
+          return !i.endsWith(' ASC') && !i.endsWith(' DESC') ? `${i} ASC` : i
         })
-        this.filter.order = this.filter.order!.concat(order)
+        this.filter.order = this.filter.order!.concat(mappedOrder)
         return this
       }
       // tslint:disable-next-line: forin
-      for (const i in order) {
-        this.filter.order!.push(`${i} ${order[i]}`)
+      for (const i in orderItem) {
+        this.filter.order!.push(`${i} ${orderItem[i]}`)
       }
     })
     return this
@@ -647,7 +650,9 @@ export class FilterBuilder<MT extends object = AnyObject> {
       if (typeof include === 'string') {
         this.filter.include.push({ relation: include })
       } else if (Array.isArray(include)) {
-        for (const inc of include) this.filter.include.push({ relation: inc })
+        for (const inc of include) {
+          this.filter.include.push({ relation: inc })
+        }
       } else {
         this.filter.include!.push(include)
       }
@@ -675,10 +680,10 @@ export class FilterBuilder<MT extends object = AnyObject> {
   impose(constraint: Filter<MT> | Where<MT>): this {
     if (!this.filter) {
       // if constraint is a Where, turn into a Filter
-      if (!isFilter(constraint)) {
-        constraint = { where: constraint }
-      }
-      this.filter = (constraint as Filter<MT>) || {}
+      const filterConstraint = !isFilter(constraint)
+        ? { where: constraint }
+        : constraint
+      this.filter = (filterConstraint as Filter<MT>) || {}
     } else {
       if (isFilter(constraint)) {
         // throw error if imposed Filter has non-where fields
@@ -712,13 +717,14 @@ export class FilterBuilder<MT extends object = AnyObject> {
  */
 function getDeepProperty(value: AnyObject, path: string): any {
   const props = path.split('.')
+  let current = value
   for (const p of props) {
-    value = value[p]
-    if (value == null) {
+    current = current[p]
+    if (current == null) {
       return null
     }
   }
-  return value
+  return current
 }
 
 export function filterTemplate(strings: TemplateStringsArray, ...keys: any[]) {
@@ -739,7 +745,7 @@ export function filterTemplate(strings: TemplateStringsArray, ...keys: any[]) {
     const result = tokens.join('')
     try {
       return JSON.parse(result)
-    } catch (e) {
+    } catch (_e) {
       throw new Error(`Invalid JSON: ${result}`)
     }
   }

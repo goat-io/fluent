@@ -1,5 +1,8 @@
-import type { TypesenseSynonymResponse, TypesenseCollectionOptions } from '../../typesense.model'
 import type { TypesenseContext } from '../../types'
+import type {
+  TypesenseCollectionOptions,
+  TypesenseSynonymResponse
+} from '../../typesense.model'
 
 export async function deleteSynonym(
   ctx: TypesenseContext,

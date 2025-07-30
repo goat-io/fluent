@@ -1,16 +1,16 @@
 import 'reflect-metadata'
-import { describe, beforeAll } from 'vitest'
-import { Fluent } from '../../../index'
+import { beforeAll, describe } from 'vitest'
+import { initialize } from '../../../index'
 import { dbEntities } from '../dbEntities'
-import { MemoryDataSource } from './memoryDataSource'
 import { unifiedTestSuite } from '../unified/unifiedTestSuite'
+import { MemoryDataSource } from './memoryDataSource'
 
 describe('SQLite Tests with Unified Suite', () => {
   let dataSource: any
 
   beforeAll(async () => {
     dataSource = MemoryDataSource
-    await Fluent.initialize([dataSource], dbEntities)
+    await initialize([dataSource], dbEntities)
   })
 
   describe('Tests', () => {
@@ -19,7 +19,7 @@ describe('SQLite Tests with Unified Suite', () => {
         throw new Error('DataSource not initialized')
       }
     })
-    
+
     unifiedTestSuite({ dataSource: () => dataSource, dbType: 'sqlite' })
   })
 })

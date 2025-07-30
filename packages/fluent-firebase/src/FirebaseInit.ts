@@ -18,16 +18,16 @@ export const FirebaseInit = ({
   if (admin.apps.length) {
     return
   }
-  
+
   // Set up emulator environment if specified
   if (emulator || (host && port)) {
     const emulatorHost = host || 'localhost'
     const emulatorPort = port || 8080
-    process.env['FIRESTORE_EMULATOR_HOST'] = `${emulatorHost}:${emulatorPort}`
-    
+    process.env.FIRESTORE_EMULATOR_HOST = `${emulatorHost}:${emulatorPort}`
+
     // Also set auth emulator for completeness
-    if (!process.env['FIREBASE_AUTH_EMULATOR_HOST']) {
-      process.env['FIREBASE_AUTH_EMULATOR_HOST'] = `${emulatorHost}:9099`
+    if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+      process.env.FIREBASE_AUTH_EMULATOR_HOST = `${emulatorHost}:9099`
     }
   }
 

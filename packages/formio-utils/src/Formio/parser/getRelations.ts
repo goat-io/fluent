@@ -1,7 +1,8 @@
+import { Combinations } from '@goatlab/js-utils'
+import { findComponents } from '../findComponents'
 import { FormioComponent } from '../types/FormioComponent'
 import { FormioForm } from '../types/FormioForm'
-import { findComponents } from '../findComponents'
-import { Combinations } from '@goatlab/js-utils'
+
 /**
  * Get all select components for the given form.
  * @param Form
@@ -65,8 +66,8 @@ const createRelations = ({
       type: relatedComponent.inDataGrid
         ? 'hasManyEmbededDG'
         : relatedComponent.multiple
-        ? 'hasManyEmbeded'
-        : 'hasMany'
+          ? 'hasManyEmbeded'
+          : 'hasMany'
     },
     relation: {
       ...baseRelation,
@@ -74,8 +75,8 @@ const createRelations = ({
       type: relatedComponent.inDataGrid
         ? 'EmbedsManyDG'
         : relatedComponent.multiple
-        ? 'EmbedsMany'
-        : 'belongsTo'
+          ? 'EmbedsMany'
+          : 'belongsTo'
     }
   }
 }

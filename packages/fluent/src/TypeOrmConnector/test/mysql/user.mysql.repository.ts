@@ -2,10 +2,10 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { CarsEntity } from '../relations/car/car.entity'
 import { UsersEntity } from '../relations/user/user.entity'
 import {
-  userInputSchema,
-  userOutputSchema,
   UsersDtoIn,
-  UsersDtoOut
+  UsersDtoOut,
+  userInputSchema,
+  userOutputSchema
 } from '../relations/user/user.schema'
 import { CarsRepository } from './car.mysql.repository'
 import { MYSQLDataSource } from './mysqlDataSource'

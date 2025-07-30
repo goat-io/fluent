@@ -1,6 +1,6 @@
 import { Transform } from 'node:stream'
-import { TransformTyped } from '../streams.model'
 import { Objects } from '@goatlab/js-utils'
+import { TransformTyped } from '../streams.model'
 
 export interface TransformToNDJsonOptions {
   /**
@@ -26,21 +26,22 @@ export interface TransformToNDJsonOptions {
 /**
  * Transforms objects (objectMode=true) into chunks \n-terminated JSON strings (readableObjectMode=false).
  */
-export function transformToNDJson<IN = any>(
+export function transformToNDJson<TInput = any>(
   opt: TransformToNDJsonOptions = {}
-): TransformTyped<IN, string> {
+): TransformTyped<TInput, string> {
   const { strict = true, separator = '\n', sortObjects = false } = opt
 
   return new Transform({
     writableObjectMode: true,
     readableObjectMode: false,
-    transform(chunk: IN, _, cb) {
+    transform(chunk: TInput, _, cb) {
       try {
+        let processedChunk = chunk
         if (sortObjects) {
-          chunk = Objects.sortObjectDeep(chunk as any)
+          processedChunk = Objects.sortObjectDeep(chunk as any)
         }
 
-        cb(null, JSON.stringify(chunk) + separator)
+        cb(null, JSON.stringify(processedChunk) + separator)
       } catch (err) {
         console.log(err)
 

@@ -8,9 +8,18 @@ export const BrowserEvents = (() => {
   const CustomEvent = (event: any, params: any) => {
     const evt = document.createEvent('CustomEvent')
 
-    params = params || { bubbles: false, cancelable: false, detail: undefined }
+    const eventParams = params || {
+      bubbles: false,
+      cancelable: false,
+      detail: undefined
+    }
 
-    evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail)
+    evt.initCustomEvent(
+      event,
+      eventParams.bubbles,
+      eventParams.cancelable,
+      eventParams.detail
+    )
     return evt
   }
   /**

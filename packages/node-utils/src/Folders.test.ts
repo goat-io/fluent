@@ -1,10 +1,9 @@
 // npx vitest run ./src/Folders.test.ts
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Folders } from './Folders'
-import * as fs from 'fs'
-import * as path from 'path'
-import rimraf from 'rimraf'
 
 describe('FoldersClass', () => {
   const tmpDir = path.join(__dirname, '__test_tmp__')

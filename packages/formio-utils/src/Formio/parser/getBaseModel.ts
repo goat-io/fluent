@@ -3,8 +3,8 @@ export interface IBaseModel {
   path: string
   folderPath: string
   id?: string
-  __datagrids: { [key: string]: any }
-  __objects: { [key: string]: any }
+  datagrids: { [key: string]: any }
+  objects: { [key: string]: any }
   [key: string]: any
   options?: {
     validateUpsert: boolean
@@ -24,7 +24,7 @@ export interface IBaseModel {
       array: boolean
       required: boolean
     }
-    _ngram?: {
+    ngram?: {
       type: string
       required: boolean
     }
@@ -66,8 +66,8 @@ export const baseModel: IBaseModel = {
   base: 'PersistedModel',
   idInjection: false,
   // tslint:disable-next-line: object-literal-sort-keys
-  __datagrids: {},
-  __objects: {},
+  datagrids: {},
+  objects: {},
   mixins: {
     FormSelection: {
       id: ''
@@ -107,7 +107,7 @@ export const baseModel: IBaseModel = {
       required: false,
       type: 'string'
     },
-    _ngram: {
+    ngram: {
       required: false,
       type: 'string'
     },

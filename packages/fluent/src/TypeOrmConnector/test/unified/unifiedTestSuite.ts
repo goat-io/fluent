@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeAll } from 'vitest'
 import { DataSource } from 'typeorm'
-import { GoatRepositoryFactory, TypeOrmRepositoryFactory } from '../repository.factory'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { flock } from '../flock'
-import { Promises } from '@goatlab/js-utils'
+import {
+  GoatRepositoryFactory,
+  TypeOrmRepositoryFactory
+} from '../repository.factory'
 
 export interface UnifiedTestOptions {
   dataSource: DataSource | (() => DataSource)
@@ -11,12 +13,13 @@ export interface UnifiedTestOptions {
 
 export const unifiedTestSuite = (options: UnifiedTestOptions) => {
   const { dataSource: dataSourceOrFn, dbType } = options
-  
+
   let GoatRepo: GoatRepositoryFactory
   let TypeOrmRepo: TypeOrmRepositoryFactory
 
   beforeAll(() => {
-    const dataSource = typeof dataSourceOrFn === 'function' ? dataSourceOrFn() : dataSourceOrFn
+    const dataSource =
+      typeof dataSourceOrFn === 'function' ? dataSourceOrFn() : dataSourceOrFn
     if (!dataSource) {
       throw new Error('DataSource is required for unified tests')
     }
@@ -31,10 +34,12 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
     }
     if (actual instanceof Date) {
       return actual.toISOString().startsWith(expected)
-    } else if (typeof actual === 'string') {
+    }
+    if (typeof actual === 'string') {
       // Handle both ISO string and date-only string
       return actual.startsWith(expected) || actual.includes(expected)
-    } else if (typeof actual === 'object' && actual.$date) {
+    }
+    if (typeof actual === 'object' && actual.$date) {
       // MongoDB might return dates as {$date: ...}
       const dateStr = new Date(actual.$date).toISOString()
       return dateStr.startsWith(expected)
@@ -47,7 +52,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       // Clear data before each test to ensure clean state
       await GoatRepo.clear()
     })
-    
+
     it('insert - Should insert data', async () => {
       const a = await GoatRepo.insert({ name: 'myGoat', age: 13 })
       expect(typeof a.id).toBe('string')
@@ -55,10 +60,11 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
     })
 
     it('insert - Should insert data with customId', async () => {
-      const customId = dbType === 'postgresql' 
-        ? '550e8400-e29b-41d4-a716-446655440000'
-        : '631ce4304f9183f61ffb613a'
-        
+      const customId =
+        dbType === 'postgresql'
+          ? '550e8400-e29b-41d4-a716-446655440000'
+          : '631ce4304f9183f61ffb613a'
+
       const a = await GoatRepo.insert({
         id: customId,
         name: 'myGoat',
@@ -80,10 +86,11 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       expect(goat?.id).toBe(goats[0].id)
       expect(typeof goat?.id).toBe('string')
 
-      const nonExistentId = dbType === 'postgresql'
-        ? '550e8400-e29b-41d4-a716-446655440001'
-        : '507f1f77bcf86cd799439011'
-        
+      const nonExistentId =
+        dbType === 'postgresql'
+          ? '550e8400-e29b-41d4-a716-446655440001'
+          : '507f1f77bcf86cd799439011'
+
       const anotherGoat = await GoatRepo.findById(nonExistentId)
       expect(anotherGoat).toBe(null)
     })
@@ -110,12 +117,12 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
 
       expect(selectedGoats.length).toBe(2)
 
-      expect(
-        selectedGoats.find(goat => goat.id == goats[0].id!)?.name
-      ).toBe(goats[0].name)
-      expect(
-        selectedGoats.find(goat => goat.id == goats[1].id!)?.name
-      ).toBe(goats[1].name)
+      expect(selectedGoats.find(goat => goat.id === goats[0].id!)?.name).toBe(
+        goats[0].name
+      )
+      expect(selectedGoats.find(goat => goat.id === goats[1].id!)?.name).toBe(
+        goats[1].name
+      )
     })
 
     it('findByIds - Should GET selectedData', async () => {
@@ -133,11 +140,11 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       expect(selectedGoats.length).toBe(2)
 
       expect(
-        selectedGoats.find(goat => goat.id == goats[0].id!)
+        selectedGoats.find(goat => goat.id === goats[0].id!)
       ).not.toHaveProperty('name')
-      expect(
-        selectedGoats.find(goat => goat.id == goats[0].id!)?.age
-      ).toBe(goats[0].age)
+      expect(selectedGoats.find(goat => goat.id === goats[0].id!)?.age).toBe(
+        goats[0].age
+      )
     })
 
     it('findMany - Should GET data', async () => {
@@ -257,7 +264,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
 
     it('deleteById - Should delete an item', async () => {
       const goats = await GoatRepo.insertMany(flock)
-      const deleted = await GoatRepo.requireById(goats[0].id!)
+      const _deleted = await GoatRepo.requireById(goats[0].id!)
       await GoatRepo.deleteById(goats[0].id!)
       const found = await GoatRepo.findById(goats[0].id!)
       expect(found).toBe(null)
@@ -269,7 +276,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       // Clear data before each test to ensure clean state
       await TypeOrmRepo.clear()
     })
-    
+
     const insertTestData = async () => {
       // For MongoDB, insert in order to ensure consistent created timestamps
       // Insert order 1 first (will have oldest timestamp)
@@ -283,7 +290,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         order: 1,
         test: true
       })
-      
+
       // Add delay for MongoDB to ensure different timestamps
       if (dbType === 'mongodb') {
         await new Promise(resolve => setTimeout(resolve, 10))
@@ -299,7 +306,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         order: 2,
         test: false
       })
-      
+
       // Add delay for MongoDB to ensure different timestamps
       if (dbType === 'mongodb') {
         await new Promise(resolve => setTimeout(resolve, 10))
@@ -535,7 +542,9 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         // For MongoDB, verify by order field instead since dates are all current
         expect(forms[forms.length - 1].order).toBe(3) // Last in list should be order: 3 (last inserted)
       } else {
-        expect(compareDates(forms[forms.length - 1].created, '2018-12-03')).toBe(true)
+        expect(
+          compareDates(forms[forms.length - 1].created, '2018-12-03')
+        ).toBe(true)
       }
     })
 
@@ -554,7 +563,9 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         // Order should be: first inserted (order:1), second (order:2), third (order:3)
         expect(forms[forms.length - 1].order).toBe(3)
       } else {
-        expect(compareDates(forms[forms.length - 1].created, '2018-12-03')).toBe(true)
+        expect(
+          compareDates(forms[forms.length - 1].created, '2018-12-03')
+        ).toBe(true)
       }
     })
   })

@@ -1,32 +1,35 @@
-import Sync from './Sync'
 import Utilities from '../../utilities'
+import Sync from './Sync'
 
-let SyncInterval = (() => {
+const SyncInterval = (() => {
   async function set(milliseconds) {
-    let rInterval = function (callback, delay) {
-      let dateNow = Date.now,
-        requestAnimation =
-          typeof window !== 'undefined' && window.requestAnimationFrame,
-        start = dateNow(),
-        stop,
-        intervalFunc = function () {
-          // eslint-disable-next-line no-use-before-define
-          dateNow() - start < delay || ((start += delay), callback())
-          // eslint-disable-next-line no-use-before-define
-          stop || requestAnimation(intervalFunc)
+    const rInterval = (callback, delay) => {
+      const dateNow = Date.now
+      const requestAnimation =
+        typeof window !== 'undefined' && window.requestAnimationFrame
+      let start = dateNow()
+      let stop
+      const intervalFunc = () => {
+        // eslint-disable-next-line no-use-before-define
+        if (dateNow() - start >= delay) {
+          start += delay
+          callback()
         }
+        // eslint-disable-next-line no-use-before-define
+        stop || requestAnimation(intervalFunc)
+      }
 
       requestAnimation(intervalFunc)
       return {
-        clear: function () {
+        clear: () => {
           stop = 1
         }
       }
     }
 
-    var _debouncedSync = Utilities.debounce(Sync.now, 2000)
+    const DebouncedSync = Utilities.debounce(Sync.now, 2000)
 
-    rInterval(_debouncedSync, milliseconds)
+    rInterval(DebouncedSync, milliseconds)
   }
 
   return Object.freeze({

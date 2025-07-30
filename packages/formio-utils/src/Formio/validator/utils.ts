@@ -24,7 +24,7 @@ const Utils = {
    *   The content to pass to console.log.
    */
   log(content: any) {
-    if (process.env['TEST_SUITE']) {
+    if (process.env.TEST_SUITE) {
       return
     }
 
@@ -43,8 +43,8 @@ const Utils = {
       return true
     }
     if (typeof value === 'string') {
-      value = value.toLowerCase()
-      return value === 'true' || value === 'false'
+      const lowerValue = value.toLowerCase()
+      return lowerValue === 'true' || lowerValue === 'false'
     }
     return false
   },
@@ -102,7 +102,7 @@ const Utils = {
    */
   escapeRegExp(str: string) {
     /* eslint-disable */
-    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&')
+    return str.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&')
     /* eslint-enable */
   },
 
@@ -113,15 +113,15 @@ const Utils = {
    * @return {{send: function(), sendStatus: function(*=), status: function(*=)}}
    */
   createSubResponse(response: any) {
-    response = response || _.noop
+    const responseFunc = response || _.noop
     const subResponse = {
       statusCode: 200,
-      send: (err: any) => response(err),
-      json: (err: any) => response(err),
+      send: (err: any) => responseFunc(err),
+      json: (err: any) => responseFunc(err),
       setHeader: () => _.noop,
       sendStatus: (status: any) => {
         subResponse.statusCode = status
-        response(status)
+        responseFunc(status)
       },
       status: (status: any) => {
         subResponse.statusCode = status
@@ -268,6 +268,7 @@ const Utils = {
     try {
       return _.isObject(id) ? id : ObjectID(id)
     } catch (e) {
+      console.log(e)
       return id
     }
   },
@@ -447,6 +448,7 @@ const Utils = {
       id = _.isObject(id) ? id : ObjectID(id)
     } catch (e) {
       debug.idToBson(`Unknown id given: ${id}, typeof: ${typeof id}`)
+      console.log(e)
       id = false
     }
 
@@ -598,7 +600,7 @@ const Utils = {
         let i = 0
         records.forEach((record: any) => {
           const parts = record.machineName.split(/(\d+)$/).filter(Boolean)
-          const number = parseInt(parts[1], 10) || 0
+          const number = Number.parseInt(parts[1], 10) || 0
           if (number > i) {
             i = number
           }

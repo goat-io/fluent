@@ -1,17 +1,13 @@
 import { Ids, Objects } from '@goatlab/js-utils'
-import { SelectQueryBuilder, Brackets } from 'typeorm'
+import { Brackets, SelectQueryBuilder } from 'typeorm'
+import { AnyObject, FluentQuery, LogicOperator } from '../../../types'
 import { extractConditions } from '../../util/extractConditions'
-import {
-  AnyObject,
-  FluentQuery,
-  LogicOperator,
-} from '../../../types'
 
 const queryId = Ids.customId(
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 )
 
-export interface getQueryBuilderWhereParams {
+export interface GetQueryBuilderWhereParams {
   where?: FluentQuery<AnyObject>['where']
   queryBuilder: SelectQueryBuilder<any>
   queryAlias: string
@@ -25,21 +21,21 @@ export const getQueryBuilderWhere = ({
   where,
   queryAlias,
   queryBuilder
-}: getQueryBuilderWhereParams): SelectQueryBuilder<any> => {
+}: GetQueryBuilderWhereParams): SelectQueryBuilder<any> => {
   if (!where || Object.keys(where).length === 0) {
     return queryBuilder
   }
 
-  const orConditions = extractConditions(where['OR'])
-  const andConditions = extractConditions(where['AND'])
+  const orConditions = extractConditions(where.OR)
+  const andConditions = extractConditions(where.AND)
 
   const copy = Objects.clone(where)
-  if (!!copy['AND']) {
-    delete copy['AND']
+  if (copy.AND) {
+    copy.AND = undefined
   }
 
-  if (!!copy['OR']) {
-    delete copy['OR']
+  if (copy.OR) {
+    copy.OR = undefined
   }
 
   const rootLevelConditions = extractConditions([copy])
@@ -52,7 +48,7 @@ export const getQueryBuilderWhere = ({
         const customId = queryId(4)
 
         switch (operator) {
-          case LogicOperator.equals:
+          case LogicOperator.Equals:
             qbAnd.andWhere(
               `${queryAlias}.${element} = :${element}_${customId}`,
               {
@@ -60,7 +56,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.isNot:
+          case LogicOperator.IsNot:
             qbAnd.andWhere(
               `${queryAlias}.${element} != :${element}_${customId}`,
               {
@@ -68,7 +64,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.greaterThan:
+          case LogicOperator.GreaterThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} > :${element}_${customId}`,
               {
@@ -76,7 +72,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.greaterOrEqualThan:
+          case LogicOperator.GreaterOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} >= :${element}_${customId}`,
               {
@@ -84,7 +80,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.lessThan:
+          case LogicOperator.LessThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} < :${element}_${customId}`,
               {
@@ -92,7 +88,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.lessOrEqualThan:
+          case LogicOperator.LessOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} <= :${element}_${customId}`,
               {
@@ -100,7 +96,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.in:
+          case LogicOperator.In:
             qbAnd.andWhere(
               `${queryAlias}.${element} IN :${element}_${customId}`,
               {
@@ -108,7 +104,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.notIn:
+          case LogicOperator.NotIn:
             qbAnd.andWhere(
               `${queryAlias}.${element} NOT IN :${element}_${customId}`,
               {
@@ -116,13 +112,13 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.exists:
+          case LogicOperator.Exists:
             qbAnd.andWhere(`${queryAlias}.${element} IS NOT NULL`)
             break
-          case LogicOperator.notExists:
+          case LogicOperator.NotExists:
             qbAnd.andWhere(`${queryAlias}.${element} IS NULL`)
             break
-          case LogicOperator.regexp:
+          case LogicOperator.Regexp:
             qbAnd.andWhere(
               `${queryAlias}.${element} LIKE :${element}_${customId}`,
               {
@@ -138,7 +134,7 @@ export const getQueryBuilderWhere = ({
         const customId = queryId(4)
 
         switch (operator) {
-          case LogicOperator.equals:
+          case LogicOperator.Equals:
             qbAnd.andWhere(
               `${queryAlias}.${element} = :${element}_${customId}`,
               {
@@ -146,7 +142,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.isNot:
+          case LogicOperator.IsNot:
             qbAnd.andWhere(
               `${queryAlias}.${element} != :${element}_${customId}`,
               {
@@ -154,7 +150,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.greaterThan:
+          case LogicOperator.GreaterThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} > :${element}_${customId}`,
               {
@@ -162,7 +158,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.greaterOrEqualThan:
+          case LogicOperator.GreaterOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} >= :${element}_${customId}`,
               {
@@ -170,7 +166,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.lessThan:
+          case LogicOperator.LessThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} < :${element}_${customId}`,
               {
@@ -178,7 +174,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.lessOrEqualThan:
+          case LogicOperator.LessOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} <= :${element}_${customId}`,
               {
@@ -186,7 +182,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.in:
+          case LogicOperator.In:
             qbAnd.andWhere(
               `${queryAlias}.${element} IN :${element}_${customId}`,
               {
@@ -194,7 +190,7 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.notIn:
+          case LogicOperator.NotIn:
             qbAnd.andWhere(
               `${queryAlias}.${element} NOT IN :${element}_${customId}`,
               {
@@ -202,13 +198,13 @@ export const getQueryBuilderWhere = ({
               }
             )
             break
-          case LogicOperator.exists:
+          case LogicOperator.Exists:
             qbAnd.andWhere(`${queryAlias}.${element} IS NOT NULL`)
             break
-          case LogicOperator.notExists:
+          case LogicOperator.NotExists:
             qbAnd.andWhere(`${queryAlias}.${element} IS NULL`)
             break
-          case LogicOperator.regexp:
+          case LogicOperator.Regexp:
             qbAnd.andWhere(
               `${queryAlias}.${element} LIKE :${element}_${customId}`,
               {
@@ -226,7 +222,7 @@ export const getQueryBuilderWhere = ({
             const customId = queryId(4)
 
             switch (operator) {
-              case LogicOperator.equals:
+              case LogicOperator.Equals:
                 qbOr.andWhere(
                   `${queryAlias}.${element} = :${element}_${customId}`,
                   {
@@ -234,7 +230,7 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.isNot:
+              case LogicOperator.IsNot:
                 qbOr.andWhere(
                   `${queryAlias}.${element} != :${element}_${customId}`,
                   {
@@ -242,7 +238,7 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.greaterThan:
+              case LogicOperator.GreaterThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} > :${element}_${customId}`,
                   {
@@ -250,7 +246,7 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.greaterOrEqualThan:
+              case LogicOperator.GreaterOrEqualThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} >= :${element}_${customId}`,
                   {
@@ -258,7 +254,7 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.lessThan:
+              case LogicOperator.LessThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} < :${element}_${customId}`,
                   {
@@ -266,7 +262,7 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.lessOrEqualThan:
+              case LogicOperator.LessOrEqualThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} <= :${element}_${customId}`,
                   {
@@ -274,7 +270,7 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.in:
+              case LogicOperator.In:
                 qbOr.andWhere(
                   `${queryAlias}.${element} IN :${element}_${customId}`,
                   {
@@ -282,7 +278,7 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.notIn:
+              case LogicOperator.NotIn:
                 qbOr.andWhere(
                   `${queryAlias}.${element} NOT IN :${element}_${customId}`,
                   {
@@ -290,13 +286,13 @@ export const getQueryBuilderWhere = ({
                   }
                 )
                 break
-              case LogicOperator.exists:
+              case LogicOperator.Exists:
                 qbOr.andWhere(`${queryAlias}.${element} IS NOT NULL`)
                 break
-              case LogicOperator.notExists:
+              case LogicOperator.NotExists:
                 qbOr.andWhere(`${queryAlias}.${element} IS NULL`)
                 break
-              case LogicOperator.regexp:
+              case LogicOperator.Regexp:
                 qbOr.andWhere(
                   `${queryAlias}.${element} LIKE :${element}_${customId}`,
                   {

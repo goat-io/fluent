@@ -6,19 +6,19 @@ const FIELD_LAZY_METADATA = Symbol('FIELD_LAZY_METADATA')
 export class LazyMetadataStorageHost {
   private readonly lazyMetadataByTarget = new Map<
     Type<unknown> | symbol,
-    Function[]
+    ((...args: any[]) => any)[]
   >()
 
-  store(func: Function): void
-  store(target: Type<unknown>, func: Function): void
+  store(func: (...args: any[]) => any): void
+  store(target: Type<unknown>, func: (...args: any[]) => any): void
   store(
     target: Type<unknown>,
-    func: Function,
+    func: (...args: any[]) => any,
     options?: { isField: boolean }
   ): void
   store(
-    targetOrFn: Type<unknown> | Function,
-    func?: Function,
+    targetOrFn: Type<unknown> | ((...args: any[]) => any),
+    func?: (...args: any[]) => any,
     options?: { isField: boolean }
   ) {
     if (func && options?.isField) {
@@ -27,12 +27,15 @@ export class LazyMetadataStorageHost {
     } else if (func) {
       this.updateStorage(targetOrFn as Type<unknown>, func)
     } else {
-      this.updateStorage(NO_TARGET_METADATA, targetOrFn)
+      this.updateStorage(
+        NO_TARGET_METADATA,
+        targetOrFn as (...args: any[]) => any
+      )
     }
   }
 
   load(
-    types: Function[] = [],
+    types: ((...args: any[]) => any)[] = [],
     options: {
       skipFieldLazyMetadata?: boolean
     } = {
@@ -43,7 +46,9 @@ export class LazyMetadataStorageHost {
 
     let loadersToExecute = flatten(
       types
-        .map(target => this.lazyMetadataByTarget.get(target as Type<unknown>))
+        .map(target =>
+          this.lazyMetadataByTarget.get(target as unknown as Type<unknown>)
+        )
         .filter(metadata => metadata)
     )
 
@@ -59,13 +64,15 @@ export class LazyMetadataStorageHost {
     loadersToExecute?.forEach(func => func())
   }
 
-  private concatPrototypes(types: Function[]): Function[] {
+  private concatPrototypes(
+    types: ((...args: any[]) => any)[]
+  ): ((...args: any[]) => any)[] {
     const typesWithPrototypes = types
-      .filter(type => type && type.prototype)
+      .filter(type => type?.prototype)
       .map(type => {
         const parentTypes: any[] = []
 
-        let parent: Function = type
+        let parent: (...args: any[]) => any = type
         while (!isUndefined(parent.prototype)) {
           parent = Object.getPrototypeOf(parent)
           if (parent === Function.prototype) {
@@ -80,7 +87,10 @@ export class LazyMetadataStorageHost {
     return flatten(typesWithPrototypes)
   }
 
-  private updateStorage(key: symbol | Type<unknown>, func: Function) {
+  private updateStorage(
+    key: symbol | Type<unknown>,
+    func: (...args: any[]) => any
+  ) {
     const existingArray = this.lazyMetadataByTarget.get(key)
     if (existingArray) {
       existingArray.push(func)
@@ -92,5 +102,4 @@ export class LazyMetadataStorageHost {
 
 const globalRef = global as any
 export const LazyMetadataStorage: LazyMetadataStorageHost =
-  globalRef.GqlLazyMetadataStorageHost ||
-  (globalRef.GqlLazyMetadataStorageHost = new LazyMetadataStorageHost())
+  (globalRef.GqlLazyMetadataStorageHost ||= new LazyMetadataStorageHost())

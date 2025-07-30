@@ -1,8 +1,8 @@
 import 'reflect-metadata'
-import { describe, beforeAll, afterAll } from 'vitest'
-import { MySQLTestContainer } from '../testcontainers/mysql.testcontainer'
-import { Fluent } from '../../../Fluent'
+import { afterAll, beforeAll, describe } from 'vitest'
+import { initialize } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
+import { MySQLTestContainer } from '../testcontainers/mysql.testcontainer'
 import { unifiedTestSuite } from '../unified/unifiedTestSuite'
 
 describe('MySQL Tests with Unified Suite', () => {
@@ -12,7 +12,7 @@ describe('MySQL Tests with Unified Suite', () => {
   beforeAll(async () => {
     container = new MySQLTestContainer()
     dataSource = await container.start()
-    await Fluent.initialize([dataSource], dbEntities)
+    await initialize([dataSource], dbEntities)
   }, 60000)
 
   afterAll(async () => {
@@ -26,7 +26,7 @@ describe('MySQL Tests with Unified Suite', () => {
         throw new Error('DataSource not initialized')
       }
     })
-    
+
     unifiedTestSuite({ dataSource: () => dataSource, dbType: 'mysql' })
   })
 })

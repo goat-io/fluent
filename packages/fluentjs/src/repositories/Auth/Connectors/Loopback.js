@@ -1,9 +1,9 @@
-import AuthInterface from '../AuthInterface'
-import User from '../../../models/User'
-import Connection from '../../../Wrappers/Connection'
-import Utilities from '../../../utilities'
-import Role from '../../../models/Role'
 import { Hash } from '../../../../Helpers/Hash'
+import Role from '../../../models/Role'
+import User from '../../../models/User'
+import Utilities from '../../../utilities'
+import Connection from '../../../Wrappers/Connection'
+import AuthInterface from '../AuthInterface'
 
 export default AuthInterface.compose({
   methods: {
@@ -20,10 +20,10 @@ export default AuthInterface.compose({
       const hashedPassword = Hash.hash(password)
 
       // Get the user
-      let dbUser = await User.local()
+      const dbUser = await User.local()
         .where('data.username', '=', username)
         .get()
-      let userFound = dbUser && dbUser[0] ? dbUser[0] : undefined
+      const userFound = dbUser?.[0] ? dbUser[0] : undefined
 
       if (!userFound) {
         throw new Error()
@@ -45,8 +45,8 @@ export default AuthInterface.compose({
      * @returns
      */
     async remoteAuthenticate(credentials) {
-      let response = await User.loopbackLogin({ credentials: credentials })
-      let user = response.data
+      const response = await User.loopbackLogin({ credentials: credentials })
+      const user = response.data
 
       await User.updateUser(user)
       return response
@@ -59,7 +59,7 @@ export default AuthInterface.compose({
      * @returns
      */
     async authenticate(credentials, role) {
-      let isOnline = await Connection.isOnline()
+      const isOnline = await Connection.isOnline()
 
       if (isOnline) {
         return this.remoteAuthenticate(credentials, role)
@@ -74,19 +74,19 @@ export default AuthInterface.compose({
      * @returns
      */
     attempt(credentials, role) {
-      role = role || 'user'
+      const userRole = role || 'user'
 
       return new Promise((resolve, reject) => {
-        this.authenticate(credentials, role)
+        this.authenticate(credentials, userRole)
           // If credentials are OK
           .then(async response => {
-            let user = response.data
+            const user = response.data
 
             // Save auth user
             localStorage.setItem('authUser', JSON.stringify(user))
             localStorage.setItem('formioToken', user.data['x-jwt-token'])
             // user.isAdmin = true
-            let roles = await Role.local().first()
+            const roles = await Role.local().first()
 
             user.rolesNames = []
             Object.keys(roles).forEach(key => {
@@ -114,10 +114,10 @@ export default AuthInterface.compose({
      */
     user() {
       try {
-        let user = JSON.parse(localStorage.getItem('authUser'))
+        const user = JSON.parse(localStorage.getItem('authUser'))
 
         return user === null ? false : user
-      } catch (e) {
+      } catch (_e) {
         localStorage.removeItem('authUser')
         return false
       }
@@ -130,9 +130,9 @@ export default AuthInterface.compose({
     email() {
       let email = ''
 
-      if (this.user() && this.user().data && this.user().data.email) {
+      if (this.user()?.data?.email) {
         email = this.user().data.email
-      } else if (this.user() && this.user().email) {
+      } else if (this.user()?.email) {
         email = this.user().email
       }
       return email
@@ -148,7 +148,7 @@ export default AuthInterface.compose({
 
       user = user === null ? false : user
 
-      let result = user.rolesNames.find(r => {
+      const result = user.rolesNames.find(r => {
         return r.title === roleName
       })
 
@@ -179,15 +179,11 @@ export default AuthInterface.compose({
       if (!rolesIds || Utilities.isEmpty(rolesIds)) {
         return true
       }
-      let appRoles = await Role.local().first()
+      const appRoles = await Role.local().first()
 
-      let roles = rolesIds.reduce((reducer, roleId) => {
-        Object.keys(appRoles).forEach(function (role) {
-          if (
-            appRoles[role] &&
-            appRoles[role]._id &&
-            appRoles[role]._id === roleId
-          ) {
+      const roles = rolesIds.reduce((reducer, roleId) => {
+        Object.keys(appRoles).forEach(role => {
+          if (appRoles[role]?._id && appRoles[role]._id === roleId) {
             reducer.push(appRoles[role].title)
           }
         })
@@ -204,7 +200,7 @@ export default AuthInterface.compose({
      * @return {boolean}
      */
     check() {
-      let user = JSON.parse(localStorage.getItem('authUser'))
+      const user = JSON.parse(localStorage.getItem('authUser'))
 
       return !!user && !!user.x_jwt_token
     },

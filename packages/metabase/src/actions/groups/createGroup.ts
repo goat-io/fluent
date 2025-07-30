@@ -9,7 +9,7 @@ export async function createGroup({
   baseUrl,
   sessionToken,
   apiKey,
-  groupName,
+  groupName
 }: {
   baseUrl: string
   sessionToken?: string
@@ -24,7 +24,7 @@ export async function createGroup({
     apiKey,
     endpoint: '/api/permissions/group',
     method: 'POST',
-    body: { name: groupName },
+    body: { name: groupName }
   })
 
   if (!response.ok) {
@@ -33,8 +33,8 @@ export async function createGroup({
     throw new Error(`Failed to create group '${groupName}': ${errorText}`)
   }
 
-  const group = await response.json() as { id: number; name: string }
+  const group = (await response.json()) as { id: number; name: string }
   console.log(`✅ Group '${groupName}' created successfully (ID: ${group.id})`)
-  
+
   return group
 }

@@ -1,8 +1,8 @@
 import dayjs from 'dayjs'
-import Utilities from '../utilities'
 import { Fluent } from '../fluent'
-import Labels from './repositories/Labels'
+import Utilities from '../utilities'
 import Configuration from './Configuration'
+import Labels from './repositories/Labels'
 
 export default Fluent.model({
   properties: {
@@ -43,9 +43,9 @@ export default Fluent.model({
         return o.data.tags.indexOf('visible') > -1
       })
       result = result.sort((a, b) => {
-        a = a.data.title
-        b = b.data.title
-        return a > b ? 1 : a < b ? -1 : 0
+        const titleA = a.data.title
+        const titleB = b.data.title
+        return titleA > titleB ? 1 : titleA < titleB ? -1 : 0
       })
 
       result = result.map(f => {
@@ -57,7 +57,7 @@ export default Fluent.model({
             action === 'create'
               ? 'statics/customSVG/startSurvey.svg'
               : 'statics/customSVG/collectedData.svg',
-          subtitle: 'Last updated: ' + dayjs(f.data.modified).fromNow(),
+          subtitle: `Last updated: ${dayjs(f.data.modified).fromNow()}`,
           actions: [
             {
               text: action === 'create' ? 'Start' : 'View data',
@@ -75,8 +75,8 @@ export default Fluent.model({
     /**
      *
      */
-    async FormLabels(i18n) {
-      let forms = await this.local().get()
+    async formLabels(i18n) {
+      const forms = await this.local().get()
 
       return Labels.get(forms, i18n)
     },
@@ -92,11 +92,11 @@ export default Fluent.model({
      * @param {*} param0
      */
     async setOffline({ appConf }) {
-      let localForms = await this.local().get()
+      const localForms = await this.local().get()
 
-      let localDate = this.getUpdatedAt(localForms)
-      let config = await Configuration.local().first()
-      let offlineForms = Utilities.get(() => appConf.offlineFiles.Forms)
+      const localDate = this.getUpdatedAt(localForms)
+      const config = await Configuration.local().first()
+      const offlineForms = Utilities.get(() => appConf.offlineFiles.Forms)
 
       // If the JSON file is newer than the local
       // DB data
@@ -117,8 +117,8 @@ export default Fluent.model({
      *
      */
     async setOnline() {
-      let remoteForms = await this.remote().limit(9999999).get()
-      let unixDate = dayjs().unix()
+      const remoteForms = await this.remote().limit(9999999).get()
+      const unixDate = dayjs().unix()
 
       if (remoteForms && !Utilities.isEmpty(remoteForms)) {
         await this.local().clear({ sure: true })
@@ -144,12 +144,12 @@ export default Fluent.model({
       return this.setOnline()
     },
     async getFastTableTemplates({ path }) {
-      let fullForm = await this.local().where('data.path', '=', path).first()
+      const fullForm = await this.local().where('data.path', '=', path).first()
 
-      let templates = []
+      const templates = []
 
       Utilities.eachComponent(fullForm.data.components, c => {
-        if (c.properties && c.properties.FAST_TABLE_TEMPLATE) {
+        if (c.properties?.FAST_TABLE_TEMPLATE) {
           templates.push({
             key: c.key,
             template: c.properties.FAST_TABLE_TEMPLATE

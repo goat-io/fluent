@@ -1,6 +1,6 @@
 import { AsyncMemo } from './Memo/asyncMemo.decorator'
-import { memoFn } from './Memo/memoFn'
 import { Memo as SyncMemo } from './Memo/memo.decorator'
+import { memoFn } from './Memo/memoFn'
 import { memoFnAsync } from './Memo/memoFnAsync'
 
 class MemoClass {

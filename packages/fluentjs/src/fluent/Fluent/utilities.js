@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-let Utilities = (() => {
+const Utilities = (() => {
   /**
    * Given an Object and its path, if exisits it will
    * return the value of it, if not the default
@@ -10,7 +10,7 @@ let Utilities = (() => {
   const get = (fn, def) => {
     try {
       return fn()
-    } catch (e) {
+    } catch (_e) {
       return def
     }
   }
@@ -21,31 +21,36 @@ let Utilities = (() => {
    * @param {*} def
    */
   const getFromPath = (obj, path, def) => {
-    let _path = path
+    let Path = path
+    let pathParts = path
 
     if (path.includes(' as ')) {
-      path = path.split(' as ')
-      _path = path[0]
+      pathParts = path.split(' as ')
+      Path = pathParts[0]
     }
 
-    let assignedName = get(() => {
-      return Array.isArray(path) && path[1].trim()
+    const assignedName = get(() => {
+      return Array.isArray(pathParts) && pathParts[1].trim()
     }, undefined)
 
-    let fullPath = _path
-      .replace(/\[/g, '.')
+    const fullPath = Path.replace(/\[/g, '.')
       .replace(/]/g, '')
       .split('.')
       .filter(Boolean)
       .map(e => e.trim())
 
+    let currentObj = obj
     function everyFunc(step) {
-      return !(step && (obj = obj[step]) === undefined)
+      if (!step) {
+        return true
+      }
+      currentObj = currentObj[step]
+      return currentObj !== undefined
     }
 
-    let result = fullPath.every(everyFunc) ? obj : def
+    const result = fullPath.every(everyFunc) ? currentObj : def
 
-    return { label: assignedName || _path, value: result }
+    return { label: assignedName || Path, value: result }
   }
 
   return Object.freeze({

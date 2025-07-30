@@ -2,9 +2,9 @@
  * The API surface of this module has been heavily inspired by the "type-graphql" library (https://github.com/MichalLytek/type-graphql), originally designed & released by Michal Lytek.
  */
 import { ClassType, isString } from '../common'
+import { addClassTypeMetadata } from '../interfaces/add-class-type-metadata.util'
 import { LazyMetadataStorage } from '../lazy-metadata.storage'
 import { TypeMetadataStorage } from '../type-metadata.storage'
-import { addClassTypeMetadata } from '../interfaces/add-class-type-metadata.util'
 
 /**
  * Interface defining options that can be passed to `@InputType()` decorator.
@@ -48,7 +48,7 @@ export function InputType(
 
   return target => {
     const metadata = {
-      target,
+      target: target as unknown as new (...args: any[]) => any,
       name: name || target.name,
       description: options.description,
       isAbstract: options.isAbstract
@@ -56,6 +56,6 @@ export function InputType(
     LazyMetadataStorage.store(() =>
       TypeMetadataStorage.addInputTypeMetadata(metadata)
     )
-    addClassTypeMetadata(target, ClassType.INPUT)
+    addClassTypeMetadata(target, ClassType.Input)
   }
 }

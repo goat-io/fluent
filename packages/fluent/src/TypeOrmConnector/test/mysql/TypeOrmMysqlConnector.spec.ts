@@ -1,13 +1,13 @@
 // npx vitest run ./src/TypeOrmConnector/test/mysql/TypeOrmMysqlConnector.spec.ts
 
 import 'reflect-metadata'
-import { describe, beforeAll, afterAll } from 'vitest'
+import { DataSource } from 'typeorm'
+import { afterAll, beforeAll, describe } from 'vitest'
+import { initialize } from '../../../Fluent'
 import { advancedTestSuite } from '../advanced/advancedTestSuite'
 import { basicTestSuite } from '../basic/basicTestSuite'
-import { MySQLTestContainer } from '../testcontainers/mysql.testcontainer'
-import { Fluent } from '../../../Fluent'
 import { dbEntities } from '../dbEntities'
-import { DataSource } from 'typeorm'
+import { MySQLTestContainer } from '../testcontainers/mysql.testcontainer'
 
 let container: MySQLTestContainer
 let dataSource: DataSource
@@ -16,9 +16,9 @@ describe('MySQL Tests with Testcontainers', () => {
   beforeAll(async () => {
     container = new MySQLTestContainer()
     dataSource = await container.start()
-    
+
     // Initialize Fluent with entities for model generator
-    await Fluent.initialize([dataSource], dbEntities)
+    await initialize([dataSource], dbEntities)
   }, 60000) // Increase timeout for container startup
 
   afterAll(async () => {

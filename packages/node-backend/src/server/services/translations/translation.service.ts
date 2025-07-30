@@ -1,37 +1,36 @@
-import type { StringMap } from '@goatlab/js-utils'
-import { MissingValueError } from '@goatlab/js-utils/dist/Strings/pupa'
-import { pupa } from '@goatlab/js-utils/dist/Strings/pupa'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import type { StringMap } from '@goatlab/js-utils'
+import { MissingValueError, pupa } from '@goatlab/js-utils/dist/Strings/pupa'
 import { config } from '../../consts'
 // import { templateUtil } from './template.util' // No longer needed with direct pupa usage
-import { LANG, LANG_DEFAULT, SUPPORTED_LANGUAGES } from './translation.model'
+import { LANG_DEFAULT, Lang, SUPPORTED_LANGUAGES } from './translation.model'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 export interface UserLanguageOptions {
-  language: LANG | null
+  language: Lang | null
 }
 
 // Cache for compiled templates - key format: "lang:key"
 const templateCache = new Map<string, (args: any) => string>()
 
 // Cache for loaded locale files
-const localeCache = new Map<LANG, StringMap>()
+const localeCache = new Map<Lang, StringMap>()
 
 // Precompile template function
 function compileTemplate(template: string): (args: any) => string {
   // Pre-parse the template to identify placeholders
   const doubleBraceRegex = /{{(\d+|[a-z$_][\w\-$]*?(?:\.[\w\-$]*?)*?)}}/gi
   const braceRegex = /{(\d+|[a-z$_][\w\-$]*?(?:\.[\w\-$]*?)*?)}/gi
-  
+
   const hasDoubleBraces = doubleBraceRegex.test(template)
   const hasSingleBraces = braceRegex.test(template)
-  
+
   // If no placeholders, return a function that returns the template as-is
   if (!hasDoubleBraces && !hasSingleBraces) {
     return () => template
   }
-  
+
   // Return optimized template function
   return (args: any) => {
     if (!args || Object.keys(args).length === 0) {
@@ -43,13 +42,15 @@ function compileTemplate(template: string): (args: any) => string {
 
 class TranslationService {
   private initialized = false
-  
+
   // Initialize service by preloading all locale files
-  private initialize(): void {
-    if (this.initialized) return
-    
+  public initialize(): void {
+    if (this.initialized) {
+      return
+    }
+
     // Preload all supported language files
-    const loadedLanguages: LANG[] = []
+    const loadedLanguages: Lang[] = []
     if (SUPPORTED_LANGUAGES && Array.isArray(SUPPORTED_LANGUAGES)) {
       for (const lang of SUPPORTED_LANGUAGES) {
         if (this.loadLocaleSync(lang)) {
@@ -57,22 +58,24 @@ class TranslationService {
         }
       }
     }
-    
+
     if (loadedLanguages.length > 0) {
-      console.log(`Translation service initialized with languages: ${loadedLanguages.join(', ')}`)
+      console.log(
+        `Translation service initialized with languages: ${loadedLanguages.join(', ')}`
+      )
     } else {
       console.warn('Translation service: No language files were loaded')
     }
-    
+
     this.initialized = true
   }
-  
+
   // Load locale file synchronously (used during initialization)
-  private loadLocaleSync(lang: LANG): StringMap | undefined {
+  private loadLocaleSync(lang: Lang): StringMap | undefined {
     if (localeCache.has(lang)) {
       return localeCache.get(lang)
     }
-    
+
     try {
       const filePath = join(config.langDir, `${lang}.json`)
       const content = readFileSync(filePath, 'utf-8')
@@ -85,20 +88,22 @@ class TranslationService {
     }
   }
   // Get locale from cache (backward compatible)
-  getLocale(lang: LANG | null): StringMap {
-    if (!lang) return undefined as any
-    
+  getLocale(lang: Lang | null): StringMap {
+    if (!lang) {
+      return undefined as any
+    }
+
     // Ensure initialization
     if (!this.initialized) {
       this.initialize()
     }
-    
+
     const cached = localeCache.get(lang)
     if (cached) {
       // Return a copy to maintain backward compatibility
       return { ...cached }
     }
-    
+
     // Try to load dynamically if not in cache (backward compatibility)
     try {
       const locale = { ...require(`${config.langDir}/${lang}.json`) }
@@ -110,14 +115,14 @@ class TranslationService {
     }
   }
 
-  getLocaleMap(): Record<LANG, StringMap> {
+  getLocaleMap(): Record<Lang, StringMap> {
     // Ensure initialization
     if (!this.initialized) {
       this.initialize()
     }
-    
-    const map: Record<LANG, StringMap> = {} as Record<LANG, StringMap>
-    
+
+    const map: Record<Lang, StringMap> = {} as Record<Lang, StringMap>
+
     // Use cached locales if available
     if (SUPPORTED_LANGUAGES && Array.isArray(SUPPORTED_LANGUAGES)) {
       for (const lang of SUPPORTED_LANGUAGES) {
@@ -127,7 +132,7 @@ class TranslationService {
         }
       }
     }
-    
+
     return map
   }
 
@@ -154,18 +159,19 @@ class TranslationService {
   translateIfExists(
     key: string,
     user: UserLanguageOptions,
-    args = {},
+    args = {}
   ): string | undefined {
     // Ensure initialization
     if (!this.initialized) {
       this.initialize()
     }
-    
+
     // Get locale from cache directly for better performance
     const locale = user.language ? localeCache.get(user.language) : undefined
-    const fallbackLocale = localeCache.get(LANG_DEFAULT) || this.getLocale(LANG_DEFAULT)
-    
-    const value = (locale && locale[key]) ?? (fallbackLocale && fallbackLocale[key])
+    const fallbackLocale =
+      localeCache.get(LANG_DEFAULT) || this.getLocale(LANG_DEFAULT)
+
+    const value = locale?.[key] ?? fallbackLocale?.[key]
     return value && this.formatResult(key, value, args)
   }
 
@@ -178,13 +184,13 @@ class TranslationService {
       // Check template cache first
       const cacheKey = `${key}:${text}`
       let compiledTemplate = templateCache.get(cacheKey)
-      
+
       if (!compiledTemplate) {
         // Compile and cache the template
         compiledTemplate = compileTemplate(text)
         templateCache.set(cacheKey, compiledTemplate)
       }
-      
+
       try {
         return compiledTemplate(args)
       } catch (err: unknown) {
@@ -227,10 +233,10 @@ class TranslationService {
     // Clear all caches
     localeCache.clear()
     templateCache.clear()
-    
+
     // Reset initialization state
     this.initialized = false
-    
+
     // Reinitialize
     this.initialize()
   }
@@ -239,8 +245,11 @@ class TranslationService {
 export const translationService = new TranslationService()
 
 // Initialize on module load to preload all locales
-if (typeof SUPPORTED_LANGUAGES !== 'undefined' && Array.isArray(SUPPORTED_LANGUAGES)) {
-  translationService['initialize']()
+if (
+  typeof SUPPORTED_LANGUAGES !== 'undefined' &&
+  Array.isArray(SUPPORTED_LANGUAGES)
+) {
+  translationService.initialize()
 }
 
 // Alias
@@ -251,7 +260,7 @@ export function tr(key: string, user: UserLanguageOptions, args = {}): string {
 export function trIfExists(
   key: string,
   user: UserLanguageOptions,
-  args = {},
+  args = {}
 ): string | undefined {
   return translationService.translateIfExists(key, user, args)
 }

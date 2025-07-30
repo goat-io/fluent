@@ -1,5 +1,4 @@
-import vm from 'vm'
-import * as _ from 'lodash'
+import vm from 'node:vm'
 import util from '../utils'
 /*
  * Returns true or false based on visibility.
@@ -19,7 +18,7 @@ export const checkConditional = (
 ): any => {
   let isVisible = true
 
-  if (!component || !component.hasOwnProperty('key')) {
+  if (!component || !Object.hasOwn(component, 'key')) {
     return isVisible
   }
 

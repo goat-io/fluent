@@ -1,11 +1,13 @@
-import { describe, test, it, expect, beforeAll } from 'vitest'
 import { Promises } from '@goatlab/js-utils'
-import { flock } from '../flock'
 import { DataSource } from 'typeorm'
+import { beforeAll, expect, it, test } from 'vitest'
+import { flock } from '../flock'
 import { GoatRepositoryFactory } from '../repository.factory'
 
-export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() => DataSource)) => {
-  let storedId: any
+export const basicTestSuite = (
+  dataSourceOrRepoClass?: DataSource | any | (() => DataSource)
+) => {
+  let _storedId: any
   let dbType: string = 'unknown'
 
   let Repository: any
@@ -30,7 +32,7 @@ export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() =>
             dbType = Repository.dataSource.options.type || 'unknown'
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // It's a class constructor, not a regular function
         Repository = new dataSourceOrRepoClass()
         // Try to determine db type from repository
@@ -54,10 +56,11 @@ export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() =>
 
   test('insert - Should  insert data with customId', async () => {
     // Use proper UUID for PostgreSQL, MongoDB ObjectId for others
-    const customId = dbType === 'postgres' 
-      ? '550e8400-e29b-41d4-a716-446655440000'
-      : '631ce4304f9183f61ffb613a'
-      
+    const customId =
+      dbType === 'postgres'
+        ? '550e8400-e29b-41d4-a716-446655440000'
+        : '631ce4304f9183f61ffb613a'
+
     const a = await Repository.insert({
       id: customId,
       name: 'myGoat',
@@ -70,7 +73,7 @@ export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() =>
   it('insertMany - Should insert Multiple elements', async () => {
     const insertedFlock = await Repository.insertMany(flock)
     expect(insertedFlock[0].name).toBe('Goatee')
-    storedId = insertedFlock[0].id
+    _storedId = insertedFlock[0].id
   })
 
   test('findById - Should  GET an object by its ID', async () => {
@@ -81,9 +84,10 @@ export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() =>
     expect(typeof goat?.id).toBe('string')
 
     // Use proper UUID for PostgreSQL
-    const nonExistentId = dbType === 'postgres'
-      ? '550e8400-e29b-41d4-a716-446655440001'
-      : '507f1f77bcf86cd799439011'
+    const nonExistentId =
+      dbType === 'postgres'
+        ? '550e8400-e29b-41d4-a716-446655440001'
+        : '507f1f77bcf86cd799439011'
     const anotherGoat = await Repository.findById(nonExistentId)
     expect(anotherGoat).toBe(null)
   })
@@ -210,7 +214,7 @@ export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() =>
       },
       select: {
         name: true,
-        age: true,
+        age: true
       }
     })
 
@@ -220,7 +224,7 @@ export const basicTestSuite = (dataSourceOrRepoClass?: DataSource | any | (() =>
   })
 
   test('requireFirst - Should fail if not found', async () => {
-    const insertedUser = await Repository.insert({
+    const _insertedUser = await Repository.insert({
       name: 'testGoat',
       age: 20
     })

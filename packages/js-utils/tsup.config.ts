@@ -1,5 +1,5 @@
-import { defineConfig } from 'tsup'
 import { pnpPlugin } from '@yarnpkg/esbuild-plugin-pnp'
+import { defineConfig } from 'tsup'
 
 export default defineConfig({
   entry: ['./src/Got/kyWrap/index.ts'],

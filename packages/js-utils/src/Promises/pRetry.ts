@@ -1,10 +1,10 @@
-import type { AnyFunction } from '../types'
 import type { AppError } from '../Errors/app.error'
 import type { ErrorData } from '../Errors/error.model'
-import { Time } from '../Time'
-import { _stringifyAny } from '../Strings/stringifyAny'
-import { TimeoutError } from './pTimeout'
 import { CommonLogger } from '../Logs/commonLogger'
+import { _stringifyAny } from '../Strings/stringifyAny'
+import { Time } from '../Time'
+import type { AnyFunction } from '../types'
+import { TimeoutError } from './pTimeout'
 
 export interface PRetryOptions {
   /**
@@ -171,74 +171,86 @@ export async function pRetry<T>(
       reject(err)
     }
 
+    const logAttemptStart = () => {
+      if ((attempt === 1 && logFirstAttempt) || (attempt > 1 && logRetries)) {
+        logger.log(`${fname} attempt #${attempt}...`)
+      }
+    }
+
+    const handleSuccess = (result: any, started: number) => {
+      clearTimeout(timer)
+      if (logSuccess) {
+        logger.log(
+          `${fname} attempt #${attempt} succeeded in ${Time.since(started)}`
+        )
+      }
+      resolve(result)
+    }
+
+    const handleError = (err: any, started: number) => {
+      clearTimeout(timer)
+
+      if (logFailures) {
+        logger.warn(
+          `${fname} attempt #${attempt} error in ${Time.since(started)}:`,
+          _stringifyAny(err, {
+            includeErrorData: true
+          })
+        )
+      }
+
+      const shouldRetry =
+        attempt < maxAttempts &&
+        (!predicate || predicate(err as Error, attempt, maxAttempts))
+
+      if (!shouldRetry) {
+        // Give up
+        if (fakeError) {
+          // Preserve the original call stack
+          Object.defineProperty(err, 'stack', {
+            value:
+              (err as Error).stack +
+              '\n    --' +
+              fakeError.stack!.replace('Error: RetryError', '')
+          })
+        }
+
+        ;(err as AppError).data = {
+          ...(err as AppError).data,
+          ...opt.errorData
+        }
+
+        reject(err)
+      } else {
+        // Retry after delay
+        delay *= delayMultiplier
+        setTimeout(next, delay)
+      }
+    }
+
     const next = async () => {
-      if (timedOut) return
+      if (timedOut) {
+        return
+      }
 
       if (timeout) {
         timer = setTimeout(rejectWithTimeout, timeout)
       }
 
       const started = Date.now()
+      attempt++
+      logAttemptStart()
 
       try {
-        attempt++
-        if ((attempt === 1 && logFirstAttempt) || (attempt > 1 && logRetries)) {
-          logger.log(`${fname} attempt #${attempt}...`)
-        }
-
-        const r = await fn(attempt)
-
-        clearTimeout(timer)
-
-        if (logSuccess) {
-          logger.log(
-            `${fname} attempt #${attempt} succeeded in ${Time.since(started)}`
-          )
-        }
-
-        resolve(r)
+        const result = await fn(attempt)
+        handleSuccess(result, started)
       } catch (err) {
-        clearTimeout(timer)
-
-        if (logFailures) {
-          logger.warn(
-            `${fname} attempt #${attempt} error in ${Time.since(started)}:`,
-            _stringifyAny(err, {
-              includeErrorData: true
-            })
-          )
-        }
-
-        if (
-          attempt >= maxAttempts ||
-          (predicate && !predicate(err as Error, attempt, maxAttempts))
-        ) {
-          // Give up
-
-          if (fakeError) {
-            // Preserve the original call stack
-            Object.defineProperty(err, 'stack', {
-              value:
-                (err as Error).stack +
-                '\n    --' +
-                fakeError.stack!.replace('Error: RetryError', '')
-            })
-          }
-
-          ;(err as AppError).data = {
-            ...(err as AppError).data,
-            ...opt.errorData
-          }
-
-          reject(err)
-        } else {
-          // Retry after delay
-          delay *= delayMultiplier
-          setTimeout(next, delay)
-        }
+        handleError(err, started)
       }
     }
 
-    void next()
+    next().catch(() => {
+      // Errors are already handled inside next()
+    })
   })
 }

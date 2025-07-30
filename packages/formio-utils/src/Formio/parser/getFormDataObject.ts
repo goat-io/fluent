@@ -1,7 +1,4 @@
 import { Objects } from '@goatlab/js-utils'
-import { flattenComponents } from '../flattenComponents'
-import { FormioComponent } from '../types/FormioComponent'
-import { FormioForm } from '../types/FormioForm'
 import { checkbox } from '../components/checkbox'
 import { container } from '../components/container'
 import { datagrid } from '../components/datagrid'
@@ -14,6 +11,9 @@ import { select } from '../components/select'
 import { selectBox } from '../components/selectbox'
 import { survey } from '../components/survey'
 import { textField } from '../components/textfield'
+import { flattenComponents } from '../flattenComponents'
+import { FormioComponent } from '../types/FormioComponent'
+import { FormioForm } from '../types/FormioForm'
 
 /**
  *
@@ -25,7 +25,7 @@ const getComponentTypes = (component: FormioComponent) => {
   }
   let validation: any = {}
 
-  switch (component && component.type && component.type.toLowerCase()) {
+  switch (component?.type?.toLowerCase()) {
     case 'textfield':
       validation = textField(component)
       break

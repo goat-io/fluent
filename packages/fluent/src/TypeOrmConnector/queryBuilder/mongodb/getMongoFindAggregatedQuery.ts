@@ -1,11 +1,10 @@
-import { FindManyOptions } from 'typeorm'
 import { FluentQuery } from '../../../types'
 import { getMongoBaseAggregation } from './getMongoBaseAggregations'
 import { getMongoOrderBy } from './getMongoOrderBy'
 import { getMongoSelect } from './getMongoSelect'
 import { getMongoWhere } from './getMongoWhere'
 
-export type getFindAggregateQueryParams<T extends FluentQuery<any>> = {
+export type GetFindAggregateQueryParams<T extends FluentQuery<any>> = {
   query?: T
   self?: any
 }
@@ -17,7 +16,7 @@ export type getFindAggregateQueryParams<T extends FluentQuery<any>> = {
 export const getMongoFindAggregatedQuery = ({
   query,
   self
-}: getFindAggregateQueryParams<any>): any[] => {
+}: GetFindAggregateQueryParams<any>): any[] => {
   self.initDB()
   const selected = getMongoSelect(query?.select)
   const orderBy = getMongoOrderBy(query?.orderBy)
@@ -32,7 +31,7 @@ export const getMongoFindAggregatedQuery = ({
   })
 
   const aggregate: any[] = []
-  
+
   // Only add $match if there's a where clause
   if (where && Object.keys(where).length > 0) {
     aggregate.push({

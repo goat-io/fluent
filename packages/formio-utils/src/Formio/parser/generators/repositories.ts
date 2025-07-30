@@ -2,12 +2,10 @@ import { compile } from 'handlebars'
 import { join } from 'path'
 import { FluentModel } from '../../types/FluentModel'
 import { SupportedFrameworks } from '../parse'
-
-import { template as lbRepositoryExtended } from './templates/Loopback4/repository/repository.hbs'
 import { template as lbRepositoryBase } from './templates/Loopback4/repository/baseRepository.hbs'
-
-import { template as nestRepositoryExtended } from './templates/Nestjs/repository/repository.hbs'
+import { template as lbRepositoryExtended } from './templates/Loopback4/repository/repository.hbs'
 import { template as nestRepositoryBase } from './templates/Nestjs/repository/baseRepository.hbs'
+import { template as nestRepositoryExtended } from './templates/Nestjs/repository/repository.hbs'
 
 const FrameworkTemplatesBaseRepository = {
   Loopback4: lbRepositoryBase,

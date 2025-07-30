@@ -1,8 +1,9 @@
 import { Hash as pHash } from '../../../Helpers/Hash'
 
-let Hash = class {
+const Hash = class {
   static async string(string) {
-    hashed = pHash(string)
+    const hashed = pHash(string)
+    return hashed
   }
 }
 

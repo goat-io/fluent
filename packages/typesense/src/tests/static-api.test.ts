@@ -1,6 +1,6 @@
 // npx vitest run ./src/tests/static-api.test.ts
 
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { TypesenseApi } from '../index'
 
 describe('TypesenseApi Static Methods', () => {

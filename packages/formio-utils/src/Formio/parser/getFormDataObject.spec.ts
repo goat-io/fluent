@@ -263,7 +263,7 @@ const Form = {
     }
   ],
   revisions: '',
-  _vid: 0,
+  vid: 0,
   title: 'FormDataObject',
   display: 'form',
   access: [

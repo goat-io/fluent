@@ -1,7 +1,7 @@
-import type { ErrorData } from './Errors/error.model'
-import { _stringifyAny } from './Strings/stringifyAny'
-import { Objects } from './Objects'
 import { AppError } from './Errors/app.error'
+import type { ErrorData } from './Errors/error.model'
+import { Objects } from './Objects'
+import { _stringifyAny } from './Strings/stringifyAny'
 
 /**
  * Evaluates the `condition` (casts it to Boolean).
@@ -87,10 +87,10 @@ export function assertDeepEquals<T>(
   }
 }
 
-export function assertIsError<ERR extends Error = Error>(
+export function assertIsError<Err extends Error = Error>(
   err: any,
   message?: string
-): asserts err is ERR {
+): asserts err is Err {
   if (!(err instanceof Error)) {
     const msg = [
       message || `expected to be instanceof Error`,
@@ -135,12 +135,12 @@ export class AssertionError extends AppError {
   }
 }
 
-export function _try<ERR = Error, RETURN = void>(
-  fn: () => RETURN
-): [err: ERR | null, value: RETURN] {
+export function tryFn<Err = Error, Return = void>(
+  fn: () => Return
+): [err: Err | null, value: Return] {
   try {
     return [null, fn()]
   } catch (err) {
-    return [err as ERR, undefined as any]
+    return [err as Err, undefined as any]
   }
 }

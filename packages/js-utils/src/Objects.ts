@@ -1,14 +1,10 @@
-import {
+import type {
   AnyObject,
   ObjectMapper,
   ObjectPredicate,
   StringMap,
   ValueOf
 } from './types'
-
-declare global {
-  function hasOwnProperty(key: string | number | symbol): boolean
-}
 
 type KeyFactory = (previousKey: string, currentKey: string) => string
 
@@ -31,8 +27,6 @@ const getObjectKeys = (obj: ObjectWithKeys): readonly string[] => {
   return Object.keys(obj)
 }
 
-const hasOwnProperty = Object.prototype.hasOwnProperty
-
 interface ObjectIdLike {
   readonly _bsontype: 'ObjectId'
 }
@@ -48,8 +42,12 @@ const isDateInstance = (value: unknown): value is Date => value instanceof Date
 
 // Optimized empty check with early returns
 const isEmptyValue = (value: unknown): boolean => {
-  if (value === null || value === undefined) return true
-  if (Array.isArray(value)) return value.length === 0
+  if (value === null || value === undefined) {
+    return true
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0
+  }
   return false
 }
 
@@ -117,13 +115,15 @@ class ObjectsClass {
       `${previousKey}.${currentKey}`
   ): Record<string, string> => {
     const toReturn = Object.create(null) as Record<string, string>
-    const stack: Array<[AnyObject, string]> = [[ob, '']]
+    const stack: [AnyObject, string][] = [[ob, '']]
 
     while (stack.length > 0) {
       const [obj, path] = stack.pop()!
-      
+
       for (const key in obj) {
-        if (!hasOwnProperty.call(obj, key)) continue
+        if (!Object.hasOwn(obj, key)) {
+          continue
+        }
 
         const value = obj[key]
         const newKey = path ? keyFactory(path, key) : key
@@ -217,18 +217,24 @@ class ObjectsClass {
    * @param {string, Array, Object} value
    */
   isEmpty = (value: any): boolean => {
-    if (value === null || value === undefined) return true
-    
+    if (value === null || value === undefined) {
+      return true
+    }
+
     const type = typeof value
-    if (type === 'string' || Array.isArray(value)) return value.length === 0
-    
-    if (value instanceof Map || value instanceof Set) return value.size === 0
-    
+    if (type === 'string' || Array.isArray(value)) {
+      return value.length === 0
+    }
+
+    if (value instanceof Map || value instanceof Set) {
+      return value.size === 0
+    }
+
     if (type === 'object') {
       // Use Object.keys for better performance on modern engines
       return Object.keys(value).length === 0
     }
-    
+
     return false
   }
 
@@ -242,7 +248,7 @@ class ObjectsClass {
    */
   deleteNulls = (object: AnyObject) => {
     const obj = object
-    const isArray = obj instanceof Array
+    const isArray = Array.isArray(obj)
 
     for (const k in obj) {
       if (obj[k] === null) {
@@ -265,7 +271,10 @@ class ObjectsClass {
   ): T {
     const result = mutate ? obj : { ...obj }
     for (const k in result) {
-      if (hasOwnProperty.call(result, k) && !predicate(k as keyof T, result[k], obj)) {
+      if (
+        Object.hasOwn(result, k) &&
+        !predicate(k as keyof T, result[k], obj)
+      ) {
         delete result[k]
       }
     }
@@ -291,7 +300,9 @@ class ObjectsClass {
 
     for (const key in object) {
       // Faster property check using cached reference
-      if (!hasOwnProp.call(object, key)) continue
+      if (!hasOwnProp.call(object, key)) {
+        continue
+      }
 
       const value = object[key]
 
@@ -350,8 +361,8 @@ class ObjectsClass {
   ): OUT {
     const result = (mutate ? obj : {}) as OUT
     for (const k in obj) {
-      if (hasOwnProperty.call(obj, k)) {
-        (result as any)[k] = mapper(k, obj[k], obj)
+      if (Object.hasOwn(obj, k)) {
+        ;(result as any)[k] = mapper(k, obj[k], obj)
       }
     }
     return result
@@ -363,7 +374,7 @@ class ObjectsClass {
   ): StringMap<T[keyof T]> {
     const result = {} as StringMap<T[keyof T]>
     for (const k in obj) {
-      if (hasOwnProperty.call(obj, k)) {
+      if (Object.hasOwn(obj, k)) {
         result[mapper(k, obj[k], obj)] = obj[k]
       }
     }
@@ -392,10 +403,10 @@ class ObjectsClass {
   ): { [P in keyof IN]: OUT } {
     const result = {} as { [P in keyof IN]: OUT }
     for (const k in obj) {
-      if (hasOwnProperty.call(obj, k)) {
+      if (Object.hasOwn(obj, k)) {
         const r = mapper(k, obj[k], obj)
-        if (r && r[0]) {
-          (result[r[0]] as any) = r[1]
+        if (r?.[0]) {
+          ;(result[r[0]] as any) = r[1]
         }
       }
     }
@@ -407,10 +418,7 @@ class ObjectsClass {
     value: ValueOf<T>
   ): keyof T | undefined {
     for (const key in obj) {
-      if (
-        Object.prototype.hasOwnProperty.call(obj, key) &&
-        obj[key] === value
-      ) {
+      if (Object.hasOwn(obj, key) && obj[key] === value) {
         return key as keyof T
       }
     }
@@ -450,7 +458,7 @@ class ObjectsClass {
   sort<T extends AnyObject>(obj: T, keyOrder: (keyof T)[]): T {
     const r = Object.create(Object.getPrototypeOf(obj)) as T
     const keySet = new Set(keyOrder)
-    
+
     // First pass: add ordered keys
     for (let i = 0; i < keyOrder.length; i++) {
       const key = keyOrder[i]!
@@ -458,7 +466,7 @@ class ObjectsClass {
         r[key] = obj[key]
       }
     }
-    
+
     // Second pass: add remaining keys
     const objKeys = Object.keys(obj) as (keyof T)[]
     for (let i = 0; i < objKeys.length; i++) {
@@ -467,7 +475,7 @@ class ObjectsClass {
         r[k] = obj[k]
       }
     }
-    
+
     return r
   }
 
@@ -504,16 +512,15 @@ class ObjectsClass {
         }
       }
       return obj
-    } else {
-      const result = {} as T
-      for (let i = 0; i < props.length; i++) {
-        const prop = props[i]!
-        if (prop in obj) {
-          result[prop] = obj[prop]
-        }
-      }
-      return result
     }
+    const result = {} as T
+    for (let i = 0; i < props.length; i++) {
+      const prop = props[i]!
+      if (prop in obj) {
+        result[prop] = obj[prop]
+      }
+    }
+    return result
   }
 
   sortObjectDeep<T>(o: T): T {
@@ -551,11 +558,17 @@ class ObjectsClass {
    */
   deepEquals(a: DeepComparable, b: DeepComparable): boolean {
     // Fast path: reference equality (most common case)
-    if (a === b) return true
+    if (a === b) {
+      return true
+    }
 
     // Fast path: handle primitives and null/undefined early
-    if (a == null || b == null) return a === b
-    if (typeof a !== 'object' || typeof b !== 'object') return a === b
+    if (a == null || b == null) {
+      return a === b
+    }
+    if (typeof a !== 'object' || typeof b !== 'object') {
+      return a === b
+    }
 
     // Type guard: both are objects at this point
     const objA = a as ObjectWithKeys
@@ -565,7 +578,9 @@ class ObjectsClass {
     const isArrA = isArray(objA)
     const isArrB = isArray(objB)
 
-    if (isArrA !== isArrB) return false
+    if (isArrA !== isArrB) {
+      return false
+    }
 
     if (isArrA && isArrB) {
       const arrA = objA as readonly unknown[]
@@ -573,7 +588,9 @@ class ObjectsClass {
       const length = arrA.length
 
       // Early return for length mismatch
-      if (length !== arrB.length) return false
+      if (length !== arrB.length) {
+        return false
+      }
 
       // Optimized loop: avoid function call overhead for small arrays
       for (let i = 0; i < length; i++) {
@@ -590,7 +607,9 @@ class ObjectsClass {
     const isDateA = objA instanceof Date
     const isDateB = objB instanceof Date
 
-    if (isDateA !== isDateB) return false
+    if (isDateA !== isDateB) {
+      return false
+    }
     if (isDateA && isDateB) {
       // Use valueOf() for better performance than getTime()
       return (objA as Date).valueOf() === (objB as Date).valueOf()
@@ -600,7 +619,9 @@ class ObjectsClass {
     const isRegExpA = objA instanceof RegExp
     const isRegExpB = objB instanceof RegExp
 
-    if (isRegExpA !== isRegExpB) return false
+    if (isRegExpA !== isRegExpB) {
+      return false
+    }
     if (isRegExpA && isRegExpB) {
       // Compare source and flags separately for better performance
       const regA = objA as RegExp
@@ -614,12 +635,16 @@ class ObjectsClass {
     const length = keysA.length
 
     // Early return for key count mismatch
-    if (length !== keysB.length) return false
+    if (length !== keysB.length) {
+      return false
+    }
 
     // Optimized property existence check
     for (let i = 0; i < length; i++) {
       const key = keysA[i]!
-      if (!hasOwnProperty.call(objB, key)) return false
+      if (!Object.hasOwn(objB, key)) {
+        return false
+      }
     }
 
     // Deep comparison of property values

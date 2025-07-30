@@ -1,9 +1,7 @@
 import { Objects } from '@goatlab/js-utils'
 import { AnyObject, FluentQuery } from '../../types'
 
-export const extractInclude = <T>(
-  include?: FluentQuery<T>['include']
-) => {
+export const extractInclude = <T>(include?: FluentQuery<T>['include']) => {
   if (!include) {
     return undefined
   }

@@ -1,6 +1,6 @@
 import { CommonLogger, Errors, Strings } from '../index'
-import type { AnyFunction } from '../types'
 import { Time } from '../Time'
+import type { AnyFunction } from '../types'
 
 export interface TryCatchOptions {
   /**
@@ -66,7 +66,9 @@ export function tryCatch<T extends AnyFunction>(
       if (onError) {
         try {
           return await onError(Errors.anyToError(err)) // eslint-disable-line @typescript-eslint/return-await
-        } catch {}
+        } catch {
+          // Intentionally suppress errors from onError handler
+        }
       }
       // returns undefined, but doesn't rethrow
     }
@@ -76,7 +78,7 @@ export function tryCatch<T extends AnyFunction>(
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const TryCatch =
   (opt: TryCatchOptions = {}): MethodDecorator =>
-  (target, key, descriptor) => {
+  (_target, _key, descriptor) => {
     const originalFn = descriptor.value
     descriptor.value = tryCatch(originalFn as any, opt)
     return descriptor

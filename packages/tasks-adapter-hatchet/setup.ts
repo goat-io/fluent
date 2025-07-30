@@ -1,7 +1,7 @@
 import { Network } from 'testcontainers'
+import { cleanGlobalData, writeGlobalData } from './src/test/const'
 import { getHatchetContainer } from './src/test/hatchet'
 import { getPostgres } from './src/test/postgres'
-import { cleanGlobalData, writeGlobalData } from './src/test/const'
 
 export default async () => {
   // create shared network

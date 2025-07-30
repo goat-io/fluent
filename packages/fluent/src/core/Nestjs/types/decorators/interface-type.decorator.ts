@@ -2,11 +2,11 @@
  * The API surface of this module has been heavily inspired by the "type-graphql" library (https://github.com/MichalLytek/type-graphql), originally designed & released by Michal Lytek.
  */
 
-import { isString, ClassType } from '../common'
+import { ClassType, isString } from '../common'
+import { addClassTypeMetadata } from '../interfaces/add-class-type-metadata.util'
 import { ResolveTypeFn } from '../interfaces/resolve-type-fn.interface'
 import { LazyMetadataStorage } from '../lazy-metadata.storage'
 import { TypeMetadataStorage } from '../type-metadata.storage'
-import { addClassTypeMetadata } from '../interfaces/add-class-type-metadata.util'
 
 /**
  * Interface defining options that can be passed to `@InterfaceType()` decorator.
@@ -56,7 +56,7 @@ export function InterfaceType(
     const addInterfaceMetadata = () => {
       const metadata = {
         name: name || target.name,
-        target,
+        target: target as unknown as new (...args: any[]) => any,
         ...options,
         interfaces: options.implements
       }
@@ -69,6 +69,6 @@ export function InterfaceType(
 
     LazyMetadataStorage.store(() => addInterfaceMetadata())
 
-    addClassTypeMetadata(target, ClassType.INTERFACE)
+    addClassTypeMetadata(target, ClassType.Interface)
   }
 }

@@ -1,6 +1,24 @@
-import { Primitives, PrimitivesArray, AnyObject, Concrete, Unpacked, PaginatedData, ExpandRecursively, Paginator } from '@goatlab/js-utils'
+import {
+  AnyObject,
+  Concrete,
+  ExpandRecursively,
+  PaginatedData,
+  Paginator,
+  Primitives,
+  PrimitivesArray,
+  Unpacked
+} from '@goatlab/js-utils'
 
-export { Primitives, PrimitivesArray, AnyObject, Concrete, Unpacked, PaginatedData, ExpandRecursively, Paginator }
+export {
+  Primitives,
+  PrimitivesArray,
+  AnyObject,
+  Concrete,
+  Unpacked,
+  PaginatedData,
+  ExpandRecursively,
+  Paginator
+}
 
 export type QueryFieldSelector<T> = Partial<{
   [K in keyof Concrete<T>]: Concrete<T>[K] extends object
@@ -15,11 +33,11 @@ export type QueryOrderSelector<T> = Partial<{
 }>
 
 export type QueryOperations<T> = {
-  [key in LogicOperator]: key extends LogicOperator.in
+  [key in LogicOperator]: key extends LogicOperator.In
     ? T[]
-    : key extends LogicOperator.notIn
-    ? T[]
-    : T
+    : key extends LogicOperator.NotIn
+      ? T[]
+      : T
 }
 
 export type QueryWhereFitler<T> = Partial<{
@@ -69,25 +87,37 @@ export type GetSelectedFromInclude<T extends FluentQuery<Model>, Model> = {
       NonNullable<Model[P]> extends any[]
       ? T['include'][P] extends { withPivot: true }
         ? // Array with pivot
-          | (QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>> & {
+            | (QueryOutput<
+                T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>,
+                Unpacked<NonNullable<Model[P]>>
+              > & {
                 pivot: AnyObject
               })[]
             | AddUndefinedIfNullable<Model[P]>
         : // Array without pivot
-          | (QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>> & {
+            | (QueryOutput<
+                T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>,
+                Unpacked<NonNullable<Model[P]>>
+              > & {
                 pivot: AnyObject
               })[]
             | AddUndefinedIfNullable<Model[P]>
       : // Not an array
-      T['include'][P] extends { withPivot: true }
-      ? // Not an array an includes pivot
-        | (QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>> & {
-              pivot: AnyObject
-            })
-          | AddUndefinedIfNullable<Model[P]>
-      : // Not an array an does not include pivot
-        | QueryOutput<T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>, Unpacked<NonNullable<Model[P]>>>
-          | AddUndefinedIfNullable<Model[P]>
+        T['include'][P] extends { withPivot: true }
+        ? // Not an array an includes pivot
+            | (QueryOutput<
+                T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>,
+                Unpacked<NonNullable<Model[P]>>
+              > & {
+                pivot: AnyObject
+              })
+            | AddUndefinedIfNullable<Model[P]>
+        : // Not an array an does not include pivot
+            | QueryOutput<
+                T['include'][P] & FluentQuery<Unpacked<NonNullable<Model[P]>>>,
+                Unpacked<NonNullable<Model[P]>>
+              >
+            | AddUndefinedIfNullable<Model[P]>
     : // If it does not extend object -> true, return the model
       Model[P]
 }
@@ -125,9 +155,9 @@ export type QueryOutput<
       ? PaginatedData<GetSelectedFromObject<T, Model>>
       : ExpandRecursively<GetSelectedFromObject<T, Model>>
     : // If it does not extend select
-    T extends { paginated: T['paginated'] }
-    ? PaginatedData<Model>
-    : Model & GetSelectedFromInclude<T, Model>
+      T extends { paginated: T['paginated'] }
+      ? PaginatedData<Model>
+      : Model & GetSelectedFromInclude<T, Model>
 >
 
 export interface Deleted {
@@ -135,22 +165,22 @@ export interface Deleted {
 }
 
 export enum LogicOperator {
-  equals = 'equals',
-  lessThan = 'lessThan',
-  greaterThan = 'greaterThan',
-  lessOrEqualThan = 'lessOrEqualThan',
-  greaterOrEqualThan = 'greaterOrEqualThan',
-  isNot = 'isNot',
-  in = 'in',
-  notIn = 'notIn',
-  like = 'like',
-  regexp = 'regexp',
-  startsWith = 'startsWith',
-  endsWith = 'endsWith',
-  contains = 'contains',
-  arrayContains = 'arrayContains',
-  exists = 'exists',
-  notExists = 'notExists'
+  Equals = 'equals',
+  LessThan = 'lessThan',
+  GreaterThan = 'greaterThan',
+  LessOrEqualThan = 'lessOrEqualThan',
+  GreaterOrEqualThan = 'greaterOrEqualThan',
+  IsNot = 'isNot',
+  In = 'in',
+  NotIn = 'notIn',
+  Like = 'like',
+  Regexp = 'regexp',
+  StartsWith = 'startsWith',
+  EndsWith = 'endsWith',
+  Contains = 'contains',
+  ArrayContains = 'arrayContains',
+  Exists = 'exists',
+  NotExists = 'notExists'
 }
 
 export type FluentHasManyRelatedAttribute<T> = Partial<{

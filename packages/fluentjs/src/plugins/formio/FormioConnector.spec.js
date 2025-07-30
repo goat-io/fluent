@@ -1,8 +1,8 @@
 /* global describe, it, beforeAll */
 import 'babel-polyfill'
-import chai from 'chai'
-import to from 'await-to-js'
 import { Fluent } from '@goatlab/goat-fluent'
+import to from 'await-to-js'
+import chai from 'chai'
 import formio from './FluentConnector'
 
 const DB = Fluent.model({
@@ -23,7 +23,7 @@ const DB = Fluent.model({
 
 const expect = chai.expect
 let testModel
-let token = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
+const token = 'w5h8l6pPWJ2ld990xCfApoPW74xKfA'
 // SKIP - Tests use old Fluent API that is no longer available
 describe.skip('Given a FLUENT Remote Instance', () => {
   beforeAll(async () => {
@@ -58,14 +58,14 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('Should insert Data', async () => {
-    let inserted = await testModel.remote({ token }).insert({
+    const inserted = await testModel.remote({ token }).insert({
       data: {
         name: 'Ignacio',
         age: 29
       }
     })
 
-    let inserted2 = await testModel.remote({ token }).insert({
+    const inserted2 = await testModel.remote({ token }).insert({
       data: {
         name: 'Andres',
         age: 15
@@ -77,7 +77,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('Should get remote data', async () => {
-    let [error, data] = await to(testModel.remote({ token }).get())
+    const [error, data] = await to(testModel.remote({ token }).get())
 
     if (error) {
       console.log(error)
@@ -88,7 +88,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('DB should get data for any local Model', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       DB.table({
         remoteConnection: {
           baseUrl: 'https://suopywgtyuabhru.form.io',
@@ -109,7 +109,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('select() should filter and name specific columns', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel.remote({ token }).select('data.name as Name').get()
     )
 
@@ -121,7 +121,9 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('pluck() should return a single array', async () => {
-    let [error, data] = await to(testModel.remote({ token }).pluck('data.name'))
+    const [error, data] = await to(
+      testModel.remote({ token }).pluck('data.name')
+    )
 
     if (error) {
       console.log(error)
@@ -132,7 +134,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('orderBy() should order results desc', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel
         .remote({ token })
         .select('data.name as Name')
@@ -149,7 +151,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('orderBy() should order results asc', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel
         .remote({ token })
         .select('data.name as Name')
@@ -166,7 +168,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('orderBy() should order by Dates with Select()', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel
         .remote({ token })
         .select('data.name as Name', 'created as created')
@@ -182,7 +184,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('orderBy() should order by Dates without Select()', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel.remote({ token }).orderBy('created', 'asc').get()
     )
 
@@ -195,7 +197,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('limit() should limit the amount of results', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel
         .remote({ token })
         .select('data.name as Name', 'created as created')
@@ -212,7 +214,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('offset() should start at the given position', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel
         .remote({ token })
         .select('data.name as Name', 'created as created')
@@ -231,7 +233,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('where() should filter the data', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel
         .remote({ token })
         .where('data.name', '=', 'Andres')
@@ -248,7 +250,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('first() should take the first result from data', async () => {
-    let [error, data] = await to(
+    const [error, data] = await to(
       testModel
         .remote({ token })
         .where('data.name', '=', 'Ignacio')
@@ -265,7 +267,7 @@ describe.skip('Given a FLUENT Remote Instance', () => {
   })
 
   it('collect() should return the data as collection', async () => {
-    let [error, data] = await to(testModel.remote({ token }).collect())
+    const [error, data] = await to(testModel.remote({ token }).collect())
 
     if (error) {
       console.log(error)
@@ -274,13 +276,13 @@ describe.skip('Given a FLUENT Remote Instance', () => {
 
     describe('Collection methods:', () => {
       it('avg() should calculate avg on an obj attribute', () => {
-        let avg = data.avg('data.age')
+        const avg = data.avg('data.age')
 
         expect(avg).to.be.equal(22)
       })
 
       it('chunks() and collapse() an array', () => {
-        var chunk = data.chunks(3).get()
+        const chunk = data.chunks(3).get()
 
         expect(chunk.length).to.be.equal(1)
 
@@ -291,7 +293,9 @@ describe.skip('Given a FLUENT Remote Instance', () => {
         //expect(collapsed.length).to.be.equal(2);
       })
 
-      it('concat() should merge two arrays', () => {})
+      it('concat() should merge two arrays', () => {
+        // TODO: Implement test for concat() functionality
+      })
     })
   })
 

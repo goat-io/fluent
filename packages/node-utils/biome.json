@@ -1,0 +1,8 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.1.3/schema.json",
+  "extends": ["@goatlab/biome"],
+  "files": {
+    "includes": ["src/**", "*.ts", "*.js"],
+    "ignoreUnknown": false
+  }
+}

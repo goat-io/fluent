@@ -3,10 +3,10 @@ import { metabaseFetch } from '../../common/fetch-wrapper'
 export async function getOrCreateDashboard({
   sessionToken,
   collectionId,
-  databaseId,
+  databaseId: _databaseId,
   baseUrl,
   apiKey,
-  questionIds,
+  questionIds
 }: {
   baseUrl: string
   sessionToken?: string
@@ -23,13 +23,12 @@ export async function getOrCreateDashboard({
     accumulatedAccounts: number
   }
 }) {
-
   const dashboardsRes = await metabaseFetch({
     baseUrl,
     sessionToken,
     apiKey,
     endpoint: '/api/dashboard',
-    method: 'GET',
+    method: 'GET'
   })
 
   if (!dashboardsRes.ok) {
@@ -37,17 +36,19 @@ export async function getOrCreateDashboard({
     return
   }
 
-  const dashboards = await dashboardsRes.json() as Array<{ id: number; name: string }>
+  const dashboards = (await dashboardsRes.json()) as Array<{
+    id: number
+    name: string
+  }>
 
-  let dashboardId
+  let dashboardId: number | undefined
   const existingDashboard = dashboards.find(
-    (d) => d.name === 'Sodium - Dashboard',
+    d => d.name === 'Sodium - Dashboard'
   )
 
   if (existingDashboard) {
     dashboardId = existingDashboard.id
   } else {
-
     // Create new dashboard
     const createRes = await metabaseFetch({
       baseUrl,
@@ -57,8 +58,8 @@ export async function getOrCreateDashboard({
       method: 'POST',
       body: JSON.stringify({
         name: 'Sodium - Dashboard',
-        collection_id: collectionId,
-      }),
+        collection_id: collectionId
+      })
     })
 
     if (!createRes.ok) {
@@ -66,7 +67,7 @@ export async function getOrCreateDashboard({
       return null
     }
 
-    const dashboardData = await createRes.json() as { id: number }
+    const dashboardData = (await createRes.json()) as { id: number }
     dashboardId = dashboardData.id
   }
 
@@ -80,7 +81,7 @@ export async function getOrCreateDashboard({
       col: 0,
       size_x: 6,
       size_y: 3,
-      dashboard_tab_id: 1,
+      dashboard_tab_id: 1
     },
     {
       id: 101,
@@ -89,7 +90,7 @@ export async function getOrCreateDashboard({
       col: 6,
       size_x: 6,
       size_y: 3,
-      dashboard_tab_id: 1,
+      dashboard_tab_id: 1
     },
     {
       id: 102,
@@ -98,7 +99,7 @@ export async function getOrCreateDashboard({
       col: 12,
       size_x: 6,
       size_y: 3,
-      dashboard_tab_id: 1,
+      dashboard_tab_id: 1
     },
     {
       id: 103,
@@ -107,7 +108,7 @@ export async function getOrCreateDashboard({
       col: 18,
       size_x: 6,
       size_y: 3,
-      dashboard_tab_id: 1,
+      dashboard_tab_id: 1
     },
 
     // Created Accounts This Month (left side, half width)
@@ -118,7 +119,7 @@ export async function getOrCreateDashboard({
       col: 0,
       size_x: 12,
       size_y: 4,
-      dashboard_tab_id: 1,
+      dashboard_tab_id: 1
     },
 
     // AVG user creation month
@@ -129,7 +130,7 @@ export async function getOrCreateDashboard({
       col: 13,
       size_x: 12,
       size_y: 4,
-      dashboard_tab_id: 1,
+      dashboard_tab_id: 1
     },
 
     // Accumulated Accounts (right side, half width)
@@ -140,8 +141,8 @@ export async function getOrCreateDashboard({
       col: 0,
       size_x: 24,
       size_y: 8,
-      dashboard_tab_id: 1,
-    },
+      dashboard_tab_id: 1
+    }
   ]
 
   // Update the dashboard with the defined layout
@@ -158,13 +159,14 @@ export async function getOrCreateDashboard({
       tabs: [
         {
           id: 1,
-          name: 'User Acquisition',
-        },
-      ],
-    }),
+          name: 'User Acquisition'
+        }
+      ]
+    })
   })
 
   if (updateRes.ok) {
+    // Dashboard updated successfully
   } else {
     console.error('❌ Failed to update dashboard:', await updateRes.text())
   }

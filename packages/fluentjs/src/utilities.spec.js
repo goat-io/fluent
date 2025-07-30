@@ -7,7 +7,7 @@ const expect = chai.expect
 
 describe('Given an Instance of Utilities', () => {
   it('It should remove null values recursively from an Object', () => {
-    let object = {
+    const object = {
       property: 'val1',
       property1: null,
       nested: {
@@ -23,8 +23,8 @@ describe('Given an Instance of Utilities', () => {
         }
       }
     }
-    let test = Utilities.deleteNulls(object)
-    let expected = {
+    const test = Utilities.deleteNulls(object)
+    const expected = {
       property: 'val1',
       nested: {
         property: 'val1',

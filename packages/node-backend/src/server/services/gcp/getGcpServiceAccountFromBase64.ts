@@ -14,11 +14,11 @@ export interface GCPServiceAccount {
 }
 
 export function getGcpServiceAccountFromBase64(
-  base64: string,
+  base64: string
 ): undefined | GCPServiceAccount {
   // Create Google credentials from Secret
   const serviceAccount = JSON.parse(
-    Buffer.from(base64, 'base64').toString('utf8'),
+    Buffer.from(base64, 'base64').toString('utf8')
   )
 
   return serviceAccount as GCPServiceAccount

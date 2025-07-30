@@ -1,27 +1,28 @@
 // npx vitest run ./src/server/middleware/logs.middleware.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Request, Response, NextFunction } from 'express'
+
+import type { NextFunction, Request, Response } from 'express'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  httpResponseCodeColor,
-  httpResponseTimeColor,
+  expressRequestLogger,
   getActualRequestDurationInMilliseconds,
   getCurrentTimeFormatted,
-  expressRequestLogger
+  httpResponseCodeColor,
+  httpResponseTimeColor
 } from './logs.middleware'
 
 // Mock kleur colors
 vi.mock('kleur/colors', () => ({
-  bgBlack: vi.fn((str) => `bgBlack(${str})`),
-  green: vi.fn((str) => `green(${str})`),
-  magenta: vi.fn((str) => `magenta(${str})`),
-  red: vi.fn((str) => `red(${str})`),
-  yellow: vi.fn((str) => `yellow(${str})`)
+  bgBlack: vi.fn(str => `bgBlack(${str})`),
+  green: vi.fn(str => `green(${str})`),
+  magenta: vi.fn(str => `magenta(${str})`),
+  red: vi.fn(str => `red(${str})`),
+  yellow: vi.fn(str => `yellow(${str})`)
 }))
 
 // Mock @goatlab/js-utils
 vi.mock('@goatlab/js-utils', () => ({
   Time: {
-    ms: vi.fn((ms) => `${ms}ms`)
+    ms: vi.fn(ms => `${ms}ms`)
   }
 }))
 
@@ -130,7 +131,7 @@ describe('logs.middleware', () => {
       const result1 = getCurrentTimeFormatted()
       // Just validate the format, don't try to mock timers
       const result2 = getCurrentTimeFormatted()
-      
+
       // Results might be the same due to timer precision, but should be valid ISO strings
       expect(result1).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
       expect(result2).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
@@ -187,11 +188,16 @@ describe('logs.middleware', () => {
         mockLogger
       )
 
-      expect(mockResponse.on).toHaveBeenCalledWith('finish', expect.any(Function))
+      expect(mockResponse.on).toHaveBeenCalledWith(
+        'finish',
+        expect.any(Function)
+      )
     })
 
     it('should log request when response finishes', () => {
-      let finishHandler: Function = () => {}
+      let finishHandler: Function = () => {
+        /* placeholder handler */
+      }
 
       mockResponse.on = vi.fn((event, handler) => {
         if (event === 'finish') {
@@ -213,9 +219,12 @@ describe('logs.middleware', () => {
     })
 
     it('should handle TRPC batch requests', () => {
-      let finishHandler: Function = () => {}
+      let finishHandler: Function = () => {
+        /* placeholder handler */
+      }
 
-      mockRequest.originalUrl = '/trpc/endpoint1,endpoint2?input=%5B%7B%22param%22%3A%22value%22%7D%5D&batch=1'
+      mockRequest.originalUrl =
+        '/trpc/endpoint1,endpoint2?input=%5B%7B%22param%22%3A%22value%22%7D%5D&batch=1'
 
       mockResponse.on = vi.fn((event, handler) => {
         if (event === 'finish') {
@@ -237,7 +246,9 @@ describe('logs.middleware', () => {
     })
 
     it('should handle malformed JSON in batch requests', () => {
-      let finishHandler: Function = () => {}
+      let finishHandler: Function = () => {
+        /* placeholder handler */
+      }
 
       mockRequest.originalUrl = '/trpc/endpoint1?input=invalid-json&batch=1'
 
@@ -263,7 +274,9 @@ describe('logs.middleware', () => {
     })
 
     it('should handle URLs with query parameters but no batch', () => {
-      let finishHandler: Function = () => {}
+      let finishHandler: Function = () => {
+        /* placeholder handler */
+      }
 
       mockRequest.originalUrl = '/api/test?param=value&other=test'
 
@@ -287,7 +300,9 @@ describe('logs.middleware', () => {
     })
 
     it('should handle error status codes', () => {
-      let finishHandler: Function = () => {}
+      let finishHandler: Function = () => {
+        /* placeholder handler */
+      }
 
       mockResponse.statusCode = 500
       mockResponse.statusMessage = 'Internal Server Error'
@@ -312,7 +327,9 @@ describe('logs.middleware', () => {
     })
 
     it('should handle 4xx status codes', () => {
-      let finishHandler: Function = () => {}
+      let finishHandler: Function = () => {
+        /* placeholder handler */
+      }
 
       mockResponse.statusCode = 404
       mockResponse.statusMessage = 'Not Found'
@@ -337,7 +354,9 @@ describe('logs.middleware', () => {
     })
 
     it('should decode URL components', () => {
-      let finishHandler: Function = () => {}
+      let finishHandler: Function = () => {
+        /* placeholder handler */
+      }
 
       mockRequest.originalUrl = '/api/test%20with%20spaces'
 

@@ -38,13 +38,19 @@ export function isTypeResolver<T extends object>(
   fn: any
 ): fn is TypeResolver<T> {
   // 1. A type provider must be a function
-  if (typeof fn !== 'function') return false
+  if (typeof fn !== 'function') {
+    return false
+  }
 
   // 2. A class constructor is not a type provider
-  if (/^class/.test(fn.toString())) return false
+  if (/^class/.test(fn.toString())) {
+    return false
+  }
 
   // 3. Built-in types like Date & Array are not type providers
-  if (isBuiltinType(fn)) return false
+  if (isBuiltinType(fn)) {
+    return false
+  }
 
   // TODO(bajtos): support model classes defined via ES5 constructor function
 
@@ -86,13 +92,13 @@ export function isBuiltinType(fn: Function): boolean {
  * @param fn - A type class or a type provider.
  * @returns The resolved type.
  */
- export function resolveType<T extends object>(
-  fn: TypeResolver<T> | Class<T>,
-): Class<T>;
+export function resolveType<T extends object>(
+  fn: TypeResolver<T> | Class<T>
+): Class<T>
 
 // An overload to handle the case when `fn` is not a class nor a resolver.
-export function resolveType<T>(fn: T): T;
+export function resolveType<T>(fn: T): T
 
 export function resolveType<T extends object>(fn: TypeResolver<T> | Class<T>) {
-  return isTypeResolver(fn) ? fn() : fn;
+  return isTypeResolver(fn) ? fn() : fn
 }

@@ -1,10 +1,10 @@
 import { Type } from './common'
+import { UndefinedTypeError } from './errors/undefined-type.error'
 import {
   GqlTypeReference,
   ReturnTypeFunc
 } from './interfaces/return-type-func.interface'
 import { TypeOptions } from './interfaces/type-options.interface'
-import { UndefinedTypeError } from './errors/undefined-type.error'
 
 const get = (obj, path, defaultValue = undefined) => {
   const travel = regexp =>

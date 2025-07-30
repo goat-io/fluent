@@ -1,6 +1,7 @@
-import { pRetry, pRetryFn } from './Promises/pRetry'
-import { pMap } from './Promises/pMap'
 import { TryCatch, tryCatch } from './Errors/tryCatch'
+import { pMap } from './Promises/pMap'
+import { pRetry, pRetryFn } from './Promises/pRetry'
+
 /**
  * Wraps async calls in try catch blocks
  * to simplify syntax.
@@ -40,7 +41,9 @@ class PromisesClass {
   retryFunction = pRetryFn
 
   async hang(): Promise<never> {
-    return await new Promise<never>(() => void 0)
+    return await new Promise<never>(() => {
+      // Intentionally empty - this promise never resolves
+    })
   }
 
   tryCatch = tryCatch

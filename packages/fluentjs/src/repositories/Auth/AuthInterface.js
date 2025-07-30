@@ -23,7 +23,7 @@ export default stampit({
     logOut() {
       throw new Error('logOut() method not implemented in this connector')
     },
-    attempt(credentials, baseUrl, role) {
+    attempt(_credentials, _baseUrl, _role) {
       throw new Error('authenticate() method not implemented in this connector')
     }
   }

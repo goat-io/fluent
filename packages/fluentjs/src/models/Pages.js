@@ -1,7 +1,7 @@
+import dayjs from 'dayjs'
 import { Fluent } from '../fluent'
 import Utilities from '../utilities'
 import Configuration from './Configuration'
-import dayjs from 'dayjs'
 
 export default Fluent.model({
   properties: {
@@ -33,13 +33,13 @@ export default Fluent.model({
      * @return {Object} App pages
      */
     async setOffline({ appConf }) {
-      let localPages = await this.local().first()
-      let localDate = this.getUpdatedDate(localPages)
-      let config = await Configuration.local().first()
+      const localPages = await this.local().first()
+      const localDate = this.getUpdatedDate(localPages)
+      const config = await Configuration.local().first()
       let offlinePages = Utilities.get(() => appConf.offlineFiles.Pages[0].data)
 
       // Check if pages follows new or legacy format
-      if (!offlinePages.hasOwnProperty('pages')) {
+      if (!Object.hasOwn(offlinePages, 'pages')) {
         const p = []
 
         for (let i = 0; i < appConf.offlineFiles.Pages.length; i += 1) {
@@ -72,11 +72,11 @@ export default Fluent.model({
      * @return {Object} App pages
      */
     async setOnline() {
-      let localPages = await this.local().first()
+      const localPages = await this.local().first()
       let pages = await this.remote().limit(9999999).get()
 
       // Check if pages follows new or legacy format
-      if (!pages[0].data.hasOwnProperty('pages')) {
+      if (!Object.hasOwn(pages[0].data, 'pages')) {
         const p = []
 
         for (let i = 0; i < pages.length; i += 1) {
