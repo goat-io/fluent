@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 1.1.2
+
+### Patch Changes
+
+- Additional check for Vault encryption
+
 ## 1.1.1
 
 ### Patch Changes

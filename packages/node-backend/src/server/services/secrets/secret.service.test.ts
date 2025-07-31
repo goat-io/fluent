@@ -3,7 +3,7 @@
 // Test Updates:
 // - Updated synchronous method tests to use preload() before calling sync methods
 // - Removed legacy synchronous methods (getSecretSyncLegacy, getSecretJsonSyncLegacy)
-// - No changes needed for VAULT/ENV encryption as the service handles encryption internally
+// - Updated VAULT provider to require encryption for all stored values
 
 import * as fs from 'node:fs'
 import * as path from 'node:path'
@@ -274,7 +274,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       service = new SecretService({
         provider: 'VAULT',
         location: `test/secrets-${Date.now()}`, // Unique path for each test
-        encryptionKey: 'not-used-for-vault',
+        encryptionKey: 'test-encryption-key-40-chars-long!@#$%^&*()',
         vaultConfig: {
           endpoint: vaultUrl,
           token: vaultToken,
@@ -356,7 +356,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       const serviceWithNamespace = new SecretService({
         provider: 'VAULT',
         location: 'namespaced/secrets',
-        encryptionKey: 'not-used',
+        encryptionKey: 'test-encryption-key-40-chars-long!@#$%^&*()',
         vaultConfig: {
           endpoint: vaultUrl,
           token: vaultToken,
@@ -384,7 +384,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       const serviceWithCustomMount = new SecretService({
         provider: 'VAULT',
         location: 'custom-path',
-        encryptionKey: 'not-used',
+        encryptionKey: 'test-encryption-key-40-chars-long!@#$%^&*()',
         vaultConfig: {
           endpoint: vaultUrl,
           token: vaultToken,
@@ -404,7 +404,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       const serviceWithBadToken = new SecretService({
         provider: 'VAULT',
         location: 'test/bad-token',
-        encryptionKey: 'not-used',
+        encryptionKey: 'test-encryption-key-40-chars-long!@#$%^&*()',
         vaultConfig: {
           endpoint: vaultUrl,
           token: 'invalid-token',
@@ -431,6 +431,29 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       // Load again - should fetch from Vault, not cache
       const updated = await service.loadSecretsFromVault()
       expect(updated.API_KEY).toBe('new-key')
+    })
+
+    it('should require encryption key for Vault operations', async () => {
+      const serviceWithoutKey = new SecretService({
+        provider: 'VAULT',
+        location: 'test/no-key',
+        encryptionKey: '',
+        vaultConfig: {
+          endpoint: vaultUrl,
+          token: vaultToken,
+          mount: 'secret'
+        }
+      })
+
+      await expect(
+        serviceWithoutKey.storeSecretsToVault({ API_KEY: 'test' })
+      ).rejects.toThrow(
+        'Encryption key is required for storing secrets in Vault'
+      )
+
+      await expect(serviceWithoutKey.loadSecretsFromVault()).rejects.toThrow(
+        'Encryption key is required for Vault provider'
+      )
     })
   })
 })

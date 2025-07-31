@@ -360,6 +360,11 @@ export class SecretService<SecretType> {
       throw new Error('Vault configuration is required for VAULT provider')
     }
 
+    // Check encryption key early - Vault requires encryption for security
+    if (!this.encryptionKey) {
+      throw new Error('Encryption key is required for Vault provider')
+    }
+
     const cacheKey = `vault_${this.vaultConfig.endpoint}_${this.location}`
     const cached = this.getCache(cacheKey)
     if (cached) {
@@ -402,14 +407,15 @@ export class SecretService<SecretType> {
       // Vault KV v2 stores data in data.data
       let secrets = data.data?.data || data.data || {}
 
-      // Apply tenant-specific decryption if encryption key is provided
-      if (this.encryptionKey) {
-        try {
-          secrets = Security.decryptObject(secrets, this.encryptionKey)
-        } catch (error) {
-          // If decryption fails, assume secrets are not encrypted
-          console.warn(`Failed to decrypt Vault secrets: ${error.message}`)
-        }
+      // Vault stores encrypted values - decrypt them with the tenant's encryption key
+      try {
+        // All values in Vault should be encrypted for security
+        secrets = Security.decryptObject(secrets, this.encryptionKey)
+      } catch (error) {
+        console.error(`Failed to decrypt Vault secrets: ${error.message}`)
+        throw new Error(
+          `Vault secrets decryption failed - ensure all values are properly encrypted`
+        )
       }
 
       this.setCache(cacheKey, secrets, this.cacheTTL)
@@ -451,9 +457,21 @@ export class SecretService<SecretType> {
         headers['X-Vault-Namespace'] = this.vaultConfig.namespace
       }
 
+      // Encrypt all secret values before storing in Vault
+      if (!this.encryptionKey) {
+        throw new Error(
+          'Encryption key is required for storing secrets in Vault'
+        )
+      }
+
+      const encryptedSecrets = Security.encryptObject(
+        secrets as StringMap,
+        this.encryptionKey
+      )
+
       // For Vault KV v2, data needs to be wrapped in a data object
       const payload = {
-        data: secrets
+        data: encryptedSecrets
       }
 
       const response = await fetch(vaultUrl, {
