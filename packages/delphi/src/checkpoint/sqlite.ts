@@ -29,10 +29,10 @@ export class SqliteCheckpointer extends SqliteSaver {
 
     // Create database instance
     const db = new Database(dbPath)
-    
+
     // Initialize parent with the database instance
     super({ db } as any)
-    
+
     this._db = db
     for (const pragma of SQLITE_PRAGMAS) {
       this._db.exec(pragma)

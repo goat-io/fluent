@@ -3,8 +3,8 @@
  * Manages LLM adapter instances and agent lifecycle
  */
 
-import pino from 'pino'
 import type { Logger } from 'pino'
+import pino from 'pino'
 import { LLMAdapter } from '../llm/adapter.js'
 import { Agent } from './orchestrator.js'
 

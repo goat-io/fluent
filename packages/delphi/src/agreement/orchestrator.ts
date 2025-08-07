@@ -252,7 +252,10 @@ export class AgreementOrchestrator extends EventEmitter {
       type: 'metric',
       content: {
         consensusScore,
-        votes: votes.map(v => ({ agentId: v.agentId, vote: (v.payload as any).vote }))
+        votes: votes.map(v => ({
+          agentId: v.agentId,
+          vote: (v.payload as any).vote
+        }))
       },
       references: critiques.map(c => c.id)
     })

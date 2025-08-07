@@ -34,17 +34,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Delphi Package Commands
 
+**Build & Fix Issues:**
+- `cd packages/delphi && pnpm build` - Build TypeScript (should pass without errors)
+- `cd packages/delphi && npx tsc --noEmit` - Check types without building
+- `cd packages/delphi && npx biome check --write --unsafe .` - Auto-fix lint issues
+- `cd packages/delphi && npx biome check src/` - Check specific directory
+
 **Agreement System Testing:**
-- `cd packages/delphi && npx vitest run tests/agreement.spec.ts` - Run agreement tests
+- `cd packages/delphi && npx vitest run tests/agreement.spec.ts` - Run agreement tests (⚠️ 8 failing)
 - `cd packages/delphi && npx vitest run tests/blackboard-cleanup.spec.ts` - Test session cleanup
 - `cd packages/delphi && npx vitest run tests/sqlite-concurrency.spec.ts` - Test SQLite concurrency
 - `cd packages/delphi && npx vitest run tests/circuit-breaker.spec.ts` - Test circuit breaker
+- `cd packages/delphi && npx vitest run --reporter=verbose` - Run all tests with details
 
 **Run Agreement Examples:**
 - `cd packages/delphi && npx tsx examples/agreement-pipeline.ts review --goal "Review PR"` - Code review
 - `cd packages/delphi && npx tsx examples/agreement-pipeline.ts architecture` - Architecture decision
 - `cd packages/delphi && npx tsx examples/agreement-pipeline.ts refactor` - Refactoring discussion
 - `cd packages/delphi && npx tsx examples/model-configuration.ts simple` - Model config example
+- `cd packages/delphi && npx tsx examples/model-configuration.ts custom` - Custom model config
+- `cd packages/delphi && npx tsx examples/model-configuration.ts cost` - Cost-optimized config
 - `cd packages/delphi && npx tsx examples/agreement-with-cleanup.ts` - Session cleanup example
 
 **Debug & Development:**
@@ -148,4 +157,73 @@ Use predefined strategies for common scenarios:
 new DiscussionBuilder()
   .useStrategy('code-review')  // Applies optimized model mapping
   .withProposer({ id: 'author', expertise: ['implementation'] })
+```
+
+## Common TypeScript/Build Fixes
+
+### ES Module Import Issues
+All relative imports must use `.js` extension:
+```typescript
+// ❌ Wrong
+import { Something } from './module'
+
+// ✅ Correct
+import { Something } from './module.js'
+```
+
+### Zod Schema Fixes
+Always specify both key and value types for `z.record()`:
+```typescript
+// ❌ Wrong
+z.record(z.unknown())
+
+// ✅ Correct
+z.record(z.string(), z.unknown())
+```
+
+### Pino Logger Import
+Use default import for pino:
+```typescript
+// ❌ Wrong
+import { pino } from 'pino'
+
+// ✅ Correct
+import pino from 'pino'
+const logger = (pino as any)({ /* config */ })
+```
+
+### SqliteSaver Constructor
+Use database instance, not path:
+```typescript
+// ❌ Wrong
+super({ dbPath: '/path/to/db' })
+
+// ✅ Correct
+const db = new Database(dbPath)
+super({ db } as any)
+```
+
+### OpenTelemetry Type Issues
+Temporary workaround for version conflicts:
+```typescript
+// Add type assertions until versions are aligned
+new BatchSpanProcessor(exporter) as any
+```
+
+### Known Type Assertion Hacks
+These locations use `as any` and need proper typing:
+- `src/checkpoint/sqlite.ts:34` - SqliteSaver constructor
+- `src/graph.ts:470` - checkpointer.getTuple() call
+- `src/utils/tracing.ts:59,70` - OpenTelemetry processors
+- `src/agreement/resource-manager.ts:21` - pino function call
+
+### Quick Type Check
+```bash
+# Check types without building
+cd packages/delphi && npx tsc --noEmit
+
+# If build fails, check for:
+# 1. Missing .js extensions in imports
+# 2. z.record() missing second parameter
+# 3. Duplicate exports in the same file
 ```

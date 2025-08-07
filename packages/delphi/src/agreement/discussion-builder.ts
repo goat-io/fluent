@@ -4,7 +4,11 @@
  */
 import { z } from 'zod'
 import { LLMAdapter } from '../llm/adapter.js'
-import { ModelConfig, ModelConfigSchema, modelSelector } from './model-config.js'
+import {
+  ModelConfig,
+  ModelConfigSchema,
+  modelSelector
+} from './model-config.js'
 import { Agent, AgreementOrchestrator } from './orchestrator.js'
 import { AgentRole, AgreementSessionConfig } from './protocol.js'
 import { ConsensusResult } from './types.js'
@@ -12,9 +16,7 @@ import { ConsensusResult } from './types.js'
 // Discussion context schema
 export const DiscussionContextSchema = z.object({
   goal: z.string(),
-  constraints: z
-    .array(z.string())
-    .optional(),
+  constraints: z.array(z.string()).optional(),
   deliverables: z.array(z.string()),
   successCriteria: z.array(z.string()),
   context: z.record(z.string(), z.unknown()).optional(),
@@ -423,8 +425,13 @@ export class DiscussionBuilder<_T = any> {
           temperature: this.getTemperatureForRole(config.role),
           maxTokens: this.parameters.tokenBudgetPerTurn || 2000,
           useSmall:
-            (typeof config.model === 'string' && (config.model.includes('small') || config.model.includes('haiku'))) ||
-            (typeof config.model === 'object' && config.model?.model && (config.model.model.includes('small') || config.model.model.includes('haiku')))
+            (typeof config.model === 'string' &&
+              (config.model.includes('small') ||
+                config.model.includes('haiku'))) ||
+            (typeof config.model === 'object' &&
+              config.model?.model &&
+              (config.model.model.includes('small') ||
+                config.model.model.includes('haiku')))
         })
 
         return {
@@ -438,11 +445,13 @@ export class DiscussionBuilder<_T = any> {
             config.role,
             execContext.step
           ),
-          tokenUsage: response.usage ? {
-            prompt: response.usage.promptTokens,
-            completion: response.usage.completionTokens,
-            total: response.usage.totalTokens
-          } : undefined
+          tokenUsage: response.usage
+            ? {
+                prompt: response.usage.promptTokens,
+                completion: response.usage.completionTokens,
+                total: response.usage.totalTokens
+              }
+            : undefined
         }
       }
     }

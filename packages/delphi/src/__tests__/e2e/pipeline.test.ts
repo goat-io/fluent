@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { buildGraph } from '../../graph.js'
 import {
   checkpointer,
   cleanupDatabase,
   initializeMemory
 } from '../../checkpoint/sqlite.js'
+import { buildGraph } from '../../graph.js'
 import type { FlowState } from '../../types.js'
 
 describe('E2E Test - Full Pipeline', () => {

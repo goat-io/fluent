@@ -2,13 +2,14 @@
  * Alternative entry point for the Delphi pipeline.
  * Provides programmatic access to the workflow.
  */
-export { buildGraph, FlowStateAnnotation, main } from './graph.js'
+
 export {
   checkpointer,
   cleanupOldCheckpoints,
   initializeMemory,
   performMaintenance
 } from './checkpoint/sqlite.js'
+export { buildGraph, FlowStateAnnotation, main } from './graph.js'
 export * from './types.js'
 export {
   getClaudeProcessPool,

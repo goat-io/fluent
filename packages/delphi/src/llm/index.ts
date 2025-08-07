@@ -10,6 +10,7 @@ import { generateText, streamText } from 'ai'
 import { z } from 'zod'
 import { isRetryableError, RetryableClient } from '../utils/retry.js'
 import { setSpanAttribute, traceAsync } from '../utils/tracing.js'
+import { createOAuthAwareAnthropic, isOAuthToken } from './oauth-adapter.js'
 
 // Configuration schema
 const OpenCodeConfigSchema = z.object({
@@ -137,22 +138,30 @@ export class LLMAdapter {
       this.providers.set(
         'openai',
         createOpenAI({
-          apiKey: (this.config.api_keys?.openai || process.env.OPENAI_API_KEY) as string,
+          apiKey: (this.config.api_keys?.openai ||
+            process.env.OPENAI_API_KEY) as string,
           baseURL: this.config.endpoints?.openai as string | undefined
         })
       )
     }
 
-    // Anthropic provider
+    // Anthropic provider - OAuth-aware
     if (this.config.api_keys?.anthropic || process.env.ANTHROPIC_API_KEY) {
-      this.providers.set(
-        'anthropic',
-        createAnthropic({
-          apiKey:
-            (this.config.api_keys?.anthropic || process.env.ANTHROPIC_API_KEY) as string,
-          baseURL: this.config.endpoints?.anthropic as string | undefined
-        })
-      )
+      const apiKey = (this.config.api_keys?.anthropic ||
+        process.env.ANTHROPIC_API_KEY) as string
+
+      // Check if this is an OAuth token and use the appropriate adapter
+      if (isOAuthToken(apiKey)) {
+        this.providers.set('anthropic', createOAuthAwareAnthropic(apiKey))
+      } else {
+        this.providers.set(
+          'anthropic',
+          createAnthropic({
+            apiKey: apiKey,
+            baseURL: this.config.endpoints?.anthropic as string | undefined
+          })
+        )
+      }
     }
 
     // Google provider
@@ -160,7 +169,8 @@ export class LLMAdapter {
       this.providers.set(
         'google',
         createGoogleGenerativeAI({
-          apiKey: (this.config.api_keys?.google || process.env.GOOGLE_API_KEY) as string,
+          apiKey: (this.config.api_keys?.google ||
+            process.env.GOOGLE_API_KEY) as string,
           baseURL: this.config.endpoints?.google as string | undefined
         })
       )
@@ -170,7 +180,8 @@ export class LLMAdapter {
     this.providers.set(
       'ollama',
       createOpenAI({
-        baseURL: (this.config.endpoints?.ollama || 'http://localhost:11434/v1') as string,
+        baseURL: (this.config.endpoints?.ollama ||
+          'http://localhost:11434/v1') as string,
         apiKey: 'ollama' // Ollama doesn't need a real key
       })
     )
