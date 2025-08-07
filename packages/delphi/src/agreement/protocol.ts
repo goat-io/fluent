@@ -29,7 +29,7 @@ export const ProposalPayloadSchema = z.object({
   rationale: z.string().min(1).max(10000),
   confidence: z.number().min(0).max(1),
   alternatives: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional()
 })
 
 export const CritiquePayloadSchema = z.object({

@@ -109,5 +109,3 @@ export class LLMAdapter {
     this.circuitState = 'CLOSED'
   }
 }
-
-export { LLMAdapter }

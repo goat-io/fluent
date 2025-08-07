@@ -2,7 +2,8 @@
  * Risk Guard System
  * Monitors and prevents risky behaviors in agent agreement
  */
-import { AgreementContext, AgreementMessage } from './protocol.js'
+import { AgreementMessage } from './protocol.js'
+import { AgreementContext } from './state-machine.js'
 
 export interface RiskGuardConfig {
   maxTokensPerTurn?: number

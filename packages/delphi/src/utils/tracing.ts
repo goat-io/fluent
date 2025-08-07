@@ -56,7 +56,7 @@ export async function initializeTracing(config: TracingConfig = {}) {
     // Configure SDK
     sdk = new NodeSDK({
       resource,
-      spanProcessor: new BatchSpanProcessor(traceExporter),
+      spanProcessor: new BatchSpanProcessor(traceExporter) as any,
       instrumentations: [
         getNodeAutoInstrumentations({
           '@opentelemetry/instrumentation-fs': {
@@ -67,7 +67,7 @@ export async function initializeTracing(config: TracingConfig = {}) {
       metricReader: new PeriodicExportingMetricReader({
         exporter: new ConsoleMetricExporter(),
         exportIntervalMillis: 30000
-      })
+      }) as any
     })
 
     // Initialize SDK

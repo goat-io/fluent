@@ -8,7 +8,7 @@ export {
   cleanupOldCheckpoints,
   initializeMemory,
   performMaintenance
-} from './memory.js'
+} from './checkpoint/sqlite.js'
 export * from './types.js'
 export {
   getClaudeProcessPool,

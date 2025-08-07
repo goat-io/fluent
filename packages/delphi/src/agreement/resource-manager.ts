@@ -3,7 +3,8 @@
  * Manages LLM adapter instances and agent lifecycle
  */
 
-import pino, { Logger } from 'pino'
+import pino from 'pino'
+import type { Logger } from 'pino'
 import { LLMAdapter } from '../llm/adapter.js'
 import { Agent } from './orchestrator.js'
 
@@ -17,7 +18,7 @@ export class ResourceManager {
   private logger: Logger
 
   private constructor() {
-    this.logger = pino({
+    this.logger = (pino as any)({
       name: 'delphi-agreement',
       level: process.env.LOG_LEVEL || 'info',
       formatters: {

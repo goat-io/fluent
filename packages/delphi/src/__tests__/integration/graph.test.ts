@@ -6,7 +6,7 @@ import {
   checkpointer,
   cleanupDatabase,
   initializeMemory
-} from '../../memory.js'
+} from '../../checkpoint/sqlite.js'
 import type { FlowState } from '../../types.js'
 
 // Mock external dependencies

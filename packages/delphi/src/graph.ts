@@ -467,15 +467,15 @@ async function main() {
     console.log('🧵 Thread ID:', threadId)
 
     // Check for existing checkpoint (idempotent restart)
-    const existingCheckpoint = await checkpointer.get({
+    const existingCheckpoint = await (checkpointer.get() as any).getTuple({
       configurable: { thread_id: threadId }
-    })
+    } as any)
 
     let finalState: any
 
     if (existingCheckpoint) {
       console.log('📥 Resuming from checkpoint...')
-      const values = existingCheckpoint.channel_values as any
+      const values = (existingCheckpoint as any).channel_values || {}
       console.log(`  Iteration: ${values.iterationCount}`)
       console.log(`  Last spec: ${values.spec?.substring(0, 50) || 'N/A'}...`)
       console.log('')

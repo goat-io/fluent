@@ -303,7 +303,7 @@ export class DiscussionBuilder<_T = any> {
         id: a.id,
         role: a.role,
         weight: a.weight,
-        model: a.model
+        model: typeof a.model === 'string' ? a.model : a.model?.model
       }))
     }
 
@@ -423,7 +423,8 @@ export class DiscussionBuilder<_T = any> {
           temperature: this.getTemperatureForRole(config.role),
           maxTokens: this.parameters.tokenBudgetPerTurn || 2000,
           useSmall:
-            config.model?.includes('small') || config.model?.includes('haiku')
+            (typeof config.model === 'string' && (config.model.includes('small') || config.model.includes('haiku'))) ||
+            (typeof config.model === 'object' && config.model?.model && (config.model.model.includes('small') || config.model.model.includes('haiku')))
         })
 
         return {
@@ -437,7 +438,11 @@ export class DiscussionBuilder<_T = any> {
             config.role,
             execContext.step
           ),
-          tokenUsage: response.usage
+          tokenUsage: response.usage ? {
+            prompt: response.usage.promptTokens,
+            completion: response.usage.completionTokens,
+            total: response.usage.totalTokens
+          } : undefined
         }
       }
     }

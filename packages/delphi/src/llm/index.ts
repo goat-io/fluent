@@ -15,8 +15,8 @@ import { setSpanAttribute, traceAsync } from '../utils/tracing.js'
 const OpenCodeConfigSchema = z.object({
   model: z.string(),
   small_model: z.string().optional(),
-  api_keys: z.record(z.string()).optional(),
-  endpoints: z.record(z.string()).optional(),
+  api_keys: z.record(z.string(), z.string()).optional(),
+  endpoints: z.record(z.string(), z.string()).optional(),
   max_tokens: z.number().optional(),
   temperature: z.number().optional()
 })
@@ -137,8 +137,8 @@ export class LLMAdapter {
       this.providers.set(
         'openai',
         createOpenAI({
-          apiKey: this.config.api_keys?.openai || process.env.OPENAI_API_KEY,
-          baseURL: this.config.endpoints?.openai
+          apiKey: (this.config.api_keys?.openai || process.env.OPENAI_API_KEY) as string,
+          baseURL: this.config.endpoints?.openai as string | undefined
         })
       )
     }
@@ -149,8 +149,8 @@ export class LLMAdapter {
         'anthropic',
         createAnthropic({
           apiKey:
-            this.config.api_keys?.anthropic || process.env.ANTHROPIC_API_KEY,
-          baseURL: this.config.endpoints?.anthropic
+            (this.config.api_keys?.anthropic || process.env.ANTHROPIC_API_KEY) as string,
+          baseURL: this.config.endpoints?.anthropic as string | undefined
         })
       )
     }
@@ -160,8 +160,8 @@ export class LLMAdapter {
       this.providers.set(
         'google',
         createGoogleGenerativeAI({
-          apiKey: this.config.api_keys?.google || process.env.GOOGLE_API_KEY,
-          baseURL: this.config.endpoints?.google
+          apiKey: (this.config.api_keys?.google || process.env.GOOGLE_API_KEY) as string,
+          baseURL: this.config.endpoints?.google as string | undefined
         })
       )
     }
@@ -170,7 +170,7 @@ export class LLMAdapter {
     this.providers.set(
       'ollama',
       createOpenAI({
-        baseURL: this.config.endpoints?.ollama || 'http://localhost:11434/v1',
+        baseURL: (this.config.endpoints?.ollama || 'http://localhost:11434/v1') as string,
         apiKey: 'ollama' // Ollama doesn't need a real key
       })
     )

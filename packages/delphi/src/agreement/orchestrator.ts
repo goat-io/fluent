@@ -47,6 +47,7 @@ export class AgreementOrchestrator extends EventEmitter {
   private blackboard: Blackboard
   private riskGuard: RiskGuard
   private agents: Map<string, Agent>
+  private options: OrchestratorOptions
   private startTime: number = Date.now()
   private iterationCount: number = 0
 
@@ -251,7 +252,7 @@ export class AgreementOrchestrator extends EventEmitter {
       type: 'metric',
       content: {
         consensusScore,
-        votes: votes.map(v => ({ agentId: v.agentId, vote: v.payload.vote }))
+        votes: votes.map(v => ({ agentId: v.agentId, vote: (v.payload as any).vote }))
       },
       references: critiques.map(c => c.id)
     })

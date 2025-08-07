@@ -262,15 +262,17 @@ describe('OpenCode Integration', () => {
       let attempts = 0
 
       // Mock chat to fail twice then succeed
-      vi.spyOn(adapter as any, 'retryClient').request = vi.fn(async _fn => {
-        attempts++
-        if (attempts < 3) {
+      const mockRequest = vi.fn(async (_fn: any) => {
+        (attempts as any)++
+        if ((attempts as any) < 3) {
           const error: any = new Error('Rate limit exceeded')
           error.status = 429
           throw error
         }
         return { content: 'Success after retry', model: 'test' }
-      })
+      });
+      
+      (adapter as any).retryClient = { request: mockRequest }
 
       const response = await (adapter as any).retryClient.request(async () => ({
         content: 'Success after retry',
