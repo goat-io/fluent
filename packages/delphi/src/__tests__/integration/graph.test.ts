@@ -65,7 +65,7 @@ describe('Integration Tests - Graph', () => {
       // Mock successful Claude execution
       const mockDiff = `diff --git a/README.md b/README.md
 new file mode 100644
-index 0000000..e69de29`
+index 0000000../e69de29`
 
       const mockProcess = {
         stdout: {

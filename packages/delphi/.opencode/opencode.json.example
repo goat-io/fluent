@@ -1,0 +1,24 @@
+{
+  "mcp": {
+    "delphi": {
+      "type": "local",
+      "command": ["npx", "tsx", "delphi-mcp.ts"],
+      "enabled": true,
+      "description": "Delphi automated development pipeline"
+    }
+  },
+  "model": "openai/gpt-4o-mini",
+  "small_model": "openai/gpt-3.5-turbo",
+  "api_keys": {
+    "openai": "${OPENAI_API_KEY}",
+    "anthropic": "${ANTHROPIC_API_KEY}",
+    "google": "${GOOGLE_API_KEY}"
+  },
+  "endpoints": {
+    "ollama": "http://localhost:11434"
+  },
+  "telemetry": {
+    "enabled": true,
+    "endpoint": "http://localhost:4318"
+  }
+}

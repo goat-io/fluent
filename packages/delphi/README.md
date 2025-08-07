@@ -1,6 +1,19 @@
 # Delphi - Automated Self-Correcting Dev Pipeline
 
-Delphi is an automated, self-correcting development pipeline that combines AutoGen agents for planning and discussion, Claude Code for repository editing, LangGraph for orchestration and control flow, and Redis for state persistence.
+Delphi is an automated, self-correcting development pipeline that combines AutoGen agents for planning and discussion, Claude Code for repository editing, LangGraph for orchestration and control flow, and SQLite for state persistence.
+
+**Now with OpenCode Integration!** Use any LLM configured in OpenCode without additional API keys.
+
+## 🚀 New: Agent Agreement System
+
+Delphi now includes a robust multi-agent consensus system with:
+- **Structured Protocols**: Formal propose → critique → converge → commit flow
+- **Safety Guarantees**: Bounded loops (5 turns, 90s), token limits, cycle detection
+- **Flexible Consensus**: Majority voting, weighted decisions, arbiter resolution
+- **Full Auditability**: Immutable blackboard storage with decision trails
+- **Production Ready**: Type-safe, resource-managed, with structured logging
+
+See [Agreement Usage Guide](./docs/AGREEMENT_USAGE.md) for details.
 
 ## Architecture Overview
 
@@ -39,7 +52,26 @@ Delphi is an automated, self-correcting development pipeline that combines AutoG
 
 ## Installation
 
-### Prerequisites
+### Option 1: OpenCode Integration (Recommended)
+
+If you're using OpenCode, Delphi can leverage your existing LLM configuration:
+
+```bash
+# Install Delphi
+cd packages/delphi
+npm install
+
+# Copy OpenCode config example
+cp .opencode/opencode.json.example .opencode/opencode.json
+# Edit .opencode/opencode.json with your preferred models
+
+# Run via OpenCode CLI
+opencode run delphi.run '{"goal": "Add logging to all endpoints"}'
+```
+
+### Option 2: Standalone Installation
+
+#### Prerequisites
 
 ```bash
 # Global tools

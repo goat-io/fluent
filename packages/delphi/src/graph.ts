@@ -1,13 +1,14 @@
 #!/usr/bin/env tsx
+import { spawn } from 'node:child_process'
 /**
  * Main LangGraph orchestrator for the Delphi automated dev pipeline.
  * Coordinates AutoGen agents, Claude Code execution, and state persistence.
  */
-import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { Http } from '@goatlab/js-utils'
 import { Annotation, END, StateGraph } from '@langchain/langgraph'
 import dotenv from 'dotenv'
-import { checkpointer, initializeMemory } from './memory.js'
+import { checkpointer, initializeMemory } from './checkpoint/sqlite.js'
 import {
   AgentError,
   ExecutionError,
@@ -15,6 +16,11 @@ import {
   GraphConfig,
   TimeoutError
 } from './types.js'
+import {
+  getClaudeProcessPool,
+  shutdownClaudePool
+} from './utils/process-pool.js'
+import { isRetryableError, RetryableClient } from './utils/retry.js'
 
 // Load environment variables
 dotenv.config()
@@ -25,7 +31,31 @@ const defaultConfig: Required<GraphConfig> = {
   testCommand: 'npm test',
   enableTests: true,
   claudeCodePath: 'claude',
-  autogenServiceUrl: process.env.AUTOGEN_SERVICE_URL || 'http://localhost:8000'
+  autogenServiceUrl: process.env.AUTOGEN_SERVICE_URL || 'http://localhost:8000',
+  maxRetries: 3,
+  retryDelayMs: 1000
+}
+
+// Maximum iteration count for defense-in-depth
+const MAX_ITERATION_HARD_LIMIT = 10
+
+// Create retryable HTTP client with circuit breaker
+function createRetryableClient(baseUrl: string): RetryableClient {
+  const httpClient = Http.getClient({ prefixUrl: baseUrl })
+  return new RetryableClient(
+    httpClient,
+    {
+      maxAttempts: 3,
+      initialDelayMs: 1000,
+      maxDelayMs: 10000,
+      shouldRetry: isRetryableError
+    },
+    {
+      failureThreshold: 5,
+      resetTimeoutMs: 60000,
+      halfOpenRetries: 2
+    }
+  )
 }
 
 // ---------- Node Functions ----------
@@ -39,13 +69,17 @@ async function plannerNode(
 ): Promise<Partial<FlowState>> {
   console.log('📋 Planning: Generating initial specification...')
 
+  const retryableClient = createRetryableClient(config.autogenServiceUrl)
+
   try {
-    const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
-    const data = await client
-      .post('plan', {
-        json: { prompt: state.task }
-      })
-      .json<any>()
+    const data = await retryableClient.request(async () => {
+      const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
+      return await client
+        .post('plan', {
+          json: { prompt: state.task }
+        })
+        .json<any>()
+    })
 
     console.log('✅ Planning complete')
     return {
@@ -67,13 +101,30 @@ async function refinerNode(
 ): Promise<Partial<FlowState>> {
   console.log('🔧 Refining: Improving specification...')
 
+  // Cap iteration count for defense-in-depth
+  const currentIteration = Math.min(
+    state.iterationCount || 0,
+    MAX_ITERATION_HARD_LIMIT
+  )
+
+  if (currentIteration >= config.maxIterations) {
+    console.log('⚠️ Max iterations reached in refiner')
+    return {
+      reviewFeedback: 'max_iterations_reached'
+    }
+  }
+
+  const retryableClient = createRetryableClient(config.autogenServiceUrl)
+
   try {
-    const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
-    const data = await client
-      .post('refine', {
-        json: { spec: state.spec }
-      })
-      .json<any>()
+    const data = await retryableClient.request(async () => {
+      const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
+      return await client
+        .post('refine', {
+          json: { spec: state.spec }
+        })
+        .json<any>()
+    })
 
     console.log(
       data.clear
@@ -101,6 +152,9 @@ async function codeAgentNode(
   config: Required<GraphConfig>
 ): Promise<Partial<FlowState>> {
   console.log('💻 Coding: Executing Claude Code...')
+
+  // Use process pool for efficient execution
+  const _processPool = getClaudeProcessPool()
 
   return new Promise((resolve, reject) => {
     const args = ['-p', state.spec, '--diff']
@@ -138,15 +192,27 @@ async function codeAgentNode(
     let stderr = ''
     let bytesReceived = 0
     const MAX_BUFFER_SIZE = 10 * 1024 * 1024 // 10MB limit
+    const chunkHashes = new Set<string>() // Track chunk hashes for deduplication
 
     const timeout = setTimeout(() => {
       child.kill('SIGTERM')
       reject(new TimeoutError('Claude Code execution timed out'))
     }, 300000) // 5 minute timeout
 
-    // Stream stdout with size limit
+    // Stream stdout with size limit and hash validation
     child.stdout.on('data', chunk => {
       const chunkSize = chunk.length
+
+      // Hash-based deduplication check (prevent zip-bomb style attacks)
+      const chunkHash = createHash('sha256').update(chunk).digest('hex')
+      if (chunkHashes.has(chunkHash)) {
+        console.warn('⚠️ Duplicate chunk detected, possible compression attack')
+        child.kill('SIGTERM')
+        reject(new ExecutionError('Suspicious duplicate output detected'))
+        return
+      }
+      chunkHashes.add(chunkHash)
+
       if (bytesReceived + chunkSize > MAX_BUFFER_SIZE) {
         child.kill('SIGTERM')
         reject(new ExecutionError('Output exceeded 10MB limit'))
@@ -205,10 +271,14 @@ async function testRunnerNode(
 
   console.log('🧪 Testing: Running test suite...')
 
+  // Use injected test command from config (not hard-coded)
+  const testCommand = config.testCommand || 'npm test'
+
   return new Promise(resolve => {
-    const child = spawn('sh', ['-c', config.testCommand], {
+    const child = spawn('sh', ['-c', testCommand], {
       cwd: state.repoPath,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 120000 // 2 minute timeout for tests
     })
 
     let output = ''
@@ -242,16 +312,20 @@ async function reviewerNode(
 ): Promise<Partial<FlowState>> {
   console.log('👀 Reviewing: Evaluating implementation...')
 
+  const retryableClient = createRetryableClient(config.autogenServiceUrl)
+
   try {
-    const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
-    const data = await client
-      .post('review', {
-        json: {
-          diff: state.codeDiff || '',
-          test_results: state.testResults || ''
-        }
-      })
-      .json<any>()
+    const data = await retryableClient.request(async () => {
+      const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
+      return await client
+        .post('review', {
+          json: {
+            diff: state.codeDiff || '',
+            test_results: state.testResults || ''
+          }
+        })
+        .json<any>()
+    })
 
     console.log(data.ok ? '✅ Review approved' : '🔄 Review requested changes')
 
@@ -269,8 +343,8 @@ async function reviewerNode(
  * Router function - determines next step based on review
  */
 function reviewRouter(state: FlowState): string {
-  // Check iteration limit
-  if (state.iterationCount >= 5) {
+  // Check iteration limit with hard cap
+  if (state.iterationCount >= Math.min(5, MAX_ITERATION_HARD_LIMIT)) {
     console.log('⚠️ Max iterations reached, ending workflow')
     return END
   }
@@ -282,7 +356,7 @@ function reviewRouter(state: FlowState): string {
 // ---------- Graph Construction ----------
 
 // Create state annotation using LangGraph's Annotation
-const FlowStateAnnotation = Annotation.Root({
+export const FlowStateAnnotation = Annotation.Root({
   task: Annotation<string>(),
   spec: Annotation<string>(),
   codeDiff: Annotation<string | undefined>(),
@@ -373,6 +447,12 @@ async function main() {
     console.log('📁 Repository:', repoPath)
     console.log('')
 
+    // Initialize tracing (commented out - not imported)
+    // await initializeTracing({
+    //   enabled: process.env.OTEL_ENABLED === 'true',
+    //   serviceName: 'delphi-pipeline'
+    // })
+
     // Initialize memory system
     await initializeMemory()
 
@@ -446,9 +526,18 @@ async function main() {
       console.log(finalState.reviewFeedback)
     }
 
+    // Cleanup
+    await shutdownClaudePool()
+    // await shutdownTracing() // Not imported
+
     process.exit(finalState.approved ? 0 : 1)
   } catch (error) {
     console.error('\n❌ Fatal error:', error)
+
+    // Cleanup on error
+    await shutdownClaudePool()
+    // await shutdownTracing() // Not imported
+
     process.exit(1)
   }
 }

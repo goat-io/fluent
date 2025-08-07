@@ -32,6 +32,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm act` - Run GitHub Actions locally using act
 - Individual package tests: `cd packages/<package-name> && pnpm test`
 
+### Delphi Package Commands
+
+**Agreement System Testing:**
+- `cd packages/delphi && npx vitest run tests/agreement.spec.ts` - Run agreement tests
+- `cd packages/delphi && npx vitest run tests/blackboard-cleanup.spec.ts` - Test session cleanup
+- `cd packages/delphi && npx vitest run tests/sqlite-concurrency.spec.ts` - Test SQLite concurrency
+- `cd packages/delphi && npx vitest run tests/circuit-breaker.spec.ts` - Test circuit breaker
+
+**Run Agreement Examples:**
+- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts review --goal "Review PR"` - Code review
+- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts architecture` - Architecture decision
+- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts refactor` - Refactoring discussion
+- `cd packages/delphi && npx tsx examples/model-configuration.ts simple` - Model config example
+- `cd packages/delphi && npx tsx examples/agreement-with-cleanup.ts` - Session cleanup example
+
+**Debug & Development:**
+- `LOG_LEVEL=debug npx tsx <script>` - Enable debug logging
+- `DEBUG=delphi:* npx tsx <script>` - Enable detailed traces
+- `OTEL_ENABLED=true npx tsx <script>` - Enable OpenTelemetry tracing
+
 ## Architecture Overview
 
 This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based query interface and API generator for multiple databases.
@@ -91,3 +111,41 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 ### Release Process
 
 Uses changesets for versioning. Release dependency chain: js-utils → node-utils → fluent (other packages depend on these core packages).
+
+## Delphi Agreement System Patterns
+
+### Model Configuration
+Models are configured directly in agent definitions for clarity:
+```typescript
+.withProposer({ 
+  id: 'architect',
+  model: 'claude-opus-4.1',  // Simple preset
+  expertise: ['system-design'],
+  weight: 1.0
+})
+.withReviewer({
+  id: 'expert',
+  model: { provider: 'openai', model: 'gpt-4o', temperature: 0.7 },  // Custom config
+  expertise: ['security']
+})
+```
+
+### Session Cleanup
+Always configure cleanup for production deployments:
+```typescript
+const orchestrator = new AgreementOrchestrator(config, agents, {
+  sessionCleanupConfig: {
+    enabled: true,
+    retentionDays: 7,
+    autoCleanupInterval: 3600000  // 1 hour
+  }
+})
+```
+
+### Strategy Usage
+Use predefined strategies for common scenarios:
+```typescript
+new DiscussionBuilder()
+  .useStrategy('code-review')  // Applies optimized model mapping
+  .withProposer({ id: 'author', expertise: ['implementation'] })
+```

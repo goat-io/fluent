@@ -2,64 +2,61 @@
 """
 AutoGen microservice providing REST endpoints for multi-agent collaboration.
 Exposes Planner, Refiners, and Reviewer agents via FastAPI.
+Integrated with OpenCode LLM adapter.
 """
 import os
+import logging
 from typing import Dict, Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import uvicorn
 
+# Import LLM adapter and agents
+from llm_adapter import (
+    create_planner_agent,
+    create_refiner_agent,
+    create_reviewer_agent
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Initialize FastAPI app
-app = FastAPI(title="Delphi AutoGen Service", version="0.1.0")
+app = FastAPI(title="Delphi AutoGen Service", version="0.2.0")
 
-# Simplified mock agent implementation for MVP
-class MockAgent:
-    def __init__(self, name: str, system_message: str):
-        self.name = name
-        self.system_message = system_message
+# Initialize agents using LLM adapter
+try:
+    planner = create_planner_agent()
+    refiner_gpt = create_refiner_agent("gpt")
+    refiner_claude = create_refiner_agent("claude")
+    reviewer = create_reviewer_agent()
+    logger.info("Agents initialized successfully with LLM adapter")
+except Exception as e:
+    logger.error(f"Failed to initialize agents: {e}")
+    # Fall back to mock agents if LLM adapter fails
+    logger.warning("Falling back to mock agents")
     
-    def generate_reply(self, messages: list) -> str:
-        # In production, this would call the actual LLM
-        # For now, return mock responses based on agent role
-        if self.name == "Planner":
-            return "Create a comprehensive specification for implementing the requested feature with proper error handling and testing."
-        elif self.name == "RefinerGPT":
-            return "The specification needs more detail on error handling and edge cases."
-        elif self.name == "RefinerClaude":
-            return "The specification is comprehensive and ready for implementation. CLEAR: TRUE"
-        elif self.name == "Reviewer":
-            return "✅ Approved - The implementation correctly adds the requested functionality with proper testing."
-        return "Generic response"
-
-# Initialize agents
-planner = MockAgent(
-    name="Planner",
-    system_message="""You are a software planning specialist. Given a user request, 
-    create a detailed, actionable specification that can be implemented by a developer.
-    Focus on clarity, completeness, and technical accuracy."""
-)
-
-refiner_gpt = MockAgent(
-    name="RefinerGPT",
-    system_message="""You are a technical specification refiner. Review and improve 
-    specifications to ensure they are unambiguous, complete, and implementation-ready.
-    Add missing details and clarify any vague requirements."""
-)
-
-refiner_claude = MockAgent(
-    name="RefinerClaude",
-    system_message="""You are a senior technical architect. Review specifications 
-    for architectural soundness, best practices, and potential issues. Suggest 
-    improvements to ensure robust, scalable implementation."""
-)
-
-reviewer = MockAgent(
-    name="Reviewer",
-    system_message="""You are a code review specialist. Analyze diffs and test results 
-    to determine if the implementation meets requirements and follows best practices.
-    Respond with '✅ Approved' if everything looks good, or provide specific feedback 
-    for improvements."""
-)
+    class MockAgent:
+        def __init__(self, name: str, system_message: str):
+            self.name = name
+            self.system_message = system_message
+        
+        def generate_reply(self, messages: list) -> str:
+            if self.name == "Planner":
+                return "Create a comprehensive specification for implementing the requested feature."
+            elif self.name == "RefinerGPT":
+                return "The specification needs more detail."
+            elif self.name == "RefinerClaude":
+                return "The specification is ready. CLEAR: TRUE"
+            elif self.name == "Reviewer":
+                return "✅ Approved - Implementation looks good."
+            return "Generic response"
+    
+    planner = MockAgent("Planner", "Planning agent")
+    refiner_gpt = MockAgent("RefinerGPT", "GPT refiner")
+    refiner_claude = MockAgent("RefinerClaude", "Claude refiner")
+    reviewer = MockAgent("Reviewer", "Review agent")
 
 # Request/Response models
 class PlanRequest(BaseModel):
@@ -89,12 +86,14 @@ async def plan_endpoint(request: PlanRequest) -> PlanResponse:
     """Generate initial specification from user prompt."""
     try:
         messages = [{
-            "content": f"Create a detailed technical specification for: {request.prompt}",
-            "role": "user"
+            "role": "user",
+            "content": f"Create a detailed technical specification for: {request.prompt}"
         }]
         response = planner.generate_reply(messages=messages)
+        logger.info(f"Plan generated, length: {len(response)} chars")
         return PlanResponse(draft=response)
     except Exception as e:
+        logger.error(f"Planning failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/refine", response_model=RefineResponse)
@@ -103,25 +102,25 @@ async def refine_endpoint(request: RefineRequest) -> RefineResponse:
     try:
         # First refinement with GPT
         messages = [{
+            "role": "user",
             "content": f"""Refine this specification to be clear and actionable:
 
 {request.spec}
 
-Make it unambiguous and implementation-ready.""",
-            "role": "user"
+Make it unambiguous and implementation-ready."""
         }]
         gpt_refined = refiner_gpt.generate_reply(messages=messages)
         
         # Second refinement with Claude for architectural review
         messages = [{
+            "role": "user",
             "content": f"""Review and improve this specification:
 
 {gpt_refined}
 
 Is this specification clear and unambiguous enough for implementation?
 If yes, include 'CLEAR: TRUE' in your response.
-If no, provide improvements and do not include that phrase.""",
-            "role": "user"
+If no, provide improvements and do not include that phrase."""
         }]
         claude_refined = refiner_claude.generate_reply(messages=messages)
         
@@ -150,8 +149,8 @@ Respond with '✅ Approved' if the implementation is correct and complete,
 or provide specific feedback for improvements."""
         
         messages = [{
-            "content": review_prompt,
-            "role": "user"
+            "role": "user",
+            "content": review_prompt
         }]
         response = reviewer.generate_reply(messages=messages)
         

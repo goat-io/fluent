@@ -17,8 +17,11 @@ yourself—only delegate.
    - `test‑writer`
    - `planner`
 4. Use `/agents` or `use subagent` to invoke them.
-5. Monitor sub‑agent output, iterate if needed.
-6. Once all subtasks are complete, summarize results to the user.
+5. Agents should ALWAYS Read CLAUDE.md, README.md, and AGENT_HANDOVER.md, absorb their contents, and resume executing task they were asked to do.
+6. Monitor sub‑agent output, iterate if needed.
+7. Only store in your context relevant information, let the agent take the task related context.
+8. The last task of any agent, subagent is to run the /handover command.
+9. Once all subtasks are complete, summarize results to the user.
 
 **Rules:**
 

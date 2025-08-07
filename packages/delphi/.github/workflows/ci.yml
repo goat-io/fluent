@@ -1,0 +1,182 @@
+name: Delphi CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/delphi/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/delphi/**'
+
+defaults:
+  run:
+    working-directory: packages/delphi
+
+jobs:
+  test:
+    name: Test - ${{ matrix.os }} - ${{ matrix.model }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        model:
+          - openai/gpt-4o-mini
+          - anthropic/claude-3-haiku-20240307
+        exclude:
+          # Skip macOS for one model to save CI time
+          - os: macos-latest
+            model: openai/gpt-4o-mini
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Node dependencies
+        run: npm ci
+      
+      - name: Install Python dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r python/requirements.txt
+      
+      - name: Run TypeScript tests with coverage
+        run: npm run test -- --coverage
+        env:
+          OPENCODE_MODEL: ${{ matrix.model }}
+      
+      - name: Run Python tests with coverage
+        run: |
+          source venv/bin/activate
+          pytest python/tests -v --cov=python --cov-report=xml
+      
+      - name: Check TypeScript coverage
+        run: |
+          COVERAGE=$(npx c8 report --reporter=json-summary | jq '.total.lines.pct')
+          echo "TypeScript coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
+            echo "❌ Coverage below 90%"
+            exit 1
+          fi
+      
+      - name: Check Python coverage
+        run: |
+          source venv/bin/activate
+          COVERAGE=$(coverage report --format=total)
+          echo "Python coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 85" | bc -l) )); then
+            echo "❌ Coverage below 85%"
+            exit 1
+          fi
+      
+      - name: E2E Smoke Test
+        if: github.event_name == 'push'
+        run: ./tests/e2e/smoke.sh
+        env:
+          MODEL: ${{ matrix.model }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        timeout-minutes: 5
+  
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run security tests
+        working-directory: packages/delphi
+        run: |
+          npm ci
+          npm run test -- tests/security.spec.ts
+      
+      - name: Check for secrets
+        run: |
+          # Check for hardcoded secrets
+          if grep -r "sk-[a-zA-Z0-9]\{48\}" . --exclude-dir=node_modules; then
+            echo "❌ Found potential API keys"
+            exit 1
+          fi
+          
+          if grep -r "ghp_[a-zA-Z0-9]\{36\}" . --exclude-dir=node_modules; then
+            echo "❌ Found potential GitHub tokens"
+            exit 1
+          fi
+      
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+  
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install dependencies
+        working-directory: packages/delphi
+        run: npm ci
+      
+      - name: Run linter
+        working-directory: packages/delphi
+        run: npm run lint
+      
+      - name: Check formatting
+        working-directory: packages/delphi
+        run: npx biome format --check .
+      
+      - name: Type check
+        working-directory: packages/delphi
+        run: npm run typecheck
+  
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, security, lint]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install dependencies
+        working-directory: packages/delphi
+        run: npm ci
+      
+      - name: Build TypeScript
+        working-directory: packages/delphi
+        run: npm run build
+      
+      - name: Build Python package
+        working-directory: packages/delphi/python
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install build
+          python -m build
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: delphi-build
+          path: |
+            packages/delphi/dist/
+            packages/delphi/python/dist/

@@ -70,6 +70,8 @@ export interface GraphConfig {
   enableTests?: boolean
   claudeCodePath?: string
   autogenServiceUrl?: string
+  maxRetries?: number
+  retryDelayMs?: number
 }
 
 // Error types
