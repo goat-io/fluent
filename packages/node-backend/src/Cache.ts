@@ -1,6 +1,6 @@
 import { type Milliseconds, Promises } from '@goatlab/js-utils'
 import KeyvRedis from '@keyv/redis'
-import { Options } from 'keyv'
+import type { Options } from 'keyv'
 
 const Keyv = require('keyv')
 
@@ -23,12 +23,10 @@ export class Cache<T extends object = any> extends Keyv<T> {
     const tenantId = opts?.tenantId
     const namespace = opts?.namespace || ''
 
+    const tenantNs = tenantId ? `tenant:${tenantId}` : ''
+
     // Build the full namespace including tenant ID if provided
-    const fullNamespace = tenantId
-      ? namespace
-        ? `${tenantId}:${namespace}`
-        : tenantId
-      : namespace
+    const fullNamespace = namespace ? `${tenantNs}:${namespace}` : tenantNs
 
     super({
       store: connection

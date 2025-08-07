@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 1.1.3
+
+### Patch Changes
+
+- add tenant word to keys
+
 ## 1.1.2
 
 ### Patch Changes
