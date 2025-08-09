@@ -620,11 +620,14 @@ describe('SecretService Integration Tests', () => {
         encryptionKey: TENANT_2_KEY // Wrong key!
       })
 
-      // Service 2 should fail to decrypt with wrong key
-      // The error will be "Failed to preload secrets: loadSecrets failed to decrypt: <path>"
-      await expect(service2.preload()).rejects.toThrow(
-        'Failed to preload secrets'
-      )
+      // Service 2 should not throw with wrong key, but fall back to raw encrypted data
+      // This is the new behavior - graceful fallback instead of throwing
+      await service2.preload()
+
+      // Service 2 should have the raw encrypted data, not the decrypted values
+      const rawValue = service2.getSecretSync('API_KEY')
+      expect(rawValue).not.toBe(tenant1Secrets.API_KEY) // Should not equal the decrypted value
+      expect(typeof rawValue).toBe('undefined') // Raw encrypted object doesn't have API_KEY directly
 
       // Clean up
       service1.dispose()

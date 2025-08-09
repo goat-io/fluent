@@ -73,7 +73,7 @@ describe('SecretService - FILE Provider', () => {
       )
     })
 
-    it('should throw error if decryption fails', () => {
+    it('should fall back to raw secrets if decryption fails', () => {
       // Create an invalid encrypted object that will fail decryption
       const invalidEncrypted = {
         iv: 'invalid-iv',
@@ -88,9 +88,88 @@ describe('SecretService - FILE Provider', () => {
         encryptionKey: mockEncryptionKey
       })
 
-      expect(() => service.loadSecretsFromFile()).toThrow(
-        `loadSecrets failed to decrypt: ${mockLocation}`
+      // Should not throw, but return the raw data
+      const result = service.loadSecretsFromFile()
+      expect(result).toEqual(invalidEncrypted)
+    })
+
+    it('should load unencrypted secrets when no encryptionKey is provided', () => {
+      // Create unencrypted secrets
+      const secrets = { API_KEY: 'plain-secret-key', DB_HOST: 'localhost' }
+      fs.writeFileSync(mockLocation, JSON.stringify(secrets))
+
+      const service = new SecretService({
+        provider: 'FILE',
+        location: mockLocation
+        // No encryptionKey provided
+      })
+
+      // Should load the plain secrets successfully
+      const result = service.loadSecretsFromFile()
+      expect(result).toEqual(secrets)
+    })
+
+    it('should load plain text file as a secret with value key', () => {
+      // Create a plain text file (not JSON)
+      const plainTextSecret = 'my-super-secret-api-key-12345'
+      fs.writeFileSync(mockLocation, plainTextSecret)
+
+      const service = new SecretService({
+        provider: 'FILE',
+        location: mockLocation
+        // No encryptionKey provided
+      })
+
+      // Should load the plain text as an object with 'value' key
+      const result = service.loadSecretsFromFile()
+      expect(result).toEqual({ value: plainTextSecret })
+    })
+
+    it('should handle plain text with whitespace correctly', () => {
+      // Create a plain text file with leading/trailing whitespace
+      const plainTextWithSpaces = '  \n  secret-with-spaces  \n  '
+      fs.writeFileSync(mockLocation, plainTextWithSpaces)
+
+      const service = new SecretService({
+        provider: 'FILE',
+        location: mockLocation
+      })
+
+      // Should trim the whitespace
+      const result = service.loadSecretsFromFile()
+      expect(result).toEqual({ value: 'secret-with-spaces' })
+    })
+
+    it('should encrypt and decrypt plain text secrets when encryptionKey is provided', () => {
+      // First save a plain text secret
+      const plainTextSecret = 'my-encrypted-secret'
+      fs.writeFileSync(mockLocation, plainTextSecret)
+
+      const service1 = new SecretService({
+        provider: 'FILE',
+        location: mockLocation
+        // No encryption key - loads as plain text
+      })
+
+      const plainResult = service1.loadSecretsFromFile()
+      expect(plainResult).toEqual({ value: plainTextSecret })
+
+      // Now encrypt it
+      const encrypted = Security.encryptObject(
+        { value: plainTextSecret },
+        mockEncryptionKey
       )
+      fs.writeFileSync(mockLocation, JSON.stringify(encrypted))
+
+      const service2 = new SecretService({
+        provider: 'FILE',
+        location: mockLocation,
+        encryptionKey: mockEncryptionKey
+      })
+
+      // Should decrypt properly
+      const decryptedResult = service2.loadSecretsFromFile()
+      expect(decryptedResult).toEqual({ value: plainTextSecret })
     })
 
     it('should cache loaded secrets', () => {
@@ -182,6 +261,42 @@ describe('SecretService - FILE Provider', () => {
       })
 
       await expect(service.getSecretJson('CONFIG')).rejects.toThrow()
+    })
+
+    it('should load plain text file asynchronously', async () => {
+      // Create a plain text file (not JSON)
+      const plainTextSecret = 'async-plain-text-secret'
+      await fs.promises.writeFile(mockLocation, plainTextSecret)
+
+      const service = new SecretService({
+        provider: 'FILE',
+        location: mockLocation
+      })
+
+      await service.preload()
+
+      // Should be loaded as an object with 'value' key
+      const result = service.getSecretSync('value')
+      expect(result).toBe(plainTextSecret)
+    })
+
+    it('should handle plain text with async preload', async () => {
+      // Create a plain text file with multiline content
+      const multilineSecret = `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC
+-----END PRIVATE KEY-----`
+      await fs.promises.writeFile(mockLocation, multilineSecret)
+
+      const service = new SecretService({
+        provider: 'FILE',
+        location: mockLocation
+      })
+
+      await service.preload()
+
+      // Should trim and store as value
+      const result = service.getSecretSync('value')
+      expect(result).toBe(multilineSecret.trim())
     })
   })
 
@@ -890,7 +1005,7 @@ describe('SecretService - TTL Cache functionality', () => {
 })
 
 describe('SecretService - Edge cases and error handling', () => {
-  it('should handle invalid JSON in file', () => {
+  it('should handle invalid JSON in file by treating it as plain text', () => {
     const tempDir = path.join(__dirname, 'temp-test-3')
     const tempFile = path.join(tempDir, 'invalid.json')
 
@@ -907,7 +1022,9 @@ describe('SecretService - Edge cases and error handling', () => {
       encryptionKey: 'key'
     })
 
-    expect(() => service.loadSecretsFromFile()).toThrow()
+    // Should treat invalid JSON as plain text and wrap it in { value: "content" }
+    const result = service.loadSecretsFromFile()
+    expect(result).toEqual({ value: 'invalid-json' })
 
     // Cleanup
     fs.unlinkSync(tempFile)

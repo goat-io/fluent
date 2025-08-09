@@ -31,7 +31,7 @@ export interface VaultConfig {
 export interface SecretServiceConfig {
   provider: SecretProvider
   location: string
-  encryptionKey: string
+  encryptionKey?: string // Made optional - only decrypt when provided
   vaultConfig?: VaultConfig
   cacheTTL?: number // TTL in milliseconds
 }
@@ -39,7 +39,7 @@ export interface SecretServiceConfig {
 export class SecretService<SecretType> {
   provider: SecretProvider
   location: string
-  encryptionKey: string
+  encryptionKey?: string // Made optional
   vaultConfig?: VaultConfig
   cacheTTL: number
   protected preloadedSecrets?: SecretType
@@ -49,7 +49,7 @@ export class SecretService<SecretType> {
   constructor(config: SecretServiceConfig) {
     this.provider = config.provider
     this.location = config.location
-    this.encryptionKey = config.encryptionKey
+    this.encryptionKey = config.encryptionKey // Optional now
     this.vaultConfig = config.vaultConfig
     this.cacheTTL = config.cacheTTL ?? DEFAULT_TTL_MS
   }
@@ -68,7 +68,7 @@ export class SecretService<SecretType> {
       if (this.provider === 'FILE' && !this.fileWatcher) {
         this.setupFileWatcher()
       }
-    } catch (error) {
+    } catch (error: any) {
       this.isPreloaded = false
       throw new Error(`Failed to preload secrets: ${error.message}`)
     }
@@ -114,12 +114,12 @@ export class SecretService<SecretType> {
           try {
             await this.preload()
             console.log(`✅ Secrets reloaded successfully`)
-          } catch (error) {
+          } catch (error: any) {
             console.error(`❌ Failed to reload secrets: ${error.message}`)
           }
         }
       })
-    } catch (error) {
+    } catch (error: any) {
       console.warn(`⚠️ Failed to set up file watching: ${error.message}`)
     }
   }
@@ -199,7 +199,17 @@ export class SecretService<SecretType> {
 
     try {
       const fileContents = await fsPromises.readFile(this.location, 'utf-8')
-      const secretEncryptedObject = JSON.parse(fileContents)
+
+      // Try to parse as JSON, fall back to plain text if it fails
+      let secretEncryptedObject: any
+      try {
+        secretEncryptedObject = JSON.parse(fileContents)
+      } catch (jsonError) {
+        console.log(jsonError)
+        // Not JSON, treat as plain text secret
+        // Store it as an object with a 'value' key for consistency
+        secretEncryptedObject = { value: fileContents.trim() }
+      }
 
       console.log(
         `🔐 Secrets loaded: ${magenta(
@@ -207,24 +217,36 @@ export class SecretService<SecretType> {
         )}`
       )
 
-      const decrypted = Security.decryptObject(
-        secretEncryptedObject,
-        this.encryptionKey
-      )
+      // Only decrypt if encryptionKey is provided
+      let secrets = secretEncryptedObject
+      if (this.encryptionKey) {
+        try {
+          secrets = Security.decryptObject(
+            secretEncryptedObject,
+            this.encryptionKey!
+          )
+        } catch (decryptError: any) {
+          console.warn(
+            `Failed to decrypt secrets from file: ${decryptError.message}`
+          )
+          // Fall back to using the raw secrets if decryption fails
+          secrets = secretEncryptedObject
+        }
+      }
 
-      this.setCache(this.location, decrypted, this.cacheTTL)
+      this.setCache(this.location, secrets, this.cacheTTL)
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
         `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`
       )
-      return decrypted as any as SecretType
+      return secrets as any as SecretType
     } catch (err: unknown) {
       if (err instanceof SyntaxError) {
         throw new Error(`Invalid JSON in secret file: ${this.location}`)
       }
       console.error(err)
-      throw new Error(`loadSecrets failed to decrypt: ${this.location}`)
+      throw new Error(`loadSecrets failed to load: ${this.location}`)
     }
   }
 
@@ -242,7 +264,17 @@ export class SecretService<SecretType> {
     const start = process.hrtime.bigint()
 
     const fileContents = fs.readFileSync(this.location, 'utf-8')
-    const secretEncryptedObject = JSON.parse(fileContents)
+
+    // Try to parse as JSON, fall back to plain text if it fails
+    let secretEncryptedObject: any
+    try {
+      secretEncryptedObject = JSON.parse(fileContents)
+    } catch (jsonError) {
+      console.log(jsonError)
+      // Not JSON, treat as plain text secret
+      // Store it as an object with a 'value' key for consistency
+      secretEncryptedObject = { value: fileContents.trim() }
+    }
 
     console.log(
       `🔐 Secrets loaded: ${magenta(
@@ -251,21 +283,33 @@ export class SecretService<SecretType> {
     )
 
     try {
-      const decrypted = Security.decryptObject(
-        secretEncryptedObject,
-        this.encryptionKey
-      )
+      // Only decrypt if encryptionKey is provided
+      let secrets = secretEncryptedObject
+      if (this.encryptionKey) {
+        try {
+          secrets = Security.decryptObject(
+            secretEncryptedObject,
+            this.encryptionKey!
+          )
+        } catch (decryptError: any) {
+          console.warn(
+            `Failed to decrypt secrets from file: ${decryptError.message}`
+          )
+          // Fall back to using the raw secrets if decryption fails
+          secrets = secretEncryptedObject
+        }
+      }
 
-      this.setCache(this.location, decrypted, this.cacheTTL)
+      this.setCache(this.location, secrets, this.cacheTTL)
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
         `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`
       )
-      return decrypted as any as SecretType
+      return secrets as any as SecretType
     } catch (err: unknown) {
       console.error(err)
-      throw new Error(`loadSecrets failed to decrypt: ${this.location}`)
+      throw new Error(`loadSecrets failed to load: ${this.location}`)
     }
   }
 
@@ -278,9 +322,9 @@ export class SecretService<SecretType> {
       try {
         return Security.decryptObject(
           secrets,
-          this.encryptionKey
+          this.encryptionKey!
         ) as any as SecretType
-      } catch (error) {
+      } catch (error: any) {
         console.warn(`Failed to decrypt GCP secrets: ${error.message}`)
       }
     }
@@ -332,8 +376,11 @@ export class SecretService<SecretType> {
       let decryptedSecrets = secrets
       if (this.encryptionKey) {
         try {
-          decryptedSecrets = Security.decryptObject(secrets, this.encryptionKey)
-        } catch (error) {
+          decryptedSecrets = Security.decryptObject(
+            secrets,
+            this.encryptionKey!
+          )
+        } catch (error: any) {
           // If decryption fails, assume secrets are not encrypted
           console.warn(`Failed to decrypt ENV secrets: ${error.message}`)
         }
@@ -407,15 +454,16 @@ export class SecretService<SecretType> {
       // Vault KV v2 stores data in data.data
       let secrets = data.data?.data || data.data || {}
 
-      // Vault stores encrypted values - decrypt them with the tenant's encryption key
-      try {
-        // All values in Vault should be encrypted for security
-        secrets = Security.decryptObject(secrets, this.encryptionKey)
-      } catch (error) {
-        console.error(`Failed to decrypt Vault secrets: ${error.message}`)
-        throw new Error(
-          `Vault secrets decryption failed - ensure all values are properly encrypted`
-        )
+      // Only decrypt if encryptionKey is provided
+      if (this.encryptionKey) {
+        try {
+          secrets = Security.decryptObject(secrets, this.encryptionKey!)
+        } catch (error: any) {
+          console.warn(`Failed to decrypt Vault secrets: ${error.message}`)
+          console.log('Using unencrypted secrets from Vault')
+          // Use the raw secrets if decryption fails
+          // This allows for both encrypted and unencrypted secrets in Vault
+        }
       }
 
       this.setCache(cacheKey, secrets, this.cacheTTL)
