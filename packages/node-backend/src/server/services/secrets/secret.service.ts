@@ -407,10 +407,8 @@ export class SecretService<SecretType> {
       throw new Error('Vault configuration is required for VAULT provider')
     }
 
-    // Check encryption key early - Vault requires encryption for security
-    if (!this.encryptionKey) {
-      throw new Error('Encryption key is required for Vault provider')
-    }
+    // Encryption key is now optional for Vault provider (as of v1.1.4)
+    // If provided, secrets will be decrypted; otherwise, raw secrets are returned
 
     const cacheKey = `vault_${this.vaultConfig.endpoint}_${this.location}`
     const cached = this.getCache(cacheKey)
@@ -505,21 +503,18 @@ export class SecretService<SecretType> {
         headers['X-Vault-Namespace'] = this.vaultConfig.namespace
       }
 
-      // Encrypt all secret values before storing in Vault
-      if (!this.encryptionKey) {
-        throw new Error(
-          'Encryption key is required for storing secrets in Vault'
+      // Optionally encrypt secrets before storing in Vault
+      let dataToStore = secrets as StringMap
+      if (this.encryptionKey) {
+        dataToStore = Security.encryptObject(
+          secrets as StringMap,
+          this.encryptionKey!
         )
       }
 
-      const encryptedSecrets = Security.encryptObject(
-        secrets as StringMap,
-        this.encryptionKey
-      )
-
       // For Vault KV v2, data needs to be wrapped in a data object
       const payload = {
-        data: encryptedSecrets
+        data: dataToStore
       }
 
       const response = await fetch(vaultUrl, {
