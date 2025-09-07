@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.3.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.2
+  - @goatlab/node-utils@0.10.4
+  - @goatlab/tasks-core@0.3.2
+
 ## 0.3.3
 
 ### Patch Changes

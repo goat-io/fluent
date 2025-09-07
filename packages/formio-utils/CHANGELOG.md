@@ -1,5 +1,14 @@
 # 0.5.20
 
+## 0.9.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.2
+  - @goatlab/fluent@0.9.16
+  - @goatlab/node-utils@0.10.4
+
 ## 0.9.1
 
 ### Patch Changes

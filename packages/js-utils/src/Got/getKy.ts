@@ -8,7 +8,7 @@ import type {
   NormalizedOptions
 } from './ky'
 import Ky from './ky'
-import { GetKyOptions, KyRequestContext } from './ky.model'
+import type { GetKyOptions, KyRequestContext } from './ky.model'
 
 // Extend NormalizedOptions to include context property
 interface ExtendedNormalizedOptions extends NormalizedOptions {

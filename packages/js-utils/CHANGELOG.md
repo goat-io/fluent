@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.10.2
+
+### Patch Changes
+
+- remove node from js-utils
+
 ## 0.10.1
 
 ### Patch Changes

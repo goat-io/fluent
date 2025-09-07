@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.16
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.2
+  - @goatlab/node-backend@1.1.7
+
 ## 0.9.15
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/js-utils",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "dev": "tsc --watch",
     "format": "biome format --write .",
     "lint": "biome check --write .",
+    "lint:fix:unsafe": "biome lint --write --unsafe .",
     "prebuild": "rimraf dist",
     "predev": "rimraf dist",
     "prestart": "rimraf dist",

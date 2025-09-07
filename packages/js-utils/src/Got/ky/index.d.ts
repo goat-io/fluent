@@ -63,7 +63,7 @@ declare class TimeoutError extends Error {
 type BeforeRequestHook = (
   request: KyRequest,
   options: NormalizedOptions
-) => Request | Response | void | Promise<Request | Response | void>
+) => Request | Response | undefined | Promise<Request | Response | undefined>
 type BeforeRetryState = {
   request: KyRequest
   options: NormalizedOptions
@@ -72,12 +72,12 @@ type BeforeRetryState = {
 }
 type BeforeRetryHook = (
   options: BeforeRetryState
-) => typeof stop | void | Promise<typeof stop | void>
+) => typeof stop | undefined | Promise<typeof stop | undefined>
 type AfterResponseHook = (
   request: KyRequest,
   options: NormalizedOptions,
   response: KyResponse
-) => Response | void | Promise<Response | void>
+) => Response | undefined | Promise<Response | undefined>
 type BeforeErrorHook = (error: HTTPError) => HTTPError | Promise<HTTPError>
 type Hooks = {
   /**
