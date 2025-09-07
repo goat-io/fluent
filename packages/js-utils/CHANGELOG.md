@@ -1,5 +1,11 @@
 # @goatlab/js-utils
 
+## 0.10.1
+
+### Patch Changes
+
+- Change lukeed/uuid to none secure
+
 ## 0.10.0
 
 ### Minor Changes

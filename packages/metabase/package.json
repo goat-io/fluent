@@ -3,7 +3,7 @@
   "main": "./dist/index.js",
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/metabase",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "publishConfig": {
     "access": "public"

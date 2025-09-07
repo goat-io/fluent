@@ -1,4 +1,4 @@
-import { v4 as secure } from '@lukeed/uuid/secure'
+import { v4 as secure } from '@lukeed/uuid'
 import { customAlphabet, nanoid } from 'nanoid'
 
 export const Ids = (() => {

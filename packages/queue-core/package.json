@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/queue-core",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Common interfaces to work with queues, scheduled jobs and message brokers.",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

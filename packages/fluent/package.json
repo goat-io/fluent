@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent",
-  "version": "0.9.14",
+  "version": "0.9.15",
   "scripts": {
     "build": "tsc && cp src/core/Loopback/mapValues.js dist/core/Loopback/",
     "dev": "tsc --watch",
