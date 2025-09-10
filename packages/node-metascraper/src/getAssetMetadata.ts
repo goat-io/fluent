@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import https from 'node:https'
+import * as https from 'node:https'
 import { Jimp } from 'jimp'
 import filetype from 'magic-bytes.js'
 
