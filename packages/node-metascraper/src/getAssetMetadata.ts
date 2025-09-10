@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { Http } from '@goatlab/js-utils'
+import https from 'node:https'
 import { Jimp } from 'jimp'
 import filetype from 'magic-bytes.js'
 
@@ -24,9 +24,17 @@ export type MarketplaceAsset = {
   activityId?: string | null
 }
 
-const got = Http.getClient({
-  // https: { rejectUnauthorized: false },
+// Custom fetch with SSL configuration similar to rejectUnauthorized: false
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
 })
+
+const customFetch = async (url: string) => {
+  return fetch(url, {
+    // @ts-ignore - agent property exists in Node.js fetch
+    agent: url.startsWith('https:') ? httpsAgent : undefined
+  })
+}
 
 export const getAssetMetadata = async (
   imageUrl?: string
@@ -37,21 +45,29 @@ export const getAssetMetadata = async (
 
   try {
     let buffer: Buffer
+    let responseHeaders: Headers | undefined
     const isUrl = /^https?:\/\//i.test(imageUrl)
 
     if (isUrl) {
-      // Fetch the image data using got
-      const response = await got(imageUrl)
+      // Fetch the image data using custom fetch with SSL config
+      const response = await customFetch(imageUrl)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
 
       buffer = Buffer.from(await response.arrayBuffer())
+      responseHeaders = response.headers
     } else {
       // Read the image data from the local file system
       buffer = readFileSync(imageUrl)
     }
 
-    // Detect MIME type using magic-bytes.js
-    const mimeType = filetype(buffer)
-    const mime = mimeType?.[0] ? `${mimeType[0].mime}` : 'image/unknown'
+    // Detect MIME type using magic-bytes.js, fallback to response headers
+    const detectedMimeType = filetype(buffer)
+    const headerMimeType = responseHeaders?.get('content-type')
+    const mime =
+      detectedMimeType?.[0]?.mime || headerMimeType || 'image/unknown'
 
     // Determine if it's an image or not
     const isImage = mime?.startsWith('image/') || false
