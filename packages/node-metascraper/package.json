@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-metascraper",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Wrapper around metascrapper to ease the process of getting metadata from a url",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

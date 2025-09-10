@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.1.6
+
+### Patch Changes
+
+- Add request headers
+
 ## 0.1.5
 
 ### Patch Changes
