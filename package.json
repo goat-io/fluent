@@ -28,7 +28,7 @@
   "author": "ignacio.cabrera@goatlab.io",
   "license": "MIT",
   "dependencies": {
-    "@changesets/cli": "^2.29.5"
+    "@changesets/cli": "^2.29.7"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.3",
