@@ -19,7 +19,7 @@
     "testcontainers": "^10.11.0",
     "ts-node": "catalog:",
     "turbo": "^1.1.10",
-    "typeorm": "^0.3.17",
+    "typeorm": "^0.3.26",
     "typescript": "^5.0.0",
     "unplugin-swc": "catalog:",
     "vitest": "catalog:"
