@@ -38,6 +38,13 @@ const configs: BenchmarkConfig[] = [
     framework: 'elysia-native',
     port: 3004,
     command: ['bun', 'run', 'src/servers/elysia-native-server.ts']
+  },
+  {
+    name: 'Elysia Optimized + Bun',
+    runtime: 'bun',
+    framework: 'elysia-optimized',
+    port: 3006,
+    command: ['bun', 'run', 'src/servers/elysia-optimized-server.ts']
   }
 ]
 
