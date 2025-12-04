@@ -1,0 +1,56 @@
+[
+  {
+    "config": {
+      "name": "Hono Native + Bun",
+      "runtime": "bun",
+      "framework": "hono-native",
+      "port": 3005,
+      "command": [
+        "bun",
+        "run",
+        "src/servers/hono-native-server.ts"
+      ]
+    },
+    "metrics": {
+      "avgLatency": 560.41,
+      "p95Latency": 4.72,
+      "p99Latency": 866.72,
+      "totalRequests": 27254,
+      "requestsPerSecond": 181.541404,
+      "peakRPS": 181.541404,
+      "errorRate": 2061,
+      "peakMemoryMB": 0,
+      "avgMemoryMB": 0,
+      "peakCpuPercent": 0,
+      "avgCpuPercent": 0
+    },
+    "resourceSamples": []
+  },
+  {
+    "config": {
+      "name": "Elysia Native + Bun",
+      "runtime": "bun",
+      "framework": "elysia-native",
+      "port": 3004,
+      "command": [
+        "bun",
+        "run",
+        "src/servers/elysia-native-server.ts"
+      ]
+    },
+    "metrics": {
+      "avgLatency": 618.88,
+      "p95Latency": 4.88,
+      "p99Latency": 4.11,
+      "totalRequests": 25038,
+      "requestsPerSecond": 164.769826,
+      "peakRPS": 164.769826,
+      "errorRate": 1928,
+      "peakMemoryMB": 0,
+      "avgMemoryMB": 0,
+      "peakCpuPercent": 0,
+      "avgCpuPercent": 0
+    },
+    "resourceSamples": []
+  }
+]

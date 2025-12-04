@@ -1,9 +1,10 @@
 // k6 benchmark for native REST API endpoints (no tRPC)
 // Run: k6 run src/k6/native-benchmark.js
+// Stress test: STRESS_TEST=1 k6 run src/k6/native-benchmark.js
 
 import http from 'k6/http'
 import { check, group, sleep } from 'k6'
-import { Trend, Counter } from 'k6/metrics'
+import { Trend, Counter, Gauge } from 'k6/metrics'
 
 // Custom metrics
 const productListLatency = new Trend('api_product_list_latency')
@@ -16,27 +17,52 @@ const orderGetLatency = new Trend('api_order_get_latency')
 const dashboardLatency = new Trend('api_dashboard_latency')
 const errorRate = new Counter('error_rate')
 const totalRequests = new Counter('total_requests')
+const successfulRequests = new Counter('successful_requests')
 
 // Configuration from environment
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3004'
 const RUNTIME = __ENV.RUNTIME || 'bun'
 const FRAMEWORK = __ENV.FRAMEWORK || 'elysia-native'
+const STRESS_TEST = __ENV.STRESS_TEST === '1' || __ENV.STRESS_TEST === 'true'
+
+// Define scenarios based on mode
+const scenarios = STRESS_TEST ? {
+  // Stress test: ramp up aggressively to find breaking point
+  stress_test: {
+    executor: 'ramping-vus',
+    startVUs: 5,
+    stages: [
+      { duration: '20s', target: 50 },   // Ramp to 50 VUs
+      { duration: '30s', target: 100 },  // Ramp to 100 VUs
+      { duration: '30s', target: 150 },  // Ramp to 150 VUs
+      { duration: '30s', target: 200 },  // Peak at 200 VUs
+      { duration: '20s', target: 200 },  // Hold at peak
+      { duration: '20s', target: 0 }     // Ramp down
+    ],
+    gracefulRampDown: '10s'
+  }
+} : {
+  // Normal load test
+  realistic_load: {
+    executor: 'ramping-vus',
+    startVUs: 1,
+    stages: [
+      { duration: '15s', target: 10 },
+      { duration: '30s', target: 10 },
+      { duration: '15s', target: 20 },
+      { duration: '10s', target: 0 }
+    ],
+    gracefulRampDown: '5s'
+  }
+}
 
 export const options = {
-  scenarios: {
-    realistic_load: {
-      executor: 'ramping-vus',
-      startVUs: 1,
-      stages: [
-        { duration: '15s', target: 10 },
-        { duration: '30s', target: 10 },
-        { duration: '15s', target: 20 },
-        { duration: '10s', target: 0 }
-      ],
-      gracefulRampDown: '5s'
-    }
-  },
-  thresholds: {
+  scenarios: scenarios,
+  thresholds: STRESS_TEST ? {
+    // Relaxed thresholds for stress test
+    http_req_duration: ['p(95)<2000'],
+    error_rate: ['rate<0.5']
+  } : {
     http_req_duration: ['p(95)<500'],
     error_rate: ['count<100'],
     api_product_list_latency: ['p(95)<200'],
@@ -54,6 +80,7 @@ let createdOrders = []
 export function setup() {
   console.log('Starting native API benchmark against ' + BASE_URL)
   console.log('Server: ' + RUNTIME + ' + ' + FRAMEWORK + ' + sqlite')
+  console.log('Mode: ' + (STRESS_TEST ? 'STRESS TEST (up to 200 VUs)' : 'Normal load test'))
 
   // Get products
   var productsRes = http.get(BASE_URL + '/api/products?limit=50')
