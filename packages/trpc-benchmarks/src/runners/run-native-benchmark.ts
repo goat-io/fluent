@@ -13,7 +13,7 @@ interface ResourceSample {
 
 interface BenchmarkConfig {
   name: string
-  runtime: 'bun'
+  runtime: 'bun' | 'node'
   framework: string
   port: number
   command: string[]
@@ -42,6 +42,13 @@ interface BenchmarkResult {
 const STRESS_TEST = process.argv.includes('--stress')
 
 const configs: BenchmarkConfig[] = [
+  {
+    name: 'Express Native + Node',
+    runtime: 'node',
+    framework: 'express-native',
+    port: 3007,
+    command: ['npx', 'tsx', 'src/servers/express-native-server.ts']
+  },
   {
     name: 'Hono Native + Bun',
     runtime: 'bun',
