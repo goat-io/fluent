@@ -10,6 +10,10 @@ interface ServerConfig {
   framework: string
   port: number
   command: string[]
+  // Endpoint to test (defaults to /api/products for native, /trpc/product.list for tRPC)
+  endpoint?: string
+  // Whether this uses tRPC (needs special URL encoding)
+  isTrpc?: boolean
 }
 
 interface StressResult {
@@ -33,18 +37,19 @@ const configs: ServerConfig[] = [
     command: ['npx', 'tsx', 'src/servers/express-native-server.ts']
   },
   {
+    name: 'Express + tRPC + Bun',
+    runtime: 'bun',
+    framework: 'express-trpc',
+    port: 3008,
+    command: ['bun', 'run', 'src/servers/express-trpc-bun-server.ts'],
+    isTrpc: true
+  },
+  {
     name: 'Hono Native + Bun',
     runtime: 'bun',
     framework: 'hono-native',
     port: 3005,
     command: ['bun', 'run', 'src/servers/hono-native-server.ts']
-  },
-  {
-    name: 'Elysia Native + Bun',
-    runtime: 'bun',
-    framework: 'elysia-native',
-    port: 3004,
-    command: ['bun', 'run', 'src/servers/elysia-native-server.ts']
   }
 ]
 
@@ -125,6 +130,13 @@ async function runAutocannon(url: string, duration: number, connections: number)
   })
 }
 
+function getTrpcUrl(baseUrl: string, procedure: string, input: object): string {
+  // tRPC uses SuperJSON encoding for input
+  // Format: /trpc/procedure?input=encodedJSON
+  const encodedInput = encodeURIComponent(JSON.stringify({ json: input }))
+  return `${baseUrl}/trpc/${procedure}?input=${encodedInput}`
+}
+
 async function runStressTest(config: ServerConfig): Promise<StressResult | null> {
   console.log(`\n${'='.repeat(60)}`)
   console.log(`Starting ${config.name}...`)
@@ -140,11 +152,21 @@ async function runStressTest(config: ServerConfig): Promise<StressResult | null>
       return null
     }
 
-    console.log(`  Server ready, running stress test...`)
-    console.log(`  Testing /api/products endpoint with 200 connections for 30s`)
+    // Determine endpoint URL based on server type
+    let testUrl: string
+    if (config.isTrpc) {
+      // tRPC endpoint for product list
+      testUrl = getTrpcUrl(serverUrl, 'product.list', { page: 1, pageSize: 20 })
+      console.log(`  Server ready, running stress test...`)
+      console.log(`  Testing tRPC product.list with 200 connections for 30s`)
+    } else {
+      testUrl = `${serverUrl}/api/products`
+      console.log(`  Server ready, running stress test...`)
+      console.log(`  Testing /api/products endpoint with 200 connections for 30s`)
+    }
 
     // Run autocannon with high concurrency
-    const result = await runAutocannon(`${serverUrl}/api/products`, 30, 200)
+    const result = await runAutocannon(testUrl, 30, 200)
 
     const metrics = {
       requestsPerSecond: result.requests?.average || 0,
@@ -210,12 +232,12 @@ function printComparison(results: StressResult[]) {
 
 async function main() {
   console.log('='.repeat(80))
-  console.log('STRESS TEST: Express vs Hono vs Elysia (Native APIs, No tRPC)')
+  console.log('STRESS TEST: Express Native vs Express+tRPC vs Hono Native')
   console.log('='.repeat(80))
   console.log('\nConfiguration:')
   console.log('  - 200 concurrent connections')
   console.log('  - 30 second duration per framework')
-  console.log('  - Testing /api/products endpoint')
+  console.log('  - Testing product list endpoint (native REST or tRPC)')
 
   if (!existsSync('results')) {
     mkdirSync('results')
