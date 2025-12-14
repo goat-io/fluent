@@ -1,10 +1,10 @@
 import { type Milliseconds, Promises } from '@goatlab/js-utils'
-import KeyvRedis from '@keyv/redis'
 import type { Options } from 'keyv'
 
 const Keyv = require('keyv')
 
 import { KeyvLru } from './cache/KeyvLrus'
+import { RedisConnectionPool } from './cache/RedisConnectionPool'
 
 export class Cache<T extends object = any> extends Keyv<T> {
   private ns: string
@@ -12,6 +12,8 @@ export class Cache<T extends object = any> extends Keyv<T> {
   private usesLRUMemory?: boolean
   private keyvLru: KeyvLru<T>
   private memoryCache: typeof Keyv
+  private connectionString?: string
+  private connectionPool: RedisConnectionPool
 
   constructor({
     connection,
@@ -23,14 +25,19 @@ export class Cache<T extends object = any> extends Keyv<T> {
     const tenantId = opts?.tenantId
     const namespace = opts?.namespace || ''
 
-    const tenantNs = tenantId ? `tenant:${tenantId}` : ''
-
     // Build the full namespace including tenant ID if provided
-    const fullNamespace = namespace ? `${tenantNs}:${namespace}` : tenantNs
+    // Format: "tenantId:namespace" or "tenantId" or "namespace" or ""
+    const fullNamespace =
+      tenantId && namespace
+        ? `${tenantId}:${namespace}`
+        : tenantId || namespace || ''
+
+    // Get connection pool instance
+    const pool = RedisConnectionPool.getInstance()
 
     super({
       store: connection
-        ? new KeyvRedis(connection)
+        ? pool.getConnection(connection)
         : new KeyvLru<T>({
             max: 1000,
             resetTtl: false,
@@ -39,6 +46,9 @@ export class Cache<T extends object = any> extends Keyv<T> {
       ...opts,
       namespace: fullNamespace
     })
+
+    this.connectionString = connection
+    this.connectionPool = pool
 
     this.keyvLru = new KeyvLru<T>({
       max: 1000,
@@ -96,7 +106,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
     // It will greatly improve performance
     // for "frequent" uses
     if (this.usesLRUMemory) {
-      const memoryVal = await this.memoryCache.get(`${this.ns}:${key}`)
+      const memoryVal = await this.memoryCache.get(key)
 
       if (memoryVal) {
         return memoryVal
@@ -107,7 +117,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
     if (this.usesLRUMemory && result) {
       // We could also just overwrite the set method as well
-      await this.memoryCache.set(`${this.ns}:${key}`, result)
+      await this.memoryCache.set(key, result)
     }
 
     return result
@@ -115,7 +125,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
   public async delete(key: string): Promise<boolean> {
     if (this.usesLRUMemory) {
-      await this.memoryCache.delete(`${this.ns}:${key}`)
+      await this.memoryCache.delete(key)
     }
     return await super.delete(key)
   }
@@ -292,5 +302,27 @@ export class Cache<T extends object = any> extends Keyv<T> {
     }
 
     return result
+  }
+
+  /**
+   * Dispose of this cache instance and release the Redis connection.
+   * After calling this, the cache instance should not be used.
+   * The connection will remain in the pool for reuse by other instances.
+   */
+  public dispose(): void {
+    if (this.connectionString) {
+      this.connectionPool.releaseConnection(this.connectionString)
+    }
+  }
+
+  /**
+   * Disconnect the Redis connection for this cache instance.
+   * This removes the connection from the pool entirely.
+   * Use this when you're certain no other instances need this connection.
+   */
+  public async disconnect(): Promise<void> {
+    if (this.connectionString) {
+      await this.connectionPool.disconnect(this.connectionString)
+    }
   }
 }

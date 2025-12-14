@@ -101,7 +101,7 @@ importers:
         version: 6.37.7(mysql2@3.14.2)(pg@8.16.3)(sqlite3@5.1.7)
       typeorm:
         specifier: ^0.3.9
-        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.6.1)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.1.14)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
+        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.8.2)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.1.14)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.1.3
@@ -329,7 +329,7 @@ importers:
         version: 0.2.2
       typeorm:
         specifier: ^0.3.25
-        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.6.1)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3))
+        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.8.2)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3))
       zod:
         specifier: 'catalog:'
         version: 4.0.10
@@ -475,7 +475,7 @@ importers:
         version: 1.13.4
       typeorm:
         specifier: ^0.3.17
-        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.6.1)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
+        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.8.2)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
       typescript:
         specifier: ^5.0.0
         version: 5.8.3
@@ -545,7 +545,7 @@ importers:
         version: 1.5.12
       typeorm:
         specifier: ^0.3.25
-        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.6.1)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
+        version: 0.3.25(better-sqlite3@11.10.0)(ioredis@5.8.2)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.1.3
@@ -820,6 +820,9 @@ importers:
 
   packages/js-html:
     dependencies:
+      entities:
+        specifier: ^6.0.1
+        version: 6.0.1
       html-truncate:
         specifier: ^1.2.2
         version: 1.2.2
@@ -1520,6 +1523,73 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@18.19.120)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.5.1)(jsdom@26.1.0)(tsx@4.20.3)(yaml@2.8.0)
 
+  packages/tasks-adapter-bullmq:
+    dependencies:
+      '@goatlab/js-utils':
+        specifier: workspace:*
+        version: link:../js-utils
+      '@goatlab/node-utils':
+        specifier: workspace:*
+        version: link:../node-utils
+      '@goatlab/tasks-core':
+        specifier: workspace:*
+        version: link:../tasks-core
+      bullmq:
+        specifier: ^5.65.1
+        version: 5.65.1
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.1.3
+        version: 2.1.3
+      '@goatlab/biome':
+        specifier: workspace:*
+        version: link:../biome
+      '@goatlab/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@testcontainers/redis':
+        specifier: ^11.0.3
+        version: 11.4.0
+      '@types/jest':
+        specifier: ^27.4.1
+        version: 27.5.2
+      '@types/node':
+        specifier: ^17.0.23
+        version: 17.0.45
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
+      dotenv-cli:
+        specifier: ^5.1.0
+        version: 5.1.0
+      jest:
+        specifier: 'catalog:'
+        version: 29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5))
+      jest-environment-node:
+        specifier: ^27.5.1
+        version: 27.5.1
+      pretty-quick:
+        specifier: ^3.1.3
+        version: 3.3.1(prettier@3.6.2)
+      testcontainers:
+        specifier: ^11.0.3
+        version: 11.4.0
+      ts-jest:
+        specifier: 'catalog:'
+        version: 29.4.0(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)))(typescript@4.9.5)
+      ts-node:
+        specifier: 'catalog:'
+        version: 10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)
+      turbo:
+        specifier: ^1.1.10
+        version: 1.13.4
+      typescript:
+        specifier: ^4.6.3
+        version: 4.9.5
+      vitest:
+        specifier: ^3.1.1
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@17.0.45)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.5.1)(jsdom@26.1.0)(tsx@4.20.3)(yaml@2.8.0)
+
   packages/tasks-adapter-gcp:
     dependencies:
       '@goatlab/js-utils':
@@ -1605,8 +1675,8 @@ importers:
         specifier: workspace:*
         version: link:../tasks-core
       '@hatchet-dev/typescript-sdk':
-        specifier: ^1.9.3
-        version: 1.9.3
+        specifier: ^1.10.3
+        version: 1.10.3
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.1.3
@@ -3120,14 +3190,17 @@ packages:
   '@hapi/bourne@3.0.0':
     resolution: {integrity: sha512-Waj1cwPXJDucOib4a3bAISsKJVb15MKi9IvmTI/7ssVEm6sywXGjVJDhl6/umt1pK1ZS7PacXU3A1PmFKHEZ2w==}
 
-  '@hatchet-dev/typescript-sdk@1.9.3':
-    resolution: {integrity: sha512-TzUDsUqx0Rsypfq/fP5XUyGQfcym7oCTY5OEFflPo/mx+Znq5b4NwyfNwFqfBmM88+bqcQFGu+U0nznrbuEV4w==}
+  '@hatchet-dev/typescript-sdk@1.10.3':
+    resolution: {integrity: sha512-sCPH+HiyqXt+T4+8nOrv94a6b6ExHyLh1VNDkgJiGU+QXr/g6lL1kqoOzq3m1H6lf3OuHyYA3o2G0h45BQhYIQ==}
 
   '@iarna/toml@2.2.5':
     resolution: {integrity: sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==}
 
   '@ioredis/commands@1.3.0':
     resolution: {integrity: sha512-M/T6Zewn7sDaBQEqIZ8Rb+i9y8qfGmq+5SDFSf9sA2lUZTmdDLVdOiQaeDp+Q4wElZ9HG1GAX5KhDaidp6LQsQ==}
+
+  '@ioredis/commands@1.4.0':
+    resolution: {integrity: sha512-aFT2yemJJo+TZCmieA7qnYGQooOS7QfNmYrzGtsYd3g9j5iDP8AimYYAesf79ohjbLG12XxC4nG5DyEnC88AsQ==}
 
   '@isaacs/balanced-match@4.0.1':
     resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
@@ -3483,6 +3556,36 @@ packages:
 
   '@mongodb-js/saslprep@1.3.0':
     resolution: {integrity: sha512-zlayKCsIjYb7/IdfqxorK5+xUMyi4vOKcFy10wKJYc63NSdKI8mNME+uJqfatkPmOSMMUiojrL58IePKBm3gvQ==}
+
+  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3':
+    resolution: {integrity: sha512-QZHtlVgbAdy2zAqNA9Gu1UpIuI8Xvsd1v8ic6B2pZmeFnFcMWiPLfWXh7TVw4eGEZ/C9TH281KwhVoeQUKbyjw==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3':
+    resolution: {integrity: sha512-mdzd3AVzYKuUmiWOQ8GNhl64/IoFGol569zNRdkLReh6LRLHOXxU4U8eq0JwaD8iFHdVGqSy4IjFL4reoWCDFw==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.3':
+    resolution: {integrity: sha512-YxQL+ax0XqBJDZiKimS2XQaf+2wDGVa1enVRGzEvLLVFeqa5kx2bWbtcSXgsxjQB7nRqqIGFIcLteF/sHeVtQg==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3':
+    resolution: {integrity: sha512-fg0uy/dG/nZEXfYilKoRe7yALaNmHoYeIoJuJ7KJ+YyU2bvY8vPv27f7UKhGRpY6euFYqEVhxCFZgAUNQBM3nw==}
+    cpu: [arm]
+    os: [linux]
+
+  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.3':
+    resolution: {integrity: sha512-cvwNfbP07pKUfq1uH+S6KJ7dT9K8WOE4ZiAcsrSes+UY55E/0jLYc+vq+DO7jlmqRb5zAggExKm0H7O/CBaesg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
+    resolution: {integrity: sha512-x0fWaQtYp4E6sktbsdAqnehxDgEc/VwM7uLsRCYWaiGu0ykYdZPiS8zCWdnjHwyiumousxfBm4SO31eXqwEZhQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
@@ -5960,6 +6063,9 @@ packages:
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
 
+  bintrees@1.0.2:
+    resolution: {integrity: sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==}
+
   bl@1.2.3:
     resolution: {integrity: sha512-pvcNpa0UU69UT341rO6AYy4FVAIkUHuZXRIWbq+zHnsVcRzDDjIAhGuuYoi0d//cwIwtt4pkpKycWEfjdV+vww==}
 
@@ -6079,6 +6185,9 @@ packages:
   builtin-modules@1.1.1:
     resolution: {integrity: sha512-wxXCdllwGhI2kCC0MnvTGYTMvnVZTvqgypkiTI8Pa5tcz2i6VqsqwYGgqwXji+4RgCzms6EajE4IxiUH6HH8nQ==}
     engines: {node: '>=0.10.0'}
+
+  bullmq@5.65.1:
+    resolution: {integrity: sha512-QgDAzX1G9L5IRy4Orva5CfQTXZT+5K+OfO/kbPrAqN+pmL9LJekCzxijXehlm/u2eXfWPfWvIdJJIqiuz3WJSg==}
 
   bundle-require@5.1.0:
     resolution: {integrity: sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA==}
@@ -6621,6 +6730,10 @@ packages:
 
   create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
+
+  cron-parser@4.9.0:
+    resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
+    engines: {node: '>=12.0.0'}
 
   cron@4.3.2:
     resolution: {integrity: sha512-JxBBnf5zRz+NhW9XcP16gwUKAKIimy2G0QCCQu8kk5XwM4aCGwMt+nntouAfXF9A57965XzB6hitBlJAz5Ts6w==}
@@ -8421,6 +8534,10 @@ packages:
     resolution: {integrity: sha512-UxC0Yv1Y4WRJiGQxQkP0hfdL0/5/6YvdfOOClRgJ0qppSarkhneSa6UvkMkms0AkdGimSH3Ikqm+6mkMmX7vGA==}
     engines: {node: '>=12.22.0'}
 
+  ioredis@5.8.2:
+    resolution: {integrity: sha512-C6uC+kleiIMmjViJINWk80sOQw5lEzse1ZmvD+S/s8p8CWapftSaC+kocGTx6xrbrJ4WmYQGC08ffHLr6ToR6Q==}
+    engines: {node: '>=12.22.0'}
+
   ip-address@10.0.1:
     resolution: {integrity: sha512-NWv9YLW4PoW2B7xtzaS3NCot75m6nK7Icdv0o3lfMceJVRfSoQwqD4wEH5rLwoKJwUiZ/rfpiVBhnaF0FK4HoA==}
     engines: {node: '>= 12'}
@@ -9649,6 +9766,7 @@ packages:
   metascraper-clearbit@5.49.1:
     resolution: {integrity: sha512-bLEiwzaTMvz31AdeYsVYNCnAWvkwz/fVyJ22pKjY6c/CjZ5fFP1iAsZRZQJ23i6Q/n1Ysfm+lHwfn4rPAxn++g==}
     engines: {node: '>= 16'}
+    deprecated: This package is discontinued. See https://github.com/microlinkhq/metascraper/issues/750
 
   metascraper-date@5.49.1:
     resolution: {integrity: sha512-/bdW609+hj/WiEqnplELPwg7KjUFukVOkwQY2Rw/72+DJV2buix44YHOKfiTkA7IQIxamHkRrGU5eSRYCI0Asg==}
@@ -10045,6 +10163,13 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
+  msgpackr-extract@3.0.3:
+    resolution: {integrity: sha512-P0efT1C9jIdVRefqjzOQ9Xml57zpOXnIuS+csaB4MdZbTdmGDLo8XhzBG1N7aO11gKDDkJvBLULeFTo46wwreA==}
+    hasBin: true
+
+  msgpackr@1.11.5:
+    resolution: {integrity: sha512-UjkUHN0yqp9RWKy0Lplhh+wlpdt9oQBYgULZOiFhV3VclSF1JnSQWZ5r9gORQlNYaUKQoR8itv7g7z1xDDuACA==}
+
   multer-azure-blob-storage@1.2.0:
     resolution: {integrity: sha512-jFxXMRqpeHPx4COOcgmLr4bd2qIGIRieanoEc9IcNZs5QPiZ+M4rD+21oUE8h3qdF5UyJwRbskZkYsmY3W+KMg==}
 
@@ -10160,6 +10285,9 @@ packages:
     resolution: {integrity: sha512-OhYaY5sDsIka7H7AtijtI9jwGYLyl29eQn/W623DiN/MIv5sUqc4g7BIDThX+gb7di9f6xK02nkp8sdfFWZLTg==}
     engines: {node: '>=10'}
 
+  node-abort-controller@3.1.1:
+    resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
+
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
@@ -10210,6 +10338,10 @@ packages:
   node-forge@1.3.1:
     resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
     engines: {node: '>= 6.13.0'}
+
+  node-gyp-build-optional-packages@5.2.2:
+    resolution: {integrity: sha512-s+w+rBWnpTMwSFbaE0UXsRlg7hU4FjekKU4eyAih5T8nJuNZT1nNsskXpxmeqSK9UzkBl6UgRlnKc8hz8IEqOw==}
+    hasBin: true
 
   node-gyp-build@4.1.1:
     resolution: {integrity: sha512-dSq1xmcPDKPZ2EED2S6zw/b9NKsqzXRE6dVr8TVQnI3FJOTteUMuqF3Qqs6LZg+mLGYJWqQzMbIjMtJqTv87nQ==}
@@ -10973,6 +11105,10 @@ packages:
   progress@2.0.3:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
     engines: {node: '>=0.4.0'}
+
+  prom-client@15.1.3:
+    resolution: {integrity: sha512-6ZiOBfCywsD4k1BN9IX0uZhF+tJkV8q8llP64G5Hajs4JOeVLPCwpPVcpXy3BwYiUGgyJzsJJQeOIv7+hDSq8g==}
+    engines: {node: ^16 || ^18 || >=20}
 
   promise-inflight@1.0.1:
     resolution: {integrity: sha512-6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==}
@@ -12218,6 +12354,9 @@ packages:
   tarn@3.0.2:
     resolution: {integrity: sha512-51LAVKUSZSVfI05vjPESNc5vwqqZpbXCsU+/+wxlOrUjk2SnFTt97v9ZgQrD4YmxYW1Px6w2KjaDitCfkvgxMQ==}
     engines: {node: '>=8.0.0'}
+
+  tdigest@0.1.2:
+    resolution: {integrity: sha512-+G0LLgjjo9BZX2MfdvPfH+MKLCrxlXSYec5DaPYP1fe6Iyhf0/fSmJ0bFiZ1F8BT6cGXl2LpltQptzjXKWEkKA==}
 
   teeny-request@10.1.0:
     resolution: {integrity: sha512-3ZnLvgWF29jikg1sAQ1g0o+lr5JX6sVgYvfUJazn7ZjJroDBUTWp44/+cFVX0bULjv4vci+rBD+oGVAkWqhUbw==}
@@ -15033,7 +15172,7 @@ snapshots:
 
   '@hapi/bourne@3.0.0': {}
 
-  '@hatchet-dev/typescript-sdk@1.9.3':
+  '@hatchet-dev/typescript-sdk@1.10.3':
     dependencies:
       '@bufbuild/protobuf': 2.6.2
       '@types/qs': 6.14.0
@@ -15047,12 +15186,16 @@ snapshots:
       semver: 7.7.2
       yaml: 2.8.0
       zod: 3.25.76
+    optionalDependencies:
+      prom-client: 15.1.3
     transitivePeerDependencies:
       - debug
 
   '@iarna/toml@2.2.5': {}
 
   '@ioredis/commands@1.3.0': {}
+
+  '@ioredis/commands@1.4.0': {}
 
   '@isaacs/balanced-match@4.0.1': {}
 
@@ -15101,14 +15244,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 24.1.0
+      '@types/node': 18.19.120
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@24.1.0)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5))
+      jest-config: 29.7.0(@types/node@18.19.120)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -15136,14 +15279,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 24.1.0
+      '@types/node': 18.19.120
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@24.1.0)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
+      jest-config: 29.7.0(@types/node@18.19.120)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -15171,14 +15314,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 24.1.0
+      '@types/node': 18.19.120
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@24.1.0)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3))
+      jest-config: 29.7.0(@types/node@18.19.120)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -15337,7 +15480,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 24.1.0
+      '@types/node': 18.19.120
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -15744,6 +15887,24 @@ snapshots:
   '@mongodb-js/saslprep@1.3.0':
     dependencies:
       sparse-bitfield: 3.0.3
+
+  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.3':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
+    optional: true
 
   '@noble/hashes@1.8.0': {}
 
@@ -17775,7 +17936,7 @@ snapshots:
   '@types/dockerode@3.3.42':
     dependencies:
       '@types/docker-modem': 3.0.6
-      '@types/node': 24.1.0
+      '@types/node': 18.19.120
       '@types/ssh2': 1.15.5
 
   '@types/ejs@3.1.5': {}
@@ -18978,6 +19139,9 @@ snapshots:
     dependencies:
       file-uri-to-path: 1.0.0
 
+  bintrees@1.0.2:
+    optional: true
+
   bl@1.2.3:
     dependencies:
       readable-stream: 2.3.8
@@ -19134,6 +19298,18 @@ snapshots:
     optional: true
 
   builtin-modules@1.1.1: {}
+
+  bullmq@5.65.1:
+    dependencies:
+      cron-parser: 4.9.0
+      ioredis: 5.8.2
+      msgpackr: 1.11.5
+      node-abort-controller: 3.1.1
+      semver: 7.7.2
+      tslib: 2.8.1
+      uuid: 11.1.0
+    transitivePeerDependencies:
+      - supports-color
 
   bundle-require@5.1.0(esbuild@0.25.8):
     dependencies:
@@ -19787,6 +19963,10 @@ snapshots:
       type-func: 1.0.3
 
   create-require@1.1.1: {}
+
+  cron-parser@4.9.0:
+    dependencies:
+      luxon: 3.7.1
 
   cron@4.3.2:
     dependencies:
@@ -22044,6 +22224,20 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  ioredis@5.8.2:
+    dependencies:
+      '@ioredis/commands': 1.4.0
+      cluster-key-slot: 1.1.2
+      debug: 4.4.1
+      denque: 2.1.0
+      lodash.defaults: 4.2.0
+      lodash.isarguments: 3.1.0
+      redis-errors: 1.2.0
+      redis-parser: 3.0.0
+      standard-as-callback: 2.1.0
+    transitivePeerDependencies:
+      - supports-color
+
   ip-address@10.0.1: {}
 
   ip-address@5.9.4:
@@ -22551,7 +22745,7 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@24.1.0)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)):
+  jest-config@29.7.0(@types/node@18.19.120)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)):
     dependencies:
       '@babel/core': 7.28.0
       '@jest/test-sequencer': 29.7.0
@@ -22576,13 +22770,13 @@ snapshots:
       slash: 3.0.0
       strip-json-comments: 3.1.1
     optionalDependencies:
-      '@types/node': 24.1.0
+      '@types/node': 18.19.120
       ts-node: 10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@24.1.0)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3)):
+  jest-config@29.7.0(@types/node@18.19.120)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3)):
     dependencies:
       '@babel/core': 7.28.0
       '@jest/test-sequencer': 29.7.0
@@ -22607,8 +22801,39 @@ snapshots:
       slash: 3.0.0
       strip-json-comments: 3.1.1
     optionalDependencies:
-      '@types/node': 24.1.0
+      '@types/node': 18.19.120
       ts-node: 10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  jest-config@29.7.0(@types/node@18.19.120)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3)):
+    dependencies:
+      '@babel/core': 7.28.0
+      '@jest/test-sequencer': 29.7.0
+      '@jest/types': 29.6.3
+      babel-jest: 29.7.0(@babel/core@7.28.0)
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      deepmerge: 4.3.1
+      glob: 7.2.3
+      graceful-fs: 4.2.11
+      jest-circus: 29.7.0
+      jest-environment-node: 29.7.0
+      jest-get-type: 29.6.3
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-runner: 29.7.0
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      micromatch: 4.0.8
+      parse-json: 5.2.0
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 18.19.120
+      ts-node: 10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -24328,6 +24553,22 @@ snapshots:
 
   ms@2.1.3: {}
 
+  msgpackr-extract@3.0.3:
+    dependencies:
+      node-gyp-build-optional-packages: 5.2.2
+    optionalDependencies:
+      '@msgpackr-extract/msgpackr-extract-darwin-arm64': 3.0.3
+      '@msgpackr-extract/msgpackr-extract-darwin-x64': 3.0.3
+      '@msgpackr-extract/msgpackr-extract-linux-arm': 3.0.3
+      '@msgpackr-extract/msgpackr-extract-linux-arm64': 3.0.3
+      '@msgpackr-extract/msgpackr-extract-linux-x64': 3.0.3
+      '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.3
+    optional: true
+
+  msgpackr@1.11.5:
+    optionalDependencies:
+      msgpackr-extract: 3.0.3
+
   multer-azure-blob-storage@1.2.0:
     dependencies:
       azure-storage: 2.10.7
@@ -24474,6 +24715,8 @@ snapshots:
     dependencies:
       semver: 7.7.2
 
+  node-abort-controller@3.1.1: {}
+
   node-addon-api@7.1.1: {}
 
   node-addon-api@8.5.0: {}
@@ -24507,6 +24750,11 @@ snapshots:
   node-forge@0.10.0: {}
 
   node-forge@1.3.1: {}
+
+  node-gyp-build-optional-packages@5.2.2:
+    dependencies:
+      detect-libc: 2.0.4
+    optional: true
 
   node-gyp-build@4.1.1: {}
 
@@ -25353,6 +25601,12 @@ snapshots:
   process@0.11.10: {}
 
   progress@2.0.3: {}
+
+  prom-client@15.1.3:
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      tdigest: 0.1.2
+    optional: true
 
   promise-inflight@1.0.1:
     optional: true
@@ -26877,6 +27131,11 @@ snapshots:
 
   tarn@3.0.2: {}
 
+  tdigest@0.1.2:
+    dependencies:
+      bintrees: 1.0.2
+    optional: true
+
   teeny-request@10.1.0:
     dependencies:
       http-proxy-agent: 5.0.0
@@ -27515,7 +27774,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typeorm@0.3.25(better-sqlite3@11.10.0)(ioredis@5.6.1)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.1.14)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3)):
+  typeorm@0.3.25(better-sqlite3@11.10.0)(ioredis@5.8.2)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.1.14)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3)):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 3.17.0
@@ -27534,7 +27793,7 @@ snapshots:
       yargs: 17.7.2
     optionalDependencies:
       better-sqlite3: 11.10.0
-      ioredis: 5.6.1
+      ioredis: 5.8.2
       mongodb: 6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6)
       mysql2: 3.14.2
       pg: 8.16.3
@@ -27544,7 +27803,7 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  typeorm@0.3.25(better-sqlite3@11.10.0)(ioredis@5.6.1)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3)):
+  typeorm@0.3.25(better-sqlite3@11.10.0)(ioredis@5.8.2)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@5.8.3)):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 3.17.0
@@ -27563,7 +27822,7 @@ snapshots:
       yargs: 17.7.2
     optionalDependencies:
       better-sqlite3: 11.10.0
-      ioredis: 5.6.1
+      ioredis: 5.8.2
       mongodb: 6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6)
       mysql2: 3.14.2
       pg: 8.16.3
@@ -27573,7 +27832,7 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  typeorm@0.3.25(better-sqlite3@11.10.0)(ioredis@5.6.1)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3)):
+  typeorm@0.3.25(better-sqlite3@11.10.0)(ioredis@5.8.2)(mongodb@6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6))(mysql2@3.14.2)(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@24.1.0)(typescript@5.8.3)):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 3.17.0
@@ -27592,7 +27851,7 @@ snapshots:
       yargs: 17.7.2
     optionalDependencies:
       better-sqlite3: 11.10.0
-      ioredis: 5.6.1
+      ioredis: 5.8.2
       mongodb: 6.18.0(@aws-sdk/credential-providers@3.848.0)(gcp-metadata@5.3.0(encoding@0.1.13))(socks@2.8.6)
       mysql2: 3.14.2
       pg: 8.16.3

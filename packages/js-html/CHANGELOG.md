@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.1.2
+
+### Patch Changes
+
+- Redis connection pools
+
 ## 0.1.0
 
 ### Minor Changes

@@ -17,7 +17,7 @@ export abstract class ShouldQueue<
   public abstract handle(taskBody: TInput): Promise<TResult>
 
   public retries = 3
-  protected connector: TaskConnector<TInput>
+  public connector: TaskConnector<TInput>
 
   constructor({
     connector,
@@ -30,7 +30,7 @@ export abstract class ShouldQueue<
     this.basePostUrl = basePostUrl
   }
 
-  protected getUniqueTaskName(_: TInput): string {
+  public getUniqueTaskName(_: TInput): string {
     return `${this.taskName}`
   }
 

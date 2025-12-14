@@ -1,4 +1,3 @@
-import { GCPServiceAccount } from 'CloudTaskConnector.types'
 import { assert, Ids, Memo, Primitive, Promises } from '@goatlab/js-utils'
 import { Security } from '@goatlab/node-utils'
 import type {
@@ -7,6 +6,7 @@ import type {
   TaskStatusName
 } from '@goatlab/tasks-core'
 import type { BackoffSettings } from 'google-gax/build/src/gax'
+import { GCPServiceAccount } from './CloudTaskConnector.types.js'
 export type ITask = any
 
 export type { BackoffSettings }
@@ -307,11 +307,10 @@ export class CloudTaskConnector implements TaskConnector<object> {
 
     const creation = Number(task.createTime?.seconds || 0) || 0
     const scheduled = Number(task.scheduleTime?.seconds || 0) || 0
-    const taskName = task.name.split('/').pop() || ''
 
     return {
       id: task.name,
-      name: taskName,
+      name: params.taskName,
       output: '',
       attempts: 0,
       status: 'QUEUED',

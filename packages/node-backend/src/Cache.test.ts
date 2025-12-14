@@ -3,6 +3,7 @@ import Keyv from 'keyv'
 import { afterEach, beforeEach, describe, expect, it, test } from 'vitest'
 import { Cache } from './Cache'
 import { KeyvLru } from './cache/KeyvLrus'
+import { RedisConnectionPool } from './cache/RedisConnectionPool'
 import { getGlobalData } from './test/const'
 
 const connection = getGlobalData().redisUrl || 'redis://localhost:6379'
@@ -208,8 +209,9 @@ describe('Cache (Memory)', () => {
     })
     await cache.set('foo', 'bar')
     // manually set in memoryCache to test get from LRU
+    // memoryCache already has namespace configured, so use key directly
     // @ts-expect-error
-    await cache.memoryCache.set('lru-mem:foo', 'baz')
+    await cache.memoryCache.set('foo', 'baz')
     const value = await cache.get('foo')
     expect(value).toBe('baz')
   })
@@ -538,10 +540,11 @@ describe('Cache (Memory) - LRU Memory with Namespaces', () => {
     await cacheA.set('foo', 'barA')
     await cacheB.set('foo', 'barB')
 
+    // memoryCache already has namespace configured, so use key directly
     // @ts-expect-error
-    await cacheA.memoryCache.set('lruA:foo', 'bazA')
+    await cacheA.memoryCache.set('foo', 'bazA')
     // @ts-expect-error
-    await cacheB.memoryCache.set('lruB:foo', 'bazB')
+    await cacheB.memoryCache.set('foo', 'bazB')
 
     expect(await cacheA.get('foo')).toBe('bazA')
     expect(await cacheB.get('foo')).toBe('bazB')
@@ -1037,10 +1040,11 @@ describe('Cache - Multi-tenancy Support', () => {
       await cacheTenant1.set('key', 'value1')
       await cacheTenant2.set('key', 'value2')
 
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property for test
-      await cacheTenant1.memoryCache.set('tenant1:lru:key', 'memory1')
+      await cacheTenant1.memoryCache.set('key', 'memory1')
       // @ts-expect-error accessing private property for test
-      await cacheTenant2.memoryCache.set('tenant2:lru:key', 'memory2')
+      await cacheTenant2.memoryCache.set('key', 'memory2')
 
       expect(await cacheTenant1.get('key')).toBe('memory1')
       expect(await cacheTenant2.get('key')).toBe('memory2')
@@ -1407,8 +1411,9 @@ describe('Missing Test Coverage', () => {
       await cache.set('key', 'value')
 
       // Clear memory cache to simulate a miss
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      await cache.memoryCache.delete('lru-write:key')
+      await cache.memoryCache.delete('key')
 
       // Get should fetch from backing store and write to memory cache
       const value = await cache.get('key')
@@ -1416,7 +1421,7 @@ describe('Missing Test Coverage', () => {
 
       // Verify it's now in memory cache
       // @ts-expect-error accessing private property
-      const memValue = await cache.memoryCache.get('lru-write:key')
+      const memValue = await cache.memoryCache.get('key')
       expect(memValue).toBe('value')
     })
 
@@ -1432,8 +1437,9 @@ describe('Missing Test Coverage', () => {
       await cache.get('key')
 
       // Verify it's in memory cache
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      let memValue = await cache.memoryCache.get('lru-delete:key')
+      let memValue = await cache.memoryCache.get('key')
       expect(memValue).toBe('value')
 
       // Delete should evict from both stores
@@ -1441,7 +1447,7 @@ describe('Missing Test Coverage', () => {
 
       // Verify it's gone from memory cache
       // @ts-expect-error accessing private property
-      memValue = await cache.memoryCache.get('lru-delete:key')
+      memValue = await cache.memoryCache.get('key')
       expect(memValue).toBeUndefined()
     })
   })
@@ -1557,8 +1563,9 @@ describe('Missing Test Coverage', () => {
       await new Promise(resolve => setTimeout(resolve, 100))
 
       // Clear memory cache to force fetch from backing store
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      await cache.memoryCache.delete('ttl-lru:ttl-key')
+      await cache.memoryCache.delete('ttl-key')
 
       expect(await cache.get('ttl-key')).toBeUndefined()
     })
@@ -1739,8 +1746,9 @@ describe('Missing Test Coverage', () => {
       await cache.set('key', 'value')
 
       // Memory cache should NOT have the value yet
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      const memValue = await cache.memoryCache.get('lru-set-test:key')
+      const memValue = await cache.memoryCache.get('key')
       expect(memValue).toBeUndefined()
 
       // After get(), memory cache should be populated
@@ -1749,8 +1757,271 @@ describe('Missing Test Coverage', () => {
 
       // Now memory cache should have it
       // @ts-expect-error accessing private property
-      const memValueAfterGet = await cache.memoryCache.get('lru-set-test:key')
+      const memValueAfterGet = await cache.memoryCache.get('key')
       expect(memValueAfterGet).toBe('value')
+    })
+  })
+})
+
+describe('Cache - Connection Pooling', () => {
+  let pool: RedisConnectionPool
+
+  beforeEach(() => {
+    pool = RedisConnectionPool.getInstance()
+  })
+
+  afterEach(async () => {
+    // Clean up connections created in this test
+  })
+
+  describe('Connection Sharing with Redis', () => {
+    it('should share the same Redis connection for multiple Cache instances', () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: 'cache1' }
+      })
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 1)
+
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: 'cache2' }
+      })
+
+      // Ref count should increase by 1
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 2)
+
+      const cache3 = new Cache({
+        connection,
+        opts: { namespace: 'cache3' }
+      })
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 3)
+
+      // Cleanup
+      cache1.dispose()
+      cache2.dispose()
+      cache3.dispose()
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+    })
+
+    it('should handle different Redis connections separately', () => {
+      const conn1 = connection
+      const conn2 = `${connection}/1`
+
+      const startingRefCount1 = pool.getRefCount(conn1)
+      const startingRefCount2 = pool.getRefCount(conn2)
+
+      const cache1 = new Cache({
+        connection: conn1,
+        opts: { namespace: 'cache1' }
+      })
+
+      const cache2 = new Cache({
+        connection: conn2,
+        opts: { namespace: 'cache2' }
+      })
+
+      // Should have added connections to the pool if they didn't exist
+      expect(pool.getRefCount(conn1)).toBe(startingRefCount1 + 1)
+      expect(pool.getRefCount(conn2)).toBe(startingRefCount2 + 1)
+
+      cache1.dispose()
+      cache2.dispose()
+
+      expect(pool.getRefCount(conn1)).toBe(startingRefCount1)
+      expect(pool.getRefCount(conn2)).toBe(startingRefCount2)
+    })
+
+    it('should properly decrement ref count on dispose', () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: 'cache1' }
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: 'cache2' }
+      })
+      const cache3 = new Cache({
+        connection,
+        opts: { namespace: 'cache3' }
+      })
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 3)
+
+      cache1.dispose()
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 2)
+
+      cache2.dispose()
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 1)
+
+      cache3.dispose()
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+    })
+
+    it('should isolate data between cache instances with shared connection', async () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: 'isolated1' }
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: 'isolated2' }
+      })
+
+      // Verify they share the same connection
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 2)
+
+      // Set data in each cache
+      await cache1.set('key', 'value1')
+      await cache2.set('key', 'value2')
+
+      // Verify isolation
+      expect(await cache1.get('key')).toBe('value1')
+      expect(await cache2.get('key')).toBe('value2')
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+      cache1.dispose()
+      cache2.dispose()
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+    })
+
+    it('should work with multi-tenant caches sharing connection', async () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      const cacheTenant1 = new Cache({
+        connection,
+        opts: { tenantId: 'tenant1', namespace: 'shared' }
+      })
+      const cacheTenant2 = new Cache({
+        connection,
+        opts: { tenantId: 'tenant2', namespace: 'shared' }
+      })
+
+      // Verify they share the same connection
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 2)
+
+      // Set data in each tenant cache
+      await cacheTenant1.set('key', 'tenant1-value')
+      await cacheTenant2.set('key', 'tenant2-value')
+
+      // Verify isolation
+      expect(await cacheTenant1.get('key')).toBe('tenant1-value')
+      expect(await cacheTenant2.get('key')).toBe('tenant2-value')
+
+      // Cleanup
+      await cacheTenant1.flush()
+      await cacheTenant2.flush()
+      cacheTenant1.dispose()
+      cacheTenant2.dispose()
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+    })
+  })
+
+  describe('Connection Pooling with Real Operations', () => {
+    it('should perform operations correctly with shared connections', async () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: `ops1-${Ids.nanoId(5)}` }
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: `ops2-${Ids.nanoId(5)}` }
+      })
+      const cache3 = new Cache({
+        connection,
+        opts: { namespace: `ops3-${Ids.nanoId(5)}` }
+      })
+
+      // Verify connection sharing
+      expect(pool.getRefCount(connection)).toBe(startingRefCount + 3)
+
+      // Perform operations in parallel
+      await Promise.all([
+        cache1.set('key1', 'value1'),
+        cache2.set('key2', 'value2'),
+        cache3.set('key3', 'value3')
+      ])
+
+      // Verify data
+      expect(await cache1.get('key1')).toBe('value1')
+      expect(await cache2.get('key2')).toBe('value2')
+      expect(await cache3.get('key3')).toBe('value3')
+
+      // Verify isolation
+      expect(await cache1.get('key2')).toBeUndefined()
+      expect(await cache2.get('key3')).toBeUndefined()
+      expect(await cache3.get('key1')).toBeUndefined()
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+      await cache3.flush()
+      cache1.dispose()
+      cache2.dispose()
+      cache3.dispose()
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+    })
+
+    it('should handle remember() with shared connections', async () => {
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: `rem1-${Ids.nanoId(5)}` }
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: `rem2-${Ids.nanoId(5)}` }
+      })
+
+      let calls1 = 0
+      let calls2 = 0
+
+      const val1 = await cache1.remember('key', 1000, async () => {
+        calls1++
+        return 'value1'
+      })
+      const val2 = await cache2.remember('key', 1000, async () => {
+        calls2++
+        return 'value2'
+      })
+
+      expect(val1).toBe('value1')
+      expect(val2).toBe('value2')
+      expect(calls1).toBe(1)
+      expect(calls2).toBe(1)
+
+      // Should use cached values
+      await cache1.remember('key', 1000, async () => {
+        calls1++
+        return 'different'
+      })
+      await cache2.remember('key', 1000, async () => {
+        calls2++
+        return 'different'
+      })
+
+      expect(calls1).toBe(1) // Should not be called again
+      expect(calls2).toBe(1) // Should not be called again
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+      cache1.dispose()
+      cache2.dispose()
     })
   })
 })

@@ -1,5 +1,18 @@
 # 0.5.20
 
+## 0.3.5
+
+### Patch Changes
+
+- Update GCP Cloud Tasks adapter to use shared test suite from tasks-core
+
+  - Fix `queue()` to return correct `taskName` instead of generated task name
+  - Add shared test suite integration using real GCP Cloud Tasks credentials
+  - Add `MockCloudTaskConnector` for local testing without GCP
+  - Add benchmark script to measure queue throughput (~8 tasks/sec with GCP API)
+  - Update imports to use `.js` extensions for ES module compatibility
+  - Update vitest config for sequential test execution
+
 ## 0.3.4
 
 ### Patch Changes

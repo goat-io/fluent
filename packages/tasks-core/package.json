@@ -11,6 +11,23 @@
   "publishConfig": {
     "access": "public"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./test-suite": {
+      "types": "./dist/test-suite/index.d.ts",
+      "import": "./dist/test-suite/index.js",
+      "require": "./dist/test-suite/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "test-suite": ["./dist/test-suite/index.d.ts"]
+    }
+  },
   "files": [
     "./dist/**/*"
   ],
