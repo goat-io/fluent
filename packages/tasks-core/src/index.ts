@@ -8,5 +8,7 @@ export type {
   TaskConnector,
   TaskStatus,
   TaskStatusName,
+  TenantConfig,
+  TenantCredentials,
   UnknownInputType
 } from './ShouldQueue.types'

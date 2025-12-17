@@ -1,7 +1,10 @@
 // npx vitest run ./src/bullmq.spec.ts
 
 import type { ShouldQueue } from "@goatlab/tasks-core";
-import { taskConnectorTestSuite } from "@goatlab/tasks-core/test-suite";
+import {
+	multiTenantTestSuite,
+	taskConnectorTestSuite,
+} from "@goatlab/tasks-core/test-suite";
 import {
 	afterAll,
 	afterEach,
@@ -114,4 +117,90 @@ describe("BullMQConnector Specific Tests", () => {
 		await connector.resumeQueue("pause_test_queue");
 		// Queue should be resumed
 	});
+
+	it("should expose tenantId when set", () => {
+		const tenantConnector = new BullMQConnector({
+			connection: {
+				host: globalData.host || "localhost",
+				port: globalData.port || 6379,
+			},
+			tenantId: "test-tenant",
+		});
+
+		expect(tenantConnector.tenantId).toBe("test-tenant");
+		expect(tenantConnector.prefix).toBe("test-tenant");
+	});
+
+	it("should use default prefix when no tenantId", () => {
+		expect(connector.tenantId).toBeUndefined();
+		expect(connector.prefix).toBe("bull");
+	});
+
+	it("forTenant() should create a new connector with tenant prefix", () => {
+		const tenantConnector = connector.forTenant("acme-corp");
+
+		expect(tenantConnector.tenantId).toBe("acme-corp");
+		expect(tenantConnector.prefix).toBe("acme-corp");
+		// Original connector should be unchanged
+		expect(connector.tenantId).toBeUndefined();
+	});
+
+	it("forTenant() should support credentials for Redis ACL", () => {
+		const tenantConnector = connector.forTenant("acme-corp", {
+			username: "tenant_acme",
+			password: "secret123",
+		});
+
+		expect(tenantConnector.tenantId).toBe("acme-corp");
+		// Credentials are stored internally in connectionOptions
+	});
 });
+
+// Multi-tenant isolation tests
+// These verify that different tenants using the same Redis instance are properly isolated
+const baseConnector = new BullMQConnector({
+	connection: {
+		host: globalData.host || "localhost",
+		port: globalData.port || 6379,
+	},
+});
+
+// Store tenant connectors for cleanup
+const tenantConnectors: Map<string, BullMQConnector> = new Map();
+
+multiTenantTestSuite(
+	{ describe, it, expect, beforeAll, afterAll, beforeEach, afterEach },
+	{
+		createTenantConnector: (tenantId) => {
+			const tenantConnector = baseConnector.forTenant(tenantId);
+			tenantConnectors.set(tenantId, tenantConnector);
+			return tenantConnector;
+		},
+		startTenantWorker: async (tenantId, tasks: ShouldQueue[]) => {
+			const tenantConnector = tenantConnectors.get(tenantId);
+			if (!tenantConnector) {
+				throw new Error(`Tenant connector not found for ${tenantId}`);
+			}
+			await tenantConnector.startWorker({
+				workerName: `tenant-${tenantId}-worker`,
+				tasks,
+				concurrency: 10,
+			});
+			return async () => {
+				await tenantConnector.close();
+			};
+		},
+		taskCompletionTimeout: 10000,
+		statusCheckInterval: 500,
+		workerStartupDelay: 2000,
+		supportsForTenant: true,
+		runIsolationTests: true,
+		cleanup: async () => {
+			for (const connector of tenantConnectors.values()) {
+				await connector.close();
+			}
+			tenantConnectors.clear();
+			await baseConnector.close();
+		},
+	},
+);

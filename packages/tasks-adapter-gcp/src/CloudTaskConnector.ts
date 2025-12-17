@@ -3,13 +3,67 @@ import { Security } from '@goatlab/node-utils'
 import type {
   TaskConnector,
   TaskStatus,
-  TaskStatusName
+  TaskStatusName,
+  TenantCredentials
 } from '@goatlab/tasks-core'
 import type { BackoffSettings } from 'google-gax/build/src/gax'
 import { GCPServiceAccount } from './CloudTaskConnector.types.js'
 export type ITask = any
 
 export type { BackoffSettings }
+
+/**
+ * Configuration for CloudTaskConnector
+ */
+export interface CloudTaskConnectorConfig {
+  /**
+   * GCP service account credentials for authentication.
+   */
+  gcpServiceAccount?: GCPServiceAccount
+
+  /**
+   * GCP region/location for Cloud Tasks queues.
+   * Default: 'europe-west1'
+   */
+  location?: string
+
+  /**
+   * Encryption key for task body encryption.
+   */
+  encryptionKey?: string
+
+  /**
+   * GCP project ID.
+   */
+  gcpProject: string
+
+  /**
+   * Tenant ID for multi-tenant isolation.
+   * When set, this tenant ID is used as a prefix for task names.
+   *
+   * Task naming pattern: {tenantId}-{taskName}
+   * Example: "acme-corp-my-task" instead of "my-task"
+   *
+   * This ensures each tenant's tasks are uniquely identified,
+   * providing isolation at the task level while sharing the same queue.
+   */
+  tenantId?: string
+
+  /**
+   * Enable in-memory payload caching for testing.
+   * GCP Cloud Tasks removes completed tasks immediately, which means
+   * getStatus() cannot retrieve the payload after completion.
+   *
+   * When enabled, payloads are cached in memory when queueing
+   * and returned from getStatus() even after the task is removed.
+   *
+   * WARNING: Only enable for testing. In production, this will cause
+   * memory leaks as payloads accumulate.
+   *
+   * Default: false
+   */
+  enablePayloadCache?: boolean
+}
 
 const defaultBackoffSettings: BackoffSettings = {
   maxRetries: 2,
@@ -44,22 +98,155 @@ export class CloudTaskConnector implements TaskConnector<object> {
   private location: string
   private encryptionKey: string
   private gcpProject: string
+  private readonly _tenantId?: string
+  private readonly config: CloudTaskConnectorConfig
+  private readonly enablePayloadCache: boolean
 
-  constructor({
-    gcpServiceAccount,
-    location,
-    encryptionKey,
-    gcpProject
-  }: {
-    gcpServiceAccount?: any
-    location?: string
-    encryptionKey?: string
-    gcpProject: string
-  }) {
-    this.gcpServiceAccount = gcpServiceAccount || ''
-    this.location = location || 'europe-west1'
-    this.encryptionKey = encryptionKey || ''
-    this.gcpProject = gcpProject || ''
+  /**
+   * Cache for task payloads (only used when enablePayloadCache is true).
+   * GCP Cloud Tasks removes completed tasks immediately, so we cache the payload
+   * to return it when getStatus is called after completion.
+   * Key: task name (full path), Value: { payload, createdAt }
+   */
+  private static payloadCache: Map<
+    string,
+    { payload: Record<string, any>; createdAt: number }
+  > = new Map()
+
+  /**
+   * How long to keep payloads in cache (1 hour)
+   */
+  private static readonly CACHE_TTL_MS = 60 * 60 * 1000
+
+  /**
+   * The tenant ID this connector is scoped to.
+   * When set, task names are prefixed with this tenant ID.
+   */
+  public get tenantId(): string | undefined {
+    return this._tenantId
+  }
+
+  constructor(config: CloudTaskConnectorConfig) {
+    this.config = config
+    this.gcpServiceAccount = (config.gcpServiceAccount ||
+      '') as GCPServiceAccount
+    this.location = config.location || 'europe-west1'
+    this.encryptionKey = config.encryptionKey || ''
+    this.gcpProject = config.gcpProject || ''
+    this._tenantId = config.tenantId
+    this.enablePayloadCache = config.enablePayloadCache ?? false
+
+    // Periodically clean up old cache entries (only if caching is enabled)
+    if (this.enablePayloadCache) {
+      this.cleanupCache()
+    }
+  }
+
+  /**
+   * Cleans up expired entries from the payload cache.
+   */
+  private cleanupCache(): void {
+    if (!this.enablePayloadCache) {
+      return
+    }
+    const now = Date.now()
+    for (const [key, value] of CloudTaskConnector.payloadCache) {
+      if (now - value.createdAt > CloudTaskConnector.CACHE_TTL_MS) {
+        CloudTaskConnector.payloadCache.delete(key)
+      }
+    }
+  }
+
+  /**
+   * Caches a task's payload for later retrieval.
+   * Only caches if enablePayloadCache is true.
+   */
+  private cachePayload(taskName: string, payload: Record<string, any>): void {
+    if (!this.enablePayloadCache) {
+      return
+    }
+    CloudTaskConnector.payloadCache.set(taskName, {
+      payload,
+      createdAt: Date.now()
+    })
+  }
+
+  /**
+   * Gets a cached payload if available.
+   * Only returns cached data if enablePayloadCache is true.
+   */
+  private getCachedPayload(taskName: string): Record<string, any> | undefined {
+    if (!this.enablePayloadCache) {
+      return undefined
+    }
+    const cached = CloudTaskConnector.payloadCache.get(taskName)
+    if (cached) {
+      // Check if expired
+      if (Date.now() - cached.createdAt > CloudTaskConnector.CACHE_TTL_MS) {
+        CloudTaskConnector.payloadCache.delete(taskName)
+        return undefined
+      }
+      return cached.payload
+    }
+    return undefined
+  }
+
+  /**
+   * Creates a new CloudTaskConnector instance scoped to a specific tenant.
+   * Uses tenant ID as a prefix for queue names for isolation.
+   *
+   * @param tenantId - The tenant identifier for isolation (used as queue name prefix)
+   * @param credentials - Optional GCP credentials for the tenant (uses parent's if not provided)
+   * @returns A new CloudTaskConnector instance scoped to the tenant
+   *
+   * @example
+   * ```typescript
+   * const baseConnector = new CloudTaskConnector({ gcpProject: 'my-project' })
+   *
+   * // Create tenant-scoped connector
+   * const tenantConnector = baseConnector.forTenant('acme-corp')
+   * // Queue names: acme-corp-default, acme-corp-email-queue, etc.
+   * ```
+   */
+  forTenant(
+    tenantId: string,
+    _credentials?: TenantCredentials
+  ): CloudTaskConnector {
+    return new CloudTaskConnector({
+      ...this.config,
+      tenantId
+    })
+  }
+
+  /**
+   * Sanitizes a string for use in GCP Cloud Tasks names.
+   * GCP names only allow letters, numbers, and hyphens.
+   * @param value - The value to sanitize
+   * @returns Sanitized value safe for GCP names
+   */
+  private sanitizeForGcp(value: string): string {
+    // Replace underscores and other invalid chars with hyphens
+    // Remove any consecutive hyphens and trim hyphens from ends
+    return value
+      .replace(/[^a-zA-Z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
+  /**
+   * Gets the task name with tenant prefix applied if tenant is set.
+   * Task-level isolation: all tenants share the same queue, but task names are prefixed.
+   * This avoids the overhead of creating separate queues per tenant.
+   * @param taskName - The base task name
+   * @returns The full task name with tenant prefix if applicable
+   */
+  private getTaskName(taskName: string): string {
+    const sanitizedTask = this.sanitizeForGcp(taskName)
+    if (this._tenantId) {
+      const sanitizedTenant = this.sanitizeForGcp(this._tenantId)
+      return `${sanitizedTenant}-${sanitizedTask}`
+    }
+    return sanitizedTask
   }
 
   @Memo.asyncMethod()
@@ -100,6 +287,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
     assert(parsedURL, 'Task URL is invalid')
 
     const client = await this.getCloudTasksClient()
+    // Use queue name directly - tenant isolation is at task name level, not queue level
     const parent = client.queuePath(this.gcpProject, this.location, queueName)
 
     // Build the task object in one go to avoid multiple spreads
@@ -171,6 +359,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
    */
   async listFailedTasks(queueName = 'default') {
     const client = await this.getCloudTasksClient()
+    // Use queue name directly - tenant isolation is at task name level
     const parent = client.queuePath(this.gcpProject, this.location, queueName)
 
     // We have to be careful with the response, as it can be large.
@@ -240,6 +429,8 @@ export class CloudTaskConnector implements TaskConnector<object> {
     if (error?.message.includes('The task no longer exists')) {
       // Extract task name once
       const taskName = name?.split('/').pop() || ''
+      // Use cached payload if available (GCP removes completed tasks immediately)
+      const cachedPayload = this.getCachedPayload(name) || {}
       return {
         id: name,
         name: taskName,
@@ -249,7 +440,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
         created: new Date().toISOString(),
         nextRun: null,
         nextRunMinutes: null,
-        payload: {}
+        payload: cachedPayload
       }
     }
 
@@ -293,9 +484,14 @@ export class CloudTaskConnector implements TaskConnector<object> {
    * @param params.taskBody - Body of the task.
    */
   async queue(params: any): Promise<Omit<TaskStatus, 'payload'>> {
+    // Apply tenant prefix to task name for multi-tenant isolation
+    // All tenants share the same queue, but task names are prefixed
+    const baseTaskName = `${params.uniqueTaskName}-${Ids.nanoId(5)}`
+    const taskName = this.getTaskName(baseTaskName)
+
     const task = await this.addTask({
       task: {
-        name: `${params.uniqueTaskName}_${Ids.nanoId(5)}`,
+        name: taskName,
         httpRequest: {
           url: params.postUrl,
           body: JSON.stringify(params.taskBody)
@@ -304,6 +500,11 @@ export class CloudTaskConnector implements TaskConnector<object> {
       queueName: params.queueName || 'default',
       backoffSettings: defaultBackoffSettings
     })
+
+    // Cache the payload so we can return it even after GCP removes the completed task
+    if (task.name) {
+      this.cachePayload(task.name, params.taskBody)
+    }
 
     const creation = Number(task.createTime?.seconds || 0) || 0
     const scheduled = Number(task.scheduleTime?.seconds || 0) || 0

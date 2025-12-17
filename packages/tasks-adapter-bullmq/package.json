@@ -1,6 +1,6 @@
 {
 	"name": "@goatlab/tasks-adapter-bullmq",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "BullMQ Tasks adapter for Goatlab tasks",
 	"homepage": "https://docs.goatlab.io",
 	"main": "dist/index.js",

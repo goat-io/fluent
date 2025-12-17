@@ -4,6 +4,7 @@ import type {
 	TaskConnector,
 	TaskStatus,
 	TaskStatusName,
+	TenantCredentials,
 } from "@goatlab/tasks-core";
 import type { ConnectionOptions, JobsOptions } from "bullmq";
 import { type Job, Queue, Worker } from "bullmq";
@@ -13,10 +14,12 @@ const DEFAULT_HOST = "localhost";
 const DEFAULT_PORT = 6379;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_CONCURRENCY = 100;
+const DEFAULT_PREFIX = "bull";
 
 export interface BullMQConnectionOptions {
 	host?: string;
 	port?: number;
+	username?: string;
 	password?: string;
 	db?: number;
 	family?: 4 | 6;
@@ -26,6 +29,17 @@ export interface BullMQConnectionOptions {
 export interface BullMQConnectorConfig {
 	connection?: BullMQConnectionOptions;
 	defaultJobOptions?: JobsOptions;
+	/**
+	 * Tenant ID for multi-tenant isolation.
+	 * When set, this tenant ID is used as a prefix for all Redis keys.
+	 *
+	 * Key pattern: {tenantId}:{queueName}:{keyType}
+	 * Example: "acme-corp:email-queue:waiting"
+	 *
+	 * This enables Redis ACL rules like: ~acme-corp:* +@all
+	 * to restrict tenant access to only their prefixed keys.
+	 */
+	tenantId?: string;
 }
 
 /**
@@ -54,11 +68,43 @@ export class BullMQConnector implements TaskConnector<object> {
 	private readonly defaultJobOptions: JobsOptions;
 	private readonly queues: Map<string, Queue> = new Map();
 	private readonly workers: Map<string, Worker> = new Map();
+	private readonly _tenantId?: string;
+	private readonly _prefix: string;
+	private readonly config: BullMQConnectorConfig;
+
+	/**
+	 * The tenant ID this connector is scoped to.
+	 * When set, all Redis keys are prefixed with this tenant ID.
+	 */
+	public get tenantId(): string | undefined {
+		return this._tenantId;
+	}
+
+	/**
+	 * The Redis key prefix used by this connector.
+	 * Format: "{tenantId}" if tenant is set, otherwise "bull" (default)
+	 *
+	 * This prefix is applied to all queue names, resulting in keys like:
+	 * - With tenant: "acme-corp:email-queue:waiting"
+	 * - Without tenant: "bull:email-queue:waiting"
+	 */
+	public get prefix(): string {
+		return this._prefix;
+	}
 
 	constructor(config?: BullMQConnectorConfig) {
+		this.config = config || {};
+		this._tenantId = config?.tenantId;
+
+		// Use tenant ID as prefix for multi-tenant isolation
+		// Keys will be: {tenantId}:{queueName}:{keyType}
+		// This allows Redis ACL rules like: ~{tenantId}:* +@all
+		this._prefix = config?.tenantId || DEFAULT_PREFIX;
+
 		this.connectionOptions = {
 			host: config?.connection?.host || DEFAULT_HOST,
 			port: config?.connection?.port || DEFAULT_PORT,
+			username: config?.connection?.username,
 			password: config?.connection?.password,
 			db: config?.connection?.db || 0,
 			family: config?.connection?.family || 4,
@@ -77,12 +123,59 @@ export class BullMQConnector implements TaskConnector<object> {
 	}
 
 	/**
+	 * Creates a new BullMQConnector instance scoped to a specific tenant.
+	 * The new connector uses the tenant ID as a Redis key prefix for isolation.
+	 *
+	 * @param tenantId - The tenant identifier for isolation
+	 * @param credentials - Optional credentials for the tenant's Redis user
+	 * @returns A new BullMQConnector instance scoped to the tenant
+	 *
+	 * @example
+	 * ```typescript
+	 * const baseConnector = new BullMQConnector({ connection: { host: 'localhost' } })
+	 *
+	 * // Create tenant-scoped connector (uses prefix isolation)
+	 * const tenantConnector = baseConnector.forTenant('acme-corp')
+	 * // Keys: acme-corp:queue-name:*
+	 *
+	 * // With Redis ACL credentials for stronger isolation
+	 * const secureConnector = baseConnector.forTenant('acme-corp', {
+	 *   username: 'tenant_acme',
+	 *   password: 'secret'
+	 * })
+	 * ```
+	 */
+	forTenant(
+		tenantId: string,
+		credentials?: TenantCredentials,
+	): BullMQConnector {
+		return new BullMQConnector({
+			...this.config,
+			tenantId,
+			connection: {
+				...this.config.connection,
+				// Override credentials if provided for stronger isolation
+				...(credentials?.username && { username: credentials.username }),
+				...(credentials?.password && { password: credentials.password }),
+			},
+		});
+	}
+
+	/**
 	 * Gets or creates a queue for a given queue name.
 	 * Queues are memoized to avoid creating multiple instances.
+	 *
+	 * When a tenant ID is set, the queue uses the tenant ID as the Redis key prefix.
+	 * This ensures all keys are namespaced under the tenant.
+	 *
+	 * Key patterns:
+	 * - With tenant "acme-corp": acme-corp:email-queue:waiting
+	 * - Without tenant: bull:email-queue:waiting
 	 */
 	@Memo.syncMethod()
 	public getQueue(queueName: string): Queue {
-		const existing = this.queues.get(queueName);
+		const cacheKey = `${this._prefix}:${queueName}`;
+		const existing = this.queues.get(cacheKey);
 		if (existing) {
 			return existing;
 		}
@@ -90,15 +183,19 @@ export class BullMQConnector implements TaskConnector<object> {
 		const queue = new Queue(queueName, {
 			connection: this.connectionOptions,
 			defaultJobOptions: this.defaultJobOptions,
+			prefix: this._prefix,
 		});
 
-		this.queues.set(queueName, queue);
+		this.queues.set(cacheKey, queue);
 		return queue;
 	}
 
 	/**
 	 * Creates a worker for processing jobs from a BullMQ task.
 	 * Similar to Hatchet's getHatchetTask but creates a worker.
+	 *
+	 * IMPORTANT: The worker uses the same prefix as the queue to ensure
+	 * it processes jobs from the correct tenant namespace.
 	 */
 	public getBullMQWorker(
 		task: ShouldQueue,
@@ -112,6 +209,7 @@ export class BullMQConnector implements TaskConnector<object> {
 			{
 				connection: this.connectionOptions,
 				concurrency,
+				prefix: this._prefix,
 			},
 		);
 
@@ -121,6 +219,9 @@ export class BullMQConnector implements TaskConnector<object> {
 	/**
 	 * Starts a worker to process jobs for the given tasks.
 	 * Similar pattern to HatchetConnector.startWorker().
+	 *
+	 * IMPORTANT: Workers use the same prefix as queues to ensure
+	 * they only process jobs from the correct tenant namespace.
 	 */
 	async startWorker({
 		workerName,
@@ -134,6 +235,7 @@ export class BullMQConnector implements TaskConnector<object> {
 		const workers: Worker[] = [];
 
 		for (const task of tasks) {
+			const workerKey = `${this._prefix}:${task.taskName}`;
 			const worker = new Worker(
 				task.taskName,
 				async (job: Job) => {
@@ -143,10 +245,11 @@ export class BullMQConnector implements TaskConnector<object> {
 					connection: this.connectionOptions,
 					concurrency,
 					name: `${workerName || task.taskName}-${Ids.nanoId(5)}`,
+					prefix: this._prefix,
 				},
 			);
 
-			this.workers.set(task.taskName, worker);
+			this.workers.set(workerKey, worker);
 			workers.push(worker);
 		}
 

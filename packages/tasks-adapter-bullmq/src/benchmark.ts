@@ -39,7 +39,7 @@ class BenchmarkTask extends ShouldQueue<{ index: number }> {
 }
 
 async function runQueueBenchmark(
-	connector: BullMQConnector,
+	_connector: BullMQConnector,
 	task: BenchmarkTask,
 ) {
 	console.log("\n📊 Queue Throughput (queue-only, no worker)");
@@ -204,7 +204,7 @@ async function main() {
 		await connector3.close();
 
 		// Summary
-		console.log("\n" + "=".repeat(50));
+		console.log(`\n${"=".repeat(50)}`);
 		console.log("📈 BULLMQ SUMMARY");
 		console.log("=".repeat(50));
 		console.log(`Queue throughput:  ${queueThroughput.toFixed(0)} tasks/sec`);
@@ -328,7 +328,7 @@ async function runPersistenceComparison() {
 	await container3.stop();
 
 	// Summary
-	console.log("\n" + "=".repeat(50));
+	console.log(`\n${"=".repeat(50)}`);
 	console.log("📈 PERSISTENCE COMPARISON");
 	console.log("=".repeat(50));
 	for (const r of results) {
@@ -400,7 +400,7 @@ async function runPayloadComparison() {
 	await container.stop();
 
 	// Summary
-	console.log("\n" + "=".repeat(50));
+	console.log(`\n${"=".repeat(50)}`);
 	console.log("📈 PAYLOAD SIZE COMPARISON");
 	console.log("=".repeat(50));
 	const maxThroughput = results[0].throughput;

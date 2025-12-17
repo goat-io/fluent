@@ -2,7 +2,8 @@ import { Ids, Memo } from '@goatlab/js-utils'
 import type {
   ShouldQueue,
   TaskConnector,
-  TaskStatus
+  TaskStatus,
+  TenantCredentials
 } from '@goatlab/tasks-core'
 import { Hatchet } from '@hatchet-dev/typescript-sdk'
 
@@ -10,7 +11,7 @@ import { Hatchet } from '@hatchet-dev/typescript-sdk'
 const DEFAULT_HOST_PORT = 'localhost:7077'
 const DEFAULT_API_URL = 'http://localhost:8888'
 const DEFAULT_LOG_LEVEL = 'INFO'
-const DEFAULT_TENANT_ID = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
+const DEFAULT_HATCHET_TENANT_ID = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
 
 /**
  * HatchetConnector - TaskConnector implementation for Hatchet.
@@ -50,36 +51,124 @@ const DEFAULT_TENANT_ID = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
  * @see https://docs.hatchet.run/home/run-no-wait
  * @see https://docs.hatchet.run/home/v1-sdk-improvements
  */
+/**
+ * Configuration for HatchetConnector
+ */
+export interface HatchetConnectorConfig {
+  /**
+   * Hatchet API token for authentication.
+   */
+  token: string
+
+  /**
+   * Hatchet gRPC host and port.
+   * Default: 'localhost:7077'
+   */
+  hostAndPort?: string
+
+  /**
+   * Hatchet REST API URL.
+   * Default: 'http://localhost:8888'
+   */
+  apiUrl?: string
+
+  /**
+   * Log level for Hatchet client.
+   * Default: 'INFO'
+   */
+  logLevel?: 'INFO' | 'OFF' | 'DEBUG' | 'WARN' | 'ERROR'
+
+  /**
+   * Hatchet's internal tenant ID (requires separate token per tenant).
+   * This is different from our multi-tenant isolation - use `tenantId` instead.
+   */
+  hatchetTenantId?: string
+
+  /**
+   * Tenant ID for multi-tenant isolation using Hatchet namespaces.
+   * When set, this is used as the Hatchet namespace to isolate:
+   * - Workflows only trigger for this namespace
+   * - Events remain isolated to this namespace
+   * - Workers only process jobs from this namespace
+   *
+   * This allows multiple tenants to share the same Hatchet instance
+   * and token while maintaining isolation.
+   */
+  tenantId?: string
+}
+
 export class HatchetConnector implements TaskConnector<object> {
   private readonly token: string
   private readonly hostAndPort: string
   private readonly apiUrl: string
   private readonly logLevel: 'INFO' | 'OFF' | 'DEBUG' | 'WARN' | 'ERROR'
-  private readonly tenantId: string
+  private readonly hatchetTenantId: string
+  private readonly _tenantId?: string
+  private readonly config: HatchetConnectorConfig
 
   // Store registered workflows by taskName for reuse in queue()
   private registeredWorkflows: Map<string, any> = new Map()
 
-  constructor({
-    token,
-    hostAndPort,
-    apiUrl,
-    logLevel,
-    tenantId
-  }: {
-    token: string
-    hostAndPort?: string
-    apiUrl?: string
-    logLevel: 'INFO' | 'OFF' | 'DEBUG' | 'WARN' | 'ERROR'
-    tenantId?: string
-  }) {
-    this.token = token || ''
-    this.hostAndPort = hostAndPort || DEFAULT_HOST_PORT
-    this.apiUrl = apiUrl || DEFAULT_API_URL
-    this.logLevel = logLevel || DEFAULT_LOG_LEVEL
-    this.tenantId = tenantId || ''
+  /**
+   * The tenant ID this connector is scoped to.
+   * Uses Hatchet namespaces for isolation within the same Hatchet instance.
+   */
+  public get tenantId(): string | undefined {
+    return this._tenantId
   }
 
+  /**
+   * The Hatchet namespace used for isolation.
+   * This is the same as tenantId when set.
+   */
+  public get namespace(): string {
+    return this._tenantId || ''
+  }
+
+  constructor(config: HatchetConnectorConfig) {
+    this.config = config
+    this.token = config.token || ''
+    this.hostAndPort = config.hostAndPort || DEFAULT_HOST_PORT
+    this.apiUrl = config.apiUrl || DEFAULT_API_URL
+    this.logLevel = config.logLevel || DEFAULT_LOG_LEVEL
+    this.hatchetTenantId = config.hatchetTenantId || ''
+    this._tenantId = config.tenantId
+  }
+
+  /**
+   * Creates a new HatchetConnector instance scoped to a specific tenant.
+   * Uses Hatchet namespaces for isolation within the same Hatchet instance.
+   *
+   * @param tenantId - The tenant identifier for isolation (used as Hatchet namespace)
+   * @param _credentials - Not used for Hatchet (namespaces share the same token)
+   * @returns A new HatchetConnector instance scoped to the tenant
+   *
+   * @example
+   * ```typescript
+   * const baseConnector = new HatchetConnector({ token: 'my-token' })
+   *
+   * // Create tenant-scoped connector
+   * const tenantConnector = baseConnector.forTenant('acme-corp')
+   * // Namespace: acme-corp (workflows isolated to this namespace)
+   * ```
+   */
+  forTenant(
+    tenantId: string,
+    _credentials?: TenantCredentials
+  ): HatchetConnector {
+    return new HatchetConnector({
+      ...this.config,
+      tenantId
+    })
+  }
+
+  /**
+   * Gets or creates a memoized Hatchet client.
+   *
+   * IMPORTANT: Due to memoization, each unique combination of config creates
+   * a separate client. This means tenant-scoped connectors get their own client
+   * with the correct namespace.
+   */
   @Memo.syncMethod()
   public getHatchetClient() {
     const hatchet = Hatchet.init({
@@ -87,9 +176,11 @@ export class HatchetConnector implements TaskConnector<object> {
       host_port: this.hostAndPort,
       api_url: this.apiUrl,
       log_level: this.logLevel,
-      // This is the default tenantId for local development
-      tenant_id: this.tenantId || DEFAULT_TENANT_ID,
-      namespace: '',
+      // Hatchet's internal tenant ID (requires separate token)
+      tenant_id: this.hatchetTenantId || DEFAULT_HATCHET_TENANT_ID,
+      // Use tenantId as namespace for multi-tenant isolation
+      // This prefixes workflows and isolates events/workers
+      namespace: this._tenantId || '',
       tls_config: {
         tls_strategy: 'none'
       }

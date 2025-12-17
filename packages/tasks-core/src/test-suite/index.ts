@@ -50,6 +50,15 @@ export {
   taskConnectorLifecycleTests
 } from './lifecycle.js'
 export type {
+  MultiTenantTestOptions,
+  TenantConnectorFactory
+} from './multi-tenant.js'
+// Re-export multi-tenant test suite
+export {
+  createMultiTenantTestTask,
+  multiTenantTestSuite
+} from './multi-tenant.js'
+export type {
   ConnectorFactory,
   ExpectAPI,
   TestContext,
