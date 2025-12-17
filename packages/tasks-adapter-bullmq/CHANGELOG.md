@@ -1,5 +1,11 @@
 # @goatlab/tasks-adapter-bullmq
 
+## 0.2.1
+
+### Patch Changes
+
+- Fix BullMQ tenant prefix to preserve 'bull' prefix. Keys now use pattern `tenantId:bull:queueName:*` instead of just `tenantId:queueName:*` for proper Redis ACL compatibility.
+
 ## 0.2.0
 
 ### Minor Changes

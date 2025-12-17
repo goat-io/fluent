@@ -128,7 +128,7 @@ describe("BullMQConnector Specific Tests", () => {
 		});
 
 		expect(tenantConnector.tenantId).toBe("test-tenant");
-		expect(tenantConnector.prefix).toBe("test-tenant");
+		expect(tenantConnector.prefix).toBe("test-tenant:bull");
 	});
 
 	it("should use default prefix when no tenantId", () => {
@@ -140,7 +140,7 @@ describe("BullMQConnector Specific Tests", () => {
 		const tenantConnector = connector.forTenant("acme-corp");
 
 		expect(tenantConnector.tenantId).toBe("acme-corp");
-		expect(tenantConnector.prefix).toBe("acme-corp");
+		expect(tenantConnector.prefix).toBe("acme-corp:bull");
 		// Original connector should be unchanged
 		expect(connector.tenantId).toBeUndefined();
 	});

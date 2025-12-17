@@ -33,8 +33,8 @@ export interface BullMQConnectorConfig {
 	 * Tenant ID for multi-tenant isolation.
 	 * When set, this tenant ID is used as a prefix for all Redis keys.
 	 *
-	 * Key pattern: {tenantId}:{queueName}:{keyType}
-	 * Example: "acme-corp:email-queue:waiting"
+	 * Key pattern: {tenantId}:bull:{queueName}:{keyType}
+	 * Example: "acme-corp:bull:email-queue:waiting"
 	 *
 	 * This enables Redis ACL rules like: ~acme-corp:* +@all
 	 * to restrict tenant access to only their prefixed keys.
@@ -82,10 +82,10 @@ export class BullMQConnector implements TaskConnector<object> {
 
 	/**
 	 * The Redis key prefix used by this connector.
-	 * Format: "{tenantId}" if tenant is set, otherwise "bull" (default)
+	 * Format: "{tenantId}:bull" if tenant is set, otherwise "bull" (default)
 	 *
 	 * This prefix is applied to all queue names, resulting in keys like:
-	 * - With tenant: "acme-corp:email-queue:waiting"
+	 * - With tenant: "acme-corp:bull:email-queue:waiting"
 	 * - Without tenant: "bull:email-queue:waiting"
 	 */
 	public get prefix(): string {
@@ -97,9 +97,11 @@ export class BullMQConnector implements TaskConnector<object> {
 		this._tenantId = config?.tenantId;
 
 		// Use tenant ID as prefix for multi-tenant isolation
-		// Keys will be: {tenantId}:{queueName}:{keyType}
+		// Keys will be: {tenantId}:bull:{queueName}:{keyType}
 		// This allows Redis ACL rules like: ~{tenantId}:* +@all
-		this._prefix = config?.tenantId || DEFAULT_PREFIX;
+		this._prefix = config?.tenantId
+			? `${config.tenantId}:${DEFAULT_PREFIX}`
+			: DEFAULT_PREFIX;
 
 		this.connectionOptions = {
 			host: config?.connection?.host || DEFAULT_HOST,
@@ -169,7 +171,7 @@ export class BullMQConnector implements TaskConnector<object> {
 	 * This ensures all keys are namespaced under the tenant.
 	 *
 	 * Key patterns:
-	 * - With tenant "acme-corp": acme-corp:email-queue:waiting
+	 * - With tenant "acme-corp": acme-corp:bull:email-queue:waiting
 	 * - Without tenant: bull:email-queue:waiting
 	 */
 	@Memo.syncMethod()
