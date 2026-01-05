@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 1.1.16
+
+### Patch Changes
+
+- fix(cache): use iterator-based deletion in flush() for Redis namespace compatibility
+
+  The previous `flush()` implementation used `clear()` which relies on Redis Sets to track keys.
+  Keys created before proper namespace setup or with `useRedisSets:false` wouldn't be tracked in
+  those sets and wouldn't be deleted. This fix uses the iterator (Redis SCAN) to find ALL keys
+  matching the namespace pattern, ensuring complete cache clearing regardless of key tracking state.
+
 ## 1.1.15
 
 ### Patch Changes

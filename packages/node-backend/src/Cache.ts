@@ -277,12 +277,46 @@ export class Cache<T extends object = any> extends Keyv<T> {
   }
 
   /**
-   * Remove all items from the cache in the current namespace
+   * Remove all items from the cache in the current namespace.
    *
-   * @return bool
+   * Note: We use iterator-based deletion instead of KeyvRedis's clear() because
+   * clear() relies on Redis Sets to track keys. Keys created before proper namespace
+   * setup or with useRedisSets:false won't be in those sets and won't be deleted.
+   * The iterator uses Redis SCAN which finds ALL keys matching the namespace pattern.
+   *
+   * @return void
    */
   public async flush(): Promise<void> {
-    await this.clear()
+    // For in-memory stores without iterator, use clear() directly
+    if (!this.iterator) {
+      await this.clear()
+      return
+    }
+
+    // Use iterator-based deletion for Redis - this finds ALL keys via SCAN
+    // regardless of whether they're tracked in Redis Sets
+    const namespacePrefix = this.ns ? `${this.ns}:` : ''
+    const keysToDelete: string[] = []
+
+    // Collect all keys first (iterator may be affected by deletions)
+    for await (const [key] of this.iterator(this.ns)) {
+      // Strip namespace prefix from key
+      let keyWithoutNamespace = key
+      if (namespacePrefix && key.startsWith(namespacePrefix)) {
+        keyWithoutNamespace = key.substring(namespacePrefix.length)
+      }
+      keysToDelete.push(keyWithoutNamespace)
+    }
+
+    // Delete all collected keys
+    for (const key of keysToDelete) {
+      await this.delete(key)
+    }
+
+    // Also clear memory cache if using LRU memory
+    if (this.usesLRUMemory) {
+      await this.memoryCache.clear()
+    }
   }
 
   public async deleteWhereStartsWith(value: string): Promise<void> {

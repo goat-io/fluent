@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-pouchdb",
-  "version": "0.9.19",
+  "version": "0.9.20",
   "description": "Fluent query Interface for Pouchdb",
   "scripts": {
     "prebuild": "rimraf dist",
