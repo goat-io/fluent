@@ -48,7 +48,7 @@
     "@keyv/redis": "^3.0.1",
     "@sentry/node": "^9.42.0",
     "@sentry/profiling-node": "^9.42.0",
-    "@trpc/server": "^11.4.3",
+    "@trpc/server": "^11.8.0",
     "@types/compression": "^1.8.1",
     "@types/connect-timeout": "^1.9.0",
     "@types/express-rate-limit": "^6.0.2",
