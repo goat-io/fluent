@@ -1,5 +1,5 @@
 import { runCommand as runCommandScript } from './scripts/runCommand'
-import { runScript } from './scripts/runScript'
+import { formatDuration, runScript } from './scripts/runScript'
 
 /**
  * Utility class providing script execution methods.
@@ -60,4 +60,4 @@ export const Scripts = new ScriptsClass()
  *
  * @see {@link runScript} for detailed documentation
  */
-export { runScript }
+export { formatDuration, runScript }

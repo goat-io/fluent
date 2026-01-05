@@ -1,5 +1,15 @@
 # 0.5.20
 
+## 0.11.0
+
+### Minor Changes
+
+- feat(runScript): add execution duration logging after script completion
+
+  - Log human-readable duration (e.g., "Script completed in 2h 3m 20s 300ms")
+  - Smart formatting: only shows relevant time units (milliseconds for short scripts, full breakdown for long ones)
+  - Export `formatDuration` utility function for custom duration formatting
+
 ## 0.10.4
 
 ### Patch Changes

@@ -1,6 +1,41 @@
 import { CommonLogger } from '@goatlab/js-utils'
 
 /**
+ * Formats a duration in milliseconds to a human-readable string.
+ * Only shows relevant time units (e.g., "2h 3m 20s 300ms" or just "300ms").
+ */
+export function formatDuration(ms: number): string {
+  const hours = Math.floor(ms / 3600000)
+  const minutes = Math.floor((ms % 3600000) / 60000)
+  const seconds = Math.floor((ms % 60000) / 1000)
+  const milliseconds = Math.floor(ms % 1000)
+
+  const parts: string[] = []
+
+  if (hours > 0) {
+    parts.push(`${hours}h`)
+  }
+  if (minutes > 0 || hours > 0) {
+    // Show minutes if there are hours, even if minutes is 0
+    if (hours > 0 || minutes > 0) {
+      parts.push(`${minutes}m`)
+    }
+  }
+  if (seconds > 0 || minutes > 0 || hours > 0) {
+    // Show seconds if there are minutes or hours
+    if (hours > 0 || minutes > 0 || seconds > 0) {
+      parts.push(`${seconds}s`)
+    }
+  }
+  if (milliseconds > 0 || parts.length === 0) {
+    // Always show ms if nothing else, or if there are remaining ms
+    parts.push(`${milliseconds}ms`)
+  }
+
+  return parts.join(' ')
+}
+
+/**
  * Configuration options for the runScript function.
  */
 export interface RunScriptOptions {
@@ -192,6 +227,7 @@ export function runScript(
   opt: RunScriptOptions = {}
 ): void {
   const { logger = console, noExit, onExit, onError } = opt
+  const startTime = Date.now()
   let exiting = false
 
   const cleanExit = (code: number) => {
@@ -199,6 +235,11 @@ export function runScript(
       return
     }
     exiting = true
+
+    const duration = Date.now() - startTime
+    const status = code === 0 ? 'completed' : 'failed'
+    logger.log(`Script ${status} in ${formatDuration(duration)}`)
+
     process.removeAllListeners()
     onExit?.(code)
     if (!noExit) {

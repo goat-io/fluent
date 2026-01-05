@@ -2,7 +2,7 @@
 
 import type { CommonLogger } from '@goatlab/js-utils'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { runScript } from './runScript'
+import { formatDuration, runScript } from './runScript'
 
 describe('runScript', () => {
   let mockLogger: CommonLogger
@@ -480,5 +480,99 @@ describe('runScript', () => {
       expect(process.once).toHaveBeenCalledWith('SIGTERM', expect.any(Function))
       expect(process.once).toHaveBeenCalledWith('SIGHUP', expect.any(Function))
     })
+  })
+
+  describe('execution duration logging', () => {
+    test('should log duration on successful completion', async () => {
+      runScript(
+        async () => {
+          return 'done'
+        },
+        { logger: mockLogger }
+      )
+
+      await new Promise(resolve => setImmediate(resolve))
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringMatching(/^Script completed in \d+ms$/)
+      )
+    })
+
+    test('should log duration on error', async () => {
+      runScript(
+        async () => {
+          throw new Error('Failed')
+        },
+        { logger: mockLogger }
+      )
+
+      await new Promise(resolve => setImmediate(resolve))
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringMatching(/^Script failed in \d+ms$/)
+      )
+    })
+
+    test('should log duration on signal', async () => {
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger }
+      )
+
+      await new Promise(resolve => setImmediate(resolve))
+
+      const sigintListeners = processListeners.get('SIGINT') || []
+      sigintListeners[0]()
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringMatching(/^Script completed in \d+ms$/)
+      )
+    })
+  })
+})
+
+describe('formatDuration', () => {
+  test('should format milliseconds only', () => {
+    expect(formatDuration(0)).toBe('0ms')
+    expect(formatDuration(1)).toBe('1ms')
+    expect(formatDuration(500)).toBe('500ms')
+    expect(formatDuration(999)).toBe('999ms')
+  })
+
+  test('should format seconds and milliseconds', () => {
+    expect(formatDuration(1000)).toBe('1s')
+    expect(formatDuration(1001)).toBe('1s 1ms')
+    expect(formatDuration(1500)).toBe('1s 500ms')
+    expect(formatDuration(59999)).toBe('59s 999ms')
+  })
+
+  test('should format minutes, seconds, and milliseconds', () => {
+    expect(formatDuration(60000)).toBe('1m 0s')
+    expect(formatDuration(60001)).toBe('1m 0s 1ms')
+    expect(formatDuration(61000)).toBe('1m 1s')
+    expect(formatDuration(61500)).toBe('1m 1s 500ms')
+    expect(formatDuration(3599999)).toBe('59m 59s 999ms')
+  })
+
+  test('should format hours, minutes, seconds, and milliseconds', () => {
+    expect(formatDuration(3600000)).toBe('1h 0m 0s')
+    expect(formatDuration(3600001)).toBe('1h 0m 0s 1ms')
+    expect(formatDuration(3661000)).toBe('1h 1m 1s')
+    expect(formatDuration(3661500)).toBe('1h 1m 1s 500ms')
+    expect(formatDuration(7323300)).toBe('2h 2m 3s 300ms')
+  })
+
+  test('should handle exact boundaries', () => {
+    expect(formatDuration(1000)).toBe('1s')
+    expect(formatDuration(60000)).toBe('1m 0s')
+    expect(formatDuration(3600000)).toBe('1h 0m 0s')
+  })
+
+  test('should handle large durations', () => {
+    // 25 hours, 30 minutes, 45 seconds, 123ms
+    const duration = 25 * 3600000 + 30 * 60000 + 45 * 1000 + 123
+    expect(formatDuration(duration)).toBe('25h 30m 45s 123ms')
   })
 })
