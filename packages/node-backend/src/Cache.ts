@@ -4,7 +4,23 @@ import type { Options } from 'keyv'
 const Keyv = require('keyv')
 
 import { KeyvLru } from './cache/KeyvLrus'
+import { LazyRedisStore } from './cache/LazyRedisStore'
 import { RedisConnectionPool } from './cache/RedisConnectionPool'
+
+export interface CacheOptions<T> extends Options<T> {
+  usesLRUMemory?: boolean
+  tenantId?: string
+  /**
+   * When true (default), Redis connection is deferred until first use.
+   * This prevents connection exhaustion during Cloud Run/serverless deployments
+   * where old and new containers may briefly run simultaneously.
+   *
+   * Set to false for eager connection (fail-fast behavior).
+   *
+   * @default true
+   */
+  lazy?: boolean
+}
 
 export class Cache<T extends object = any> extends Keyv<T> {
   private ns: string
@@ -14,16 +30,18 @@ export class Cache<T extends object = any> extends Keyv<T> {
   private memoryCache: typeof Keyv
   private connectionString?: string
   private connectionPool: RedisConnectionPool
+  private lazyStore?: LazyRedisStore
 
   constructor({
     connection,
     opts
   }: {
     connection: string | undefined
-    opts?: Options<T> & { usesLRUMemory?: boolean; tenantId?: string }
+    opts?: CacheOptions<T>
   }) {
     const tenantId = opts?.tenantId
     const namespace = opts?.namespace || ''
+    const lazy = opts?.lazy !== false // Default to true
 
     // Build the full namespace including tenant ID if provided
     // Format: "tenantId:namespace" or "tenantId" or "namespace" or ""
@@ -35,20 +53,37 @@ export class Cache<T extends object = any> extends Keyv<T> {
     // Get connection pool instance
     const pool = RedisConnectionPool.getInstance()
 
+    // Determine which store to use
+    let store: any
+    let lazyStore: LazyRedisStore | undefined
+
+    if (connection) {
+      if (lazy) {
+        // Lazy mode: use LazyRedisStore that defers connection
+        lazyStore = new LazyRedisStore(connection)
+        store = lazyStore
+      } else {
+        // Eager mode: connect immediately via pool
+        store = pool.getConnection(connection)
+      }
+    } else {
+      // No connection string: use in-memory LRU
+      store = new KeyvLru<T>({
+        max: 1000,
+        resetTtl: false,
+        ttl: 0
+      })
+    }
+
     super({
-      store: connection
-        ? pool.getConnection(connection)
-        : new KeyvLru<T>({
-            max: 1000,
-            resetTtl: false,
-            ttl: 0
-          }),
+      store,
       ...opts,
       namespace: fullNamespace
     })
 
     this.connectionString = connection
     this.connectionPool = pool
+    this.lazyStore = lazyStore
 
     this.keyvLru = new KeyvLru<T>({
       max: 1000,
@@ -68,6 +103,24 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
   public get tenantId(): string | undefined {
     return this._tenantId
+  }
+
+  /**
+   * Check if the cache is using lazy initialization
+   */
+  public isLazy(): boolean {
+    return this.lazyStore !== undefined
+  }
+
+  /**
+   * Check if the Redis connection is established (for lazy mode)
+   */
+  public isConnected(): boolean {
+    if (this.lazyStore) {
+      return this.lazyStore.isConnected()
+    }
+    // For eager mode or in-memory, always "connected"
+    return true
   }
 
   private isValidResult(result: any): boolean {
@@ -321,7 +374,9 @@ export class Cache<T extends object = any> extends Keyv<T> {
    * Use this when you're certain no other instances need this connection.
    */
   public async disconnect(): Promise<void> {
-    if (this.connectionString) {
+    if (this.lazyStore) {
+      await this.lazyStore.disconnect()
+    } else if (this.connectionString) {
       await this.connectionPool.disconnect(this.connectionString)
     }
   }

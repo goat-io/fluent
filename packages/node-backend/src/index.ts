@@ -1,8 +1,10 @@
 import type { Options } from 'keyv'
-import { Cache } from './Cache'
+import { Cache, type CacheOptions } from './Cache'
+import { LazyRedisStore } from './cache/LazyRedisStore'
+import { RedisConnectionPool } from './cache/RedisConnectionPool'
 
-export { Cache }
-export type { Options }
+export { Cache, LazyRedisStore, RedisConnectionPool }
+export type { CacheOptions, Options }
 
 export type * from '@trpc/server'
 export { TRPCError } from '@trpc/server'

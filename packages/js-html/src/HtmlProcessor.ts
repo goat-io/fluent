@@ -168,14 +168,29 @@ export class HtmlProcessor {
     const extractedText = HtmlProcessor.extractTextFromHTML(parsed).trim()
 
     if (extractedText.length > truncate) {
-      truncatedHtml = `${truncatedHtml} ${ellipsis}`
+      // Manually wrap the ellipsis in an <a> tag pointing to /expand.
+      // We do this explicitly rather than relying on linkify-plugin-keyword because:
+      // 1. linkify-plugin-keyword only supports single-word keywords
+      // 2. Multi-word patterns like "...See more " are not reliably matched
+      // 3. This ensures the "See more" link always works for RichTextDisplay components
+      const ellipsisLink = `<a href="/expand" style="color: gray;text-decoration: none;">${ellipsis}</a>`
+      truncatedHtml = `${truncatedHtml} ${ellipsisLink}`
     }
 
-    const reProcessHtml = linkifyHtml(truncatedHtml, this.parsingOptions)
-
-    const finalResult = linkifyHtml(reProcessHtml, this.parsingOptions)
-
-    return finalResult
+    // Call linkifyHtml once after truncation to handle any other linkifiable content.
+    // The ellipsis is already wrapped in an <a> tag, so it won't be re-processed.
+    //
+    // IMPORTANT: We intentionally call linkifyHtml only ONCE here.
+    // The original code had two calls, but this was unnecessary and caused bugs:
+    //
+    // 1. Content from getParsedHtml() is already linkified (URLs, @mentions, #hashtags are in <a> tags)
+    // 2. linkifyHtml ignores content inside <a> tags, so already-linked content is safe
+    // 3. Multiple linkifyHtml passes can cause issues when problematic keywords are registered
+    //    (e.g., keywords containing spaces), leading to spurious links for whitespace
+    //
+    // Character count note: truncateHtml counts visible text, not HTML tags,
+    // so the character count is consistent regardless of linkification.
+    return linkifyHtml(truncatedHtml, this.parsingOptions)
   }
 
   isHTMLEmpty(): boolean {

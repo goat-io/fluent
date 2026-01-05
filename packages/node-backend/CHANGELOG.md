@@ -1,5 +1,28 @@
 # 0.5.20
 
+## 1.1.13
+
+### Patch Changes
+
+- Build and publish latest changes
+
+## 1.1.12
+
+### Patch Changes
+
+- Fix LazyRedisStore iterator type assertion for TypeScript compatibility
+
+## 1.1.11
+
+### Patch Changes
+
+- Add LazyRedisStore for lazy Redis connections
+
+  - Defers Redis connection until first operation
+  - Prevents connection exhaustion during Cloud Run/serverless deployments
+  - New `lazy` option in CacheOptions (default: true)
+  - Export LazyRedisStore and RedisConnectionPool from package index
+
 ## 1.1.10
 
 ### Patch Changes
