@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/biome",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared Biome configuration for GoatLab projects",
   "main": "biome.json",
   "scripts": {
