@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 1.1.19
+
+### Patch Changes
+
+- fix(cache): optimize flush() performance with direct Redis access
+
+  - Use redis.keys() + redis.unlink() for fast bulk deletion instead of slow iterator-based individual deletes
+  - Make LazyRedisStore.getStore() public to allow proper connection establishment before accessing Redis client
+  - Add performance tests to verify flush completes in milliseconds, not seconds
+  - Fixes 15-second flush times that occurred when getRedisClient() failed to establish lazy connection
+
 ## 1.1.16
 
 ### Patch Changes

@@ -68,7 +68,7 @@ export class LazyRedisStore {
    * Uses a promise to ensure only one connection attempt happens even
    * if multiple operations are called simultaneously.
    */
-  private async getStore(): Promise<KeyvRedis> {
+  public async getStore(): Promise<KeyvRedis> {
     if (this._store) {
       return this._store
     }

@@ -313,6 +313,47 @@ describe('Cache (Redis)', () => {
     expect(baz).toBeUndefined()
   })
 
+  it('should flush keys even when not tracked in Redis Sets (orphaned keys)', async () => {
+    // This test simulates "orphaned" keys that exist in Redis but aren't tracked
+    // in KeyvRedis's Redis Set (e.g., keys created before namespace fix was deployed).
+    // KeyvRedis.clear() only deletes keys it tracks in its Redis Set.
+    // Our flush() should delete ALL keys matching the namespace via iterator/SCAN.
+
+    const namespace = `orphan-test-${Ids.uuid()}`
+    const testCache = new Cache({
+      connection,
+      opts: { namespace }
+    })
+
+    // Trigger connection
+    await testCache.get('__trigger__')
+
+    // Get underlying Redis client to insert "orphaned" keys directly
+    // @ts-expect-error accessing private property
+    const lazyStore = testCache.lazyStore
+    // @ts-expect-error accessing private property
+    const keyvRedis = lazyStore._store
+    const redis = keyvRedis.redis
+
+    // Insert keys directly into Redis (bypassing KeyvRedis Set tracking)
+    // These simulate keys that exist but aren't in the tracking Set
+    const orphanKey1 = `${namespace}:orphan1`
+    const orphanKey2 = `${namespace}:orphan2`
+    await redis.set(orphanKey1, JSON.stringify({ value: 'orphan-value-1' }))
+    await redis.set(orphanKey2, JSON.stringify({ value: 'orphan-value-2' }))
+
+    // Verify keys exist via Redis SCAN
+    const keysBefore = await redis.keys(`${namespace}:*`)
+    expect(keysBefore.length).toBeGreaterThanOrEqual(2)
+
+    // Flush should clear ALL keys, even orphaned ones
+    await testCache.flush()
+
+    // Verify keys are gone
+    const keysAfter = await redis.keys(`${namespace}:*`)
+    expect(keysAfter.length).toBe(0)
+  })
+
   it('should delete keys where key starts with value (Redis)', async () => {
     await cache.set('start:1', 'a')
     await cache.set('start:2', 'b')

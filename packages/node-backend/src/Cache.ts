@@ -293,29 +293,60 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return
     }
 
-    // Use iterator-based deletion for Redis - this finds ALL keys via SCAN
-    // regardless of whether they're tracked in Redis Sets
-    const namespacePrefix = this.ns ? `${this.ns}:` : ''
-    const keysToDelete: string[] = []
-
-    // Collect all keys first (iterator may be affected by deletions)
-    for await (const [key] of this.iterator(this.ns)) {
-      // Strip namespace prefix from key
-      let keyWithoutNamespace = key
-      if (namespacePrefix && key.startsWith(namespacePrefix)) {
-        keyWithoutNamespace = key.substring(namespacePrefix.length)
+    // Try to get direct Redis access for batch deletion (much faster)
+    const redis = await this.getRedisClient()
+    if (redis) {
+      // Use Redis SCAN + UNLINK for fast bulk deletion
+      const pattern = this.ns ? `${this.ns}:*` : '*'
+      const keys = await redis.keys(pattern)
+      if (keys.length > 0) {
+        // UNLINK is non-blocking and faster than DEL for large keysets
+        await redis.unlink(keys)
       }
-      keysToDelete.push(keyWithoutNamespace)
-    }
+    } else {
+      // Fallback: iterator-based deletion (slower but works for any store)
+      const namespacePrefix = this.ns ? `${this.ns}:` : ''
+      const keysToDelete: string[] = []
 
-    // Delete all collected keys
-    for (const key of keysToDelete) {
-      await this.delete(key)
+      for await (const [key] of this.iterator(this.ns)) {
+        let keyWithoutNamespace = key
+        if (namespacePrefix && key.startsWith(namespacePrefix)) {
+          keyWithoutNamespace = key.substring(namespacePrefix.length)
+        }
+        keysToDelete.push(keyWithoutNamespace)
+      }
+
+      // Delete in parallel batches for better performance
+      const BATCH_SIZE = 100
+      for (let i = 0; i < keysToDelete.length; i += BATCH_SIZE) {
+        const batch = keysToDelete.slice(i, i + BATCH_SIZE)
+        await Promise.all(batch.map(key => this.delete(key)))
+      }
     }
 
     // Also clear memory cache if using LRU memory
     if (this.usesLRUMemory) {
       await this.memoryCache.clear()
+    }
+  }
+
+  /**
+   * Get the underlying Redis client if available.
+   * Ensures lazy connection is established first.
+   * Returns undefined for non-Redis stores.
+   */
+  private async getRedisClient(): Promise<any> {
+    try {
+      if (this.lazyStore) {
+        // Ensure connection is established first and get the store
+        const store = await this.lazyStore.getStore()
+        return (store as any)?.redis
+      }
+      // For eager mode, check if store has redis property
+      const store = this.opts?.store as any
+      return store?.redis
+    } catch {
+      return undefined
     }
   }
 
