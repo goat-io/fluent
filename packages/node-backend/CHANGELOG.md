@@ -1,5 +1,29 @@
 # 0.5.20
 
+## 1.1.15
+
+### Patch Changes
+
+- Fix LazyRedisStore namespace handling for Keyv compatibility (v2)
+
+  - Add `opts` property with `dialect: 'redis'` for Keyv iterator detection
+  - Add `namespace` getter/setter to forward namespace to underlying KeyvRedis store
+  - Forward namespace when connection is established (critical for clear() operations)
+  - Simplify Cache namespace prefix stripping logic
+  - Fix test expectations for delete and getMany operations
+
+## 1.1.14
+
+### Patch Changes
+
+- Fix LazyRedisStore namespace handling for Keyv compatibility
+
+  - Add `opts` property with `dialect: 'redis'` for Keyv iterator detection
+  - Add `namespace` getter/setter to forward namespace to underlying KeyvRedis store
+  - Forward namespace when connection is established (critical for clear() operations)
+  - Simplify Cache namespace prefix stripping logic in deleteWhereStartsWith and getValueWhereKeyStartsWith
+  - Parse JSON values correctly when iterating Redis keys
+
 ## 1.1.13
 
 ### Patch Changes

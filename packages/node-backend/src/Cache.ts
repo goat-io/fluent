@@ -81,6 +81,13 @@ export class Cache<T extends object = any> extends Keyv<T> {
       namespace: fullNamespace
     })
 
+    // Manually set up iterator for LazyRedisStore as a fallback.
+    // With opts.dialect='redis', Keyv should detect it automatically, but this ensures
+    // deleteWhereStartsWith and getValueWhereKeyStartsWith work even if detection fails.
+    if (lazyStore && typeof lazyStore.iterator === 'function') {
+      this.iterator = lazyStore.iterator.bind(lazyStore)
+    }
+
     this.connectionString = connection
     this.connectionPool = pool
     this.lazyStore = lazyStore
@@ -288,36 +295,26 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return
     }
 
-    // When using iterator with compound namespaces (e.g., tenant:namespace),
-    // keyv may not strip the full namespace correctly. We need to handle this.
-    const namespaceParts = this.ns.split(':')
-    const hasCompoundNamespace = namespaceParts.length > 1
+    // The Redis iterator returns keys with full namespace prefix (e.g., "namespace:foo:1")
+    // We need to strip the namespace to get the actual key
+    const namespacePrefix = this.ns ? `${this.ns}:` : ''
 
     for await (const [key] of this.iterator(this.ns)) {
+      // Strip namespace prefix from key
       let keyToCheck = key
-
-      // If we have a compound namespace and the key still contains part of it,
-      // we need to strip the remaining namespace parts
-      if (hasCompoundNamespace && key.includes(':')) {
-        // Check if the key starts with any remaining namespace parts
-        for (let i = 1; i < namespaceParts.length; i++) {
-          const remainingNamespace = namespaceParts.slice(i).join(':')
-          if (key.startsWith(`${remainingNamespace}:`)) {
-            keyToCheck = key.substring(remainingNamespace.length + 1)
-            break
-          }
-        }
+      if (namespacePrefix && key.startsWith(namespacePrefix)) {
+        keyToCheck = key.substring(namespacePrefix.length)
       }
 
       if (keyToCheck.startsWith(value)) {
-        // Use the processed key (without namespace parts) for deletion
+        // Delete using the key without namespace (Keyv handles namespace internally)
         await this.delete(keyToCheck)
       }
     }
   }
 
   public async getValueWhereKeyStartsWith<T>(value: string): Promise<T[]> {
-    const result = []
+    const result: T[] = []
     if (!this.iterator) {
       await Promises.map(Object.keys(this.opts.store.cache.items), async k => {
         if (k.startsWith(`${this.ns}:${value}`)) {
@@ -328,29 +325,31 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return result
     }
 
-    // When using iterator with compound namespaces (e.g., tenant:namespace),
-    // keyv may not strip the full namespace correctly. We need to handle this.
-    const namespaceParts = this.ns.split(':')
-    const hasCompoundNamespace = namespaceParts.length > 1
+    // The Redis iterator returns keys with full namespace prefix (e.g., "namespace:foo:1")
+    // and values as JSON strings (e.g., '{"value":"a","expires":null}')
+    // We need to strip the namespace and parse the values
+    const namespacePrefix = this.ns ? `${this.ns}:` : ''
 
     for await (const [key, val] of this.iterator(this.ns)) {
+      // Strip namespace prefix from key
       let keyToCheck = key
-
-      // If we have a compound namespace and the key still contains part of it,
-      // we need to strip the remaining namespace parts
-      if (hasCompoundNamespace && key.includes(':')) {
-        // Check if the key starts with any remaining namespace parts
-        for (let i = 1; i < namespaceParts.length; i++) {
-          const remainingNamespace = namespaceParts.slice(i).join(':')
-          if (key.startsWith(`${remainingNamespace}:`)) {
-            keyToCheck = key.substring(remainingNamespace.length + 1)
-            break
-          }
-        }
+      if (namespacePrefix && key.startsWith(namespacePrefix)) {
+        keyToCheck = key.substring(namespacePrefix.length)
       }
 
       if (keyToCheck.startsWith(value)) {
-        result.push(val)
+        // Parse JSON value if it's a string (Redis returns raw JSON)
+        let parsedValue = val
+        if (typeof val === 'string') {
+          try {
+            const parsed = JSON.parse(val)
+            parsedValue = parsed.value !== undefined ? parsed.value : parsed
+          } catch {
+            // If parsing fails, use the raw value
+            parsedValue = val
+          }
+        }
+        result.push(parsedValue)
       }
     }
 

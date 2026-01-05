@@ -20,13 +20,47 @@ export class LazyRedisStore {
   private pool: RedisConnectionPool
   private _store: KeyvRedis | undefined
   private _connecting: Promise<KeyvRedis> | undefined
+  private _namespace: string | undefined
+
+  /**
+   * Opts property for Keyv compatibility.
+   * Keyv checks for store.opts to detect if iteration is supported.
+   * It looks for opts.dialect or opts.url containing 'redis', 'postgres', etc.
+   * @see https://github.com/jaredwray/keyv/blob/main/packages/keyv/src/index.ts
+   */
+  public readonly opts: { dialect: string; url: string }
 
   constructor(connectionString: string) {
     this.connectionString = connectionString
     this.pool = RedisConnectionPool.getInstance()
 
+    // Set opts for Keyv iterator detection
+    // Keyv's _checkIterableAdapter() checks if opts.dialect is in iterableAdapters
+    // or if opts.url contains one of the adapter names
+    this.opts = {
+      dialect: 'redis',
+      url: connectionString
+    }
+
     // Bind the iterator to this instance for Keyv compatibility
     this.iterator = this.iterator.bind(this)
+  }
+
+  /**
+   * Namespace property for Keyv compatibility.
+   * Keyv sets this after construction to enable namespace-scoped operations.
+   * We forward it to the underlying KeyvRedis store when connected.
+   */
+  get namespace(): string | undefined {
+    return this._namespace
+  }
+
+  set namespace(value: string | undefined) {
+    this._namespace = value
+    // Forward to underlying store if already connected
+    if (this._store) {
+      this._store.namespace = value
+    }
   }
 
   /**
@@ -48,6 +82,13 @@ export class LazyRedisStore {
     this._connecting = new Promise((resolve, reject) => {
       try {
         this._store = this.pool.getConnection(this.connectionString)
+
+        // Forward namespace to the underlying store if set
+        // This is critical for clear() and other namespace-scoped operations
+        if (this._namespace !== undefined) {
+          this._store.namespace = this._namespace
+        }
+
         resolve(this._store)
       } catch (error) {
         this._connecting = undefined
