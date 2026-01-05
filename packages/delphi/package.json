@@ -27,7 +27,7 @@
     "@ai-sdk/google": "^0.0.35",
     "@ai-sdk/openai": "^0.0.44",
     "@goatlab/js-utils": "workspace:*",
-    "@langchain/core": "^0.3.66",
+    "@langchain/core": "^0.3.80",
     "@langchain/langgraph": "^0.3.11",
     "@modelcontextprotocol/sdk": "^0.5.0",
     "@opentelemetry/auto-instrumentations-node": "^0.50.0",
