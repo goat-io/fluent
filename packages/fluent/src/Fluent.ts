@@ -13,7 +13,7 @@ export function collect<T = AnyObject | Primitives>(data: T[]): Collection<T> {
 
 export async function initialize(
   dataSources: DataSource[],
-  Entities: any[]
+  Entities: any[],
 ): Promise<void> {
   // If modelGeneratorDataSource is already initialized with the same entities, skip
   if (modelGeneratorDataSource.isInitialized) {

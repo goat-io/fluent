@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   checkpointer,
   cleanupDatabase,
-  initializeMemory
+  initializeMemory,
 } from '../../checkpoint/sqlite.js'
 import { buildGraph } from '../../graph.js'
 import type { FlowState } from '../../types.js'
@@ -26,8 +26,8 @@ describe('E2E Test - Full Pipeline', () => {
 2. Create a logger instance with appropriate configuration
 3. Add logging middleware to all Fastify routes
 4. Include request ID tracking
-5. Log request/response times and status codes`
-        }
+5. Log request/response times and status codes`,
+        },
       }),
       refine: vi
         .fn()
@@ -55,8 +55,8 @@ describe('E2E Test - Full Pipeline', () => {
 4. Request ID: Enabled by default with fastify-pino
 
 This specification needs more detail on error handling.`,
-            clear: false
-          }
+            clear: false,
+          },
         })
         .mockResolvedValueOnce({
           data: {
@@ -105,16 +105,16 @@ This specification needs more detail on error handling.`,
    - Structured JSON logs in production
 
 CLEAR: TRUE`,
-            clear: true
-          }
+            clear: true,
+          },
         }),
       review: vi.fn().mockResolvedValue({
         data: {
           ok: true,
           feedback:
-            '✅ Approved - Implementation correctly adds pino logging with proper configuration'
-        }
-      })
+            '✅ Approved - Implementation correctly adds pino logging with proper configuration',
+        },
+      }),
     }
 
     // Mock Claude Code execution
@@ -172,7 +172,7 @@ index 1234567..890abcd 100644
     // Build graph with mocked dependencies
     const graph = buildGraph({
       enableTests: true,
-      testCommand: 'echo "All tests passed"'
+      testCommand: 'echo "All tests passed"',
     })
 
     const app = graph.compile({ checkpointer })
@@ -182,7 +182,7 @@ index 1234567..890abcd 100644
       spec: '',
       repoPath: '/tmp/test-repo',
       iterationCount: 0,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
 
     // Patch Http client to use our mock
@@ -202,9 +202,9 @@ index 1234567..890abcd 100644
                 return (await mockServer.review({})).data
               }
               throw new Error(`Unexpected endpoint: ${endpoint}`)
-            })
-          }))
-        }) as any
+            }),
+          })),
+        }) as any,
     )
 
     // Mock spawn for Claude
@@ -216,7 +216,7 @@ index 1234567..890abcd 100644
           if (event === 'data') {
             cb(Buffer.from(mockDiff))
           }
-        })
+        }),
       },
       stderr: { on: vi.fn() },
       on: vi.fn((event, cb) => {
@@ -224,13 +224,13 @@ index 1234567..890abcd 100644
           cb(0)
         }
       }),
-      kill: vi.fn()
+      kill: vi.fn(),
     } as any)
 
     // Run the pipeline
     const threadId = `e2e-test-${Date.now()}`
     const result = await app.invoke(initialState, {
-      configurable: { thread_id: threadId }
+      configurable: { thread_id: threadId },
     })
 
     // Assertions

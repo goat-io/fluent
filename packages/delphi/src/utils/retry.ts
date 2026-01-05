@@ -19,7 +19,7 @@ export interface CircuitBreakerOptions {
 enum CircuitState {
   CLOSED = 'CLOSED',
   OPEN = 'OPEN',
-  HALF_OPEN = 'HALF_OPEN'
+  HALF_OPEN = 'HALF_OPEN',
 }
 
 export class CircuitBreaker {
@@ -33,7 +33,7 @@ export class CircuitBreaker {
       failureThreshold: 5,
       resetTimeoutMs: 60000,
       halfOpenRetries: 3,
-      ...options
+      ...options,
     }
   }
 
@@ -88,7 +88,7 @@ export class CircuitBreaker {
       totalCalls: 0, // Not tracked in simple implementation
       successfulCalls: 0,
       failedCalls: this.failureCount,
-      state: this.state
+      state: this.state,
     }
   }
 
@@ -101,14 +101,14 @@ export class CircuitBreaker {
 
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const {
     maxAttempts = 3,
     initialDelayMs = 1000,
     maxDelayMs = 30000,
     backoffMultiplier = 2,
-    shouldRetry = () => true
+    shouldRetry = () => true,
   } = options
 
   let lastError: any
@@ -125,7 +125,7 @@ export async function retryWithBackoff<T>(
       }
 
       console.log(
-        `⚠️ Attempt ${attempt}/${maxAttempts} failed, retrying in ${delayMs}ms...`
+        `⚠️ Attempt ${attempt}/${maxAttempts} failed, retrying in ${delayMs}ms...`,
       )
 
       await sleep(delayMs)
@@ -142,7 +142,7 @@ export class RetryableClient {
   constructor(
     _baseClient: any,
     private retryOptions: RetryOptions = {},
-    circuitBreakerOptions: CircuitBreakerOptions = {}
+    circuitBreakerOptions: CircuitBreakerOptions = {},
   ) {
     // baseClient not used directly - accessed via execute()
     this.circuitBreaker = new CircuitBreaker(circuitBreakerOptions)
@@ -150,7 +150,7 @@ export class RetryableClient {
 
   async request<T>(requestFn: () => Promise<T>): Promise<T> {
     return this.circuitBreaker.execute(() =>
-      retryWithBackoff(requestFn, this.retryOptions)
+      retryWithBackoff(requestFn, this.retryOptions),
     )
   }
 
@@ -182,7 +182,7 @@ export function isRetryableError(error: any): boolean {
     'ENOTFOUND',
     'ETIMEDOUT',
     'ECONNRESET',
-    'EPIPE'
+    'EPIPE',
   ]
   const errorMessage = error.message || error.toString()
   return retryableMessages.some(msg => errorMessage.includes(msg))

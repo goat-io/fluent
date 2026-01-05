@@ -45,7 +45,7 @@ class MemoryMonitor {
 
     if (this.enableGarbageCollection && !this.gcAvailable) {
       this.logger.warn(
-        'Garbage collection is not available. Run node with --expose-gc flag to enable.'
+        'Garbage collection is not available. Run node with --expose-gc flag to enable.',
       )
     }
   }
@@ -62,7 +62,7 @@ class MemoryMonitor {
       heapTotalMB,
       heapUsedPercentage,
       rssMB,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
   }
 
@@ -76,14 +76,14 @@ class MemoryMonitor {
     if (heapUsedPercentage >= this.criticalThreshold) {
       this.logger.error(
         red(
-          `CRITICAL: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`
-        )
+          `CRITICAL: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`,
+        ),
       )
 
       // Attempt garbage collection if available and enabled
       if (this.enableGarbageCollection && this.gcAvailable) {
         this.logger.warn(
-          'Triggering garbage collection due to critical memory usage'
+          'Triggering garbage collection due to critical memory usage',
         )
         global.gc!()
 
@@ -91,15 +91,15 @@ class MemoryMonitor {
         setTimeout(() => {
           const afterGcMetrics = this.getMemoryMetrics()
           this.logger.log(
-            `Memory after GC: ${this.formatMemoryMetrics(afterGcMetrics)}`
+            `Memory after GC: ${this.formatMemoryMetrics(afterGcMetrics)}`,
           )
         }, 100)
       }
     } else if (heapUsedPercentage >= this.warningThreshold) {
       this.logger.warn(
         yellow(
-          `WARNING: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`
-        )
+          `WARNING: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`,
+        ),
       )
     }
   }
@@ -112,7 +112,7 @@ class MemoryMonitor {
     // Initial check
     const initialMetrics = this.getMemoryMetrics()
     this.logger.log(
-      `Memory monitoring started - ${this.formatMemoryMetrics(initialMetrics)}`
+      `Memory monitoring started - ${this.formatMemoryMetrics(initialMetrics)}`,
     )
 
     this.intervalTimer = setInterval(() => {
@@ -144,7 +144,7 @@ class MemoryMonitor {
         res.setHeader('X-Memory-Heap-Total-MB', metrics.heapTotalMB.toFixed(2))
         res.setHeader(
           'X-Memory-Heap-Used-Percent',
-          metrics.heapUsedPercentage.toFixed(1)
+          metrics.heapUsedPercentage.toFixed(1),
         )
         res.setHeader('X-Memory-RSS-MB', metrics.rssMB.toFixed(2))
       }
@@ -188,7 +188,7 @@ export function createMemoryMonitorMiddleware(options?: MemoryMonitorOptions): {
 
   return {
     middleware: monitor.middleware(),
-    monitor
+    monitor,
   }
 }
 

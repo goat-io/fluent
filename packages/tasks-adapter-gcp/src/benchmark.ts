@@ -33,7 +33,7 @@ if (!serviceAccountBase64) {
 }
 
 const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString(
-  'utf8'
+  'utf8',
 )
 const gcpServiceAccount = JSON.parse(serviceAccountJson)
 
@@ -43,7 +43,7 @@ class BenchmarkTask extends ShouldQueue<{ index: number; data?: string }> {
 
   constructor(
     connector: TaskConnector<{ index: number; data?: string }>,
-    name: string
+    name: string,
   ) {
     super({ connector })
     this.taskName = name
@@ -59,7 +59,7 @@ class BenchmarkTask extends ShouldQueue<{ index: number; data?: string }> {
 async function runQueueBenchmark(
   _connector: CloudTaskConnector,
   task: BenchmarkTask,
-  batchSize: number = DEFAULT_BATCH_SIZE
+  batchSize: number = DEFAULT_BATCH_SIZE,
 ) {
   console.log('\n📊 Queue Throughput (enqueue to GCP)')
   console.log('='.repeat(50))
@@ -88,7 +88,7 @@ async function runQueueBenchmark(
         task.queue({ index: count++ }).catch(_err => {
           errors++
           return null
-        })
+        }),
       )
     }
     await Promise.all(promises)
@@ -108,7 +108,7 @@ async function runQueueBenchmark(
 
 async function runSequentialBenchmark(
   _connector: CloudTaskConnector,
-  task: BenchmarkTask
+  task: BenchmarkTask,
 ) {
   console.log('\n📊 Sequential Queue (one at a time)')
   console.log('='.repeat(50))
@@ -139,7 +139,7 @@ async function runSequentialBenchmark(
 
   console.log(`✅ Samples: ${latencies.length}`)
   console.log(
-    `✅ Avg latency: ${avg.toFixed(0)}ms | P50: ${p50}ms | P95: ${p95}ms`
+    `✅ Avg latency: ${avg.toFixed(0)}ms | P50: ${p50}ms | P95: ${p95}ms`,
   )
   console.log(`✅ Sequential throughput: ${throughput.toFixed(1)} tasks/sec`)
 
@@ -163,13 +163,13 @@ async function runPayloadComparison(connector: CloudTaskConnector) {
     { name: 'Medium (10KB)', data: 'x'.repeat(10000) },
     { name: 'Large (50KB)', data: 'x'.repeat(50000) },
     // GCP Cloud Tasks has a 100KB limit for task payload
-    { name: 'Max (95KB)', data: 'x'.repeat(95000) }
+    { name: 'Max (95KB)', data: 'x'.repeat(95000) },
   ]
 
   for (const payload of payloads) {
     const bytes = JSON.stringify({ index: 0, data: payload.data }).length
     console.log(
-      `\n📊 Payload: ${payload.name} (~${(bytes / 1024).toFixed(1)}KB)`
+      `\n📊 Payload: ${payload.name} (~${(bytes / 1024).toFixed(1)}KB)`,
     )
 
     const task = new BenchmarkTask(connector, `bench_payload_${Date.now()}`)
@@ -197,7 +197,7 @@ async function runPayloadComparison(connector: CloudTaskConnector) {
     const throughput = ((count - errors) / elapsed) * 1000
 
     console.log(
-      `✅ Throughput: ${throughput.toFixed(1)} tasks/sec (${errors} errors)`
+      `✅ Throughput: ${throughput.toFixed(1)} tasks/sec (${errors} errors)`,
     )
     results.push({ size: payload.name, bytes, throughput, errors })
   }
@@ -211,7 +211,7 @@ async function runPayloadComparison(connector: CloudTaskConnector) {
     const pct =
       maxThroughput > 0 ? Math.round((r.throughput / maxThroughput) * 100) : 0
     console.log(
-      `${r.size.padEnd(15)} ${r.throughput.toFixed(1).padStart(8)} tasks/sec  (${pct.toString().padStart(3)}%)  ${r.errors} errors`
+      `${r.size.padEnd(15)} ${r.throughput.toFixed(1).padStart(8)} tasks/sec  (${pct.toString().padStart(3)}%)  ${r.errors} errors`,
     )
   }
 
@@ -244,7 +244,7 @@ async function runBatchComparison(connector: CloudTaskConnector) {
           task.queue({ index: count++ }).catch(() => {
             errors++
             return null
-          })
+          }),
         )
       }
       await Promise.all(promises)
@@ -254,7 +254,7 @@ async function runBatchComparison(connector: CloudTaskConnector) {
     const throughput = ((count - errors) / elapsed) * 1000
 
     console.log(
-      `✅ Throughput: ${throughput.toFixed(1)} tasks/sec (${errors} errors)`
+      `✅ Throughput: ${throughput.toFixed(1)} tasks/sec (${errors} errors)`,
     )
     results.push({ batchSize, throughput, errors })
   }
@@ -268,7 +268,7 @@ async function runBatchComparison(connector: CloudTaskConnector) {
     const pct =
       maxThroughput > 0 ? Math.round((r.throughput / maxThroughput) * 100) : 0
     console.log(
-      `Batch ${r.batchSize.toString().padStart(2)}:  ${r.throughput.toFixed(1).padStart(8)} tasks/sec  (${pct.toString().padStart(3)}%)  ${r.errors} errors`
+      `Batch ${r.batchSize.toString().padStart(2)}:  ${r.throughput.toFixed(1).padStart(8)} tasks/sec  (${pct.toString().padStart(3)}%)  ${r.errors} errors`,
     )
   }
 
@@ -290,7 +290,7 @@ async function main() {
     gcpServiceAccount,
     location: 'europe-west1',
     encryptionKey: 'benchmark-encryption-key-32ch!',
-    gcpProject: gcpServiceAccount.project_id
+    gcpProject: gcpServiceAccount.project_id,
   })
 
   // Queue throughput test
@@ -298,7 +298,7 @@ async function main() {
   const queueResult = await runQueueBenchmark(
     connector,
     task1,
-    DEFAULT_BATCH_SIZE
+    DEFAULT_BATCH_SIZE,
   )
 
   // Sequential test (measures single-request latency)
@@ -310,16 +310,16 @@ async function main() {
   console.log('📈 GCP CLOUD TASKS SUMMARY')
   console.log('='.repeat(50))
   console.log(
-    `Parallel throughput:    ${queueResult.throughput.toFixed(1)} tasks/sec (batch=${DEFAULT_BATCH_SIZE})`
+    `Parallel throughput:    ${queueResult.throughput.toFixed(1)} tasks/sec (batch=${DEFAULT_BATCH_SIZE})`,
   )
   console.log(
-    `Sequential throughput:  ${seqResult.throughput.toFixed(1)} tasks/sec`
+    `Sequential throughput:  ${seqResult.throughput.toFixed(1)} tasks/sec`,
   )
   console.log(`Avg queue latency:      ${seqResult.avg.toFixed(0)}ms`)
   console.log(`P95 queue latency:      ${seqResult.p95}ms`)
   console.log('')
   console.log(
-    'Note: E2E throughput cannot be measured without an HTTP endpoint'
+    'Note: E2E throughput cannot be measured without an HTTP endpoint',
   )
   console.log('      to receive GCP callbacks.')
 }
@@ -332,7 +332,7 @@ if (mode === 'payload') {
     gcpServiceAccount,
     location: 'europe-west1',
     encryptionKey: 'benchmark-encryption-key-32ch!',
-    gcpProject: gcpServiceAccount.project_id
+    gcpProject: gcpServiceAccount.project_id,
   })
   runPayloadComparison(connector).catch(console.error)
 } else if (mode === 'batch') {
@@ -340,7 +340,7 @@ if (mode === 'payload') {
     gcpServiceAccount,
     location: 'europe-west1',
     encryptionKey: 'benchmark-encryption-key-32ch!',
-    gcpProject: gcpServiceAccount.project_id
+    gcpProject: gcpServiceAccount.project_id,
   })
   runBatchComparison(connector).catch(console.error)
 } else {

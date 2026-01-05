@@ -7,11 +7,11 @@ import { TypeMetadataStorage } from '../type-metadata.storage'
  * Adds a directive to specified field, type, or handler.
  */
 export function Directive(
-  sdl: string
+  sdl: string,
 ): MethodDecorator & PropertyDecorator & ClassDecorator {
   return (
     target: ((...args: any[]) => any) | object,
-    key?: string | symbol
+    key?: string | symbol,
   ) => {
     validateDirective(sdl)
 
@@ -20,12 +20,12 @@ export function Directive(
         TypeMetadataStorage.addDirectivePropertyMetadata({
           target: target.constructor as new (...args: any[]) => any,
           fieldName: key as string,
-          sdl
+          sdl,
         })
       } else {
         TypeMetadataStorage.addDirectiveMetadata({
           target: target as unknown as new (...args: any[]) => any,
-          sdl
+          sdl,
         })
       }
     })

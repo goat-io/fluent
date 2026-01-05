@@ -3,7 +3,7 @@ import {
   Combination,
   combination,
   factorial,
-  permutation
+  permutation,
 } from './Combinations'
 
 describe('Combinations', () => {
@@ -13,7 +13,7 @@ describe('Combinations', () => {
     expect(results).toEqual([
       [1, 2],
       [1, 3],
-      [2, 3]
+      [2, 3],
     ])
   })
 

@@ -109,7 +109,7 @@ export interface PRetryOptions {
  */
 export function pRetryFn<T extends AnyFunction>(
   fn: T,
-  opt: PRetryOptions = {}
+  opt: PRetryOptions = {},
 ): T {
   return async function pRetryFunction(this: any, ...args: any[]) {
     return await pRetry(() => fn.call(this, ...args), opt)
@@ -118,7 +118,7 @@ export function pRetryFn<T extends AnyFunction>(
 
 export async function pRetry<T>(
   fn: (attempt: number) => Promise<T>,
-  opt: PRetryOptions = {}
+  opt: PRetryOptions = {},
 ): Promise<T> {
   const {
     maxAttempts = 4,
@@ -128,7 +128,7 @@ export async function pRetry<T>(
     logger = console,
     name,
     keepStackTrace = true,
-    timeout
+    timeout,
   } = opt
 
   const fakeError = keepStackTrace ? new Error('RetryError') : undefined
@@ -137,7 +137,7 @@ export async function pRetry<T>(
     logFirstAttempt = false,
     logRetries = true,
     logFailures = false,
-    logSuccess = false
+    logSuccess = false,
   } = opt
 
   if (opt.logAll) {
@@ -159,13 +159,13 @@ export async function pRetry<T>(
       timedOut = true // to prevent more tries
       const err = new TimeoutError(
         `"${fname}" timed out after ${timeout} ms`,
-        opt.errorData
+        opt.errorData,
       )
       if (fakeError) {
         // keep original stack
         err.stack = fakeError.stack!.replace(
           'Error: RetryError',
-          'TimeoutError'
+          'TimeoutError',
         )
       }
       reject(err)
@@ -181,7 +181,7 @@ export async function pRetry<T>(
       clearTimeout(timer)
       if (logSuccess) {
         logger.log(
-          `${fname} attempt #${attempt} succeeded in ${Time.since(started)}`
+          `${fname} attempt #${attempt} succeeded in ${Time.since(started)}`,
         )
       }
       resolve(result)
@@ -194,8 +194,8 @@ export async function pRetry<T>(
         logger.warn(
           `${fname} attempt #${attempt} error in ${Time.since(started)}:`,
           _stringifyAny(err, {
-            includeErrorData: true
-          })
+            includeErrorData: true,
+          }),
         )
       }
 
@@ -211,13 +211,13 @@ export async function pRetry<T>(
             value:
               (err as Error).stack +
               '\n    --' +
-              fakeError.stack!.replace('Error: RetryError', '')
+              fakeError.stack!.replace('Error: RetryError', ''),
           })
         }
 
         ;(err as AppError).data = {
           ...(err as AppError).data,
-          ...opt.errorData
+          ...opt.errorData,
         }
 
         reject(err)

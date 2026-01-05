@@ -26,7 +26,7 @@ export class UsersEntity {
 
   @f.hasMany({
     entity: () => CarsEntity,
-    inverse: cars => cars.user
+    inverse: cars => cars.user,
   })
   cars?: CarsEntity[]
 
@@ -34,7 +34,7 @@ export class UsersEntity {
     entity: () => RoleEntity,
     joinTableName: 'roles_users',
     foreignKey: 'userId',
-    inverseForeignKey: 'roleId'
+    inverseForeignKey: 'roleId',
   })
   roles?: RoleEntity[]
 }

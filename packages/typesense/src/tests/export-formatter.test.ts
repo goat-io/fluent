@@ -12,7 +12,7 @@ describe('ExportFormatter', () => {
       content: 'Content 1',
       tags: ['tag1', 'tag2'],
       views: 100,
-      published: true
+      published: true,
     },
     {
       id: '2',
@@ -20,7 +20,7 @@ describe('ExportFormatter', () => {
       content: 'Content with "quotes" and, commas',
       tags: ['tag3'],
       views: 200,
-      published: false
+      published: false,
     },
     {
       id: '3',
@@ -28,8 +28,8 @@ describe('ExportFormatter', () => {
       content: 'Content with\nnewlines',
       tags: [],
       views: 0,
-      published: true
-    }
+      published: true,
+    },
   ]
 
   describe('CSV Formatting', () => {
@@ -54,7 +54,7 @@ describe('ExportFormatter', () => {
         { id: '3', text: 'Text with "quotes"' },
         { id: '4', text: 'Text with\nnewline' },
         { id: '5', array: ['item1', 'item2'] },
-        { id: '6', object: { nested: 'value' } }
+        { id: '6', object: { nested: 'value' } },
       ]
 
       const csv = ExportFormatter.formatCSV(docs)
@@ -86,7 +86,7 @@ describe('ExportFormatter', () => {
       const result = ExportFormatter.formatDocuments(sampleDocuments, 'csv')
       expect(typeof result).toBe('string')
       expect(result as string).toContain(
-        'content,id,published,tags,title,views'
+        'content,id,published,tags,title,views',
       )
     })
 

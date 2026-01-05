@@ -3,7 +3,7 @@ import { TypeOrmConnector } from '../TypeOrmConnector'
 import {
   TypeORMDataModel,
   TypeORMDataModelInputSchema,
-  TypeORMDataModelSchema
+  TypeORMDataModelSchema,
 } from './advanced/typeOrm.entity'
 import { GoatEntity, GoatInputSchema, GoatSchema } from './basic/goat.entity'
 
@@ -15,7 +15,7 @@ export class GoatRepositoryFactory extends TypeOrmConnector<
     super({
       entity: GoatEntity,
       dataSource: dataSource,
-      inputSchema: GoatSchema
+      inputSchema: GoatSchema,
     })
   }
 }
@@ -28,7 +28,7 @@ export class TypeOrmRepositoryFactory extends TypeOrmConnector<
     super({
       entity: TypeORMDataModel,
       dataSource: dataSource,
-      inputSchema: TypeORMDataModelSchema
+      inputSchema: TypeORMDataModelSchema,
     })
   }
 }

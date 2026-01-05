@@ -28,7 +28,7 @@ export interface TransformJsonParseOptions {
  * [)
  */
 export function transformJsonParse<Out = any>(
-  opt: TransformJsonParseOptions = {}
+  opt: TransformJsonParseOptions = {},
 ): TransformTyped<string | Buffer, Out> {
   const { strict = true, reviver } = opt
 
@@ -47,7 +47,7 @@ export function transformJsonParse<Out = any>(
           cb() // emit no error, but no result neither
         }
       }
-    }
+    },
   })
 }
 

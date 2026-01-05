@@ -6,5 +6,5 @@ export const modelGeneratorDataSource = new DataSource({
   database: ':memory:',
   logging: false,
   synchronize: true,
-  dropSchema: true
+  dropSchema: true,
 })

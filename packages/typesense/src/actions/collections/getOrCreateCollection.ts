@@ -1,14 +1,14 @@
 import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollection,
-  TypesenseCollectionOutput
+  TypesenseCollectionOutput,
 } from '../../typesense.model'
 import { createCollection } from './createCollection'
 import { getCollection } from './getCollection'
 
 export async function getOrCreateCollection(
   ctx: TypesenseContext,
-  collection: TypesenseCollection
+  collection: TypesenseCollection,
 ): Promise<TypesenseCollectionOutput> {
   try {
     // Try to get existing collection

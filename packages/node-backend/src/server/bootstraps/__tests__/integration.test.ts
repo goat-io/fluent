@@ -17,7 +17,7 @@ const testRouter = t.router({
       }
       throw new Error('Input must be a string')
     })
-    .mutation(({ input }) => input)
+    .mutation(({ input }) => input),
 })
 
 describe('getExpressTrpcApp integration', () => {
@@ -34,14 +34,14 @@ describe('getExpressTrpcApp integration', () => {
   it('should create a working app with minimal configuration', async () => {
     const { app } = getExpressTrpcApp({
       trpcRouter: testRouter,
-      environment: 'test' // Use test env to prevent server startup
+      environment: 'test', // Use test env to prevent server startup
     })
 
     // Test TRPC endpoint
     const trpcResponse = await request(app).get('/trpc/greeting').expect(200)
 
     expect(JSON.parse(trpcResponse.text)).toEqual({
-      result: { data: 'Hello from minimal config!' }
+      result: { data: 'Hello from minimal config!' },
     })
 
     // Test health endpoint (should exist by default)
@@ -49,14 +49,14 @@ describe('getExpressTrpcApp integration', () => {
 
     expect(healthResponse.body).toMatchObject({
       status: 'ok',
-      service: '@goatlab/node-backend' // From package.json
+      service: '@goatlab/node-backend', // From package.json
     })
 
     // Test ready endpoint
     const readyResponse = await request(app).get('/ready').expect(200)
 
     expect(readyResponse.body).toMatchObject({
-      service: 'ready'
+      service: 'ready',
     })
   })
 
@@ -68,8 +68,8 @@ describe('getExpressTrpcApp integration', () => {
       appVersion: '3.0.0',
       healthCheck: {
         path: '/custom-health',
-        customChecks: async () => ({ database: 'connected' })
-      }
+        customChecks: async () => ({ database: 'connected' }),
+      },
     })
 
     // Test custom health endpoint
@@ -79,7 +79,7 @@ describe('getExpressTrpcApp integration', () => {
       status: 'ok',
       service: 'Test API',
       version: '3.0.0',
-      custom: { database: 'connected' }
+      custom: { database: 'connected' },
     })
 
     // Default health path should not exist
@@ -89,7 +89,7 @@ describe('getExpressTrpcApp integration', () => {
   it('should apply security headers with defaults', async () => {
     const { app } = getExpressTrpcApp({
       trpcRouter: testRouter,
-      environment: 'test'
+      environment: 'test',
     })
 
     const response = await request(app).get('/health').expect(200)
@@ -106,7 +106,7 @@ describe('getExpressTrpcApp integration', () => {
   it('should handle CORS with minimal config', async () => {
     const { app } = getExpressTrpcApp({
       trpcRouter: testRouter,
-      environment: 'test'
+      environment: 'test',
     })
 
     // Test CORS preflight
@@ -117,7 +117,7 @@ describe('getExpressTrpcApp integration', () => {
       .expect(204) // OPTIONS requests return 204
 
     expect(response.headers['access-control-allow-origin']).toBe(
-      'http://localhost:3000'
+      'http://localhost:3000',
     )
     expect(response.headers['access-control-allow-credentials']).toBe('true')
   })
@@ -125,7 +125,7 @@ describe('getExpressTrpcApp integration', () => {
   it('should provide waitForShutdown function', async () => {
     const { waitForShutdown } = getExpressTrpcApp({
       trpcRouter: testRouter,
-      environment: 'test'
+      environment: 'test',
     })
 
     expect(waitForShutdown).toBeDefined()
@@ -138,17 +138,17 @@ describe('getExpressTrpcApp integration', () => {
   it('should enable compression by default', async () => {
     getExpressTrpcApp({
       trpcRouter: testRouter,
-      environment: 'test'
+      environment: 'test',
     })
 
     // Create a large response to trigger compression
     const largeRouter = t.router({
-      large: t.procedure.query(() => 'x'.repeat(2000))
+      large: t.procedure.query(() => 'x'.repeat(2000)),
     })
 
     const { app: largeApp } = getExpressTrpcApp({
       trpcRouter: largeRouter,
-      environment: 'test'
+      environment: 'test',
     })
 
     const response = await request(largeApp)

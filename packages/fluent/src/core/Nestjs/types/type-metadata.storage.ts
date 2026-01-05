@@ -17,11 +17,11 @@ import {
   PropertyMetadata,
   ResolverClassMetadata,
   ResolverTypeMetadata,
-  UnionMetadata
+  UnionMetadata,
 } from './metadata'
 import {
   ClassDirectiveMetadata,
-  PropertyDirectiveMetadata
+  PropertyDirectiveMetadata,
 } from './metadata/directive.metadata'
 import { InterfaceMetadata } from './metadata/interface.metadata'
 import { ObjectTypeMetadata } from './metadata/object-type.metadata'
@@ -104,7 +104,7 @@ export class TypeMetadataStorageHost {
   }
 
   getArgumentsMetadataByTarget(
-    target: Type<unknown>
+    target: Type<unknown>,
   ): ClassMetadata | undefined {
     return this.argumentTypes.find(item => item.target === target)
   }
@@ -118,7 +118,7 @@ export class TypeMetadataStorageHost {
   }
 
   getInterfaceMetadataByTarget(
-    target: Type<unknown>
+    target: Type<unknown>,
   ): InterfaceMetadata | undefined {
     return this.interfaces.find(item => item.target === target)
   }
@@ -132,7 +132,7 @@ export class TypeMetadataStorageHost {
   }
 
   getInputTypeMetadataByTarget(
-    target: Type<unknown>
+    target: Type<unknown>,
   ): ObjectTypeMetadata | undefined {
     return this.inputTypes.find(item => item.target === target)
   }
@@ -146,7 +146,7 @@ export class TypeMetadataStorageHost {
   }
 
   getObjectTypeMetadataByTarget(
-    target: Type<unknown>
+    target: Type<unknown>,
   ): ObjectTypeMetadata | undefined {
     return this.objectTypes.find(item => item.target === target)
   }
@@ -171,7 +171,7 @@ export class TypeMetadataStorageHost {
     const exist = this.fieldDirectives.some(
       directiveMetadata =>
         directiveMetadata.sdl === metadata.sdl &&
-        directiveMetadata.target === metadata.target
+        directiveMetadata.target === metadata.target,
     )
     if (!exist) {
       this.classDirectives.push(metadata)
@@ -183,7 +183,7 @@ export class TypeMetadataStorageHost {
       directiveMetadata =>
         directiveMetadata.fieldName === metadata.fieldName &&
         directiveMetadata.sdl === metadata.sdl &&
-        directiveMetadata.target === metadata.target
+        directiveMetadata.target === metadata.target,
     )
     if (!exist) {
       this.fieldDirectives.push(metadata)
@@ -204,7 +204,7 @@ export class TypeMetadataStorageHost {
 
   addClassFieldMetadata(metadata: PropertyMetadata) {
     const existingMetadata = this.fields.find(
-      item => item.target === metadata.target && item.name === metadata.name
+      item => item.target === metadata.target && item.name === metadata.name,
     )
     if (existingMetadata) {
       const { options } = existingMetadata
@@ -231,7 +231,7 @@ export class TypeMetadataStorageHost {
       ...this.objectTypes,
       ...this.inputTypes,
       ...this.argumentTypes,
-      ...this.interfaces
+      ...this.interfaces,
     ]
     this.loadClassPluginMetadata(classMetadata)
     this.compileClassMetadata(classMetadata)
@@ -240,7 +240,7 @@ export class TypeMetadataStorageHost {
     const resolversMetadata = [
       ...this.queries,
       ...this.mutations,
-      ...this.subscriptions
+      ...this.subscriptions,
     ]
     this.compileResolversMetadata(resolversMetadata)
     this.compileExtendedResolversMetadata()
@@ -277,7 +277,7 @@ export class TypeMetadataStorageHost {
             prototype,
             key,
             undefined,
-            true
+            true,
           )
         }
       })
@@ -314,19 +314,19 @@ export class TypeMetadataStorageHost {
   }
 
   private getClassFieldsByPredicate(
-    belongsToClass: (item: PropertyMetadata) => boolean
+    belongsToClass: (item: PropertyMetadata) => boolean,
   ) {
     const fields = this.fields.filter(belongsToClass)
     fields.forEach(field => {
       const isHostEqual = isTargetEqual.bind(undefined, field)
       field.methodArgs = this.params.filter(
-        param => isHostEqual(param) && field.name === param.methodName
+        param => isHostEqual(param) && field.name === param.methodName,
       )
       field.directives = this.fieldDirectives.filter(
-        this.isFieldDirectiveOrExtension.bind(this, field)
+        this.isFieldDirectiveOrExtension.bind(this, field),
       )
       const fieldExtensions = this.fieldExtensions.filter(
-        this.isFieldDirectiveOrExtension.bind(this, field)
+        this.isFieldDirectiveOrExtension.bind(this, field),
       )
       const fieldExtensionsObj: Record<string, unknown> = {}
       for (const ext of fieldExtensions) {
@@ -344,13 +344,13 @@ export class TypeMetadataStorageHost {
 
       item.classMetadata = resolverMetadata
       item.methodArgs = this.params.filter(
-        param => isTypeEqual(param) && item.methodName === param.methodName
+        param => isTypeEqual(param) && item.methodName === param.methodName,
       )
       item.directives = this.fieldDirectives.filter(
-        this.isFieldDirectiveOrExtension.bind(this, item)
+        this.isFieldDirectiveOrExtension.bind(this, item),
       )
       const itemExtensions = this.fieldExtensions.filter(
-        this.isFieldDirectiveOrExtension.bind(this, item)
+        this.isFieldDirectiveOrExtension.bind(this, item),
       )
       const itemExtensionsObj: Record<string, unknown> = {}
       for (const ext of itemExtensions) {
@@ -366,10 +366,10 @@ export class TypeMetadataStorageHost {
     metadata.forEach(item => {
       const belongsToClass = isTargetEqual.bind(undefined, item)
       item.directives = this.fieldDirectives.filter(
-        this.isFieldDirectiveOrExtension.bind(this, item)
+        this.isFieldDirectiveOrExtension.bind(this, item),
       )
       const itemFieldExtensions = this.fieldExtensions.filter(
-        this.isFieldDirectiveOrExtension.bind(this, item)
+        this.isFieldDirectiveOrExtension.bind(this, item),
       )
       const itemFieldExtensionsObj: Record<string, unknown> = {}
       for (const ext of itemFieldExtensions) {
@@ -395,20 +395,20 @@ export class TypeMetadataStorageHost {
 
     const objectOrInterfaceTypeMetadata =
       this.objectTypes.find(
-        objTypeDef => objTypeDef.target === objectTypeRef
+        objTypeDef => objTypeDef.target === objectTypeRef,
       ) ||
       this.interfaces.find(
-        interfaceTypeDef => interfaceTypeDef.target === objectTypeRef
+        interfaceTypeDef => interfaceTypeDef.target === objectTypeRef,
       )
     if (!objectOrInterfaceTypeMetadata) {
       throw new CannotDetermineHostTypeError(
         item.schemaName,
-        objectTypeRef?.name
+        objectTypeRef?.name,
       )
     }
     const objectOrInterfaceTypeField =
       objectOrInterfaceTypeMetadata.properties?.find(
-        fieldDef => fieldDef.name === item.methodName
+        fieldDef => fieldDef.name === item.methodName,
       )
     if (!objectOrInterfaceTypeField) {
       if (!item.typeFn || !item.typeOptions) {
@@ -425,7 +425,7 @@ export class TypeMetadataStorageHost {
         methodArgs: item.methodArgs,
         directives: item.directives,
         extensions: item.extensions,
-        complexity: item.complexity
+        complexity: item.complexity,
       }
       this.addClassFieldMetadata(fieldMetadata)
 
@@ -454,28 +454,28 @@ export class TypeMetadataStorageHost {
 
       while (parentClass.prototype) {
         const parentMetadata = this.resolvers.find(
-          item => item.target === parentClass
+          item => item.target === parentClass,
         )
         if (parentMetadata) {
           this.queries = this.mergeParentResolverHandlers(
             this.queries,
             parentClass,
-            item
+            item,
           )
           this.mutations = this.mergeParentResolverHandlers(
             this.mutations,
             parentClass,
-            item
+            item,
           )
           this.subscriptions = this.mergeParentResolverHandlers(
             this.subscriptions,
             parentClass,
-            item
+            item,
           )
           this.fieldResolvers = this.mergeParentFieldHandlers(
             this.fieldResolvers,
             parentClass,
-            item
+            item,
           )
         }
         parentClass = Object.getPrototypeOf(parentClass)
@@ -485,7 +485,7 @@ export class TypeMetadataStorageHost {
 
   private isFieldDirectiveOrExtension(
     host: Record<'target' | 'methodName' | 'name', any>,
-    metadata: PropertyDirectiveMetadata | PropertyExtensionsMetadata
+    metadata: PropertyDirectiveMetadata | PropertyExtensionsMetadata,
   ): boolean {
     return (
       metadata.target === host.target &&
@@ -494,11 +494,11 @@ export class TypeMetadataStorageHost {
   }
 
   private mergeParentResolverHandlers<
-    T extends ResolverTypeMetadata | FieldResolverMetadata
+    T extends ResolverTypeMetadata | FieldResolverMetadata,
   >(
     metadata: T[],
     parentClass: Function,
-    classMetadata: ResolverClassMetadata
+    classMetadata: ResolverClassMetadata,
   ): T[] {
     const mergedMetadata = metadata.map(metadata =>
       metadata.target !== parentClass
@@ -506,8 +506,8 @@ export class TypeMetadataStorageHost {
         : {
             ...metadata,
             target: classMetadata.target,
-            classMetadata
-          }
+            classMetadata,
+          },
     )
     return mergedMetadata
   }
@@ -515,12 +515,12 @@ export class TypeMetadataStorageHost {
   private mergeParentFieldHandlers(
     metadata: FieldResolverMetadata[],
     parentClass: Function,
-    classMetadata: ResolverClassMetadata
+    classMetadata: ResolverClassMetadata,
   ) {
     const parentMetadata = this.mergeParentResolverHandlers(
       metadata,
       parentClass,
-      classMetadata
+      classMetadata,
     )
     const mergedMetadata = parentMetadata.map(metadata =>
       metadata.target === parentClass
@@ -529,8 +529,8 @@ export class TypeMetadataStorageHost {
             ...metadata,
             objectTypeFn: isThrowing(metadata.objectTypeFn!)
               ? classMetadata.typeFn
-              : metadata.objectTypeFn
-          }
+              : metadata.objectTypeFn,
+          },
     )
     return mergedMetadata
   }

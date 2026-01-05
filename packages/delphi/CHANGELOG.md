@@ -1,5 +1,12 @@
 # @sodium/delphi
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.3
+
 ## 0.1.3
 
 ### Patch Changes

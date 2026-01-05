@@ -5,7 +5,7 @@ import type { HttpErrorData } from './error.model'
  * Base class for HTTP errors - errors that define HTTP error code.
  */
 export class HttpError<
-  DataType extends HttpErrorData = HttpErrorData
+  DataType extends HttpErrorData = HttpErrorData,
 > extends AppError<DataType> {
   constructor(message: string, data: DataType) {
     super(message, data)
@@ -14,7 +14,7 @@ export class HttpError<
     ;(this as any).__proto__ = HttpError.prototype
     Object.defineProperty(this, 'name', {
       value: this.constructor.name,
-      configurable: true // otherwise throws with "TypeError: Cannot redefine property: name"
+      configurable: true, // otherwise throws with "TypeError: Cannot redefine property: name"
     })
 
     if ((Error as any).captureStackTrace) {
@@ -22,7 +22,7 @@ export class HttpError<
     } else {
       Object.defineProperty(this, 'stack', {
         value: new Error().stack,
-        configurable: true
+        configurable: true,
       })
     }
   }

@@ -5,7 +5,7 @@ import { flock } from '../flock'
 import { GoatRepositoryFactory } from '../repository.factory'
 
 export const basicTestSuite = (
-  dataSourceOrRepoClass?: DataSource | any | (() => DataSource)
+  dataSourceOrRepoClass?: DataSource | any | (() => DataSource),
 ) => {
   let _storedId: any
   let dbType: string = 'unknown'
@@ -64,7 +64,7 @@ export const basicTestSuite = (
     const a = await Repository.insert({
       id: customId,
       name: 'myGoat',
-      age: 13
+      age: 13,
     })
     expect(typeof a.id).toBe('string')
     expect(a.id).toBe(customId)
@@ -97,8 +97,8 @@ export const basicTestSuite = (
 
     const goat = await Repository.findById(goats[0].id!, {
       select: {
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(goat).not.toHaveProperty('name')
@@ -115,7 +115,7 @@ export const basicTestSuite = (
     expect(selectedGoats.length).toBe(2)
 
     expect(
-      selectedGoats[0].id === ids[0] || selectedGoats[1].id === ids[0]
+      selectedGoats[0].id === ids[0] || selectedGoats[1].id === ids[0],
     ).toBe(true)
   })
 
@@ -127,14 +127,14 @@ export const basicTestSuite = (
 
     const selectedGoats = await Repository.findByIds(ids, {
       select: {
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(selectedGoats.length).toBe(2)
 
     expect(
-      selectedGoats[0].age === ages[0] || selectedGoats[1].age === ages[0]
+      selectedGoats[0].age === ages[0] || selectedGoats[1].age === ages[0],
     ).toBe(true)
 
     expect(selectedGoats[0]).not.toHaveProperty('name')
@@ -153,8 +153,8 @@ export const basicTestSuite = (
 
     const storedGoats = await Repository.findMany({
       where: {
-        name: 'Goatee'
-      }
+        name: 'Goatee',
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(true)
@@ -169,8 +169,8 @@ export const basicTestSuite = (
     await Repository.insertMany(flock)
     const storedGoats = await Repository.findMany({
       where: {
-        name: 'SOMENOTEXISTINGGOAT'
-      }
+        name: 'SOMENOTEXISTINGGOAT',
+      },
     })
     expect(Array.isArray(storedGoats)).toBe(true)
     expect(storedGoats.length).toBe(0)
@@ -180,11 +180,11 @@ export const basicTestSuite = (
     await Repository.insertMany(flock)
     const storedGoats = await Repository.findMany({
       where: {
-        name: 'Goatee'
+        name: 'Goatee',
       },
       select: {
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(true)
@@ -197,8 +197,8 @@ export const basicTestSuite = (
 
     const storedGoats = await Repository.findFirst({
       where: {
-        name: 'Goatee'
-      }
+        name: 'Goatee',
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(false)
@@ -210,12 +210,12 @@ export const basicTestSuite = (
 
     const storedGoats = await Repository.findFirst({
       where: {
-        name: 'Goatee'
+        name: 'Goatee',
       },
       select: {
         name: true,
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(false)
@@ -226,34 +226,34 @@ export const basicTestSuite = (
   test('requireFirst - Should fail if not found', async () => {
     const _insertedUser = await Repository.insert({
       name: 'testGoat',
-      age: 20
+      age: 20,
     })
 
     const [error] = await Promises.try(
       Repository.requireFirst({
         where: {
-          name: 'noneExistingGoat'
-        }
-      })
+          name: 'noneExistingGoat',
+        },
+      }),
     )
 
     expect(error?.message).toBe(
-      'No objects found matching:  {"where":{"name":"noneExistingGoat"}}'
+      'No objects found matching:  {"where":{"name":"noneExistingGoat"}}',
     )
   })
 
   test('requireFirst - Should find first item', async () => {
     const insertedUser = await Repository.insert({
       name: 'testGoat',
-      age: 20
+      age: 20,
     })
 
     const [error, goat] = await Promises.try(
       Repository.requireFirst({
         where: {
-          name: 'testGoat'
-        }
-      })
+          name: 'testGoat',
+        },
+      }),
     )
 
     expect(error).toBe(null)
@@ -266,7 +266,7 @@ export const basicTestSuite = (
 
     const data = await Repository.updateById(goats[0].id!, {
       age: 99,
-      name: 'MyUpdatedGoat'
+      name: 'MyUpdatedGoat',
     })
     expect(data.name).toBe('MyUpdatedGoat')
     expect(data.id).toBe(goats[0].id!)
@@ -277,7 +277,7 @@ export const basicTestSuite = (
     const goats = await Repository.findMany()
     const data = await Repository.replaceById(goats[0].id!, {
       age: 2,
-      name: 'MyReplacedGoat'
+      name: 'MyReplacedGoat',
     })
     expect(data.name).toBe('MyReplacedGoat')
     expect(data.id).toBe(goats[0].id!)

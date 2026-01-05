@@ -8,6 +8,6 @@ export type ComplexityEstimatorArgs = {
 }
 
 export type ComplexityEstimator = (
-  options: ComplexityEstimatorArgs
+  options: ComplexityEstimatorArgs,
 ) => number | undefined
 export type Complexity = ComplexityEstimator | number

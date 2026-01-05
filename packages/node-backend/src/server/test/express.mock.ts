@@ -1,6 +1,6 @@
 import type {
   MockRequest as ExpressMockRequest,
-  RequestOptions
+  RequestOptions,
 } from 'node-mocks-http'
 import { createRequest } from 'node-mocks-http'
 import { mockFirebaseToken } from './firebase.mock'
@@ -12,12 +12,12 @@ export function mockRequest(options: RequestOptions = {}): MockRequest {
   const request = createRequest(options)
   if (options.ip) {
     Object.assign(request, {
-      ip: options.ip
+      ip: options.ip,
     })
   }
 
   Object.assign(request, {
-    acceptsLanguages: () => options.acceptsLanguages || []
+    acceptsLanguages: () => options.acceptsLanguages || [],
   })
 
   request.log = console.log
@@ -37,15 +37,15 @@ function defaultRequestOptions(): RequestOptions {
       'Accept-Encoding': 'gzip, deflate, br',
       // Request from Iphone
       'User-Agent':
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) CriOS/39.0.2171.50 Mobile/12A365 Safari/600.1.4 (000206)'
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) CriOS/39.0.2171.50 Mobile/12A365 Safari/600.1.4 (000206)',
     },
-    acceptsLanguages: ['en', 'es']
+    acceptsLanguages: ['en', 'es'],
   }
 }
 
 export const mockedRegisteredAccountRequest = (
   account?: Partial<BasicAccount>,
-  patch: RequestOptions = {}
+  patch: RequestOptions = {},
 ): MockRequest => {
   const defOptions = defaultRequestOptions()
   const mockedToken = mockFirebaseToken(account)
@@ -54,9 +54,9 @@ export const mockedRegisteredAccountRequest = (
     ...defOptions,
     headers: {
       authorization: `Bearer ${mockedToken}`,
-      ...defOptions.headers
+      ...defOptions.headers,
       // We can extend the headers
     },
-    ...patch
+    ...patch,
   })
 }

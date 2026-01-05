@@ -14,7 +14,7 @@ enum Algorithms {
   Ps512 = 'PS512',
   Es256 = 'ES256',
   Es384 = 'ES384',
-  Es512 = 'ES512'
+  Es512 = 'ES512',
 }
 
 // tslint:disable-next-line: interface-name
@@ -32,12 +32,12 @@ export const Jwt = (() => {
   const verify = async (
     token: string,
     secret: string,
-    options?: VerifyOptions
+    options?: VerifyOptions,
   ): Promise<AnyObject> => {
     const decoded = (await verifyAsync(
       token,
       secret,
-      options
+      options,
     )) as unknown as AnyObject
     return decoded
   }
@@ -50,12 +50,12 @@ export const Jwt = (() => {
    */
   const generate = async (
     payload: AnyObject,
-    jwtOptions: SignOptions & { secret: string }
+    jwtOptions: SignOptions & { secret: string },
   ): Promise<string> => {
     const { secret, ...restOptions } = jwtOptions
     return await sign(payload, secret, {
       algorithm: restOptions.algorithm || Algorithms.Hs256,
-      ...restOptions
+      ...restOptions,
     })
   }
 

@@ -14,7 +14,7 @@ export type DateIntervalString = string
 export class DateInterval {
   private constructor(
     public start: LocalDate,
-    public end: LocalDate
+    public end: LocalDate,
   ) {}
 
   static of(start: LocalDateConfig, end: LocalDateConfig): DateInterval {
@@ -96,7 +96,7 @@ export class DateInterval {
   range(
     incl: Inclusiveness = '[]',
     step = 1,
-    stepUnit: LocalDateUnit = 'day'
+    stepUnit: LocalDateUnit = 'day',
   ): LocalDate[] {
     return LocalDate.range(this.start, this.end, incl, step, stepUnit)
   }

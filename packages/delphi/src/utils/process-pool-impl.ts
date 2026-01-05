@@ -41,7 +41,7 @@ export class ProcessPool extends EventEmitter {
     queuedTasks: 0,
     totalWorkers: 0,
     idleWorkers: 0,
-    tasksPerWorker: 0
+    tasksPerWorker: 0,
   }
   private shutdownRequested = false
   private idleCheckInterval: NodeJS.Timeout | null = null
@@ -58,7 +58,7 @@ export class ProcessPool extends EventEmitter {
 
   async execute(
     task: string,
-    options: ExecuteOptions
+    options: ExecuteOptions,
   ): Promise<{ stdout: string; stderr: string }> {
     if (this.shutdownRequested) {
       throw new Error('Pool is shutting down')
@@ -131,13 +131,13 @@ export class ProcessPool extends EventEmitter {
 
   private createWorker(): Worker {
     const childProcess = spawn(this.config.command, this.config.args, {
-      env: { ...process.env }
+      env: { ...process.env },
     })
 
     const worker: Worker = {
       process: childProcess,
       busy: false,
-      lastUsed: Date.now()
+      lastUsed: Date.now(),
     }
 
     this.workers.push(worker)
@@ -150,7 +150,7 @@ export class ProcessPool extends EventEmitter {
   private async runTask(
     _worker: Worker,
     task: string,
-    options: ExecuteOptions
+    options: ExecuteOptions,
   ): Promise<{ stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
       let stdout = ''
@@ -158,7 +158,7 @@ export class ProcessPool extends EventEmitter {
 
       const childProcess = spawn(this.config.command, this.config.args, {
         env: { ...process.env, ...options.env },
-        cwd: process.cwd()
+        cwd: process.cwd(),
       })
 
       childProcess.stdout?.on('data', data => {
@@ -207,7 +207,7 @@ export class ProcessPool extends EventEmitter {
     this.stats.idleWorkers = this.workers.filter(w => !w.busy).length
     if (this.stats.totalTasks > 0 && this.workers.length > 0) {
       this.stats.tasksPerWorker = Math.round(
-        this.stats.totalTasks / this.workers.length
+        this.stats.totalTasks / this.workers.length,
       )
     }
   }

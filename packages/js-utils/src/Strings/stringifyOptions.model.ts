@@ -3,7 +3,7 @@ import type { Reviver } from '../types'
 export type JsonStringifyFunction = (
   obj: any,
   reviver?: Reviver,
-  space?: number
+  space?: number,
 ) => string
 
 export interface StringifyAnyOptions {

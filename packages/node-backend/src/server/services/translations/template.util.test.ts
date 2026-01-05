@@ -5,8 +5,8 @@ import { templateUtil } from './template.util'
 // Mock @goatlab/js-utils
 vi.mock('@goatlab/js-utils', () => ({
   Strings: {
-    pupa: vi.fn()
-  }
+    pupa: vi.fn(),
+  },
 }))
 
 describe('TemplateUtil', () => {
@@ -18,18 +18,18 @@ describe('TemplateUtil', () => {
     it('should render template with parameters', async () => {
       const { Strings } =
         await vi.importMock<typeof import('@goatlab/js-utils')>(
-          '@goatlab/js-utils'
+          '@goatlab/js-utils',
         )
       vi.mocked(Strings.pupa).mockReturnValue('Hello John!')
 
       const result = templateUtil.renderString('Hello {name}!', {
-        name: 'John'
+        name: 'John',
       })
 
       expect(Strings.pupa).toHaveBeenCalledWith(
         'Hello {name}!',
         { name: 'John' },
-        {}
+        {},
       )
       expect(result).toBe('Hello John!')
     })
@@ -37,7 +37,7 @@ describe('TemplateUtil', () => {
     it('should handle empty template', async () => {
       const { Strings } =
         await vi.importMock<typeof import('@goatlab/js-utils')>(
-          '@goatlab/js-utils'
+          '@goatlab/js-utils',
         )
       vi.mocked(Strings.pupa).mockReturnValue('')
 
@@ -50,7 +50,7 @@ describe('TemplateUtil', () => {
     it('should handle template without parameters', async () => {
       const { Strings } =
         await vi.importMock<typeof import('@goatlab/js-utils')>(
-          '@goatlab/js-utils'
+          '@goatlab/js-utils',
         )
       vi.mocked(Strings.pupa).mockReturnValue('Static text')
 
@@ -63,7 +63,7 @@ describe('TemplateUtil', () => {
     it('should pass options to pupa function', async () => {
       const { Strings } =
         await vi.importMock<typeof import('@goatlab/js-utils')>(
-          '@goatlab/js-utils'
+          '@goatlab/js-utils',
         )
       vi.mocked(Strings.pupa).mockReturnValue('Hello {name}!')
 
@@ -77,22 +77,22 @@ describe('TemplateUtil', () => {
     it('should handle multiple parameters', async () => {
       const { Strings } =
         await vi.importMock<typeof import('@goatlab/js-utils')>(
-          '@goatlab/js-utils'
+          '@goatlab/js-utils',
         )
       vi.mocked(Strings.pupa).mockReturnValue(
-        'Hello John, you are 25 years old'
+        'Hello John, you are 25 years old',
       )
 
       const params = { name: 'John', age: 25 }
       const result = templateUtil.renderString(
         'Hello {name}, you are {age} years old',
-        params
+        params,
       )
 
       expect(Strings.pupa).toHaveBeenCalledWith(
         'Hello {name}, you are {age} years old',
         params,
-        {}
+        {},
       )
       expect(result).toBe('Hello John, you are 25 years old')
     })

@@ -64,7 +64,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       const a = await GoatRepo.insert({
         id: customId,
         name: 'myGoat',
-        age: 13
+        age: 13,
       })
       expect(typeof a.id).toBe('string')
       expect(a.id).toBe(customId)
@@ -88,7 +88,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
     it('findById - Should GET selected Data', async () => {
       const goats = await GoatRepo.insertMany(flock)
       const goat = await GoatRepo.findById(goats[0].id, {
-        select: { name: true }
+        select: { name: true },
       })
       expect(goat?.name).toBe(goats[0].name)
       expect((goat as any)?.age).toBeUndefined()
@@ -103,7 +103,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
     it('findByIds - Should GET selectedData', async () => {
       const goats = await GoatRepo.insertMany(flock)
       const storedGoats = await GoatRepo.findByIds([goats[0].id, goats[1].id], {
-        select: { name: true }
+        select: { name: true },
       })
       expect(storedGoats[0]?.name).toBe(goats[0].name)
       expect((storedGoats[0] as any)?.age).toBeUndefined()
@@ -118,7 +118,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
     it('findMany - Should FILTER data', async () => {
       await GoatRepo.insertMany(flock)
       const goats = await GoatRepo.findMany({
-        where: { breed: { family: 'Angora' } }
+        where: { breed: { family: 'Angora' } },
       })
       expect(goats.length).toBe(2)
     })
@@ -126,7 +126,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
     it('findMany - Should FILTER not existing data', async () => {
       await GoatRepo.insertMany(flock)
       const goats = await GoatRepo.findMany({
-        where: { name: 'TESTESTEST' }
+        where: { name: 'TESTESTEST' },
       })
       expect(goats.length).toBe(0)
     })
@@ -134,7 +134,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
     it('findMany - Should SELECT attributes', async () => {
       await GoatRepo.insertMany(flock)
       const goats = await GoatRepo.findMany({
-        select: { name: true }
+        select: { name: true },
       })
       expect(goats[0]?.name).toBeDefined()
       expect((goats[0] as any)?.age).toBeUndefined()
@@ -151,7 +151,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       await GoatRepo.insertMany(flock)
       const goat = await GoatRepo.findFirst({
         where: { breed: { family: 'Angora' } },
-        select: { name: true }
+        select: { name: true },
       })
       expect(goat?.name).toBeDefined()
       expect((goat as any)?.age).toBeUndefined()
@@ -207,7 +207,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       await TypeOrmRepo.insertMany([
         { test: true, order: 2 },
         { test: false, order: 3 },
-        { test: true, order: 1 }
+        { test: true, order: 1 },
       ])
 
       const plucked = await TypeOrmRepo.pluck('order')
@@ -221,7 +221,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       await TypeOrmRepo.insertMany([
         { test: true },
         { test: false },
-        { test: true }
+        { test: true },
       ])
 
       const results = await TypeOrmRepo.findMany({ limit: 2 })
@@ -232,12 +232,12 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       const _inserted = await TypeOrmRepo.insertMany([
         { test: true, order: 1 },
         { test: false, order: 2 },
-        { test: true, order: 3 }
+        { test: true, order: 3 },
       ])
 
       const results = await TypeOrmRepo.findMany({
         offset: 1,
-        orderBy: [{ order: 'asc' }]
+        orderBy: [{ order: 'asc' }],
       })
 
       expect(results.length).toBe(2)
@@ -248,13 +248,13 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       await TypeOrmRepo.insertMany([
         { test: true, order: 1 },
         { test: false, order: 2 },
-        { test: true, order: 3 }
+        { test: true, order: 3 },
       ])
 
       const results = await TypeOrmRepo.findMany({
         where: {
-          OR: [{ test: true }, { order: 2 }]
-        }
+          OR: [{ test: true }, { order: 2 }],
+        },
       })
 
       expect(results.length).toBe(3)
@@ -264,11 +264,11 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       await TypeOrmRepo.insertMany([
         { test: true, order: 2 },
         { test: false, order: 3 },
-        { test: true, order: 1 }
+        { test: true, order: 1 },
       ])
 
       const results = await TypeOrmRepo.findMany({
-        orderBy: [{ order: 'desc' }]
+        orderBy: [{ order: 'desc' }],
       })
 
       expect(results[0].order).toBe(3)
@@ -280,11 +280,11 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       await TypeOrmRepo.insertMany([
         { test: true, order: 2 },
         { test: false, order: 3 },
-        { test: true, order: 1 }
+        { test: true, order: 1 },
       ])
 
       const results = await TypeOrmRepo.findMany({
-        orderBy: [{ order: 'asc' }]
+        orderBy: [{ order: 'asc' }],
       })
 
       expect(results[0].order).toBe(1)
@@ -302,7 +302,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
 
       const results = await TypeOrmRepo.findMany({
         orderBy: [{ created: 'desc' }],
-        select: { id: true, created: true }
+        select: { id: true, created: true },
       })
 
       expect(results[0]?.id).toBe(third.id)
@@ -319,7 +319,7 @@ export const genericUnifiedTestSuite = (options: GenericUnifiedTestOptions) => {
       const third = await TypeOrmRepo.insert({ test: true })
 
       const results = await TypeOrmRepo.findMany({
-        orderBy: [{ created: 'desc' }]
+        orderBy: [{ created: 'desc' }],
       })
 
       expect(results[0]?.id).toBe(third.id)

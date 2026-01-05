@@ -13,7 +13,7 @@ import {
   describe,
   expect,
   it,
-  vi
+  vi,
 } from 'vitest'
 import { z } from 'zod'
 
@@ -23,27 +23,27 @@ vi.mock('firebase-admin', () => ({
     verifyIdToken: vi.fn().mockRejectedValue(new Error('No token provided')),
     getUserByEmail: vi.fn(),
     createUser: vi.fn(),
-    createCustomToken: vi.fn()
-  })
+    createCustomToken: vi.fn(),
+  }),
 }))
 
 // Mock other dependencies for integration tests
 vi.mock('../consts', () => ({
-  pkg: { name: 'test-app', version: '1.0.0' }
+  pkg: { name: 'test-app', version: '1.0.0' },
 }))
 
 vi.mock('../context/trpc.context', () => ({
-  createContext: vi.fn().mockResolvedValue({})
+  createContext: vi.fn().mockResolvedValue({}),
 }))
 
 vi.mock('../initOpenApiDocs', () => ({
-  initOpenApiDocs: vi.fn()
+  initOpenApiDocs: vi.fn(),
 }))
 
 vi.mock('../sentry/sentry.service', () => ({
   SentryService: vi.fn().mockImplementation(() => ({
-    captureException: vi.fn()
-  }))
+    captureException: vi.fn(),
+  })),
 }))
 
 import { Ports } from '@goatlab/node-utils'
@@ -106,8 +106,8 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       logger: {
         log: vi.fn(),
         warn: vi.fn(),
-        error: vi.fn()
-      }
+        error: vi.fn(),
+      },
     })
 
     // Create TRPC router
@@ -122,14 +122,14 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         .input(z.object({ name: z.string(), email: z.string() }))
         .mutation(({ input }) => ({
           id: Math.random().toString(),
-          ...input
+          ...input,
         })),
 
       getContext: t.procedure.query(({ ctx }) => ({
         hasContext: !!ctx,
         url: ctx?.url,
         method: ctx?.method,
-        ip: ctx?.ip
+        ip: ctx?.ip,
       })),
 
       protectedEndpoint: t.procedure.query(({ ctx }) => {
@@ -141,7 +141,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
       error: t.procedure.query(() => {
         throw new Error('Test error')
-      })
+      }),
     })
 
     // Create express router for testing
@@ -155,8 +155,8 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         body: req.body,
         headers: {
           'content-type': req.headers['content-type'],
-          'user-agent': req.headers['user-agent']
-        }
+          'user-agent': req.headers['user-agent'],
+        },
       })
     })
     expressRouter.get('/api/status', (_req, res) => {
@@ -194,7 +194,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: 3000,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       expect(app).toBeDefined()
@@ -211,7 +211,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: 3000,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       expect(result).toHaveProperty('app')
@@ -227,7 +227,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: 3000,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       // Server should not be started in test env
@@ -243,7 +243,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         trpcRouter,
         port: newPort,
         environment: 'dev',
-        sentryService
+        sentryService,
       })
 
       expect(result.server).toBeDefined()
@@ -268,7 +268,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -304,7 +304,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       app = result.app
@@ -342,7 +342,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       app = result.app
@@ -356,7 +356,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         .set('Origin', 'http://localhost:3000')
 
       expect(res.headers['access-control-allow-origin']).toBe(
-        'http://localhost:3000'
+        'http://localhost:3000',
       )
       expect(res.headers['access-control-allow-credentials']).toBe('true')
     })
@@ -371,7 +371,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       expect(res.status).toBe(204)
       expect(res.headers['access-control-allow-methods']).toContain('POST')
       expect(res.headers['access-control-allow-headers']).toContain(
-        'Content-Type'
+        'Content-Type',
       )
       expect(res.headers['access-control-max-age']).toBe('86400')
     })
@@ -401,7 +401,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
           port: newTestPort,
           environment: 'test',
           sentryService,
-          features: { sentry: false }
+          features: { sentry: false },
         })
 
         app = result.app
@@ -427,7 +427,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       app = result.app
@@ -473,7 +473,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -521,8 +521,8 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         expressResources: [expressRouter],
         sentryService,
         bodyParsing: {
-          json: { limit: '1kb' }
-        }
+          json: { limit: '1kb' },
+        },
       })
 
       app = result.app
@@ -542,7 +542,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       webhookRouter.post('/webhook-verify', (req: any, res) => {
         res.json({
           hasRawBody: !!req.rawBody,
-          rawBody: req.rawBody
+          rawBody: req.rawBody,
         })
       })
 
@@ -559,7 +559,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: newPort,
         environment: 'test',
         expressResources: [webhookRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -582,7 +582,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       app = result.app
@@ -598,7 +598,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const res = await request(app).get('/static/test.js')
 
       expect(res.headers['cache-control']).toBe(
-        'public, max-age=31536000, immutable'
+        'public, max-age=31536000, immutable',
       )
     })
   })
@@ -609,7 +609,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         trpcRouter,
         port: testPort,
         environment: 'test',
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -620,7 +620,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     it('should handle TRPC queries', async () => {
       const res = await request(app).get(
         '/trpc/ping?batch=1&input=' +
-          encodeURIComponent(JSON.stringify({ '0': {} }))
+          encodeURIComponent(JSON.stringify({ '0': {} })),
       )
 
       expect(res.status).toBe(200)
@@ -630,7 +630,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     it('should handle TRPC query procedures', async () => {
       const response = await request(app).get(
         '/trpc/hello?batch=1&input=' +
-          encodeURIComponent(JSON.stringify({ '0': { name: 'World' } }))
+          encodeURIComponent(JSON.stringify({ '0': { name: 'World' } })),
       )
 
       expect(response.status).toBe(200)
@@ -641,7 +641,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     it('should handle TRPC mutation input validation', async () => {
       const response = await request(app).post(
         '/trpc/createUser?batch=1&input=' +
-          encodeURIComponent(JSON.stringify({ '0': {} }))
+          encodeURIComponent(JSON.stringify({ '0': {} })),
       )
 
       // This should return 400 or 415 because required fields are missing
@@ -650,8 +650,8 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       if (response.headers['content-type']) {
         expect(
           ['application/json', 'text/plain'].some(type =>
-            response.headers['content-type'].includes(type)
-          )
+            response.headers['content-type'].includes(type),
+          ),
         ).toBe(true)
       }
     })
@@ -661,7 +661,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const response = await request(app)
         .get(
           '/trpc/getContext?batch=1&input=' +
-            encodeURIComponent(JSON.stringify({ '0': {} }))
+            encodeURIComponent(JSON.stringify({ '0': {} })),
         )
         .set('X-Tenant-ID', 'test-tenant')
 
@@ -678,7 +678,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     it('should handle TRPC error responses', async () => {
       const response = await request(app).get(
         '/trpc/protectedEndpoint?batch=1&input=' +
-          encodeURIComponent(JSON.stringify({ '0': {} }))
+          encodeURIComponent(JSON.stringify({ '0': {} })),
       )
 
       // tRPC errors are returned with 500 status when they're internal errors
@@ -689,7 +689,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
     it('should handle invalid TRPC procedures', async () => {
       const response = await request(app).get(
         '/trpc/nonExistentProcedure?batch=1&input=' +
-          encodeURIComponent(JSON.stringify({ '0': {} }))
+          encodeURIComponent(JSON.stringify({ '0': {} })),
       )
 
       // Invalid procedures return 404
@@ -705,7 +705,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -741,7 +741,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         sentryService,
-        features: { sentry: false }
+        features: { sentry: false },
       })
 
       app = result.app
@@ -780,7 +780,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         trpcRouter,
         port: testPort,
         environment: 'test',
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -818,9 +818,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         features: { sentry: false },
         security: {
           rateLimit: {
-            api: { max: 5 }
-          }
-        }
+            api: { max: 5 },
+          },
+        },
       })
 
       app = result.app
@@ -834,7 +834,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
       // Make multiple requests to trigger rate limit
       const requests = Array.from({ length: 6 }, () =>
-        request(app).get('/api/test')
+        request(app).get('/api/test'),
       )
 
       const responses = await Promise.all(requests)
@@ -857,9 +857,9 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         sentryService,
         security: {
           rateLimit: {
-            api: { max: 10 }
-          }
-        }
+            api: { max: 10 },
+          },
+        },
       })
 
       app = result.app
@@ -895,7 +895,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         environment: 'test',
         expressResources: [expressRouter],
         customHandlers: [customHandler],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -914,7 +914,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -934,7 +934,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -964,7 +964,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         features: { openApiDocs: true },
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -996,7 +996,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: newPort,
         environment: 'test',
         expressResources: [timeoutRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -1008,7 +1008,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
 
       try {
         const response = await fetch(`http://localhost:${newPort}/slow`, {
-          signal: controller.signal
+          signal: controller.signal,
         })
         // Should not get here
         expect(response.status).toBe(503) // Service Unavailable on timeout
@@ -1028,7 +1028,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         port: testPort,
         environment: 'test',
         expressResources: [expressRouter],
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -1046,7 +1046,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const promises = Array.from({ length: 10 }, () =>
         request(app)
           .get('/health')
-          .then(r => r.body)
+          .then(r => r.body),
       )
 
       const results = await Promise.all(promises)
@@ -1063,7 +1063,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const response2 = await request(app).get('/api/status')
       const response3 = await request(app).get(
         '/trpc/ping?batch=1&input=' +
-          encodeURIComponent(JSON.stringify({ '0': {} }))
+          encodeURIComponent(JSON.stringify({ '0': {} })),
       )
 
       expect(response1.status).toBe(200)
@@ -1084,7 +1084,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         trpcRouter,
         port: testPort,
         environment: 'test',
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -1112,7 +1112,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
         trpcRouter,
         port: testPort,
         environment: 'test',
-        sentryService
+        sentryService,
       })
 
       app = result.app
@@ -1125,7 +1125,7 @@ describe('getExpressTrpcApp - Consolidated Tests', () => {
       const response = await request(app)
         .get(
           '/trpc/getContext?batch=1&input=' +
-            encodeURIComponent(JSON.stringify({ '0': {} }))
+            encodeURIComponent(JSON.stringify({ '0': {} })),
         )
         .set('X-Forwarded-For', '203.0.113.195')
         .set('X-Forwarded-Proto', 'https')

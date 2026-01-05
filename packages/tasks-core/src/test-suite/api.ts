@@ -3,7 +3,7 @@ import type { TaskConnector, UnknownInputType } from '../ShouldQueue.types.js'
 import type {
   ConnectorFactory,
   TestFramework,
-  TestSuiteOptions
+  TestSuiteOptions,
 } from './types.js'
 import { delay } from './utils.js'
 
@@ -45,7 +45,7 @@ export function taskConnectorApiTests(
   options: TestSuiteOptions & {
     startWorker?: (tasks: ShouldQueue[]) => Promise<() => Promise<void>>
   } = {},
-  sharedTask?: ShouldQueue<{ text: string }>
+  sharedTask?: ShouldQueue<{ text: string }>,
 ) {
   const opts = {
     taskCompletionTimeout: options.taskCompletionTimeout ?? 5000,
@@ -55,7 +55,7 @@ export function taskConnectorApiTests(
     supportsScheduling: options.supportsScheduling ?? false,
     cleanup: options.cleanup,
     setup: options.setup,
-    startWorker: options.startWorker
+    startWorker: options.startWorker,
   }
 
   test.describe('TaskConnector API Tests', () => {
@@ -116,7 +116,7 @@ export function taskConnectorApiTests(
         const status = await task.queue({ text: 'name test' })
 
         test.expect(status.name).toContain('test_api_task')
-      }
+      },
     )
 
     test.it('queue() should return a unique id for each task', async () => {
@@ -163,7 +163,7 @@ export function taskConnectorApiTests(
         test.expect(status).toHaveProperty('name')
         test.expect(status).toHaveProperty('status')
         test.expect(status).toHaveProperty('payload')
-      }
+      },
     )
 
     test.it('getStatus() should return the original payload', async () => {

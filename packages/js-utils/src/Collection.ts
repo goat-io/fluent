@@ -18,7 +18,7 @@ export class Collection<T = AnyObject | Primitives> {
   }
 
   public static collect<T = AnyObject | Primitives>(
-    data: T[] = []
+    data: T[] = [],
   ): Collection<T> {
     return new Collection(data)
   }
@@ -141,7 +141,7 @@ export class Collection<T = AnyObject | Primitives> {
   }
 
   public combine<K extends string | number, U>(
-    values: U[]
+    values: U[],
   ): Collection<Record<string, U>> {
     const keys = this.data as unknown as K[]
     const len = keys.length
@@ -177,7 +177,7 @@ export class Collection<T = AnyObject | Primitives> {
 
     if (!func && value === undefined && !path) {
       throw new Error(
-        'No Function nor value to compare. Please add one of them'
+        'No Function nor value to compare. Please add one of them',
       )
     }
 
@@ -199,7 +199,7 @@ export class Collection<T = AnyObject | Primitives> {
         const extract = Objects.getFromPath(
           elem as AnyObject,
           stringPath,
-          undefined
+          undefined,
         )
         elemValue = extract.value
       } else {
@@ -222,7 +222,7 @@ export class Collection<T = AnyObject | Primitives> {
   }
 
   public countBy(
-    callback?: (item: T) => string | number
+    callback?: (item: T) => string | number,
   ): Collection<{ [key: string]: number }> {
     const counts = Object.create(null) as { [key: string]: number }
     const length = this.data.length
@@ -241,7 +241,7 @@ export class Collection<T = AnyObject | Primitives> {
   ): Collection<Array<T | U>> {
     const first = this.data as T[]
     const rest = arrays.map(a =>
-      a instanceof Collection ? a.get() : a
+      a instanceof Collection ? a.get() : a,
     ) as U[][]
 
     const inputs = [first, ...rest] as Array<Array<T | U>>

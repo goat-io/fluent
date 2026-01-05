@@ -16,7 +16,7 @@ import {
   beforeEach,
   describe,
   expect,
-  it
+  it,
 } from 'vitest'
 import { getGlobalData, writeGlobalData } from '../../../test/const'
 import { SecretService } from './secret.service'
@@ -30,7 +30,7 @@ describe('SecretService - FILE Provider', () => {
     // Create unique temp directory for each test
     tempDir = path.join(
       __dirname,
-      `temp-test-${Date.now()}-${Math.random().toString(36).substring(7)}`
+      `temp-test-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     )
     mockLocation = path.join(tempDir, 'secrets.json')
     if (!fs.existsSync(tempDir)) {
@@ -54,7 +54,7 @@ describe('SecretService - FILE Provider', () => {
       const service = new SecretService({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       const result = service.loadSecretsFromFile()
@@ -65,11 +65,11 @@ describe('SecretService - FILE Provider', () => {
       const service = new SecretService({
         provider: 'FILE',
         location: '/non/existent/path.json',
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       expect(() => service.loadSecretsFromFile()).toThrow(
-        'Secret file "/non/existent/path.json" does not exist'
+        'Secret file "/non/existent/path.json" does not exist',
       )
     })
 
@@ -78,14 +78,14 @@ describe('SecretService - FILE Provider', () => {
       const invalidEncrypted = {
         iv: 'invalid-iv',
         authTag: 'invalid-auth',
-        encrypted: 'invalid-data'
+        encrypted: 'invalid-data',
       }
       fs.writeFileSync(mockLocation, JSON.stringify(invalidEncrypted))
 
       const service = new SecretService({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       // Should not throw, but return the raw data
@@ -100,7 +100,7 @@ describe('SecretService - FILE Provider', () => {
 
       const service = new SecretService({
         provider: 'FILE',
-        location: mockLocation
+        location: mockLocation,
         // No encryptionKey provided
       })
 
@@ -116,7 +116,7 @@ describe('SecretService - FILE Provider', () => {
 
       const service = new SecretService({
         provider: 'FILE',
-        location: mockLocation
+        location: mockLocation,
         // No encryptionKey provided
       })
 
@@ -132,7 +132,7 @@ describe('SecretService - FILE Provider', () => {
 
       const service = new SecretService({
         provider: 'FILE',
-        location: mockLocation
+        location: mockLocation,
       })
 
       // Should trim the whitespace
@@ -147,7 +147,7 @@ describe('SecretService - FILE Provider', () => {
 
       const service1 = new SecretService({
         provider: 'FILE',
-        location: mockLocation
+        location: mockLocation,
         // No encryption key - loads as plain text
       })
 
@@ -157,14 +157,14 @@ describe('SecretService - FILE Provider', () => {
       // Now encrypt it
       const encrypted = Security.encryptObject(
         { value: plainTextSecret },
-        mockEncryptionKey
+        mockEncryptionKey,
       )
       fs.writeFileSync(mockLocation, JSON.stringify(encrypted))
 
       const service2 = new SecretService({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       // Should decrypt properly
@@ -180,7 +180,7 @@ describe('SecretService - FILE Provider', () => {
       const service = new SecretService({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       // First call
@@ -204,7 +204,7 @@ describe('SecretService - FILE Provider', () => {
       const service = new SecretService<typeof secrets>({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       const result = await service.getSecret('API_KEY')
@@ -223,11 +223,11 @@ describe('SecretService - FILE Provider', () => {
       }>({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       await expect(service.getSecret('DB_PASSWORD')).rejects.toThrow(
-        `Secret DB_PASSWORD does not exist in ${mockLocation} env`
+        `Secret DB_PASSWORD does not exist in ${mockLocation} env`,
       )
     })
   })
@@ -242,7 +242,7 @@ describe('SecretService - FILE Provider', () => {
       const service = new SecretService<{ CONFIG: string }>({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       const result = await service.getSecretJson<typeof jsonConfig>('CONFIG')
@@ -257,7 +257,7 @@ describe('SecretService - FILE Provider', () => {
       const service = new SecretService<{ CONFIG: string }>({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       await expect(service.getSecretJson('CONFIG')).rejects.toThrow()
@@ -270,7 +270,7 @@ describe('SecretService - FILE Provider', () => {
 
       const service = new SecretService({
         provider: 'FILE',
-        location: mockLocation
+        location: mockLocation,
       })
 
       await service.preload()
@@ -289,7 +289,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC
 
       const service = new SecretService({
         provider: 'FILE',
-        location: mockLocation
+        location: mockLocation,
       })
 
       await service.preload()
@@ -309,7 +309,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC
       const service = new SecretService<typeof secrets>({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       await service.preload()
@@ -326,7 +326,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC
       const service = new SecretService<{ CONFIG: string }>({
         provider: 'FILE',
         location: mockLocation,
-        encryptionKey: mockEncryptionKey
+        encryptionKey: mockEncryptionKey,
       })
 
       await service.preload()
@@ -358,13 +358,13 @@ describe('SecretService - VAULT Provider with real Vault', () => {
     vaultContainer = await new VaultContainer('hashicorp/vault:1.13')
       .withEnvironment({
         VAULT_DEV_ROOT_TOKEN_ID: 'test-token',
-        VAULT_DEV_LISTEN_ADDRESS: '0.0.0.0:8200'
+        VAULT_DEV_LISTEN_ADDRESS: '0.0.0.0:8200',
       })
       .withExposedPorts(8200)
       .start()
 
     vaultUrl = `http://${vaultContainer.getHost()}:${vaultContainer.getMappedPort(
-      8200
+      8200,
     )}`
     vaultToken = 'test-token'
 
@@ -393,8 +393,8 @@ describe('SecretService - VAULT Provider with real Vault', () => {
         vaultConfig: {
           endpoint: vaultUrl,
           token: vaultToken,
-          mount: 'secret'
-        }
+          mount: 'secret',
+        },
       })
     })
 
@@ -402,7 +402,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       const testSecrets = {
         API_KEY: 'test-api-key',
         DB_PASSWORD: 'test-db-password',
-        CONFIG: JSON.stringify({ host: 'test-host', port: 5432 })
+        CONFIG: JSON.stringify({ host: 'test-host', port: 5432 }),
       }
 
       // Store secrets
@@ -416,7 +416,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
     it('should retrieve individual secret from Vault', async () => {
       const testSecrets = {
         API_KEY: 'individual-test-key',
-        DB_PASSWORD: 'individual-test-password'
+        DB_PASSWORD: 'individual-test-password',
       }
 
       await service.storeSecretsToVault(testSecrets)
@@ -428,7 +428,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
     it('should retrieve JSON secret from Vault', async () => {
       const jsonConfig = { host: 'vault-test-host', port: 8080 }
       const testSecrets = {
-        CONFIG: JSON.stringify(jsonConfig)
+        CONFIG: JSON.stringify(jsonConfig),
       }
 
       await service.storeSecretsToVault(testSecrets)
@@ -442,7 +442,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       await service.storeSecretsToVault({})
 
       await expect(service.getSecret('NON_EXISTENT')).rejects.toThrow(
-        `Secret NON_EXISTENT does not exist in ${service.location} env`
+        `Secret NON_EXISTENT does not exist in ${service.location} env`,
       )
     })
 
@@ -476,8 +476,8 @@ describe('SecretService - VAULT Provider with real Vault', () => {
           endpoint: vaultUrl,
           token: vaultToken,
           mount: 'secret',
-          namespace: 'test-namespace'
-        }
+          namespace: 'test-namespace',
+        },
       })
 
       // This might fail if namespace doesn't exist, but it should handle the header correctly
@@ -491,7 +491,7 @@ describe('SecretService - VAULT Provider with real Vault', () => {
 
     it('should throw error for sync methods without preload', () => {
       expect(() => service.getSecretSync('API_KEY')).toThrow(
-        'Secrets not preloaded. Call preload() before using synchronous methods.'
+        'Secrets not preloaded. Call preload() before using synchronous methods.',
       )
     })
 
@@ -503,8 +503,8 @@ describe('SecretService - VAULT Provider with real Vault', () => {
         vaultConfig: {
           endpoint: vaultUrl,
           token: vaultToken,
-          mount: 'kv' // Different mount point
-        }
+          mount: 'kv', // Different mount point
+        },
       })
 
       // This might fail if mount doesn't exist, but URL should be constructed correctly
@@ -523,12 +523,12 @@ describe('SecretService - VAULT Provider with real Vault', () => {
         vaultConfig: {
           endpoint: vaultUrl,
           token: 'invalid-token',
-          mount: 'secret'
-        }
+          mount: 'secret',
+        },
       })
 
       await expect(serviceWithBadToken.loadSecretsFromVault()).rejects.toThrow(
-        'loadSecretsFromVault failed: Vault request failed:'
+        'loadSecretsFromVault failed: Vault request failed:',
       )
     })
 
@@ -556,18 +556,18 @@ describe('SecretService - VAULT Provider with real Vault', () => {
         vaultConfig: {
           endpoint: vaultUrl,
           token: vaultToken,
-          mount: 'secret'
-        }
+          mount: 'secret',
+        },
       })
 
       await expect(
-        serviceWithoutKey.storeSecretsToVault({ API_KEY: 'test' })
+        serviceWithoutKey.storeSecretsToVault({ API_KEY: 'test' }),
       ).rejects.toThrow(
-        'Encryption key is required for storing secrets in Vault'
+        'Encryption key is required for storing secrets in Vault',
       )
 
       await expect(serviceWithoutKey.loadSecretsFromVault()).rejects.toThrow(
-        'Encryption key is required for Vault provider'
+        'Encryption key is required for Vault provider',
       )
     })
   })
@@ -603,7 +603,7 @@ describe('SecretService - ENV Provider', () => {
       }>({
         provider: 'ENV',
         location: 'APP', // This becomes the prefix
-        encryptionKey: 'not-used-for-env'
+        encryptionKey: 'not-used-for-env',
       })
 
       const secrets = service.loadSecretsFromEnv()
@@ -611,7 +611,7 @@ describe('SecretService - ENV Provider', () => {
       expect(secrets).toEqual({
         API_KEY: 'env-api-key',
         DB_PASSWORD: 'env-db-password',
-        CONFIG: JSON.stringify({ host: 'env-host', port: 3000 })
+        CONFIG: JSON.stringify({ host: 'env-host', port: 3000 }),
       })
     })
 
@@ -623,7 +623,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService({
         provider: 'ENV',
         location: '', // No prefix
-        encryptionKey: 'not-used-for-env'
+        encryptionKey: 'not-used-for-env',
       })
 
       const secrets = service.loadSecretsFromEnv()
@@ -639,7 +639,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService({
         provider: 'ENV',
         location: 'TEST',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       // First call
@@ -661,7 +661,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService({
         provider: 'ENV',
         location: 'MISSING',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       const secrets = service.loadSecretsFromEnv()
@@ -680,7 +680,7 @@ describe('SecretService - ENV Provider', () => {
       }>({
         provider: 'ENV',
         location: 'MYAPP',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       const apiKey = await service.getSecret('API_KEY')
@@ -697,11 +697,11 @@ describe('SecretService - ENV Provider', () => {
       }>({
         provider: 'ENV',
         location: 'EMPTY',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       await expect(service.getSecret('MISSING_KEY')).rejects.toThrow(
-        'Secret MISSING_KEY does not exist in EMPTY env'
+        'Secret MISSING_KEY does not exist in EMPTY env',
       )
     })
   })
@@ -714,7 +714,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService<{ DATABASE_CONFIG: string }>({
         provider: 'ENV',
         location: 'CONFIG',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       const result =
@@ -728,7 +728,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService<{ CONFIG: string }>({
         provider: 'ENV',
         location: 'BAD',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       await expect(service.getSecretJson('CONFIG')).rejects.toThrow()
@@ -742,7 +742,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService<{ TEST_VALUE: string }>({
         provider: 'ENV',
         location: 'SYNC',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       await service.preload()
@@ -757,7 +757,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService<{ JSON_DATA: string }>({
         provider: 'ENV',
         location: 'SYNC',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       await service.preload()
@@ -773,7 +773,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService({
         provider: 'ENV',
         location: 'app', // lowercase location
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       const secrets = service.loadSecretsFromEnv()
@@ -787,7 +787,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService({
         provider: 'ENV',
         location: 'APP',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       const secrets = service.loadSecretsFromEnv()
@@ -802,7 +802,7 @@ describe('SecretService - ENV Provider', () => {
       const service = new SecretService({
         provider: 'ENV',
         location: 'TEST',
-        encryptionKey: 'not-used'
+        encryptionKey: 'not-used',
       })
 
       const secrets = service.loadSecretsFromEnv()
@@ -849,8 +849,8 @@ describe('SecretService - loadSecrets method', () => {
       vaultConfig: {
         endpoint: globalData.vaultUrl,
         token: globalData.vaultToken,
-        mount: 'secret'
-      }
+        mount: 'secret',
+      },
     })
 
     await service.storeSecretsToVault({ API_KEY: 'vault-key' })
@@ -866,7 +866,7 @@ describe('SecretService - loadSecrets method', () => {
     const fileService = new SecretService({
       provider: 'FILE',
       location: tempFile,
-      encryptionKey: encryptionKey
+      encryptionKey: encryptionKey,
     })
 
     const result = await fileService.loadSecrets()
@@ -880,13 +880,13 @@ describe('SecretService - loadSecrets method', () => {
     const envService = new SecretService({
       provider: 'ENV',
       location: 'LOADTEST',
-      encryptionKey: 'not-used'
+      encryptionKey: 'not-used',
     })
 
     const result = envService.loadSecrets()
     expect(result).toEqual({
       API_KEY: 'env-test-key',
-      SECRET: 'env-secret'
+      SECRET: 'env-secret',
     })
   })
 
@@ -894,7 +894,7 @@ describe('SecretService - loadSecrets method', () => {
     const gcpService = new SecretService({
       provider: 'GCP',
       location: 'gcp-location',
-      encryptionKey: 'key'
+      encryptionKey: 'key',
     })
 
     const result = gcpService.loadSecrets()
@@ -914,7 +914,7 @@ describe('SecretService - TTL Cache functionality', () => {
     const secrets = { API_KEY: 'ttl-test-key' }
     const encrypted = Security.encryptObject(
       secrets,
-      'test-key-1234567890123456789012'
+      'test-key-1234567890123456789012',
     )
     fs.writeFileSync(tempFile, JSON.stringify(encrypted))
 
@@ -923,7 +923,7 @@ describe('SecretService - TTL Cache functionality', () => {
       provider: 'FILE',
       location: tempFile,
       encryptionKey: 'test-key-1234567890123456789012',
-      cacheTTL: 100
+      cacheTTL: 100,
     })
 
     // First load - should read from file
@@ -942,7 +942,7 @@ describe('SecretService - TTL Cache functionality', () => {
 
     // Third load after TTL - should fail because file is deleted and cache expired
     await expect(service.loadSecretsFromFileAsync()).rejects.toThrow(
-      'Secret file'
+      'Secret file',
     )
 
     // Cleanup
@@ -955,7 +955,7 @@ describe('SecretService - TTL Cache functionality', () => {
     const service = new SecretService({
       provider: 'FILE',
       location: 'dummy.json',
-      encryptionKey: 'key'
+      encryptionKey: 'key',
     })
 
     expect(service.cacheTTL).toBe(5 * 60 * 1000) // 5 minutes default
@@ -972,7 +972,7 @@ describe('SecretService - TTL Cache functionality', () => {
     const secrets = { KEY: 'value' }
     const encrypted = Security.encryptObject(
       secrets,
-      'test-key-1234567890123456789012'
+      'test-key-1234567890123456789012',
     )
     fs.writeFileSync(tempFile, JSON.stringify(encrypted))
 
@@ -981,7 +981,7 @@ describe('SecretService - TTL Cache functionality', () => {
       provider: 'FILE',
       location: tempFile,
       encryptionKey: 'test-key-1234567890123456789012',
-      cacheTTL: 50
+      cacheTTL: 50,
     })
 
     // Load to populate cache
@@ -1019,7 +1019,7 @@ describe('SecretService - Edge cases and error handling', () => {
     const service = new SecretService({
       provider: 'FILE',
       location: tempFile,
-      encryptionKey: 'key'
+      encryptionKey: 'key',
     })
 
     // Should treat invalid JSON as plain text and wrap it in { value: "content" }
@@ -1045,8 +1045,8 @@ describe('SecretService - Edge cases and error handling', () => {
       vaultConfig: {
         endpoint: globalData.vaultUrl,
         token: globalData.vaultToken,
-        mount: 'secret'
-      }
+        mount: 'secret',
+      },
     })
 
     await service.storeSecretsToVault({})
@@ -1058,11 +1058,11 @@ describe('SecretService - Edge cases and error handling', () => {
     const serviceWithoutConfig = new SecretService({
       provider: 'VAULT',
       location: 'test',
-      encryptionKey: 'key'
+      encryptionKey: 'key',
     })
 
     await expect(serviceWithoutConfig.loadSecretsFromVault()).rejects.toThrow(
-      'Vault configuration is required for VAULT provider'
+      'Vault configuration is required for VAULT provider',
     )
   })
 })

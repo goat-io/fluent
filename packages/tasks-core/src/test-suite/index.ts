@@ -32,12 +32,12 @@ import { createApiTestTask, taskConnectorApiTests } from './api.js'
 import {
   createFailingTask,
   createSuccessTask,
-  taskConnectorLifecycleTests
+  taskConnectorLifecycleTests,
 } from './lifecycle.js'
 import type {
   ConnectorFactory,
   TestFramework,
-  TestSuiteOptions
+  TestSuiteOptions,
 } from './types.js'
 import { delay, waitForTaskCompletion } from './utils.js'
 import { createGenericTask, taskConnectorValueTests } from './values.js'
@@ -47,23 +47,23 @@ export { createApiTestTask, taskConnectorApiTests } from './api.js'
 export {
   createFailingTask,
   createSuccessTask,
-  taskConnectorLifecycleTests
+  taskConnectorLifecycleTests,
 } from './lifecycle.js'
 export type {
   MultiTenantTestOptions,
-  TenantConnectorFactory
+  TenantConnectorFactory,
 } from './multi-tenant.js'
 // Re-export multi-tenant test suite
 export {
   createMultiTenantTestTask,
-  multiTenantTestSuite
+  multiTenantTestSuite,
 } from './multi-tenant.js'
 export type {
   ConnectorFactory,
   ExpectAPI,
   TestContext,
   TestFramework,
-  TestSuiteOptions
+  TestSuiteOptions,
 } from './types.js'
 // Re-export utilities
 export {
@@ -73,7 +73,7 @@ export {
   generateTestId,
   retry,
   waitForTaskCompletion,
-  waitForTaskStatus
+  waitForTaskStatus,
 } from './utils.js'
 export { createGenericTask, taskConnectorValueTests } from './values.js'
 
@@ -141,11 +141,11 @@ interface SharedState {
  * @param options - Configuration options for the test suite
  */
 export function taskConnectorTestSuite<
-  TInput extends object = { text: string }
+  TInput extends object = { text: string },
 >(
   test: TestFramework,
   connectorFactory: ConnectorFactory<TInput>,
-  options: FullTestSuiteOptions = {}
+  options: FullTestSuiteOptions = {},
 ) {
   const {
     skipApiTests = false,
@@ -162,7 +162,7 @@ export function taskConnectorTestSuite<
       taskConnectorApiTests(
         test,
         connectorFactory as ConnectorFactory<{ text: string }>,
-        baseOptions
+        baseOptions,
       )
     }
 
@@ -170,7 +170,7 @@ export function taskConnectorTestSuite<
       taskConnectorLifecycleTests(
         test,
         connectorFactory as ConnectorFactory<{ text: string }>,
-        baseOptions
+        baseOptions,
       )
     }
 
@@ -178,7 +178,7 @@ export function taskConnectorTestSuite<
       taskConnectorValueTests(
         test,
         connectorFactory as ConnectorFactory<any>,
-        baseOptions
+        baseOptions,
       )
     }
     return
@@ -190,7 +190,7 @@ export function taskConnectorTestSuite<
     apiTask: null,
     successTask: null,
     failingTask: null,
-    preserveTask: null
+    preserveTask: null,
   }
 
   let stopWorker: (() => Promise<void>) | undefined
@@ -217,7 +217,7 @@ export function taskConnectorTestSuite<
 
       const PreserveTask = createGenericTask(
         state.connector,
-        'test_preserve_task'
+        'test_preserve_task',
       )
       state.preserveTask = new PreserveTask()
 
@@ -226,7 +226,7 @@ export function taskConnectorTestSuite<
         state.apiTask,
         state.successTask,
         state.failingTask,
-        state.preserveTask
+        state.preserveTask,
       ]
       stopWorker = await startWorker(allTasks)
 
@@ -267,7 +267,7 @@ export function taskConnectorTestSuite<
           async () => {
             const status = await state.apiTask!.queue({ text: 'name test' })
             test.expect(status.name).toContain('test_api_task')
-          }
+          },
         )
 
         test.it('queue() should return a unique id for each task', async () => {
@@ -299,7 +299,7 @@ export function taskConnectorTestSuite<
           'getStatus() should return full task status with payload',
           async () => {
             const queuedStatus = await state.apiTask!.queue({
-              text: 'get status test'
+              text: 'get status test',
             })
             await delay(500)
 
@@ -310,7 +310,7 @@ export function taskConnectorTestSuite<
             test.expect(status).toHaveProperty('name')
             test.expect(status).toHaveProperty('status')
             test.expect(status).toHaveProperty('payload')
-          }
+          },
         )
 
         test.it('getStatus() should return the original payload', async () => {
@@ -326,7 +326,7 @@ export function taskConnectorTestSuite<
 
         test.it('getStatus() should return same id as queue()', async () => {
           const queuedStatus = await state.apiTask!.queue({
-            text: 'id match test'
+            text: 'id match test',
           })
           await delay(500)
 
@@ -345,7 +345,7 @@ export function taskConnectorTestSuite<
           'task should eventually reach COMPLETED status',
           async () => {
             const queuedStatus = await state.successTask!.queue({
-              text: 'completion test'
+              text: 'completion test',
             })
             test.expect(queuedStatus.status).toBe('QUEUED')
 
@@ -353,13 +353,13 @@ export function taskConnectorTestSuite<
               () => state.successTask!.getStatus(queuedStatus.id),
               {
                 timeout: lifecycleTimeout,
-                interval: baseOptions.statusCheckInterval ?? 500
-              }
+                interval: baseOptions.statusCheckInterval ?? 500,
+              },
             )
 
             test.expect(finalStatus.status).toBe('COMPLETED')
           },
-          lifecycleTimeout + 5000
+          lifecycleTimeout + 5000,
         )
 
         test.it(
@@ -372,15 +372,15 @@ export function taskConnectorTestSuite<
               () => state.successTask!.getStatus(queuedStatus.id),
               {
                 timeout: lifecycleTimeout,
-                interval: baseOptions.statusCheckInterval ?? 500
-              }
+                interval: baseOptions.statusCheckInterval ?? 500,
+              },
             )
 
             test.expect(finalStatus.status).toBe('COMPLETED')
             test.expect(finalStatus.payload).toBeDefined()
             test.expect((finalStatus.payload as any).text).toBe(payload.text)
           },
-          lifecycleTimeout + 5000
+          lifecycleTimeout + 5000,
         )
 
         test.it(
@@ -388,20 +388,20 @@ export function taskConnectorTestSuite<
           async () => {
             const queuedStatus = await state.failingTask!.queue({
               text: 'failure test',
-              shouldFail: true
+              shouldFail: true,
             })
 
             const finalStatus = await waitForTaskCompletion(
               () => state.failingTask!.getStatus(queuedStatus.id),
               {
                 timeout: lifecycleTimeout,
-                interval: baseOptions.statusCheckInterval ?? 500
-              }
+                interval: baseOptions.statusCheckInterval ?? 500,
+              },
             )
 
             test.expect(finalStatus.status).toBe('FAILED')
           },
-          lifecycleTimeout + 5000
+          lifecycleTimeout + 5000,
         )
 
         test.it(
@@ -410,7 +410,7 @@ export function taskConnectorTestSuite<
             const statuses = await Promise.all([
               state.successTask!.queue({ text: 'multi test 1' }),
               state.successTask!.queue({ text: 'multi test 2' }),
-              state.successTask!.queue({ text: 'multi test 3' })
+              state.successTask!.queue({ text: 'multi test 3' }),
             ])
 
             for (const status of statuses) {
@@ -427,24 +427,24 @@ export function taskConnectorTestSuite<
                   () => state.successTask!.getStatus(s.id),
                   {
                     timeout: lifecycleTimeout,
-                    interval: baseOptions.statusCheckInterval ?? 500
-                  }
-                )
-              )
+                    interval: baseOptions.statusCheckInterval ?? 500,
+                  },
+                ),
+              ),
             )
 
             for (const status of finalStatuses) {
               test.expect(status.status).toBe('COMPLETED')
             }
           },
-          lifecycleTimeout * 2 + 5000
+          lifecycleTimeout * 2 + 5000,
         )
 
         test.it(
           'task attempts should increment on execution',
           async () => {
             const queuedStatus = await state.successTask!.queue({
-              text: 'attempts test'
+              text: 'attempts test',
             })
             test.expect(queuedStatus.attempts).toBe(0)
 
@@ -452,13 +452,13 @@ export function taskConnectorTestSuite<
               () => state.successTask!.getStatus(queuedStatus.id),
               {
                 timeout: lifecycleTimeout,
-                interval: baseOptions.statusCheckInterval ?? 500
-              }
+                interval: baseOptions.statusCheckInterval ?? 500,
+              },
             )
 
             test.expect(finalStatus.attempts).toBeGreaterThanOrEqual(0)
           },
-          lifecycleTimeout + 5000
+          lifecycleTimeout + 5000,
         )
       })
     }
@@ -487,7 +487,7 @@ export function taskConnectorTestSuite<
             value: 42,
             decimal: 3.14,
             negative: -100,
-            text: 'test'
+            text: 'test',
           } as any
           const status = await state.preserveTask!.queue(payload)
           await delay(500)
@@ -522,7 +522,7 @@ export function taskConnectorTestSuite<
         test.it('should handle nested objects in payload', async () => {
           const payload = {
             text: 'test',
-            nested: { level1: { level2: { value: 'deep' } } }
+            nested: { level1: { level2: { value: 'deep' } } },
           } as any
           const status = await state.preserveTask!.queue(payload)
           await delay(500)
@@ -538,7 +538,7 @@ export function taskConnectorTestSuite<
             text: 'test',
             numbers: [1, 2, 3],
             strings: ['a', 'b', 'c'],
-            mixed: [1, 'two', true, null]
+            mixed: [1, 'two', true, null],
           } as any
           const status = await state.preserveTask!.queue(payload)
           await delay(500)
@@ -577,7 +577,7 @@ export function taskConnectorTestSuite<
               doubleQuote: 'say "hello"',
               backslash: 'path\\to\\file',
               newline: 'line1\nline2',
-              unicode: '你好世界'
+              unicode: '你好世界',
             } as any
             const status = await state.preserveTask!.queue(payload)
             await delay(500)
@@ -589,14 +589,14 @@ export function taskConnectorTestSuite<
             test.expect(p.backslash).toBe('path\\to\\file')
             test.expect(p.newline).toBe('line1\nline2')
             test.expect(p.unicode).toBe('你好世界')
-          }
+          },
         )
 
         test.it('should handle large payloads', async () => {
           const largeArray = Array.from({ length: 100 }, (_, i) => ({
             id: i,
             name: `item_${i}`,
-            value: Math.random()
+            value: Math.random(),
           }))
           const payload = { text: 'test', items: largeArray } as any
           const status = await state.preserveTask!.queue(payload)
@@ -614,7 +614,7 @@ export function taskConnectorTestSuite<
             text: 'test',
             'key-with-dash': 'value1',
             key_with_underscore: 'value2',
-            'key.with.dots': 'value3'
+            'key.with.dots': 'value3',
           } as any
           const status = await state.preserveTask!.queue(payload)
           await delay(500)
@@ -636,7 +636,7 @@ export function taskConnectorTestSuite<
                 number: 42,
                 bool: true,
                 nested: { deep: { value: 'preserved' } },
-                array: [1, 2, 3]
+                array: [1, 2, 3],
               }
 
               const status = await state.preserveTask!.queue(payload)
@@ -645,8 +645,8 @@ export function taskConnectorTestSuite<
                 () => state.preserveTask!.getStatus(status.id),
                 {
                   timeout: valueTimeout,
-                  interval: baseOptions.statusCheckInterval ?? 500
-                }
+                  interval: baseOptions.statusCheckInterval ?? 500,
+                },
               )
 
               const p = finalStatus.payload as any
@@ -657,7 +657,7 @@ export function taskConnectorTestSuite<
               test.expect(p.nested.deep.value).toBe('preserved')
               test.expect(p.array).toEqual([1, 2, 3])
             },
-            valueTimeout + 5000
+            valueTimeout + 5000,
           )
         }
       })

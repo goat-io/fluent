@@ -29,7 +29,7 @@ import {
   additionalSecurityHeaders,
   createRateLimiter,
   getCorsOptions,
-  getHelmetOptions
+  getHelmetOptions,
 } from '../middleware/security.middleware'
 import { trpcErrorMiddleware } from '../middleware/trpcError.middleware'
 import type { ExpressTrpcAppConfigInput } from './ExpressTrpcAppConfig'
@@ -66,7 +66,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     server: serverConfig,
     healthCheck,
     readyCheck,
-    processManagement
+    processManagement,
   } = fullConfig
 
   logger.log(`Starting ${appName}`)
@@ -101,7 +101,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
             'application/font-woff2',
             'application/x-font-ttf',
             'application/x-font-truetype',
-            'application/x-font-opentype'
+            'application/x-font-opentype',
           ]
 
           if (
@@ -142,8 +142,8 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
 
           // Use the default compression filter for all other cases
           return compression.filter(req, res)
-        }
-      })
+        },
+      }),
     )
   }
 
@@ -164,7 +164,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
         enableGarbageCollection:
           performance?.memoryMonitoring?.enableGarbageCollection || false,
         addHeaders:
-          performance?.memoryMonitoring?.addHeaders ?? environment !== 'prod'
+          performance?.memoryMonitoring?.addHeaders ?? environment !== 'prod',
       })
     app.use(memoryMiddleware)
     memoryMonitor = monitor
@@ -175,7 +175,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     ? {
         origin: security.cors.allowedOrigins || false,
         credentials: security.cors.credentials ?? true,
-        maxAge: security.cors.maxAge || 86400
+        maxAge: security.cors.maxAge || 86400,
       }
     : getCorsOptions()
   app.use(cors(corsOptions))
@@ -187,7 +187,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
           security.helmet.contentSecurityPolicy ?? environment === 'prod',
         crossOriginEmbedderPolicy:
           security.helmet.crossOriginEmbedderPolicy ??
-          (environment !== 'local' && environment !== 'dev')
+          (environment !== 'local' && environment !== 'dev'),
       }
     : getHelmetOptions()
   app.use(helmet(helmetOptions))
@@ -210,8 +210,8 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     app.use(
       createRateLimiter({
         windowMs: security.rateLimit.global.windowMs,
-        max: security.rateLimit.global.max
-      })
+        max: security.rateLimit.global.max,
+      }),
     )
   }
 
@@ -226,7 +226,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
           windowMs: security.rateLimit.auth.windowMs || 15 * 60 * 1000,
           max: security.rateLimit.auth.max || 5,
           skipSuccessfulRequests: true,
-          message: 'Too many authentication attempts, please try again later.'
+          message: 'Too many authentication attempts, please try again later.',
         })(req, res, next)
       } else {
         next()
@@ -241,16 +241,16 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       createRateLimiter({
         windowMs: security.rateLimit.api.windowMs,
         max: security.rateLimit.api.max,
-        message: 'API rate limit exceeded, please try again later.'
-      })
+        message: 'API rate limit exceeded, please try again later.',
+      }),
     )
     app.use(
       '/api/',
       createRateLimiter({
         windowMs: security.rateLimit.api.windowMs,
         max: security.rateLimit.api.max,
-        message: 'API rate limit exceeded, please try again later.'
-      })
+        message: 'API rate limit exceeded, please try again later.',
+      }),
     )
   }
 
@@ -276,22 +276,22 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       verify: (req: Request, _res: Response, buf: Buffer) => {
         // Store raw body for webhook signature verification if needed
         ;(req as any).rawBody = buf.toString('utf8')
-      }
-    })
+      },
+    }),
   )
 
   app.use(
     express.urlencoded({
       limit: bodyParsing?.urlencoded?.limit || '100kb',
-      extended: bodyParsing?.urlencoded?.extended ?? true
-    })
+      extended: bodyParsing?.urlencoded?.extended ?? true,
+    }),
   )
 
   app.use(
     express.raw({
       inflate: bodyParsing?.raw?.inflate ?? true,
-      limit: bodyParsing?.raw?.limit || '100kb'
-    })
+      limit: bodyParsing?.raw?.limit || '100kb',
+    }),
   )
 
   // Add cache headers for static content
@@ -302,7 +302,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       ) {
         res.setHeader(
           'Cache-Control',
-          `public, max-age=${performance.caching.staticAssets.maxAge}, immutable`
+          `public, max-age=${performance.caching.staticAssets.maxAge}, immutable`,
         )
       }
       next()
@@ -313,8 +313,8 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
 
   app.use(
     genericErrorMiddleware({
-      sentryService: features?.sentry ? sentryService : undefined
-    })
+      sentryService: features?.sentry ? sentryService : undefined,
+    }),
   )
 
   // Add production error handler for sanitized error responses
@@ -332,8 +332,8 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     trpcExpress.createExpressMiddleware<typeof trpcRouter>({
       router: trpcRouter,
       createContext,
-      onError: e => trpcErrorMiddleware({ sentryService, ...e })
-    })
+      onError: e => trpcErrorMiddleware({ sentryService, ...e }),
+    }),
   )
 
   expressResources?.forEach(expressResource => {
@@ -346,7 +346,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       appName,
       appVersion,
       trpcRouter,
-      baseUrl: baseUrl || `http://localhost:${port}`
+      baseUrl: baseUrl || `http://localhost:${port}`,
     })
 
     // Apply the OpenAPI Express middleware only when OpenAPI docs are enabled
@@ -355,14 +355,14 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       createOpenApiExpressMiddleware({
         router: trpcRouter,
         createContext,
-        onError: trpcErrorMiddleware
-      })
+        onError: trpcErrorMiddleware,
+      }),
     )
   }
 
   app.use(async (req, _res, next) => {
     req.context = await createContext({
-      req
+      req,
     } as trpcExpress.CreateExpressContextOptions)
     next()
   })
@@ -402,10 +402,10 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
                   ? new Date(lastMetrics.timestamp).toISOString()
                   : 'N/A',
                 warningThreshold: `${performance.memoryMonitoring.warningThreshold}%`,
-                criticalThreshold: `${performance.memoryMonitoring.criticalThreshold}%`
+                criticalThreshold: `${performance.memoryMonitoring.criticalThreshold}%`,
               }
-            : undefined
-        }
+            : undefined,
+        },
       }
 
       if (healthCheck?.customChecks) {
@@ -416,13 +416,13 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
           res.status(503).json({
             ...baseHealth,
             status: 'unhealthy',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
           })
         }
       } else {
         res.json(baseHealth)
       }
-    }
+    },
   )
 
   // Readiness check endpoint
@@ -432,7 +432,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       try {
         const baseChecks = {
           service: 'ready',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         }
 
         if (readyCheck?.customChecks) {
@@ -444,10 +444,10 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
       } catch (error) {
         res.status(503).json({
           status: 'not ready',
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         })
       }
-    }
+    },
   )
 
   /**
@@ -487,7 +487,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
         processManagement?.gracefulShutdown?.timeout || 30000
       setTimeout(() => {
         logger.error(
-          'Could not close connections in time, forcefully shutting down'
+          'Could not close connections in time, forcefully shutting down',
         )
         process.exit(1)
       }, shutdownTimeout)
@@ -504,7 +504,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     if (processManagement?.uncaughtException?.handler) {
       process.once(
         'uncaughtException',
-        processManagement.uncaughtException.handler
+        processManagement.uncaughtException.handler,
       )
     } else {
       process.once('uncaughtException', error => {
@@ -519,7 +519,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     if (processManagement?.unhandledRejection?.handler) {
       process.on(
         'unhandledRejection',
-        processManagement.unhandledRejection.handler
+        processManagement.unhandledRejection.handler,
       )
     } else {
       process.on('unhandledRejection', (reason, _promise) => {
@@ -537,7 +537,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
   console.log(
     `App Local Url: 
     ${yellow(address)} 
-    in ${Time.ms(process.uptime() * 1000)}, used ${used}`
+    in ${Time.ms(process.uptime() * 1000)}, used ${used}`,
   )
 
   // Create a function to wait for server shutdown

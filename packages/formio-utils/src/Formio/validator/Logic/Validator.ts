@@ -25,7 +25,7 @@ export class Validator {
   constructor(
     private form: FormioForm,
     private model: any,
-    private token?: any
+    private token?: any,
   ) {
     this.model = model
     this._async = []
@@ -48,7 +48,7 @@ export class Validator {
     schema: any,
     components: FormioComponent[],
     componentData: any,
-    submission: any
+    submission: any,
   ) {
     if (!Array.isArray(components)) {
       return schema
@@ -70,7 +70,7 @@ export class Validator {
         minLength: 'min',
         maxLength: 'max',
         minWords: 'minWords',
-        maxWords: 'maxWords'
+        maxWords: 'maxWords',
       }
       /* eslint-disable max-depth, valid-typeof */
       switch (component.type) {
@@ -79,7 +79,7 @@ export class Validator {
           _.update(
             componentData,
             `${component.key}.data`,
-            (value: any) => value || {}
+            (value: any) => value || {},
           )
 
           const subSubmission: any = _.get(componentData, component.key, {})
@@ -90,12 +90,12 @@ export class Validator {
               {},
               component.components,
               subSubmission,
-              subSubmission
+              subSubmission,
             )
             fieldValidator = JoiX.object()
               .unknown(true)
               .keys({
-                data: JoiX.object().keys(formSchema)
+                data: JoiX.object().keys(formSchema),
               })
           } else {
             fieldValidator = JoiX.object()
@@ -109,7 +109,7 @@ export class Validator {
             {},
             component.components,
             _.get(componentData, component.key, componentData),
-            submission
+            submission,
           )
 
           fieldValidator = JoiX.array()
@@ -121,7 +121,7 @@ export class Validator {
             {},
             component.components,
             _.get(componentData, component.key, componentData),
-            submission
+            submission,
           )
 
           fieldValidator = JoiX.object().keys(objectSchema)
@@ -133,7 +133,7 @@ export class Validator {
             schema,
             component.components,
             componentData,
-            submission
+            submission,
           )
           break
         case 'table':
@@ -149,7 +149,7 @@ export class Validator {
                 schema,
                 column.components,
                 componentData,
-                submission
+                submission,
               )
             })
           })
@@ -163,7 +163,7 @@ export class Validator {
               schema,
               column.components,
               componentData,
-              submission
+              submission,
             )
           })
           break
@@ -184,7 +184,7 @@ export class Validator {
                 component.validate[name] >= 0
               ) {
                 fieldValidator = fieldValidator[funcName](
-                  component.validate[name]
+                  component.validate[name],
                 )
               }
             }
@@ -197,7 +197,7 @@ export class Validator {
               submission,
               this.token,
               this._async,
-              this.requests
+              this.requests,
             )
           }
           fieldValidator = fieldValidator || JoiX.any()
@@ -224,7 +224,7 @@ export class Validator {
                 _.isNumber(component.validate[check])
               ) {
                 fieldValidator = fieldValidator[check](
-                  component.validate[check]
+                  component.validate[check],
                 )
               }
             })
@@ -247,7 +247,7 @@ export class Validator {
                 {},
                 component.components,
                 _.get(componentData, component.key, componentData),
-                submission
+                submission,
               )
               fieldValidator = JoiX.object().keys(objectSchema)
             } else {
@@ -255,7 +255,7 @@ export class Validator {
                 schema,
                 component.components,
                 componentData,
-                submission
+                submission,
               )
             }
           }
@@ -297,7 +297,7 @@ export class Validator {
           component,
           submission,
           this.model,
-          this._async
+          this._async,
         )
       }
 
@@ -305,7 +305,7 @@ export class Validator {
       if (component.allowMultipleMasks) {
         fieldValidator = JoiX.object().keys({
           value: fieldValidator,
-          maskName: JoiX.string()
+          maskName: JoiX.string(),
         })
         //  additionally apply required rule to the field itself
         if (component.validate?.required) {
@@ -331,7 +331,7 @@ export class Validator {
       if (component.key && fieldValidator && isPersistent) {
         schema[component.key] = fieldValidator.hidden(
           component,
-          submission.data
+          submission.data,
         )
       }
     })
@@ -350,7 +350,7 @@ export class Validator {
         component,
         logic.trigger,
         row,
-        data
+        data,
       )
 
       if (result) {
@@ -366,7 +366,7 @@ export class Validator {
                 row,
                 data,
                 component,
-                result
+                result,
               )
               break
             case 'value': {
@@ -376,13 +376,13 @@ export class Validator {
                 data,
                 row,
                 component,
-                result
+                result,
               })
 
               // Execute the script.
               const script: any = new vm.Script(action.value)
               script.runInContext(sandbox, {
-                timeout: 250
+                timeout: 250,
               })
 
               _.set(row, component.key, sandbox.value.toString())
@@ -404,13 +404,13 @@ export class Validator {
             row,
             component,
             util,
-            moment
+            moment,
           })
 
           // Execute the script.
           const script: any = new vm.Script(component.calculateValue)
           script.runInContext(sandbox, {
-            timeout: 250
+            timeout: 250,
           })
 
           _.set(row, component.key, sandbox.value)
@@ -425,8 +425,8 @@ export class Validator {
             util.jsonLogic(component.calculateValue, {
               data,
               row,
-              _
-            })
+              _,
+            }),
           )
         } catch (_e) {
           // Need to log error for calculated value.
@@ -452,7 +452,7 @@ export class Validator {
     // Build the JoiX validation schema.
     let schema = {
       // Start off with the id key.
-      id: JoiX.string().meta({ primaryKey: true })
+      id: JoiX.string().meta({ primaryKey: true }),
     }
 
     submission.form = this.form.id
@@ -463,8 +463,8 @@ export class Validator {
         schema,
         this.form.components,
         submission.data,
-        submission
-      )
+        submission,
+      ),
     )
 
     // Iterate the list of components one time to build the path map.
@@ -478,7 +478,7 @@ export class Validator {
       },
       true,
       '',
-      true
+      true,
     )
 
     return JoiX.validate(
@@ -504,14 +504,14 @@ export class Validator {
             // fields are hidden.
             validateErr.details = validateErr.details.filter((detail: any) => {
               let result = {
-                hidden: false
+                hidden: false,
               }
               if (detail.type.includes('.hidden')) {
                 const component =
                   components[detail.path.filter(Number.isNaN).join('.')]
 
                 const clearOnHide = util.isBoolean(
-                  _.get(component, 'clearOnHide')
+                  _.get(component, 'clearOnHide'),
                 )
                   ? util.boolean(_.get(component, 'clearOnHide'))
                   : true
@@ -538,14 +538,14 @@ export class Validator {
                           component,
                           _.get(
                             value,
-                            result.path.slice(0, result.path.length - 1)
+                            result.path.slice(0, result.path.length - 1),
                           ),
                           result.submission,
-                          true
+                          true,
                         )
 
                       const clearOnHide: any = util.isBoolean(
-                        _.get(component, 'clearOnHide')
+                        _.get(component, 'clearOnHide'),
                       )
                         ? util.boolean(_.get(component, 'clearOnHide'))
                         : true
@@ -560,7 +560,7 @@ export class Validator {
 
                     return result
                   },
-                  { path: [], hidden: false, submission: value }
+                  { path: [], hidden: false, submission: value },
                 )
               }
 
@@ -579,7 +579,7 @@ export class Validator {
           submission.data = value
           next(null, value)
         })
-      }
+      },
     )
   }
 }

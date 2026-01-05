@@ -38,7 +38,7 @@ export const flock = [
     active: true,
     weight: 110.5,
     balance: { id: 1234, value: 200 },
-    breed: { type: 'Sheep', family: 'Sheep' }
+    breed: { type: 'Sheep', family: 'Sheep' },
   },
   {
     name: 'Baaah',
@@ -47,7 +47,7 @@ export const flock = [
     active: true,
     weight: 130.5,
     balance: { id: 1235, value: 200 },
-    breed: { type: 'Sheep', family: 'Sheep' }
+    breed: { type: 'Sheep', family: 'Sheep' },
   },
   {
     name: 'Angor',
@@ -56,7 +56,7 @@ export const flock = [
     active: true,
     weight: 105.5,
     balance: { id: 1236, value: 200 },
-    breed: { type: 'Angora', family: 'Angora' }
+    breed: { type: 'Angora', family: 'Angora' },
   },
   {
     name: 'Billy',
@@ -65,8 +65,8 @@ export const flock = [
     active: true,
     weight: 140.0,
     balance: { id: 1237, value: 200 },
-    breed: { type: 'Angora', family: 'Angora' }
-  }
+    breed: { type: 'Angora', family: 'Angora' },
+  },
 ]
 
 export function createUnifiedTests(options: UnifiedTestOptions) {
@@ -78,7 +78,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       it: any,
       expect: any,
       beforeAll: any,
-      beforeEach: any
+      beforeEach: any,
     ) => {
       let GoatRepo: TestConnector
 
@@ -105,7 +105,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         const a = await GoatRepo.insert({
           id: customId,
           name: 'myGoat',
-          age: 13
+          age: 13,
         })
         expect(typeof a.id).toBe('string')
         expect(a.id).toBe(customId)
@@ -129,7 +129,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       it('findById - Should GET selected Data', async () => {
         const goats = await GoatRepo.insertMany(flock)
         const goat = await GoatRepo.findById(goats[0].id, {
-          select: { name: true }
+          select: { name: true },
         })
         expect(goat?.name).toBe(goats[0].name)
         expect((goat as any)?.age).toBeUndefined()
@@ -145,7 +145,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         const goats = await GoatRepo.insertMany(flock)
         const storedGoats = await GoatRepo.findByIds(
           [goats[0].id, goats[1].id],
-          { select: { name: true } }
+          { select: { name: true } },
         )
         expect(storedGoats[0]?.name).toBe(goats[0].name)
         expect((storedGoats[0] as any)?.age).toBeUndefined()
@@ -160,7 +160,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       it('findMany - Should FILTER data', async () => {
         await GoatRepo.insertMany(flock)
         const goats = await GoatRepo.findMany({
-          where: { breed: { family: 'Angora' } }
+          where: { breed: { family: 'Angora' } },
         })
         expect(goats.length).toBe(2)
       })
@@ -168,7 +168,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       it('findMany - Should FILTER not existing data', async () => {
         await GoatRepo.insertMany(flock)
         const goats = await GoatRepo.findMany({
-          where: { name: 'TESTESTEST' }
+          where: { name: 'TESTESTEST' },
         })
         expect(goats.length).toBe(0)
       })
@@ -176,7 +176,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       it('findMany - Should SELECT attributes', async () => {
         await GoatRepo.insertMany(flock)
         const goats = await GoatRepo.findMany({
-          select: { name: true }
+          select: { name: true },
         })
         expect(goats[0]?.name).toBeDefined()
         expect((goats[0] as any)?.age).toBeUndefined()
@@ -193,7 +193,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         await GoatRepo.insertMany(flock)
         const goat = await GoatRepo.findFirst({
           where: { breed: { family: 'Angora' } },
-          select: { name: true }
+          select: { name: true },
         })
         expect(goat?.name).toBeDefined()
         expect((goat as any)?.age).toBeUndefined()
@@ -239,7 +239,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
       it: any,
       expect: any,
       beforeAll: any,
-      beforeEach: any
+      beforeEach: any,
     ) => {
       let TypeOrmRepo: TestConnector
 
@@ -261,7 +261,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         await TypeOrmRepo.insertMany([
           { test: true, order: 2 },
           { test: false, order: 3 },
-          { test: true, order: 1 }
+          { test: true, order: 1 },
         ])
 
         const plucked = await TypeOrmRepo.pluck('order')
@@ -275,7 +275,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         await TypeOrmRepo.insertMany([
           { test: true },
           { test: false },
-          { test: true }
+          { test: true },
         ])
 
         const results = await TypeOrmRepo.findMany({ limit: 2 })
@@ -286,12 +286,12 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         const _inserted = await TypeOrmRepo.insertMany([
           { test: true, order: 1 },
           { test: false, order: 2 },
-          { test: true, order: 3 }
+          { test: true, order: 3 },
         ])
 
         const results = await TypeOrmRepo.findMany({
           offset: 1,
-          orderBy: [{ order: 'asc' }]
+          orderBy: [{ order: 'asc' }],
         })
 
         expect(results.length).toBe(2)
@@ -302,13 +302,13 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         await TypeOrmRepo.insertMany([
           { test: true, order: 1 },
           { test: false, order: 2 },
-          { test: true, order: 3 }
+          { test: true, order: 3 },
         ])
 
         const results = await TypeOrmRepo.findMany({
           where: {
-            OR: [{ test: true }, { order: 2 }]
-          }
+            OR: [{ test: true }, { order: 2 }],
+          },
         })
 
         expect(results.length).toBe(3)
@@ -318,11 +318,11 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         await TypeOrmRepo.insertMany([
           { test: true, order: 2 },
           { test: false, order: 3 },
-          { test: true, order: 1 }
+          { test: true, order: 1 },
         ])
 
         const results = await TypeOrmRepo.findMany({
-          orderBy: [{ order: 'desc' }]
+          orderBy: [{ order: 'desc' }],
         })
 
         expect(results[0].order).toBe(3)
@@ -334,11 +334,11 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         await TypeOrmRepo.insertMany([
           { test: true, order: 2 },
           { test: false, order: 3 },
-          { test: true, order: 1 }
+          { test: true, order: 1 },
         ])
 
         const results = await TypeOrmRepo.findMany({
-          orderBy: [{ order: 'asc' }]
+          orderBy: [{ order: 'asc' }],
         })
 
         expect(results[0].order).toBe(1)
@@ -356,7 +356,7 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
 
         const results = await TypeOrmRepo.findMany({
           orderBy: [{ created: 'desc' }],
-          select: { id: true, created: true }
+          select: { id: true, created: true },
         })
 
         expect(results[0]?.id).toBe(third.id)
@@ -373,13 +373,13 @@ export function createUnifiedTests(options: UnifiedTestOptions) {
         const third = await TypeOrmRepo.insert({ test: true })
 
         const results = await TypeOrmRepo.findMany({
-          orderBy: [{ created: 'desc' }]
+          orderBy: [{ created: 'desc' }],
         })
 
         expect(results[0]?.id).toBe(third.id)
         expect(results[1]?.id).toBe(second.id)
         expect(results[2]?.id).toBe(first.id)
       })
-    }
+    },
   }
 }

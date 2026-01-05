@@ -22,7 +22,7 @@ export interface Options
 
 export async function waitForConnection(
   databaseURL: string,
-  timeoutSeconds: number
+  timeoutSeconds: number,
 ) {
   const start = Date.now()
   const timeoutMilliseconds = timeoutSeconds * 1000
@@ -41,7 +41,7 @@ export async function waitForConnection(
 
         // Once connected, we try to do something
         const result = await db.command({
-          ping: 1
+          ping: 1,
         })
 
         // If we have a result, the DB is running
@@ -84,7 +84,7 @@ export default async function getDatabase(options: Partial<Options> = {}) {
     mongoDb: DEFAULT_MONGO_DB,
     defaultExternalPort: DEFAULT_MONGO_PORT,
     // externalPort: config.test.port,
-    ...options
+    ...options,
   }
 
   const { proc, externalPort, kill } = await startContainer({
@@ -98,9 +98,9 @@ export default async function getDatabase(options: Partial<Options> = {}) {
       MONGO_DB_USER: mongoUser,
       MONGO_DB_PASSWORD: mongoPassword,
       MONGO_PASSWORD: mongoPassword,
-      MONGO_INITDB_DATABASE: mongoDb
+      MONGO_INITDB_DATABASE: mongoDb,
     },
-    enableDebugInstructions: `To view logs, run with MONGO_TEST_DEBUG=true environment variable.`
+    enableDebugInstructions: `To view logs, run with MONGO_TEST_DEBUG=true environment variable.`,
   })
 
   const databaseURL = `mongodb://${mongoUser}:${mongoPassword}@localhost:${externalPort}`
@@ -114,6 +114,6 @@ export default async function getDatabase(options: Partial<Options> = {}) {
     user: mongoUser,
     password: mongoPassword,
     port: externalPort,
-    dbName: mongoDb
+    dbName: mongoDb,
   }
 }

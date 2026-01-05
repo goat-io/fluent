@@ -20,7 +20,7 @@ export const isClass = (fn: unknown): fn is new (...a: any[]) => any =>
  */
 export function instantiate<T, P extends readonly unknown[]>(
   factory: Factory<T, P>,
-  params: P
+  params: P,
 ): T {
   // Fast path: Use class detection to avoid try/catch
   if (isClass(factory)) {
@@ -34,7 +34,7 @@ export function instantiate<T, P extends readonly unknown[]>(
 
   // Invalid factory type
   throw new Error(
-    `Invalid factory: expected function or class constructor, got ${typeof factory}`
+    `Invalid factory: expected function or class constructor, got ${typeof factory}`,
   )
 }
 

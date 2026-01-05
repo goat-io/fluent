@@ -14,7 +14,7 @@ export class CarsEntity {
   @f.belongsTo({
     entity: () => UsersEntity,
     inverse: user => user.cars,
-    pivotColumnName: 'userId'
+    pivotColumnName: 'userId',
   })
   user?: UsersEntity
 }

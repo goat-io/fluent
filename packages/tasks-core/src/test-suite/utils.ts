@@ -17,7 +17,7 @@ export async function waitForTaskStatus(
   options: {
     timeout?: number
     interval?: number
-  } = {}
+  } = {},
 ): Promise<TaskStatus> {
   const { timeout = 10000, interval = 500 } = options
   const statuses = Array.isArray(targetStatuses)
@@ -37,7 +37,7 @@ export async function waitForTaskStatus(
 
   throw new Error(
     `Timeout waiting for task status. Expected one of: ${statuses.join(', ')}. ` +
-      `Timeout: ${timeout}ms`
+      `Timeout: ${timeout}ms`,
   )
 }
 
@@ -49,7 +49,7 @@ export async function waitForTaskCompletion(
   options: {
     timeout?: number
     interval?: number
-  } = {}
+  } = {},
 ): Promise<TaskStatus> {
   return waitForTaskStatus(getStatus, ['COMPLETED', 'FAILED'], options)
 }
@@ -73,7 +73,7 @@ export function createTestPayload(text: string): { text: string } {
  */
 export function assertDefined<T>(
   value: T | null | undefined,
-  message = 'Expected value to be defined'
+  message = 'Expected value to be defined',
 ): asserts value is T {
   if (value === null || value === undefined) {
     throw new Error(message)
@@ -89,7 +89,7 @@ export async function retry<T>(
     maxAttempts?: number
     delay?: number
     onError?: (error: Error, attempt: number) => void
-  } = {}
+  } = {},
 ): Promise<T> {
   const { maxAttempts = 3, delay: retryDelay = 1000, onError } = options
   let lastError: Error | undefined

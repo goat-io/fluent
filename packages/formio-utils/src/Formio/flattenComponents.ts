@@ -11,7 +11,7 @@ export interface IFlattenFormioComponents {
  */
 export const flattenComponents = (
   components: FormioComponent[],
-  includeAll?: boolean
+  includeAll?: boolean,
 ) => {
   const flattened: IFlattenFormioComponents = {}
   eachComponent(
@@ -19,7 +19,7 @@ export const flattenComponents = (
     (component, path) => {
       flattened[path] = component
     },
-    includeAll
+    includeAll,
   )
   return flattened
 }

@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm'
 import { TypeOrmConnector } from '../../TypeOrmConnector'
 import {
   RoleDtoOut,
-  RoleOuputSchema
+  RoleOuputSchema,
 } from '../relations/roles/role.output.schema'
 import { RoleDtoInput, RoleInputSchema } from '../relations/roles/role.schema'
 import { RoleEntity } from '../relations/roles/roles.entity'
@@ -26,7 +26,7 @@ export class RoleRepository extends TypeOrmConnector<
       entity: RoleEntity,
       dataSource: ds,
       inputSchema: RoleInputSchema,
-      outputSchema: RoleOuputSchema
+      outputSchema: RoleOuputSchema,
     })
     this.dataSourceRef = ds
   }
@@ -34,6 +34,6 @@ export class RoleRepository extends TypeOrmConnector<
   public users = () =>
     this.belongsToMany({
       repository: () => new UserRepository(this.dataSourceRef),
-      pivot: () => new RoleUsersRepository(this.dataSourceRef)
+      pivot: () => new RoleUsersRepository(this.dataSourceRef),
     })
 }

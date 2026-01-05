@@ -10,7 +10,7 @@ export interface MemoizedAsyncFunction {
 
 export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
   fn: T,
-  opt: AsyncMemoOptions = {}
+  opt: AsyncMemoOptions = {},
 ): T & MemoizedAsyncFunction {
   const {
     logHit = false,
@@ -19,7 +19,7 @@ export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
     logger = console,
     cacheRejections = true,
     cacheFactory = () => new MapMemoCache(),
-    cacheKeyFn = jsonMemoSerializer
+    cacheKeyFn = jsonMemoSerializer,
   } = opt
 
   const cache = cacheFactory()
@@ -38,7 +38,7 @@ export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
     if (value !== undefined) {
       if (logHit) {
         logger.log(
-          `${fnName}(${getArgsSignature(args, logArgs)}) memoFnAsync hit`
+          `${fnName}(${getArgsSignature(args, logArgs)}) memoFnAsync hit`,
         )
       }
 
@@ -80,8 +80,8 @@ export function memoFnAsync<T extends (...args: any[]) => Promise<any>>(
         logger.log(
           `${fnName}(${getArgsSignature(
             args,
-            logArgs
-          )}) memoFnAsync miss (${Time.since(started)})`
+            logArgs,
+          )}) memoFnAsync miss (${Time.since(started)})`,
         )
       }
     }

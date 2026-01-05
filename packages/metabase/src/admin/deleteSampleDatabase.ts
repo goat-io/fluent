@@ -19,7 +19,7 @@ interface MetabaseDatabaseListResponse {
 export async function deleteSampleDatabase({
   baseUrl,
   sessionToken,
-  apiKey
+  apiKey,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -33,7 +33,7 @@ export async function deleteSampleDatabase({
     sessionToken,
     apiKey,
     endpoint: '/api/database',
-    method: 'GET'
+    method: 'GET',
   })
 
   const existingDatabases =
@@ -52,7 +52,7 @@ export async function deleteSampleDatabase({
       sessionToken,
       apiKey,
       endpoint: `/api/database/${sampleDb.id}`,
-      method: 'DELETE'
+      method: 'DELETE',
     })
   } catch (error) {
     // Some Metabase versions may not allow deleting the sample database

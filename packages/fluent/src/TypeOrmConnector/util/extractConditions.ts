@@ -2,7 +2,7 @@ import {
   FluentQuery,
   LogicOperator,
   Primitives,
-  PrimitivesArray
+  PrimitivesArray,
 } from '../../types'
 import { isAnyObject } from './isAnyObject'
 
@@ -41,7 +41,7 @@ type Condition = {
 }
 
 export const extractConditions = (
-  conditions: FluentQuery<any>['where'][]
+  conditions: FluentQuery<any>['where'][],
 ): Condition[] => {
   const accumulatedClauses: Condition[] = []
 
@@ -74,7 +74,7 @@ function extractClauseConditions(clause: Record<string, any>): Condition[] {
       conditions.push({
         operator: LogicOperator.Equals,
         element,
-        value
+        value,
       })
     }
   }
@@ -93,7 +93,7 @@ function extractObjectConditions(initialKey: string, value: any): Condition[] {
       key,
       transformedKey,
       value,
-      flatten
+      flatten,
     )
 
     if (condition) {
@@ -109,12 +109,12 @@ function createConditionFromKey(
   key: string,
   transformedKey: string,
   originalValue: any,
-  flatten: any
+  flatten: any,
 ): Condition | null {
   // Handle direct operator
   // Check if transformedKey is a value in LogicOperator enum
   const operatorValue = Object.values(LogicOperator).find(
-    val => val === transformedKey
+    val => val === transformedKey,
   )
   if (operatorValue) {
     return createOperatorCondition(
@@ -122,7 +122,7 @@ function createConditionFromKey(
       transformedKey,
       key,
       originalValue,
-      flatten
+      flatten,
     )
   }
 
@@ -135,7 +135,7 @@ function createConditionFromKey(
   return {
     operator: LogicOperator.Equals,
     element: `${initialKey}.${transformedKey}`,
-    value: flatten[key] as Primitives | PrimitivesArray
+    value: flatten[key] as Primitives | PrimitivesArray,
   }
 }
 
@@ -144,11 +144,11 @@ function createOperatorCondition(
   operatorKey: string,
   flatKey: string,
   originalValue: any,
-  flatten: any
+  flatten: any,
 ): Condition {
   // Find the operator by its value (e.g., 'in' -> LogicOperator.In)
   const operatorEntry = Object.entries(LogicOperator).find(
-    ([_key, value]) => value === operatorKey
+    ([_key, value]) => value === operatorKey,
   )
 
   if (!operatorEntry) {
@@ -162,21 +162,21 @@ function createOperatorCondition(
     return {
       operator,
       element: initialKey,
-      value: originalValue[operatorKey]
+      value: originalValue[operatorKey],
     }
   }
 
   return {
     operator,
     element: initialKey,
-    value: flatten[flatKey] as Primitives | PrimitivesArray
+    value: flatten[flatKey] as Primitives | PrimitivesArray,
   }
 }
 
 function createNestedCondition(
   initialKey: string,
   key: string,
-  flatten: any
+  flatten: any,
 ): Condition | null {
   const parts = key.split('.')
   const possibleOperator = parts[parts.length - 1]
@@ -187,25 +187,25 @@ function createNestedCondition(
 
   // Check if possibleOperator is a value in LogicOperator enum
   const operatorEntry = Object.entries(LogicOperator).find(
-    ([_key, value]) => value === possibleOperator
+    ([_key, value]) => value === possibleOperator,
   )
 
   if (operatorEntry) {
     const elementPath = key.substring(
       0,
-      key.length - possibleOperator.length - 1
+      key.length - possibleOperator.length - 1,
     )
     return {
       operator: operatorEntry[1] as LogicOperator,
       element: `${initialKey}.${elementPath}`,
-      value: flatten[key] as Primitives | PrimitivesArray
+      value: flatten[key] as Primitives | PrimitivesArray,
     }
   }
 
   return {
     operator: LogicOperator.Equals,
     element: `${initialKey}.${key}`,
-    value: flatten[key] as Primitives | PrimitivesArray
+    value: flatten[key] as Primitives | PrimitivesArray,
   }
 }
 

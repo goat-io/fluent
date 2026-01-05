@@ -1,5 +1,16 @@
 # @goatlab/js-utils
 
+## 0.10.3
+
+### Patch Changes
+
+- Upgrade Ky HTTP client to v1.14.2 and fix type compatibility
+
+  - Upgraded ky from v1.8.1 to v1.14.2
+  - Fixed type error in getKy.ts by removing ExtendedNormalizedOptions (context is now required in NormalizedOptions)
+  - Updated build:ky script to use tsx instead of ts-node
+  - Fixed nanoid dependency version
+
 ## 0.10.2
 
 ### Patch Changes

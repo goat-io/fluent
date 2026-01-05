@@ -16,13 +16,13 @@ export class RoleRepository extends TypeOrmConnector<
       entity: RoleEntity,
       dataSource: MemoryDataSource,
       inputSchema: RoleInputSchema,
-      outputSchema: RoleOuputSchema
+      outputSchema: RoleOuputSchema,
     })
   }
 
   public users = () =>
     this.belongsToMany({
       repository: UserRepository,
-      pivot: RoleUsersRepository
+      pivot: RoleUsersRepository,
     })
 }

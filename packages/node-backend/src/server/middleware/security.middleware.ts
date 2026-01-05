@@ -15,7 +15,7 @@ export function getCorsOptions(): CorsOptions {
     allowedOrigins.push(
       'http://localhost:3000',
       'http://localhost:3001',
-      'http://localhost:5173'
+      'http://localhost:5173',
     )
   }
 
@@ -39,10 +39,10 @@ export function getCorsOptions(): CorsOptions {
       'X-Request-ID',
       'X-RateLimit-Limit',
       'X-RateLimit-Remaining',
-      'X-RateLimit-Reset'
+      'X-RateLimit-Reset',
     ],
     maxAge: 86400, // 24 hours
-    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
   }
 }
 
@@ -69,13 +69,13 @@ export function getHelmetOptions(): HelmetOptions {
             baseUri: ["'self'"],
             formAction: ["'self'"],
             frameAncestors: ["'none'"],
-            upgradeInsecureRequests: []
-          }
+            upgradeInsecureRequests: [],
+          },
         },
     hsts: {
       maxAge: 31536000, // 1 year
       includeSubDomains: true,
-      preload: true
+      preload: true,
     },
     noSniff: true,
     xssFilter: true,
@@ -83,7 +83,7 @@ export function getHelmetOptions(): HelmetOptions {
     permittedCrossDomainPolicies: false,
     hidePoweredBy: true,
     ieNoOpen: true,
-    frameguard: { action: 'deny' }
+    frameguard: { action: 'deny' },
   }
 }
 
@@ -91,7 +91,7 @@ export function getHelmetOptions(): HelmetOptions {
  * Create rate limiter with default configuration
  */
 export function createRateLimiter(
-  options?: Partial<Parameters<typeof rateLimit>[0]>
+  options?: Partial<Parameters<typeof rateLimit>[0]>,
 ): RateLimitRequestHandler {
   return rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -107,11 +107,11 @@ export function createRateLimiter(
         error: {
           code: 'RATE_LIMIT_EXCEEDED',
           message: 'Too many requests, please try again later.',
-          retryAfter: res.getHeader('Retry-After')
-        }
+          retryAfter: res.getHeader('Retry-After'),
+        },
       })
     },
-    ...options
+    ...options,
   })
 }
 
@@ -123,7 +123,7 @@ export function createAuthRateLimiter(): RateLimitRequestHandler {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // Limit each IP to 5 requests per windowMs
     skipSuccessfulRequests: true, // Don't count successful requests
-    message: 'Too many authentication attempts, please try again later.'
+    message: 'Too many authentication attempts, please try again later.',
   })
 }
 
@@ -138,7 +138,7 @@ export function createApiRateLimiter(): RateLimitRequestHandler {
   return createRateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: maxRequests,
-    message: 'API rate limit exceeded, please try again later.'
+    message: 'API rate limit exceeded, please try again later.',
   })
 }
 
@@ -150,7 +150,7 @@ export function additionalSecurityHeaders() {
     // Permissions Policy (formerly Feature Policy)
     res.setHeader(
       'Permissions-Policy',
-      'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), accelerometer=()'
+      'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), accelerometer=()',
     )
 
     // Additional security headers

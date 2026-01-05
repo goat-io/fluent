@@ -3,7 +3,7 @@
 import type { ShouldQueue } from '@goatlab/tasks-core'
 import {
   multiTenantTestSuite,
-  taskConnectorTestSuite
+  taskConnectorTestSuite,
 } from '@goatlab/tasks-core/test-suite'
 import {
   afterAll,
@@ -12,7 +12,7 @@ import {
   beforeEach,
   describe,
   expect,
-  it
+  it,
 } from 'vitest'
 import { HatchetConnector } from './HatchetConnector.js'
 import { getGlobalData } from './test/const.js'
@@ -23,7 +23,7 @@ const hatchetConnector = new HatchetConnector({
   logLevel: 'DEBUG',
   token: globalData.token || process.env.HATCHET_JWT_TOKEN || '',
   hostAndPort: globalData.hostAndPort,
-  apiUrl: globalData.apiUrl
+  apiUrl: globalData.apiUrl,
 })
 
 // Run the standardized test suite
@@ -39,11 +39,11 @@ taskConnectorTestSuite(
       await hatchetConnector.startWorker({
         workerName: 'test-suite-worker',
         tasks,
-        slots: 100
+        slots: 100,
       })
       return async () => {}
-    }
-  }
+    },
+  },
 )
 
 // Hatchet-specific tests
@@ -54,7 +54,7 @@ describe('HatchetConnector Specific Tests', () => {
       hostAndPort: globalData.hostAndPort,
       apiUrl: globalData.apiUrl,
       logLevel: 'OFF',
-      tenantId: 'test-tenant'
+      tenantId: 'test-tenant',
     })
 
     expect(tenantConnector.tenantId).toBe('test-tenant')
@@ -82,7 +82,7 @@ const baseConnector = new HatchetConnector({
   token: globalData.token || process.env.HATCHET_JWT_TOKEN || '',
   hostAndPort: globalData.hostAndPort,
   apiUrl: globalData.apiUrl,
-  logLevel: 'DEBUG'
+  logLevel: 'DEBUG',
 })
 
 // Store tenant connectors for cleanup
@@ -104,7 +104,7 @@ multiTenantTestSuite(
       await tenantConnector.startWorker({
         workerName: `tenant-${tenantId}-worker`,
         tasks,
-        slots: 100
+        slots: 100,
       })
       return async () => {
         // Hatchet workers don't have a close method
@@ -114,6 +114,6 @@ multiTenantTestSuite(
     statusCheckInterval: 1000,
     workerStartupDelay: 25000,
     supportsForTenant: true,
-    runIsolationTests: true
-  }
+    runIsolationTests: true,
+  },
 )

@@ -17,7 +17,7 @@ describe('Streams.map (async tests)', () => {
       Streams.readableFrom(input),
       Streams.map(async (n: number) => n * 2),
       Streams.map(async (n: number) => output.push(n)),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([2, 4, 6])
@@ -31,7 +31,7 @@ describe('Streams.map (async tests)', () => {
       Streams.readableFrom(input),
       Streams.map(async (n: number) => n * 2),
       Streams.map(async (n: number) => output.push(n)),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([])
@@ -52,8 +52,8 @@ describe('Streams.map (async tests)', () => {
           return n * 2
         }),
         Streams.map(async (n: number) => output.push(n)),
-        Streams.closePipeline()
-      ])
+        Streams.closePipeline(),
+      ]),
     ).rejects.toThrow('fail')
 
     expect(output).toEqual([2])
@@ -71,9 +71,9 @@ describe('Streams.map (async tests)', () => {
           await new Promise(r => setTimeout(r, 10))
           return n
         },
-        { concurrency: 2 }
+        { concurrency: 2 },
       ),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(seen.sort()).toEqual([1, 2, 3, 4])
@@ -92,7 +92,7 @@ describe('Streams.mapSync (sync tests)', () => {
         output.push(n)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([2, 4, 6])
@@ -105,13 +105,13 @@ describe('Streams.mapSync (sync tests)', () => {
     await Streams.pipeline([
       Streams.readableFrom(input),
       Streams.mapSync((n: number) => n, {
-        predicate: n => n % 2 === 0
+        predicate: n => n % 2 === 0,
       }),
       Streams.mapSync((n: number) => {
         output.push(n)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([2, 4])
@@ -130,7 +130,7 @@ describe('Streams.buffer', () => {
         output.push(batch)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([[1, 2], [3, 4], [5]])
@@ -147,7 +147,7 @@ describe('Streams.buffer', () => {
         output.push(batch)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([[10, 20]])
@@ -164,7 +164,7 @@ describe('Streams.buffer', () => {
         output.push(batch)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([])
@@ -182,7 +182,7 @@ describe('Streams.filter', () => {
       Streams.map(async (n: number) => {
         output.push(n)
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([2, 4])
@@ -199,7 +199,7 @@ describe('Streams.filter', () => {
         output.push(n)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([])
@@ -218,8 +218,8 @@ describe('Streams.filter', () => {
           }
           return true
         }),
-        Streams.closePipeline()
-      ])
+        Streams.closePipeline(),
+      ]),
     ).rejects.toThrow('fail')
   })
 })
@@ -236,7 +236,7 @@ describe('Streams.gzip', () => {
         chunks.push(chunk)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(chunks.length).toBeGreaterThan(0)
@@ -261,7 +261,7 @@ describe('Streams.gzip', () => {
           .forEach(str => output.push(str))
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output.map(str => JSON.parse(str))).toEqual(input)
@@ -278,7 +278,7 @@ describe('Streams.gzip', () => {
         chunks.push(chunk)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(Buffer.concat(chunks).length).toBeGreaterThan(0)
@@ -296,7 +296,7 @@ describe('Streams.gzip', () => {
         output.push(buf.toString())
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output.join('')).toEqual(input.join(''))
@@ -315,7 +315,7 @@ describe('Streams.gzip', () => {
         compressedChunks.push(chunk)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     const gzipped = Buffer.concat(compressedChunks)
@@ -343,7 +343,7 @@ describe('Streams.unGzip', () => {
         compressed.push(chunk)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     // Then decompress it
@@ -358,7 +358,7 @@ describe('Streams.unGzip', () => {
           .forEach(line => output.push(line))
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual(input)
@@ -375,7 +375,7 @@ describe('Streams.unGzip', () => {
         compressed.push(chunk)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     await Streams.pipeline([
@@ -385,7 +385,7 @@ describe('Streams.unGzip', () => {
         output.push(chunk)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(Buffer.concat(output).toString()).toBe('')
@@ -401,7 +401,7 @@ describe('Streams.logProgress', () => {
     const mockLogger = {
       log: (msg: any) => logs.push(msg),
       warn: (msg: any) => logs.push(msg),
-      error: (msg: any) => logs.push(msg)
+      error: (msg: any) => logs.push(msg),
     }
 
     await Streams.pipeline([
@@ -409,20 +409,20 @@ describe('Streams.logProgress', () => {
       Streams.logProgress({
         logEvery: 5,
         logger: mockLogger,
-        logRPS: false
+        logRPS: false,
       }),
       Streams.mapSync((n: number) => {
         output.push(n)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual(input)
     const logMessages = logs.filter(
       log =>
         typeof log === 'string' &&
-        (log.includes('progress') || log.includes('progress_final'))
+        (log.includes('progress') || log.includes('progress_final')),
     )
     expect(logMessages.length).toBeGreaterThanOrEqual(2)
   })
@@ -434,7 +434,7 @@ describe('Streams.logProgress', () => {
     const mockLogger = {
       log: (msg: any) => logs.push(msg),
       warn: (msg: any) => logs.push(msg),
-      error: (msg: any) => logs.push(msg)
+      error: (msg: any) => logs.push(msg),
     }
 
     await Streams.pipeline([
@@ -442,9 +442,9 @@ describe('Streams.logProgress', () => {
       Streams.logProgress({
         logEvery: 1,
         logProgress: false,
-        logger: mockLogger
+        logger: mockLogger,
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(logs.length).toBe(0)
@@ -458,7 +458,7 @@ describe('Streams.toWriteStream', () => {
 
     await Streams.pipeline([
       Streams.readableFrom(input),
-      Streams.toWriteStream(tmpPath)
+      Streams.toWriteStream(tmpPath),
     ])
 
     const contents = await readFile(tmpPath, 'utf8')
@@ -480,7 +480,7 @@ describe('Streams.toNDJson', () => {
         output.push(chunk.toString())
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output.join('')).toBe('{"x":1}\n{"y":2}\n')
@@ -497,7 +497,7 @@ describe('Streams.toNDJson', () => {
         output.push(chunk.toString())
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output.join('')).toBe('{"a":1}|{"b":2}|')
@@ -508,9 +508,9 @@ describe('Streams.toNDJson', () => {
       {
         toJSON: () => {
           throw new Error('bad')
-        }
+        },
       },
-      { c: 3 }
+      { c: 3 },
     ]
     const output: string[] = []
 
@@ -521,7 +521,7 @@ describe('Streams.toNDJson', () => {
         output.push(chunk.toString())
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output.join('')).toBe('{"c":3}\n')
@@ -532,17 +532,17 @@ describe('Streams.toNDJson', () => {
       {
         toJSON: () => {
           throw new Error('bad')
-        }
+        },
       },
-      { d: 4 }
+      { d: 4 },
     ]
 
     await expect(() =>
       Streams.pipeline([
         Streams.readableFrom(input),
         Streams.toNDJson({ strict: true }),
-        Streams.closePipeline()
-      ])
+        Streams.closePipeline(),
+      ]),
     ).rejects.toThrow()
   })
 })
@@ -559,7 +559,7 @@ describe('Streams.parseJson', () => {
         output.push(obj)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([{ x: 1 }, { y: 2 }])
@@ -583,7 +583,7 @@ describe('Streams.parseJson', () => {
         output.push(obj)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([{ a: 1 }])
@@ -600,7 +600,7 @@ describe('Streams.parseJson', () => {
         output.push(obj)
         return undefined
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(output).toEqual([{ valid: true }])
@@ -613,8 +613,8 @@ describe('Streams.parseJson', () => {
       Streams.pipeline([
         Streams.readableFrom(input),
         Streams.parseJson({ strict: true }),
-        Streams.closePipeline()
-      ])
+        Streams.closePipeline(),
+      ]),
     ).rejects.toThrow()
   })
 })
@@ -630,7 +630,7 @@ describe('Streams.closePipeline', () => {
         processed.push(n)
         return n
       }),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
 
     expect(processed).toEqual(input)

@@ -26,8 +26,8 @@ const { middleware: memoryMiddleware, monitor } = createMemoryMonitorMiddleware(
     criticalThreshold: 85, // Critical at 85% heap usage
     monitorInterval: 5000, // Check every 5 seconds
     enableGarbageCollection: true,
-    addHeaders: true // Add memory info to response headers
-  }
+    addHeaders: true, // Add memory info to response headers
+  },
 )
 
 app.use(memoryMiddleware)
@@ -42,22 +42,22 @@ app.get('/memory-status', (_req, res) => {
       heapUsedMB: (memUsage.heapUsed / (1024 * 1024)).toFixed(2),
       heapTotalMB: (memUsage.heapTotal / (1024 * 1024)).toFixed(2),
       heapUsedPercent: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(
-        1
+        1,
       ),
-      rssMB: (memUsage.rss / (1024 * 1024)).toFixed(2)
+      rssMB: (memUsage.rss / (1024 * 1024)).toFixed(2),
     },
     lastMonitored: metrics
       ? {
           heapUsedMB: metrics.heapUsedMB.toFixed(2),
           heapTotalMB: metrics.heapTotalMB.toFixed(2),
           heapUsedPercent: metrics.heapUsedPercentage.toFixed(1),
-          timestamp: new Date(metrics.timestamp).toISOString()
+          timestamp: new Date(metrics.timestamp).toISOString(),
         }
       : null,
     thresholds: {
       warning: '70%',
-      critical: '85%'
-    }
+      critical: '85%',
+    },
   })
 })
 
@@ -72,7 +72,7 @@ app.get('/leak-memory', (_req, res) => {
   res.json({
     message: 'Allocated 10MB',
     totalLeaked: `${leakedData.length * 10}MB`,
-    currentHeapMB: (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)
+    currentHeapMB: (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2),
   })
 })
 
@@ -94,7 +94,7 @@ app.get('/clear-memory', (_req, res) => {
       afterMB,
       freedMB: (
         Number.parseFloat(beforeMB) - Number.parseFloat(afterMB)
-      ).toFixed(2)
+      ).toFixed(2),
     })
   }, 100)
 })
@@ -106,7 +106,7 @@ app.get('/health', (_req, res) => {
 
 const server = app.listen(port, () => {
   console.log(
-    `Memory monitoring example server running at http://localhost:${port}`
+    `Memory monitoring example server running at http://localhost:${port}`,
   )
   console.log('\nEndpoints:')
   console.log('  GET /memory-status - Check current memory usage')

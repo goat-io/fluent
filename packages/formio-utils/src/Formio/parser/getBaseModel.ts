@@ -70,51 +70,51 @@ export const baseModel: IBaseModel = {
   objects: {},
   mixins: {
     FormSelection: {
-      id: ''
+      id: '',
     },
     Related: {
-      models: []
+      models: [],
     },
     Search: {
       enabled: false,
       fullText: [],
-      nGram: []
+      nGram: [],
     },
     Paginator: {
-      limit: 10
+      limit: 10,
     },
     Jwt: true,
     Distinct: true,
     Insert: true,
-    Aggregate: true
+    Aggregate: true,
   },
   options: {
     validateUpsert: true,
     mongodb: {
-      collection: 'submissions'
+      collection: 'submissions',
     },
-    strictObjectIDCoercion: true
+    strictObjectIDCoercion: true,
   },
   path: '',
   properties: {
     id: { type: 'string', id: true, generated: true, required: true },
     owner: {
       required: false,
-      type: 'string'
+      type: 'string',
     },
     roles: {
       array: true,
       required: false,
-      type: 'string'
+      type: 'string',
     },
     ngram: {
       required: false,
-      type: 'string'
+      type: 'string',
     },
     form: {
       required: false,
-      type: 'string'
-    }
+      type: 'string',
+    },
   },
   excludeBaseProperties: [],
   validations: [],
@@ -123,22 +123,22 @@ export const baseModel: IBaseModel = {
   methods: {},
   indexes: {
     roles_1: {
-      keys: { roles: 1 }
+      keys: { roles: 1 },
     },
     form_1: {
-      keys: { form: 1 }
+      keys: { form: 1 },
     },
     'access.id_1': {
-      keys: { 'access.id': 1 }
+      keys: { 'access.id': 1 },
     },
     owner_1: {
-      keys: { owner: 1 }
+      keys: { owner: 1 },
     },
     created_1: {
-      keys: { created: 1 }
+      keys: { created: 1 },
     },
     modified_1: {
-      keys: { modified: 1 }
-    }
-  }
+      keys: { modified: 1 },
+    },
+  },
 }

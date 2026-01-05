@@ -24,7 +24,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         label: 'Email',
         inputType: 'email',
         tableView: true,
-        input: true
+        input: true,
       },
       {
         type: 'password',
@@ -38,7 +38,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         label: 'Password',
         inputType: 'password',
         tableView: false,
-        input: true
+        input: true,
       },
       {
         type: 'button',
@@ -52,8 +52,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         key: 'submit',
         tableView: false,
         label: 'Submit',
-        input: true
-      }
+        input: true,
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -62,12 +62,12 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     path: 'user/login',
     access: [{ roles: ['5ccb6f508fb3efe5f396d87a'], type: 'read_all' }],
     submissionAccess: [
-      { roles: ['5ccb6f508fb3efe5f396d87a'], type: 'create_own' }
+      { roles: ['5ccb6f508fb3efe5f396d87a'], type: 'create_own' },
     ],
     machineName: 'suopywgtyuabhru:userLogin',
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-05-02T22:29:36.663Z',
-    modified: '2019-05-02T22:29:36.665Z'
+    modified: '2019-05-02T22:29:36.665Z',
   },
   {
     id: '5d70d27477462637b737d03e',
@@ -100,14 +100,14 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -122,8 +122,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -134,10 +134,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -147,7 +147,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:16:36.064Z',
     modified: '2019-09-05T09:16:51.376Z',
-    machineName: 'suopywgtyuabhru:customer1N'
+    machineName: 'suopywgtyuabhru:customer1N',
   },
   {
     id: '5d70d29306588ea15a6b13b2',
@@ -177,7 +177,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           yearColumns: 5,
           minDate: null,
           maxDate: null,
-          datepickerMode: 'day'
+          datepickerMode: 'day',
         },
         timePicker: {
           hourStep: 1,
@@ -185,7 +185,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           showMeridian: true,
           readonlyInput: false,
           mousewheel: true,
-          arrowkeys: true
+          arrowkeys: true,
         },
         protected: false,
         persistent: true,
@@ -196,7 +196,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         labelPosition: 'top',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -211,7 +211,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5d70d27477462637b737d03e',
           custom: '',
-          project: 'suopywgtyuabhru'
+          project: 'suopywgtyuabhru',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -232,7 +232,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -247,8 +247,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -259,10 +259,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -272,7 +272,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:17:07.915Z',
     modified: '2019-09-05T09:18:22.924Z',
-    machineName: 'suopywgtyuabhru:order1N'
+    machineName: 'suopywgtyuabhru:order1N',
   },
   {
     id: '5d70d33806588e3c9a6b13cf',
@@ -305,14 +305,14 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -327,7 +327,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5d70d3998e9aff0a31f3c4fe',
           custom: '',
-          project: 'suopywgtyuabhru'
+          project: 'suopywgtyuabhru',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -349,7 +349,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         searchField: 'id__regex',
-        isNew: false
+        isNew: false,
       },
       {
         autofocus: false,
@@ -364,8 +364,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -376,10 +376,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -389,7 +389,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:19:52.306Z',
     modified: '2019-09-05T09:27:10.952Z',
-    machineName: 'suopywgtyuabhru:customer1NEmbedded'
+    machineName: 'suopywgtyuabhru:customer1NEmbedded',
   },
   {
     id: '5d70d3998e9aff0a31f3c4fe',
@@ -419,7 +419,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           yearColumns: 5,
           minDate: null,
           maxDate: null,
-          datepickerMode: 'day'
+          datepickerMode: 'day',
         },
         timePicker: {
           hourStep: 1,
@@ -427,7 +427,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           showMeridian: true,
           readonlyInput: false,
           mousewheel: true,
-          arrowkeys: true
+          arrowkeys: true,
         },
         protected: false,
         persistent: true,
@@ -438,7 +438,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         labelPosition: 'top',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -453,8 +453,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -465,10 +465,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -478,7 +478,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:21:29.824Z',
     modified: '2019-09-05T09:21:29.827Z',
-    machineName: 'suopywgtyuabhru:order1NEmbedded'
+    machineName: 'suopywgtyuabhru:order1NEmbedded',
   },
   {
     id: '5d70d54006588eada86b142a',
@@ -511,14 +511,14 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -538,7 +538,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
               url: '',
               resource: '5d70d3998e9aff0a31f3c4fe',
               custom: '',
-              project: 'suopywgtyuabhru'
+              project: 'suopywgtyuabhru',
             },
             dataSrc: 'resource',
             valueProperty: 'id',
@@ -560,8 +560,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            searchField: 'id__regex'
-          }
+            searchField: 'id__regex',
+          },
         ],
         tableView: true,
         label: 'DG',
@@ -574,7 +574,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         addAnotherPosition: 'bottom',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -589,8 +589,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -601,10 +601,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -614,7 +614,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:28:32.105Z',
     modified: '2019-09-05T09:33:04.736Z',
-    machineName: 'suopywgtyuabhru:customer1NEmbeddedDg'
+    machineName: 'suopywgtyuabhru:customer1NEmbeddedDg',
   },
   {
     id: '5d70d8bb43315d71a05c1347',
@@ -647,14 +647,14 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -669,8 +669,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -681,10 +681,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -694,7 +694,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:43:23.259Z',
     modified: '2019-09-05T09:43:23.264Z',
-    machineName: 'suopywgtyuabhru:usersNm'
+    machineName: 'suopywgtyuabhru:usersNm',
   },
   {
     id: '5d70d8d63f1bee14d06355f6',
@@ -727,14 +727,14 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -749,8 +749,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -761,10 +761,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -774,7 +774,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:43:50.801Z',
     modified: '2019-09-05T09:43:50.804Z',
-    machineName: 'suopywgtyuabhru:productsNm'
+    machineName: 'suopywgtyuabhru:productsNm',
   },
   {
     id: '5d70d8ec774626bd5337d15c',
@@ -795,7 +795,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5d70d8bb43315d71a05c1347',
           custom: '',
-          project: 'suopywgtyuabhru'
+          project: 'suopywgtyuabhru',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -816,7 +816,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -831,7 +831,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5d70d8d63f1bee14d06355f6',
           custom: '',
-          project: 'suopywgtyuabhru'
+          project: 'suopywgtyuabhru',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -852,7 +852,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -876,13 +876,13 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           step: 'any',
           integer: '',
           multiple: '',
-          custom: ''
+          custom: '',
         },
         type: 'number',
         labelPosition: 'top',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -906,7 +906,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           yearColumns: 5,
           minDate: null,
           maxDate: null,
-          datepickerMode: 'day'
+          datepickerMode: 'day',
         },
         timePicker: {
           hourStep: 1,
@@ -914,7 +914,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
           showMeridian: true,
           readonlyInput: false,
           mousewheel: true,
-          arrowkeys: true
+          arrowkeys: true,
         },
         protected: false,
         persistent: true,
@@ -925,7 +925,7 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         labelPosition: 'top',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -940,8 +940,8 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     revisions: '',
     _vid: 0,
@@ -952,10 +952,10 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5ccb6f508fb3ef6c4f96d878',
           '5ccb6f508fb3ef48fb96d879',
-          '5ccb6f508fb3efe5f396d87a'
+          '5ccb6f508fb3efe5f396d87a',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [],
     settings: {},
@@ -965,6 +965,6 @@ export const AdvancedForm: FormioForm[] = ((): FormioForm[] => [
     project: '5ccb6f508fb3ef72b796d877',
     created: '2019-09-05T09:44:12.166Z',
     modified: '2019-09-05T09:47:27.037Z',
-    machineName: 'suopywgtyuabhru:ordersNm'
-  }
+    machineName: 'suopywgtyuabhru:ordersNm',
+  },
 ])()

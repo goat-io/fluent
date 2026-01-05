@@ -6,7 +6,7 @@ import { TypesenseDocument, TypesenseExportFormat } from '../typesense.model'
 export class ExportFormatter {
   static formatDocuments<T>(
     documents: TypesenseDocument<T>[],
-    format: TypesenseExportFormat
+    format: TypesenseExportFormat,
   ): string | TypesenseDocument<T>[] {
     switch (format) {
       case 'json':
@@ -71,7 +71,7 @@ export class ExportFormatter {
         } catch (error) {
           callback(error)
         }
-      }
+      },
     })
   }
 
@@ -85,7 +85,7 @@ export class ExportFormatter {
         } catch (error) {
           callback(error)
         }
-      }
+      },
     })
   }
 
@@ -140,7 +140,7 @@ export class ExportFormatter {
           }
         }
         callback()
-      }
+      },
     })
   }
 
@@ -166,7 +166,7 @@ export class ExportFormatter {
           return callback(new Error(`Invalid JSON: ${error.message}`))
         }
         callback()
-      }
+      },
     })
   }
 
@@ -249,7 +249,7 @@ export class ExportFormatter {
         } else {
           this.push(null) // End stream
         }
-      }
+      },
     })
   }
 }

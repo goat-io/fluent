@@ -18,7 +18,7 @@ export const selectBox = (component: FormioComponent) => {
         encrypted: false,
         required: false,
         type: 'boolean',
-        unique: false
+        unique: false,
       }
     })
   }

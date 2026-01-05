@@ -34,7 +34,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
   constructor({
     connection,
-    opts
+    opts,
   }: {
     connection: string | undefined
     opts?: CacheOptions<T>
@@ -71,14 +71,14 @@ export class Cache<T extends object = any> extends Keyv<T> {
       store = new KeyvLru<T>({
         max: 1000,
         resetTtl: false,
-        ttl: 0
+        ttl: 0,
       })
     }
 
     super({
       store,
       ...opts,
-      namespace: fullNamespace
+      namespace: fullNamespace,
     })
 
     // Manually set up iterator for LazyRedisStore as a fallback.
@@ -95,12 +95,12 @@ export class Cache<T extends object = any> extends Keyv<T> {
     this.keyvLru = new KeyvLru<T>({
       max: 1000,
       resetTtl: false,
-      ttl: 0
+      ttl: 0,
     })
 
     this.memoryCache = new Keyv({
       store: this.keyvLru,
-      namespace: fullNamespace
+      namespace: fullNamespace,
     })
 
     this.ns = fullNamespace
@@ -156,7 +156,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return true
     }
     const nonNullValues = Object.values(value).filter(
-      objValue => objValue !== null
+      objValue => objValue !== null,
     )
     return nonNullValues.length !== 0
   }
@@ -212,7 +212,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
   public async remember(
     key: string,
     ms: Milliseconds,
-    fx: () => Promise<T>
+    fx: () => Promise<T>,
   ): Promise<T> {
     const value = await this.get(key)
 

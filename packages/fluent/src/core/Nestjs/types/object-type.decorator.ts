@@ -38,14 +38,14 @@ export function ObjectType(options: ObjectTypeOptions): ClassDecorator
  */
 export function ObjectType(
   name: string,
-  options?: ObjectTypeOptions
+  options?: ObjectTypeOptions,
 ): ClassDecorator
 /**
  * Decorator that marks a class as a GraphQL type.
  */
 export function ObjectType(
   nameOrOptions?: string | ObjectTypeOptions,
-  objectTypeOptions?: ObjectTypeOptions
+  objectTypeOptions?: ObjectTypeOptions,
 ): ClassDecorator {
   const [name, options = {}] = isString(nameOrOptions)
     ? [nameOrOptions, objectTypeOptions]
@@ -58,7 +58,7 @@ export function ObjectType(
         target: target as unknown as new (...args: any[]) => any,
         description: options.description,
         interfaces: options.implements,
-        isAbstract: options.isAbstract
+        isAbstract: options.isAbstract,
       })
 
     // This function must be called eagerly to allow resolvers

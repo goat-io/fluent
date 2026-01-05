@@ -5,7 +5,7 @@ export class UndefinedTypeError extends Error {
     super(
       `Undefined type error. Make sure you are providing an explicit type for the "${key}" ${
         isUndefined(index) ? '' : `(parameter at index [${index}]) `
-      }of the "${name}" class.`
+      }of the "${name}" class.`,
     )
   }
 }

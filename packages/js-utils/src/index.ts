@@ -7,7 +7,7 @@ import {
   assertIsError,
   assertIsNumber,
   assertIsString,
-  tryFn
+  tryFn,
 } from './Assert'
 import { BrowserEvents } from './BrowserEvents'
 import { Changelogs } from './Changelogs'
@@ -19,7 +19,7 @@ import type {
   ErrorData,
   ErrorObject,
   HttpErrorData,
-  HttpErrorResponse
+  HttpErrorResponse,
 } from './Errors/error.model'
 import { ErrorMode } from './Errors/errorMode'
 import { HttpError } from './Errors/http.error'
@@ -37,7 +37,7 @@ import { Promises } from './Promises'
 import { Strings } from './Strings'
 import {
   JsonStringifyFunction,
-  StringifyAnyOptions
+  StringifyAnyOptions,
 } from './Strings/stringifyOptions.model'
 import { Time } from './Time'
 import { Units } from './Units'
@@ -47,7 +47,7 @@ export type {
   BeforeErrorHook,
   BeforeRequestHook,
   BeforeRetryHook,
-  KyInstance
+  KyInstance,
 } from './Got/ky'
 
 export * from './types'
@@ -82,7 +82,7 @@ export {
   Time,
   Units,
   Http,
-  Inspect
+  Inspect,
 }
 
 export type {
@@ -93,7 +93,7 @@ export type {
   HttpErrorData,
   HttpErrorResponse,
   JsonStringifyFunction,
-  StringifyAnyOptions
+  StringifyAnyOptions,
 }
 
 export * from './Datetime/dateInterval'

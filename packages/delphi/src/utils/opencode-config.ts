@@ -16,7 +16,7 @@ import pino from 'pino'
 
 const logger = (pino as any)({
   name: 'opencode-config',
-  level: process.env.LOG_LEVEL || 'info'
+  level: process.env.LOG_LEVEL || 'info',
 })
 
 export interface OpenCodeConfig {
@@ -49,7 +49,7 @@ export const CONFIG_LOCATIONS = [
 
   // Project-local locations
   () => join(process.cwd(), '.opencode', 'opencode.json'),
-  () => join(process.cwd(), '.opencode', 'config.json')
+  () => join(process.cwd(), '.opencode', 'config.json'),
 ]
 
 /**
@@ -66,7 +66,7 @@ function loadJsonConfig(filepath: string): OpenCodeConfig | null {
     // Replace environment variable placeholders
     const expandedContent = content.replace(
       /\$\{([^}]+)\}/g,
-      (match, envVar) => process.env[envVar] || match
+      (match, envVar) => process.env[envVar] || match,
     )
 
     const parsed = JSON.parse(expandedContent)
@@ -75,7 +75,7 @@ function loadJsonConfig(filepath: string): OpenCodeConfig | null {
     if (filepath.endsWith('auth.json') && !parsed.model && !parsed.api_keys) {
       // Convert auth.json format to our config format
       const config: OpenCodeConfig = {
-        api_keys: {}
+        api_keys: {},
       }
 
       // Extract API keys from auth.json
@@ -102,7 +102,7 @@ function loadJsonConfig(filepath: string): OpenCodeConfig | null {
 
       logger.debug(
         { filepath, providers: Object.keys(config.api_keys!) },
-        'Successfully loaded OpenCode auth.json'
+        'Successfully loaded OpenCode auth.json',
       )
       return config
     }
@@ -112,7 +112,7 @@ function loadJsonConfig(filepath: string): OpenCodeConfig | null {
   } catch (error) {
     logger.warn(
       { filepath, error: error.message },
-      'Failed to load config file'
+      'Failed to load config file',
     )
     return null
   }
@@ -201,7 +201,7 @@ export function loadOpenCodeConfig(): OpenCodeConfig {
     config.api_keys = { ...config.api_keys, ...envApiKeys }
     logger.info(
       { keys: Object.keys(envApiKeys) },
-      'Found API keys in environment'
+      'Found API keys in environment',
     )
   }
 
@@ -217,9 +217,9 @@ export function loadOpenCodeConfig(): OpenCodeConfig {
     max_tokens: 2000,
     temperature: 0.7,
     endpoints: {
-      ollama: 'http://localhost:11434/v1'
+      ollama: 'http://localhost:11434/v1',
     },
-    ...config
+    ...config,
   }
 
   // Validate that we have at least one API key or Ollama endpoint
@@ -227,12 +227,12 @@ export function loadOpenCodeConfig(): OpenCodeConfig {
   const hasValidApiKeys =
     hasApiKeys &&
     Object.values(config.api_keys).some(
-      key => key && key.trim() !== '' && !key.startsWith('${')
+      key => key && key.trim() !== '' && !key.startsWith('${'),
     )
 
   if (!hasValidApiKeys && !config.model?.startsWith('ollama/')) {
     logger.warn(
-      'No valid API keys found and not using Ollama. You may need to set environment variables or create a config file.'
+      'No valid API keys found and not using Ollama. You may need to set environment variables or create a config file.',
     )
   }
 
@@ -242,9 +242,9 @@ export function loadOpenCodeConfig(): OpenCodeConfig {
       model: config.model,
       small_model: config.small_model,
       hasApiKeys: hasValidApiKeys,
-      availableProviders: hasApiKeys ? Object.keys(config.api_keys) : []
+      availableProviders: hasApiKeys ? Object.keys(config.api_keys) : [],
     },
-    'OpenCode configuration loaded'
+    'OpenCode configuration loaded',
   )
 
   return config
@@ -255,7 +255,7 @@ export function loadOpenCodeConfig(): OpenCodeConfig {
  */
 export function validateConfigForModel(
   config: OpenCodeConfig,
-  model: string
+  model: string,
 ): boolean {
   const [provider] = model.split('/')
 
@@ -288,14 +288,14 @@ export function getAvailableModels(config: OpenCodeConfig): string[] {
             models.push(
               'openai/gpt-4o',
               'openai/gpt-4o-mini',
-              'openai/gpt-3.5-turbo'
+              'openai/gpt-3.5-turbo',
             )
             break
           case 'anthropic':
             models.push(
               'anthropic/claude-3-5-sonnet-20241022',
               'anthropic/claude-3-sonnet',
-              'anthropic/claude-3-haiku'
+              'anthropic/claude-3-haiku',
             )
             break
           case 'google':
@@ -311,7 +311,7 @@ export function getAvailableModels(config: OpenCodeConfig): string[] {
     'ollama/llama3',
     'ollama/llama3.1',
     'ollama/llama2',
-    'ollama/codellama'
+    'ollama/codellama',
   )
 
   return models
@@ -341,7 +341,7 @@ export function getConfigSummary(config: OpenCodeConfig): string {
   const availableModels = getAvailableModels(config)
   if (availableModels.length > 0) {
     lines.push(
-      `Available Models: ${availableModels.slice(0, 3).join(', ')}${availableModels.length > 3 ? ` (+${availableModels.length - 3} more)` : ''}`
+      `Available Models: ${availableModels.slice(0, 3).join(', ')}${availableModels.length > 3 ? ` (+${availableModels.length - 3} more)` : ''}`,
     )
   }
 

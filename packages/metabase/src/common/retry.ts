@@ -20,14 +20,14 @@ export interface RetryOptions {
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const {
     maxAttempts = 3,
     delayMs = 1000,
     backoffMultiplier = 2,
     maxDelayMs = 30000,
-    onRetry
+    onRetry,
   } = options
 
   let lastError: Error | undefined

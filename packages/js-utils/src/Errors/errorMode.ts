@@ -17,5 +17,5 @@ export enum ErrorMode {
   /**
    * Completely suppress errors, do not aggregate nor throw anything. Resilient mode.
    */
-  Suppress = 'SUPPRESS'
+  Suppress = 'SUPPRESS',
 }

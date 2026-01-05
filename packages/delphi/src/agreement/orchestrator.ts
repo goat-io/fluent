@@ -16,7 +16,7 @@ import {
   CritiquePayload,
   VotePayload,
   validateMessage,
-  validatePayloadSize
+  validatePayloadSize,
 } from './protocol.js'
 import { RiskGuard } from './risk-guard.js'
 import { AgreementStateMachine } from './state-machine.js'
@@ -54,14 +54,14 @@ export class AgreementOrchestrator extends EventEmitter {
   constructor(
     config: AgreementSessionConfig,
     agents: Agent[],
-    options: OrchestratorOptions = {}
+    options: OrchestratorOptions = {},
   ) {
     super()
 
     this.stateMachine = new AgreementStateMachine(config)
     this.blackboard = new Blackboard(
       options.blackboardPath,
-      options.sessionCleanupConfig
+      options.sessionCleanupConfig,
     )
     this.riskGuard = new RiskGuard(options.riskGuardConfig)
     this.agents = new Map(agents.map(a => [a.id, a]))
@@ -96,7 +96,7 @@ export class AgreementOrchestrator extends EventEmitter {
         const sessionId = this.stateMachine.getContext().config.sessionId
         span.setAttributes({
           'agreement.session_id': sessionId,
-          'agreement.initial_proposal': initialProposal.slice(0, 100)
+          'agreement.initial_proposal': initialProposal.slice(0, 100),
         })
 
         // Initial proposal
@@ -127,12 +127,12 @@ export class AgreementOrchestrator extends EventEmitter {
 
           // Check risk guards
           const riskCheck = await this.riskGuard.checkRisks(
-            this.stateMachine.getContext()
+            this.stateMachine.getContext(),
           )
           if (!riskCheck.safe) {
             span.setStatus({
               code: SpanStatusCode.ERROR,
-              message: riskCheck.reason
+              message: riskCheck.reason,
             })
             await this.stateMachine.transition(AgreementState.ABORT)
             break
@@ -146,13 +146,13 @@ export class AgreementOrchestrator extends EventEmitter {
           const commit = await this.createCommit()
           span.setStatus({ code: SpanStatusCode.OK })
           span.setAttributes({
-            'agreement.consensus_score': commit.consensus.score
+            'agreement.consensus_score': commit.consensus.score,
           })
           return commit
         }
         span.setStatus({
           code: SpanStatusCode.ERROR,
-          message: 'Agreement aborted'
+          message: 'Agreement aborted',
         })
         return null
       })
@@ -173,8 +173,8 @@ export class AgreementOrchestrator extends EventEmitter {
     const message = await this.executeAgent(proposer, prompt, {
       step: AgreementState.PROPOSE,
       sessionFacts: await this.blackboard.getSessionFacts(
-        this.stateMachine.getContext().config.sessionId
-      )
+        this.stateMachine.getContext().config.sessionId,
+      ),
     })
 
     // Validate and store
@@ -187,7 +187,7 @@ export class AgreementOrchestrator extends EventEmitter {
       agentId: proposer.id,
       type: 'proposal',
       content: message.payload,
-      references: []
+      references: [],
     })
 
     // Transition to critique
@@ -208,8 +208,8 @@ export class AgreementOrchestrator extends EventEmitter {
         step: AgreementState.CRITIQUE,
         proposal: latestProposal,
         sessionFacts: await this.blackboard.getSessionFacts(
-          this.stateMachine.getContext().config.sessionId
-        )
+          this.stateMachine.getContext().config.sessionId,
+        ),
       })
 
       validatePayloadSize(message.payload)
@@ -223,7 +223,7 @@ export class AgreementOrchestrator extends EventEmitter {
           agentId: reviewer.id,
           type: 'concern',
           content: concern,
-          references: [latestProposal.id]
+          references: [latestProposal.id],
         })
       }
 
@@ -254,10 +254,10 @@ export class AgreementOrchestrator extends EventEmitter {
         consensusScore,
         votes: votes.map(v => ({
           agentId: v.agentId,
-          vote: (v.payload as any).vote
-        }))
+          vote: (v.payload as any).vote,
+        })),
       },
-      references: critiques.map(c => c.id)
+      references: critiques.map(c => c.id),
     })
 
     if (
@@ -288,7 +288,7 @@ export class AgreementOrchestrator extends EventEmitter {
   }
 
   private async collectVotes(
-    critiques: Array<AgreementMessage & { payload: CritiquePayload }>
+    critiques: Array<AgreementMessage & { payload: CritiquePayload }>,
   ): Promise<AgreementMessage[]> {
     const voteMessages: AgreementMessage[] = []
 
@@ -300,7 +300,7 @@ export class AgreementOrchestrator extends EventEmitter {
             ? 'approve'
             : 'reject',
         rationale: `Based on critique assessment: ${critique.payload.overallAssessment}`,
-        weight: this.agents.get(critique.agentId)?.weight || 1
+        weight: this.agents.get(critique.agentId)?.weight || 1,
       }
 
       voteMessages.push({
@@ -309,7 +309,7 @@ export class AgreementOrchestrator extends EventEmitter {
         role: critique.role,
         agentId: critique.agentId,
         step: AgreementState.CONVERGE,
-        payload: vote
+        payload: vote,
       } as AgreementMessage)
     }
 
@@ -329,11 +329,11 @@ export class AgreementOrchestrator extends EventEmitter {
   private async createCommit(): Promise<CommitPayload> {
     const context = this.stateMachine.getContext()
     const proposals = context.messages.filter(
-      m => m.step === AgreementState.PROPOSE
+      m => m.step === AgreementState.PROPOSE,
     )
     const latestProposal = proposals[proposals.length - 1]
     const votes = context.messages.filter(
-      m => m.step === AgreementState.CONVERGE
+      m => m.step === AgreementState.CONVERGE,
     )
 
     const consensusScore = this.calculateConsensus(votes)
@@ -344,9 +344,9 @@ export class AgreementOrchestrator extends EventEmitter {
       consensus: {
         method: this.determineConsensusMethod(votes),
         votes: votes.map(v => v.payload as VotePayload),
-        score: consensusScore
+        score: consensusScore,
       },
-      auditTrail: context.messages.map(m => m.id)
+      auditTrail: context.messages.map(m => m.id),
     }
 
     // Record decision
@@ -357,15 +357,15 @@ export class AgreementOrchestrator extends EventEmitter {
         rationale: `Consensus reached with score ${consensusScore}`,
         consensusMethod: commit.consensus.method,
         consensusScore,
-        factIds: context.messages.map(m => m.id)
-      }
+        factIds: context.messages.map(m => m.id),
+      },
     )
 
     return commit
   }
 
   private determineConsensusMethod(
-    votes: AgreementMessage[]
+    votes: AgreementMessage[],
   ): CommitPayload['consensus']['method'] {
     const votePayloads = votes.map(v => v.payload as VotePayload)
     const allApprove = votePayloads.every(v => v.vote === 'approve')
@@ -385,7 +385,7 @@ export class AgreementOrchestrator extends EventEmitter {
   private async executeAgent(
     agent: Agent,
     prompt: string,
-    context: any
+    context: any,
   ): Promise<AgreementMessage> {
     return await retryWithBackoff(
       async () => {
@@ -407,8 +407,8 @@ export class AgreementOrchestrator extends EventEmitter {
 
           // Retry on transient errors
           return error.status === 429 || error.status >= 500
-        }
-      }
+        },
+      },
     )
   }
 

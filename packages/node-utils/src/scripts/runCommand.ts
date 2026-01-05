@@ -111,7 +111,7 @@ export interface RunCommandOptions {
  */
 export const runCommand = (
   command: string,
-  options: RunCommandOptions = {}
+  options: RunCommandOptions = {},
 ): Promise<undefined | string> => {
   return new Promise((resolve, reject) => {
     // Allow both cwd and workingDirectory for flexibility
@@ -137,7 +137,7 @@ export const runCommand = (
     const child = spawn(shell, [shellFlag, command], {
       cwd,
       stdio,
-      env: process.env
+      env: process.env,
     })
 
     // Capture output if requested
@@ -165,7 +165,7 @@ export const runCommand = (
         // Log a clean termination message for user feedback
         if (signal === 'SIGINT') {
           console.log(
-            '\n\nReceived interrupt signal, shutting down gracefully...'
+            '\n\nReceived interrupt signal, shutting down gracefully...',
           )
         } else if (signal === 'SIGHUP' || signal === 'SIGTERM') {
           console.log(`\nReceived ${signal}, shutting down gracefully...`)

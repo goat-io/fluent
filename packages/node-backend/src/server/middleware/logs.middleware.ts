@@ -28,7 +28,7 @@ export const httpResponseTimeColor = (msTime: number): string => {
 const logMessage = (
   message: string,
   statusCode: number,
-  logger: CommonLogger
+  logger: CommonLogger,
 ) => {
   if (statusCode >= 500) {
     logger.error(message)
@@ -40,7 +40,7 @@ const logMessage = (
 }
 
 export const getActualRequestDurationInMilliseconds = (
-  start: [number, number]
+  start: [number, number],
 ): number => {
   const NS_PER_SEC = 1e9 // Convert to nanoseconds
   const NS_TO_MS = 1e6 // Convert to milliseconds
@@ -55,7 +55,7 @@ const formatRequestLog = ({
   url,
   statusCode,
   statusMessage,
-  durationInMilliseconds
+  durationInMilliseconds,
 }: {
   method: string
   url: string
@@ -64,7 +64,7 @@ const formatRequestLog = ({
   durationInMilliseconds: number
 }) => {
   return `${magenta(method)}: ${bgBlack(url)} | Response: ${httpResponseCodeColor(
-    statusCode
+    statusCode,
   )} (${statusMessage}) ${httpResponseTimeColor(durationInMilliseconds)}`
 }
 
@@ -75,7 +75,7 @@ function logBatchRequests({
   statusCode,
   statusMessage,
   durationInMilliseconds,
-  logger
+  logger,
 }: {
   date: string
   method: string
@@ -102,7 +102,7 @@ function logBatchRequests({
 
         if (endpoints.length > 1) {
           logger.warn(
-            `Batch Requests: ${yellow(`${endpoints.length} endpoints`)} \n\n${method.toUpperCase()} ${baseUrl} \n\n`
+            `Batch Requests: ${yellow(`${endpoints.length} endpoints`)} \n\n${method.toUpperCase()} ${baseUrl} \n\n`,
           )
         }
 
@@ -113,13 +113,13 @@ function logBatchRequests({
             url: endpoint,
             statusCode,
             statusMessage,
-            durationInMilliseconds
+            durationInMilliseconds,
           })} | ${yellow('Batch Params')}: ${JSON.stringify(params, null, 2)}`
           logMessage(message, statusCode, logger)
         })
       } catch (err: any) {
         logger.error(
-          `[${date}] Error parsing batch input: ${err.message || 'unknown error'}`
+          `[${date}] Error parsing batch input: ${err.message || 'unknown error'}`,
         )
       }
     } else {
@@ -128,7 +128,7 @@ function logBatchRequests({
         url: `${baseUrl}?${queryParams.toString()}`,
         statusCode,
         statusMessage,
-        durationInMilliseconds
+        durationInMilliseconds,
       })
       logMessage(message, statusCode, logger)
     }
@@ -138,7 +138,7 @@ function logBatchRequests({
       url: baseUrl,
       statusCode,
       statusMessage,
-      durationInMilliseconds
+      durationInMilliseconds,
     })
     logMessage(message, statusCode, logger)
   }
@@ -148,7 +148,7 @@ export const expressRequestLogger = (
   request: Request,
   response: Response,
   next: NextFunction,
-  logger: CommonLogger
+  logger: CommonLogger,
 ): void => {
   const formattedDate = getCurrentTimeFormatted()
   const start = process.hrtime()
@@ -165,7 +165,7 @@ export const expressRequestLogger = (
       statusCode,
       statusMessage,
       durationInMilliseconds,
-      logger
+      logger,
     })
   })
 

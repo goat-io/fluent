@@ -1,7 +1,7 @@
 import { GenericContainer, StartedNetwork, Wait } from 'testcontainers'
 
 export const getFirebaseContainer = ({
-  network
+  network,
 }: {
   network: StartedNetwork
 }) => {
@@ -14,12 +14,12 @@ export const getFirebaseContainer = ({
       '--only',
       'auth,functions,firestore,pubsub,storage,hosting,database,hub,logging',
       '--project',
-      'demo-local-test-emulator'
+      'demo-local-test-emulator',
     ])
     .withWaitStrategy(
       Wait.forLogMessage(
         `Emulator Hub running at 127.0.0.1:4400`,
-        1
-      ).withStartupTimeout(60_000)
+        1,
+      ).withStartupTimeout(60_000),
     )
 }

@@ -30,16 +30,16 @@ export const GoatSchema = {
       type: 'object',
       properties: {
         id: { type: 'number' },
-        value: { type: 'number' }
-      }
+        value: { type: 'number' },
+      },
     },
     breed: {
       type: 'object',
       properties: {
         type: { type: 'string' },
-        family: { type: 'string' }
-      }
-    }
+        family: { type: 'string' },
+      },
+    },
   },
-  required: ['name', 'age']
+  required: ['name', 'age'],
 }

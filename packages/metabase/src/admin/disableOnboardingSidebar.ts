@@ -1,7 +1,7 @@
 export async function disableOnboardingSidebar({
   baseUrl,
   sessionToken,
-  apiKey
+  apiKey,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -15,16 +15,16 @@ export async function disableOnboardingSidebar({
       headers: {
         'Content-Type': 'application/json',
         'X-Metabase-Session': sessionToken || '',
-        'X-Api-Key': apiKey || ''
+        'X-Api-Key': apiKey || '',
       },
-      body: JSON.stringify({ value: true })
-    }
+      body: JSON.stringify({ value: true }),
+    },
   )
 
   if (!response.ok) {
     console.error(
       '❌ Failed to disable OnboardingSidebar',
-      await response.text()
+      await response.text(),
     )
     throw new Error(`Failed to disable OnboardingSidebar${baseUrl}`)
   }

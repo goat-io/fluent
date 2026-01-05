@@ -6,31 +6,31 @@ export const flock: GoatEntity[] = [
     age: 12,
     breed: {
       type: 'Alpine',
-      family: 'Bovidae'
-    }
+      family: 'Bovidae',
+    },
   },
   {
     name: 'Billy',
     age: 8,
     breed: {
       type: 'Nubian',
-      family: 'Bovidae'
-    }
+      family: 'Bovidae',
+    },
   },
   {
     name: 'Nanny',
     age: 15,
     breed: {
       type: 'Boer',
-      family: 'Bovidae'
-    }
+      family: 'Bovidae',
+    },
   },
   {
     name: 'Goatee',
     age: 10,
     breed: {
       type: 'Angora',
-      family: 'Bovidae'
-    }
-  }
+      family: 'Bovidae',
+    },
+  },
 ]

@@ -41,7 +41,7 @@ class FunctionsClass {
     return {
       clear: () => {
         stop = 1
-      }
+      },
     }
   }
   /**

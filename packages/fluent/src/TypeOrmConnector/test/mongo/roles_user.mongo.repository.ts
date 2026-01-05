@@ -3,7 +3,7 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { RolesUser } from '../relations/roles/roles_user.entity'
 import {
   RolesUserInputSchema,
-  RolesUserSchema
+  RolesUserSchema,
 } from '../relations/roles/roles_user.schema'
 
 export class RoleUsersRepository extends TypeOrmConnector<
@@ -18,7 +18,7 @@ export class RoleUsersRepository extends TypeOrmConnector<
         (() => {
           throw new Error('DataSource not provided to RoleUsersRepository')
         }),
-      inputSchema: RolesUserSchema
+      inputSchema: RolesUserSchema,
     })
   }
 }

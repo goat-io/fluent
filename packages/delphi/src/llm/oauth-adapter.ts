@@ -27,14 +27,14 @@ export function isOAuthToken(token: string): boolean {
  * Create an Anthropic client that works with both API keys and OAuth tokens
  */
 export function createOAuthAwareAnthropic(
-  token: string
+  token: string,
 ): ReturnType<typeof createAnthropic> {
   if (isOAuthToken(token)) {
     // OAuth tokens need to be run through OpenCode's runtime
     // They cannot be used directly with the Anthropic API
     console.warn(
       '[OAuth Adapter] OAuth tokens detected. These tokens only work when running through OpenCode:\n' +
-        '  opencode run "your-command-here"'
+        '  opencode run "your-command-here"',
     )
 
     // Still try to use them as Bearer tokens in case the API changes
@@ -49,18 +49,18 @@ export function createOAuthAwareAnthropic(
 
       return fetch(input, {
         ...init,
-        headers
+        headers,
       })
     }
 
     return createAnthropic({
       apiKey: 'oauth-placeholder',
-      fetch: customFetch
+      fetch: customFetch,
     })
   }
   // Regular API key
   return createAnthropic({
-    apiKey: token
+    apiKey: token,
   })
 }
 
@@ -79,12 +79,12 @@ export function loadOAuthConfig(authJson: any): Map<string, OAuthConfig> {
           type: 'oauth',
           access: authConfig.access,
           refresh: authConfig.refresh,
-          expires: authConfig.expires
+          expires: authConfig.expires,
         })
       } else if (authConfig.type === 'api') {
         configs.set(provider, {
           type: 'api',
-          key: authConfig.key
+          key: authConfig.key,
         })
       }
     }
@@ -97,7 +97,7 @@ export function loadOAuthConfig(authJson: any): Map<string, OAuthConfig> {
  * Get the appropriate token from OAuth config
  */
 export function getTokenFromOAuthConfig(
-  config: OAuthConfig
+  config: OAuthConfig,
 ): string | undefined {
   if (config.type === 'oauth') {
     // Check if token is expired

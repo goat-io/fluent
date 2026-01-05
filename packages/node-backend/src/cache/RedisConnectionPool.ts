@@ -47,7 +47,7 @@ export class RedisConnectionPool {
 
     this.pool.set(connectionString, {
       client,
-      refCount: 1
+      refCount: 1,
     })
 
     return store
@@ -101,7 +101,7 @@ export class RedisConnectionPool {
    */
   public async disconnectAll(): Promise<void> {
     const disconnectPromises = Array.from(this.pool.keys()).map(key =>
-      this.disconnect(key)
+      this.disconnect(key),
     )
     await Promise.all(disconnectPromises)
   }

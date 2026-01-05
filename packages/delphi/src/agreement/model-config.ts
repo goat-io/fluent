@@ -15,7 +15,7 @@ export const ModelProviderSchema = z.enum([
   'cohere',
   'meta',
   'mistral',
-  'custom'
+  'custom',
 ])
 
 export type ModelProvider = z.infer<typeof ModelProviderSchema>
@@ -34,7 +34,7 @@ export const ModelConfigSchema = z.object({
   frequencyPenalty: z.number().min(-2).max(2).optional(),
   presencePenalty: z.number().min(-2).max(2).optional(),
   stopSequences: z.array(z.string()).optional(),
-  customHeaders: z.record(z.string(), z.string()).optional()
+  customHeaders: z.record(z.string(), z.string()).optional(),
 })
 
 export type ModelConfig = z.infer<typeof ModelConfigSchema>
@@ -48,31 +48,31 @@ export const MODEL_PRESETS: Record<string, ModelConfig> = {
     provider: 'openai',
     model: 'gpt-4o',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
   'gpt-4-turbo': {
     provider: 'openai',
     model: 'gpt-4-turbo-preview',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
   'gpt-3.5-turbo': {
     provider: 'openai',
     model: 'gpt-3.5-turbo',
     temperature: 0.7,
-    maxTokens: 2048
+    maxTokens: 2048,
   },
   o3: {
     provider: 'openai',
     model: 'o3',
     temperature: 0.8,
-    maxTokens: 8192
+    maxTokens: 8192,
   },
   'o3-mini': {
     provider: 'openai',
     model: 'o3-mini',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
 
   // Anthropic Models
@@ -80,25 +80,25 @@ export const MODEL_PRESETS: Record<string, ModelConfig> = {
     provider: 'anthropic',
     model: 'claude-opus-4-1-20250805',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
   'claude-3-opus': {
     provider: 'anthropic',
     model: 'claude-3-opus-20240229',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
   'claude-3-sonnet': {
     provider: 'anthropic',
     model: 'claude-3-sonnet-20240229',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
   'claude-3-haiku': {
     provider: 'anthropic',
     model: 'claude-3-haiku-20240307',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
 
   // Google Models
@@ -106,19 +106,19 @@ export const MODEL_PRESETS: Record<string, ModelConfig> = {
     provider: 'google',
     model: 'gemini-pro',
     temperature: 0.7,
-    maxTokens: 8192
+    maxTokens: 8192,
   },
   'gemini-ultra': {
     provider: 'google',
     model: 'gemini-ultra',
     temperature: 0.7,
-    maxTokens: 8192
+    maxTokens: 8192,
   },
   'gemini-flash': {
     provider: 'google',
     model: 'gemini-1.5-flash',
     temperature: 0.7,
-    maxTokens: 8192
+    maxTokens: 8192,
   },
 
   // Cohere Models
@@ -126,13 +126,13 @@ export const MODEL_PRESETS: Record<string, ModelConfig> = {
     provider: 'cohere',
     model: 'command-r',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
   'command-r-plus': {
     provider: 'cohere',
     model: 'command-r-plus',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
 
   // Meta Models
@@ -140,7 +140,7 @@ export const MODEL_PRESETS: Record<string, ModelConfig> = {
     provider: 'meta',
     model: 'llama-3-70b',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
 
   // Mistral Models
@@ -148,14 +148,14 @@ export const MODEL_PRESETS: Record<string, ModelConfig> = {
     provider: 'mistral',
     model: 'mistral-large-latest',
     temperature: 0.7,
-    maxTokens: 4096
+    maxTokens: 4096,
   },
   mixtral: {
     provider: 'mistral',
     model: 'open-mixtral-8x22b',
     temperature: 0.7,
-    maxTokens: 4096
-  }
+    maxTokens: 4096,
+  },
 }
 
 /**
@@ -166,9 +166,9 @@ export const RoleModelMappingSchema = z.object({
   reviewer: z.union([
     z.string(),
     ModelConfigSchema,
-    z.array(z.union([z.string(), ModelConfigSchema]))
+    z.array(z.union([z.string(), ModelConfigSchema])),
   ]),
-  arbiter: z.union([z.string(), ModelConfigSchema]).optional()
+  arbiter: z.union([z.string(), ModelConfigSchema]).optional(),
 })
 
 export type RoleModelMapping = z.infer<typeof RoleModelMappingSchema>
@@ -179,7 +179,7 @@ export type RoleModelMapping = z.infer<typeof RoleModelMappingSchema>
 export const DEFAULT_ROLE_MODELS: RoleModelMapping = {
   proposer: 'claude-opus-4.1', // Claude for creative proposal generation
   reviewer: ['gpt-4o', 'gemini-pro'], // Multiple reviewers with different models
-  arbiter: 'o3' // O3 for final arbitration
+  arbiter: 'o3', // O3 for final arbitration
 }
 
 /**
@@ -191,9 +191,9 @@ export const STRATEGY_MODEL_MAPPINGS: Record<string, RoleModelMapping> = {
     reviewer: [
       'gpt-4o', // Good at finding bugs
       'claude-opus-4.1', // Good at architecture review
-      'gemini-pro' // Good at suggesting improvements
+      'gemini-pro', // Good at suggesting improvements
     ],
-    arbiter: 'o3' // Best judgment for final decision
+    arbiter: 'o3', // Best judgment for final decision
   },
 
   'architecture-decision': {
@@ -201,18 +201,18 @@ export const STRATEGY_MODEL_MAPPINGS: Record<string, RoleModelMapping> = {
     reviewer: [
       'gpt-4o', // Good at system design
       'gemini-ultra', // Good at scalability analysis
-      'mistral-large' // Good at technical feasibility
+      'mistral-large', // Good at technical feasibility
     ],
-    arbiter: 'o3' // Best for strategic decisions
+    arbiter: 'o3', // Best for strategic decisions
   },
 
   'test-strategy': {
     proposer: 'gpt-4o', // Good at test planning
     reviewer: [
       'claude-3-sonnet', // Good at edge cases
-      'gemini-pro' // Good at coverage analysis
+      'gemini-pro', // Good at coverage analysis
     ],
-    arbiter: 'claude-opus-4.1' // Good judgment for test priorities
+    arbiter: 'claude-opus-4.1', // Good judgment for test priorities
   },
 
   'api-design': {
@@ -220,15 +220,15 @@ export const STRATEGY_MODEL_MAPPINGS: Record<string, RoleModelMapping> = {
     reviewer: [
       'gpt-4o', // Good at REST/GraphQL best practices
       'gemini-pro', // Good at performance considerations
-      'command-r-plus' // Good at documentation needs
+      'command-r-plus', // Good at documentation needs
     ],
-    arbiter: 'o3' // Best for final API decisions
+    arbiter: 'o3', // Best for final API decisions
   },
 
   'quick-decision': {
     proposer: 'claude-3-haiku', // Fast and cheap
     reviewer: 'gpt-3.5-turbo', // Fast and cheap
-    arbiter: 'gemini-flash' // Fast and cheap
+    arbiter: 'gemini-flash', // Fast and cheap
   },
 
   'creative-brainstorming': {
@@ -236,10 +236,10 @@ export const STRATEGY_MODEL_MAPPINGS: Record<string, RoleModelMapping> = {
     reviewer: [
       'gpt-4o', // Creative critique
       'gemini-ultra', // Different perspective
-      'mixtral' // Alternative ideas
+      'mixtral', // Alternative ideas
     ],
-    arbiter: 'o3' // Best synthesis
-  }
+    arbiter: 'o3', // Best synthesis
+  },
 }
 
 /**
@@ -292,7 +292,7 @@ export class ModelSelector {
    */
   distributeModelsForReviewers(
     count: number,
-    preferredModels?: (string | ModelConfig)[]
+    preferredModels?: (string | ModelConfig)[],
   ): (string | ModelConfig)[] {
     if (preferredModels && preferredModels.length >= count) {
       return preferredModels.slice(0, count)
@@ -303,7 +303,7 @@ export class ModelSelector {
       'gpt-4o',
       'claude-opus-4.1',
       'gemini-pro',
-      'mistral-large'
+      'mistral-large',
     ]
     const result: string[] = []
 
@@ -334,7 +334,7 @@ export class ModelSelector {
       return {
         proposer: 'claude-3-haiku',
         reviewer: ['gpt-3.5-turbo', 'gemini-flash'],
-        arbiter: 'mixtral'
+        arbiter: 'mixtral',
       }
     }
 
@@ -342,7 +342,7 @@ export class ModelSelector {
       return {
         proposer: 'claude-opus-4.1',
         reviewer: ['o3', 'gemini-ultra', 'gpt-4o'],
-        arbiter: 'o3'
+        arbiter: 'o3',
       }
     }
 
@@ -350,7 +350,7 @@ export class ModelSelector {
       return {
         proposer: 'claude-3-sonnet',
         reviewer: ['gemini-flash', 'gpt-3.5-turbo'],
-        arbiter: 'gemini-pro'
+        arbiter: 'gemini-pro',
       }
     }
 

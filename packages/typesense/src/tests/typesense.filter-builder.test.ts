@@ -82,7 +82,7 @@ describe('TypesenseFilterBuilder', () => {
       .build()
 
     expect(filter).toBe(
-      'status:="active" && price:>50 && category:=["books", "electronics"]'
+      'status:="active" && price:>50 && category:=["books", "electronics"]',
     )
   })
 
@@ -108,7 +108,7 @@ describe('TypesenseFilterBuilder', () => {
       .build()
 
     expect(filter).toBe(
-      'status:="active" && (category:="electronics" || category:="computers")'
+      'status:="active" && (category:="electronics" || category:="computers")',
     )
   })
 
@@ -127,7 +127,7 @@ describe('TypesenseFilterBuilder', () => {
       .build()
 
     expect(filter).toBe(
-      'published:=true && ((category:="electronics" && price:>100) || (category:="books" && rating:>4))'
+      'published:=true && ((category:="electronics" && price:>100) || (category:="books" && rating:>4))',
     )
   })
 

@@ -10,5 +10,5 @@ export type {
   TaskStatusName,
   TenantConfig,
   TenantCredentials,
-  UnknownInputType
+  UnknownInputType,
 } from './ShouldQueue.types'

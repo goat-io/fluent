@@ -39,7 +39,7 @@ const factories = {
   database: class MockDatabaseService implements DatabaseService {
     constructor(
       private tenantId: string,
-      private config: any
+      private config: any,
     ) {}
     async connect() {
       console.log('Connected to DB')
@@ -51,7 +51,7 @@ const factories = {
   api: class MockApiService implements ApiService {
     constructor(
       private tenantId: string,
-      private config: any
+      private config: any,
     ) {}
     async getUser(userId: string, _apiKey: string) {
       return { id: userId }
@@ -59,7 +59,7 @@ const factories = {
     async processData(_apiKey: string) {
       return { processed: true }
     }
-  }
+  },
 }
 
 // Create container with preloading pattern
@@ -71,7 +71,7 @@ const container = new Container(
       provider: 'FILE', // or 'VAULT', 'ENV'
       location: meta.secretsLocation,
       encryptionKey: meta.encryptionKey,
-      vaultConfig: meta.vaultConfig
+      vaultConfig: meta.vaultConfig,
     })
 
     // Preload secrets before using them
@@ -79,26 +79,26 @@ const container = new Container(
 
     // Now we can use synchronous methods to get secrets
     const dbConnectionString = secretService.getSecretSync(
-      'DB_CONNECTION_STRING'
+      'DB_CONNECTION_STRING',
     )
     const jwtSecret = secretService.getSecretSync('JWT_SECRET')
 
     // Create other services using the preloaded secrets
     const database = preload.database(meta.tenantId, meta.tenantId, {
-      connectionString: dbConnectionString
+      connectionString: dbConnectionString,
     })
 
     const api = preload.api(meta.tenantId, meta.tenantId, {
       database,
-      jwtSecret
+      jwtSecret,
     })
 
     return {
       secrets: secretService,
       database,
-      api
+      api,
     }
-  }
+  },
 )
 
 // Usage example
@@ -121,7 +121,7 @@ async function _multiProviderExample() {
   const _devTenant: TenantMeta = {
     tenantId: 'dev-tenant',
     secretsLocation: '/secrets/dev.json',
-    encryptionKey: 'dev-encryption-key-32chars'
+    encryptionKey: 'dev-encryption-key-32chars',
   }
 
   // VAULT provider for production
@@ -131,15 +131,15 @@ async function _multiProviderExample() {
     encryptionKey: 'prod-encryption-key-32chars',
     vaultConfig: {
       endpoint: 'https://vault.company.com',
-      token: process.env.VAULT_TOKEN!
-    }
+      token: process.env.VAULT_TOKEN!,
+    },
   }
 
   // ENV provider for CI/CD
   const _ciTenant: TenantMeta = {
     tenantId: 'ci-tenant',
     secretsLocation: 'CI', // Will look for CI_API_KEY, CI_DB_CONNECTION_STRING, etc.
-    encryptionKey: 'ci-encryption-key-32chars'
+    encryptionKey: 'ci-encryption-key-32chars',
   }
 }
 
@@ -152,7 +152,7 @@ async function _fileWatchingExample() {
         provider: 'FILE',
         location: meta.secretsLocation,
         encryptionKey: meta.encryptionKey,
-        cacheTTL: 60000 // 1 minute cache
+        cacheTTL: 60000, // 1 minute cache
       })
 
       // Enable automatic reload on file changes
@@ -160,7 +160,7 @@ async function _fileWatchingExample() {
 
       // Secrets will automatically reload if the file changes
       return { secrets: secretService }
-    }
+    },
   )
 
   // The secret service will watch for file changes and reload automatically
@@ -172,18 +172,18 @@ async function _batchTenantProcessing() {
     {
       tenantId: 'tenant1',
       secretsLocation: '/secrets/tenant1.json',
-      encryptionKey: 'key1'
+      encryptionKey: 'key1',
     },
     {
       tenantId: 'tenant2',
       secretsLocation: '/secrets/tenant2.json',
-      encryptionKey: 'key2'
+      encryptionKey: 'key2',
     },
     {
       tenantId: 'tenant3',
       secretsLocation: '/secrets/tenant3.json',
-      encryptionKey: 'key3'
-    }
+      encryptionKey: 'key3',
+    },
   ]
 
   const results = await container.bootstrapBatch(
@@ -197,15 +197,15 @@ async function _batchTenantProcessing() {
 
         // Process tenant data
         return api.processData(apiKey)
-      }
+      },
     })),
     {
       concurrency: 5,
       continueOnError: true,
       onProgress: (completed, total) => {
         console.log(`Processed ${completed}/${total} tenants`)
-      }
-    }
+      },
+    },
   )
 
   // Check results

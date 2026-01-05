@@ -4,7 +4,7 @@ import type { NextFunction, Request, Response } from 'express'
 
 export const useCloudTaskDecryptMiddleware = ({
   getLogger = () => console,
-  getEncryptionKey
+  getEncryptionKey,
 }: {
   getEncryptionKey: () => string
   getLogger?: () => CommonLogger
@@ -12,7 +12,7 @@ export const useCloudTaskDecryptMiddleware = ({
   const cloudTaskDecryptMiddleware = (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): void => {
     const logger = getLogger()
     const isLocalTest = req.headers['local-queue'] === 'true'
@@ -21,7 +21,7 @@ export const useCloudTaskDecryptMiddleware = ({
     try {
       // Parse the body from base64 to ASCII then to JSON
       const body = JSON.parse(
-        Buffer.from(base64String, 'base64').toString('ascii')
+        Buffer.from(base64String, 'base64').toString('ascii'),
       )
 
       // Decrypt the body
@@ -38,13 +38,13 @@ export const useCloudTaskDecryptMiddleware = ({
       if (err instanceof Error) {
         res.status(400).json({
           status: 400,
-          message: err.message || 'Error processing request'
+          message: err.message || 'Error processing request',
         })
         return
       }
       res.status(500).json({
         status: 500,
-        message: 'Internal Server Error'
+        message: 'Internal Server Error',
       })
       return
     }

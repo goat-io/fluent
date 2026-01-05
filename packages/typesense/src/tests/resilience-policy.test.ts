@@ -11,7 +11,7 @@ describe('ResiliencePolicy', () => {
       maxFailures: 3,
       resetTimeout: 1000,
       retryDelay: 100,
-      maxRetries: 2
+      maxRetries: 2,
     })
     vi.useFakeTimers()
   })
@@ -100,7 +100,7 @@ describe('ResiliencePolicy', () => {
         'X-RateLimit-Limit': '100',
         'X-RateLimit-Remaining': '10',
         'X-RateLimit-ResetMs': String(Date.now() + 60000),
-        'Retry-After': '30'
+        'Retry-After': '30',
       })
 
       policy.updateRateLimit(headers)
@@ -113,7 +113,7 @@ describe('ResiliencePolicy', () => {
 
     it('should respect retry-after period', () => {
       const headers = new Headers({
-        'Retry-After': '5'
+        'Retry-After': '5',
       })
 
       policy.updateRateLimit(headers)
@@ -128,7 +128,7 @@ describe('ResiliencePolicy', () => {
       expect(policy.isRateLimited()).toBe(false)
 
       const headers = new Headers({
-        'X-RateLimit-Remaining': '0'
+        'X-RateLimit-Remaining': '0',
       })
 
       policy.updateRateLimit(headers)
@@ -138,7 +138,7 @@ describe('ResiliencePolicy', () => {
     it('should calculate time until reset', () => {
       const resetTime = Date.now() + 30000
       const headers = new Headers({
-        'X-RateLimit-ResetMs': String(resetTime)
+        'X-RateLimit-ResetMs': String(resetTime),
       })
 
       policy.updateRateLimit(headers)
@@ -155,7 +155,7 @@ describe('ResiliencePolicy', () => {
       policy.recordFailure()
 
       const headers = new Headers({
-        'X-RateLimit-Remaining': '5'
+        'X-RateLimit-Remaining': '5',
       })
       policy.updateRateLimit(headers)
 
@@ -176,7 +176,7 @@ describe('ResiliencePolicy', () => {
       policy.recordFailure() // Open circuit
 
       const headers = new Headers({
-        'Retry-After': '30'
+        'Retry-After': '30',
       })
       policy.updateRateLimit(headers)
 

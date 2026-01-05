@@ -3,7 +3,7 @@ import type {
   ObjectMapper,
   ObjectPredicate,
   StringMap,
-  ValueOf
+  ValueOf,
 } from './types'
 
 type KeyFactory = (previousKey: string, currentKey: string) => string
@@ -112,7 +112,7 @@ class ObjectsClass {
     ob: AnyObject,
     includeBaseKeys: boolean = false,
     keyFactory: KeyFactory = (previousKey, currentKey) =>
-      `${previousKey}.${currentKey}`
+      `${previousKey}.${currentKey}`,
   ): Record<string, string> => {
     const toReturn = Object.create(null) as Record<string, string>
     const stack: [AnyObject, string][] = [[ob, '']]
@@ -267,7 +267,7 @@ class ObjectsClass {
   filterObject<T extends AnyObject>(
     obj: T,
     predicate: ObjectPredicate<T>,
-    mutate = false
+    mutate = false,
   ): T {
     const result = mutate ? obj : { ...obj }
     for (const k in result) {
@@ -357,7 +357,7 @@ class ObjectsClass {
   mapValues<T extends AnyObject, OUT = T>(
     obj: T,
     mapper: ObjectMapper<T, any>,
-    mutate = false
+    mutate = false,
   ): OUT {
     const result = (mutate ? obj : {}) as OUT
     for (const k in obj) {
@@ -370,7 +370,7 @@ class ObjectsClass {
 
   mapKeys<T extends AnyObject>(
     obj: T,
-    mapper: ObjectMapper<T, string>
+    mapper: ObjectMapper<T, string>,
   ): StringMap<T[keyof T]> {
     const result = {} as StringMap<T[keyof T]>
     for (const k in obj) {
@@ -399,7 +399,7 @@ class ObjectsClass {
    */
   mapObject<IN extends AnyObject, OUT>(
     obj: IN,
-    mapper: ObjectMapper<IN, [key: string, value: any]>
+    mapper: ObjectMapper<IN, [key: string, value: any]>,
   ): { [P in keyof IN]: OUT } {
     const result = {} as { [P in keyof IN]: OUT }
     for (const k in obj) {
@@ -415,7 +415,7 @@ class ObjectsClass {
 
   findKeyByValue<T extends AnyObject>(
     obj: T,
-    value: ValueOf<T>
+    value: ValueOf<T>,
   ): keyof T | undefined {
     for (const key in obj) {
       if (Object.hasOwn(obj, key) && obj[key] === value) {
@@ -486,7 +486,7 @@ class ObjectsClass {
   omit<T extends AnyObject, K extends keyof T>(
     obj: T,
     props: readonly K[],
-    mutate = false
+    mutate = false,
   ): T {
     const result = mutate ? obj : { ...obj }
     for (let i = 0; i < props.length; i++) {
@@ -502,7 +502,7 @@ class ObjectsClass {
   pick<T extends AnyObject, K extends keyof T>(
     obj: T,
     props: readonly K[],
-    mutate = false
+    mutate = false,
   ): T {
     if (mutate) {
       const propsSet = new Set(props)
@@ -653,7 +653,7 @@ class ObjectsClass {
       if (
         !this.deepEquals(
           objA[key] as DeepComparable,
-          objB[key] as DeepComparable
+          objB[key] as DeepComparable,
         )
       ) {
         return false

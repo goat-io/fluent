@@ -16,7 +16,7 @@ const zProxy = new Proxy(zod.z, {
       }
     }
     return (target as any)[prop]
-  }
+  },
 })
 
 // Export the proxied z object and all other exports from zod

@@ -21,12 +21,12 @@ import { _stringifyAny } from './Strings/stringifyAny'
 export function assert(
   condition: any, // will be evaluated as Boolean
   message?: string,
-  errorData?: ErrorData
+  errorData?: ErrorData,
 ): asserts condition {
   if (!condition) {
     throw new AssertionError(message || 'see stacktrace', {
       userFriendly: true,
-      ...errorData
+      ...errorData,
     })
   }
 }
@@ -41,20 +41,20 @@ export function assertEquals<T>(
   actual: any,
   expected: T,
   message?: string,
-  errorData?: ErrorData
+  errorData?: ErrorData,
 ): asserts actual is T {
   if (actual !== expected) {
     const msg = [
       message || 'not equal',
       `expected: ${_stringifyAny(expected)}`,
-      `got     : ${_stringifyAny(actual)}`
+      `got     : ${_stringifyAny(actual)}`,
     ]
       .filter(Boolean)
       .join('\n')
 
     throw new AssertionError(msg, {
       userFriendly: true,
-      ...errorData
+      ...errorData,
     })
   }
 }
@@ -69,36 +69,36 @@ export function assertDeepEquals<T>(
   actual: any,
   expected: T,
   message?: string,
-  errorData?: ErrorData
+  errorData?: ErrorData,
 ): asserts actual is T {
   if (!Objects.deepEquals(actual, expected as any)) {
     const msg = [
       message || `not deeply equal`,
       `expected: ${_stringifyAny(expected)}`,
-      `got     : ${_stringifyAny(actual)}`
+      `got     : ${_stringifyAny(actual)}`,
     ]
       .filter(Boolean)
       .join('\n')
 
     throw new AssertionError(msg, {
       userFriendly: true,
-      ...errorData
+      ...errorData,
     })
   }
 }
 
 export function assertIsError<Err extends Error = Error>(
   err: any,
-  message?: string
+  message?: string,
 ): asserts err is Err {
   if (!(err instanceof Error)) {
     const msg = [
       message || `expected to be instanceof Error`,
-      `actual typeof: ${typeof err}`
+      `actual typeof: ${typeof err}`,
     ].join('\n')
 
     throw new AssertionError(msg, {
-      userFriendly: true
+      userFriendly: true,
     })
   }
 }
@@ -114,17 +114,17 @@ export function assertIsNumber(v: any, message?: string): asserts v is number {
 export function assertTypeOf<T>(
   v: any,
   expectedType: string,
-  message?: string
+  message?: string,
 ): asserts v is T {
   if (typeof v !== expectedType) {
     const msg = [
       message || `unexpected type`,
       `expected: ${expectedType}`,
-      `got     : ${typeof v}`
+      `got     : ${typeof v}`,
     ].join('\n')
 
     throw new AssertionError(msg, {
-      userFriendly: true
+      userFriendly: true,
     })
   }
 }
@@ -136,7 +136,7 @@ export class AssertionError extends AppError {
 }
 
 export function tryFn<Err = Error, Return = void>(
-  fn: () => Return
+  fn: () => Return,
 ): [err: Err | null, value: Return] {
   try {
     return [null, fn()]

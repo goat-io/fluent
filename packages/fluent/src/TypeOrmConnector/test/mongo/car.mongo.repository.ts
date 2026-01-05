@@ -3,7 +3,7 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { CarsEntity } from '../relations/car/car.entity'
 import {
   CarDtoOutput,
-  carOutputSchema
+  carOutputSchema,
 } from '../relations/car/car.output.schema'
 import { CarDtoInput, carInputSchema } from '../relations/car/car.schema'
 import { UsersEntity } from '../relations/user/user.entity'
@@ -26,7 +26,7 @@ export class CarsRepository extends TypeOrmConnector<
       entity: CarsEntity,
       dataSource: ds,
       inputSchema: carInputSchema,
-      outputSchema: carOutputSchema
+      outputSchema: carOutputSchema,
     })
     this.dataSourceRef = ds
   }
@@ -34,11 +34,11 @@ export class CarsRepository extends TypeOrmConnector<
   public user = () =>
     this.belongsTo({
       repository: () => new UserRepository(this.dataSourceRef),
-      model: UsersEntity
+      model: UsersEntity,
     })
 
   public anotherRelation = () =>
     this.belongsTo({
-      repository: () => new UserRepository(this.dataSourceRef)
+      repository: () => new UserRepository(this.dataSourceRef),
     })
 }

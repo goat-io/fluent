@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   checkpointer,
   cleanupDatabase,
-  initializeMemory
+  initializeMemory,
 } from '../../checkpoint/sqlite.js'
 import { buildGraph } from '../../graph.js'
 import type { FlowState } from '../../types.js'
@@ -12,11 +12,11 @@ import type { FlowState } from '../../types.js'
 // Mock external dependencies
 vi.mock('@goatlab/js-utils', () => ({
   Http: {
-    getClient: vi.fn()
-  }
+    getClient: vi.fn(),
+  },
 }))
 vi.mock('child_process', () => ({
-  spawn: vi.fn()
+  spawn: vi.fn(),
 }))
 
 const mockedSpawn = spawn as any
@@ -39,27 +39,27 @@ describe('Integration Tests - Graph', () => {
         {
           post: vi.fn().mockReturnThis(),
           json: vi.fn().mockResolvedValueOnce({
-            draft: 'Create or update README.md file with touch command'
-          })
+            draft: 'Create or update README.md file with touch command',
+          }),
         },
         {
           post: vi.fn().mockReturnThis(),
           json: vi.fn().mockResolvedValueOnce({
             refined: 'Execute: touch README.md in the project root',
-            clear: true
-          })
+            clear: true,
+          }),
         },
         {
           post: vi.fn().mockReturnThis(),
           json: vi
             .fn()
-            .mockResolvedValueOnce({ ok: true, feedback: '✅ Approved' })
-        }
+            .mockResolvedValueOnce({ ok: true, feedback: '✅ Approved' }),
+        },
       ]
 
       let clientIndex = 0
       vi.mocked(Http.getClient).mockImplementation(
-        () => mockClients[clientIndex++] as any
+        () => mockClients[clientIndex++] as any,
       )
 
       // Mock successful Claude execution
@@ -73,24 +73,24 @@ index 0000000../e69de29`
             if (event === 'data') {
               callback(Buffer.from(mockDiff))
             }
-          })
+          }),
         },
         stderr: {
-          on: vi.fn()
+          on: vi.fn(),
         },
         on: vi.fn((event, callback) => {
           if (event === 'close') {
             callback(0)
           }
         }),
-        kill: vi.fn()
+        kill: vi.fn(),
       } as any
 
       mockedSpawn.mockReturnValueOnce(mockProcess)
 
       // Build and run graph
       const graph = buildGraph({
-        enableTests: false // Skip test execution for this test
+        enableTests: false, // Skip test execution for this test
       })
 
       const app = graph.compile({ checkpointer })
@@ -100,12 +100,12 @@ index 0000000../e69de29`
         spec: '',
         repoPath: '/tmp/test-repo',
         iterationCount: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
 
       const threadId = `test-happy-${Date.now()}`
       const result = await app.invoke(initialState, {
-        configurable: { thread_id: threadId }
+        configurable: { thread_id: threadId },
       })
 
       expect(result.approved).toBe(true)
@@ -124,26 +124,26 @@ index 0000000../e69de29`
           post: vi.fn().mockReturnThis(),
           json: vi
             .fn()
-            .mockResolvedValueOnce({ spec: 'Create a new README.md file' })
+            .mockResolvedValueOnce({ spec: 'Create a new README.md file' }),
         },
         {
           post: vi.fn().mockReturnThis(),
           json: vi.fn().mockResolvedValueOnce({
             refined: 'Create README.md with project info CLEAR: TRUE',
-            clear: true
-          })
+            clear: true,
+          }),
         },
         {
           post: vi.fn().mockReturnThis(),
           json: vi
             .fn()
-            .mockResolvedValueOnce({ ok: true, feedback: '✅ Approved' })
-        }
+            .mockResolvedValueOnce({ ok: true, feedback: '✅ Approved' }),
+        },
       ]
 
       let clientIndex = 0
       vi.mocked(Http.getClient).mockImplementation(
-        () => mockClients[clientIndex++] as any
+        () => mockClients[clientIndex++] as any,
       )
 
       const mockDiff = `diff --git a/README.md b/README.md
@@ -160,17 +160,17 @@ index 0000000..1234567
             if (event === 'data') {
               setTimeout(() => callback(Buffer.from(mockDiff)), 10)
             }
-          })
+          }),
         },
         stderr: {
-          on: vi.fn()
+          on: vi.fn(),
         },
         on: vi.fn((event, callback) => {
           if (event === 'close') {
             setTimeout(() => callback(0), 20)
           }
         }),
-        kill: vi.fn()
+        kill: vi.fn(),
       } as any
 
       mockedSpawn.mockReturnValueOnce(mockProcess)
@@ -184,12 +184,12 @@ index 0000000..1234567
         spec: '',
         repoPath: '/tmp/test-repo',
         iterationCount: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
 
       // Start execution
       const firstRun = app.invoke(initialState, {
-        configurable: { thread_id: threadId }
+        configurable: { thread_id: threadId },
       })
 
       // Wait a bit then interrupt

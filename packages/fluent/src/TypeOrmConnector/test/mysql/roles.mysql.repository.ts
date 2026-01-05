@@ -1,7 +1,7 @@
 import { TypeOrmConnector } from '../../TypeOrmConnector'
 import {
   RoleDtoOut,
-  RoleOuputSchema
+  RoleOuputSchema,
 } from '../relations/roles/role.output.schema'
 import { RoleDtoInput, RoleInputSchema } from '../relations/roles/role.schema'
 import { RoleEntity } from '../relations/roles/roles.entity'
@@ -19,13 +19,13 @@ export class RoleRepository extends TypeOrmConnector<
       entity: RoleEntity,
       dataSource: MYSQLDataSource,
       inputSchema: RoleInputSchema,
-      outputSchema: RoleOuputSchema
+      outputSchema: RoleOuputSchema,
     })
   }
 
   public users = () =>
     this.belongsToMany({
       repository: UserRepository,
-      pivot: RoleUsersRepository
+      pivot: RoleUsersRepository,
     })
 }

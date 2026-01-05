@@ -43,7 +43,7 @@ export enum EmailCategory {
   OTP = 'OTP',
   MEETING = 'MEETING',
   ORGANIZATION_INVITATION = 'ORGANIZATION_INVITATION',
-  PDF_EXAM = 'PDF_EXAM'
+  PDF_EXAM = 'PDF_EXAM',
 }
 
 export interface EmailAddress {
@@ -60,7 +60,7 @@ export interface EmailTest {
 export const testEmailTemplate = z.object({
   to: z.string(),
   subject: z.string(),
-  mjml: z.string()
+  mjml: z.string(),
 })
 
 // Important! user { KEY: string | undefined } and NOT { KEY?: string } on the placeholders.
@@ -73,12 +73,12 @@ export interface EmailAttachment {
   FileName: string
 }
 export enum Layout {
-  default = 'layouts/default.ejs'
+  default = 'layouts/default.ejs',
 }
 
 export enum Content {
   simple = 'simple/simple.ejs',
-  doubleAction = 'doubleAction/doubleAction.ejs'
+  doubleAction = 'doubleAction/doubleAction.ejs',
 }
 
 export type Theme = {

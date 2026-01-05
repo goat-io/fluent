@@ -36,7 +36,7 @@ class BenchmarkTask extends ShouldQueue<{ index: number }> {
 
 async function runQueueBenchmark(
   connector: HatchetConnector,
-  task: BenchmarkTask
+  task: BenchmarkTask,
 ) {
   console.log('\n📊 Queue Throughput (queue-only)')
   console.log('='.repeat(50))
@@ -45,7 +45,7 @@ async function runQueueBenchmark(
   await connector.startWorker({
     tasks: [task],
     workerName: 'benchmark-worker',
-    slots: 100
+    slots: 100,
   })
   await new Promise(r => setTimeout(r, 2000))
 
@@ -78,7 +78,7 @@ async function runQueueBenchmark(
 
 async function runE2EBenchmark(
   connector: HatchetConnector,
-  task: BenchmarkTask
+  task: BenchmarkTask,
 ) {
   console.log('\n📊 End-to-End (queue + worker)')
   console.log('='.repeat(50))
@@ -86,7 +86,7 @@ async function runE2EBenchmark(
   await connector.startWorker({
     tasks: [task],
     workerName: 'e2e-worker',
-    slots: 100
+    slots: 100,
   })
   await new Promise(r => setTimeout(r, 2000))
 
@@ -145,7 +145,7 @@ async function runE2EBenchmark(
 
 async function runLatencyBenchmark(
   connector: HatchetConnector,
-  task: BenchmarkTask
+  task: BenchmarkTask,
 ) {
   console.log('\n📊 Latency (round-trip)')
   console.log('='.repeat(50))
@@ -153,7 +153,7 @@ async function runLatencyBenchmark(
   await connector.startWorker({
     tasks: [task],
     workerName: 'latency-worker',
-    slots: 10
+    slots: 10,
   })
   await new Promise(r => setTimeout(r, 2000))
 
@@ -195,7 +195,7 @@ async function runLatencyBenchmark(
 
   console.log(`✅ Samples: ${latencies.length}`)
   console.log(
-    `✅ Avg: ${avg.toFixed(1)}ms | P50: ${p50}ms | P95: ${p95}ms | P99: ${p99}ms`
+    `✅ Avg: ${avg.toFixed(1)}ms | P50: ${p50}ms | P95: ${p95}ms | P99: ${p99}ms`,
   )
 
   return { avg, p50, p95, p99 }
@@ -213,18 +213,18 @@ async function main() {
     port: postgresContainer.getMappedPort(5432),
     database: postgresContainer.getDatabase(),
     user: postgresContainer.getUsername(),
-    password: postgresContainer.getPassword()
+    password: postgresContainer.getPassword(),
   }
 
   const postgresUri = `postgresql://${connection.user}:${connection.password}@db:5432/${connection.database}`
 
   const hatchetContainer = await getHatchetContainer({
     postgresConnectionString: postgresUri,
-    network: network
+    network: network,
   }).start()
 
   const cmd = await hatchetContainer.exec(
-    '/hatchet-admin token create --config /config --tenant-id 707d0855-80ab-4e1f-a156-f1c4546cbf52 | xargs'
+    '/hatchet-admin token create --config /config --tenant-id 707d0855-80ab-4e1f-a156-f1c4546cbf52 | xargs',
   )
   const token = cmd.stdout.trim()
 
@@ -240,7 +240,7 @@ async function main() {
       token,
       hostAndPort,
       apiUrl,
-      logLevel: 'WARN'
+      logLevel: 'WARN',
     })
     const task1 = new BenchmarkTask(connector1)
     const queueThroughput = await runQueueBenchmark(connector1, task1)
@@ -250,7 +250,7 @@ async function main() {
       token,
       hostAndPort,
       apiUrl,
-      logLevel: 'WARN'
+      logLevel: 'WARN',
     })
     const task2 = new BenchmarkTask(connector2)
     const e2eThroughput = await runE2EBenchmark(connector2, task2)
@@ -260,7 +260,7 @@ async function main() {
       token,
       hostAndPort,
       apiUrl,
-      logLevel: 'WARN'
+      logLevel: 'WARN',
     })
     const task3 = new BenchmarkTask(connector3)
     const latency = await runLatencyBenchmark(connector3, task3)

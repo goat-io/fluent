@@ -43,7 +43,7 @@ export async function addDataSource({
   dbPort,
   dbUser,
   engine,
-  restrictToGroupId
+  restrictToGroupId,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -56,14 +56,14 @@ export async function addDataSource({
     sessionToken,
     apiKey,
     endpoint: '/api/database',
-    method: 'GET'
+    method: 'GET',
   })
 
   const existingDatabases =
     (await existingDatabasesRes.json()) as MetabaseDatabaseListResponse
 
   const dbExists = existingDatabases.data.find(
-    db => db.name === dbNameInMetabase
+    db => db.name === dbNameInMetabase,
   )
 
   if (dbExists) {
@@ -76,11 +76,11 @@ export async function addDataSource({
           apiKey,
           groupId: restrictToGroupId,
           databaseId: dbExists.id,
-          allowAccess: true
+          allowAccess: true,
         })
       } catch (error) {
         console.warn(
-          `⚠️  Failed to set group permissions for existing database: ${error instanceof Error ? error.message : 'Unknown error'}`
+          `⚠️  Failed to set group permissions for existing database: ${error instanceof Error ? error.message : 'Unknown error'}`,
         )
       }
     }
@@ -103,18 +103,18 @@ export async function addDataSource({
       ...(engine === 'mysql' && {
         additional_options: null,
         use_compression: false,
-        use_ssl: false
+        use_ssl: false,
       }),
       // Additional Postgres-specific settings
       ...(engine === 'postgres' && {
         ssl_mode: 'prefer',
-        use_srv_lookup: false
-      })
+        use_srv_lookup: false,
+      }),
     },
     is_full_sync: true,
     is_on_demand: false,
     schedules: {},
-    auto_run_queries: true
+    auto_run_queries: true,
   }
 
   // Create database
@@ -124,7 +124,7 @@ export async function addDataSource({
     apiKey,
     endpoint: '/api/database',
     method: 'POST',
-    body: databaseConfig
+    body: databaseConfig,
   })
 
   const response = (await createResponse.json()) as MetabaseDatabase
@@ -138,11 +138,11 @@ export async function addDataSource({
         apiKey,
         groupId: restrictToGroupId,
         databaseId: response.id,
-        allowAccess: true
+        allowAccess: true,
       })
     } catch (error) {
       console.warn(
-        `⚠️  Failed to set group permissions for database: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `⚠️  Failed to set group permissions for database: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
       // Don't fail the entire operation if permissions can't be set
     }
@@ -154,11 +154,11 @@ export async function addDataSource({
       baseUrl,
       dbId: response.id,
       sessionToken,
-      apiKey
+      apiKey,
     })
   } catch (error) {
     console.warn(
-      `⚠️  Failed to enable actions for database: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `⚠️  Failed to enable actions for database: ${error instanceof Error ? error.message : 'Unknown error'}`,
     )
     // Don't fail the entire operation if actions can't be enabled
   }

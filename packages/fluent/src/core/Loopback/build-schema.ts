@@ -101,7 +101,7 @@ export interface JsonSchemaOptions<T extends object> {
  * @internal
  */
 export function buildModelCacheKey<T extends object>(
-  options: JsonSchemaOptions<T> = {}
+  options: JsonSchemaOptions<T> = {},
 ): string {
   // Backwards compatibility: preserve cache key "modelOnly"
   if (Object.keys(options).length === 0) {
@@ -121,12 +121,12 @@ export function buildModelCacheKey<T extends object>(
  */
 export function getJsonSchema<T extends object>(
   ctor: Function & { prototype: T },
-  options?: JsonSchemaOptions<T>
+  options?: JsonSchemaOptions<T>,
 ): SchemaObject {
   // In the near future the metadata will be an object with
   // different titles as keys
   const cached = MetadataInspector.getClassMetadata(JSON_SCHEMA_KEY, ctor, {
-    ownMetadataOnly: true
+    ownMetadataOnly: true,
   })
   const key = buildModelCacheKey(options)
   let schema = cached?.[key]
@@ -143,7 +143,7 @@ export function getJsonSchema<T extends object>(
       MetadataInspector.defineMetadata(
         JSON_SCHEMA_KEY.key,
         { [key]: schema },
-        ctor
+        ctor,
       )
     }
   }
@@ -176,7 +176,7 @@ export function getJsonSchema<T extends object>(
  */
 export function getJsonSchemaRef<T extends object>(
   modelCtor: Function & { prototype: T },
-  options?: JsonSchemaOptions<T>
+  options?: JsonSchemaOptions<T>,
 ): SchemaObject {
   const schemaWithDefinitions = getJsonSchema(modelCtor, options)
   const key = schemaWithDefinitions.title
@@ -193,7 +193,7 @@ export function getJsonSchemaRef<T extends object>(
 
   return {
     $ref: `#/definitions/${key}`,
-    definitions
+    definitions,
   }
 }
 
@@ -269,7 +269,7 @@ export function metaToJsonProperty(meta: PropertyDefinition): SchemaObject {
     if (isArrayType(meta.itemType) && !meta.jsonSchema) {
       throw new Error(
         'You must provide the "jsonSchema" field when define ' +
-          'a nested array property'
+          'a nested array property',
       )
     }
     result = { type: 'array', items: propDef }
@@ -284,13 +284,13 @@ export function metaToJsonProperty(meta: PropertyDefinition): SchemaObject {
   if (resolvedType === Date) {
     Object.assign(propDef, {
       type: 'string',
-      format: 'date-time'
+      format: 'date-time',
     })
   } else if (propertyType === 'any') {
     // no-op, the json schema for any type is {}
   } else if (isBuiltinType(resolvedType)) {
     Object.assign(propDef, {
-      type: resolvedType.name.toLowerCase()
+      type: resolvedType.name.toLowerCase(),
     })
   } else {
     Object.assign(propDef, { $ref: `#/definitions/${resolvedType.name}` })
@@ -298,7 +298,7 @@ export function metaToJsonProperty(meta: PropertyDefinition): SchemaObject {
 
   if (meta.description) {
     Object.assign(propDef, {
-      description: meta.description
+      description: meta.description,
     })
   }
 
@@ -316,13 +316,13 @@ export function metaToJsonProperty(meta: PropertyDefinition): SchemaObject {
  */
 export function getNavigationalPropertyForRelation(
   relMeta: RelationMetadata,
-  targetRef: SchemaObject
+  targetRef: SchemaObject,
 ): SchemaObject {
   if (relMeta.targetsMany === true) {
     // Targets an array of object, like, hasMany
     return {
       type: 'array',
-      items: targetRef
+      items: targetRef,
     }
   }
   if (relMeta.targetsMany === false) {
@@ -337,7 +337,7 @@ export function getNavigationalPropertyForRelation(
 function buildSchemaTitle<T extends object>(
   ctor: Function & { prototype: T },
   meta: ModelDefinition,
-  options: JsonSchemaOptions<T>
+  options: JsonSchemaOptions<T>,
 ) {
   if (options.title) {
     return options.title
@@ -372,7 +372,7 @@ function stringifyOptions(modelSettings: object = {}) {
   return inspect(modelSettings, {
     depth: Number.POSITIVE_INFINITY,
     maxArrayLength: Number.POSITIVE_INFINITY,
-    breakLength: Number.POSITIVE_INFINITY
+    breakLength: Number.POSITIVE_INFINITY,
   })
 }
 
@@ -388,7 +388,7 @@ function isEmptyJson(obj: object) {
  */
 function getDescriptionSuffix<T extends object>(
   typeName: string,
-  rawOptions: JsonSchemaOptions<T> = {}
+  rawOptions: JsonSchemaOptions<T> = {},
 ) {
   const options = { ...rawOptions }
 
@@ -412,7 +412,7 @@ function getDescriptionSuffix<T extends object>(
   if (options.optional) {
     const optionalProps = options.optional.map(p => `'${String(p)}'`)
     tsType = `@loopback/repository-json-schema#Optional<${tsType}, ${optionalProps.join(
-      ' | '
+      ' | ',
     )}>`
   }
 
@@ -431,7 +431,7 @@ function getDescriptionSuffix<T extends object>(
  */
 export function modelToJsonSchema<T extends object>(
   ctor: Function & { prototype: T },
-  jsonSchemaOptions: JsonSchemaOptions<T> = {}
+  jsonSchemaOptions: JsonSchemaOptions<T> = {},
 ): SchemaObject {
   const options = { ...jsonSchemaOptions }
   options.visited = options.visited ?? {}
@@ -486,7 +486,7 @@ export function modelToJsonSchema<T extends object>(
     if (meta.properties?.[p]?.type == null) {
       // Circular import of model classes can lead to this situation
       throw new Error(
-        `Property ${ctor.name}.${p} does not have "type" in its definition`
+        `Property ${ctor.name}.${p} does not have "type" in its definition`,
       )
     }
 
@@ -500,7 +500,7 @@ export function modelToJsonSchema<T extends object>(
 
     // populating "properties" key
     result.properties[p] = metaToJsonProperty(
-      metaProperty as PropertyDefinition
+      metaProperty as PropertyDefinition,
     )
 
     // handling 'required' metadata

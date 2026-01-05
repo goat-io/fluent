@@ -35,7 +35,7 @@ export class ProcessPool extends EventEmitter {
       maxWorkers: 4,
       idleTimeoutMs: 60000,
       warmupCommand: 'echo "ready"',
-      ...options
+      ...options,
     }
 
     // Start idle timeout checker
@@ -87,7 +87,7 @@ export class ProcessPool extends EventEmitter {
   async executeCommand(
     command: string,
     args: string[],
-    options: any
+    options: any,
   ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     const worker = await this.acquire()
 
@@ -136,7 +136,7 @@ export class ProcessPool extends EventEmitter {
       process: null as any,
       busy: false,
       lastUsed: Date.now(),
-      id: workerId
+      id: workerId,
     }
 
     this.workers.set(workerId, worker)
@@ -176,13 +176,13 @@ export class ProcessPool extends EventEmitter {
 
   getStats() {
     const busyWorkers = Array.from(this.workers.values()).filter(
-      w => w.busy
+      w => w.busy,
     ).length
     return {
       totalWorkers: this.workers.size,
       busyWorkers,
       idleWorkers: this.workers.size - busyWorkers,
-      queuedRequests: this.queue.length
+      queuedRequests: this.queue.length,
     }
   }
 }
@@ -194,7 +194,7 @@ export function getClaudeProcessPool(): ProcessPool {
   if (!claudeProcessPool) {
     claudeProcessPool = new ProcessPool({
       maxWorkers: Number.parseInt(process.env.CLAUDE_MAX_WORKERS || '3'),
-      idleTimeoutMs: 30000
+      idleTimeoutMs: 30000,
     })
   }
   return claudeProcessPool

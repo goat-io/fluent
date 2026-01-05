@@ -7,11 +7,11 @@ import { template as nestModule } from './templates/Nestjs/modules/module.hbs'
 
 const FrameworkTemplates = {
   Loopback4: loopback,
-  Nestjs: nestModule
+  Nestjs: nestModule,
 }
 export const loadedModules = (
   Models: FluentModel | FluentModel[],
-  framework: SupportedFrameworks
+  framework: SupportedFrameworks,
 ) => {
   const source = FrameworkTemplates[framework]
   const template = compile(source)
@@ -28,6 +28,6 @@ export const loadedModules = (
 
   return {
     file: result,
-    path: filePath
+    path: filePath,
   }
 }

@@ -45,13 +45,13 @@ export const GoatSchema = z.object({
   balance: z
     .object({
       id: z.number(),
-      value: z.number()
+      value: z.number(),
     })
     .optional(),
   breed: z
     .object({
       type: z.string(),
-      family: z.string()
+      family: z.string(),
     })
     .optional(),
   created: z
@@ -79,7 +79,7 @@ export const GoatSchema = z.object({
         return new Date(val)
       }
       return val
-    })
+    }),
 })
 
 export type GoatInputSchema = z.infer<typeof GoatSchema>

@@ -33,7 +33,7 @@ export class RiskGuard {
       maxTokensPerTurn: config.maxTokensPerTurn || 2000,
       cycleSimilarityThreshold: config.cycleSimilarityThreshold || 0.9,
       maxErrorsBeforeCircuitBreak: config.maxErrorsBeforeCircuitBreak || 3,
-      errorWindowMs: config.errorWindowMs || 600000 // 10 minutes
+      errorWindowMs: config.errorWindowMs || 600000, // 10 minutes
     }
 
     this.agentMetrics = new Map()
@@ -48,7 +48,7 @@ export class RiskGuard {
       this.checkCyclicalArguments(context),
       this.checkCircuitBreaker(),
       this.checkPayloadSize(context),
-      this.checkTimeouts(context)
+      this.checkTimeouts(context),
     ]
 
     for (const check of checks) {
@@ -66,7 +66,7 @@ export class RiskGuard {
   private checkTokenBudget(context: AgreementContext): RiskCheckResult {
     const currentTurnMessages = this.getMessagesByTurn(
       context.messages,
-      context.turnCount
+      context.turnCount,
     )
     const turnTokens = currentTurnMessages.reduce((sum, msg) => {
       return sum + (msg.tokenUsage?.total || 0)
@@ -79,8 +79,8 @@ export class RiskGuard {
         recommendations: [
           'Reduce prompt complexity',
           'Use smaller models for simple tasks',
-          'Implement prompt compression'
-        ]
+          'Implement prompt compression',
+        ],
       }
     }
 
@@ -102,7 +102,7 @@ export class RiskGuard {
 
     const similarity = this.calculateJaccardSimilarity(
       JSON.stringify(lastTwoRounds[0]),
-      JSON.stringify(lastTwoRounds[1])
+      JSON.stringify(lastTwoRounds[1]),
     )
 
     if (similarity > this.config.cycleSimilarityThreshold) {
@@ -112,8 +112,8 @@ export class RiskGuard {
         recommendations: [
           'Introduce new perspectives',
           'Switch to arbiter resolution',
-          'Abort and use fallback agent'
-        ]
+          'Abort and use fallback agent',
+        ],
       }
     }
 
@@ -137,8 +137,8 @@ export class RiskGuard {
           recommendations: [
             'Use fallback agent',
             'Reduce request rate',
-            'Check agent health'
-          ]
+            'Check agent health',
+          ],
         }
       }
     }
@@ -154,7 +154,7 @@ export class RiskGuard {
 
     for (const message of context.messages) {
       const sizeBytes = new TextEncoder().encode(
-        JSON.stringify(message.payload)
+        JSON.stringify(message.payload),
       ).length
       const sizeMB = sizeBytes / (1024 * 1024)
 
@@ -165,8 +165,8 @@ export class RiskGuard {
           recommendations: [
             'Compress payload content',
             'Split into multiple messages',
-            'Use reference IDs instead of full content'
-          ]
+            'Use reference IDs instead of full content',
+          ],
         }
       }
     }
@@ -194,8 +194,8 @@ export class RiskGuard {
         recommendations: [
           'Skip to voting phase',
           'Use faster decision method',
-          'Reduce remaining iterations'
-        ]
+          'Reduce remaining iterations',
+        ],
       }
     }
 
@@ -245,7 +245,7 @@ export class RiskGuard {
       this.agentMetrics.set(agentId, {
         tokenUsage: [],
         errors: [],
-        lastMessages: []
+        lastMessages: [],
       })
     }
     return this.agentMetrics.get(agentId)!
@@ -253,7 +253,7 @@ export class RiskGuard {
 
   private getMessagesByTurn(
     messages: AgreementMessage[],
-    turn: number
+    turn: number,
   ): AgreementMessage[] {
     // Simple heuristic: messages are grouped by state cycles
     const turnsMessages: AgreementMessage[][] = []
@@ -322,7 +322,7 @@ export class RiskGuard {
             : 0,
         totalErrors: agentMetrics.errors.length,
         recentErrors: agentMetrics.errors.filter(t => t > Date.now() - 60000)
-          .length
+          .length,
       }
     }
 

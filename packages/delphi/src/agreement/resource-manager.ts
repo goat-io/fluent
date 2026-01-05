@@ -22,8 +22,8 @@ export class ResourceManager {
       name: 'delphi-agreement',
       level: process.env.LOG_LEVEL || 'info',
       formatters: {
-        level: label => ({ level: label })
-      }
+        level: label => ({ level: label }),
+      },
     })
   }
 
@@ -123,7 +123,7 @@ export class ResourceManager {
     return {
       adapters: this.adapters.size,
       agents: this.agents.size,
-      memory: process.memoryUsage()
+      memory: process.memoryUsage(),
     }
   }
 

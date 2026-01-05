@@ -3,7 +3,7 @@ import type { TaskConnector, UnknownInputType } from '../ShouldQueue.types.js'
 import type {
   ConnectorFactory,
   TestFramework,
-  TestSuiteOptions
+  TestSuiteOptions,
 } from './types.js'
 import { delay, waitForTaskCompletion } from './utils.js'
 
@@ -35,7 +35,7 @@ export function createSuccessTask(connector: TaskConnector<{ text: string }>) {
  * Creates a test task that fails
  */
 export function createFailingTask(
-  connector: TaskConnector<{ text: string; shouldFail?: boolean }>
+  connector: TaskConnector<{ text: string; shouldFail?: boolean }>,
 ) {
   return class FailingTask extends ShouldQueue<{
     text: string
@@ -81,7 +81,7 @@ export function taskConnectorLifecycleTests(
      * Should return a cleanup function.
      */
     startWorker?: (tasks: ShouldQueue[]) => Promise<() => Promise<void>>
-  } = {}
+  } = {},
 ) {
   const opts = {
     taskCompletionTimeout: options.taskCompletionTimeout ?? 10000,
@@ -91,7 +91,7 @@ export function taskConnectorLifecycleTests(
     supportsScheduling: options.supportsScheduling ?? false,
     cleanup: options.cleanup,
     setup: options.setup,
-    startWorker: options.startWorker
+    startWorker: options.startWorker,
   }
 
   // Skip lifecycle tests if not enabled or no startWorker provided
@@ -140,7 +140,7 @@ export function taskConnectorLifecycleTests(
       'task should eventually reach COMPLETED status',
       async () => {
         const queuedStatus = await successTask.queue({
-          text: 'completion test'
+          text: 'completion test',
         })
         test.expect(queuedStatus.status).toBe('QUEUED')
 
@@ -148,13 +148,13 @@ export function taskConnectorLifecycleTests(
           () => successTask.getStatus(queuedStatus.id),
           {
             timeout: opts.taskCompletionTimeout,
-            interval: opts.statusCheckInterval
-          }
+            interval: opts.statusCheckInterval,
+          },
         )
 
         test.expect(finalStatus.status).toBe('COMPLETED')
       },
-      opts.taskCompletionTimeout + 5000
+      opts.taskCompletionTimeout + 5000,
     )
 
     test.it(
@@ -168,15 +168,15 @@ export function taskConnectorLifecycleTests(
           () => successTask.getStatus(queuedStatus.id),
           {
             timeout: opts.taskCompletionTimeout,
-            interval: opts.statusCheckInterval
-          }
+            interval: opts.statusCheckInterval,
+          },
         )
 
         test.expect(finalStatus.status).toBe('COMPLETED')
         test.expect(finalStatus.payload).toBeDefined()
         test.expect((finalStatus.payload as any).text).toBe(payload.text)
       },
-      opts.taskCompletionTimeout + 5000
+      opts.taskCompletionTimeout + 5000,
     )
 
     test.it(
@@ -184,20 +184,20 @@ export function taskConnectorLifecycleTests(
       async () => {
         const queuedStatus = await failingTask.queue({
           text: 'failure test',
-          shouldFail: true
+          shouldFail: true,
         })
 
         const finalStatus = await waitForTaskCompletion(
           () => failingTask.getStatus(queuedStatus.id),
           {
             timeout: opts.taskCompletionTimeout,
-            interval: opts.statusCheckInterval
-          }
+            interval: opts.statusCheckInterval,
+          },
         )
 
         test.expect(finalStatus.status).toBe('FAILED')
       },
-      opts.taskCompletionTimeout + 5000
+      opts.taskCompletionTimeout + 5000,
     )
 
     test.it(
@@ -207,7 +207,7 @@ export function taskConnectorLifecycleTests(
         const statuses = await Promise.all([
           successTask.queue({ text: 'multi test 1' }),
           successTask.queue({ text: 'multi test 2' }),
-          successTask.queue({ text: 'multi test 3' })
+          successTask.queue({ text: 'multi test 3' }),
         ])
 
         // All should be queued initially
@@ -225,9 +225,9 @@ export function taskConnectorLifecycleTests(
           statuses.map(s =>
             waitForTaskCompletion(() => successTask.getStatus(s.id), {
               timeout: opts.taskCompletionTimeout,
-              interval: opts.statusCheckInterval
-            })
-          )
+              interval: opts.statusCheckInterval,
+            }),
+          ),
         )
 
         // All should complete
@@ -235,7 +235,7 @@ export function taskConnectorLifecycleTests(
           test.expect(status.status).toBe('COMPLETED')
         }
       },
-      opts.taskCompletionTimeout * 2 + 5000
+      opts.taskCompletionTimeout * 2 + 5000,
     )
 
     test.it(
@@ -248,15 +248,15 @@ export function taskConnectorLifecycleTests(
           () => successTask.getStatus(queuedStatus.id),
           {
             timeout: opts.taskCompletionTimeout,
-            interval: opts.statusCheckInterval
-          }
+            interval: opts.statusCheckInterval,
+          },
         )
 
         // After completion, attempts should be at least 1
         // (some systems count differently)
         test.expect(finalStatus.attempts).toBeGreaterThanOrEqual(0)
       },
-      opts.taskCompletionTimeout + 5000
+      opts.taskCompletionTimeout + 5000,
     )
   })
 }

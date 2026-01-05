@@ -10,7 +10,7 @@ export class GoatRepository extends TypeOrmConnector<
     super({
       entity: GoatEntity,
       dataSource: MemoryDataSource,
-      inputSchema: GoatSchema
+      inputSchema: GoatSchema,
     })
   }
 }

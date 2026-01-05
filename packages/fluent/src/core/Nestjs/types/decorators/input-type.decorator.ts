@@ -33,14 +33,14 @@ export function InputType(options: InputTypeOptions): ClassDecorator
  */
 export function InputType(
   name: string,
-  options?: InputTypeOptions
+  options?: InputTypeOptions,
 ): ClassDecorator
 /**
  * Decorator that marks a class as a GraphQL input type.
  */
 export function InputType(
   nameOrOptions?: string | InputTypeOptions,
-  inputTypeOptions?: InputTypeOptions
+  inputTypeOptions?: InputTypeOptions,
 ): ClassDecorator {
   const [name, options = {}] = isString(nameOrOptions)
     ? [nameOrOptions, inputTypeOptions]
@@ -51,10 +51,10 @@ export function InputType(
       target: target as unknown as new (...args: any[]) => any,
       name: name || target.name,
       description: options.description,
-      isAbstract: options.isAbstract
+      isAbstract: options.isAbstract,
     }
     LazyMetadataStorage.store(() =>
-      TypeMetadataStorage.addInputTypeMetadata(metadata)
+      TypeMetadataStorage.addInputTypeMetadata(metadata),
     )
     addClassTypeMetadata(target, ClassType.Input)
   }

@@ -10,7 +10,7 @@ import { FormioForm } from '../types/FormioForm'
 const getSelectResources = (Form: FormioForm): FormioComponent[] => {
   const selects = findComponents(Form.components, {
     dataSrc: 'resource',
-    type: 'select'
+    type: 'select',
   })
 
   return selects
@@ -22,13 +22,13 @@ const getSelectResources = (Form: FormioForm): FormioComponent[] => {
  */
 const getRelatedFormPathById = ({
   Forms,
-  id
+  id,
 }: {
   Forms: FormioForm[]
   id: string
 }): string => {
   const form = Forms.find(
-    f => String(f.id) === String(id) || String(f.id) === String(id)
+    f => String(f.id) === String(id) || String(f.id) === String(id),
   )
 
   if (!form) {
@@ -45,7 +45,7 @@ const getRelatedFormPathById = ({
 const createRelations = ({
   formPath,
   relatedPath,
-  relatedComponent
+  relatedComponent,
 }: {
   formPath: string
   relatedPath: string
@@ -56,7 +56,7 @@ const createRelations = ({
     primaryKey:
       relatedComponent.valueProperty === 'id'
         ? 'id'
-        : relatedComponent.valueProperty
+        : relatedComponent.valueProperty,
   }
 
   return {
@@ -67,7 +67,7 @@ const createRelations = ({
         ? 'hasManyEmbededDG'
         : relatedComponent.multiple
           ? 'hasManyEmbeded'
-          : 'hasMany'
+          : 'hasMany',
     },
     relation: {
       ...baseRelation,
@@ -76,8 +76,8 @@ const createRelations = ({
         ? 'EmbedsManyDG'
         : relatedComponent.multiple
           ? 'EmbedsMany'
-          : 'belongsTo'
-    }
+          : 'belongsTo',
+    },
   }
 }
 
@@ -106,7 +106,7 @@ export const getRelations = (Forms: FormioForm[]) => {
 
       const relatedModelPath = getRelatedFormPathById({
         Forms,
-        id: relatedField.data.resource
+        id: relatedField.data.resource,
       })
 
       if (!relations[Form.path]) {
@@ -120,7 +120,7 @@ export const getRelations = (Forms: FormioForm[]) => {
       const createdRelations = createRelations({
         formPath: Form.path,
         relatedPath: relatedModelPath,
-        relatedComponent: relatedField
+        relatedComponent: relatedField,
       })
 
       relations[Form.path].push(createdRelations.relation)
@@ -139,7 +139,7 @@ export const getRelations = (Forms: FormioForm[]) => {
     // We dont want to include N to M relations
     // from previous iterations
     const validRelations = relations[Form.path].filter(
-      r => r.type !== 'belongsToMany'
+      r => r.type !== 'belongsToMany',
     )
 
     // Define ManyToMany if needed
@@ -156,7 +156,7 @@ export const getRelations = (Forms: FormioForm[]) => {
         pivotTable: Form.path,
         primaryKey: model.primaryKey,
         primaryKeyJoin: relatedModel.primaryKey,
-        type: 'belongsToMany'
+        type: 'belongsToMany',
       }
 
       // Define Inverse Relation
@@ -167,7 +167,7 @@ export const getRelations = (Forms: FormioForm[]) => {
         pivotTable: Form.path,
         primaryKey: relatedModel.primaryKey,
         primaryKeyJoin: model.primaryKey,
-        type: 'belongsToMany'
+        type: 'belongsToMany',
       }
 
       relations[model.name].push(relation)

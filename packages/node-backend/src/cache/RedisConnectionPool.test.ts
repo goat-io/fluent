@@ -118,7 +118,7 @@ describe('RedisConnectionPool', () => {
 
     it('should handle disconnect of non-existent connection gracefully', async () => {
       await expect(
-        pool.disconnect('redis://non-existent:6379')
+        pool.disconnect('redis://non-existent:6379'),
       ).resolves.not.toThrow()
     })
 

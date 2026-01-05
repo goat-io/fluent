@@ -5,7 +5,7 @@ import type { JobDescription } from '../types/job'
 import type {
   MessageBroker,
   MessageProducer,
-  MessageSubscriber
+  MessageSubscriber,
 } from '../types/message'
 
 export class KafkaBroker implements MessageBroker {
@@ -25,22 +25,22 @@ export class KafkaBroker implements MessageBroker {
   async publish({
     queueName: _queueName,
     data,
-    topic = 'default'
+    topic = 'default',
   }: MessageProducer): Promise<boolean> {
     if (!this.producer) {
       throw new Error(
-        'Kafka producer is not connected. Did you call the connect() method?'
+        'Kafka producer is not connected. Did you call the connect() method?',
       )
     }
 
     const message = {
       key: randomUUID(),
-      value: JSON.stringify(data)
+      value: JSON.stringify(data),
     }
 
     await this.producer.send({
       topic,
-      messages: [message]
+      messages: [message],
     })
 
     return true
@@ -49,7 +49,7 @@ export class KafkaBroker implements MessageBroker {
   async subscribe({
     queueName,
     handle,
-    topics = ['default']
+    topics = ['default'],
   }: MessageSubscriber): Promise<void> {
     this.consumer = this.kafka.consumer({ groupId: queueName })
     await this.consumer.connect()
@@ -66,14 +66,14 @@ export class KafkaBroker implements MessageBroker {
           data,
           id: message.key?.toString() || '',
           instance: message,
-          name: topic
+          name: topic,
         }
 
         const [error] = await Promises.try(handle(jobDescription))
         if (error) {
           console.error('Could not process the job', message)
         }
-      }
+      },
     })
   }
 

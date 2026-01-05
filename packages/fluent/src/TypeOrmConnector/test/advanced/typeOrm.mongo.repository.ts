@@ -3,7 +3,7 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import {
   TypeORMDataModel,
   TypeORMDataModelInputSchema,
-  TypeORMDataModelSchema
+  TypeORMDataModelSchema,
 } from './typeOrm.entity'
 
 export class TypeOrmRepository extends TypeOrmConnector<
@@ -19,7 +19,7 @@ export class TypeOrmRepository extends TypeOrmConnector<
           throw new Error('DataSource not provided to TypeOrmRepository')
         }),
       inputSchema: TypeORMDataModelSchema,
-      outputSchema: TypeORMDataModelSchema
+      outputSchema: TypeORMDataModelSchema,
     })
   }
 }

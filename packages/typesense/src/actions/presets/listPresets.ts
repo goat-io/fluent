@@ -2,7 +2,7 @@ import type { TypesenseContext } from '../../types'
 import type { TypesensePresetResponse } from '../../typesense.model'
 
 export async function listPresets(
-  ctx: TypesenseContext
+  ctx: TypesenseContext,
 ): Promise<{ presets: TypesensePresetResponse[] }> {
   const response = await ctx.httpClient.request<{
     presets: TypesensePresetResponse[]
@@ -12,13 +12,13 @@ export async function listPresets(
   if (ctx.tenantId) {
     const tenantPrefix = `${ctx.tenantId}__`
     const filteredPresets = response.presets.filter(preset =>
-      preset.name.startsWith(tenantPrefix)
+      preset.name.startsWith(tenantPrefix),
     )
 
     // Remove tenant prefix from names for clean API response
     const cleanedPresets = filteredPresets.map(preset => ({
       ...preset,
-      name: preset.name.substring(tenantPrefix.length)
+      name: preset.name.substring(tenantPrefix.length),
     }))
 
     return { presets: cleanedPresets }

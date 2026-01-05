@@ -13,7 +13,7 @@ let Car: CarsRepository
 let Role: RoleRepository
 // User, Cars, Roles
 export const relationsTestSuite = (
-  dataSourceOrRepoClasses?: DataSource | any | (() => DataSource)
+  dataSourceOrRepoClasses?: DataSource | any | (() => DataSource),
 ) => {
   beforeAll(() => {
     // Get the data source
@@ -46,16 +46,16 @@ export const relationsTestSuite = (
   const insertRelatedData = async () => {
     const insertedUser = await User.insert({
       name: 'testUser1',
-      age: 20
+      age: 20,
     })
 
     await User.insert({
       name: 'anotherUser 2',
-      age: 24
+      age: 24,
     })
 
     const adminRole = await Role.insert({
-      name: 'Administrator'
+      name: 'Administrator',
     })
 
     const user = await User.loadById(insertedUser.id)
@@ -77,7 +77,7 @@ export const relationsTestSuite = (
   test('requireById - Should return valid Object', async () => {
     const insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     expect(typeof insertedUser.id).toBe('string')
@@ -90,11 +90,11 @@ export const relationsTestSuite = (
   test('requireById - Should fail if not found', async () => {
     const _insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     const [error, _found] = await Promises.try(
-      User.requireById('62ed01e4219a6ab760ae5c50')
+      User.requireById('62ed01e4219a6ab760ae5c50'),
     )
 
     expect(error?.message).toBe('Object 62ed01e4219a6ab760ae5c50 not found')
@@ -103,15 +103,15 @@ export const relationsTestSuite = (
   test('loadFirst - Should return a cloned class', async () => {
     const insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     expect(typeof insertedUser.id).toBe('string')
 
     const user = User.loadFirst({
       where: {
-        id: insertedUser.id
-      }
+        id: insertedUser.id,
+      },
     })
 
     expect(Array.isArray(user)).toBe(false)
@@ -122,11 +122,11 @@ export const relationsTestSuite = (
   test('Attach - Many to Many - Should relate Data', async () => {
     const insertedUser = await User.insert({
       name: 'testUser1',
-      age: 20
+      age: 20,
     })
 
     const adminRole = await Role.insert({
-      name: 'Administrator'
+      name: 'Administrator',
     })
 
     const user = await User.loadById(insertedUser.id)
@@ -139,7 +139,7 @@ export const relationsTestSuite = (
   test('Associate - OneToMany - Should  insert data', async () => {
     const insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     expect(typeof insertedUser.id).toBe('string')
@@ -156,7 +156,7 @@ export const relationsTestSuite = (
   test('Associate - OneToMany - Should relate existing model', async () => {
     const insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     expect(typeof insertedUser.id).toBe('string')
@@ -176,7 +176,7 @@ export const relationsTestSuite = (
   test('Query related model - OneToMany (belongsToMany)', async () => {
     const insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     expect(typeof insertedUser.id).toBe('string')
@@ -190,8 +190,8 @@ export const relationsTestSuite = (
     const searchUserWithRelation = await User.findMany({
       where: { id: insertedUser.id },
       include: {
-        cars: true
-      }
+        cars: true,
+      },
     })
 
     const firstResult = searchUserWithRelation[0]!
@@ -203,7 +203,7 @@ export const relationsTestSuite = (
 
     const searchCar = await user1.cars().findMany({
       where: { name: 'My new car' },
-      include: { user: true }
+      include: { user: true },
     })
 
     expect(Array.isArray(searchCar)).toBe(true)
@@ -221,7 +221,7 @@ export const relationsTestSuite = (
   test('Query related model - ManyToOne (BelongsTo)', async () => {
     const insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     expect(typeof insertedUser.id).toBe('string')
@@ -232,11 +232,11 @@ export const relationsTestSuite = (
 
     const results = await Car.findMany({
       where: {
-        userId: insertedUser.id
+        userId: insertedUser.id,
       },
       include: {
-        user: true
-      }
+        user: true,
+      },
     })
 
     expect(Array.isArray(results)).toBe(true)
@@ -251,7 +251,7 @@ export const relationsTestSuite = (
 
     const searchUserWithRelations = await User.findMany({
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         cars: {
@@ -260,14 +260,14 @@ export const relationsTestSuite = (
               include: {
                 cars: {
                   include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
     // Filter by id should load 1 result
     expect(searchUserWithRelations.length).toBe(1)
@@ -278,16 +278,16 @@ export const relationsTestSuite = (
     // Expect nested user to be the inserted one
     expect(searchUserWithRelations[0].cars![0].user?.id).toBe(insertedUser.id)
     expect(searchUserWithRelations[0].cars![0].user?.name).toBe(
-      insertedUser.name
+      insertedUser.name,
     )
 
     // Expect the top level user, to be the same as the bottom level user
 
     expect(searchUserWithRelations[0].cars![0].user?.id).toBe(
-      searchUserWithRelations[0].id
+      searchUserWithRelations[0].id,
     )
     expect(searchUserWithRelations[0].cars![0].user?.name).toBe(
-      searchUserWithRelations[0].name
+      searchUserWithRelations[0].name,
     )
 
     // Expect double nested to exist
@@ -295,7 +295,7 @@ export const relationsTestSuite = (
 
     // Expect triple nested to load user
     expect(searchUserWithRelations[0].cars![0].user?.cars![0].user?.id).toBe(
-      searchUserWithRelations[0].id
+      searchUserWithRelations[0].id,
     )
   })
 
@@ -303,34 +303,34 @@ export const relationsTestSuite = (
     const { insertedUser } = await insertRelatedData()
     const searchUserWithRelations = await User.findMany({
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         // Left Join
         cars: {
           select: {
             name: true,
-            id: true
+            id: true,
           },
           where: {
-            name: 'My new car 4'
+            name: 'My new car 4',
           },
           include: {
             user: {
               include: {
                 cars: {
                   where: {
-                    name: 'My new car XXXxX'
+                    name: 'My new car XXXxX',
                   },
                   include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
 
     expect(searchUserWithRelations[0].cars?.length).toBe(2)
@@ -342,15 +342,15 @@ export const relationsTestSuite = (
     const { insertedUser } = await insertRelatedData()
     const searchUserWithRelations = await User.findMany({
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         cars: {
           where: {
-            name: 'My new car XX'
-          }
-        }
-      }
+            name: 'My new car XX',
+          },
+        },
+      },
     })
 
     expect(Array.isArray(searchUserWithRelations[0].cars)).toBe(true)
@@ -361,27 +361,27 @@ export const relationsTestSuite = (
     const { insertedUser } = await insertRelatedData()
     const insertedCars = await Car.findMany({
       where: {
-        userId: insertedUser.id
+        userId: insertedUser.id,
       },
       select: {
         id: true,
         name: true,
         userId: true,
-        user: true
+        user: true,
       },
       include: {
         // Left Join
         user: {
           where: {
-            name: 'JOHN'
-          }
-        }
-      }
+            name: 'JOHN',
+          },
+        },
+      },
     })
 
     // TODO: $unwind is not returning null in MongoDB, this is most likely a problem with our query
     expect(
-      insertedCars[0].user === null || insertedCars[0].user === undefined
+      insertedCars[0].user === null || insertedCars[0].user === undefined,
     ).toBe(true)
     expect(insertedCars.length).toBe(4)
   })
@@ -400,41 +400,41 @@ export const relationsTestSuite = (
             cars: {
               id: true,
               user: true,
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       },
       // Inner join
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         // Left Join
         cars: {
           select: {
             name: true,
-            id: true
+            id: true,
           },
           where: {
-            name: 'My new car XXX'
+            name: 'My new car XXX',
           },
           include: {
             user: {
               include: {
                 cars: {
                   where: {
-                    name: 'My new car XXXxX'
+                    name: 'My new car XXXxX',
                   },
                   include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
     expect(searchUserWithRelations[0].id).toBe(insertedUser.id)
     expect(searchUserWithRelations[0].name).toBe(insertedUser.name)
@@ -456,41 +456,41 @@ export const relationsTestSuite = (
             cars: {
               id: true,
               user: true,
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       },
       // Inner join
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         // Left Join
         cars: {
           select: {
             name: true,
-            id: true
+            id: true,
           },
           where: {
-            name: 'My new car 4'
+            name: 'My new car 4',
           },
           include: {
             user: {
               include: {
                 cars: {
                   where: {
-                    name: 'My new car XXXxX'
+                    name: 'My new car XXXxX',
                   },
                   include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
 
     expect(searchUserWithRelations[0]).toHaveProperty('age')
@@ -513,44 +513,44 @@ export const relationsTestSuite = (
             cars: {
               id: true,
               user: true,
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       },
       // Inner join
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         // Left Join
         cars: {
           select: {
-            name: true
+            name: true,
           },
           where: {
-            name: 'My new car 4'
+            name: 'My new car 4',
           },
           include: {
             user: {
               select: {
                 id: true,
-                name: true
+                name: true,
               },
               include: {
                 cars: {
                   where: {
-                    name: 'My new car XXXxX'
+                    name: 'My new car XXXxX',
                   },
                   include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
 
     expect(searchUserWithRelations[0].cars![0]).not.toHaveProperty('id')
@@ -577,41 +577,41 @@ export const relationsTestSuite = (
             cars: {
               id: true,
               user: true,
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       },
       // Inner join
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         // Left Join
         cars: {
           select: {
             name: true,
-            id: true
+            id: true,
           },
           where: {
-            name: 'My new car 4'
+            name: 'My new car 4',
           },
           include: {
             user: {
               include: {
                 cars: {
                   where: {
-                    name: 'My new car XXXxX'
+                    name: 'My new car XXXxX',
                   },
                   include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
   })
 
@@ -629,54 +629,54 @@ export const relationsTestSuite = (
             cars: {
               id: true,
               user: true,
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       },
       // Inner join
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         // Left Join
         cars: {
           select: {
             name: true,
-            id: true
+            id: true,
           },
           where: {
-            name: 'My new car 4'
+            name: 'My new car 4',
           },
           include: {
             user: {
               include: {
                 cars: {
                   where: {
-                    name: 'My new car XXXxX'
+                    name: 'My new car XXXxX',
                   },
                   include: {
-                    user: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
   })
 
   test('Query related model - ManyToMany', async () => {
     const insertedUser = await User.insert({
       name: 'testUser',
-      age: 20
+      age: 20,
     })
 
     expect(typeof insertedUser.id).toBe('string')
 
     const adminRole = await Role.insert({
-      name: 'Administrator'
+      name: 'Administrator',
     })
 
     const user = await User.loadById(insertedUser.id!)
@@ -688,13 +688,13 @@ export const relationsTestSuite = (
 
     const searchUserWithRelation = await User.findMany({
       where: {
-        id: insertedUser.id
+        id: insertedUser.id,
       },
       include: {
         roles: {
-          withPivot: true
-        }
-      }
+          withPivot: true,
+        },
+      },
     })
 
     expect(Array.isArray(searchUserWithRelation[0].roles)).toBe(true)
@@ -706,11 +706,11 @@ export const relationsTestSuite = (
     // Query the opposite relation
     const roles = await Role.findMany({
       where: {
-        name: 'Administrator'
+        name: 'Administrator',
       },
       include: {
-        users: { withPivot: true }
-      }
+        users: { withPivot: true },
+      },
     })
 
     expect(Array.isArray(roles)).toBe(true)
@@ -725,7 +725,7 @@ export const relationsTestSuite = (
     expect(
       roles.some(r => {
         return r.users!.some(u => u.id === insertedUser.id)
-      })
+      }),
     ).toBe(true)
   })
 }

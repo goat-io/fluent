@@ -4,12 +4,12 @@ import type {
   TaskConnector,
   TaskStatus,
   TenantCredentials,
-  UnknownInputType
+  UnknownInputType,
 } from './ShouldQueue.types'
 
 export abstract class ShouldQueue<
   TInput extends InputType = UnknownInputType,
-  TResult extends OutputType = undefined
+  TResult extends OutputType = undefined,
 > {
   public abstract readonly taskName: string
   public abstract readonly postUrl: string
@@ -22,7 +22,7 @@ export abstract class ShouldQueue<
 
   constructor({
     connector,
-    basePostUrl
+    basePostUrl,
   }: {
     connector: TaskConnector<TInput>
     basePostUrl?: string
@@ -50,7 +50,7 @@ export abstract class ShouldQueue<
         ? `${this.basePostUrl}${this.postUrl}`
         : this.postUrl,
       taskBody,
-      handle: this.handle.bind(this)
+      handle: this.handle.bind(this),
     })
   }
 
@@ -68,7 +68,7 @@ export abstract class ShouldQueue<
    */
   forTenant(
     tenantId: string,
-    credentials?: TenantCredentials
+    credentials?: TenantCredentials,
   ): this | undefined {
     if (!this.connector.forTenant) {
       return undefined
@@ -84,7 +84,7 @@ export abstract class ShouldQueue<
 
     return new TenantTask({
       connector: tenantConnector,
-      basePostUrl: this.basePostUrl
+      basePostUrl: this.basePostUrl,
     })
   }
 }

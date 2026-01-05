@@ -5,7 +5,7 @@ import { createTenantQualifiedName } from '../../utils/tenant'
 export async function createOrUpdateAlias(
   ctx: TypesenseContext,
   aliasName: string,
-  collectionName: string
+  collectionName: string,
 ): Promise<TypesenseAliasResponse> {
   // Apply tenant prefix to alias name if tenant is set
   const qualifiedAliasName = createTenantQualifiedName(ctx.tenantId, aliasName)
@@ -17,7 +17,7 @@ export async function createOrUpdateAlias(
     `/aliases/${qualifiedAliasName}`,
     {
       method: 'PUT',
-      body: { collection_name: qualifiedCollectionName }
-    }
+      body: { collection_name: qualifiedCollectionName },
+    },
   )
 }

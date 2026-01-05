@@ -9,29 +9,29 @@ export interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   /// Id
   findById<T extends FindByIdFilter<ModelDTO>>(
     id: string,
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null>
 
   findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
 
   /// Find
   findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
   findFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null>
 
   /// Require
   requireById(
     id: string,
-    q?: FindByIdFilter<ModelDTO>
+    q?: FindByIdFilter<ModelDTO>,
   ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>>
   requireFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>>
 
   // Update

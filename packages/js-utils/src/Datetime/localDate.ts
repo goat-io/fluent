@@ -5,7 +5,7 @@ import type {
   IsoDateString,
   IsoDateTimeString,
   UnixTimestampMillisNumber,
-  UnixTimestampNumber
+  UnixTimestampNumber,
 } from '../types'
 import { LocalTime } from './localTime'
 
@@ -28,7 +28,7 @@ export class LocalDate {
   private constructor(
     private _year: number,
     private _month: number,
-    private _day: number
+    private _day: number,
   ) {}
 
   static create(year: number, month: number, day: number): LocalDate {
@@ -53,7 +53,7 @@ export class LocalDate {
     const [year, month, day] = [
       d.slice(0, 4),
       d.slice(4, 2),
-      d.slice(6, 2)
+      d.slice(6, 2),
     ].map(Number)
 
     if (!day || !month || !year) {
@@ -71,7 +71,7 @@ export class LocalDate {
     return new LocalDate(
       d.getUTCFullYear(),
       d.getUTCMonth() + 1,
-      d.getUTCDate()
+      d.getUTCDate(),
     )
   }
 
@@ -131,7 +131,7 @@ export class LocalDate {
   static sort(
     items: LocalDate[],
     mutate = false,
-    descending = false
+    descending = false,
   ): LocalDate[] {
     const mod = descending ? -1 : 1
     return (mutate ? items : [...items]).sort((a, b) => a.cmp(b) * mod)
@@ -166,7 +166,7 @@ export class LocalDate {
     max: LocalDateConfig,
     incl: Inclusiveness = '[)',
     step = 1,
-    stepUnit: LocalDateUnit = 'day'
+    stepUnit: LocalDateUnit = 'day',
   ): LocalDate[] {
     let actualStep = step
     const actualStepUnit: LocalDateUnitStrict =
@@ -263,7 +263,7 @@ export class LocalDate {
   isBetween(
     min: LocalDateConfig,
     max: LocalDateConfig,
-    incl: Inclusiveness = '[)'
+    incl: Inclusiveness = '[)',
   ): boolean {
     let r = this.cmp(min)
     if (r < 0 || (r === 0 && incl[0] === '(')) {
@@ -477,7 +477,7 @@ export class LocalDate {
       return LocalDate.create(
         this._year,
         this._month,
-        LocalDate.getMonthLength(this._year, this._month)
+        LocalDate.getMonthLength(this._year, this._month),
       )
     }
     // year
@@ -532,7 +532,7 @@ export class LocalDate {
     return [
       String(this._year).padStart(4, '0'),
       String(this._month).padStart(2, '0'),
-      String(this._day).padStart(2, '0')
+      String(this._day).padStart(2, '0'),
     ].join('-')
   }
 
@@ -540,7 +540,7 @@ export class LocalDate {
     return [
       String(this._year).padStart(4, '0'),
       String(this._month).padStart(2, '0'),
-      String(this._day).padStart(2, '0')
+      String(this._day).padStart(2, '0'),
     ].join('')
   }
 

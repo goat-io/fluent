@@ -8,7 +8,7 @@ const charsets = {
   numbers: '0123456789',
   lowercase: 'abcdefghijklmnopqrstuvwxyz',
   uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  symbols: '!#$%&()+,-.<=>?@^_'
+  symbols: '!#$%&()+,-.<=>?@^_',
 }
 
 export interface GeneratedKeyPair {
@@ -73,9 +73,9 @@ class SecurityClass {
         const decipher = crypto.createDecipheriv(defaultAlgorithm, key, iv)
         return [
           k,
-          decipher.update(v, 'base64', 'utf8') + decipher.final('utf8')
+          decipher.update(v, 'base64', 'utf8') + decipher.final('utf8'),
         ]
-      })
+      }),
     )
   }
 
@@ -109,12 +109,12 @@ class SecurityClass {
     const decipher = crypto.createDecipheriv(
       defaultAlgorithm,
       key,
-      input.subarray(0, 16)
+      input.subarray(0, 16),
     )
 
     return Buffer.concat([
       decipher.update(input.subarray(16)),
-      decipher.final()
+      decipher.final(),
     ])
   }
 
@@ -129,12 +129,12 @@ class SecurityClass {
     return await generateKeyPairAsync('ed25519', {
       publicKeyEncoding: {
         type: 'spki',
-        format: 'pem'
+        format: 'pem',
       },
       privateKeyEncoding: {
         type: 'pkcs8',
-        format: 'pem'
-      }
+        format: 'pem',
+      },
     })
   }
 
@@ -162,13 +162,13 @@ class SecurityClass {
   verifySignedStringWithElliptic(
     message: string,
     encryptedMessageBase64: string,
-    publicKey: string
+    publicKey: string,
   ): boolean {
     return crypto.verify(
       null,
       Buffer.from(message),
       publicKey,
-      Buffer.from(encryptedMessageBase64, 'base64')
+      Buffer.from(encryptedMessageBase64, 'base64'),
     )
   }
 

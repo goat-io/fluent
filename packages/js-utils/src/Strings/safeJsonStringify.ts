@@ -9,7 +9,7 @@ export function safeJsonStringify(
   obj: any,
   replacer?: Reviver,
   spaces?: number,
-  cycleReplacer?: Reviver
+  cycleReplacer?: Reviver,
 ): string {
   try {
     // Try native first (as it's ~3 times faster)

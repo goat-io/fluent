@@ -1,7 +1,7 @@
 import {
   isErrorObject,
   isHttpErrorObject,
-  isHttpErrorResponse
+  isHttpErrorResponse,
 } from '../Errors/error.util'
 
 import { jsonParseIfPossible } from './json.util'

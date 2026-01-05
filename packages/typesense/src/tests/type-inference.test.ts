@@ -15,21 +15,21 @@ describe('Type Inference', () => {
         { name: 'price', type: 'float' as const },
         { name: 'inStock', type: 'bool' as const },
         { name: 'tags', type: 'string[]' as const, optional: true },
-        { name: 'rating', type: 'int32' as const, optional: true }
-      ] as const
+        { name: 'rating', type: 'int32' as const, optional: true },
+      ] as const,
     } as const)
 
     // Create typed API
     const api = createSchemaTypedApi(ProductCollection)({
       prefixUrl: 'http://localhost:8108',
-      token: 'xyz'
+      token: 'xyz',
     })
 
     // Type checks - these should compile without errors
     const _validDoc = {
       title: 'Test Product',
       price: 29.99,
-      inStock: true
+      inStock: true,
     }
 
     const _validDocWithOptional = {
@@ -38,7 +38,7 @@ describe('Type Inference', () => {
       price: 29.99,
       inStock: true,
       tags: ['new', 'sale'],
-      rating: 5
+      rating: 5,
     }
 
     // These would be compile-time errors if uncommented:
@@ -61,20 +61,20 @@ describe('Type Inference', () => {
         { name: 'location', type: 'geopoint' as const },
         { name: 'attendees', type: 'int64[]' as const },
         { name: 'metadata', type: 'object' as const, optional: true },
-        { name: 'tags', type: 'auto' as const, optional: true }
-      ] as const
+        { name: 'tags', type: 'auto' as const, optional: true },
+      ] as const,
     } as const)
 
     const api = createSchemaTypedApi(EventCollection)({
       prefixUrl: 'http://localhost:8108',
-      token: 'xyz'
+      token: 'xyz',
     })
 
     // Valid documents
     const _event1 = {
       name: 'Tech Conference',
       location: [37.7749, -122.4194] as [number, number],
-      attendees: [100, 200, 300]
+      attendees: [100, 200, 300],
     }
 
     const _event2 = {
@@ -82,7 +82,7 @@ describe('Type Inference', () => {
       location: [40.7128, -74.006] as [number, number],
       attendees: [10, 20],
       metadata: { organizer: 'John', category: 'tech' },
-      tags: 'technology'
+      tags: 'technology',
     }
 
     expect(api).toBeTruthy()

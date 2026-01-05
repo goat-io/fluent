@@ -14,7 +14,7 @@ const SQLITE_PRAGMAS = [
   'PRAGMA cache_size = -131072', // 128MB cache
   'PRAGMA mmap_size = 268435456', // 256MB memory mapping
   'PRAGMA temp_store = MEMORY', // In-memory temp tables
-  'PRAGMA busy_timeout = 5000' // 5 second timeout for locks
+  'PRAGMA busy_timeout = 5000', // 5 second timeout for locks
 ]
 
 export class SqliteCheckpointer extends SqliteSaver {
@@ -66,7 +66,7 @@ export async function initializeMemory(): Promise<void> {
 export function getCheckpointer(): SqliteCheckpointer {
   if (!checkpointerInstance) {
     throw new Error(
-      'Checkpointer not initialized. Call initializeMemory() first.'
+      'Checkpointer not initialized. Call initializeMemory() first.',
     )
   }
   return checkpointerInstance
@@ -76,7 +76,7 @@ export function getCheckpointer(): SqliteCheckpointer {
 export const checkpointer = {
   get() {
     return getCheckpointer()
-  }
+  },
 }
 
 // Additional exports for compatibility

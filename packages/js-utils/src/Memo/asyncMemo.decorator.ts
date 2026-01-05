@@ -4,7 +4,7 @@ import type { AnyObject } from '../types'
 import {
   getArgsSignature,
   getMethodSignature,
-  getTargetMethodSignature
+  getTargetMethodSignature,
 } from './decorator.util'
 import type { AsyncMemoCache } from './memo.util'
 import { jsonMemoSerializer, MapMemoCache } from './memo.util'
@@ -81,7 +81,7 @@ export const AsyncMemo =
       logger = console,
       cacheFactory = () => new MapMemoCache(),
       cacheKeyFn = jsonMemoSerializer,
-      cacheRejections = true
+      cacheRejections = true,
     } = opt
 
     const keyStr = String(key)
@@ -114,8 +114,8 @@ export const AsyncMemo =
           logger.log(
             `${getMethodSignature(this, keyStr)}(${getArgsSignature(
               args,
-              logArgs
-            )}) @_AsyncMemo hit`
+              logArgs,
+            )}) @_AsyncMemo hit`,
           )
         }
 
@@ -164,8 +164,8 @@ export const AsyncMemo =
           logger.log(
             `${getMethodSignature(this, keyStr)}(${getArgsSignature(
               args,
-              logArgs
-            )}) @_AsyncMemo miss (${Time.since(started)})`
+              logArgs,
+            )}) @_AsyncMemo miss (${Time.since(started)})`,
           )
         }
       }

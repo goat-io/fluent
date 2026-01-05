@@ -6,7 +6,7 @@ export const getMetabaseContainer = (network: StartedNetwork) => {
     .withEnvironment({
       MB_DB_TYPE: 'mysql',
       MB_DB_CONNECTION_URI:
-        'mysql://mysql:3306/metabase_test?user=metabase_user&password=metabase_pass'
+        'mysql://mysql:3306/metabase_test?user=metabase_user&password=metabase_pass',
     })
     .withNetwork(network)
     .withNetworkAliases('metabase')

@@ -19,7 +19,7 @@ const OpenCodeConfigSchema = z.object({
   api_keys: z.record(z.string(), z.string()).optional(),
   endpoints: z.record(z.string(), z.string()).optional(),
   max_tokens: z.number().optional(),
-  temperature: z.number().optional()
+  temperature: z.number().optional(),
 })
 
 type OpenCodeConfig = z.infer<typeof OpenCodeConfigSchema>
@@ -79,12 +79,12 @@ export class LLMAdapter {
             return true
           }
           return false
-        }
+        },
       },
       {
         failureThreshold: 6,
-        resetTimeoutMs: 60000
-      }
+        resetTimeoutMs: 60000,
+      },
     )
   }
 
@@ -116,14 +116,14 @@ export class LLMAdapter {
         process.env.OPENCODE_SMALL_MODEL,
       api_keys: {
         ...envConfig.api_keys,
-        ...override?.api_keys
+        ...override?.api_keys,
       },
       endpoints: {
         ...envConfig.endpoints,
-        ...override?.endpoints
+        ...override?.endpoints,
       },
       max_tokens: override?.max_tokens || envConfig.max_tokens || 2000,
-      temperature: override?.temperature || envConfig.temperature || 0.7
+      temperature: override?.temperature || envConfig.temperature || 0.7,
     }
 
     return OpenCodeConfigSchema.parse(config)
@@ -140,8 +140,8 @@ export class LLMAdapter {
         createOpenAI({
           apiKey: (this.config.api_keys?.openai ||
             process.env.OPENAI_API_KEY) as string,
-          baseURL: this.config.endpoints?.openai as string | undefined
-        })
+          baseURL: this.config.endpoints?.openai as string | undefined,
+        }),
       )
     }
 
@@ -158,8 +158,8 @@ export class LLMAdapter {
           'anthropic',
           createAnthropic({
             apiKey: apiKey,
-            baseURL: this.config.endpoints?.anthropic as string | undefined
-          })
+            baseURL: this.config.endpoints?.anthropic as string | undefined,
+          }),
         )
       }
     }
@@ -171,8 +171,8 @@ export class LLMAdapter {
         createGoogleGenerativeAI({
           apiKey: (this.config.api_keys?.google ||
             process.env.GOOGLE_API_KEY) as string,
-          baseURL: this.config.endpoints?.google as string | undefined
-        })
+          baseURL: this.config.endpoints?.google as string | undefined,
+        }),
       )
     }
 
@@ -182,8 +182,8 @@ export class LLMAdapter {
       createOpenAI({
         baseURL: (this.config.endpoints?.ollama ||
           'http://localhost:11434/v1') as string,
-        apiKey: 'ollama' // Ollama doesn't need a real key
-      })
+        apiKey: 'ollama', // Ollama doesn't need a real key
+      }),
     )
   }
 
@@ -239,7 +239,7 @@ export class LLMAdapter {
             model: provider(modelName),
             messages: options.messages,
             maxTokens: options.maxTokens || this.config.max_tokens,
-            temperature: options.temperature || this.config.temperature
+            temperature: options.temperature || this.config.temperature,
           })
 
           let content = ''
@@ -252,7 +252,7 @@ export class LLMAdapter {
           setSpanAttribute('llm.tokens.prompt', (await usage)?.promptTokens)
           setSpanAttribute(
             'llm.tokens.completion',
-            (await usage)?.completionTokens
+            (await usage)?.completionTokens,
           )
 
           return {
@@ -262,9 +262,9 @@ export class LLMAdapter {
               ? {
                   promptTokens: (await usage).promptTokens,
                   completionTokens: (await usage).completionTokens,
-                  totalTokens: (await usage).totalTokens
+                  totalTokens: (await usage).totalTokens,
                 }
-              : undefined
+              : undefined,
           }
         }
         // Non-streaming response
@@ -272,7 +272,7 @@ export class LLMAdapter {
           model: provider(modelName),
           messages: options.messages,
           maxTokens: options.maxTokens || this.config.max_tokens,
-          temperature: options.temperature || this.config.temperature
+          temperature: options.temperature || this.config.temperature,
         })
 
         const duration = Date.now() - startTime
@@ -286,8 +286,8 @@ export class LLMAdapter {
           usage: {
             promptTokens: usage.promptTokens,
             completionTokens: usage.completionTokens,
-            totalTokens: usage.totalTokens
-          }
+            totalTokens: usage.totalTokens,
+          },
         }
       })
     })

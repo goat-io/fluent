@@ -28,7 +28,7 @@ export function sanitizeTenantId(tenantId: string): string {
   const allowedPattern = /^[a-zA-Z0-9_-]+$/
   if (!allowedPattern.test(trimmed)) {
     throw new Error(
-      'Tenant ID can only contain alphanumeric characters, underscores, and hyphens'
+      'Tenant ID can only contain alphanumeric characters, underscores, and hyphens',
     )
   }
 
@@ -51,7 +51,7 @@ export function sanitizeTenantId(tenantId: string): string {
  */
 export function createFQCN(
   tenantId: string,
-  baseCollectionName: string
+  baseCollectionName: string,
 ): string {
   return `${tenantId}__${baseCollectionName}`
 }
@@ -63,7 +63,7 @@ export function createFQCN(
  * @returns Object with tenantId and baseCollectionName, or null if not a tenant collection
  */
 export function parseFQCN(
-  fqcn: string
+  fqcn: string,
 ): { tenantId: string; baseCollectionName: string } | null {
   const separatorIndex = fqcn.indexOf('__')
 
@@ -73,7 +73,7 @@ export function parseFQCN(
 
   return {
     tenantId: fqcn.substring(0, separatorIndex),
-    baseCollectionName: fqcn.substring(separatorIndex + 2)
+    baseCollectionName: fqcn.substring(separatorIndex + 2),
   }
 }
 
@@ -96,7 +96,7 @@ export function isTenantCollection(collectionName: string): boolean {
  */
 export function filterCollectionsByTenant(
   collections: string[],
-  tenantId: string
+  tenantId: string,
 ): string[] {
   const prefix = `${tenantId}__`
   return collections.filter(name => name.startsWith(prefix))
@@ -112,7 +112,7 @@ export function filterCollectionsByTenant(
  */
 export function createTenantQualifiedName(
   tenantId: string | undefined,
-  resourceName: string
+  resourceName: string,
 ): string {
   return tenantId ? `${tenantId}__${resourceName}` : resourceName
 }

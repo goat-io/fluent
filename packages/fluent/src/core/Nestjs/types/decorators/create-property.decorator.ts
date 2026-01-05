@@ -12,7 +12,7 @@ const OmitBy = (obj, check) => {
 export function createPropertyDecorator<T extends Record<string, any> = any>(
   metakey: string,
   metadata: T,
-  overrideExisting = true
+  overrideExisting = true,
 ): PropertyDecorator {
   return (target: object, propertyKey: string) => {
     const properties =
@@ -23,7 +23,7 @@ export function createPropertyDecorator<T extends Record<string, any> = any>(
       Reflect.defineMetadata(
         DECORATORS.API_MODEL_PROPERTIES_ARRAY,
         [...properties, `:${propertyKey}`],
-        target
+        target,
       )
     }
     const existingMetadata = Reflect.getMetadata(metakey, target, propertyKey)
@@ -32,11 +32,11 @@ export function createPropertyDecorator<T extends Record<string, any> = any>(
       const metadataToSave = overrideExisting
         ? {
             ...existingMetadata,
-            ...newMetadata
+            ...newMetadata,
           }
         : {
             ...newMetadata,
-            ...existingMetadata
+            ...existingMetadata,
           }
 
       Reflect.defineMetadata(metakey, metadataToSave, target, propertyKey)
@@ -49,10 +49,10 @@ export function createPropertyDecorator<T extends Record<string, any> = any>(
         metakey,
         {
           type,
-          ...OmitBy(metadata, isUndefined)
+          ...OmitBy(metadata, isUndefined),
         },
         target,
-        propertyKey
+        propertyKey,
       )
     }
   }
@@ -65,7 +65,7 @@ export function getTypeIsArrayTuple(
     | undefined
     | string
     | Record<string, any>,
-  isArrayFlag: boolean
+  isArrayFlag: boolean,
 ): [((...args: any[]) => any) | undefined, boolean] {
   if (!input) {
     return [input as undefined, isArrayFlag]

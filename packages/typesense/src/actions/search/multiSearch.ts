@@ -1,20 +1,20 @@
 import type { TypesenseContext } from '../../types'
 import type {
   TypesenseMultiSearchRequest,
-  TypesenseMultiSearchResult
+  TypesenseMultiSearchResult,
 } from '../../typesense.model'
 
 export async function multiSearch<
-  T extends Record<string, any> = Record<string, any>
+  T extends Record<string, any> = Record<string, any>,
 >(
   ctx: TypesenseContext,
-  request: TypesenseMultiSearchRequest
+  request: TypesenseMultiSearchRequest,
 ): Promise<TypesenseMultiSearchResult<T>> {
   return await ctx.httpClient.request<TypesenseMultiSearchResult<T>>(
     '/multi_search',
     {
       method: 'POST',
-      body: request
-    }
+      body: request,
+    },
   )
 }

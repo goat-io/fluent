@@ -20,7 +20,7 @@ import { deleteByFilter } from './actions/documents/deleteByFilter'
 import { deleteDocument } from './actions/documents/deleteDocument'
 import {
   exportDocuments,
-  exportDocumentsStream
+  exportDocumentsStream,
 } from './actions/documents/exportDocuments'
 import { getDocumentById } from './actions/documents/getDocumentById'
 import { importDocuments } from './actions/documents/importDocuments'
@@ -48,11 +48,11 @@ import { listSynonyms } from './actions/synonyms/listSynonyms'
 import { upsertSynonym } from './actions/synonyms/upsertSynonym'
 import {
   type HttpClientOptions,
-  TypesenseHttpClient
+  TypesenseHttpClient,
 } from './components/http-client'
 import {
   ResiliencePolicy,
-  type ResiliencePolicyOptions
+  type ResiliencePolicyOptions,
 } from './components/resilience-policy'
 import { CollectionSchemaManager } from './components/schema-manager'
 // Types
@@ -62,7 +62,7 @@ import type {
   TypesenseCollectionOptions,
   TypesenseDocument,
   TypesenseRateLimitInfo,
-  WithRequiredId
+  WithRequiredId,
 } from './typesense.model'
 import { defineCollection as defineCollectionUtil } from './utils/schema-to-types'
 import { createSchemaTypedApi as createSchemaTypedApiUtil } from './utils/schema-typed-api'
@@ -86,7 +86,7 @@ export interface TypesenseApiOptions
   // Observability callbacks
   onCircuitBreakerStateChange?: (
     state: 'open' | 'closed' | 'half-open',
-    metadata?: any
+    metadata?: any,
   ) => void
   onRateLimitUpdate?: (info: TypesenseRateLimitInfo) => void
 }
@@ -158,7 +158,7 @@ export type TenantApi<TDoc, TenantId extends string> = TypesenseApi<TDoc> & {
 }
 
 export class TypesenseApi<
-  TDoc extends Record<string, any> = Record<string, any>
+  TDoc extends Record<string, any> = Record<string, any>,
 > {
   private readonly ctx: TypesenseContext<TDoc>
   private withCtx!: ReturnType<typeof bindCtx<TypesenseContext<TDoc>>>
@@ -227,7 +227,7 @@ export class TypesenseApi<
    */
   static createFromSchema<const C extends TypesenseCollection>(collection: C) {
     return TypesenseApi.createSchemaTypedApi(
-      TypesenseApi.defineCollection(collection)
+      TypesenseApi.defineCollection(collection),
     )
   }
 
@@ -238,7 +238,7 @@ export class TypesenseApi<
     this.resilience = new ResiliencePolicy({
       ...options.resilience,
       onStateChange: options.onCircuitBreakerStateChange,
-      onRateLimitUpdate: options.onRateLimitUpdate
+      onRateLimitUpdate: options.onRateLimitUpdate,
     })
 
     // Create request/response interceptors for circuit breaker
@@ -247,7 +247,7 @@ export class TypesenseApi<
         // Check circuit breaker before making request
         if (this.resilience.isCircuitOpen()) {
           const error = new Error(
-            'Circuit breaker is open - service unavailable'
+            'Circuit breaker is open - service unavailable',
           )
           ;(error as any).isCircuitBreakerError = true
           ;(error as any).retriesRemaining = 0
@@ -255,7 +255,7 @@ export class TypesenseApi<
         }
         return undefined
       },
-      ...(options.beforeRequest || [])
+      ...(options.beforeRequest || []),
     ]
 
     const afterResponseHooks = [
@@ -268,7 +268,7 @@ export class TypesenseApi<
         this.resilience.updateRateLimit(response.headers)
         return response
       },
-      ...(options.afterResponse || [])
+      ...(options.afterResponse || []),
     ]
 
     const beforeErrorHooks = [
@@ -286,7 +286,7 @@ export class TypesenseApi<
 
         // Re-throw the original error
         throw error
-      }
+      },
     ]
 
     // Initialize components with interceptors
@@ -300,14 +300,14 @@ export class TypesenseApi<
       afterResponse: afterResponseHooks,
       beforeError: beforeErrorHooks,
       kyInstance: options.kyInstance,
-      enforceTLS: options.enforceTLS
+      enforceTLS: options.enforceTLS,
     })
 
     this.schemaManager = new CollectionSchemaManager({
       typesenseVersion: options.typesenseVersion,
       cacheSize: options.schemaCacheSize,
       cacheTtl: options.schemaCacheTtl,
-      suppressLogs: options.suppressLogs
+      suppressLogs: options.suppressLogs,
     })
 
     // Validate and sanitize tenant ID if provided
@@ -328,7 +328,7 @@ export class TypesenseApi<
       fqcn: (baseCollectionName?: string) => {
         const base = baseCollectionName || this.ctx.collectionName
         return sanitizedTenantId ? createFQCN(sanitizedTenantId, base) : base
-      }
+      },
     }
 
     this.withCtx = bindCtx(this.ctx)
@@ -365,7 +365,7 @@ export class TypesenseApi<
       update: this.withCtx(updateCollection),
       delete: this.withCtx(deleteCollection),
       list: this.withCtx(listCollections),
-      getOrCreate: this.withCtx(getOrCreateCollection)
+      getOrCreate: this.withCtx(getOrCreateCollection),
     }
   }
 
@@ -377,15 +377,15 @@ export class TypesenseApi<
     return {
       insert: (
         document: WithRequiredId<TDoc>,
-        options?: TypesenseCollectionOptions
+        options?: TypesenseCollectionOptions,
       ) => insertDocument(ctx, document, options),
       upsert: (
         document: WithRequiredId<TDoc>,
-        options?: TypesenseCollectionOptions
+        options?: TypesenseCollectionOptions,
       ) => upsertDocument(ctx, document, options),
       update: (
         document: Partial<TypesenseDocument<TDoc>> & { id: string | number },
-        options?: TypesenseCollectionOptions
+        options?: TypesenseCollectionOptions,
       ) => updateDocument(ctx, document, options),
       delete: this.withCtx(deleteDocument),
       getById: this.withCtx(getDocumentById),
@@ -398,7 +398,7 @@ export class TypesenseApi<
       // Search operations
       search: this.withCtx(search),
       searchText: this.withCtx(searchText),
-      searchVector: this.withCtx(searchVector)
+      searchVector: this.withCtx(searchVector),
     }
   }
 
@@ -410,7 +410,7 @@ export class TypesenseApi<
       query: this.withCtx(search),
       text: this.withCtx(searchText),
       vector: this.withCtx(searchVector),
-      multi: this.withCtx(multiSearch)
+      multi: this.withCtx(multiSearch),
     }
   }
 
@@ -423,7 +423,7 @@ export class TypesenseApi<
       waitForHealth: this.withCtx(waitForHealth),
       getMetrics: this.withCtx(getMetrics),
       getStats: this.withCtx(getStats),
-      getCollectionStats: this.withCtx(getCollectionStats)
+      getCollectionStats: this.withCtx(getCollectionStats),
     }
   }
 
@@ -435,7 +435,7 @@ export class TypesenseApi<
       createOrUpdate: this.withCtx(createOrUpdateAlias),
       get: this.withCtx(getAlias),
       list: this.withCtx(listAliases),
-      delete: this.withCtx(deleteAlias)
+      delete: this.withCtx(deleteAlias),
     }
   }
 
@@ -447,7 +447,7 @@ export class TypesenseApi<
       upsert: this.withCtx(upsertSynonym),
       get: this.withCtx(getSynonym),
       list: this.withCtx(listSynonyms),
-      delete: this.withCtx(deleteSynonym)
+      delete: this.withCtx(deleteSynonym),
     }
   }
 
@@ -459,7 +459,7 @@ export class TypesenseApi<
       upsert: this.withCtx(upsertOverride),
       get: this.withCtx(getOverride),
       list: this.withCtx(listOverrides),
-      delete: this.withCtx(deleteOverride)
+      delete: this.withCtx(deleteOverride),
     }
   }
 
@@ -471,7 +471,7 @@ export class TypesenseApi<
       upsert: this.withCtx(upsertPreset),
       get: this.withCtx(getPreset),
       list: this.withCtx(listPresets),
-      delete: this.withCtx(deletePreset)
+      delete: this.withCtx(deletePreset),
     }
   }
 
@@ -551,7 +551,7 @@ export class TypesenseApi<
 
     for (const collectionName of tenantCollections) {
       await this.httpClient.request(`/collections/${collectionName}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
     }
   }

@@ -6,7 +6,7 @@ import {
   UsersDtoIn,
   UsersDtoOut,
   userInputSchema,
-  userOutputSchema
+  userOutputSchema,
 } from '../relations/user/user.schema'
 import { CarsRepository } from './car.mongo.repository'
 import { RoleRepository } from './roles.mongo.repository'
@@ -29,7 +29,7 @@ export class UserRepository extends TypeOrmConnector<
       entity: UsersEntity,
       dataSource: ds,
       inputSchema: userInputSchema,
-      outputSchema: userOutputSchema
+      outputSchema: userOutputSchema,
     })
     this.dataSourceRef = ds
   }
@@ -37,13 +37,13 @@ export class UserRepository extends TypeOrmConnector<
   public cars = () => {
     return this.hasMany({
       repository: () => new CarsRepository(this.dataSourceRef),
-      model: CarsEntity
+      model: CarsEntity,
     })
   }
 
   public roles = () =>
     this.belongsToMany({
       repository: () => new RoleRepository(this.dataSourceRef),
-      pivot: () => new RoleUsersRepository(this.dataSourceRef)
+      pivot: () => new RoleUsersRepository(this.dataSourceRef),
     })
 }

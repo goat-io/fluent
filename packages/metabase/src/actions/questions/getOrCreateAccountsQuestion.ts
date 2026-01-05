@@ -2,7 +2,7 @@ export async function getOrCreateAccountsQuestion({
   mbToken,
   collectionId,
   databaseId,
-  baseUrl
+  baseUrl,
 }: {
   mbToken: string
   collectionId: string
@@ -14,8 +14,8 @@ export async function getOrCreateAccountsQuestion({
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'X-Metabase-Session': mbToken
-    }
+      'X-Metabase-Session': mbToken,
+    },
   })
 
   if (!questionsRes.ok) {
@@ -31,7 +31,7 @@ export async function getOrCreateAccountsQuestion({
 
   // Check if "# Accounts" question already exists in the collection
   const existingQuestion = questions.find(
-    q => q.name === '# Accounts' && q.collection_id === collectionId
+    q => q.name === '# Accounts' && q.collection_id === collectionId,
   )
 
   if (existingQuestion) {
@@ -43,21 +43,21 @@ export async function getOrCreateAccountsQuestion({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Metabase-Session': mbToken
+      'X-Metabase-Session': mbToken,
     },
     body: JSON.stringify({
       name: '# Accounts',
       dataset_query: {
         type: 'native',
         native: {
-          query: 'SELECT COUNT(*) AS `count` FROM `accounts`'
+          query: 'SELECT COUNT(*) AS `count` FROM `accounts`',
         },
-        database: databaseId // This should match your MySQL database ID in Metabase
+        database: databaseId, // This should match your MySQL database ID in Metabase
       },
       display: 'scalar', // "scalar" visualization for a single number
       visualization_settings: {},
-      collection_id: collectionId
-    })
+      collection_id: collectionId,
+    }),
   })
 
   if (createRes.ok) {

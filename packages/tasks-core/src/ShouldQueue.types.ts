@@ -104,6 +104,6 @@ export interface TaskConnector<TInput> {
    */
   forTenant?(
     tenantId: string,
-    credentials?: TenantCredentials
+    credentials?: TenantCredentials,
   ): TaskConnector<TInput>
 }

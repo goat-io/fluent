@@ -32,16 +32,16 @@ import { type InferFromCollection } from './schema-to-types'
  * ```
  */
 export function createSchemaTypedApi<const C extends TypesenseCollection>(
-  collection: C
+  collection: C,
 ) {
   type DocType = InferFromCollection<C>
 
   return (
-    options: Omit<TypesenseApiOptions, 'collectionName'>
+    options: Omit<TypesenseApiOptions, 'collectionName'>,
   ): TypesenseApi<DocType> => {
     return new TypesenseApi<DocType>({
       ...options,
-      collectionName: collection.name
+      collectionName: collection.name,
     } as TypesenseApiOptions)
   }
 }

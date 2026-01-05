@@ -44,7 +44,7 @@ export interface PTimeoutOptions {
  */
 export function pTimeoutFn<T extends AnyFunction>(
   fn: T,
-  opt: PTimeoutOptions
+  opt: PTimeoutOptions,
 ): T {
   opt.name ||= fn.name
 
@@ -60,7 +60,7 @@ export function pTimeoutFn<T extends AnyFunction>(
  */
 export async function pTimeout<T>(
   promise: Promise<T>,
-  opt: PTimeoutOptions
+  opt: PTimeoutOptions,
 ): Promise<T> {
   // todo: check how we can automatically infer function name (only applicable to named functions)
   const { timeout, name, onTimeout, keepStackTrace = true } = opt
@@ -78,7 +78,7 @@ export async function pTimeout<T>(
           }
           err.data = {
             ...err.data,
-            ...opt.errorData
+            ...opt.errorData,
           }
           reject(err)
         }
@@ -87,7 +87,7 @@ export async function pTimeout<T>(
 
       const err = new TimeoutError(
         `"${name || 'pTimeout function'}" timed out after ${timeout} ms`,
-        opt.errorData
+        opt.errorData,
       )
       if (fakeError) {
         err.stack = fakeError.stack // keep original stack
@@ -104,7 +104,7 @@ export async function pTimeout<T>(
       err => {
         clearTimeout(timer)
         reject(err)
-      }
+      },
     )
   })
 }

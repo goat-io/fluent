@@ -9,7 +9,7 @@ import {
   Factory,
   InstancesStructure,
   MapInterface,
-  PreloadStructure
+  PreloadStructure,
 } from './types'
 
 // Instantiation helper moved to helpers.ts for better performance
@@ -198,7 +198,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     INIT_HITS: 5,
     RESETS: 6,
     BATCH_OPS: 7,
-    BATCH_ERRORS: 8
+    BATCH_ERRORS: 8,
   } as const
 
   /**
@@ -231,12 +231,12 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
           'contextAccesses',
           'proxyCacheHits',
           'initializerCacheHits',
-          'resets'
+          'resets',
         ]
         console.warn(
           `Container metrics reset due to overflow protection. Metric '${
             metricNames[idx] || 'unknown'
-          }' reached ${this.metrics[idx]}`
+          }' reached ${this.metrics[idx]}`,
         )
       }
     }
@@ -266,9 +266,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     private readonly factories: Defs,
     private readonly initializer: (
       preload: PreloadStructure<Defs>,
-      meta: TenantMetadata
+      meta: TenantMetadata,
     ) => Promise<Partial<InstancesStructure<Defs>>>,
-    options: ContainerOptions = {}
+    options: ContainerOptions = {},
   ) {
     // Apply default options
     this.options = {
@@ -277,7 +277,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       enableDiagnostics: false,
       enableDistributedInvalidation: false,
       distributedInvalidator: undefined,
-      ...options
+      ...options,
     } as Required<ContainerOptions>
 
     // Pre-cache factory lookups for better performance
@@ -334,7 +334,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         const flatKey = newPath.join('.')
         this.factoryCache.set(
           flatKey,
-          value as Factory<unknown, readonly unknown[]>
+          value as Factory<unknown, readonly unknown[]>,
         )
       } else if (typeof value === 'object' && value !== null) {
         // Found a nested object - recurse deeper
@@ -410,8 +410,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
           }
           // No factory found - must be a nested path, return another proxy
           return this.createPreloadProxy(newPath)
-        }
-      }
+        },
+      },
     )
 
     this.proxyCache.set(path, proxy)
@@ -430,7 +430,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   async runWithContext<T>(
     instances: Partial<InstancesStructure<Defs>>,
     tenantMetadata: TenantMetadata,
-    fn: () => Promise<T>
+    fn: () => Promise<T>,
   ): Promise<T> {
     return await this.als.run({ instances, tenantMetadata }, fn)
   }
@@ -443,7 +443,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   runWithContextSync<T>(
     instances: Partial<InstancesStructure<Defs>>,
     tenantMetadata: TenantMetadata,
-    fn: () => T
+    fn: () => T,
   ): T {
     const prev = this.als.getStore()
     this.als.enterWith({ instances, tenantMetadata })
@@ -476,7 +476,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     const store = this.als.getStore()
     if (!store) {
       throw new Error(
-        "No tenant context available. Make sure you're running within a container context."
+        "No tenant context available. Make sure you're running within a container context.",
       )
     }
 
@@ -531,7 +531,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
           const available = Reflect.ownKeys(target).map(String).join(', ')
           throw new Error(
             `Service '${servicePath}' not initialized. ` +
-              `Available services: ${available}`
+              `Available services: ${available}`,
           )
         }
 
@@ -562,7 +562,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
 
         // Return value as-is (primitives, functions, Promises, arrays)
         return value
-      }
+      },
     })
 
     // Cache using WeakMap for automatic garbage collection
@@ -612,7 +612,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Uses both result caching and inflight promise deduplication
    */
   private async getOrCreateInstances(
-    meta: TenantMetadata
+    meta: TenantMetadata,
   ): Promise<Partial<InstancesStructure<Defs>>> {
     const cacheKey = this.createTenantCacheKey(meta)
 
@@ -672,7 +672,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    */
   async bootstrap<T>(
     meta: TenantMetadata,
-    fn?: () => Promise<T>
+    fn?: () => Promise<T>,
   ): Promise<{ instances: InstancesStructure<Defs>; result?: T }> {
     try {
       // Phase 1: Get or create services for this tenant (with caching)
@@ -682,7 +682,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       const result = await this.runWithContext(
         instances,
         meta,
-        fn || (async () => undefined)
+        fn || (async () => undefined),
       )
 
       // Type assertion: we trust that initializer provides all required services
@@ -739,13 +739,13 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       metadata: TMetadata
       fn?: () => Promise<T>
     }>,
-    options: BatchBootstrapOptions<TMetadata> = {}
+    options: BatchBootstrapOptions<TMetadata> = {},
   ): Promise<BatchBootstrapResult<Defs, TMetadata, T>[]> {
     const {
       concurrency = 10,
       continueOnError = true,
       timeout,
-      onProgress
+      onProgress,
     } = options
 
     const results: BatchBootstrapResult<Defs, TMetadata, T>[] = []
@@ -769,7 +769,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
           // Apply timeout if specified
           let bootstrapPromise = this.bootstrap(
             metadata as any as TenantMetadata,
-            fn
+            fn,
           )
 
           if (timeout) {
@@ -779,9 +779,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
                 setTimeout(
                   () =>
                     reject(new Error(`Bootstrap timeout after ${timeout}ms`)),
-                  timeout
-                )
-              )
+                  timeout,
+                ),
+              ),
             ])
           }
 
@@ -798,8 +798,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
             metrics: {
               startTime,
               endTime,
-              duration: endTime - startTime
-            }
+              duration: endTime - startTime,
+            },
           }
         } catch (error) {
           const endTime = Date.now()
@@ -817,8 +817,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
             metrics: {
               startTime,
               endTime,
-              duration: endTime - startTime
-            }
+              duration: endTime - startTime,
+            },
           }
 
           if (!continueOnError) {
@@ -849,8 +849,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
             metrics: {
               startTime: Date.now(),
               endTime: Date.now(),
-              duration: 0
-            }
+              duration: 0,
+            },
           })
         }
       }
@@ -892,13 +892,13 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   async invalidateTenantBatch(
     tenantIds: string[],
     reason?: string,
-    distributed = false
+    distributed = false,
   ): Promise<BatchInvalidationResult> {
     const result: BatchInvalidationResult = {
       total: tenantIds.length,
       succeeded: 0,
       failed: 0,
-      errors: []
+      errors: [],
     }
 
     // Process invalidations in parallel with error isolation
@@ -914,7 +914,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         result.failed++
         result.errors.push({
           key: tenantId,
-          error: error instanceof Error ? error : new Error(String(error))
+          error: error instanceof Error ? error : new Error(String(error)),
         })
 
         if (this.options.enableDiagnostics) {
@@ -946,13 +946,13 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   async invalidateServiceBatch(
     serviceTypes: string[],
     reason?: string,
-    distributed = false
+    distributed = false,
   ): Promise<BatchInvalidationResult> {
     const result: BatchInvalidationResult = {
       total: serviceTypes.length,
       succeeded: 0,
       failed: 0,
-      errors: []
+      errors: [],
     }
 
     const invalidationPromises = serviceTypes.map(async serviceType => {
@@ -967,7 +967,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         result.failed++
         result.errors.push({
           key: serviceType,
-          error: error instanceof Error ? error : new Error(String(error))
+          error: error instanceof Error ? error : new Error(String(error)),
         })
 
         if (this.options.enableDiagnostics) {
@@ -998,7 +998,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       proxyCacheHits: this.metrics[Container.METRIC.PROXIES],
       initializerCacheHits: this.metrics[Container.METRIC.INIT_HITS],
       batchOperations: this.metrics[Container.METRIC.BATCH_OPS],
-      batchErrors: this.metrics[Container.METRIC.BATCH_ERRORS]
+      batchErrors: this.metrics[Container.METRIC.BATCH_ERRORS],
     }
   }
 
@@ -1049,8 +1049,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Dispose instances before clearing to prevent memory leaks
     await Promise.all(
       Object.values(this.managers).flatMap(m =>
-        [...(m.values?.() ?? [])].map(safeDispose)
-      )
+        [...(m.values?.() ?? [])].map(safeDispose),
+      ),
     )
 
     // Clear all managers
@@ -1093,7 +1093,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       'invalidate-service',
       (serviceType: string, reason?: string) => {
         this.invalidateServiceLocally(serviceType, reason)
-      }
+      },
     )
 
     invalidator.on('invalidate-all', (reason?: string) => {
@@ -1114,7 +1114,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    */
   async invalidateTenantDistributed(
     tenantId: string,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
     // First invalidate locally
     this.invalidateTenantLocally(tenantId, reason)
@@ -1126,7 +1126,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     ) {
       await this.options.distributedInvalidator.invalidateTenant(
         tenantId,
-        reason
+        reason,
       )
     }
   }
@@ -1136,7 +1136,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    */
   async invalidateServiceDistributed(
     serviceType: string,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
     // First invalidate locally
     this.invalidateServiceLocally(serviceType, reason)
@@ -1148,7 +1148,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     ) {
       await this.options.distributedInvalidator.invalidateService(
         serviceType,
-        reason
+        reason,
       )
     }
   }
@@ -1177,7 +1177,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     if (this.options.enableDiagnostics) {
       console.log(
         `Invalidating tenant cache locally: ${tenantId}`,
-        reason ? `(${reason})` : ''
+        reason ? `(${reason})` : '',
       )
     }
 
@@ -1209,7 +1209,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     if (this.options.enableDiagnostics) {
       console.log(
         `Invalidating service cache locally: ${serviceType}`,
-        reason ? `(${reason})` : ''
+        reason ? `(${reason})` : '',
       )
     }
 
@@ -1238,7 +1238,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     if (this.options.enableDiagnostics) {
       console.log(
         'Invalidating all caches locally',
-        reason ? `(${reason})` : ''
+        reason ? `(${reason})` : '',
       )
     }
 
@@ -1254,8 +1254,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // First dispose all instances
     await Promise.all(
       Object.values(this.managers).flatMap(manager =>
-        [...(manager.values?.() ?? [])].map(safeDispose)
-      )
+        [...(manager.values?.() ?? [])].map(safeDispose),
+      ),
     )
 
     // Then clear all caches to prevent resurrection
@@ -1278,7 +1278,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
 
       stats[key] = {
         size,
-        maxSize: this.options.cacheSize
+        maxSize: this.options.cacheSize,
       }
     }
 
@@ -1293,7 +1293,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     const cacheStats = this.getCacheStats()
     const totalCacheSize = Object.values(cacheStats).reduce(
       (sum, stat) => sum + stat.size,
-      0
+      0,
     )
 
     const hits = this.metrics[Container.METRIC.HITS]
@@ -1311,7 +1311,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       initializerCacheSize: this.initializerCache.size,
       initializerPromisesSize: this.initializerPromises.size,
       cacheHitRatio: hits + misses > 0 ? hits / (hits + misses) : 0,
-      batchSuccessRatio: batchOps > 0 ? (batchOps - batchErrors) / batchOps : 0
+      batchSuccessRatio: batchOps > 0 ? (batchOps - batchErrors) / batchOps : 0,
     }
   }
 
@@ -1392,7 +1392,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     const store = this.als.getStore()
     if (!store) {
       throw new Error(
-        "No tenant context available. Make sure you're running within a container context."
+        "No tenant context available. Make sure you're running within a container context.",
       )
     }
 
@@ -1451,7 +1451,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   private collectServices(
     obj: Partial<InstancesStructure<Defs>>,
     services: string[],
-    path: string[] = []
+    path: string[] = [],
   ): void {
     for (const [key, value] of Object.entries(obj)) {
       if (value === undefined) {

@@ -8,7 +8,7 @@ describe('Security', () => {
   const testObject = {
     username: 'john_doe',
     email: 'john@example.com',
-    token: 'abc123xyz'
+    token: 'abc123xyz',
   }
 
   it('Should generate Eliptic Curve Keys', async () => {
@@ -25,19 +25,19 @@ describe('Security', () => {
 
     const encrypted = Security.encryptStringWithElliptic(
       message,
-      curve.privateKey
+      curve.privateKey,
     )
 
     const verified = Security.verifySignedStringWithElliptic(
       message,
       encrypted,
-      curve.publicKey
+      curve.publicKey,
     )
 
     const falseVerify = Security.verifySignedStringWithElliptic(
       'THIS IS A SECRET MESSAGE2',
       encrypted,
-      curve.publicKey
+      curve.publicKey,
     )
 
     expect(typeof encrypted).toBe('string')
@@ -155,11 +155,11 @@ describe('Security', () => {
     it('should encrypt and decrypt buffer correctly', () => {
       const encrypted = Security.encryptRandomIVBuffer(
         testBuffer,
-        secretKeyBase64
+        secretKeyBase64,
       )
       const decrypted = Security.decryptRandomIVBuffer(
         encrypted,
-        secretKeyBase64
+        secretKeyBase64,
       )
 
       expect(encrypted).not.toEqual(testBuffer)
@@ -169,11 +169,11 @@ describe('Security', () => {
     it('should produce different encrypted results each time (non-deterministic)', () => {
       const encrypted1 = Security.encryptRandomIVBuffer(
         testBuffer,
-        secretKeyBase64
+        secretKeyBase64,
       )
       const encrypted2 = Security.encryptRandomIVBuffer(
         testBuffer,
-        secretKeyBase64
+        secretKeyBase64,
       )
 
       expect(encrypted1).not.toEqual(encrypted2)
@@ -182,7 +182,7 @@ describe('Security', () => {
     it('should include IV in encrypted buffer (first 16 bytes)', () => {
       const encrypted = Security.encryptRandomIVBuffer(
         testBuffer,
-        secretKeyBase64
+        secretKeyBase64,
       )
 
       expect(encrypted.length).toBeGreaterThan(16) // IV + encrypted data
@@ -191,7 +191,7 @@ describe('Security', () => {
       const iv1 = encrypted.slice(0, 16)
       const encrypted2 = Security.encryptRandomIVBuffer(
         testBuffer,
-        secretKeyBase64
+        secretKeyBase64,
       )
       const iv2 = encrypted2.slice(0, 16)
 
@@ -202,11 +202,11 @@ describe('Security', () => {
       const emptyBuffer = Buffer.alloc(0)
       const encrypted = Security.encryptRandomIVBuffer(
         emptyBuffer,
-        secretKeyBase64
+        secretKeyBase64,
       )
       const decrypted = Security.decryptRandomIVBuffer(
         encrypted,
-        secretKeyBase64
+        secretKeyBase64,
       )
 
       expect(decrypted).toEqual(emptyBuffer)
@@ -215,7 +215,7 @@ describe('Security', () => {
     it('should throw error with wrong secret key', () => {
       const encrypted = Security.encryptRandomIVBuffer(
         testBuffer,
-        secretKeyBase64
+        secretKeyBase64,
       )
       const wrongKey = Buffer.from('wrong-key').toString('base64')
 
@@ -260,12 +260,12 @@ describe('Security', () => {
     it('should sign and verify message correctly', () => {
       const signature = Security.encryptStringWithElliptic(
         testMessage,
-        keyPair.privateKey
+        keyPair.privateKey,
       )
       const isValid = Security.verifySignedStringWithElliptic(
         testMessage,
         signature,
-        keyPair.publicKey
+        keyPair.publicKey,
       )
 
       expect(typeof signature).toBe('string')
@@ -276,12 +276,12 @@ describe('Security', () => {
     it('should return false for tampered signature', () => {
       // Create a valid base64 string but with different content
       const tamperedSignature = Buffer.from('tampered signature data').toString(
-        'base64'
+        'base64',
       )
       const isValid = Security.verifySignedStringWithElliptic(
         testMessage,
         tamperedSignature,
-        keyPair.publicKey
+        keyPair.publicKey,
       )
 
       expect(isValid).toBe(false)
@@ -291,12 +291,12 @@ describe('Security', () => {
       const wrongKeyPair = await Security.generateElipticCurve()
       const signature = Security.encryptStringWithElliptic(
         testMessage,
-        keyPair.privateKey
+        keyPair.privateKey,
       )
       const isValid = Security.verifySignedStringWithElliptic(
         testMessage,
         signature,
-        wrongKeyPair.publicKey
+        wrongKeyPair.publicKey,
       )
 
       expect(isValid).toBe(false)
@@ -305,12 +305,12 @@ describe('Security', () => {
     it('should handle empty message', () => {
       const signature = Security.encryptStringWithElliptic(
         '',
-        keyPair.privateKey
+        keyPair.privateKey,
       )
       const isValid = Security.verifySignedStringWithElliptic(
         '',
         signature,
-        keyPair.publicKey
+        keyPair.publicKey,
       )
 
       expect(isValid).toBe(true)
@@ -320,12 +320,12 @@ describe('Security', () => {
       const unicodeMessage = '🔐 Test 世界 🌍'
       const signature = Security.encryptStringWithElliptic(
         unicodeMessage,
-        keyPair.privateKey
+        keyPair.privateKey,
       )
       const isValid = Security.verifySignedStringWithElliptic(
         unicodeMessage,
         signature,
-        keyPair.publicKey
+        keyPair.publicKey,
       )
 
       expect(isValid).toBe(true)
@@ -380,7 +380,7 @@ describe('Security', () => {
     it('should be cryptographically random', () => {
       // Test for basic randomness by checking distribution
       const passwords = Array.from({ length: 1000 }, () =>
-        Security.generatePassword(1)
+        Security.generatePassword(1),
       )
       const uniqueChars = new Set(passwords)
 
@@ -405,7 +405,7 @@ describe('Security', () => {
         Security.verifySignedStringWithElliptic(
           testMessage,
           'dGVzdA==', // valid base64 but invalid signature
-          'invalid-public-key'
+          'invalid-public-key',
         )
       }).toThrow()
     })

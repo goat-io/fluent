@@ -10,7 +10,7 @@ import { generateTypes } from './generators/type'
 
 export enum SupportedFrameworks {
   Loopback = 'Loopback4',
-  Nest = 'Nestjs'
+  Nest = 'Nestjs',
 }
 /*
 const to = require('await-to-js').default
@@ -60,10 +60,10 @@ const loadForms = async config => {
 
 export const parse = async (
   Form: FormioForm | FormioForm[],
-  framework: SupportedFrameworks
+  framework: SupportedFrameworks,
 ): Promise<FluentParsedModel[]> => {
   const formModels = await generateGoatModels(
-    !Array.isArray(Form) ? [Form] : Form
+    !Array.isArray(Form) ? [Form] : Form,
   )
 
   if (Objects.isEmpty(formModels)) {
@@ -86,7 +86,7 @@ export const parse = async (
       module,
       modules,
       repository,
-      types
+      types,
     }
     parsedResults.push(parsedModel)
   })

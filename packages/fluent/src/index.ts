@@ -12,7 +12,7 @@ import {
   InputType,
   ObjectType,
   OmitType,
-  PartialType
+  PartialType,
 } from './core/types'
 import { f } from './decorators'
 import { collect, initialize } from './Fluent'
@@ -38,7 +38,7 @@ import type {
   Paginator,
   Primitives,
   PrimitivesArray,
-  QueryOutput
+  QueryOutput,
 } from './types'
 import { LogicOperator } from './types'
 
@@ -47,23 +47,23 @@ export { DataSource } from 'typeorm'
 export {
   TypeORMDataModel as TypeOrmEntity,
   type TypeORMDataModelInputSchema,
-  TypeORMDataModelSchema
+  TypeORMDataModelSchema,
 } from './TypeOrmConnector/test/advanced/typeOrm.entity'
 export {
   GoatEntity,
   type GoatInputSchema,
-  GoatSchema
+  GoatSchema,
 } from './TypeOrmConnector/test/basic/goat.entity'
 export type {
   TestConnector,
-  UnifiedTestOptions
+  UnifiedTestOptions,
 } from './testing/unifiedTestFactory'
 // Export test utilities for connector packages
 export { createUnifiedTests } from './testing/unifiedTestFactory'
 // Export Fluent object for backward compatibility
 export const Fluent = {
   initialize,
-  collect
+  collect,
 }
 
 export {
@@ -93,7 +93,7 @@ export {
   extractMetadataFromKeys,
   extractOrderBy,
   getSelectedKeysFromRawSql,
-  nestQueryResults
+  nestQueryResults,
 }
 
 interface ValidatedInput<T> {
@@ -114,5 +114,5 @@ export type {
   FluentQuery,
   QueryOutput,
   LoadedResult,
-  FindByIdFilter
+  FindByIdFilter,
 }

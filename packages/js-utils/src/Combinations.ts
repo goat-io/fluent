@@ -97,7 +97,7 @@ const SafeArith = {
       return (aVal as bigint) & (bVal as bigint)
     }
     return (aVal as number) & (bVal as number)
-  }
+  },
 }
 /**
  * calculates `P(n, k)`.
@@ -347,7 +347,7 @@ export class Permutation extends CBase {
     const skip = factorial(offset)
     const digits = factoradic(
       SafeArith.multiply(Bi(validN), Bi(skip)),
-      this.seed.length
+      this.seed.length,
     )
     if (!digits) {
       return undefined
@@ -465,7 +465,7 @@ export class CartesianProduct extends CBase {
     this.size = this.seed.length
     const length = this.seed.reduce(
       (a, v) => SafeArith.multiply(a, Bi(v.length)),
-      Bi(1)
+      Bi(1),
     )
     this.length = Crop(length)
     Object.freeze(this)

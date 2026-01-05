@@ -12,7 +12,7 @@ export interface HttpClientOptions {
   defaultTimeout?: number
   beforeRequest?: Array<
     (
-      request: Request
+      request: Request,
     ) =>
       | Request
       | Response
@@ -53,7 +53,7 @@ export class TypesenseHttpClient {
       timeout: options.defaultTimeout || 10000,
       headers: {
         'X-TYPESENSE-API-KEY': options.token,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       hooks: {
         beforeRequest: options.beforeRequest || [],
@@ -67,13 +67,13 @@ export class TypesenseHttpClient {
                 const errorBody = await response.json()
                 // Security: Redact token from headers before throwing
                 const sanitizedHeaders = this.sanitizeHeaders(
-                  error.request.headers
+                  error.request.headers,
                 )
                 throw new TypesenseError(
                   (errorBody as any).message || error.message,
                   response.status,
                   errorBody,
-                  sanitizedHeaders
+                  sanitizedHeaders,
                 )
               } catch (_parseError) {
                 // If we can't parse the response, fall back to basic error
@@ -81,14 +81,14 @@ export class TypesenseHttpClient {
                   error.message,
                   response.status,
                   null,
-                  this.sanitizeHeaders(error.request.headers)
+                  this.sanitizeHeaders(error.request.headers),
                 )
               }
             }
             throw error
-          }
-        ]
-      }
+          },
+        ],
+      },
     })
   }
 
@@ -116,7 +116,7 @@ export class TypesenseHttpClient {
       searchParams?: Record<string, any>
       timeout?: number
       signal?: AbortSignal
-    } = {}
+    } = {},
   ): Promise<T> {
     const { method = 'GET', body, searchParams, timeout, signal } = options
 
@@ -128,7 +128,7 @@ export class TypesenseHttpClient {
     const requestOptions: any = {
       method,
       timeout: timeout || 10000,
-      signal
+      signal,
     }
 
     if (body) {
@@ -151,7 +151,7 @@ export class TypesenseHttpClient {
       searchParams?: Record<string, any>
       timeout?: number
       signal?: AbortSignal
-    } = {}
+    } = {},
   ): Promise<string> {
     const { method = 'GET', body, searchParams, timeout, signal } = options
 
@@ -163,7 +163,7 @@ export class TypesenseHttpClient {
     const requestOptions: any = {
       method,
       timeout: timeout || 10000,
-      signal
+      signal,
     }
 
     if (body) {
@@ -186,7 +186,7 @@ export class TypesenseHttpClient {
       searchParams?: Record<string, any>
       timeout?: number
       signal?: AbortSignal
-    } = {}
+    } = {},
   ): Promise<string> {
     const { method = 'GET', body, searchParams, timeout, signal } = options
 
@@ -198,7 +198,7 @@ export class TypesenseHttpClient {
     const requestOptions: any = {
       method,
       timeout: timeout || 10000,
-      signal
+      signal,
     }
 
     if (body) {
@@ -221,7 +221,7 @@ export class TypesenseHttpClient {
       body?: any
       searchParams?: Record<string, any>
       signal?: AbortSignal
-    } = {}
+    } = {},
   ): Promise<ReadableStream> {
     const { method = 'GET', body, searchParams, signal } = options
 
@@ -232,7 +232,7 @@ export class TypesenseHttpClient {
 
     const requestOptions: any = {
       method,
-      signal
+      signal,
     }
 
     if (body) {

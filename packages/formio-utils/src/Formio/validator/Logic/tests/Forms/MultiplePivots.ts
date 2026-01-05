@@ -30,14 +30,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -64,14 +64,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         type: 'email',
@@ -96,7 +96,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        validate: { required: true }
+        validate: { required: true },
       },
       {
         type: 'password',
@@ -118,7 +118,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         tabindex: 'admin@example.com',
-        validate: { required: true }
+        validate: { required: true },
       },
       {
         type: 'button',
@@ -133,8 +133,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tableView: false,
         label: 'Submit',
         input: true,
-        autofocus: false
-      }
+        autofocus: false,
+      },
     ],
     title: 'User',
     path: 'user',
@@ -143,10 +143,10 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f463',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f461'
+          '5c7024bb3a36930018f4f461',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [
       { roles: ['5c7024bb3a36930018f4f461'], type: 'create_all' },
@@ -156,7 +156,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
       { roles: [], type: 'create_own' },
       { roles: [], type: 'read_own' },
       { roles: [], type: 'update_own' },
-      { roles: [], type: 'delete_own' }
+      { roles: [], type: 'delete_own' },
     ],
     machineName: 'user',
     created: '2019-02-22T16:35:07.926Z',
@@ -165,7 +165,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     deleted: null,
     owner: '5c900ab306bc1a0013b0d54c',
     name: 'user',
-    display: 'form'
+    display: 'form',
   },
   {
     type: 'resource',
@@ -184,7 +184,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         label: 'Email',
         inputType: 'email',
         tableView: true,
-        input: true
+        input: true,
       },
       {
         type: 'password',
@@ -197,7 +197,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         label: 'Password',
         inputType: 'password',
         tableView: false,
-        input: true
+        input: true,
       },
       {
         type: 'button',
@@ -211,8 +211,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         key: 'submit',
         tableView: false,
         label: 'Submit',
-        input: true
-      }
+        input: true,
+      },
     ],
     title: 'Admin',
     path: 'admin',
@@ -221,10 +221,10 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f463',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f461'
+          '5c7024bb3a36930018f4f461',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [
       { roles: ['5c7024bb3a36930018f4f461'], type: 'create_all' },
@@ -234,7 +234,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
       { roles: [], type: 'create_own' },
       { roles: [], type: 'read_own' },
       { roles: [], type: 'update_own' },
-      { roles: [], type: 'delete_own' }
+      { roles: [], type: 'delete_own' },
     ],
     machineName: 'admin',
     created: '2019-02-22T16:35:07.957Z',
@@ -242,7 +242,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     id: '5c7024bb3a36930018f4f465',
     deleted: null,
     owner: null,
-    name: 'admin'
+    name: 'admin',
   },
   {
     type: 'resource',
@@ -270,13 +270,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           step: 'any',
           integer: '',
           multiple: '',
-          custom: ''
+          custom: '',
         },
         type: 'number',
         labelPosition: 'top',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -303,14 +303,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -325,8 +325,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Economic Sector',
     path: 'economicsector',
@@ -338,14 +338,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
@@ -353,12 +353,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
       { roles: [], type: 'read_own' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'economicSectors',
     created: '2019-02-22T16:35:07.986Z',
@@ -368,7 +368,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: null,
     name: 'economicSector',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -387,7 +387,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bb3a36930018f4f466',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -409,7 +409,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         lockKey: true,
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -433,13 +433,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           step: 'any',
           integer: '',
           multiple: '',
-          custom: ''
+          custom: '',
         },
         type: 'number',
         labelPosition: 'top',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -466,14 +466,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -498,14 +498,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           minLength: '',
           maxLength: '',
           pattern: '',
-          custom: ''
+          custom: '',
         },
         type: 'textarea',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -520,8 +520,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Economic Activity',
     path: 'economicactivity',
@@ -533,14 +533,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
@@ -548,12 +548,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
       { roles: [], type: 'read_own' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'economicActivities',
     created: '2019-02-22T16:35:08.014Z',
@@ -563,7 +563,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: null,
     name: 'economicActivity',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -594,14 +594,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -628,14 +628,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -650,8 +650,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Region',
     path: 'region',
@@ -663,30 +663,30 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
       { roles: [], type: 'create_all' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'regions',
     created: '2019-02-22T16:35:08.050Z',
@@ -696,7 +696,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: '5c9294ab2173e60018bf14a5',
     name: 'region',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -715,7 +715,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f468',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -736,7 +736,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -763,14 +763,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -785,8 +785,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Province',
     path: 'province',
@@ -798,14 +798,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
@@ -813,12 +813,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
       { roles: [], type: 'read_own' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'provinces',
     created: '2019-02-22T16:35:08.066Z',
@@ -828,7 +828,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: null,
     name: 'province',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -847,7 +847,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f469',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -868,7 +868,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -895,14 +895,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -929,14 +929,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -951,8 +951,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Comuna',
     path: 'comuna',
@@ -964,14 +964,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
@@ -979,12 +979,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
       { roles: [], type: 'read_own' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'comunas',
     created: '2019-02-22T16:35:08.078Z',
@@ -994,7 +994,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: null,
     name: 'comuna',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -1025,7 +1025,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
@@ -1033,7 +1033,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1057,7 +1057,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1072,7 +1072,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f471',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: '',
@@ -1093,7 +1093,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1125,7 +1125,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               maxLength: '',
               pattern: '',
               custom: '',
-              customPrivate: false
+              customPrivate: false,
             },
             conditional: { show: '', when: null, eq: '' },
             type: 'textfield',
@@ -1135,8 +1135,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             properties: {},
             hideLabel: true,
-            lockKey: true
-          }
+            lockKey: true,
+          },
         ],
         tableView: false,
         label: 'Alternative Names',
@@ -1151,7 +1151,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         addAnother: 'Agregar otro nombre',
-        hideLabel: false
+        hideLabel: false,
       },
       {
         autofocus: false,
@@ -1166,8 +1166,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Company',
     path: 'company',
@@ -1179,14 +1179,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
@@ -1194,12 +1194,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
       { roles: [], type: 'read_own' },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'companies',
     created: '2019-02-22T16:35:08.090Z',
@@ -1209,7 +1209,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: null,
     name: 'company',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -1245,7 +1245,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               maxLength: '',
               pattern: '',
               custom: '',
-              customPrivate: false
+              customPrivate: false,
             },
             conditional: { show: '', when: null, eq: '' },
             type: 'textfield',
@@ -1253,8 +1253,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             labelPosition: 'top',
             inputFormat: 'plain',
             tags: [],
-            properties: {}
-          }
+            properties: {},
+          },
         ],
         tableView: true,
         label: 'Classified by',
@@ -1271,9 +1271,9 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         lockKey: true,
         validate: {
           maxLength: 3,
-          customMessage: 'Only 3 users can classify the same job post!'
+          customMessage: 'Only 3 users can classify the same job post!',
         },
-        isNew: false
+        isNew: false,
       },
       {
         autofocus: false,
@@ -1300,7 +1300,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
@@ -1308,7 +1308,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        mask: false
+        mask: false,
       },
       {
         autofocus: false,
@@ -1335,7 +1335,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
@@ -1343,7 +1343,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1370,7 +1370,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
@@ -1378,7 +1378,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1393,7 +1393,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f46b',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1414,7 +1414,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -1429,7 +1429,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f468',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1451,7 +1451,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         searchField: '',
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1466,7 +1466,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f469',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1488,7 +1488,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         lockKey: true,
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -1503,7 +1503,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f46a',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1524,7 +1524,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'id__regex'
+        searchField: 'id__regex',
       },
       {
         autofocus: false,
@@ -1551,7 +1551,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
@@ -1559,7 +1559,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1586,7 +1586,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         labelPosition: 'top',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1597,7 +1597,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         fields: {
           day: { type: 'number', placeholder: '1', required: false },
           month: { type: 'select', placeholder: '1', required: false },
-          year: { type: 'number', placeholder: '2018', required: false }
+          year: { type: 'number', placeholder: '2018', required: false },
         },
         dayFirst: true,
         protected: false,
@@ -1613,7 +1613,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         properties: {},
         lockKey: true,
         useLocaleSettings: true,
-        hideLabel: false
+        hideLabel: false,
       },
       {
         autofocus: false,
@@ -1635,11 +1635,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             { name: 'clipboard', groups: ['clipboard', 'undo'] },
             {
               name: 'editing',
-              groups: ['find', 'selection', 'spellchecker', 'editing']
+              groups: ['find', 'selection', 'spellchecker', 'editing'],
             },
             { name: 'document', groups: ['mode', 'document', 'doctools'] },
             { name: 'others', groups: ['others'] },
-            { name: 'tools', groups: ['tools'] }
+            { name: 'tools', groups: ['tools'] },
           ],
           extraPlugins: 'justify,font',
           removeButtons:
@@ -1647,7 +1647,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           uiColor: '#eeeeee',
           height: '400px',
           width: '100%',
-          disableNativeSpellChecker: false
+          disableNativeSpellChecker: false,
         },
         clearOnHide: true,
         spellcheck: true,
@@ -1656,7 +1656,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           minLength: '',
           maxLength: '',
           pattern: '',
-          custom: ''
+          custom: '',
         },
         type: 'textarea',
         labelPosition: 'top',
@@ -1664,7 +1664,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1679,8 +1679,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Job Posting',
     path: 'jobposting',
@@ -1692,39 +1692,39 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'create_own'
+        type: 'create_own',
       },
       { roles: ['5c7024bb3a36930018f4f461'], type: 'create_all' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'update_own'
+        type: 'update_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'update_all'
+        type: 'update_all',
       },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'jobPosting',
     created: '2019-02-22T16:35:08.102Z',
@@ -1734,7 +1734,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: '5c754819765055001832aeff',
     name: 'jobPosting',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -1770,7 +1770,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             conditional: { show: '', when: null, eq: '' },
             properties: {},
             lockKey: true,
-            hideLabel: false
+            hideLabel: false,
           },
           {
             autofocus: false,
@@ -1794,14 +1794,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               step: 'any',
               integer: '',
               multiple: '',
-              custom: ''
+              custom: '',
             },
             type: 'number',
             labelPosition: 'top',
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -1816,7 +1816,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               url: '',
               resource: '',
               custom:
-                "let pages = data['pages'] || [];\nvalues = pages.map(x => { return {title: x.title, url: x.url} } );"
+                "let pages = data['pages'] || [];\nvalues = pages.map(x => { return {title: x.title, url: x.url} } );",
             },
             dataSrc: 'custom',
             valueProperty: '',
@@ -1837,7 +1837,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -1861,7 +1861,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             conditional: { show: '', when: null, eq: '' },
             properties: {},
             lockKey: true,
-            hideLabel: false
+            hideLabel: false,
           },
           {
             autofocus: false,
@@ -1875,12 +1875,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 { value: 'userProfile', label: 'User Profile' },
                 { value: 'changePassword', label: 'Change Password' },
                 { value: 'classifier', label: 'Classifier' },
-                { value: 'userDashboard', label: 'User Dashboard' }
+                { value: 'userDashboard', label: 'User Dashboard' },
               ],
               json: '',
               url: '',
               resource: '',
-              custom: ''
+              custom: '',
             },
             dataSrc: 'values',
             valueProperty: '',
@@ -1901,7 +1901,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: 'true', when: 'internal', eq: 'true' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -1928,7 +1928,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               maxLength: '',
               pattern: '',
               custom: '',
-              customPrivate: false
+              customPrivate: false,
             },
             conditional: { show: 'true', when: 'internal', eq: 'false' },
             type: 'textfield',
@@ -1936,7 +1936,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             properties: {},
             lockKey: true,
-            inputFormat: 'plain'
+            inputFormat: 'plain',
           },
           {
             autofocus: false,
@@ -1963,7 +1963,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               maxLength: '',
               pattern: '',
               custom: '',
-              customPrivate: false
+              customPrivate: false,
             },
             conditional: { show: '', when: '', eq: '' },
             type: 'textfield',
@@ -1971,7 +1971,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             properties: {},
             lockKey: true,
-            inputFormat: 'plain'
+            inputFormat: 'plain',
           },
           {
             autofocus: false,
@@ -1998,7 +1998,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               maxLength: '',
               pattern: '',
               custom: '',
-              customPrivate: false
+              customPrivate: false,
             },
             conditional: { show: 'true', when: 'internal', eq: 'false' },
             type: 'textfield',
@@ -2008,7 +2008,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             calculateValue:
               "value = row.name.toLowerCase().split(' ').join('-');",
             lockKey: true,
-            inputFormat: 'plain'
+            inputFormat: 'plain',
           },
           {
             autofocus: false,
@@ -2035,7 +2035,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               maxLength: '',
               pattern: '',
               custom: '',
-              customPrivate: false
+              customPrivate: false,
             },
             conditional: { show: '', when: null, eq: '' },
             type: 'textfield',
@@ -2043,7 +2043,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             properties: {},
             lockKey: true,
-            inputFormat: 'plain'
+            inputFormat: 'plain',
           },
           {
             autofocus: false,
@@ -2067,7 +2067,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             conditional: { show: '', when: null, eq: '' },
             properties: {},
             lockKey: true,
-            hideLabel: false
+            hideLabel: false,
           },
           {
             autofocus: false,
@@ -2082,7 +2082,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               url: 'http://34.73.215.70:3001/role',
               resource: '',
               custom: '',
-              headers: [{ value: '', key: '' }]
+              headers: [{ value: '', key: '' }],
             },
             dataSrc: 'url',
             valueProperty: 'title',
@@ -2105,7 +2105,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             properties: {},
             lockKey: true,
             selectValues: '',
-            searchField: 'title__regex'
+            searchField: 'title__regex',
           },
           {
             input: true,
@@ -2122,7 +2122,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               header:
                 '<div class="row"> \n  <div class="col-sm-4"> \n      Card Title\n    </div>\n   <div class="col-sm-4">\n    Actions\n    </div>\n</div>',
               row: '<div class="row"> \n\n    <div class="col-sm-4"> \n      {{ row[\'title\'] }} \n    </div> \n    <div class="col-sm-4"> \n      {{ row[\'actions\'].length }} \n    </div>\n\n  <div class="col-sm-2"> \n    <div class="btn-group pull-right"> \n      <div class="btn btn-default editRow">Edit</div> \n      <div class="btn btn-danger removeRow">Delete</div> \n    </div> \n  </div> \n</div>',
-              footer: ''
+              footer: '',
             },
             type: 'editgrid',
             tags: [],
@@ -2155,14 +2155,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   step: 'any',
                   integer: '',
                   multiple: '',
-                  custom: ''
+                  custom: '',
                 },
                 type: 'number',
                 labelPosition: 'top',
                 tags: [],
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -2189,7 +2189,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -2197,7 +2197,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 lockKey: true,
-                inputFormat: 'plain'
+                inputFormat: 'plain',
               },
               {
                 autofocus: false,
@@ -2224,7 +2224,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -2232,7 +2232,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 lockKey: true,
-                inputFormat: 'plain'
+                inputFormat: 'plain',
               },
               {
                 autofocus: false,
@@ -2256,7 +2256,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -2283,7 +2283,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -2291,7 +2291,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 lockKey: true,
-                inputFormat: 'plain'
+                inputFormat: 'plain',
               },
               {
                 autofocus: false,
@@ -2306,7 +2306,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   url: 'http://34.73.215.70:3001/role',
                   resource: '',
                   custom: '',
-                  headers: [{ value: '', key: '' }]
+                  headers: [{ value: '', key: '' }],
                 },
                 dataSrc: 'url',
                 valueProperty: 'title',
@@ -2329,7 +2329,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 properties: {},
                 selectValues: '',
                 searchField: 'title__regex',
-                lockKey: true
+                lockKey: true,
               },
               {
                 input: true,
@@ -2346,7 +2346,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   header:
                     '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ component.label }} \n    </div> \n  {% }) %} \n</div>',
                   row: '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ row[component.key] }} \n    </div> \n  {% }) %} \n  <div class="col-sm-2"> \n    <div class="btn-group pull-right"> \n      <div class="btn btn-default editRow">Edit</div> \n      <div class="btn btn-danger removeRow">Delete</div> \n    </div> \n  </div> \n</div>',
-                  footer: ''
+                  footer: '',
                 },
                 type: 'editgrid',
                 tags: [],
@@ -2382,7 +2382,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                       maxLength: '',
                       pattern: '',
                       custom: '',
-                      customPrivate: false
+                      customPrivate: false,
                     },
                     conditional: { show: '', when: null, eq: '' },
                     type: 'textfield',
@@ -2390,7 +2390,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     tags: [],
                     properties: {},
                     lockKey: true,
-                    inputFormat: 'plain'
+                    inputFormat: 'plain',
                   },
                   {
                     autofocus: false,
@@ -2414,7 +2414,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     conditional: { show: '', when: null, eq: '' },
                     properties: {},
                     lockKey: true,
-                    hideLabel: false
+                    hideLabel: false,
                   },
                   {
                     autofocus: false,
@@ -2435,14 +2435,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                         { value: 'userProfile', label: 'User Profile' },
                         {
                           value: 'changePassword',
-                          label: 'Change Password'
+                          label: 'Change Password',
                         },
-                        { value: 'userDashboard', label: 'User Dashboard' }
+                        { value: 'userDashboard', label: 'User Dashboard' },
                       ],
                       json: '',
                       url: '',
                       resource: '',
-                      custom: ''
+                      custom: '',
                     },
                     dataSrc: 'values',
                     valueProperty: '',
@@ -2464,10 +2464,10 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     conditional: {
                       show: 'true',
                       when: 'internal',
-                      eq: 'true'
+                      eq: 'true',
                     },
                     properties: {},
-                    lockKey: true
+                    lockKey: true,
                   },
                   {
                     autofocus: false,
@@ -2479,12 +2479,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     data: {
                       values: [
                         { value: 'page', label: 'Page' },
-                        { value: 'form', label: 'Form or Resource' }
+                        { value: 'form', label: 'Form or Resource' },
                       ],
                       json: '',
                       url: '',
                       resource: '',
-                      custom: ''
+                      custom: '',
                     },
                     dataSrc: 'values',
                     valueProperty: '',
@@ -2506,10 +2506,10 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     conditional: {
                       show: 'false',
                       when: 'internal',
-                      eq: 'true'
+                      eq: 'true',
                     },
                     properties: {},
-                    lockKey: true
+                    lockKey: true,
                   },
                   {
                     autofocus: false,
@@ -2524,7 +2524,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                       url: '',
                       resource: '',
                       custom:
-                        "let pages = data['pages'] || [];\nvalues = pages.map(x => { return {title: x.title, url: x.url} } );"
+                        "let pages = data['pages'] || [];\nvalues = pages.map(x => { return {title: x.title, url: x.url} } );",
                     },
                     dataSrc: 'custom',
                     valueProperty: '',
@@ -2546,7 +2546,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     conditional: { show: '', when: '', eq: '' },
                     properties: {},
                     lockKey: true,
-                    isNew: false
+                    isNew: false,
                   },
                   {
                     autofocus: false,
@@ -2562,7 +2562,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                       resource: '',
                       custom: '',
                       headers: [{ value: '', key: '' }],
-                      disableLimit: false
+                      disableLimit: false,
                     },
                     dataSrc: 'url',
                     valueProperty: 'path',
@@ -2587,7 +2587,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     searchField: 'title__regex',
                     limit: '',
                     customConditional:
-                      "show = !!(row.target === 'form' && row.internal !== true)"
+                      "show = !!(row.target === 'form' && row.internal !== true)",
                   },
                   {
                     autofocus: false,
@@ -2599,12 +2599,12 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     data: {
                       values: [
                         { value: 'list', label: 'List' },
-                        { value: 'create', label: 'Create' }
+                        { value: 'create', label: 'Create' },
                       ],
                       json: '',
                       url: '',
                       resource: '',
-                      custom: ''
+                      custom: '',
                     },
                     dataSrc: 'values',
                     valueProperty: '',
@@ -2627,7 +2627,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     properties: {},
                     lockKey: true,
                     customConditional:
-                      "show = !!(row.target === 'form' && row.internal !== true)"
+                      "show = !!(row.target === 'form' && row.internal !== true)",
                   },
                   {
                     autofocus: false,
@@ -2642,7 +2642,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                       url: '',
                       resource: '',
                       custom:
-                        "let pages = data['pages'] || [];\nvalues = pages.map(x => { return {title: x.title, url: x.url} } );"
+                        "let pages = data['pages'] || [];\nvalues = pages.map(x => { return {title: x.title, url: x.url} } );",
                     },
                     dataSrc: 'custom',
                     valueProperty: '',
@@ -2665,7 +2665,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     properties: {},
                     lockKey: true,
                     customConditional:
-                      "show = !!(row.target === 'page' && row.internal !== true)"
+                      "show = !!(row.target === 'page' && row.internal !== true)",
                   },
                   {
                     autofocus: false,
@@ -2680,7 +2680,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                       url: 'http://34.73.215.70:3001/role',
                       resource: '',
                       custom: '',
-                      headers: [{ value: '', key: '' }]
+                      headers: [{ value: '', key: '' }],
                     },
                     dataSrc: 'url',
                     valueProperty: 'title',
@@ -2702,11 +2702,11 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     conditional: { show: '', when: null, eq: '' },
                     properties: {},
                     searchField: 'sort=title&default__ne=true',
-                    lockKey: true
-                  }
-                ]
-              }
-            ]
+                    lockKey: true,
+                  },
+                ],
+              },
+            ],
           },
           {
             autofocus: false,
@@ -2730,7 +2730,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -2755,7 +2755,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               minLength: '',
               maxLength: '',
               pattern: '',
-              custom: ''
+              custom: '',
             },
             type: 'textarea',
             labelPosition: 'top',
@@ -2763,7 +2763,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -2788,7 +2788,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               minLength: '',
               maxLength: '',
               pattern: '',
-              custom: ''
+              custom: '',
             },
             type: 'textarea',
             labelPosition: 'top',
@@ -2796,7 +2796,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -2821,7 +2821,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               minLength: '',
               maxLength: '',
               pattern: '',
-              custom: ''
+              custom: '',
             },
             type: 'textarea',
             labelPosition: 'top',
@@ -2829,7 +2829,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -2854,7 +2854,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               minLength: '',
               maxLength: '',
               pattern: '',
-              custom: ''
+              custom: '',
             },
             type: 'textarea',
             labelPosition: 'top',
@@ -2862,7 +2862,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
+            lockKey: true,
           },
           {
             autofocus: false,
@@ -2887,7 +2887,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               minLength: '',
               maxLength: '',
               pattern: '',
-              custom: ''
+              custom: '',
             },
             type: 'textarea',
             labelPosition: 'top',
@@ -2895,15 +2895,15 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             tags: [],
             conditional: { show: '', when: null, eq: '' },
             properties: {},
-            lockKey: true
-          }
+            lockKey: true,
+          },
         ],
         type: 'panel',
         breadcrumb: 'default',
         hideLabel: false,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -2918,8 +2918,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'FAST_APP_PAGES',
     path: 'fast-app-pages',
@@ -2931,14 +2931,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
@@ -2948,14 +2948,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f463',
           '5c7024bb3a36930018f4f461',
-          '5c7024bb3a36930018f4f462'
+          '5c7024bb3a36930018f4f462',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'fast-app-pages',
     created: '2019-02-22T16:35:08.133Z',
@@ -2965,7 +2965,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: '5ca39b6aedf843001c7c7a26',
     name: 'fast-app-pages',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -2982,7 +2982,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           pattern: '',
           maxLength: '',
           minLength: '',
-          required: true
+          required: true,
         },
         clearOnHide: true,
         hidden: false,
@@ -3005,7 +3005,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         hideLabel: false,
         autofocus: false,
         spellcheck: true,
-        inputFormat: 'plain'
+        inputFormat: 'plain',
       },
       {
         lockKey: true,
@@ -3018,7 +3018,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           pattern: '',
           maxLength: '',
           minLength: '',
-          required: false
+          required: false,
         },
         clearOnHide: true,
         hidden: false,
@@ -3041,7 +3041,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         spellcheck: true,
         labelPosition: 'top',
         inputFormat: 'plain',
-        properties: {}
+        properties: {},
       },
       {
         lockKey: true,
@@ -3054,7 +3054,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           pattern: '',
           maxLength: '',
           minLength: '',
-          required: false
+          required: false,
         },
         clearOnHide: true,
         hidden: false,
@@ -3077,7 +3077,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         spellcheck: true,
         labelPosition: 'top',
         inputFormat: 'plain',
-        properties: {}
+        properties: {},
       },
       {
         properties: { '': '' },
@@ -3095,8 +3095,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tableView: false,
         label: 'Submit',
         input: true,
-        autofocus: false
-      }
+        autofocus: false,
+      },
     ],
     title: 'Translations',
     path: 'translations',
@@ -3108,14 +3108,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: [], type: 'create_own' },
@@ -3125,14 +3125,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f463',
-          '5c7024bb3a36930018f4f462'
+          '5c7024bb3a36930018f4f462',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'translations',
     created: '2019-02-22T16:35:08.168Z',
@@ -3142,7 +3142,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: '5c7406f3765055001832adae',
     name: 'translations',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -3173,7 +3173,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
@@ -3181,7 +3181,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         clearOnHide: false,
@@ -3205,7 +3205,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   url: '',
                   resource: '5c7024bc3a36930018f4f46b',
                   custom: '',
-                  project: 'project'
+                  project: 'project',
                 },
                 dataSrc: 'resource',
                 valueProperty: 'data.name',
@@ -3227,7 +3227,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
                 searchField: 'data.name__regex',
-                isNew: false
+                isNew: false,
               },
               {
                 autofocus: false,
@@ -3254,7 +3254,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: 'true', when: 'company', eq: 'Otra' },
                 type: 'textfield',
@@ -3263,7 +3263,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 lockKey: true,
-                isNew: false
+                isNew: false,
               },
               {
                 autofocus: false,
@@ -3290,7 +3290,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -3300,13 +3300,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 properties: {},
                 lockKey: true,
                 hideLabel: true,
-                isNew: false
-              }
+                isNew: false,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -3330,20 +3330,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 customClass: 'middle-align no-text',
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'companyHighlight' } );\n\ndocument.dispatchEvent(event);",
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -3366,7 +3366,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   json: '',
                   url: '',
                   resource: '5c93fd5c2173e60018bf1861',
-                  custom: ''
+                  custom: '',
                 },
                 dataSrc: 'resource',
                 valueProperty: 'data.name',
@@ -3389,7 +3389,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 properties: {},
                 lockKey: true,
                 searchField: 'data.name__regex',
-                isNew: false
+                isNew: false,
               },
               {
                 autofocus: false,
@@ -3416,7 +3416,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: 'true', when: 'industry', eq: 'Otra' },
                 type: 'textfield',
@@ -3424,7 +3424,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -3438,7 +3438,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   json: '',
                   url: '',
                   resource: '5c93fde62173e60018bf1869',
-                  custom: ''
+                  custom: '',
                 },
                 dataSrc: 'resource',
                 valueProperty: 'data.name',
@@ -3462,7 +3462,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 searchField: 'data.name__regex',
                 lockKey: true,
                 clearOnRefresh: true,
-                isNew: false
+                isNew: false,
               },
               {
                 autofocus: false,
@@ -3489,7 +3489,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: 'true', when: 'level', eq: 'Otra' },
                 type: 'textfield',
@@ -3497,7 +3497,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -3511,7 +3511,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   json: '',
                   url: '',
                   resource: '5c93f5352173e60018bf17f1',
-                  custom: ''
+                  custom: '',
                 },
                 dataSrc: 'resource',
                 valueProperty: '',
@@ -3537,7 +3537,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 selectFields: 'id, data.position, data.level',
                 clearOnRefresh: true,
                 limit: '200',
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -3564,7 +3564,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -3572,13 +3572,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -3602,20 +3602,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 customClass: 'middle-align no-text',
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'positionHighlight' } );\n\ndocument.dispatchEvent(event);",
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        hideLabel: true
+        hideLabel: true,
       },
       {
         clearOnHide: false,
@@ -3651,7 +3651,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -3659,7 +3659,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -3686,7 +3686,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -3695,13 +3695,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 lockKey: true,
-                isNew: false
-              }
+                isNew: false,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -3724,20 +3724,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 properties: {},
                 customClass: 'middle-align no-text',
                 custom:
-                  "var event = new CustomEvent('enableHighlightText', { detail: 'titleHighlight' } );\n\ndocument.dispatchEvent(event);"
-              }
+                  "var event = new CustomEvent('enableHighlightText', { detail: 'titleHighlight' } );\n\ndocument.dispatchEvent(event);",
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        hideLabel: true
+        hideLabel: true,
       },
       {
         clearOnHide: false,
@@ -3770,7 +3770,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   step: 'any',
                   integer: '',
                   multiple: '',
-                  custom: ''
+                  custom: '',
                 },
                 type: 'number',
                 labelPosition: 'top',
@@ -3778,7 +3778,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
                 lockKey: true,
-                decimalLimit: 0
+                decimalLimit: 0,
               },
               {
                 autofocus: false,
@@ -3805,7 +3805,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -3813,13 +3813,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -3842,20 +3842,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 properties: {},
                 customClass: 'middle-align no-text',
                 custom:
-                  "var event = new CustomEvent('enableHighlightText', { detail: 'vacanciesHighlight' } );\n\ndocument.dispatchEvent(event);"
-              }
+                  "var event = new CustomEvent('enableHighlightText', { detail: 'vacanciesHighlight' } );\n\ndocument.dispatchEvent(event);",
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        hideLabel: true
+        hideLabel: true,
       },
       {
         clearOnHide: false,
@@ -3878,7 +3878,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   json: '',
                   url: '',
                   resource: '',
-                  custom: ''
+                  custom: '',
                 },
                 dataSrc: 'values',
                 valueProperty: '',
@@ -3899,7 +3899,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -3926,7 +3926,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -3935,13 +3935,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 hideLabel: true,
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -3965,20 +3965,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'originHighlight' });\n\ndocument.dispatchEvent(event);",
                 customClass: 'middle-align no-text',
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        hideLabel: true
+        hideLabel: true,
       },
       {
         clearOnHide: false,
@@ -4002,7 +4002,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   url: '',
                   resource: '5c7024bc3a36930018f4f468',
                   custom: '',
-                  project: 'project'
+                  project: 'project',
                 },
                 dataSrc: 'resource',
                 valueProperty: '',
@@ -4024,7 +4024,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
                 searchField: '',
-                limit: '30'
+                limit: '30',
               },
               {
                 autofocus: false,
@@ -4051,7 +4051,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4060,13 +4060,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 hideLabel: true,
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4090,20 +4090,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'regionHighlight' });\n\ndocument.dispatchEvent(event);",
                 customClass: 'middle-align no-text',
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -4139,7 +4139,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4147,7 +4147,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -4174,7 +4174,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4183,13 +4183,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 hideLabel: true,
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4213,20 +4213,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'comunaHighlight' });\n\ndocument.dispatchEvent(event);",
                 customClass: 'middle-align no-text',
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -4264,7 +4264,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                     '^$|^\\$?(\\d+|\\d{1,3}(\\.\\d{3})*)(,\\d+)?\\-?\\$?(\\d+|\\d{1,3}(\\.\\d{3})*)(,\\d+)?$',
                   custom: '',
                   customPrivate: false,
-                  customMessage: ''
+                  customMessage: '',
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4272,7 +4272,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -4299,7 +4299,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4308,13 +4308,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 hideLabel: true,
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4338,20 +4338,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'salaryHighlight' });\n\ndocument.dispatchEvent(event);",
                 customClass: 'middle-align no-text',
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -4387,7 +4387,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4395,7 +4395,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -4422,7 +4422,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4431,13 +4431,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 hideLabel: true,
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4461,20 +4461,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'fullTimeorPartTimeHighlight'  });\n\ndocument.dispatchEvent(event);",
                 customClass: 'middle-align no-text',
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -4498,7 +4498,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   url: '',
                   resource: '5c7024bc3a36930018f4f471',
                   custom: '',
-                  project: 'project'
+                  project: 'project',
                 },
                 dataSrc: 'resource',
                 valueProperty: 'data.name',
@@ -4519,7 +4519,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
-                searchField: 'data.name__regex'
+                searchField: 'data.name__regex',
               },
               {
                 autofocus: false,
@@ -4546,7 +4546,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4555,13 +4555,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 hideLabel: true,
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4585,20 +4585,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'jobCategoryHighlight' });\n\ndocument.dispatchEvent(event);",
                 customClass: 'middle-align no-text',
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -4620,9 +4620,9 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   month: {
                     type: 'select',
                     placeholder: '',
-                    required: false
+                    required: false,
                   },
-                  year: { type: 'number', placeholder: '', required: false }
+                  year: { type: 'number', placeholder: '', required: false },
                 },
                 dayFirst: false,
                 protected: false,
@@ -4637,7 +4637,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 conditional: { show: '', when: null, eq: '' },
                 properties: {},
                 lockKey: true,
-                useLocaleSettings: false
+                useLocaleSettings: false,
               },
               {
                 autofocus: false,
@@ -4664,7 +4664,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4672,13 +4672,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                hideLabel: true
-              }
+                hideLabel: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4702,20 +4702,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 customClass: 'middle-align no-text',
                 custom:
                   "var event = new CustomEvent('enableHighlightText', { detail: 'jobDateHighlight' });\n\ndocument.dispatchEvent(event);",
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -4751,7 +4751,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4759,7 +4759,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -4786,7 +4786,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4794,13 +4794,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                hideLabel: true
-              }
+                hideLabel: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4824,20 +4824,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 customClass: 'middle-align no-text',
                 lockKey: true,
                 custom:
-                  "var event = new CustomEvent('enableHighlightText', { detail: 'contactHighlight' });\n\ndocument.dispatchEvent(event);"
-              }
+                  "var event = new CustomEvent('enableHighlightText', { detail: 'contactHighlight' });\n\ndocument.dispatchEvent(event);",
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         clearOnHide: false,
@@ -4873,7 +4873,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4881,7 +4881,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -4908,7 +4908,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: { show: '', when: null, eq: '' },
                 type: 'textfield',
@@ -4917,13 +4917,13 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 tags: [],
                 properties: {},
                 hideLabel: true,
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             width: 10,
             offset: 0,
             push: 0,
-            pull: 0
+            pull: 0,
           },
           {
             components: [
@@ -4947,20 +4947,20 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
                 customClass: 'middle-align no-text',
                 lockKey: true,
                 custom:
-                  "var event = new CustomEvent('enableHighlightText', { detail: 'observationsHighlight' });\n\ndocument.dispatchEvent(event);"
-              }
+                  "var event = new CustomEvent('enableHighlightText', { detail: 'observationsHighlight' });\n\ndocument.dispatchEvent(event);",
+              },
             ],
             width: 2,
             offset: 0,
             push: 0,
-            pull: 0
-          }
+            pull: 0,
+          },
         ],
         type: 'columns',
         hideLabel: true,
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -4978,7 +4978,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         type: 'button',
         tags: [],
         conditional: { show: '', when: null, eq: '' },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -4999,8 +4999,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         properties: {},
         event: 'nextClassification',
         custom:
-          "var event = new CustomEvent('nextClassification' );\n\ndocument.dispatchEvent(event);"
-      }
+          "var event = new CustomEvent('nextClassification' );\n\ndocument.dispatchEvent(event);",
+      },
     ],
     title: 'Classification',
     path: 'classification',
@@ -5012,36 +5012,36 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       { roles: ['5c7024bb3a36930018f4f461'], type: 'create_all' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: ['5c7024bb3a36930018f4f461'], type: 'update_all' },
       { roles: [], type: 'delete_all' },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'create_own'
+        type: 'create_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'update_own'
+        type: 'update_own',
       },
-      { roles: [], type: 'delete_own' }
+      { roles: [], type: 'delete_own' },
     ],
     machineName: 'classification',
     created: '2019-02-22T16:35:08.183Z',
@@ -5051,7 +5051,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: '5c73ef02765055001832adad',
     name: 'classification',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -5082,14 +5082,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -5104,7 +5104,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           url: '',
           resource: '5c7024bc3a36930018f4f471',
           custom: '',
-          project: 'project'
+          project: 'project',
         },
         dataSrc: 'resource',
         valueProperty: '',
@@ -5125,7 +5125,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: ''
+        searchField: '',
       },
       {
         autofocus: false,
@@ -5157,7 +5157,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
               maxLength: '',
               pattern: '',
               custom: '',
-              customPrivate: false
+              customPrivate: false,
             },
             conditional: { show: '', when: null, eq: '' },
             type: 'textfield',
@@ -5166,8 +5166,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
             inputFormat: 'plain',
             tags: [],
             properties: {},
-            hideLabel: true
-          }
+            hideLabel: true,
+          },
         ],
         tableView: true,
         label: 'Alternative names',
@@ -5181,7 +5181,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -5196,8 +5196,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Job Type',
     path: 'jobtype',
@@ -5209,30 +5209,30 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'create_own'
+        type: 'create_own',
       },
       { roles: [], type: 'create_all' },
       { roles: [], type: 'read_own' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'jobType',
     created: '2019-02-22T16:35:08.201Z',
@@ -5242,7 +5242,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: null,
     name: 'jobType',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'resource',
@@ -5273,14 +5273,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -5295,8 +5295,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Job Category',
     path: 'jobcategory',
@@ -5308,30 +5308,30 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     submissionAccess: [
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'create_own'
+        type: 'create_own',
       },
       { roles: [], type: 'create_all' },
       { roles: [], type: 'read_own' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_own' },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_own' },
-      { roles: [], type: 'delete_all' }
+      { roles: [], type: 'delete_all' },
     ],
     machineName: 'jobCategory',
     created: '2019-02-22T16:35:08.211Z',
@@ -5341,7 +5341,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     owner: null,
     name: 'jobCategory',
     display: 'form',
-    settings: {}
+    settings: {},
   },
   {
     type: 'form',
@@ -5361,7 +5361,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         label: 'Email',
         inputType: 'email',
         tableView: true,
-        input: true
+        input: true,
       },
       {
         type: 'password',
@@ -5375,7 +5375,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         label: 'Password',
         inputType: 'password',
         tableView: false,
-        input: true
+        input: true,
       },
       {
         type: 'button',
@@ -5389,14 +5389,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         key: 'submit',
         tableView: false,
         label: 'Submit',
-        input: true
-      }
+        input: true,
+      },
     ],
     title: 'User Login',
     path: 'user/login',
     access: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'read_all' }],
     submissionAccess: [
-      { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }
+      { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' },
     ],
     machineName: 'userLogin',
     created: '2019-02-22T16:35:08.492Z',
@@ -5404,7 +5404,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     id: '5c7024bc3a36930018f4f472',
     deleted: null,
     owner: null,
-    name: 'userLogin'
+    name: 'userLogin',
   },
   {
     type: 'form',
@@ -5434,7 +5434,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        validate: { required: true }
+        validate: { required: true },
       },
       {
         type: 'password',
@@ -5457,7 +5457,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         tabindex: 'admin@example.com',
-        validate: { required: true }
+        validate: { required: true },
       },
       {
         theme: 'primary',
@@ -5472,14 +5472,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         input: true,
         type: 'button',
         autofocus: false,
-        tableView: false
-      }
+        tableView: false,
+      },
     ],
     title: 'User Register',
     path: 'userregister',
     access: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'read_all' }],
     submissionAccess: [
-      { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }
+      { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' },
     ],
     machineName: 'userRegister',
     created: '2019-02-22T16:35:08.499Z',
@@ -5488,7 +5488,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     deleted: null,
     owner: '5c8bcd1ff9ba180012659177',
     name: 'userregister',
-    display: 'form'
+    display: 'form',
   },
   {
     type: 'form',
@@ -5508,7 +5508,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         label: 'Email',
         inputType: 'email',
         tableView: true,
-        input: true
+        input: true,
       },
       {
         type: 'password',
@@ -5522,7 +5522,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         label: 'Password',
         inputType: 'password',
         tableView: false,
-        input: true
+        input: true,
       },
       {
         type: 'button',
@@ -5536,14 +5536,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         key: 'submit',
         tableView: false,
         label: 'Submit',
-        input: true
-      }
+        input: true,
+      },
     ],
     title: 'Admin Login',
     path: 'admin/login',
     access: [{ roles: ['5c7024bb3a36930018f4f463'], type: 'read_all' }],
     submissionAccess: [
-      { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' }
+      { roles: ['5c7024bb3a36930018f4f463'], type: 'create_own' },
     ],
     machineName: 'adminLogin',
     created: '2019-02-22T16:35:08.510Z',
@@ -5551,7 +5551,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     id: '5c7024bc3a36930018f4f474',
     deleted: null,
     owner: null,
-    name: 'adminLogin'
+    name: 'adminLogin',
   },
   {
     type: 'resource',
@@ -5569,7 +5569,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           json: '',
           url: '',
           resource: '5c93fd5c2173e60018bf1861',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'resource',
         valueProperty: 'data.name',
@@ -5591,7 +5591,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         conditional: { show: '', when: null, eq: '' },
         properties: {},
         lockKey: true,
-        searchField: 'data.name__regex'
+        searchField: 'data.name__regex',
       },
       {
         autofocus: false,
@@ -5605,7 +5605,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           json: '',
           url: '',
           resource: '5c93fde62173e60018bf1869',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'resource',
         valueProperty: 'data.name',
@@ -5626,7 +5626,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         tags: [],
         conditional: { show: '', when: null, eq: '' },
         properties: {},
-        searchField: 'data.name__regex'
+        searchField: 'data.name__regex',
       },
       {
         autofocus: false,
@@ -5653,14 +5653,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -5675,8 +5675,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Job Positions',
     path: 'jobpositions',
@@ -5685,23 +5685,23 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [
       { roles: [], type: 'create_all' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_all' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'create_own' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'read_own' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'update_own' },
-      { roles: ['5c7024bb3a36930018f4f462'], type: 'delete_own' }
+      { roles: ['5c7024bb3a36930018f4f462'], type: 'delete_own' },
     ],
     machineName: 'jobPositions',
     created: '2019-03-21T20:33:57.233Z',
@@ -5710,7 +5710,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     deleted: null,
     owner: '5c7024bc3a36930018f4f489',
     display: 'form',
-    name: 'jobPositions'
+    name: 'jobPositions',
   },
   {
     type: 'resource',
@@ -5741,14 +5741,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -5763,8 +5763,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Industries',
     path: 'industries',
@@ -5773,10 +5773,10 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [
       { roles: [], type: 'create_all' },
@@ -5784,28 +5784,28 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: ['5c7024bb3a36930018f4f461'], type: 'update_all' },
       { roles: ['5c7024bb3a36930018f4f461'], type: 'delete_all' },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'create_own'
+        type: 'create_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'update_own'
+        type: 'update_own',
       },
       {
         roles: ['5c7024bb3a36930018f4f462', '5c7024bb3a36930018f4f461'],
-        type: 'delete_own'
-      }
+        type: 'delete_own',
+      },
     ],
     machineName: 'industries',
     created: '2019-03-21T21:08:44.200Z',
@@ -5814,7 +5814,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     deleted: null,
     owner: '5c7024bc3a36930018f4f489',
     display: 'form',
-    name: 'industries'
+    name: 'industries',
   },
   {
     type: 'resource',
@@ -5845,14 +5845,14 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: { show: '', when: null, eq: '' },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -5867,8 +5867,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Job Positions Level',
     path: 'jobpositions/levels',
@@ -5877,23 +5877,23 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [
       { roles: [], type: 'create_all' },
       {
         roles: ['5c7024bb3a36930018f4f461', '5c7024bb3a36930018f4f462'],
-        type: 'read_all'
+        type: 'read_all',
       },
       { roles: [], type: 'update_all' },
       { roles: [], type: 'delete_all' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'create_own' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'read_own' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'update_own' },
-      { roles: ['5c7024bb3a36930018f4f462'], type: 'delete_own' }
+      { roles: ['5c7024bb3a36930018f4f462'], type: 'delete_own' },
     ],
     machineName: 'jobPositionsLevel',
     created: '2019-03-21T21:11:02.855Z',
@@ -5902,7 +5902,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     deleted: null,
     owner: '5c7024bc3a36930018f4f489',
     display: 'form',
-    name: 'jobPositionsLevel'
+    name: 'jobPositionsLevel',
   },
   {
     type: 'form',
@@ -5920,7 +5920,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
           json: '',
           url: '',
           resource: '5c7024bb3a36930018f4f464',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -5943,7 +5943,7 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         properties: {},
         searchField: 'data.email__regex',
         reference: true,
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -5958,8 +5958,8 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     title: 'Admin assigment',
     path: 'adminassignment',
@@ -5968,16 +5968,16 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5c7024bb3a36930018f4f461',
           '5c7024bb3a36930018f4f462',
-          '5c7024bb3a36930018f4f463'
+          '5c7024bb3a36930018f4f463',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     submissionAccess: [
       { roles: ['5c7024bb3a36930018f4f462'], type: 'create_own' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'read_own' },
       { roles: ['5c7024bb3a36930018f4f462'], type: 'update_own' },
-      { roles: ['5c7024bb3a36930018f4f462'], type: 'delete_own' }
+      { roles: ['5c7024bb3a36930018f4f462'], type: 'delete_own' },
     ],
     machineName: 'adminAssigment',
     created: '2019-04-29T14:55:56.702Z',
@@ -5986,6 +5986,6 @@ export const MultiplePivots: FormioForm[] = ((): FormioForm[] => [
     deleted: null,
     owner: '5c7024bc3a36930018f4f489',
     display: 'form',
-    name: 'adminAssigment'
-  }
+    name: 'adminAssigment',
+  },
 ])()

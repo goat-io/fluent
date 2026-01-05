@@ -17,7 +17,7 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     { name: 'Goatee', age: 12 },
     { name: 'Billy', age: 8 },
     { name: 'Nanny', age: 15 },
-    { name: 'Goatee', age: 10 }
+    { name: 'Goatee', age: 10 },
   ]
 
   test('insert - Should insert data', async () => {
@@ -30,7 +30,7 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     const a = await Repository.insert({
       id: '631ce4304f9183f61ffb613a',
       name: 'myGoat',
-      age: 13
+      age: 13,
     })
     expect(typeof a.id).toBe('string')
     expect(a.id).toBe('631ce4304f9183f61ffb613a')
@@ -56,8 +56,8 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     const goats = await Repository.insertMany(flock)
     const goat = await Repository.findById(goats[0].id!, {
       select: {
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(goat).not.toHaveProperty('name')
@@ -71,7 +71,7 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
 
     expect(selectedGoats.length).toBe(2)
     expect(
-      selectedGoats[0].id === ids[0] || selectedGoats[1].id === ids[0]
+      selectedGoats[0].id === ids[0] || selectedGoats[1].id === ids[0],
     ).toBe(true)
   })
 
@@ -82,13 +82,13 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
 
     const selectedGoats = await Repository.findByIds(ids, {
       select: {
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(selectedGoats.length).toBe(2)
     expect(
-      selectedGoats[0].age === ages[0] || selectedGoats[1].age === ages[0]
+      selectedGoats[0].age === ages[0] || selectedGoats[1].age === ages[0],
     ).toBe(true)
     expect(selectedGoats[0]).not.toHaveProperty('name')
   })
@@ -105,8 +105,8 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     await Repository.insertMany(flock)
     const storedGoats = await Repository.findMany({
       where: {
-        name: 'Goatee'
-      }
+        name: 'Goatee',
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(true)
@@ -120,8 +120,8 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     await Repository.insertMany(flock)
     const storedGoats = await Repository.findMany({
       where: {
-        name: 'SOMENOTEXISTINGGOAT'
-      }
+        name: 'SOMENOTEXISTINGGOAT',
+      },
     })
     expect(Array.isArray(storedGoats)).toBe(true)
     expect(storedGoats.length).toBe(0)
@@ -131,11 +131,11 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     await Repository.insertMany(flock)
     const storedGoats = await Repository.findMany({
       where: {
-        name: 'Goatee'
+        name: 'Goatee',
       },
       select: {
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(true)
@@ -147,8 +147,8 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     await Repository.insertMany(flock)
     const storedGoats = await Repository.findFirst({
       where: {
-        name: 'Goatee'
-      }
+        name: 'Goatee',
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(false)
@@ -159,12 +159,12 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     await Repository.insertMany(flock)
     const storedGoats = await Repository.findFirst({
       where: {
-        name: 'Goatee'
+        name: 'Goatee',
       },
       select: {
         name: true,
-        age: true
-      }
+        age: true,
+      },
     })
 
     expect(Array.isArray(storedGoats)).toBe(false)
@@ -178,7 +178,7 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
 
     const data = await Repository.updateById(goats[0].id!, {
       age: 99,
-      name: 'MyUpdatedGoat'
+      name: 'MyUpdatedGoat',
     })
     expect(data.name).toBe('MyUpdatedGoat')
     expect(data.id).toBe(goats[0].id!)
@@ -189,7 +189,7 @@ const basicTestSuite = (Repository: FormioGoatRepository) => {
     const goats = await Repository.findMany()
     const data = await Repository.replaceById(goats[0].id!, {
       age: 2,
-      name: 'MyReplacedGoat'
+      name: 'MyReplacedGoat',
     })
     expect(data.name).toBe('MyReplacedGoat')
     expect(data.id).toBe(goats[0].id!)

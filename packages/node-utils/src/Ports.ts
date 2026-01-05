@@ -32,7 +32,7 @@ class PortClass {
     while (attempts < maxAttempts) {
       try {
         const candidatePort = await portfinder.getPortPromise({
-          port: startPort + attempts
+          port: startPort + attempts,
         })
 
         // Check if this port is already being allocated by another call
@@ -59,7 +59,7 @@ class PortClass {
     }
 
     throw new Error(
-      `Could not find an available port after ${maxAttempts} attempts`
+      `Could not find an available port after ${maxAttempts} attempts`,
     )
   }
 

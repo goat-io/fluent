@@ -26,7 +26,7 @@ export class CircuitBreaker {
       resetTimeoutMs: config.resetTimeoutMs,
       halfOpenRetries: config.halfOpenRetries || 3,
       windowSizeMs: config.windowSizeMs || 10000,
-      shouldTrip: config.shouldTrip || (() => true)
+      shouldTrip: config.shouldTrip || (() => true),
     }
   }
 
@@ -109,7 +109,7 @@ export class CircuitBreaker {
       successfulCalls: this.successfulCalls,
       failedCalls: this.failedCalls,
       state: this.getState(),
-      failuresInWindow: this.failures.length
+      failuresInWindow: this.failures.length,
     }
   }
 

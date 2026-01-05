@@ -12,7 +12,7 @@ export enum AgreementState {
   CRITIQUE = 'critique',
   CONVERGE = 'converge',
   COMMIT = 'commit',
-  ABORT = 'abort'
+  ABORT = 'abort',
 }
 
 // Agent roles in agreement
@@ -20,7 +20,7 @@ export enum AgentRole {
   PROPOSER = 'proposer',
   REVIEWER = 'reviewer',
   ARBITER = 'arbiter',
-  OBSERVER = 'observer'
+  OBSERVER = 'observer',
 }
 
 // Message payload types
@@ -29,7 +29,7 @@ export const ProposalPayloadSchema = z.object({
   rationale: z.string().min(1).max(10000),
   confidence: z.number().min(0).max(1),
   alternatives: z.array(z.string()).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const CritiquePayloadSchema = z.object({
@@ -38,18 +38,18 @@ export const CritiquePayloadSchema = z.object({
     z.object({
       severity: z.enum(['critical', 'major', 'minor', 'suggestion']),
       description: z.string().max(5000),
-      suggestedFix: z.string().optional()
-    })
+      suggestedFix: z.string().optional(),
+    }),
   ),
   overallAssessment: z.enum(['approve', 'refine', 'reject']),
-  confidence: z.number().min(0).max(1)
+  confidence: z.number().min(0).max(1),
 })
 
 export const VotePayloadSchema = z.object({
   proposalId: z.string().uuid(),
   vote: z.enum(['approve', 'reject', 'abstain']),
   rationale: z.string().max(5000),
-  weight: z.number().min(0).max(1).default(1)
+  weight: z.number().min(0).max(1).default(1),
 })
 
 export const CommitPayloadSchema = z.object({
@@ -58,9 +58,9 @@ export const CommitPayloadSchema = z.object({
   consensus: z.object({
     method: z.enum(['unanimous', 'majority', 'arbiter', 'timeout']),
     votes: z.array(VotePayloadSchema),
-    score: z.number().min(0).max(1)
+    score: z.number().min(0).max(1),
   }),
-  auditTrail: z.array(z.string().uuid())
+  auditTrail: z.array(z.string().uuid()),
 })
 
 // Main message schema
@@ -80,16 +80,16 @@ export const AgreementMessageSchema = z.object({
     ProposalPayloadSchema,
     CritiquePayloadSchema,
     VotePayloadSchema,
-    CommitPayloadSchema
+    CommitPayloadSchema,
   ]),
   parentMessageId: z.string().uuid().optional(),
   tokenUsage: z
     .object({
       prompt: z.number().int().nonnegative(),
       completion: z.number().int().nonnegative(),
-      total: z.number().int().nonnegative()
+      total: z.number().int().nonnegative(),
     })
-    .optional()
+    .optional(),
 })
 
 export type AgreementMessage = z.infer<typeof AgreementMessageSchema>
@@ -117,11 +117,11 @@ export const AgreementSessionConfigSchema = z.object({
         id: z.string(),
         role: z.nativeEnum(AgentRole),
         weight: z.number().min(0).max(1).default(1),
-        model: z.string().optional()
-      })
+        model: z.string().optional(),
+      }),
     )
     .min(2)
-    .max(10)
+    .max(10),
 })
 
 export type AgreementSessionConfig = z.infer<
@@ -140,7 +140,7 @@ export function validateSessionConfig(config: unknown): AgreementSessionConfig {
 // Size validation
 export function validatePayloadSize(
   payload: unknown,
-  maxSizeMB: number = 10
+  maxSizeMB: number = 10,
 ): void {
   const jsonStr = JSON.stringify(payload)
   const sizeBytes = new TextEncoder().encode(jsonStr).length
@@ -148,7 +148,7 @@ export function validatePayloadSize(
 
   if (sizeMB > maxSizeMB) {
     throw new Error(
-      `Payload size ${sizeMB.toFixed(2)}MB exceeds limit of ${maxSizeMB}MB`
+      `Payload size ${sizeMB.toFixed(2)}MB exceeds limit of ${maxSizeMB}MB`,
     )
   }
 }

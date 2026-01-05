@@ -14,11 +14,11 @@ import {
   ExecutionError,
   FlowState,
   GraphConfig,
-  TimeoutError
+  TimeoutError,
 } from './types.js'
 import {
   getClaudeProcessPool,
-  shutdownClaudePool
+  shutdownClaudePool,
 } from './utils/process-pool.js'
 import { isRetryableError, RetryableClient } from './utils/retry.js'
 
@@ -33,7 +33,7 @@ const defaultConfig: Required<GraphConfig> = {
   claudeCodePath: 'claude',
   autogenServiceUrl: process.env.AUTOGEN_SERVICE_URL || 'http://localhost:8000',
   maxRetries: 3,
-  retryDelayMs: 1000
+  retryDelayMs: 1000,
 }
 
 // Maximum iteration count for defense-in-depth
@@ -48,13 +48,13 @@ function createRetryableClient(baseUrl: string): RetryableClient {
       maxAttempts: 3,
       initialDelayMs: 1000,
       maxDelayMs: 10000,
-      shouldRetry: isRetryableError
+      shouldRetry: isRetryableError,
     },
     {
       failureThreshold: 5,
       resetTimeoutMs: 60000,
-      halfOpenRetries: 2
-    }
+      halfOpenRetries: 2,
+    },
   )
 }
 
@@ -65,7 +65,7 @@ function createRetryableClient(baseUrl: string): RetryableClient {
  */
 async function plannerNode(
   state: FlowState,
-  config: Required<GraphConfig>
+  config: Required<GraphConfig>,
 ): Promise<Partial<FlowState>> {
   console.log('📋 Planning: Generating initial specification...')
 
@@ -76,7 +76,7 @@ async function plannerNode(
       const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
       return await client
         .post('plan', {
-          json: { prompt: state.task }
+          json: { prompt: state.task },
         })
         .json<any>()
     })
@@ -84,7 +84,7 @@ async function plannerNode(
     console.log('✅ Planning complete')
     return {
       spec: data.draft,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
   } catch (error) {
     console.error('❌ Planning failed:', error)
@@ -97,20 +97,20 @@ async function plannerNode(
  */
 async function refinerNode(
   state: FlowState,
-  config: Required<GraphConfig>
+  config: Required<GraphConfig>,
 ): Promise<Partial<FlowState>> {
   console.log('🔧 Refining: Improving specification...')
 
   // Cap iteration count for defense-in-depth
   const currentIteration = Math.min(
     state.iterationCount || 0,
-    MAX_ITERATION_HARD_LIMIT
+    MAX_ITERATION_HARD_LIMIT,
   )
 
   if (currentIteration >= config.maxIterations) {
     console.log('⚠️ Max iterations reached in refiner')
     return {
-      reviewFeedback: 'max_iterations_reached'
+      reviewFeedback: 'max_iterations_reached',
     }
   }
 
@@ -121,7 +121,7 @@ async function refinerNode(
       const client = Http.getClient({ prefixUrl: config.autogenServiceUrl })
       return await client
         .post('refine', {
-          json: { spec: state.spec }
+          json: { spec: state.spec },
         })
         .json<any>()
     })
@@ -129,14 +129,14 @@ async function refinerNode(
     console.log(
       data.clear
         ? '✅ Specification is clear'
-        : '🔄 Specification needs more refinement'
+        : '🔄 Specification needs more refinement',
     )
 
     return {
       spec: data.refined,
       iterationCount: (state.iterationCount || 0) + 1,
       // Store clear status for routing
-      reviewFeedback: data.clear ? 'clear' : 'unclear'
+      reviewFeedback: data.clear ? 'clear' : 'unclear',
     }
   } catch (error) {
     console.error('❌ Refinement failed:', error)
@@ -149,7 +149,7 @@ async function refinerNode(
  */
 async function codeAgentNode(
   state: FlowState,
-  config: Required<GraphConfig>
+  config: Required<GraphConfig>,
 ): Promise<Partial<FlowState>> {
   console.log('💻 Coding: Executing Claude Code...')
 
@@ -170,7 +170,7 @@ async function codeAgentNode(
       HOME: state.repoPath, // Prevent access to actual home directory
       TMPDIR: `${state.repoPath}/.delphi-tmp`,
       TEMP: `${state.repoPath}/.delphi-tmp`,
-      TMP: `${state.repoPath}/.delphi-tmp`
+      TMP: `${state.repoPath}/.delphi-tmp`,
     }
 
     // Remove sensitive environment variables
@@ -185,7 +185,7 @@ async function codeAgentNode(
       env: sanitizedEnv,
       // Additional security: drop privileges if running as root
       uid: process.getuid ? process.getuid() : undefined,
-      gid: process.getgid ? process.getgid() : undefined
+      gid: process.getgid ? process.getgid() : undefined,
     })
 
     let diff = ''
@@ -224,7 +224,7 @@ async function codeAgentNode(
       // Log progress for large outputs
       if (bytesReceived > 1024 * 1024) {
         console.log(
-          `📊 Received ${(bytesReceived / 1024 / 1024).toFixed(2)}MB of diff output`
+          `📊 Received ${(bytesReceived / 1024 / 1024).toFixed(2)}MB of diff output`,
         )
       }
     })
@@ -239,12 +239,14 @@ async function codeAgentNode(
       if (code === 0) {
         console.log('✅ Code generation complete')
         resolve({
-          codeDiff: diff.trim()
+          codeDiff: diff.trim(),
         })
       } else {
         console.error('❌ Code generation failed with exit code:', code)
         reject(
-          new ExecutionError(`Claude Code exited with code ${code}`, { stderr })
+          new ExecutionError(`Claude Code exited with code ${code}`, {
+            stderr,
+          }),
         )
       }
     })
@@ -262,7 +264,7 @@ async function codeAgentNode(
  */
 async function testRunnerNode(
   state: FlowState,
-  config: Required<GraphConfig>
+  config: Required<GraphConfig>,
 ): Promise<Partial<FlowState>> {
   if (!config.enableTests) {
     console.log('🔸 Tests disabled, skipping...')
@@ -278,7 +280,7 @@ async function testRunnerNode(
     const child = spawn('sh', ['-c', testCommand], {
       cwd: state.repoPath,
       stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 120000 // 2 minute timeout for tests
+      timeout: 120000, // 2 minute timeout for tests
     })
 
     let output = ''
@@ -297,7 +299,7 @@ async function testRunnerNode(
       console.log(code === 0 ? '✅ Tests passed' : '⚠️ Tests failed')
 
       resolve({
-        testResults
+        testResults,
       })
     })
   })
@@ -308,7 +310,7 @@ async function testRunnerNode(
  */
 async function reviewerNode(
   state: FlowState,
-  config: Required<GraphConfig>
+  config: Required<GraphConfig>,
 ): Promise<Partial<FlowState>> {
   console.log('👀 Reviewing: Evaluating implementation...')
 
@@ -321,8 +323,8 @@ async function reviewerNode(
         .post('review', {
           json: {
             diff: state.codeDiff || '',
-            test_results: state.testResults || ''
-          }
+            test_results: state.testResults || '',
+          },
         })
         .json<any>()
     })
@@ -331,7 +333,7 @@ async function reviewerNode(
 
     return {
       approved: data.ok,
-      reviewFeedback: data.feedback
+      reviewFeedback: data.feedback,
     }
   } catch (error) {
     console.error('❌ Review failed:', error)
@@ -367,7 +369,7 @@ export const FlowStateAnnotation = Annotation.Root({
   mcpServers: Annotation<string[] | undefined>(),
   iterationCount: Annotation<number>(),
   timestamp: Annotation<number>(),
-  threadId: Annotation<string | undefined>()
+  threadId: Annotation<string | undefined>(),
 })
 
 /**
@@ -381,19 +383,19 @@ export function buildGraph(config: Partial<GraphConfig> = {}) {
 
   // Add nodes with config binding
   workflow.addNode('plan', async (state: any) =>
-    plannerNode(state, finalConfig)
+    plannerNode(state, finalConfig),
   )
   workflow.addNode('refine', async (state: any) =>
-    refinerNode(state, finalConfig)
+    refinerNode(state, finalConfig),
   )
   workflow.addNode('code', async (state: any) =>
-    codeAgentNode(state, finalConfig)
+    codeAgentNode(state, finalConfig),
   )
   workflow.addNode('test', async (state: any) =>
-    testRunnerNode(state, finalConfig)
+    testRunnerNode(state, finalConfig),
   )
   workflow.addNode('review', async (state: any) =>
-    reviewerNode(state, finalConfig)
+    reviewerNode(state, finalConfig),
   )
 
   // Define edges - use __start__ for entry point
@@ -459,7 +461,7 @@ async function main() {
     // Build and compile the graph
     const workflow = buildGraph()
     const app = workflow.compile({
-      checkpointer
+      checkpointer,
     })
 
     // Generate thread ID
@@ -468,7 +470,7 @@ async function main() {
 
     // Check for existing checkpoint (idempotent restart)
     const existingCheckpoint = await (checkpointer.get() as any).getTuple({
-      configurable: { thread_id: threadId }
+      configurable: { thread_id: threadId },
     } as any)
 
     let finalState: any
@@ -484,8 +486,8 @@ async function main() {
       finalState = await app.invoke(
         null, // null input resumes from checkpoint
         {
-          configurable: { thread_id: threadId }
-        }
+          configurable: { thread_id: threadId },
+        },
       )
     } else {
       console.log('🆕 Starting fresh execution')
@@ -497,12 +499,12 @@ async function main() {
         spec: '',
         repoPath,
         iterationCount: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
 
       // Start new execution
       finalState = await app.invoke(initialState, {
-        configurable: { thread_id: threadId }
+        configurable: { thread_id: threadId },
       })
     }
 
@@ -511,7 +513,7 @@ async function main() {
     console.log(
       finalState.approved
         ? '✅ WORKFLOW COMPLETED SUCCESSFULLY'
-        : '❌ WORKFLOW FAILED'
+        : '❌ WORKFLOW FAILED',
     )
     console.log('='.repeat(60))
 

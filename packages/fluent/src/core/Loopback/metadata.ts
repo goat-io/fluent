@@ -7,13 +7,13 @@ import {
   InspectionOptions,
   MetadataAccessor,
   MetadataInspector,
-  MetadataMap
+  MetadataMap,
 } from '@loopback/metadata'
 import {
   ModelDefinition,
   ModelDefinitionSyntax,
   PropertyDefinition,
-  RelationDefinitionMap
+  RelationDefinitionMap,
 } from './model'
 
 const RELATIONS_KEY = 'loopback:relations'
@@ -45,14 +45,14 @@ export class ModelMetadataHelper {
    */
   static getModelMetadata(
     target: Function,
-    options?: InspectionOptions
+    options?: InspectionOptions,
   ): ModelDefinition | {} {
     const classDef = MetadataInspector.getClassMetadata(
       MODEL_WITH_PROPERTIES_KEY,
       target,
       // https://github.com/loopbackio/loopback-next/issues/4721
       // The `target` can be a subclass for a base model
-      { ...options, ownMetadataOnly: true }
+      { ...options, ownMetadataOnly: true },
     )
     // Return the cached value, if it exists.
     // XXX(kjdelisle): If we're going to support dynamic updates, then this
@@ -63,7 +63,7 @@ export class ModelMetadataHelper {
     const modelMeta = MetadataInspector.getClassMetadata<ModelDefinition>(
       MODEL_KEY,
       target,
-      options
+      options,
     )
     if (!modelMeta) {
       return {}
@@ -81,8 +81,8 @@ export class ModelMetadataHelper {
       MetadataInspector.getAllPropertyMetadata(
         MODEL_PROPERTIES_KEY,
         target.prototype,
-        options
-      )
+        options,
+      ),
     )
 
     meta.relations = Object.assign(
@@ -90,14 +90,14 @@ export class ModelMetadataHelper {
       MetadataInspector.getAllPropertyMetadata(
         RELATIONS_KEY,
         target.prototype,
-        options
-      )
+        options,
+      ),
     )
 
     MetadataInspector.defineMetadata(
       MODEL_WITH_PROPERTIES_KEY.key,
       meta,
-      target
+      target,
     )
     return meta
   }

@@ -5,7 +5,7 @@ import {
   CommonLogger,
   LocalTime,
   Time,
-  Units
+  Units,
 } from '@goatlab/js-utils'
 import { bold, grey, white, yellow } from 'kleur/colors'
 import { SimpleMovingAverage } from '../math/sma'
@@ -149,14 +149,14 @@ interface LogItem extends AnyObject {
 
 const inspectOpt: InspectOptions = {
   colors: true,
-  breakLength: 300
+  breakLength: 300,
 }
 
 /**
  * Pass-through transform that optionally logs progress.
  */
 export function transformLogProgress<In = any>(
-  opt: TransformLogProgressOptions = {}
+  opt: TransformLogProgressOptions = {},
 ): TransformTyped<In, In> {
   const {
     metric = 'progress',
@@ -171,7 +171,7 @@ export function transformLogProgress<In = any>(
     logZippedSizes = false,
     batchSize = 1,
     extra,
-    logger = console
+    logger = console,
   } = opt
   const logProgress = opt.logProgress !== false && logEvery !== 0 // true by default
   const logEvery10 = logEvery * 10
@@ -215,7 +215,7 @@ export function transformLogProgress<In = any>(
       logStats(undefined, true)
 
       cb()
-    }
+    },
   })
 
   function logStats(chunk?: In, final = false, tenx = false): void {
@@ -240,7 +240,7 @@ export function transformLogProgress<In = any>(
     }
 
     const o: LogItem = {
-      [final ? `${metric}_final` : metric]: batchedProgress
+      [final ? `${metric}_final` : metric]: batchedProgress,
     }
 
     if (extra) {
@@ -291,18 +291,18 @@ export function transformLogProgress<In = any>(
 
       logger.log(
         `${grey(LocalTime.now().toPretty())} ${white(metric)} took ${yellow(
-          Time.since(started)
+          Time.since(started),
         )} so far to process ${yellow(batchedProgress)} rows, ~${yellow(
-          perHour
-        )}/hour`
+          perHour,
+        )}/hour`,
       )
     } else if (final) {
       logger.log(
         `${bold(metric)} took ${yellow(
-          Time.since(started)
+          Time.since(started),
         )} to process ${yellow(
-          batchedProgress
-        )} rows with total RPS of ${yellow(rpsTotal)}`
+          batchedProgress,
+        )} rows with total RPS of ${yellow(rpsTotal)}`,
       )
     }
   }

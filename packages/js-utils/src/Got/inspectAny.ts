@@ -25,7 +25,7 @@ const INSPECT_OPT: InspectOptions = {
   compact: false,
   maxArrayLength: null,
   maxStringLength: null,
-  numericSeparator: false
+  numericSeparator: false,
 }
 
 /**
@@ -44,7 +44,7 @@ export function inspectAny(obj: any, opt: InspectAnyOptions = {}): string {
 
   return Strings.stringifyAny(obj, {
     ...opt,
-    stringifyFn: val => inspectCompat(val, { ...INSPECT_OPT, ...opt })
+    stringifyFn: val => inspectCompat(val, { ...INSPECT_OPT, ...opt }),
   })
 }
 
@@ -115,14 +115,14 @@ function inspectCompat(value: unknown, opt: InspectOptions = {}): string {
         __type: 'Map',
         entries: Array.from(v.entries()).map(([k, val]) => [
           toSerializable(k, d - 1),
-          toSerializable(val, d - 1)
-        ])
+          toSerializable(val, d - 1),
+        ]),
       }
     }
     if (v instanceof Set) {
       return {
         __type: 'Set',
-        values: Array.from(v.values()).map(x => toSerializable(x, d - 1))
+        values: Array.from(v.values()).map(x => toSerializable(x, d - 1)),
       }
     }
 

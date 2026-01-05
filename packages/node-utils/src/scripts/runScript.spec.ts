@@ -17,7 +17,7 @@ describe('runScript', () => {
       error: vi.fn(),
       warn: vi.fn(),
       info: vi.fn(),
-      debug: vi.fn()
+      debug: vi.fn(),
     }
 
     // Mock process.exit
@@ -39,7 +39,7 @@ describe('runScript', () => {
         }
         processListeners.get(eventKey)!.push(listener)
         return originalOn(event, listener) as any
-      }
+      },
     )
 
     vi.spyOn(process, 'once').mockImplementation(
@@ -50,7 +50,7 @@ describe('runScript', () => {
         }
         processListeners.get(eventKey)!.push(listener)
         return originalOnce(event, listener) as any
-      }
+      },
     )
 
     vi.spyOn(process, 'removeAllListeners').mockImplementation(
@@ -61,7 +61,7 @@ describe('runScript', () => {
           processListeners.clear()
         }
         return originalRemoveAllListeners(event) as any
-      }
+      },
     )
   })
 
@@ -139,7 +139,7 @@ describe('runScript', () => {
 
       // This will throw synchronously, so we need to catch it
       expect(() => runScript(fn as any, { logger: mockLogger })).toThrow(
-        'Sync error'
+        'Sync error',
       )
     })
   })
@@ -164,7 +164,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       // Wait for setup
@@ -179,7 +179,7 @@ describe('runScript', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'uncaughtException:',
-        testError
+        testError,
       )
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
@@ -189,7 +189,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       // Wait for setup
@@ -205,7 +205,7 @@ describe('runScript', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'unhandledRejection:',
-        testError
+        testError,
       )
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
@@ -218,7 +218,7 @@ describe('runScript', () => {
         async () => {
           throw error
         },
-        { logger: mockLogger, onError }
+        { logger: mockLogger, onError },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -234,7 +234,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger, onError }
+        { logger: mockLogger, onError },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -253,7 +253,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -264,7 +264,7 @@ describe('runScript', () => {
       sigintListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGINT, shutting down…'
+        'Received SIGINT, shutting down…',
       )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
@@ -274,7 +274,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -283,7 +283,7 @@ describe('runScript', () => {
       sigtermListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGTERM, shutting down…'
+        'Received SIGTERM, shutting down…',
       )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
@@ -293,7 +293,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -302,7 +302,7 @@ describe('runScript', () => {
       sighupListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGHUP, shutting down…'
+        'Received SIGHUP, shutting down…',
       )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
@@ -312,7 +312,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger, noExit: true }
+        { logger: mockLogger, noExit: true },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -321,7 +321,7 @@ describe('runScript', () => {
       sigintListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGINT, shutting down…'
+        'Received SIGINT, shutting down…',
       )
       expect(exitSpy).not.toHaveBeenCalled()
     })
@@ -333,7 +333,7 @@ describe('runScript', () => {
         async () => {
           // Quick completion
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -347,7 +347,7 @@ describe('runScript', () => {
         async () => {
           throw new Error('Test error')
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -361,7 +361,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -387,7 +387,7 @@ describe('runScript', () => {
         async () => {
           return 'done'
         },
-        { logger: mockLogger, onExit }
+        { logger: mockLogger, onExit },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -403,7 +403,7 @@ describe('runScript', () => {
         async () => {
           throw new Error('Failed')
         },
-        { logger: mockLogger, onExit }
+        { logger: mockLogger, onExit },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -419,7 +419,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger, onExit }
+        { logger: mockLogger, onExit },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -470,7 +470,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -488,13 +488,13 @@ describe('runScript', () => {
         async () => {
           return 'done'
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        expect.stringMatching(/^Script completed in \d+ms$/)
+        expect.stringMatching(/^Script completed in \d+ms$/),
       )
     })
 
@@ -503,13 +503,13 @@ describe('runScript', () => {
         async () => {
           throw new Error('Failed')
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        expect.stringMatching(/^Script failed in \d+ms$/)
+        expect.stringMatching(/^Script failed in \d+ms$/),
       )
     })
 
@@ -518,7 +518,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -527,7 +527,7 @@ describe('runScript', () => {
       sigintListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        expect.stringMatching(/^Script completed in \d+ms$/)
+        expect.stringMatching(/^Script completed in \d+ms$/),
       )
     })
   })

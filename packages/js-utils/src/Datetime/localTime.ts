@@ -6,7 +6,7 @@ import type {
   IsoDateString,
   IsoDateTimeString,
   UnixTimestampMillisNumber,
-  UnixTimestampNumber
+  UnixTimestampNumber,
 } from '../types'
 import type { Inclusiveness } from './localDate'
 import { LocalDate } from './localDate'
@@ -27,7 +27,7 @@ export enum ISODayOfWeek {
   THURSDAY = 4,
   FRIDAY = 5,
   SATURDAY = 6,
-  SUNDAY = 7
+  SUNDAY = 7,
 }
 
 export type LocalTimeConfig =
@@ -159,7 +159,7 @@ export class LocalTime {
   }
 
   static fromComponents(
-    c: { year: number; month: number } & Partial<LocalTimeComponents>
+    c: { year: number; month: number } & Partial<LocalTimeComponents>,
   ): LocalTime {
     return new LocalTime(
       new Date(
@@ -168,8 +168,8 @@ export class LocalTime {
         c.day || 1,
         c.hour || 0,
         c.minute || 0,
-        c.second || 0
-      )
+        c.second || 0,
+      ),
     )
   }
 
@@ -281,7 +281,7 @@ export class LocalTime {
       d.setFullYear(
         c.year ?? d.getFullYear(),
         c.month ? c.month - 1 : d.getMonth(),
-        c.day || d.getDate()
+        c.day || d.getDate(),
       )
     }
 
@@ -311,7 +311,7 @@ export class LocalTime {
       const d = addMonths(
         this.date,
         actualUnit === 'month' ? actualNum : actualNum * 12,
-        mutate
+        mutate,
       )
       return mutate ? this : LocalTime.of(d)
     }
@@ -412,7 +412,7 @@ export class LocalTime {
             // year or month
             const lastDay = LocalDate.getMonthLength(
               d.getFullYear(),
-              d.getMonth() + 1
+              d.getMonth() + 1,
             )
             d.setDate(lastDay)
           }
@@ -426,7 +426,7 @@ export class LocalTime {
   static sort(
     items: LocalTime[],
     mutate = false,
-    descending = false
+    descending = false,
   ): LocalTime[] {
     const mod = descending ? -1 : 1
     return (mutate ? items : [...items]).sort((a, b) => {
@@ -488,7 +488,7 @@ export class LocalTime {
   isBetween(
     min: LocalTimeConfig,
     max: LocalTimeConfig,
-    incl: Inclusiveness = '[)'
+    incl: Inclusiveness = '[)',
   ): boolean {
     let r = this.cmp(min)
     if (r < 0 || (r === 0 && incl[0] === '(')) {
@@ -522,7 +522,7 @@ export class LocalTime {
       day: this.date.getDate(),
       hour: this.date.getHours(),
       minute: this.date.getMinutes(),
-      second: this.date.getSeconds()
+      second: this.date.getSeconds(),
     }
   }
 
@@ -564,7 +564,7 @@ export class LocalTime {
     return LocalDate.create(
       this.date.getFullYear(),
       this.date.getMonth() + 1,
-      this.date.getDate()
+      this.date.getDate(),
     )
   }
 
@@ -575,13 +575,13 @@ export class LocalTime {
       [
         String(year).padStart(4, '0'),
         String(month).padStart(2, '0'),
-        String(day).padStart(2, '0')
+        String(day).padStart(2, '0'),
       ].join('-') +
       ' ' +
       [
         String(hour).padStart(2, '0'),
         String(minute).padStart(2, '0'),
-        seconds && String(second).padStart(2, '0')
+        seconds && String(second).padStart(2, '0'),
       ]
         .filter(Boolean)
         .join(':')
@@ -610,7 +610,7 @@ export class LocalTime {
     return [
       String(year).padStart(4, '0'),
       String(month).padStart(2, '0'),
-      String(day).padStart(2, '0')
+      String(day).padStart(2, '0'),
     ].join('-')
 
     // return this.date.toISOString().slice(0, 10)
@@ -626,7 +626,7 @@ export class LocalTime {
     return [
       String(hour).padStart(2, '0'),
       String(minute).padStart(2, '0'),
-      seconds && String(second).padStart(2, '0')
+      seconds && String(second).padStart(2, '0'),
     ]
       .filter(Boolean)
       .join(':')
@@ -645,7 +645,7 @@ export class LocalTime {
       '_',
       String(hour).padStart(2, '0'),
       String(minute).padStart(2, '0'),
-      seconds ? String(second).padStart(2, '0') : ''
+      seconds ? String(second).padStart(2, '0') : '',
     ].join('')
   }
 

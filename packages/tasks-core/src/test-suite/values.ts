@@ -2,12 +2,12 @@ import { ShouldQueue } from '../ShouldQueue.js'
 import type {
   InputType,
   TaskConnector,
-  UnknownInputType
+  UnknownInputType,
 } from '../ShouldQueue.types.js'
 import type {
   ConnectorFactory,
   TestFramework,
-  TestSuiteOptions
+  TestSuiteOptions,
 } from './types.js'
 import { delay, waitForTaskCompletion } from './utils.js'
 
@@ -16,7 +16,7 @@ import { delay, waitForTaskCompletion } from './utils.js'
  */
 export function createGenericTask<T extends InputType>(
   connector: TaskConnector<T>,
-  taskName: string
+  taskName: string,
 ) {
   return class GenericTask extends ShouldQueue<T> {
     postUrl = 'http://localhost/test/generic'
@@ -50,7 +50,7 @@ export function taskConnectorValueTests(
      * Should return a cleanup function.
      */
     startWorker?: (tasks: ShouldQueue[]) => Promise<() => Promise<void>>
-  } = {}
+  } = {},
 ) {
   const opts = {
     taskCompletionTimeout: options.taskCompletionTimeout ?? 10000,
@@ -60,7 +60,7 @@ export function taskConnectorValueTests(
     supportsScheduling: options.supportsScheduling ?? false,
     cleanup: options.cleanup,
     setup: options.setup,
-    startWorker: options.startWorker
+    startWorker: options.startWorker,
   }
 
   test.describe('TaskConnector Value Tests', () => {
@@ -151,10 +151,10 @@ export function taskConnectorValueTests(
         nested: {
           level1: {
             level2: {
-              value: 'deep'
-            }
-          }
-        }
+              value: 'deep',
+            },
+          },
+        },
       }
 
       const status = await task.queue(payload)
@@ -171,7 +171,7 @@ export function taskConnectorValueTests(
         text: 'test',
         numbers: [1, 2, 3],
         strings: ['a', 'b', 'c'],
-        mixed: [1, 'two', true, null]
+        mixed: [1, 'two', true, null],
       }
 
       const status = await task.queue(payload)
@@ -217,7 +217,7 @@ export function taskConnectorValueTests(
         backslash: 'path\\to\\file',
         newline: 'line1\nline2',
         tab: 'col1\tcol2',
-        unicode: '你好世界 🎉'
+        unicode: '你好世界 🎉',
       }
 
       const status = await task.queue(payload)
@@ -237,7 +237,7 @@ export function taskConnectorValueTests(
       const largeArray = Array.from({ length: 100 }, (_, i) => ({
         id: i,
         name: `item_${i}`,
-        value: Math.random()
+        value: Math.random(),
       }))
       const payload = { text: 'test', items: largeArray }
 
@@ -257,7 +257,7 @@ export function taskConnectorValueTests(
         text: 'test',
         'key-with-dash': 'value1',
         key_with_underscore: 'value2',
-        'key.with.dots': 'value3'
+        'key.with.dots': 'value3',
       }
 
       const status = await task.queue(payload)
@@ -283,7 +283,7 @@ export function taskConnectorValueTests(
             number: 42,
             bool: true,
             nested: { deep: { value: 'preserved' } },
-            array: [1, 2, 3]
+            array: [1, 2, 3],
           }
 
           const status = await preserveTask.queue(payload)
@@ -292,8 +292,8 @@ export function taskConnectorValueTests(
             () => preserveTask!.getStatus(status.id),
             {
               timeout: opts.taskCompletionTimeout,
-              interval: opts.statusCheckInterval
-            }
+              interval: opts.statusCheckInterval,
+            },
           )
 
           const p = finalStatus.payload as any
@@ -304,7 +304,7 @@ export function taskConnectorValueTests(
           test.expect(p.nested.deep.value).toBe('preserved')
           test.expect(p.array).toEqual([1, 2, 3])
         },
-        opts.taskCompletionTimeout + 5000
+        opts.taskCompletionTimeout + 5000,
       )
     }
   })

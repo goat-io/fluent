@@ -19,14 +19,14 @@ export class AppError<DataType extends ErrorData = ErrorData> extends Error {
 
     Object.defineProperty(this, 'name', {
       value: this.constructor.name,
-      configurable: true
+      configurable: true,
     })
 
     Object.defineProperty(this, 'data', {
       value: data,
       writable: true,
       configurable: true,
-      enumerable: false
+      enumerable: false,
     })
 
     if ((Error as any).captureStackTrace) {
@@ -35,7 +35,7 @@ export class AppError<DataType extends ErrorData = ErrorData> extends Error {
       Object.defineProperty(this, 'stack', {
         value: new Error().stack, // eslint-disable-line unicorn/error-message
         writable: true,
-        configurable: true
+        configurable: true,
       })
     }
   }

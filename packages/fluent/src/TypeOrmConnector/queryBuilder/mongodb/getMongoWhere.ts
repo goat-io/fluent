@@ -6,7 +6,7 @@ import {
   FluentQuery,
   LogicOperator,
   Primitives,
-  PrimitivesArray
+  PrimitivesArray,
 } from '../../../types'
 import { clearEmpties } from '../../util/clearEmpties'
 import { extractConditions } from '../../util/extractConditions'
@@ -73,7 +73,7 @@ const buildMongoFilter = (operator: LogicOperator, value: any): any => {
 const addConditionToFilter = (
   filter: any,
   condition: Condition,
-  isOr = false
+  isOr = false,
 ): void => {
   const { element, operator, value } = normalizeCondition(condition)
   const mongoFilter = buildMongoFilter(operator, value)
@@ -111,7 +111,7 @@ const addConditionToFilter = (
  * @returns
  */
 export const getMongoWhere = ({
-  where
+  where,
 }: GetTypeOrmMongoWhereParams): FindManyOptions['where'] => {
   if (!where || Object.keys(where).length === 0) {
     return {}
@@ -141,7 +141,7 @@ export const getMongoWhere = ({
 
   // Complex query with OR/AND operators
   const Filters: { filter: { $or: any[] } } = {
-    filter: { $or: [{ $and: [] }] }
+    filter: { $or: [{ $and: [] }] },
   }
 
   const orConditions = extractConditions(where.OR)

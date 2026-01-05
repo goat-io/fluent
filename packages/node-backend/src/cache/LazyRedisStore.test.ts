@@ -282,7 +282,7 @@ describe('LazyRedisStore', () => {
         store.get('key1'),
         store.get('key2'),
         store.set('key3', 'value3'),
-        store.has('key4')
+        store.has('key4'),
       ]
 
       await Promise.all(operations)

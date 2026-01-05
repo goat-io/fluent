@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events'
 import {
   AgreementMessage,
   AgreementSessionConfig,
-  AgreementState
+  AgreementState,
 } from './protocol.js'
 
 export interface StateTransition {
@@ -42,7 +42,7 @@ export class AgreementStateMachine extends EventEmitter {
       turnCount: 0,
       startTime: Date.now(),
       config,
-      consensusReached: false
+      consensusReached: false,
     }
 
     this.transitions = new Map()
@@ -57,10 +57,10 @@ export class AgreementStateMachine extends EventEmitter {
       to: AgreementState.CRITIQUE,
       condition: ctx => {
         const proposals = ctx.messages.filter(
-          m => m.step === AgreementState.PROPOSE
+          m => m.step === AgreementState.PROPOSE,
         )
         return proposals.length > 0
-      }
+      },
     })
 
     // CRITIQUE -> CONVERGE
@@ -69,18 +69,18 @@ export class AgreementStateMachine extends EventEmitter {
       to: AgreementState.CONVERGE,
       condition: ctx => {
         const critiques = ctx.messages.filter(
-          m => m.step === AgreementState.CRITIQUE
+          m => m.step === AgreementState.CRITIQUE,
         )
         const minCritiques = Math.floor(ctx.config.agents.length * 0.5)
         return critiques.length >= minCritiques
-      }
+      },
     })
 
     // CONVERGE -> COMMIT (consensus reached)
     this.addTransition({
       from: AgreementState.CONVERGE,
       to: AgreementState.COMMIT,
-      condition: ctx => ctx.consensusReached
+      condition: ctx => ctx.consensusReached,
     })
 
     // CONVERGE -> PROPOSE (refine needed)
@@ -88,7 +88,7 @@ export class AgreementStateMachine extends EventEmitter {
       from: AgreementState.CONVERGE,
       to: AgreementState.PROPOSE,
       condition: ctx =>
-        !ctx.consensusReached && ctx.turnCount < ctx.config.maxTurns
+        !ctx.consensusReached && ctx.turnCount < ctx.config.maxTurns,
     })
 
     // Any state -> ABORT (timeout or max turns)
@@ -109,7 +109,7 @@ export class AgreementStateMachine extends EventEmitter {
               ctx.turnCount >= ctx.config.maxTurns
                 ? 'Max turns reached'
                 : 'Timeout exceeded'
-          }
+          },
         })
       }
     }
@@ -133,18 +133,19 @@ export class AgreementStateMachine extends EventEmitter {
     if (targetState) {
       // Try to find specific transition
       validTransition = possibleTransitions.find(
-        t => t.to === targetState && (!t.condition || t.condition(this.context))
+        t =>
+          t.to === targetState && (!t.condition || t.condition(this.context)),
       )
     } else {
       // Find any valid transition
       validTransition = possibleTransitions.find(
-        t => !t.condition || t.condition(this.context)
+        t => !t.condition || t.condition(this.context),
       )
     }
 
     if (!validTransition) {
       throw new Error(
-        `No valid transition from ${this.context.currentState} to ${targetState || 'any state'}`
+        `No valid transition from ${this.context.currentState} to ${targetState || 'any state'}`,
       )
     }
 
@@ -164,7 +165,7 @@ export class AgreementStateMachine extends EventEmitter {
     this.emit('transition', {
       from: previousState,
       to: this.context.currentState,
-      context: this.context
+      context: this.context,
     })
 
     // Set timeout for new state
@@ -188,7 +189,7 @@ export class AgreementStateMachine extends EventEmitter {
 
     const stateTimeout = Math.min(
       this.context.config.maxDurationMs / 4,
-      30000 // Max 30s per state
+      30000, // Max 30s per state
     )
 
     const timeout = setTimeout(async () => {
@@ -214,7 +215,7 @@ export class AgreementStateMachine extends EventEmitter {
     // Validate message is appropriate for current state
     if (message.step !== this.context.currentState) {
       throw new Error(
-        `Message step ${message.step} doesn't match current state ${this.context.currentState}`
+        `Message step ${message.step} doesn't match current state ${this.context.currentState}`,
       )
     }
 

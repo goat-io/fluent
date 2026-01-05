@@ -5,14 +5,14 @@ import type {
   TypesenseCollectionOptions,
   TypesenseDocument,
   TypesenseExportFormat,
-  TypesenseExportOptions
+  TypesenseExportOptions,
 } from '../../typesense.model'
 import { TypesenseError } from '../../typesense.model'
 
 export async function exportDocuments<T extends Record<string, any>>(
   ctx: TypesenseContext,
   format: TypesenseExportFormat = 'jsonl',
-  options?: TypesenseExportOptions & TypesenseCollectionOptions
+  options?: TypesenseExportOptions & TypesenseCollectionOptions,
 ): Promise<string | TypesenseDocument<T>[]> {
   // Validate format
   const supportedFormats: TypesenseExportFormat[] = ['jsonl', 'json', 'csv']
@@ -23,14 +23,14 @@ export async function exportDocuments<T extends Record<string, any>>(
   const collectionName = options?.collection || ctx.fqcn()
   const { collection: _, ...exportOptions } = options || {}
   const searchParams: any = {
-    ...exportOptions
+    ...exportOptions,
     // Note: Typesense export always returns JSONL regardless of format param
   }
 
   // Get response as text (JSONL format)
   const response = await ctx.httpClient.requestText(
     `/collections/${collectionName}/documents/export`,
-    { searchParams }
+    { searchParams },
   )
 
   if (format === 'json') {
@@ -55,17 +55,17 @@ export async function exportDocuments<T extends Record<string, any>>(
 
 export async function exportDocumentsStream<_T extends Record<string, any>>(
   ctx: TypesenseContext,
-  options?: TypesenseExportOptions & TypesenseCollectionOptions
+  options?: TypesenseExportOptions & TypesenseCollectionOptions,
 ): Promise<Readable> {
   const collectionName = options?.collection || ctx.fqcn()
   const { collection: _, ...exportOptions } = options || {}
   const searchParams: any = {
-    ...exportOptions
+    ...exportOptions,
   }
 
   return ctx.httpClient
     .stream(`/collections/${collectionName}/documents/export`, {
-      searchParams
+      searchParams,
     })
     .then(stream => Readable.fromWeb(stream as any))
 }

@@ -6,7 +6,7 @@
 import {
   isSchemaObject,
   ReferenceObject,
-  SchemasObject
+  SchemasObject,
 } from 'openapi3-ts/oas30'
 import { SchemaObject } from './build-schema'
 import mapvalues from './mapValues.js'
@@ -40,7 +40,7 @@ export type SchemaRef = ReferenceObject & { definitions: SchemasObject }
  */
 export function jsonToSchemaObject(
   json: SchemaObject,
-  visited: Map<SchemaObject, SchemaObject | SchemaRef> = new Map()
+  visited: Map<SchemaObject, SchemaObject | SchemaRef> = new Map(),
 ): SchemaObject | SchemaRef {
   // A flag to check if a schema object is fully converted
   const converted = 'x-loopback-converted'
@@ -53,7 +53,7 @@ export function jsonToSchemaObject(
   }
 
   const result: SchemaObject = {
-    [converted]: false
+    [converted]: false,
   }
   visited.set(json, result)
   const propsToIgnore = ['additionalItems', 'defaultProperties', 'typeof']
@@ -65,7 +65,7 @@ export function jsonToSchemaObject(
       case 'type': {
         if (json.type === 'array' && !json.items) {
           throw new Error(
-            '"items" property must be present if "type" is an array'
+            '"items" property must be present if "type" is an array',
           )
         }
         result.type = Array.isArray(json.type) ? json.type[0] : json.type
@@ -73,31 +73,31 @@ export function jsonToSchemaObject(
       }
       case 'allOf': {
         result.allOf = json.allOf?.map(item =>
-          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item
+          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item,
         )
         break
       }
       case 'anyOf': {
         result.anyOf = json.anyOf?.map(item =>
-          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item
+          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item,
         )
         break
       }
       case 'oneOf': {
         result.oneOf = json.oneOf?.map(item =>
-          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item
+          isSchemaObject(item) ? jsonToSchemaObject(item, visited) : item,
         )
         break
       }
       case 'definitions': {
         result.definitions = mapvalues(json.definitions, def =>
-          jsonToSchemaObject(jsonOrBooleanToJSON(def), visited)
+          jsonToSchemaObject(jsonOrBooleanToJSON(def), visited),
         )
         break
       }
       case 'properties': {
         result.properties = mapvalues(json.properties, item =>
-          jsonToSchemaObject(jsonOrBooleanToJSON(item), visited)
+          jsonToSchemaObject(jsonOrBooleanToJSON(item), visited),
         )
         break
       }
@@ -107,7 +107,7 @@ export function jsonToSchemaObject(
         } else {
           result.additionalProperties = jsonToSchemaObject(
             json.additionalProperties as SchemaObject,
-            visited
+            visited,
           )
         }
         break
@@ -120,7 +120,7 @@ export function jsonToSchemaObject(
       case '$ref': {
         result.$ref = json.$ref!.replace(
           '#/definitions',
-          '#/components/schemas'
+          '#/components/schemas',
         )
         break
       }

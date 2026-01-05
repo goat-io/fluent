@@ -9,7 +9,7 @@ export class AggregatedError<RESULT = any> extends Error {
   constructor(errors: Error[], results: RESULT[] = []) {
     const message = [
       `${errors.length} errors:`,
-      ...errors.map((e, i) => `${i + 1}. ${e.message}`)
+      ...errors.map((e, i) => `${i + 1}. ${e.message}`),
     ].join('\n')
 
     super(message)
@@ -19,7 +19,7 @@ export class AggregatedError<RESULT = any> extends Error {
 
     Object.defineProperty(this, 'name', {
       value: this.constructor.name,
-      configurable: true
+      configurable: true,
     })
 
     if ((Error as any).captureStackTrace) {
@@ -28,7 +28,7 @@ export class AggregatedError<RESULT = any> extends Error {
       Object.defineProperty(this, 'stack', {
         value: new Error().stack, // eslint-disable-line unicorn/error-message
         writable: true,
-        configurable: true
+        configurable: true,
       })
     }
   }

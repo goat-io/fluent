@@ -17,7 +17,7 @@ describe('MetabaseApi', () => {
 
     api = new MetabaseApi({
       baseUrl: testData.metabaseUrl!,
-      sessionToken: testData.metabaseSessionToken!
+      sessionToken: testData.metabaseSessionToken!,
     })
   })
 
@@ -43,7 +43,7 @@ describe('MetabaseApi', () => {
     it('should be able to create an API key', async () => {
       const apiKeyResponse = await api.admin.createApiKey({
         keyName: 'Test API Key',
-        groupId: 2 // Admin group
+        groupId: 2, // Admin group
       })
 
       expect(apiKeyResponse).toBeDefined()
@@ -67,7 +67,7 @@ describe('MetabaseApi', () => {
     it('should be able to create and retrieve a collection', async () => {
       // Create a collection - returns the collection ID
       const collectionId = await api.collections.getOrCreate({
-        collectionName: 'Test Collection'
+        collectionName: 'Test Collection',
       })
 
       expect(collectionId).toBeDefined()
@@ -81,13 +81,13 @@ describe('MetabaseApi', () => {
     it('should be able to create a collection with restricted access', async () => {
       // First create a group
       const group = await api.groups.create({
-        groupName: 'Test Restricted Group'
+        groupName: 'Test Restricted Group',
       })
 
       // Create a collection restricted to this group
       const collectionId = await api.collections.getOrCreate({
         collectionName: 'Restricted Collection',
-        restrictToGroupId: group.id
+        restrictToGroupId: group.id,
       })
 
       expect(collectionId).toBeDefined()
@@ -97,22 +97,22 @@ describe('MetabaseApi', () => {
     it('should be able to delete a collection', async () => {
       // Create a collection
       const collectionId = await api.collections.getOrCreate({
-        collectionName: 'Collection to Delete'
+        collectionName: 'Collection to Delete',
       })
 
       // Delete it
       await expect(
-        api.collections.delete({ collectionId })
+        api.collections.delete({ collectionId }),
       ).resolves.not.toThrow()
     })
 
     it('should be able to delete all collections', async () => {
       // Create a few collections first
       await api.collections.getOrCreate({
-        collectionName: 'Temp Collection to Delete 1'
+        collectionName: 'Temp Collection to Delete 1',
       })
       await api.collections.getOrCreate({
-        collectionName: 'Temp Collection to Delete 2'
+        collectionName: 'Temp Collection to Delete 2',
       })
 
       // Note: deleteAll might fail on personal collections, so we just test it doesn't throw
@@ -136,7 +136,7 @@ describe('MetabaseApi', () => {
         dbPort: 3306,
         dbName: testData.mysqlDatabase!,
         dbUser: testData.mysqlUser!,
-        dbPassword: testData.mysqlPassword!
+        dbPassword: testData.mysqlPassword!,
       })
 
       expect(databaseId).toBeDefined()
@@ -150,7 +150,7 @@ describe('MetabaseApi', () => {
     it('should be able to add database with restricted access', async () => {
       // Create a group for restriction
       const group = await api.groups.create({
-        groupName: 'Database Restricted Group'
+        groupName: 'Database Restricted Group',
       })
 
       // Add database with restricted access
@@ -162,7 +162,7 @@ describe('MetabaseApi', () => {
         dbName: testData.mysqlDatabase!,
         dbUser: testData.mysqlUser!,
         dbPassword: testData.mysqlPassword!,
-        restrictToGroupId: group.id
+        restrictToGroupId: group.id,
       })
 
       expect(databaseId).toBeDefined()
@@ -178,12 +178,12 @@ describe('MetabaseApi', () => {
         dbPort: 3306,
         dbName: testData.mysqlDatabase!,
         dbUser: testData.mysqlUser!,
-        dbPassword: testData.mysqlPassword!
+        dbPassword: testData.mysqlPassword!,
       })
 
       // Enable actions
       await expect(
-        api.admin.enableActionsInDatasource({ dbId: databaseId })
+        api.admin.enableActionsInDatasource({ dbId: databaseId }),
       ).resolves.not.toThrow()
     })
   })
@@ -191,7 +191,7 @@ describe('MetabaseApi', () => {
   describe('Group/Permission Operations', () => {
     it('should be able to create a group', async () => {
       const group = await api.groups.create({
-        groupName: 'Test Permission Group'
+        groupName: 'Test Permission Group',
       })
 
       expect(group).toBeDefined()
@@ -201,7 +201,7 @@ describe('MetabaseApi', () => {
 
     it('should be able to get or create a group', async () => {
       const group = await api.groups.getOrCreate({
-        groupName: 'Test GetOrCreate Group'
+        groupName: 'Test GetOrCreate Group',
       })
 
       expect(group).toBeDefined()
@@ -211,7 +211,7 @@ describe('MetabaseApi', () => {
 
       // Calling again should return same group
       const sameGroup = await api.groups.getOrCreate({
-        groupName: 'Test GetOrCreate Group'
+        groupName: 'Test GetOrCreate Group',
       })
 
       expect(sameGroup.id).toBe(group.id)
@@ -232,7 +232,7 @@ describe('MetabaseApi', () => {
     it('should be able to set database permissions for group', async () => {
       // Create a group
       const group = await api.groups.getOrCreate({
-        groupName: 'Database Permission Test Group'
+        groupName: 'Database Permission Test Group',
       })
       const groupId = group.id
 
@@ -241,50 +241,50 @@ describe('MetabaseApi', () => {
         api.groups.setDatabasePermissionsForGroup({
           groupId,
           databaseId: testDatabaseId,
-          allowAccess: true
-        })
+          allowAccess: true,
+        }),
       ).resolves.not.toThrow()
     })
 
     // Skip this test - permissions graph operations have issues in test environment
     it.skip('should be able to disable all database access for group', async () => {
       const group = await api.groups.getOrCreate({
-        groupName: 'No Database Access Group'
+        groupName: 'No Database Access Group',
       })
       const groupId = group.id
 
       await expect(
         api.groups.disableAllDatabaseAccess({
-          groupId
-        })
+          groupId,
+        }),
       ).resolves.not.toThrow()
     })
 
     it('should be able to disable All Users group database access', async () => {
       await expect(
-        api.groups.disableAllUsersGroupDatabaseAccess()
+        api.groups.disableAllUsersGroupDatabaseAccess(),
       ).resolves.not.toThrow()
     })
 
     it('should be able to grant database access by prefix', async () => {
       const groupName = 'Prefix Access Group'
       const group = await api.groups.getOrCreate({
-        groupName
+        groupName,
       })
       const groupId = group.id
 
       await expect(
         api.groups.grantDatabaseAccessByPrefix({
           groupId,
-          groupName
-        })
+          groupName,
+        }),
       ).resolves.not.toThrow()
     })
 
     // Skip this test - permissions graph operations have issues in test environment
     it.skip('should be able to update group permissions', async () => {
       const group = await api.groups.getOrCreate({
-        groupName: 'Update Permissions Group'
+        groupName: 'Update Permissions Group',
       })
       const groupId = group.id
 
@@ -294,9 +294,9 @@ describe('MetabaseApi', () => {
           databaseId: testDatabaseId,
           permissions: {
             schemas: 'all',
-            native: 'write'
-          }
-        })
+            native: 'write',
+          },
+        }),
       ).resolves.not.toThrow()
     })
   })
@@ -312,13 +312,13 @@ describe('MetabaseApi', () => {
           dbPort: 3306,
           dbName: testData.mysqlDatabase!,
           dbUser: testData.mysqlUser!,
-          dbPassword: testData.mysqlPassword!
+          dbPassword: testData.mysqlPassword!,
         })
       }
 
       if (!testCollectionId) {
         testCollectionId = await api.collections.getOrCreate({
-          collectionName: 'Question Test Collection'
+          collectionName: 'Question Test Collection',
         })
       }
     })
@@ -331,8 +331,8 @@ describe('MetabaseApi', () => {
           name: 'Test SQL Question',
           query:
             'SELECT COUNT(*) as total_count FROM information_schema.tables',
-          display: 'scalar'
-        }
+          display: 'scalar',
+        },
       })
 
       expect(questionId).toBeDefined()
@@ -349,8 +349,8 @@ describe('MetabaseApi', () => {
           name: 'Table Display Question',
           query:
             'SELECT table_name, table_type FROM information_schema.tables LIMIT 5',
-          display: 'table'
-        }
+          display: 'table',
+        },
       })
 
       expect(tableQuestionId).toBeGreaterThan(0)
@@ -366,8 +366,8 @@ describe('MetabaseApi', () => {
             COUNT(*) as value 
           FROM information_schema.tables 
           GROUP BY table_type`,
-          display: 'bar'
-        }
+          display: 'bar',
+        },
       })
 
       expect(barQuestionId).toBeGreaterThan(0)

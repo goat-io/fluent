@@ -29,18 +29,18 @@ const form = {
         maxLength: '',
         pattern: '',
         custom: '',
-        customPrivate: false
+        customPrivate: false,
       },
       conditional: {
         show: '',
         when: null,
-        eq: ''
+        eq: '',
       },
       type: 'textfield',
       labelPosition: 'top',
       inputFormat: 'plain',
       tags: [],
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -64,7 +64,7 @@ const form = {
         step: 'any',
         integer: '',
         multiple: '',
-        custom: ''
+        custom: '',
       },
       type: 'number',
       labelPosition: 'top',
@@ -72,9 +72,9 @@ const form = {
       conditional: {
         show: '',
         when: null,
-        eq: ''
+        eq: '',
       },
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -89,13 +89,13 @@ const form = {
       action: 'submit',
       disableOnInvalid: false,
       theme: 'primary',
-      type: 'button'
-    }
+      type: 'button',
+    },
   ],
   title: 'Goats',
   display: 'form',
   name: 'goats',
-  path: 'goats'
+  path: 'goats',
 }
 
 it('eachComponent - Should iterate over all available components', () => {
@@ -110,7 +110,7 @@ it('eachComponent - Should iterate over all available components', () => {
 it('findComponents - Should find a specific component', () => {
   const components = Formio.findComponents(form.components, {
     type: 'textfield',
-    key: 'name'
+    key: 'name',
   })
 
   expect(components[0].label).toBe('name')

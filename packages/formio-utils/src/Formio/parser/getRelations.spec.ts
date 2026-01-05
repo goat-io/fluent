@@ -128,7 +128,7 @@ test('Should parse NM relations - NM', () => {
 test('Should parse NM relations - NM inverse', () => {
   expect(advancedRelations).toHaveProperty('productsnm')
   expect(advancedRelations.productsnm[1].name).toBe(
-    'productsnm_ordersnm_usersnm'
+    'productsnm_ordersnm_usersnm',
   )
   expect(advancedRelations.productsnm[1].type).toBe('belongsToMany')
   expect(advancedRelations.productsnm[1].pivotTable).toBe('ordersnm')
@@ -137,18 +137,18 @@ test('Should parse NM relations - NM inverse', () => {
 test('Should parse multiple NM relations', () => {
   expect(MultiplePivotsRelations).toHaveProperty('jobpositions')
   expect(MultiplePivotsRelations.jobpositions[1].name).toBe(
-    'jobpositions_classification_company'
+    'jobpositions_classification_company',
   )
   expect(MultiplePivotsRelations.jobpositions[1].type).toBe('belongsToMany')
   expect(MultiplePivotsRelations.jobpositions[1].pivotTable).toBe(
-    'classification'
+    'classification',
   )
 
   expect(MultiplePivotsRelations.jobpositions[2].name).toBe(
-    'jobpositions_classification_industries'
+    'jobpositions_classification_industries',
   )
   expect(MultiplePivotsRelations.jobpositions[2].type).toBe('belongsToMany')
   expect(MultiplePivotsRelations.jobpositions[2].pivotTable).toBe(
-    'classification'
+    'classification',
   )
 })

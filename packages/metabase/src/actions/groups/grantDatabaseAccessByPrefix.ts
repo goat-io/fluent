@@ -12,7 +12,7 @@ export async function grantDatabaseAccessByPrefix({
   sessionToken,
   apiKey,
   groupName,
-  groupId
+  groupId,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -27,7 +27,7 @@ export async function grantDatabaseAccessByPrefix({
       sessionToken,
       apiKey,
       endpoint: '/api/database',
-      method: 'GET'
+      method: 'GET',
     })
 
     if (!databasesResponse.ok) {
@@ -41,7 +41,7 @@ export async function grantDatabaseAccessByPrefix({
 
     // Filter databases that start with the group name (case-insensitive)
     const matchingDatabases = databases.data.filter(db =>
-      db.name.toLowerCase().startsWith(groupName.toLowerCase())
+      db.name.toLowerCase().startsWith(groupName.toLowerCase()),
     )
 
     if (matchingDatabases.length === 0) {
@@ -54,7 +54,7 @@ export async function grantDatabaseAccessByPrefix({
       sessionToken,
       apiKey,
       endpoint: '/api/permissions/graph',
-      method: 'GET'
+      method: 'GET',
     })
 
     if (!permissionsResponse.ok) {
@@ -84,19 +84,19 @@ export async function grantDatabaseAccessByPrefix({
         'view-data': 'unrestricted',
         'create-queries': 'query-builder-and-native',
         download: {
-          schemas: 'full'
+          schemas: 'full',
         },
         'data-model': {
-          schemas: 'all'
+          schemas: 'all',
         },
-        details: 'yes'
+        details: 'yes',
       }
     })
 
     // Include revision if it exists
     const payload = {
       groups: updatedGraph.groups,
-      revision: updatedGraph.revision || 0
+      revision: updatedGraph.revision || 0,
     }
 
     // Update the permissions
@@ -106,7 +106,7 @@ export async function grantDatabaseAccessByPrefix({
       apiKey,
       endpoint: '/api/permissions/graph',
       method: 'PUT',
-      body: payload
+      body: payload,
     })
 
     if (!updateResponse.ok) {

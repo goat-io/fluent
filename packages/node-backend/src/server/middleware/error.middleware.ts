@@ -1,7 +1,7 @@
 import type {
   HttpError,
   HttpErrorData,
-  HttpErrorResponse
+  HttpErrorResponse,
 } from '@goatlab/js-utils'
 import { Errors, Inspect, Objects } from '@goatlab/js-utils'
 import type Express from 'express'
@@ -30,7 +30,7 @@ let reportOnly5xx = false
  * Sends json payload as ErrorResponse, transformed via errorSharedUtil.
  */
 export function genericErrorMiddleware(
-  cfg: GenericErrorMiddlewareCfg = {}
+  cfg: GenericErrorMiddlewareCfg = {},
 ): any {
   sentryService ||= cfg.sentryService
   reportOnly5xx = cfg.reportOnly5xx ?? false
@@ -39,7 +39,7 @@ export function genericErrorMiddleware(
     error: Error,
     request: Express.Request,
     res: Express.Response,
-    _next: Express.NextFunction
+    _next: Express.NextFunction,
   ) => {
     respondWithError(request, res, error)
   }
@@ -48,7 +48,7 @@ export function genericErrorMiddleware(
 export function respondWithError(
   _request: Express.Request,
   res: Express.Response,
-  error: any
+  error: any,
 ): void {
   const { headersSent } = res
   if (headersSent) {
@@ -58,7 +58,7 @@ export function respondWithError(
   }
 
   const originalError = Errors.anyToError(error, Error, {
-    stringifyFn: Inspect.anyStringifyFn
+    stringifyFn: Inspect.anyStringifyFn,
   })
 
   let errorId: string | undefined
@@ -73,7 +73,7 @@ export function respondWithError(
 
   const httpError = Errors.errorToErrorObject<HttpErrorData>(
     originalError,
-    includeErrorStack
+    includeErrorStack,
   )
 
   httpError.data.errorId = errorId
@@ -88,7 +88,7 @@ export function respondWithError(
   Objects.filterUndefinedValues(httpError.data, true)
 
   res.status(httpError.data.httpStatusCode).json({
-    error: httpError
+    error: httpError,
   } as HttpErrorResponse)
 }
 

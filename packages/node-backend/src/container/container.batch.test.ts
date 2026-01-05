@@ -50,9 +50,9 @@ vi.mock('./LruCache', () => {
         clear: () => {
           map.clear()
           accessOrder.clear()
-        }
+        },
       }
-    })
+    }),
   }
 })
 
@@ -70,7 +70,7 @@ describe('Container batch operations', () => {
       }
       auth: (
         db: any,
-        secret: string
+        secret: string,
       ) => {
         validate: (token: string) => Promise<boolean>
       }
@@ -90,7 +90,7 @@ describe('Container batch operations', () => {
     query: vi.fn(async (_sql: string) => []),
     dispose: vi.fn(async () => {
       /* mock dispose */
-    })
+    }),
   })
 
   const factories: TestFactories = {
@@ -98,12 +98,12 @@ describe('Container batch operations', () => {
     api: {
       users: (_db: any) => ({
         getAll: vi.fn(async () => [{ id: '1', name: 'Test User' }]),
-        getById: vi.fn(async (id: string) => ({ id, name: 'Test User' }))
+        getById: vi.fn(async (id: string) => ({ id, name: 'Test User' })),
       }),
       auth: (_db: any, _secret: string) => ({
-        validate: vi.fn(async (token: string) => token === 'valid')
-      })
-    }
+        validate: vi.fn(async (token: string) => token === 'valid'),
+      }),
+    },
   }
 
   const initializer = async (preload: any, meta: TenantMeta) => {
@@ -114,8 +114,8 @@ describe('Container batch operations', () => {
       database: db,
       api: {
         users: preload.api.users(meta.id, db),
-        auth: preload.api.auth(meta.id, db, meta.jwtSecret)
-      }
+        auth: preload.api.auth(meta.id, db, meta.jwtSecret),
+      },
     }
   }
 
@@ -135,11 +135,11 @@ describe('Container batch operations', () => {
       const tenants: TenantMeta[] = [
         { id: 'tenant1', connectionString: 'db1', jwtSecret: 'secret1' },
         { id: 'tenant2', connectionString: 'db2', jwtSecret: 'secret2' },
-        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' }
+        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' },
       ]
 
       const results = await container.bootstrapBatch(
-        tenants.map(metadata => ({ metadata }))
+        tenants.map(metadata => ({ metadata })),
       )
 
       expect(results).toHaveLength(3)
@@ -164,17 +164,17 @@ describe('Container batch operations', () => {
     test('should execute functions for each tenant', async () => {
       const tenants = [
         { id: 'tenant1', connectionString: 'db1', jwtSecret: 'secret1' },
-        { id: 'tenant2', connectionString: 'db2', jwtSecret: 'secret2' }
+        { id: 'tenant2', connectionString: 'db2', jwtSecret: 'secret2' },
       ]
 
       const functions = [
         vi.fn(async () => 'result1'),
-        vi.fn(async () => 'result2')
+        vi.fn(async () => 'result2'),
       ]
 
       const results = await container.bootstrapBatch([
         { metadata: tenants[0], fn: functions[0] },
-        { metadata: tenants[1], fn: functions[1] }
+        { metadata: tenants[1], fn: functions[1] },
       ])
 
       expect(results).toHaveLength(2)
@@ -188,7 +188,7 @@ describe('Container batch operations', () => {
       const tenants = Array.from({ length: 10 }, (_, i) => ({
         id: `tenant${i}`,
         connectionString: `db${i}`,
-        jwtSecret: `secret${i}`
+        jwtSecret: `secret${i}`,
       }))
 
       let maxConcurrent = 0
@@ -208,12 +208,12 @@ describe('Container batch operations', () => {
       }
 
       const limitedContainer = new Container(factories, initializer, {
-        enableMetrics: true
+        enableMetrics: true,
       })
 
       await limitedContainer.bootstrapBatch(
         tenants.map(metadata => ({ metadata })),
-        { concurrency: 3 }
+        { concurrency: 3 },
       )
 
       expect(maxConcurrent).toBeLessThanOrEqual(3)
@@ -230,18 +230,18 @@ describe('Container batch operations', () => {
 
       const errorContainer = new Container(factories, failingInitializer, {
         enableMetrics: true,
-        enableDiagnostics: false
+        enableDiagnostics: false,
       })
 
       const tenants = [
         { id: 'tenant1', connectionString: 'db1', jwtSecret: 'secret1' },
         { id: 'tenant2', connectionString: 'db2', jwtSecret: 'secret2' },
-        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' }
+        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' },
       ]
 
       const results = await errorContainer.bootstrapBatch(
         tenants.map(metadata => ({ metadata })),
-        { continueOnError: true }
+        { continueOnError: true },
       )
 
       expect(results).toHaveLength(3)
@@ -265,20 +265,20 @@ describe('Container batch operations', () => {
       }
 
       const errorContainer = new Container(factories, failingInitializer, {
-        enableDiagnostics: false
+        enableDiagnostics: false,
       })
 
       const tenants = [
         { id: 'tenant1', connectionString: 'db1', jwtSecret: 'secret1' },
         { id: 'tenant2', connectionString: 'db2', jwtSecret: 'secret2' },
-        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' }
+        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' },
       ]
 
       await expect(
         errorContainer.bootstrapBatch(
           tenants.map(metadata => ({ metadata })),
-          { continueOnError: false, concurrency: 1 }
-        )
+          { continueOnError: false, concurrency: 1 },
+        ),
       ).rejects.toThrow('Tenant 2 initialization failed')
     })
 
@@ -292,20 +292,22 @@ describe('Container batch operations', () => {
       }
 
       const timeoutContainer = new Container(factories, slowInitializer, {
-        enableMetrics: true
+        enableMetrics: true,
       })
 
       const results = await timeoutContainer.bootstrapBatch(
         [
           {
-            metadata: { id: 'fast', connectionString: 'db1', jwtSecret: 's1' }
+            metadata: { id: 'fast', connectionString: 'db1', jwtSecret: 's1' },
           },
-          { metadata: { id: 'slow', connectionString: 'db2', jwtSecret: 's2' } }
+          {
+            metadata: { id: 'slow', connectionString: 'db2', jwtSecret: 's2' },
+          },
         ],
         {
           timeout: 100,
-          continueOnError: true
-        }
+          continueOnError: true,
+        },
       )
 
       expect(results[0].status).toBe('success')
@@ -318,12 +320,12 @@ describe('Container batch operations', () => {
       const tenants = Array.from({ length: 5 }, (_, i) => ({
         id: `tenant${i}`,
         connectionString: `db${i}`,
-        jwtSecret: `secret${i}`
+        jwtSecret: `secret${i}`,
       }))
 
       await container.bootstrapBatch(
         tenants.map(metadata => ({ metadata })),
-        { onProgress: progressCallback }
+        { onProgress: progressCallback },
       )
 
       expect(progressCallback).toHaveBeenCalledTimes(5)
@@ -331,7 +333,7 @@ describe('Container batch operations', () => {
         expect(progressCallback).toHaveBeenCalledWith(
           i,
           5,
-          expect.objectContaining({ id: expect.stringMatching(/^tenant\d$/) })
+          expect.objectContaining({ id: expect.stringMatching(/^tenant\d$/) }),
         )
       }
     })
@@ -343,7 +345,7 @@ describe('Container batch operations', () => {
       const tenants = [
         { id: 'tenant1', connectionString: 'db1', jwtSecret: 'secret1' },
         { id: 'tenant2', connectionString: 'db2', jwtSecret: 'secret2' },
-        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' }
+        { id: 'tenant3', connectionString: 'db3', jwtSecret: 'secret3' },
       ]
 
       await container.bootstrapBatch(tenants.map(metadata => ({ metadata })))
@@ -355,7 +357,7 @@ describe('Container batch operations', () => {
       // Invalidate batch
       const result = await container.invalidateTenantBatch(
         ['tenant1', 'tenant2'],
-        'Test invalidation'
+        'Test invalidation',
       )
 
       expect(result.total).toBe(2)
@@ -383,7 +385,7 @@ describe('Container batch operations', () => {
 
       const result = await container.invalidateTenantBatch(
         ['tenant1', 'tenant2', 'tenant3'],
-        'Test with error'
+        'Test with error',
       )
 
       expect(result.total).toBe(3)
@@ -403,13 +405,13 @@ describe('Container batch operations', () => {
       const tenant = {
         id: 'tenant1',
         connectionString: 'db1',
-        jwtSecret: 'secret1'
+        jwtSecret: 'secret1',
       }
       await container.bootstrap(tenant)
 
       const result = await container.invalidateServiceBatch(
         ['database', 'api.users'],
-        'Service update'
+        'Service update',
       )
 
       expect(result.total).toBe(2)
@@ -422,28 +424,28 @@ describe('Container batch operations', () => {
         invalidateService: vi.fn(async () => {
           /* mock invalidate */
         }),
-        on: vi.fn()
+        on: vi.fn(),
       }
 
       const distContainer = new Container(factories, initializer, {
         enableDistributedInvalidation: true,
-        distributedInvalidator: mockInvalidator as any
+        distributedInvalidator: mockInvalidator as any,
       })
 
       await distContainer.invalidateServiceBatch(
         ['service1', 'service2'],
         'Distributed test',
-        true
+        true,
       )
 
       expect(mockInvalidator.invalidateService).toHaveBeenCalledTimes(2)
       expect(mockInvalidator.invalidateService).toHaveBeenCalledWith(
         'service1',
-        'Distributed test'
+        'Distributed test',
       )
       expect(mockInvalidator.invalidateService).toHaveBeenCalledWith(
         'service2',
-        'Distributed test'
+        'Distributed test',
       )
     })
   })
@@ -453,7 +455,7 @@ describe('Container batch operations', () => {
       const tenants = Array.from({ length: 10 }, (_, i) => ({
         id: `tenant${i}`,
         connectionString: `db${i}`,
-        jwtSecret: `secret${i}`
+        jwtSecret: `secret${i}`,
       }))
 
       // Some will fail
@@ -466,12 +468,12 @@ describe('Container batch operations', () => {
       }
 
       const metricsContainer = new Container(factories, mixedInitializer, {
-        enableMetrics: true
+        enableMetrics: true,
       })
 
       await metricsContainer.bootstrapBatch(
         tenants.map(metadata => ({ metadata })),
-        { continueOnError: true }
+        { continueOnError: true },
       )
 
       const metrics = metricsContainer.getMetrics()
@@ -494,13 +496,13 @@ describe('Container batch operations', () => {
         metadata: {
           id: `tenant${i}`,
           connectionString: `db${i}`,
-          jwtSecret: `secret${i}`
-        }
+          jwtSecret: `secret${i}`,
+        },
       }))
 
       const startTime = Date.now()
       const results = await container.bootstrapBatch(largeBatch, {
-        concurrency: 20
+        concurrency: 20,
       })
       const duration = Date.now() - startTime
 
@@ -518,28 +520,28 @@ describe('Container batch operations', () => {
             metadata: {
               id: 'success1',
               connectionString: 'db1',
-              jwtSecret: 's1'
+              jwtSecret: 's1',
             },
-            fn: async () => 'ok'
+            fn: async () => 'ok',
           },
           {
             metadata: { id: 'fail1', connectionString: 'db2', jwtSecret: 's2' },
             fn: async () => {
               throw new Error('Failed')
-            }
+            },
           },
           {
             metadata: {
               id: 'success2',
               connectionString: 'db3',
-              jwtSecret: 's3'
+              jwtSecret: 's3',
             },
-            fn: async () => 'ok'
-          }
+            fn: async () => 'ok',
+          },
         ],
         {
-          continueOnError: true
-        }
+          continueOnError: true,
+        },
       )
 
       const successes = results.filter(r => r.status === 'success')

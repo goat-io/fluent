@@ -15,19 +15,19 @@ export type GetFindAggregateQueryParams<T extends FluentQuery<any>> = {
  */
 export const getMongoFindAggregatedQuery = ({
   query,
-  self
+  self,
 }: GetFindAggregateQueryParams<any>): any[] => {
   self.initDB()
   const selected = getMongoSelect(query?.select)
   const orderBy = getMongoOrderBy(query?.orderBy)
 
   const where = getMongoWhere({
-    where: query?.where
+    where: query?.where,
   })
 
   const baseAggregations = getMongoBaseAggregation({
     include: query?.include,
-    self
+    self,
   })
 
   const aggregate: any[] = []
@@ -35,7 +35,7 @@ export const getMongoFindAggregatedQuery = ({
   // Only add $match if there's a where clause
   if (where && Object.keys(where).length > 0) {
     aggregate.push({
-      $match: where
+      $match: where,
     })
   }
 
@@ -61,7 +61,7 @@ export const getMongoFindAggregatedQuery = ({
 
   if (selected && Object.keys(selected).length) {
     aggregate.push({
-      $project: selected
+      $project: selected,
     })
   }
 

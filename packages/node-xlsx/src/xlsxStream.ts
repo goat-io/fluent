@@ -42,13 +42,13 @@ class XlsxStream {
     Columns extends string,
     RowMapper extends (
       row: Record<Columns, string | null | undefined>,
-      rowIndex: number
-    ) => any
+      rowIndex: number,
+    ) => any,
   >({
     file,
     rowMapper,
     fx,
-    mapOptions
+    mapOptions,
   }: {
     file: IXlsxStreamOptions
     batchSize: number
@@ -67,19 +67,19 @@ class XlsxStream {
           .map((row, index) =>
             rowMapper(
               row.formatted.obj as Record<Columns, string | null | undefined>,
-              index
-            )
+              index,
+            ),
           )
           .filter(
             (model): model is NonNullable<ReturnType<RowMapper>> =>
-              model !== null
+              model !== null,
           )
 
         if (mappedRows.length > 0) {
           await fx(mappedRows[0])
         }
       }, mapOptions),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
   }
 
@@ -118,14 +118,14 @@ class XlsxStream {
     Columns extends string,
     RowMapper extends (
       row: Record<Columns, string | null | undefined>,
-      rowIndex: number
-    ) => any
+      rowIndex: number,
+    ) => any,
   >({
     file,
     batchSize,
     rowMapper,
     fx,
-    mapOptions
+    mapOptions,
   }: {
     file: IXlsxStreamOptions
     batchSize: number
@@ -140,7 +140,7 @@ class XlsxStream {
     return await Streams.pipeline([
       Streams.readableFrom(readable),
       Streams.buffer({
-        batchSize
+        batchSize,
       }),
       // This any is because is the output of the getXlsxStream library
       Streams.map<any[], void>(async (rows: any[]) => {
@@ -148,19 +148,19 @@ class XlsxStream {
           .map((row, index) =>
             rowMapper(
               row.formatted.obj as Record<Columns, string | null | undefined>,
-              index
-            )
+              index,
+            ),
           )
           .filter(
             (model): model is NonNullable<ReturnType<RowMapper>> =>
-              model !== null
+              model !== null,
           )
 
         if (mappedRows.length > 0) {
           await fx(mappedRows)
         }
       }, mapOptions),
-      Streams.closePipeline()
+      Streams.closePipeline(),
     ])
   }
 }

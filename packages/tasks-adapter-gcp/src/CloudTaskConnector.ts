@@ -4,7 +4,7 @@ import type {
   TaskConnector,
   TaskStatus,
   TaskStatusName,
-  TenantCredentials
+  TenantCredentials,
 } from '@goatlab/tasks-core'
 import type { BackoffSettings } from 'google-gax/build/src/gax'
 import { GCPServiceAccount } from './CloudTaskConnector.types.js'
@@ -70,7 +70,7 @@ const defaultBackoffSettings: BackoffSettings = {
   initialRetryDelayMillis: 2000,
   retryDelayMultiplier: 1.5,
   maxRetryDelayMillis: 3600,
-  initialRpcTimeoutMillis: 6000
+  initialRpcTimeoutMillis: 6000,
 }
 
 // Pre-calculated constants
@@ -81,13 +81,13 @@ function getScheduledInfo(scheduled: number): {
 } {
   if (scheduled === 0) {
     return {
-      minutesUntil: 0
+      minutesUntil: 0,
     }
   }
 
   // Avoid multiple multiplication - calculate difference directly
   const minutesUntil = Math.floor(
-    (scheduled * 1000 - Date.now()) * MS_TO_MINUTES
+    (scheduled * 1000 - Date.now()) * MS_TO_MINUTES,
   )
 
   return { minutesUntil }
@@ -167,7 +167,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
     }
     CloudTaskConnector.payloadCache.set(taskName, {
       payload,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     })
   }
 
@@ -210,11 +210,11 @@ export class CloudTaskConnector implements TaskConnector<object> {
    */
   forTenant(
     tenantId: string,
-    _credentials?: TenantCredentials
+    _credentials?: TenantCredentials,
   ): CloudTaskConnector {
     return new CloudTaskConnector({
       ...this.config,
-      tenantId
+      tenantId,
     })
   }
 
@@ -254,12 +254,12 @@ export class CloudTaskConnector implements TaskConnector<object> {
     const cloudTasks = await import('@google-cloud/tasks')
 
     console.log(
-      `Initializing cloud-tasks pointing at project: ${this.gcpProject}`
+      `Initializing cloud-tasks pointing at project: ${this.gcpProject}`,
     )
 
     return new cloudTasks.CloudTasksClient({
       credentials: this.gcpServiceAccount,
-      projectId: this.gcpProject
+      projectId: this.gcpProject,
     })
   }
   /**
@@ -270,7 +270,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
     task,
     queueName = 'default',
     backoffSettings = defaultBackoffSettings,
-    baseUrl
+    baseUrl,
   }: {
     task: ITask
     queueName: string
@@ -301,13 +301,13 @@ export class CloudTaskConnector implements TaskConnector<object> {
         ...task.httpRequest,
         url: parsedURL.href,
         headers: {
-          'content-type': 'application/octet-stream'
+          'content-type': 'application/octet-stream',
         },
         // We can encrypt the content to later verify that it was sent by us
         body: this.encryptBody({
-          content: String(task.httpRequest?.body)
-        })
-      }
+          content: String(task.httpRequest?.body),
+        }),
+      },
     }
 
     // Skip sending tasks in local environment
@@ -333,17 +333,17 @@ export class CloudTaskConnector implements TaskConnector<object> {
     const [response] = await client.createTask(
       {
         parent,
-        task: finalTask
+        task: finalTask,
       },
       {
         retry: {
           retryCodes: [
             2, // UNKNOWN
-            14 // INTERNAL
+            14, // INTERNAL
           ],
-          backoffSettings
-        }
-      }
+          backoffSettings,
+        },
+      },
     )
 
     return response
@@ -387,12 +387,12 @@ export class CloudTaskConnector implements TaskConnector<object> {
 
     // Direct parsing without intermediate buffer conversion for strings
     const bodyJSON = JSON.parse(
-      typeof body === 'string' ? body : Buffer.from(body).toString('ascii')
+      typeof body === 'string' ? body : Buffer.from(body).toString('ascii'),
     )
 
     const decryptedBody = Security.decryptObject(
       bodyJSON,
-      this.encryptionKey
+      this.encryptionKey,
     ) as any
 
     return JSON.parse(decryptedBody.content) as Record<string, Primitive>
@@ -422,7 +422,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
   async getStatus(name: string): Promise<TaskStatus> {
     const client = await this.getCloudTasksClient()
     const [error, resp] = await Promises.try(
-      client.getTask({ name, responseView: 'FULL' })
+      client.getTask({ name, responseView: 'FULL' }),
     )
 
     // This in most cases will mean success, given that the tasks get removed once they are done
@@ -440,7 +440,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
         created: new Date().toISOString(),
         nextRun: null,
         nextRunMinutes: null,
-        payload: cachedPayload
+        payload: cachedPayload,
       }
     }
 
@@ -471,7 +471,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
       nextRunMinutes: scheduled
         ? getScheduledInfo(scheduled).minutesUntil
         : null,
-      payload: this.decryptBody(task.httpRequest?.body)
+      payload: this.decryptBody(task.httpRequest?.body),
     }
   }
 
@@ -494,11 +494,11 @@ export class CloudTaskConnector implements TaskConnector<object> {
         name: taskName,
         httpRequest: {
           url: params.postUrl,
-          body: JSON.stringify(params.taskBody)
-        }
+          body: JSON.stringify(params.taskBody),
+        },
       },
       queueName: params.queueName || 'default',
-      backoffSettings: defaultBackoffSettings
+      backoffSettings: defaultBackoffSettings,
     })
 
     // Cache the payload so we can return it even after GCP removes the completed task
@@ -519,7 +519,7 @@ export class CloudTaskConnector implements TaskConnector<object> {
         ? new Date(creation * 1000).toISOString()
         : new Date().toISOString(),
       nextRun: scheduled ? new Date(scheduled * 1000).toISOString() : null,
-      nextRunMinutes: null
+      nextRunMinutes: null,
     }
   }
 }

@@ -29,7 +29,7 @@ class StreamClass {
 
   readableFrom<T>(
     items: Iterable<T> | AsyncIterable<T>,
-    opt?: ReadableOptions
+    opt?: ReadableOptions,
   ): ReadableTyped<T> {
     return Readable.from(items, opt)
   }

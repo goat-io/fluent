@@ -47,7 +47,7 @@ export function Field(): PropertyDecorator & MethodDecorator
  * Only properties decorated with this decorator will be defined in the schema.
  */
 export function Field(
-  options: FieldOptions
+  options: FieldOptions,
 ): PropertyDecorator & MethodDecorator
 /**
  * @Field() decorator is used to mark a specific class property as a GraphQL field.
@@ -55,7 +55,7 @@ export function Field(
  */
 export function Field(
   returnTypeFunction?: ReturnTypeFunc,
-  options?: FieldOptions
+  options?: FieldOptions,
 ): PropertyDecorator & MethodDecorator
 /**
  * @Field() decorator is used to mark a specific class property as a GraphQL field.
@@ -63,19 +63,19 @@ export function Field(
  */
 export function Field(
   typeOrOptions?: ReturnTypeFunc | FieldOptions,
-  fieldOptions?: FieldOptions
+  fieldOptions?: FieldOptions,
 ): PropertyDecorator & MethodDecorator {
   return (
     prototype: Object,
     propertyKey: string,
-    descriptor?: TypedPropertyDescriptor<any>
+    descriptor?: TypedPropertyDescriptor<any>,
   ) => {
     addFieldMetadata(
       typeOrOptions,
       fieldOptions,
       prototype,
       propertyKey,
-      descriptor
+      descriptor,
     )
   }
 }
@@ -86,7 +86,7 @@ export function addFieldMetadata(
   prototype?: Object,
   propertyKey?: string,
   descriptor?: TypedPropertyDescriptor<any>,
-  loadEagerly?: boolean
+  loadEagerly?: boolean,
 ) {
   const [typeFunc, options = {}] = isFunction(typeOrOptions)
     ? [typeOrOptions, fieldOptions]
@@ -101,7 +101,7 @@ export function addFieldMetadata(
       prototype,
       propertyKey: propertyKey || '',
       explicitTypeFn: typeFunc as ReturnTypeFunc,
-      typeOptions: options
+      typeOptions: options,
     })
 
     TypeMetadataStorage.addClassFieldMetadata({
@@ -113,7 +113,7 @@ export function addFieldMetadata(
       description: options.description,
       deprecationReason: options.deprecationReason,
       complexity: options.complexity,
-      middleware: options.middleware
+      middleware: options.middleware,
     })
 
     if (isResolver) {
@@ -122,7 +122,7 @@ export function addFieldMetadata(
         methodName: propertyKey || '',
         schemaName: options.name || propertyKey,
         target: prototype?.constructor!,
-        complexity: options.complexity
+        complexity: options.complexity,
       })
     }
   }
@@ -132,7 +132,7 @@ export function addFieldMetadata(
     LazyMetadataStorage.store(
       prototype?.constructor as Type<unknown>,
       applyMetadataFn,
-      { isField: true }
+      { isField: true },
     )
   }
 }

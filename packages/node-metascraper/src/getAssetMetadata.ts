@@ -26,7 +26,7 @@ export type MarketplaceAsset = {
 
 // Custom fetch with SSL configuration similar to rejectUnauthorized: false
 const httpsAgent = new https.Agent({
-  rejectUnauthorized: false
+  rejectUnauthorized: false,
 })
 
 const customFetch = async (url: string) => {
@@ -42,13 +42,13 @@ const customFetch = async (url: string) => {
       'Accept-Encoding': 'gzip, deflate, br',
       DNT: '1',
       Connection: 'keep-alive',
-      'Upgrade-Insecure-Requests': '1'
-    }
+      'Upgrade-Insecure-Requests': '1',
+    },
   })
 }
 
 export const getAssetMetadata = async (
-  imageUrl?: string
+  imageUrl?: string,
 ): Promise<(MarketplaceAsset & { buffer?: Buffer }) | undefined> => {
   if (!imageUrl || imageUrl.trim() === '') {
     return
@@ -114,7 +114,7 @@ export const getAssetMetadata = async (
       isVertical,
       thumbnailUrl: imageUrl,
       sizeBytes,
-      buffer
+      buffer,
     }
 
     return metadata

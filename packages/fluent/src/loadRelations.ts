@@ -17,7 +17,7 @@ export const loadRelations = async ({
   relations,
   modelRelations,
   provider,
-  self
+  self,
 }: RelationshipLoader): Promise<any[]> => {
   if (!relations) {
     return data
@@ -37,14 +37,14 @@ export const loadRelations = async ({
         data,
         relationModel,
         Repository,
-        chunkSize
+        chunkSize,
       )
     } else if (relationModel.isManyToOne) {
       data = await loadManyToOneRelation(
         data,
         relationModel,
         Repository,
-        chunkSize
+        chunkSize,
       )
     } else if (relationModel.isManyToMany) {
       data = await loadManyToManyRelation(
@@ -52,7 +52,7 @@ export const loadRelations = async ({
         relationModel,
         Repository,
         self,
-        chunkSize
+        chunkSize,
       )
     }
   }
@@ -63,13 +63,13 @@ export const loadRelations = async ({
 function validateRelation(relation: string, modelRelations: any, self: any) {
   if (!modelRelations[relation]) {
     throw new Error(
-      `Relationship does not exist: ${relation}. Did you create it in your DB entity?`
+      `Relationship does not exist: ${relation}. Did you create it in your DB entity?`,
     )
   }
 
   if (!self[relation]) {
     throw new Error(
-      `Relationship does not exist: ${relation}. Did you create it in your Repository?`
+      `Relationship does not exist: ${relation}. Did you create it in your Repository?`,
     )
   }
 }
@@ -78,7 +78,7 @@ async function loadOneToManyRelation(
   data: any[],
   relationModel: any,
   Repository: any,
-  chunkSize: number
+  chunkSize: number,
 ): Promise<any[]> {
   const ids = new Set(data.map(d => d.id))
   const chunks = Arrays.chunk(Array.from(ids), chunkSize)
@@ -87,19 +87,19 @@ async function loadOneToManyRelation(
     Repository.findMany({
       where: {
         [relationModel.inverseSidePropertyPath]: {
-          in: relatedIds
-        }
-      }
-    })
+          in: relatedIds,
+        },
+      },
+    }),
   )
 
   const relatedResults: AnyObject[] = Arrays.collapse(
-    await Promise.all(promises)
+    await Promise.all(promises),
   )
 
   const grouped = Arrays.groupBy(
     relatedResults,
-    r => r[relationModel.inverseSidePropertyPath]
+    r => r[relationModel.inverseSidePropertyPath],
   )
 
   return data.map(d => {
@@ -114,10 +114,10 @@ async function loadManyToOneRelation(
   data: any[],
   relationModel: any,
   Repository: any,
-  chunkSize: number
+  chunkSize: number,
 ): Promise<any[]> {
   const ids = Arrays.deDuplicate(
-    data.map(d => d[relationModel.joinColumns[0].propertyPath])
+    data.map(d => d[relationModel.joinColumns[0].propertyPath]),
   )
   const chunks = Arrays.chunk(ids, chunkSize)
 
@@ -125,14 +125,14 @@ async function loadManyToOneRelation(
     Repository.findMany({
       where: {
         id: {
-          in: relatedIds
-        }
-      }
-    })
+          in: relatedIds,
+        },
+      },
+    }),
   )
 
   const relatedResults: AnyObject[] = Arrays.collapse(
-    await Promise.all(promises)
+    await Promise.all(promises),
   )
 
   const grouped = Arrays.groupBy(relatedResults, r => r.id)
@@ -152,7 +152,7 @@ async function loadManyToManyRelation(
   relationModel: any,
   Repository: any,
   self: any,
-  chunkSize: number
+  chunkSize: number,
 ): Promise<any[]> {
   const ids = Arrays.deDuplicate(data.map(d => d.id))
   const chunks = Arrays.chunk(ids, chunkSize)
@@ -167,7 +167,7 @@ async function loadManyToManyRelation(
   const pivotResults = await loadPivotResults(
     chunks,
     pivotData.pivotForeignField,
-    pivotData.pivotRepository
+    pivotData.pivotRepository,
   )
 
   // Get relationship table results
@@ -175,7 +175,7 @@ async function loadManyToManyRelation(
     pivotResults,
     relationModel,
     Repository,
-    chunkSize
+    chunkSize,
   )
 
   // Map results back to data
@@ -184,7 +184,7 @@ async function loadManyToManyRelation(
     pivotResults,
     relatedResults,
     relationModel,
-    pivotData.calleeKey
+    pivotData.calleeKey,
   )
 
   return data
@@ -208,7 +208,7 @@ function getPivotData(self: any, relationModel: any, Repository: any) {
     !calleeKey
   ) {
     throw new Error(
-      'The Many-to-Many relationship is not properly defined.Please check both your Model and Repository'
+      'The Many-to-Many relationship is not properly defined.Please check both your Model and Repository',
     )
   }
 
@@ -216,23 +216,23 @@ function getPivotData(self: any, relationModel: any, Repository: any) {
     pivotForeignField,
     inverseForeignField,
     pivotRepository,
-    calleeKey
+    calleeKey,
   }
 }
 
 async function loadPivotResults(
   chunks: any[][],
   pivotForeignField: string,
-  pivotRepository: any
+  pivotRepository: any,
 ): Promise<AnyObject[]> {
   const promises = chunks.map(pivotIds =>
     pivotRepository.findMany({
       where: {
         [pivotForeignField]: {
-          in: pivotIds
-        }
-      }
-    })
+          in: pivotIds,
+        },
+      },
+    }),
   )
 
   return Arrays.collapse(await Promise.all(promises))
@@ -242,7 +242,7 @@ async function loadRelatedResults(
   pivotResults: AnyObject[],
   relationModel: any,
   Repository: any,
-  chunkSize: number
+  chunkSize: number,
 ): Promise<AnyObject[]> {
   const inverseForeignField = relationModel.inverseJoinColumns[0].propertyPath
 
@@ -253,19 +253,19 @@ async function loadRelatedResults(
     Repository.findMany({
       where: {
         id: {
-          in: relatedIds
-        }
-      }
-    })
+          in: relatedIds,
+        },
+      },
+    }),
   )
 
   const relatedResults: AnyObject[] = Arrays.collapse(
-    await Promise.all(relationPromises)
+    await Promise.all(relationPromises),
   )
 
   return relatedResults.map(r => ({
     ...r,
-    pivot: pivotResults.find(p => p[inverseForeignField] === r.id)
+    pivot: pivotResults.find(p => p[inverseForeignField] === r.id),
   }))
 }
 
@@ -274,11 +274,11 @@ function mapManyToManyResults(
   pivotResults: AnyObject[],
   relatedResults: AnyObject[],
   relationModel: any,
-  calleeKey: string
+  calleeKey: string,
 ) {
   const groupedPivot = Arrays.groupBy(
     pivotResults,
-    r => r[relationModel.joinColumns[0].propertyName]
+    r => r[relationModel.joinColumns[0].propertyName],
   )
 
   const groupedRelated = Arrays.groupBy(relatedResults, r => r.id)

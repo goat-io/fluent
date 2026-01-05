@@ -2,13 +2,13 @@ import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollectionOptions,
   TypesenseSynonym,
-  TypesenseSynonymResponse
+  TypesenseSynonymResponse,
 } from '../../typesense.model'
 
 export async function upsertSynonym(
   ctx: TypesenseContext,
   synonym: TypesenseSynonym,
-  options?: TypesenseCollectionOptions
+  options?: TypesenseCollectionOptions,
 ): Promise<TypesenseSynonymResponse> {
   const collectionName = options?.collection || ctx.fqcn()
 
@@ -16,7 +16,7 @@ export async function upsertSynonym(
     `/collections/${collectionName}/synonyms/${synonym.id}`,
     {
       method: 'PUT',
-      body: synonym
-    }
+      body: synonym,
+    },
   )
 }

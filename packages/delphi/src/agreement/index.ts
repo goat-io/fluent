@@ -24,7 +24,7 @@ export const AgreementAnnotation = Annotation.Root({
   agreementSessionId: Annotation<string>(),
   agreementResult: Annotation<any>(),
   consensusScore: Annotation<number>(),
-  agreementDuration: Annotation<number>()
+  agreementDuration: Annotation<number>(),
 })
 
 /**
@@ -33,7 +33,7 @@ export const AgreementAnnotation = Annotation.Root({
 export async function runAgreementNode(
   state: any,
   agents: Agent[],
-  config?: Partial<AgreementSessionConfig>
+  config?: Partial<AgreementSessionConfig>,
 ): Promise<any> {
   const span = tracer.startSpan('agreement.node')
   const ctx = trace.setSpan(context.active(), span)
@@ -54,27 +54,27 @@ export async function runAgreementNode(
           id: a.id,
           role: a.role,
           weight: a.weight || 1,
-          model: a.model
-        }))
+          model: a.model,
+        })),
       }
 
       // Create orchestrator
       const orchestrator = new AgreementOrchestrator(sessionConfig, agents, {
-        enableTracing: true
+        enableTracing: true,
       })
 
       // Track events
       orchestrator.on('stateChange', ({ from, to }) => {
         span.addEvent('state_change', {
           'agreement.state.from': from,
-          'agreement.state.to': to
+          'agreement.state.to': to,
         })
       })
 
       orchestrator.on('message', message => {
         span.addEvent('agent_message', {
           'agreement.agent': message.agentId,
-          'agreement.step': message.step
+          'agreement.step': message.step,
         })
       })
 
@@ -89,7 +89,7 @@ export async function runAgreementNode(
         span.setAttributes({
           'agreement.consensus.score': result.consensus.score,
           'agreement.consensus.method': result.consensus.method,
-          'agreement.duration_ms': duration
+          'agreement.duration_ms': duration,
         })
 
         // Update state
@@ -99,12 +99,12 @@ export async function runAgreementNode(
           agreementResult: result,
           consensusScore: result.consensus.score,
           agreementDuration: duration,
-          spec: result.finalContent // Update spec with agreed content
+          spec: result.finalContent, // Update spec with agreed content
         }
       }
       span.setStatus({
         code: SpanStatusCode.ERROR,
-        message: 'Agreement failed'
+        message: 'Agreement failed',
       })
 
       // Return state with failure marker
@@ -115,7 +115,7 @@ export async function runAgreementNode(
         consensusScore: 0,
         agreementDuration: duration,
         approved: false,
-        reviewFeedback: 'Agreement protocol failed to reach consensus'
+        reviewFeedback: 'Agreement protocol failed to reach consensus',
       }
     } catch (error: any) {
       span.recordException(error)
@@ -134,7 +134,7 @@ export function createLLMAgent(
   id: string,
   role: AgentRole,
   llmAdapter: any,
-  weight: number = 1
+  weight: number = 1,
 ): Agent {
   return {
     id,
@@ -149,15 +149,15 @@ export function createLLMAgent(
                      Current step: ${context.step}. 
                      Session facts: ${JSON.stringify(context.sessionFacts || [])}
                      
-                     Respond with a structured JSON message following the agreement protocol.`
+                     Respond with a structured JSON message following the agreement protocol.`,
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.7,
-        maxTokens: 2000
+        maxTokens: 2000,
       })
 
       // Parse and structure response
@@ -171,7 +171,7 @@ export function createLLMAgent(
         payload = {
           content: content,
           rationale: 'Generated response',
-          confidence: 0.7
+          confidence: 0.7,
         }
       }
 
@@ -182,8 +182,8 @@ export function createLLMAgent(
         agentId: id,
         step: context.step,
         payload,
-        tokenUsage: response.usage
+        tokenUsage: response.usage,
       }
-    }
+    },
   }
 }

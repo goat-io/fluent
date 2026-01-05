@@ -13,7 +13,7 @@ import { htmlEscape } from './scape'
 export class MissingValueError extends Error {
   constructor(public key: any) {
     super(
-      `Missing a value for ${key ? `the placeholder: ${key}` : 'a placeholder'}`
+      `Missing a value for ${key ? `the placeholder: ${key}` : 'a placeholder'}`,
     )
     this.name = 'MissingValueError'
     this.key = key
@@ -38,17 +38,17 @@ export interface PupaOptions {
 export function pupa(
   template: string,
   data: any[] | AnyObject,
-  opt: PupaOptions = {}
+  opt: PupaOptions = {},
 ): string {
   if (typeof template !== 'string') {
     throw new TypeError(
-      `Expected a \`string\` in the first argument, got \`${typeof template}\``
+      `Expected a \`string\` in the first argument, got \`${typeof template}\``,
     )
   }
 
   if (typeof data !== 'object') {
     throw new TypeError(
-      `Expected an \`object\` or \`Array\` in the second argument, got \`${typeof data}\``
+      `Expected an \`object\` or \`Array\` in the second argument, got \`${typeof data}\``,
     )
   }
 

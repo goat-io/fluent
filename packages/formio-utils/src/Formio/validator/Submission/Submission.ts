@@ -18,8 +18,8 @@ const models: Models = {}
 const ModelDefinition = () =>
   baseModel({
     schema: new Schema({
-      type: Schema.Types.Mixed
-    })
+      type: Schema.Types.Mixed,
+    }),
   })
 
 const getModel = async (modelName: string) => {
@@ -27,7 +27,7 @@ const getModel = async (modelName: string) => {
     const definition: Model<ISubmission> = model(
       modelName,
       ModelDefinition().schema,
-      modelName
+      modelName,
     )
     models[modelName] = definition
   }

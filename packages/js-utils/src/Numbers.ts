@@ -23,7 +23,7 @@ class NumbersClass {
 
   randomInt(minIncluding: number, maxIncluding: number): number {
     return Math.floor(
-      Math.random() * (maxIncluding - minIncluding + 1) + minIncluding
+      Math.random() * (maxIncluding - minIncluding + 1) + minIncluding,
     )
   }
 
@@ -107,7 +107,7 @@ class NumbersClass {
 
     return this.averageWeighted(
       [sorted[floorPos]!, sorted[ceilPos]!],
-      [1 - dec, dec]
+      [1 - dec, dec],
     )
   }
 
@@ -128,7 +128,7 @@ class NumbersClass {
 
       r[pc] = this.averageWeighted(
         [sorted[floorPos]!, sorted[ceilPos]!],
-        [1 - dec, dec]
+        [1 - dec, dec],
       )
     })
 

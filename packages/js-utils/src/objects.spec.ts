@@ -36,10 +36,10 @@ describe('Objects', () => {
             property1: null,
             nested: {
               property: 'val1',
-              property1: null
-            }
-          }
-        }
+              property1: null,
+            },
+          },
+        },
       }
 
       const test = Objects.deleteNulls(object)
@@ -50,10 +50,10 @@ describe('Objects', () => {
           nested: {
             property: 'val1',
             nested: {
-              property: 'val1'
-            }
-          }
-        }
+              property: 'val1',
+            },
+          },
+        },
       }
 
       expect(JSON.stringify(test)).toBe(JSON.stringify(expected))
@@ -65,7 +65,7 @@ describe('Objects', () => {
       const initial = {
         d: '1',
         a: '2',
-        b: '3'
+        b: '3',
       }
 
       const val = Objects.sortObjectDeep(initial)
@@ -171,9 +171,9 @@ describe('Objects', () => {
         nested: {
           clean: [],
           deeper: {
-            alsoRemove: undefined
-          }
-        }
+            alsoRemove: undefined,
+          },
+        },
       }
       const result = Objects.clearEmpties(obj)
       expect(result).toEqual({ keep: 'value' })
@@ -287,10 +287,10 @@ describe('Objects', () => {
         name: 'John',
         details: {
           age: 30,
-          hobbies: ['reading', 'gaming']
-        }
+          hobbies: ['reading', 'gaming'],
+        },
       },
-      items: [{ id: 1, name: 'item1' }]
+      items: [{ id: 1, name: 'item1' }],
     }
 
     it('should get nested object value', () => {
@@ -307,7 +307,7 @@ describe('Objects', () => {
       const result = Objects.getFromPath(testObj, 'user.details.hobbies[0]')
       expect(result).toEqual({
         label: 'user.details.hobbies[0]',
-        value: 'reading'
+        value: 'reading',
       })
     })
 
@@ -329,44 +329,44 @@ describe('Objects', () => {
         b: {
           c: 2,
           d: {
-            e: 3
-          }
-        }
+            e: 3,
+          },
+        },
       }
       const result = Objects.flatten(obj)
       expect(result).toEqual({
         a: '1',
         'b.c': '2',
-        'b.d.e': '3'
+        'b.d.e': '3',
       })
     })
 
     it('should include base keys when requested', () => {
       const obj = {
         a: {
-          b: 1
-        }
+          b: 1,
+        },
       }
       const result = Objects.flatten(obj, true)
       expect(result).toEqual({
         a: 'true',
-        'a.b': '1'
+        'a.b': '1',
       })
     })
 
     it('should use custom key factory', () => {
       const obj = {
         a: {
-          b: 1
-        }
+          b: 1,
+        },
       }
       const result = Objects.flatten(
         obj,
         false,
-        (prev, curr) => `${prev}_${curr}`
+        (prev, curr) => `${prev}_${curr}`,
       )
       expect(result).toEqual({
-        a_b: '1'
+        a_b: '1',
       })
     })
 
@@ -374,13 +374,13 @@ describe('Objects', () => {
       const obj = {
         a: [1, 2, 3],
         b: {
-          c: ['x', 'y']
-        }
+          c: ['x', 'y'],
+        },
       }
       const result = Objects.flatten(obj)
       expect(result).toEqual({
         a: '1,2,3',
-        'b.c': 'x,y'
+        'b.c': 'x,y',
       })
     })
 
@@ -388,13 +388,13 @@ describe('Objects', () => {
       const obj = {
         a: null,
         b: {
-          c: null
-        }
+          c: null,
+        },
       }
       const result = Objects.flatten(obj)
       expect(result).toEqual({
         a: 'null',
-        'b.c': 'null'
+        'b.c': 'null',
       })
     })
   })
@@ -416,7 +416,7 @@ describe('Objects', () => {
       const flattened = {
         a: '1',
         'b.c': '2',
-        'b.d.e': '3'
+        'b.d.e': '3',
       }
       const result = Objects.nest(flattened)
       expect(result).toEqual({
@@ -424,9 +424,9 @@ describe('Objects', () => {
         b: {
           c: '2',
           d: {
-            e: '3'
-          }
-        }
+            e: '3',
+          },
+        },
       })
     })
 
@@ -437,7 +437,7 @@ describe('Objects', () => {
 
     it('should mark new objects when requested', () => {
       const flattened = {
-        'a.b': '1'
+        'a.b': '1',
       }
       const result = Objects.nest(flattened, true)
       expect(result.a).toHaveProperty('isObject', true)
@@ -450,8 +450,8 @@ describe('Objects', () => {
         a: 1,
         b: {
           c: 2,
-          d: [3, 4]
-        }
+          d: [3, 4],
+        },
       }
       const cloned = Objects.clone(obj)
       expect(cloned).toEqual(obj)
@@ -462,7 +462,7 @@ describe('Objects', () => {
     it('should not clone functions', () => {
       const obj = {
         a: 1,
-        fn: () => 'test'
+        fn: () => 'test',
       }
       const cloned = Objects.clone(obj)
       expect(cloned.fn).toBeUndefined()
@@ -498,15 +498,15 @@ describe('Objects', () => {
         b: null,
         c: {
           d: null,
-          e: 2
-        }
+          e: 2,
+        },
       }
       const result = Objects.deleteNulls(obj)
       expect(result).toEqual({
         a: 1,
         c: {
-          e: 2
-        }
+          e: 2,
+        },
       })
     })
 
@@ -533,20 +533,20 @@ describe('Objects', () => {
         a: 1,
         b: undefined,
         c: null,
-        d: 'test'
+        d: 'test',
       }
       const result = Objects.filterUndefinedValues(obj)
       expect(result).toEqual({
         a: 1,
         c: null,
-        d: 'test'
+        d: 'test',
       })
     })
 
     it('should mutate original object when mutate=true', () => {
       const obj = {
         a: 1,
-        b: undefined
+        b: undefined,
       }
       const result = Objects.filterUndefinedValues(obj, true)
       expect(result).toBe(obj)
@@ -559,12 +559,12 @@ describe('Objects', () => {
       const obj = {
         a: 1,
         b: 2,
-        c: 3
+        c: 3,
       }
       const result = Objects.filterObject(obj, (_k, v) => v > 1)
       expect(result).toEqual({
         b: 2,
-        c: 3
+        c: 3,
       })
     })
 
@@ -588,15 +588,15 @@ describe('Objects', () => {
         e: {},
         f: {
           g: null,
-          h: 2
-        }
+          h: 2,
+        },
       }
       const result = Objects.clearEmpties(obj)
       expect(result).toEqual({
         a: 1,
         f: {
-          h: 2
-        }
+          h: 2,
+        },
       })
     })
 
@@ -604,7 +604,7 @@ describe('Objects', () => {
       const date = new Date()
       const obj = {
         a: date,
-        b: null
+        b: null,
       }
       const result = Objects.clearEmpties(obj)
       expect(result).toEqual({ a: date })

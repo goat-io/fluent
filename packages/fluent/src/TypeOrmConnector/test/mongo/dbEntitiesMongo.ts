@@ -11,5 +11,5 @@ export const dbEntitiesMongo = [
   CarsEntity,
   UsersEntity,
   RoleEntity,
-  RolesUser
+  RolesUser,
 ]

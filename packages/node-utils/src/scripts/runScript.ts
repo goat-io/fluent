@@ -224,7 +224,7 @@ export interface RunScriptOptions {
  */
 export function runScript(
   fn: () => Promise<any>,
-  opt: RunScriptOptions = {}
+  opt: RunScriptOptions = {},
 ): void {
   const { logger = console, noExit, onExit, onError } = opt
   const startTime = Date.now()

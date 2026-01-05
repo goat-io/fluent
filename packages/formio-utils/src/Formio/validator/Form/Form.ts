@@ -22,7 +22,7 @@ const componentKeys = (components: any[]) => {
         keys.push(component.key)
       }
     },
-    true
+    true,
   )
   return _(keys)
 }
@@ -40,7 +40,7 @@ const componentPaths = (components: any[]) => {
         paths.push(path)
       }
     },
-    true
+    true,
   )
   return _(paths)
 }
@@ -62,7 +62,7 @@ const componentShortcuts = (components: any[]) => {
         })
       }
     },
-    true
+    true,
   )
   return _(shortcuts)
 }
@@ -93,7 +93,7 @@ const ModelDefinition = () => {
       title: {
         type: String,
         description: 'The title for the form.',
-        required: true
+        required: true,
       },
       name: {
         type: String,
@@ -102,9 +102,9 @@ const ModelDefinition = () => {
         validate: [
           {
             message: `The Name ${uniqueMessage}`,
-            validator: (value: string): boolean => !invalidRegex.test(value)
-          }
-        ]
+            validator: (value: string): boolean => !invalidRegex.test(value),
+          },
+        ],
       },
       path: {
         type: String,
@@ -116,13 +116,13 @@ const ModelDefinition = () => {
         validate: [
           {
             message: `The Path ${uniqueMessage}`,
-            validator: (value: string) => !invalidRegex.test(value)
+            validator: (value: string) => !invalidRegex.test(value),
           },
           {
             message: 'Path cannot end in `submission` or `action`',
-            validator: (path: string) => !path.match(/(submission|action)\/?$/)
-          }
-        ]
+            validator: (path: string) => !path.match(/(submission|action)\/?$/),
+          },
+        ],
       },
       type: {
         type: String,
@@ -130,23 +130,23 @@ const ModelDefinition = () => {
         required: true,
         default: 'form',
         description: 'The form type.',
-        index: true
+        index: true,
       },
       display: {
         type: String,
-        description: 'The display method for this form'
+        description: 'The display method for this form',
       },
       action: {
         type: String,
-        description: 'A custom action URL to submit the data to.'
+        description: 'A custom action URL to submit the data to.',
       },
       tags: {
         type: [String],
-        index: true
+        index: true,
       },
       deleted: {
         type: Number,
-        default: null
+        default: null,
       },
       access: [PermissionSchema],
       submissionAccess: [PermissionSchema],
@@ -156,7 +156,7 @@ const ModelDefinition = () => {
         index: true,
         default: null,
         set: (owner: string) => util.ObjectId(owner),
-        get: (owner: string) => (owner ? owner.toString() : owner)
+        get: (owner: string) => (owner ? owner.toString() : owner),
       },
       components: {
         type: [Schema.Types.Mixed],
@@ -166,15 +166,15 @@ const ModelDefinition = () => {
             message: keyError,
             validator: (components: any[]) =>
               componentKeys(components).every((key: string) =>
-                key.match(validKeyRegex)
-              )
+                key.match(validKeyRegex),
+              ),
           },
           {
             message: shortcutError,
             validator: (components: any[]) =>
               componentShortcuts(components).every((shortcut: string) =>
-                shortcut.match(validShortcutRegex)
-              )
+                shortcut.match(validShortcutRegex),
+              ),
           },
           {
             message: msg,
@@ -189,7 +189,7 @@ const ModelDefinition = () => {
               }
               msg += diff.value().join(', ')
               return false
-            }
+            },
           },
           {
             message: shortcutMsg,
@@ -199,7 +199,7 @@ const ModelDefinition = () => {
               const uniq = shortcuts.uniq()
               const diff = shortcuts.filter(
                 (value: any, index: number, collection: any) =>
-                  _.includes(collection, value, index + 1)
+                  _.includes(collection, value, index + 1),
               )
 
               if (_.isEqual(shortcuts.value(), uniq.value())) {
@@ -207,19 +207,19 @@ const ModelDefinition = () => {
               }
               shortcutMsg += diff.value().join(', ')
               return false
-            }
-          }
-        ]
+            },
+          },
+        ],
       },
       settings: {
         type: Schema.Types.Mixed,
-        description: 'Custom form settings object.'
+        description: 'Custom form settings object.',
       },
       properties: {
         type: Schema.Types.Mixed,
-        description: 'Custom form properties.'
-      }
-    })
+        description: 'Custom form properties.',
+      },
+    }),
   })
 
   return m

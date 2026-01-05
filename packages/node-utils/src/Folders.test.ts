@@ -107,7 +107,7 @@ describe('FoldersClass', () => {
       const files = await Folders.searchFileIn({
         dir: tmpDir,
         search: 'subfile',
-        fileList: []
+        fileList: [],
       })
       expect(files).toEqual([subFile])
     })
@@ -116,7 +116,7 @@ describe('FoldersClass', () => {
       const files = await Folders.searchFileIn({
         dir: tmpDir,
         search: 'notfound',
-        fileList: []
+        fileList: [],
       })
       expect(files).toEqual([])
     })

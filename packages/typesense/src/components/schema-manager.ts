@@ -1,7 +1,7 @@
 // CollectionSchemaManager - Handles schema inference and caching
 import {
   TypesenseCollection,
-  TypesenseSchemaCacheEntry
+  TypesenseSchemaCacheEntry,
 } from '../typesense.model'
 
 interface SchemaManagerOptions {
@@ -68,7 +68,7 @@ export class CollectionSchemaManager {
       cacheTtl: options.cacheTtl || 300000, // 5 minutes
       enableNestedFields: options.enableNestedFields ?? false,
       typesenseVersion: options.typesenseVersion || '0.24.0',
-      suppressLogs: options.suppressLogs ?? false
+      suppressLogs: options.suppressLogs ?? false,
     }
 
     this.schemaCache = new LRUCache(this.options.cacheSize)
@@ -117,7 +117,7 @@ export class CollectionSchemaManager {
     const cacheKey = `schema:${collectionName}`
     this.schemaCache.set(cacheKey, {
       schema,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     })
   }
 
@@ -128,7 +128,7 @@ export class CollectionSchemaManager {
 
   inferSchemaFromDocument(
     document: any,
-    collectionName: string
+    collectionName: string,
   ): TypesenseCollection {
     const fields: any[] = []
     const processedFields = new Set<string>()
@@ -136,7 +136,7 @@ export class CollectionSchemaManager {
     const inferFieldType = (
       key: string,
       value: any,
-      _path: string[] = []
+      _path: string[] = [],
     ): void => {
       if (processedFields.has(key)) {
         return
@@ -213,7 +213,7 @@ export class CollectionSchemaManager {
 
     const collection: TypesenseCollection = {
       name: collectionName,
-      fields
+      fields,
     }
 
     // Add version-gated features
@@ -263,13 +263,13 @@ export class CollectionSchemaManager {
       'object',
       'object[]',
       'auto',
-      'image'
+      'image',
     ]
 
     schema.fields?.forEach(field => {
       if (!validTypes.includes(field.type)) {
         errors.push(
-          `Invalid field type "${field.type}" for field "${field.name}"`
+          `Invalid field type "${field.type}" for field "${field.name}"`,
         )
       }
     })
@@ -284,7 +284,7 @@ export class CollectionSchemaManager {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     }
   }
 
@@ -295,7 +295,7 @@ export class CollectionSchemaManager {
   getCacheStats(): { size: number; maxSize: number } {
     return {
       size: this.schemaCache.size(),
-      maxSize: this.options.cacheSize
+      maxSize: this.options.cacheSize,
     }
   }
 

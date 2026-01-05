@@ -18,11 +18,11 @@ const REGEX_CACHE = {
   oneToMany: /___XXOneToManyXX/g,
   tripleSep: /___/g,
   xxPattern: /XX___/g,
-  xxReplace: /XX/g
+  xxReplace: /XX/g,
 }
 
 export const extractMetadataFromKeys = (
-  keys: string[]
+  keys: string[],
 ): KeysMetadataResponse => {
   // Example of a key
   // Level 0:
@@ -79,7 +79,7 @@ export const extractMetadataFromKeys = (
       level,
       cardinality: cardinality
         ?.replace(REGEX_CACHE.xxReplace, '')
-        .replace(REGEX_CACHE.tripleSep, '')
+        .replace(REGEX_CACHE.tripleSep, ''),
     }
   }
 

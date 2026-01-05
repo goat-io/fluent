@@ -8,14 +8,14 @@ vi.mock('@goatlab/js-utils', () => ({
   Http: {
     getClient: vi.fn(() => ({
       post: vi.fn().mockReturnThis(),
-      json: vi.fn()
-    }))
-  }
+      json: vi.fn(),
+    })),
+  },
 }))
 
 // Mock child_process for Claude tests
 vi.mock('child_process', () => ({
-  spawn: vi.fn()
+  spawn: vi.fn(),
 }))
 
 describe('Unit Tests - Agents', () => {
@@ -24,20 +24,20 @@ describe('Unit Tests - Agents', () => {
       const mockResponse = {
         data: {
           draft:
-            'This is a detailed technical specification for implementing the requested feature.'
-        }
+            'This is a detailed technical specification for implementing the requested feature.',
+        },
       }
 
       const mockClient = {
         post: vi.fn().mockReturnThis(),
-        json: vi.fn().mockResolvedValueOnce(mockResponse.data)
+        json: vi.fn().mockResolvedValueOnce(mockResponse.data),
       }
       vi.mocked(Http.getClient).mockReturnValueOnce(mockClient as any)
 
       const client = Http.getClient({ prefixUrl: 'http://localhost:8000' })
       const data = await client
         .post('plan', {
-          json: { prompt: 'Add logging to the application' }
+          json: { prompt: 'Add logging to the application' },
         })
         .json<any>()
 
@@ -55,11 +55,11 @@ describe('Unit Tests - Agents', () => {
 
       const mockClient1 = {
         post: vi.fn().mockReturnThis(),
-        json: vi.fn().mockResolvedValueOnce({ refined: spec1 })
+        json: vi.fn().mockResolvedValueOnce({ refined: spec1 }),
       }
       const mockClient2 = {
         post: vi.fn().mockReturnThis(),
-        json: vi.fn().mockResolvedValueOnce({ refined: spec2 })
+        json: vi.fn().mockResolvedValueOnce({ refined: spec2 }),
       }
       vi.mocked(Http.getClient)
         .mockReturnValueOnce(mockClient1 as any)
@@ -69,7 +69,7 @@ describe('Unit Tests - Agents', () => {
       const client1 = Http.getClient({ prefixUrl: 'http://localhost:8000' })
       const data1 = await client1
         .post('refine', {
-          json: { spec: spec0 }
+          json: { spec: spec0 },
         })
         .json<any>()
 
@@ -77,7 +77,7 @@ describe('Unit Tests - Agents', () => {
       const client2 = Http.getClient({ prefixUrl: 'http://localhost:8000' })
       const data2 = await client2
         .post('refine', {
-          json: { spec: data1.refined }
+          json: { spec: data1.refined },
         })
         .json<any>()
 
@@ -105,17 +105,17 @@ index 1234567..890abcd 100644
             if (event === 'data') {
               callback(Buffer.from(mockDiff))
             }
-          })
+          }),
         },
         stderr: {
-          on: vi.fn()
+          on: vi.fn(),
         },
         on: vi.fn((event, callback) => {
           if (event === 'close') {
             callback(0)
           }
         }),
-        kill: vi.fn()
+        kill: vi.fn(),
       } as unknown as ChildProcessWithoutNullStreams
 
       mockSpawn.mockReturnValueOnce(mockProcess)

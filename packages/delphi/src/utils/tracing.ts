@@ -8,7 +8,7 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { Resource } from '@opentelemetry/resources'
 import {
   ConsoleMetricExporter,
-  PeriodicExportingMetricReader
+  PeriodicExportingMetricReader,
 } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base'
@@ -29,7 +29,7 @@ export async function initializeTracing(config: TracingConfig = {}) {
     enabled = process.env.OTEL_ENABLED === 'true',
     serviceName = 'delphi-pipeline',
     otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-      'http://localhost:4318'
+      'http://localhost:4318',
     // consoleExport = process.env.OTEL_CONSOLE_EXPORT === 'true' // Not used
   } = config
 
@@ -44,13 +44,13 @@ export async function initializeTracing(config: TracingConfig = {}) {
       new Resource({
         [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
         [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
-        environment: process.env.NODE_ENV || 'development'
-      })
+        environment: process.env.NODE_ENV || 'development',
+      }),
     )
 
     // Configure trace exporter
     const traceExporter = new OTLPTraceExporter({
-      url: `${otlpEndpoint}/v1/traces`
+      url: `${otlpEndpoint}/v1/traces`,
     })
 
     // Configure SDK
@@ -60,14 +60,14 @@ export async function initializeTracing(config: TracingConfig = {}) {
       instrumentations: [
         getNodeAutoInstrumentations({
           '@opentelemetry/instrumentation-fs': {
-            enabled: false // Too noisy for our use case
-          }
-        })
+            enabled: false, // Too noisy for our use case
+          },
+        }),
       ],
       metricReader: new PeriodicExportingMetricReader({
         exporter: new ConsoleMetricExporter(),
-        exportIntervalMillis: 30000
-      }) as any
+        exportIntervalMillis: 30000,
+      }) as any,
     })
 
     // Initialize SDK
@@ -95,13 +95,13 @@ export async function shutdownTracing() {
 export async function traceAsync<T>(
   name: string,
   fn: (span: Span) => Promise<T>,
-  attributes?: Record<string, any>
+  attributes?: Record<string, any>,
 ): Promise<T> {
   return tracer.startActiveSpan(
     name,
     {
       kind: SpanKind.INTERNAL,
-      attributes
+      attributes,
     },
     async span => {
       try {
@@ -111,14 +111,14 @@ export async function traceAsync<T>(
       } catch (error) {
         span.setStatus({
           code: SpanStatusCode.ERROR,
-          message: error instanceof Error ? error.message : String(error)
+          message: error instanceof Error ? error.message : String(error),
         })
         span.recordException(error as Error)
         throw error
       } finally {
         span.end()
       }
-    }
+    },
   )
 }
 
@@ -128,14 +128,14 @@ export async function traceAsync<T>(
 export async function traceNode<T>(
   nodeName: string,
   state: any,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   return traceAsync(`node.${nodeName}`, async span => {
     span.setAttributes({
       'node.name': nodeName,
       'state.task': state.task?.substring(0, 100),
       'state.iteration': state.iterationCount || 0,
-      'state.thread_id': state.threadId
+      'state.thread_id': state.threadId,
     })
 
     const startTime = Date.now()
@@ -144,7 +144,7 @@ export async function traceNode<T>(
 
     span.setAttributes({
       'node.duration_ms': duration,
-      'node.success': true
+      'node.success': true,
     })
 
     return result
@@ -157,13 +157,13 @@ export async function traceNode<T>(
 export async function traceAgentCall<T>(
   agentName: string,
   operation: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   return traceAsync(`agent.${agentName}.${operation}`, async span => {
     span.setAttributes({
       'agent.name': agentName,
       'agent.operation': operation,
-      'agent.service': 'autogen'
+      'agent.service': 'autogen',
     })
 
     const startTime = Date.now()
@@ -173,14 +173,14 @@ export async function traceAgentCall<T>(
 
       span.setAttributes({
         'agent.duration_ms': duration,
-        'agent.success': true
+        'agent.success': true,
       })
 
       return result
     } catch (error) {
       span.setAttributes({
         'agent.success': false,
-        'agent.error': error instanceof Error ? error.message : String(error)
+        'agent.error': error instanceof Error ? error.message : String(error),
       })
       throw error
     }

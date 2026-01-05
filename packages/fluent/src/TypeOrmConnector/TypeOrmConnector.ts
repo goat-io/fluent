@@ -12,7 +12,7 @@ import {
   MongoRepository,
   ObjectLiteral,
   Repository,
-  SelectQueryBuilder
+  SelectQueryBuilder,
 } from 'typeorm'
 import { z } from 'zod'
 import { BaseConnector } from '../BaseConnector'
@@ -41,7 +41,7 @@ export class TypeOrmConnector<
       id?: string
     } & AnyObject,
     InputDTO = ModelDTO,
-    OutputDTO = InputDTO
+    OutputDTO = InputDTO,
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
@@ -73,7 +73,7 @@ export class TypeOrmConnector<
     entity,
     dataSource,
     inputSchema,
-    outputSchema
+    outputSchema,
   }: TypeOrmConnectorParams<InputDTO, OutputDTO>) {
     super()
     this.dataSourceOrGetter = dataSource
@@ -96,7 +96,7 @@ export class TypeOrmConnector<
     }
 
     const relationShipBuilder = modelGeneratorDataSource.getRepository(
-      this.entity
+      this.entity,
     )
 
     const { relations } = getRelationsFromModelGenerator(relationShipBuilder)
@@ -124,7 +124,7 @@ export class TypeOrmConnector<
 
     // Only Way to Skip the DeepPartial requirement from TypeORm
     const datum = await this.repository.save(
-      validatedData as unknown as DeepPartial<ModelDTO> & { id: string }
+      validatedData as unknown as DeepPartial<ModelDTO> & { id: string },
     )
 
     if (this.isMongoDB) {
@@ -133,7 +133,7 @@ export class TypeOrmConnector<
 
     // Validate Output
     return this.outputSchema.parse(
-      clearEmpties(Objects.deleteNulls(datum))
+      clearEmpties(Objects.deleteNulls(datum)),
     ) as OutputDTO
   }
 
@@ -145,8 +145,8 @@ export class TypeOrmConnector<
     const inserted = await this.repository.save(
       validatedData as unknown as DeepPartial<(ModelDTO & { id: string })[]>,
       {
-        chunk: data.length / 300
-      }
+        chunk: data.length / 300,
+      },
     )
 
     const processedData: any[] = new Array(inserted.length)
@@ -169,7 +169,7 @@ export class TypeOrmConnector<
   // READ
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     this.initDB()
     const requiresCustomQuery =
@@ -184,7 +184,7 @@ export class TypeOrmConnector<
     if (requiresCustomQuery) {
       const { queryBuilder: customQuery, selectedKeys } =
         this.customTypeOrmRelatedFind({
-          fluentQuery: query
+          fluentQuery: query,
         })
 
       customQuery.select(selectedKeys)
@@ -261,7 +261,7 @@ export class TypeOrmConnector<
         prevPage: query.paginated.page === 1 ? null : query.paginated.page - 1,
         from: (query.paginated.page - 1) * query.paginated.perPage + 1,
         to: query.paginated.perPage * query.paginated.page,
-        data: validatedFound
+        data: validatedFound,
       }
 
       return paginationInfo as unknown as QueryOutput<T, ModelDTO>[]
@@ -282,7 +282,7 @@ export class TypeOrmConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          ...{ updated: new Date() }
+          ...{ updated: new Date() },
         }
       : data
 
@@ -326,7 +326,7 @@ export class TypeOrmConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          ...{ updated: new Date() }
+          ...{ updated: new Date() },
         }
       : data
 
@@ -381,8 +381,8 @@ export class TypeOrmConnector<
       repository: this,
       query: {
         ...query,
-        limit: 1
-      }
+        limit: 1,
+      },
     })
 
     return newInstance as LoadedResult<this>
@@ -403,9 +403,9 @@ export class TypeOrmConnector<
       repository: this,
       query: {
         where: {
-          id
-        }
-      } as unknown as FluentQuery<ModelDTO>
+          id,
+        },
+      } as unknown as FluentQuery<ModelDTO>,
     })
 
     return newInstance as LoadedResult<this>
@@ -454,7 +454,7 @@ export class TypeOrmConnector<
    */
   private applySelectFilter<T extends AnyObject>(
     results: T[],
-    select: FluentQuery<ModelDTO>['select']
+    select: FluentQuery<ModelDTO>['select'],
   ): T[] {
     if (!select) {
       return results
@@ -487,7 +487,7 @@ export class TypeOrmConnector<
 
   private applyInclusiveSelection(
     result: any,
-    fieldsToInclude: Set<string>
+    fieldsToInclude: Set<string>,
   ): any {
     const filtered: any = {}
 
@@ -504,7 +504,7 @@ export class TypeOrmConnector<
 
   private applyExclusiveSelection(
     result: any,
-    fieldsToExclude: Set<string>
+    fieldsToExclude: Set<string>,
   ): any {
     const filtered = { ...result }
 
@@ -574,10 +574,10 @@ export class TypeOrmConnector<
 
     filter.where = this.isMongoDB
       ? getMongoWhere({
-          where: query?.where
+          where: query?.where,
         })
       : getTypeOrmWhere({
-          where: query?.where
+          where: query?.where,
         })
 
     filter.take = query?.limit
@@ -605,7 +605,7 @@ export class TypeOrmConnector<
             acc[field] = true
             return acc
           },
-          {} as Record<string, boolean>
+          {} as Record<string, boolean>,
         )
         filter.select = selectObject
       }
@@ -617,7 +617,7 @@ export class TypeOrmConnector<
 
     if (query?.include) {
       filter.relations = extractInclude(
-        query.include
+        query.include,
       ) as FindOptionsRelations<any>
     }
 
@@ -633,7 +633,7 @@ export class TypeOrmConnector<
     queryBuilder,
     targetFluentRepository,
     alias,
-    isLeftJoin
+    isLeftJoin,
   }: {
     fluentQuery?: T
     queryBuilder?: SelectQueryBuilder<ModelDTO>
@@ -655,7 +655,7 @@ export class TypeOrmConnector<
       customQuery = getQueryBuilderWhere({
         queryBuilder: customQuery,
         queryAlias,
-        where: query?.where
+        where: query?.where,
       })
     }
 
@@ -664,7 +664,7 @@ export class TypeOrmConnector<
         queryBuilder: customQuery,
         selfReference: targetFluentRepository,
         include: query?.include,
-        leftTableAlias: alias
+        leftTableAlias: alias,
       })
 
     customQuery = qb
@@ -672,7 +672,7 @@ export class TypeOrmConnector<
     const extraKeys = this.getTypeOrmQueryBuilderSelect(
       queryAlias,
       self,
-      query?.select
+      query?.select,
     )
 
     const keySet = new Set([...selectedKeys, ...extraKeys])
@@ -691,14 +691,14 @@ export class TypeOrmConnector<
 
     return {
       queryBuilder: customQuery,
-      selectedKeys: Array.from(keySet)
+      selectedKeys: Array.from(keySet),
     }
   }
 
   private getTypeOrmQueryBuilderSelect(
     queryAlias: string,
     self: this,
-    select?: FluentQuery<ModelDTO>['select']
+    select?: FluentQuery<ModelDTO>['select'],
   ): string[] {
     const selected = Objects.flatten(select || {})
     const selectedKeys: string[] = []
@@ -766,7 +766,7 @@ export class TypeOrmConnector<
     queryBuilder,
     selfReference,
     include,
-    leftTableAlias
+    leftTableAlias,
   }: {
     queryBuilder: SelectQueryBuilder<ModelDTO>
     selfReference: any
@@ -801,7 +801,7 @@ export class TypeOrmConnector<
 
       if (!dbRelation) {
         throw new Error(
-          `The relation ${relation} is not properly defined. Check your entity and repository`
+          `The relation ${relation} is not properly defined. Check your entity and repository`,
         )
       }
 
@@ -829,7 +829,7 @@ export class TypeOrmConnector<
         const rightSidePrimaryKey = `${rightSideTableName}.id`
 
         const keys = new Set(
-          selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
+          selectedKeysArray.map(k => `${rightSideTableName}.${k}`),
         )
 
         selectedKeys.push(...Array.from(keys))
@@ -842,7 +842,7 @@ export class TypeOrmConnector<
             queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
             fluentQuery: shallowQuery,
             targetFluentRepository: newSelf,
-            alias: rightSideTableName
+            alias: rightSideTableName,
           })
 
         selectedKeys.push(...deepkeys)
@@ -862,7 +862,7 @@ export class TypeOrmConnector<
           // Keys to JOIN ON
           // This must account for all aliases used above
           `(${leftSideForeignKey} = ${rightSidePrimaryKey} AND  ${customLeftJoin} )`,
-          leftJoinParams
+          leftJoinParams,
         )
 
         const { queryBuilder: qb, selectedKeys: k } =
@@ -871,7 +871,7 @@ export class TypeOrmConnector<
             fluentQuery: fluentRelatedQuery,
             targetFluentRepository: newSelf,
             alias: rightSideTableName,
-            isLeftJoin: true
+            isLeftJoin: true,
           })
 
         selectedKeys.push(...k)
@@ -894,7 +894,7 @@ export class TypeOrmConnector<
         const rightSideForeignKey = `${rightSideTableName}.${dbRelation.inverseSidePropertyPath}`
 
         const keys = new Set(
-          selectedKeysArray.map(k => `${rightSideTableName}.${k}`)
+          selectedKeysArray.map(k => `${rightSideTableName}.${k}`),
         )
 
         selectedKeys.push(...Array.from(keys))
@@ -908,7 +908,7 @@ export class TypeOrmConnector<
             queryBuilder: this.raw().createQueryBuilder(rightSideTableName),
             fluentQuery: shallowQuery,
             targetFluentRepository: newSelf,
-            alias: rightSideTableName
+            alias: rightSideTableName,
           })
 
         selectedKeys.push(...deepKeys)
@@ -927,7 +927,7 @@ export class TypeOrmConnector<
 
           // Keys to JOIN ON
           `(${leftSidePrimaryKey} = ${rightSideForeignKey} AND ${customLeftJoin} )`,
-          leftJoinParams
+          leftJoinParams,
         )
 
         const { queryBuilder: q, selectedKeys: k } =
@@ -936,7 +936,7 @@ export class TypeOrmConnector<
             fluentQuery: fluentRelatedQuery,
             targetFluentRepository: newSelf,
             alias: rightSideTableName,
-            isLeftJoin: true
+            isLeftJoin: true,
           })
 
         selectedKeys.push(...k)
@@ -1101,11 +1101,11 @@ export class TypeOrmConnector<
    * @returns
    */
   private async customMongoRelatedFind<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     const aggregate = getMongoFindAggregatedQuery({
       query,
-      self: this
+      self: this,
     })
 
     const raw = await this.mongoRaw().aggregate(aggregate).toArray()

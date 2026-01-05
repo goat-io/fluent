@@ -37,7 +37,7 @@ async function main() {
 
     if (!inputStr) {
       throw new Error(
-        'No input provided. Usage: node cli.js \'{"messages":[...]}\''
+        'No input provided. Usage: node cli.js \'{"messages":[...]}\'',
       )
     }
 
@@ -58,14 +58,14 @@ async function main() {
       useSmall: input.useSmall,
       maxTokens: input.maxTokens,
       temperature: input.temperature,
-      stream: false // CLI doesn't support streaming
+      stream: false, // CLI doesn't support streaming
     })
 
     // Output success response
     const output: CLIOutput = {
       content: response.content,
       model: response.model,
-      usage: response.usage
+      usage: response.usage,
     }
 
     console.log(JSON.stringify(output))
@@ -75,7 +75,7 @@ async function main() {
     const output: CLIOutput = {
       content: '',
       model: '',
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     }
 
     console.error(JSON.stringify(output))

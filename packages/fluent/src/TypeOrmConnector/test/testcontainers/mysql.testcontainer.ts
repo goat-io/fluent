@@ -25,7 +25,7 @@ export class MySQLTestContainer {
       database: 'test-db',
       entities: dbEntities,
       synchronize: true,
-      logging: false
+      logging: false,
     })
 
     await this.dataSource.initialize()

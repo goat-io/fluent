@@ -47,18 +47,18 @@ export const GoatSchema = z.object({
   balance: z
     .object({
       id: z.number(),
-      value: z.number()
+      value: z.number(),
     })
     .optional(),
   breed: z
     .object({
       type: z.string(),
-      family: z.string()
+      family: z.string(),
     })
     .optional(),
   createdBy: z.string().optional(),
   createdAt: z.date().optional(),
-  updatedAt: z.date().optional()
+  updatedAt: z.date().optional(),
 })
 
 // For updates, make all fields optional except id

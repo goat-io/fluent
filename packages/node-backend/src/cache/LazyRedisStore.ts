@@ -39,7 +39,7 @@ export class LazyRedisStore {
     // or if opts.url contains one of the adapter names
     this.opts = {
       dialect: 'redis',
-      url: connectionString
+      url: connectionString,
     }
 
     // Bind the iterator to this instance for Keyv compatibility

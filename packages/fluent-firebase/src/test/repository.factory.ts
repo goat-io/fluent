@@ -5,7 +5,7 @@ import {
   GoatInputSchema,
   GoatSchema,
   TypeOrmInputSchema,
-  TypeOrmSchema
+  TypeOrmSchema,
 } from './test-schemas'
 
 // The unified test suite expects these exact class names
@@ -17,7 +17,7 @@ export class GoatRepositoryFactory extends FirebaseConnector<
     // Firebase doesn't use DataSource, so we ignore it
     super({
       entity: GoatEntity,
-      inputSchema: GoatSchema
+      inputSchema: GoatSchema,
     })
   }
 }
@@ -31,7 +31,7 @@ export class TypeOrmRepositoryFactory extends FirebaseConnector<
     super({
       entity: TypeOrmEntity,
       inputSchema: TypeOrmSchema,
-      outputSchema: TypeOrmSchema
+      outputSchema: TypeOrmSchema,
     })
   }
 }

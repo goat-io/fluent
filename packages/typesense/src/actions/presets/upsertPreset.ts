@@ -1,13 +1,13 @@
 import type { TypesenseContext } from '../../types'
 import type {
   TypesensePreset,
-  TypesensePresetResponse
+  TypesensePresetResponse,
 } from '../../typesense.model'
 import { createTenantQualifiedName } from '../../utils/tenant'
 
 export async function upsertPreset(
   ctx: TypesenseContext,
-  preset: TypesensePreset
+  preset: TypesensePreset,
 ): Promise<TypesensePresetResponse> {
   // Apply tenant prefix to preset name
   const qualifiedName = createTenantQualifiedName(ctx.tenantId, preset.name)
@@ -17,7 +17,7 @@ export async function upsertPreset(
     `/presets/${qualifiedName}`,
     {
       method: 'PUT',
-      body: qualifiedPreset
-    }
+      body: qualifiedPreset,
+    },
   )
 }

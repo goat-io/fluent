@@ -16,7 +16,7 @@ export function codeReviewDiscussion() {
       id: 'code-author',
       expertise: ['implementation', 'feature-development'],
       personality: 'supportive',
-      weight: 0.8
+      weight: 0.8,
     })
     .withReviewer({
       id: 'security-reviewer',
@@ -24,7 +24,7 @@ export function codeReviewDiscussion() {
       personality: 'critical',
       weight: 1.2,
       systemPrompt: `Focus on security implications, injection vulnerabilities, 
-                     authentication/authorization issues, and data exposure risks.`
+                     authentication/authorization issues, and data exposure risks.`,
     })
     .withReviewer({
       id: 'performance-reviewer',
@@ -32,7 +32,7 @@ export function codeReviewDiscussion() {
       personality: 'analytical',
       weight: 1.0,
       systemPrompt: `Analyze time complexity, space complexity, database queries,
-                     caching opportunities, and potential bottlenecks.`
+                     caching opportunities, and potential bottlenecks.`,
     })
     .withReviewer({
       id: 'architecture-reviewer',
@@ -40,19 +40,19 @@ export function codeReviewDiscussion() {
       personality: 'analytical',
       weight: 1.1,
       systemPrompt: `Evaluate architectural decisions, SOLID principles compliance,
-                     coupling/cohesion, and maintainability.`
+                     coupling/cohesion, and maintainability.`,
     })
     .withArbiter({
       id: 'lead-developer',
       expertise: ['architecture', 'best-practices'],
-      weight: 1.5
+      weight: 1.5,
     })
     .configure({
       maxTurns: 3,
       maxDurationMs: 120000, // 2 minutes
       consensusThreshold: 0.7,
       conflictResolution: 'weighted',
-      requireExplanation: true
+      requireExplanation: true,
     })
 }
 
@@ -68,37 +68,37 @@ export function architectureDecisionDiscussion() {
       id: 'solution-architect',
       expertise: ['system-design', 'scalability'],
       personality: 'creative',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'backend-architect',
       expertise: ['backend', 'databases', 'microservices'],
       personality: 'analytical',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'frontend-architect',
       expertise: ['frontend', 'user-experience', 'performance'],
       personality: 'creative',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'devops-architect',
       expertise: ['infrastructure', 'deployment', 'monitoring'],
       personality: 'critical',
-      weight: 1.0
+      weight: 1.0,
     })
     .withArbiter({
       id: 'chief-architect',
       expertise: ['enterprise-architecture', 'strategy'],
-      weight: 2.0
+      weight: 2.0,
     })
     .configure({
       maxTurns: 5,
       maxDurationMs: 180000, // 3 minutes
       consensusThreshold: 0.75,
       conflictResolution: 'arbiter',
-      allowDissent: true
+      allowDissent: true,
     })
 }
 
@@ -113,31 +113,31 @@ export function testStrategyDiscussion() {
       id: 'qa-lead',
       expertise: ['testing', 'quality-assurance'],
       personality: 'analytical',
-      weight: 1.2
+      weight: 1.2,
     })
     .withReviewer({
       id: 'unit-test-expert',
       expertise: ['unit-testing', 'tdd', 'mocking'],
       personality: 'analytical',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'integration-test-expert',
       expertise: ['integration-testing', 'e2e-testing'],
       personality: 'critical',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'performance-test-expert',
       expertise: ['load-testing', 'stress-testing', 'benchmarking'],
       personality: 'analytical',
-      weight: 0.9
+      weight: 0.9,
     })
     .configure({
       maxTurns: 4,
       maxDurationMs: 90000,
       consensusThreshold: 0.66,
-      conflictResolution: 'majority'
+      conflictResolution: 'majority',
     })
 }
 
@@ -152,13 +152,13 @@ export function apiDesignDiscussion() {
       id: 'api-designer',
       expertise: ['api-design', 'rest', 'graphql'],
       personality: 'creative',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'backend-developer',
       expertise: ['backend', 'implementation'],
       personality: 'analytical',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'frontend-consumer',
@@ -166,19 +166,19 @@ export function apiDesignDiscussion() {
       personality: 'critical',
       weight: 1.0,
       systemPrompt: `Evaluate from API consumer perspective: ease of use,
-                     consistency, documentation needs, error handling.`
+                     consistency, documentation needs, error handling.`,
     })
     .withReviewer({
       id: 'security-expert',
       expertise: ['security', 'authentication', 'authorization'],
       personality: 'critical',
-      weight: 1.1
+      weight: 1.1,
     })
     .configure({
       maxTurns: 4,
       maxDurationMs: 120000,
       consensusThreshold: 0.7,
-      requireExplanation: true
+      requireExplanation: true,
     })
 }
 
@@ -191,18 +191,18 @@ export function quickDecisionDiscussion() {
     .inDomain('code')
     .withProposer({
       id: 'proposer',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewers(2, {
       weight: 1.0,
-      personality: 'analytical'
+      personality: 'analytical',
     })
     .configure({
       maxTurns: 2,
       maxDurationMs: 30000, // 30 seconds
       consensusThreshold: 0.66,
       conflictResolution: 'majority',
-      tokenBudgetPerTurn: 1000
+      tokenBudgetPerTurn: 1000,
     })
 }
 
@@ -217,7 +217,7 @@ export function refactoringDiscussion() {
       id: 'refactoring-lead',
       expertise: ['refactoring', 'clean-code'],
       personality: 'analytical',
-      weight: 1.0
+      weight: 1.0,
     })
     .withReviewer({
       id: 'code-quality-reviewer',
@@ -225,7 +225,7 @@ export function refactoringDiscussion() {
       personality: 'critical',
       weight: 1.0,
       systemPrompt: `Focus on: code duplication, cyclomatic complexity,
-                     naming conventions, SOLID principles, readability.`
+                     naming conventions, SOLID principles, readability.`,
     })
     .withReviewer({
       id: 'test-coverage-reviewer',
@@ -233,7 +233,7 @@ export function refactoringDiscussion() {
       personality: 'analytical',
       weight: 0.9,
       systemPrompt: `Ensure refactoring maintains or improves test coverage,
-                     doesn't break existing tests, and improves testability.`
+                     doesn't break existing tests, and improves testability.`,
     })
     .withReviewer({
       id: 'backwards-compat-reviewer',
@@ -241,13 +241,13 @@ export function refactoringDiscussion() {
       personality: 'critical',
       weight: 1.1,
       systemPrompt: `Check for breaking changes, API compatibility,
-                     migration paths, and deprecation strategies.`
+                     migration paths, and deprecation strategies.`,
     })
     .configure({
       maxTurns: 3,
       maxDurationMs: 90000,
       consensusThreshold: 0.75,
-      requireExplanation: true
+      requireExplanation: true,
     })
 }
 
@@ -262,7 +262,7 @@ export function databaseSchemaDiscussion() {
       id: 'data-architect',
       expertise: ['database-design', 'normalization'],
       personality: 'analytical',
-      weight: 1.2
+      weight: 1.2,
     })
     .withReviewer({
       id: 'performance-dba',
@@ -270,7 +270,7 @@ export function databaseSchemaDiscussion() {
       personality: 'analytical',
       weight: 1.0,
       systemPrompt: `Analyze query patterns, index usage, denormalization needs,
-                     partitioning strategies, and caching opportunities.`
+                     partitioning strategies, and caching opportunities.`,
     })
     .withReviewer({
       id: 'application-developer',
@@ -278,7 +278,7 @@ export function databaseSchemaDiscussion() {
       personality: 'supportive',
       weight: 0.9,
       systemPrompt: `Consider ORM mapping, query complexity, migration ease,
-                     and application-level data access patterns.`
+                     and application-level data access patterns.`,
     })
     .withReviewer({
       id: 'data-compliance-officer',
@@ -286,12 +286,12 @@ export function databaseSchemaDiscussion() {
       personality: 'critical',
       weight: 1.1,
       systemPrompt: `Ensure PII handling, data retention policies, audit trails,
-                     encryption requirements, and regulatory compliance.`
+                     encryption requirements, and regulatory compliance.`,
     })
     .configure({
       maxTurns: 4,
       maxDurationMs: 150000,
       consensusThreshold: 0.7,
-      conflictResolution: 'weighted'
+      conflictResolution: 'weighted',
     })
 }

@@ -10,7 +10,7 @@ describe('Cache flush performance', () => {
     const namespace = `redis-path-test-${Ids.uuid()}`
     const cache = new Cache({
       connection,
-      opts: { namespace }
+      opts: { namespace },
     })
 
     // Create some keys
@@ -37,7 +37,7 @@ describe('Cache flush performance', () => {
     const namespace = `perf-test-${Ids.uuid()}`
     const cache = new Cache({
       connection,
-      opts: { namespace }
+      opts: { namespace },
     })
 
     // Create 10 keys
@@ -69,7 +69,7 @@ describe('Cache flush performance', () => {
     const namespace = `compare-test-${Ids.uuid()}`
     const cache = new Cache({
       connection,
-      opts: { namespace }
+      opts: { namespace },
     })
 
     // Trigger connection and get Redis client
@@ -87,7 +87,7 @@ describe('Cache flush performance', () => {
     for (let i = 0; i < 10; i++) {
       await redis.set(
         `${ns}:orphan-${i}`,
-        JSON.stringify({ value: `val-${i}` })
+        JSON.stringify({ value: `val-${i}` }),
       )
     }
 
@@ -101,7 +101,7 @@ describe('Cache flush performance', () => {
     const pattern = `${ns}:*`
     const keys = await redis.keys(pattern)
     console.log(
-      `  redis.keys took: ${Date.now() - start1}ms, found ${keys.length} keys`
+      `  redis.keys took: ${Date.now() - start1}ms, found ${keys.length} keys`,
     )
 
     if (keys.length > 0) {
@@ -115,7 +115,7 @@ describe('Cache flush performance', () => {
     for (let i = 0; i < 10; i++) {
       await redis.set(
         `${ns}:orphan-${i}`,
-        JSON.stringify({ value: `val-${i}` })
+        JSON.stringify({ value: `val-${i}` }),
       )
     }
 
@@ -127,7 +127,7 @@ describe('Cache flush performance', () => {
       keysToDelete.push(key)
     }
     console.log(
-      `  Iterator took: ${Date.now() - start2}ms, found ${keysToDelete.length} keys`
+      `  Iterator took: ${Date.now() - start2}ms, found ${keysToDelete.length} keys`,
     )
 
     const deleteStart = Date.now()

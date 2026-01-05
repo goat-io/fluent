@@ -9,13 +9,13 @@ import {
   beforeEach,
   describe,
   expect,
-  it
+  it,
 } from 'vitest'
 import { TypesenseApi } from '../TypesenseApi'
 import type {
   TypesenseCollection,
   TypesenseDocument,
-  TypesenseQuery
+  TypesenseQuery,
 } from '../typesense.model'
 import { getGlobalData } from './const'
 
@@ -39,7 +39,7 @@ describe('TypesenseApi', () => {
   // Helper function to delete collection without logging 404 errors
   async function deleteCollectionSilently(
     url: string,
-    collection: { name: string }
+    collection: { name: string },
   ) {
     // Use the main service instance if available
     if (service) {
@@ -64,7 +64,7 @@ describe('TypesenseApi', () => {
       token: testApiKey,
       collectionName: collection.name,
       suppressLogs: true,
-      enableVersionCheck: false // Disable version check for test cleanup
+      enableVersionCheck: false, // Disable version check for test cleanup
     })
 
     try {
@@ -94,8 +94,8 @@ describe('TypesenseApi', () => {
             batch.map(doc =>
               service.documents.delete(doc.id).catch(() => {
                 // Ignore delete errors for documents that may not exist
-              })
-            )
+              }),
+            ),
           )
         }
       }
@@ -114,9 +114,9 @@ describe('TypesenseApi', () => {
       { name: 'category', type: 'string', facet: true },
       { name: 'tags', type: 'string[]', facet: true },
       { name: 'views', type: 'int32', sort: true },
-      { name: 'published', type: 'bool' }
+      { name: 'published', type: 'bool' },
     ],
-    default_sorting_field: 'views'
+    default_sorting_field: 'views',
   }
 
   // Test documents
@@ -129,7 +129,7 @@ describe('TypesenseApi', () => {
       category: 'programming',
       tags: ['typescript', 'javascript', 'tutorial'],
       views: 1000,
-      published: true
+      published: true,
     },
     {
       id: '2',
@@ -139,7 +139,7 @@ describe('TypesenseApi', () => {
       category: 'programming',
       tags: ['nodejs', 'javascript', 'backend'],
       views: 1500,
-      published: true
+      published: true,
     },
     {
       id: '3',
@@ -149,8 +149,8 @@ describe('TypesenseApi', () => {
       category: 'frontend',
       tags: ['react', 'javascript', 'frontend'],
       views: 2000,
-      published: false
-    }
+      published: false,
+    },
   ]
 
   beforeAll(async () => {
@@ -158,7 +158,7 @@ describe('TypesenseApi', () => {
     const globalData = getGlobalData()
     if (!globalData.typesenseUrl) {
       throw new Error(
-        'Typesense URL not found in global data. Make sure setup.ts has run.'
+        'Typesense URL not found in global data. Make sure setup.ts has run.',
       )
     }
     typesenseUrl = globalData.typesenseUrl
@@ -169,8 +169,8 @@ describe('TypesenseApi', () => {
       token: testApiKey,
       collectionName: testCollectionName,
       resilience: {
-        enabled: false // Disable circuit breaker for tests
-      }
+        enabled: false, // Disable circuit breaker for tests
+      },
     })
 
     await service.admin.waitForHealth()
@@ -201,7 +201,7 @@ describe('TypesenseApi', () => {
       const tempService = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: testApiKey,
-        collectionName: tempCollectionName
+        collectionName: tempCollectionName,
       })
 
       // Clean up if exists - use the service directly
@@ -231,9 +231,9 @@ describe('TypesenseApi', () => {
             name: 'author',
             type: 'string' as const,
             facet: true,
-            optional: true
-          }
-        ]
+            optional: true,
+          },
+        ],
       }
 
       await service.collections.update(updatePayload)
@@ -245,10 +245,10 @@ describe('TypesenseApi', () => {
       expect(updatedCollection.name).toBe(testCollectionName)
       // Should have the new field
       expect(
-        updatedCollection.fields.find((f: any) => f.name === 'author')
+        updatedCollection.fields.find((f: any) => f.name === 'author'),
       ).toBeDefined()
       expect(
-        updatedCollection.fields.find((f: any) => f.name === 'author')?.facet
+        updatedCollection.fields.find((f: any) => f.name === 'author')?.facet,
       ).toBe(true)
     })
 
@@ -260,7 +260,7 @@ describe('TypesenseApi', () => {
       const tempService = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: testApiKey,
-        collectionName: tempCollectionName
+        collectionName: tempCollectionName,
       })
 
       // Clean up if exists first
@@ -278,7 +278,7 @@ describe('TypesenseApi', () => {
 
       // Verify collection is deleted by trying to insert a document
       await expect(
-        tempService.documents.insert(testDocuments[0])
+        tempService.documents.insert(testDocuments[0]),
       ).rejects.toThrow()
     })
 
@@ -290,7 +290,7 @@ describe('TypesenseApi', () => {
       const tempService = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: testApiKey,
-        collectionName: tempCollectionName
+        collectionName: tempCollectionName,
       })
 
       // Clean up if exists first
@@ -319,15 +319,15 @@ describe('TypesenseApi', () => {
         prefixUrl: typesenseUrl,
         token: testApiKey,
         tenantId: tenantId,
-        collectionName: baseCollectionName
+        collectionName: baseCollectionName,
       })
 
       const schema: TypesenseCollection = {
         name: baseCollectionName,
         fields: [
           { name: 'id', type: 'string' },
-          { name: 'name', type: 'string' }
-        ]
+          { name: 'name', type: 'string' },
+        ],
       }
 
       // Clean up if exists
@@ -343,7 +343,7 @@ describe('TypesenseApi', () => {
       // Verify it exists with correct FQCN
       const collections = await tenantService.collections.list()
       expect(collections.map((c: TypesenseCollection) => c.name)).toContain(
-        expectedFQCN
+        expectedFQCN,
       )
 
       // Delete collection (should use tenant-qualified name)
@@ -353,7 +353,7 @@ describe('TypesenseApi', () => {
       // Verify it's deleted
       const collectionsAfter = await tenantService.collections.list()
       expect(
-        collectionsAfter.map((c: TypesenseCollection) => c.name)
+        collectionsAfter.map((c: TypesenseCollection) => c.name),
       ).not.toContain(expectedFQCN)
     })
 
@@ -367,22 +367,22 @@ describe('TypesenseApi', () => {
         prefixUrl: typesenseUrl,
         token: testApiKey,
         tenantId: tenant1Id,
-        collectionName: baseCollectionName
+        collectionName: baseCollectionName,
       })
 
       const tenant2Service = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: testApiKey,
         tenantId: tenant2Id,
-        collectionName: baseCollectionName
+        collectionName: baseCollectionName,
       })
 
       const schema: TypesenseCollection = {
         name: baseCollectionName,
         fields: [
           { name: 'id', type: 'string' },
-          { name: 'data', type: 'string' }
-        ]
+          { name: 'data', type: 'string' },
+        ],
       }
 
       // Clean up first
@@ -404,7 +404,7 @@ describe('TypesenseApi', () => {
       // Verify both exist
       const allCollections = await tenant1Service.collections.list()
       const collectionNames = allCollections.map(
-        (c: TypesenseCollection) => c.name
+        (c: TypesenseCollection) => c.name,
       )
       expect(collectionNames).toContain(`${tenant1Id}__${baseCollectionName}`)
       expect(collectionNames).toContain(`${tenant2Id}__${baseCollectionName}`)
@@ -416,7 +416,7 @@ describe('TypesenseApi', () => {
       // Verify only tenant1's collection is deleted
       const collectionsAfter = await tenant1Service.collections.list()
       const namesAfter = collectionsAfter.map(
-        (c: TypesenseCollection) => c.name
+        (c: TypesenseCollection) => c.name,
       )
       expect(namesAfter).not.toContain(`${tenant1Id}__${baseCollectionName}`)
       expect(namesAfter).toContain(`${tenant2Id}__${baseCollectionName}`)
@@ -430,15 +430,15 @@ describe('TypesenseApi', () => {
       const cacheService = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: testApiKey,
-        collectionName: collectionName
+        collectionName: collectionName,
       })
 
       const schema: TypesenseCollection = {
         name: collectionName,
         fields: [
           { name: 'id', type: 'string' },
-          { name: 'title', type: 'string' }
-        ]
+          { name: 'title', type: 'string' },
+        ],
       }
 
       // Clean up first
@@ -478,7 +478,7 @@ describe('TypesenseApi', () => {
         await service.documents.insert(testDocuments[0])
 
         await expect(
-          service.documents.insert(testDocuments[0])
+          service.documents.insert(testDocuments[0]),
         ).rejects.toThrow()
       })
     })
@@ -498,7 +498,7 @@ describe('TypesenseApi', () => {
         const updatedDocument = {
           ...testDocuments[0],
           title: 'Updated Title',
-          views: 5000
+          views: 5000,
         }
 
         const result = await service.documents.upsert(updatedDocument)
@@ -514,7 +514,7 @@ describe('TypesenseApi', () => {
         // For partial updates, we need to provide all required fields
         const partialUpdate: TypesenseDocument<TestDocument> = {
           ...testDocuments[0],
-          views: 3000
+          views: 3000,
         }
 
         const result = await service.documents.upsert(partialUpdate)
@@ -531,7 +531,7 @@ describe('TypesenseApi', () => {
 
         const update: Partial<TestDocument> = {
           title: 'Updated TypeScript Guide',
-          views: 2500
+          views: 2500,
         }
 
         const result = await service.documents.update({ ...update, id: '1' })
@@ -544,11 +544,11 @@ describe('TypesenseApi', () => {
 
       it('should throw error when updating non-existent document', async () => {
         const update: Partial<TestDocument> = {
-          title: 'Non-existent'
+          title: 'Non-existent',
         }
 
         await expect(
-          service.documents.update({ ...update, id: '999' })
+          service.documents.update({ ...update, id: '999' }),
         ).rejects.toThrow()
       })
     })
@@ -568,7 +568,7 @@ describe('TypesenseApi', () => {
       it('should delete a document by number id', async () => {
         const documentWithNumberId = {
           ...testDocuments[0],
-          id: '123' // Use string ID as per schema
+          id: '123', // Use string ID as per schema
         }
         await service.documents.insert(documentWithNumberId)
 
@@ -596,7 +596,7 @@ describe('TypesenseApi', () => {
       it('should retrieve document by number id', async () => {
         const documentWithNumberId = {
           ...testDocuments[0],
-          id: '456' // Use string ID as per schema
+          id: '456', // Use string ID as per schema
         }
         await service.documents.insert(documentWithNumberId)
 
@@ -625,7 +625,7 @@ describe('TypesenseApi', () => {
       const query: TypesenseQuery = {
         q: 'typescript',
         query_by: 'title,content',
-        per_page: 10
+        per_page: 10,
       }
 
       const results = await service.search.query(query)
@@ -641,7 +641,7 @@ describe('TypesenseApi', () => {
         q: '*', // Match all
         query_by: 'title',
         filter_by: 'category:=programming',
-        per_page: 10
+        per_page: 10,
       }
 
       const results = await service.search.query(query)
@@ -657,7 +657,7 @@ describe('TypesenseApi', () => {
         q: '*',
         query_by: 'title',
         filter_by: 'published:=true && views:>1200',
-        per_page: 10
+        per_page: 10,
       }
 
       const results = await service.search.query(query)
@@ -671,7 +671,7 @@ describe('TypesenseApi', () => {
         q: '*',
         query_by: 'title',
         per_page: 2,
-        page: 1
+        page: 1,
       }
 
       const results = await service.search.query(query)
@@ -687,7 +687,7 @@ describe('TypesenseApi', () => {
         query_by: 'title,content',
         highlight_fields: 'title,content',
         highlight_start_tag: '<mark>',
-        highlight_end_tag: '</mark>'
+        highlight_end_tag: '</mark>',
       }
 
       const results = await service.search.query(query)
@@ -702,7 +702,7 @@ describe('TypesenseApi', () => {
         q: '*',
         query_by: 'title',
         facet_by: 'category,tags',
-        max_facet_values: 10
+        max_facet_values: 10,
       }
 
       const results = await service.search.query(query)
@@ -714,7 +714,7 @@ describe('TypesenseApi', () => {
       const query: TypesenseQuery = {
         q: 'typescript',
         query_by: 'title,content',
-        exclude_fields: 'content,tags'
+        exclude_fields: 'content,tags',
       }
 
       const results = await service.search.query(query)
@@ -727,7 +727,7 @@ describe('TypesenseApi', () => {
     it('should return empty results for non-matching query', async () => {
       const query: TypesenseQuery = {
         q: 'nonexistentterm',
-        query_by: 'title,content'
+        query_by: 'title,content',
       }
 
       const results = await service.search.query(query)
@@ -742,11 +742,11 @@ describe('TypesenseApi', () => {
       const badService = new TypesenseApi<TestDocument>({
         prefixUrl: 'http://localhost:9999', // Invalid URL
         token: testApiKey,
-        collectionName: testCollectionName
+        collectionName: testCollectionName,
       })
 
       await expect(
-        badService.documents.insert(testDocuments[0])
+        badService.documents.insert(testDocuments[0]),
       ).rejects.toThrow()
     }, 30000) // Increase timeout to 30 seconds
 
@@ -754,11 +754,11 @@ describe('TypesenseApi', () => {
       const unauthorizedService = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: 'invalid-token',
-        collectionName: testCollectionName
+        collectionName: testCollectionName,
       })
 
       await expect(
-        unauthorizedService.documents.insert(testDocuments[0])
+        unauthorizedService.documents.insert(testDocuments[0]),
       ).rejects.toThrow()
     })
   })
@@ -772,7 +772,7 @@ describe('TypesenseApi', () => {
         category: 'test/category',
         tags: ['tag-with-dash', 'tag.with.dot'],
         views: 100,
-        published: true
+        published: true,
       }
 
       const result = await service.documents.insert(specialDoc)
@@ -791,7 +791,7 @@ describe('TypesenseApi', () => {
         category: 'test',
         tags: [],
         views: 0,
-        published: false
+        published: false,
       }
 
       const result = await service.documents.insert(emptyDoc)
@@ -808,7 +808,7 @@ describe('TypesenseApi', () => {
         category: 'test',
         tags: Array(100).fill('tag'), // 100 tags
         views: 999999,
-        published: true
+        published: true,
       }
 
       const result = await service.documents.insert(largeDoc)
@@ -864,11 +864,11 @@ describe('TypesenseApi', () => {
         const modifiedDoc = {
           ...testDocuments[0],
           title: 'Updated Title',
-          views: 5000
+          views: 5000,
         }
 
         const results = await service.documents.import([modifiedDoc], 'jsonl', {
-          action: 'upsert'
+          action: 'upsert',
         })
 
         expect(results[0].success).toBe(true)
@@ -887,11 +887,11 @@ describe('TypesenseApi', () => {
         const updateDoc = {
           id: '1',
           title: 'Partially Updated',
-          views: 3000
+          views: 3000,
         } as TypesenseDocument<TestDocument>
 
         const results = await service.documents.import([updateDoc], 'jsonl', {
-          action: 'update'
+          action: 'update',
         })
 
         expect(results[0].success).toBe(true)
@@ -901,7 +901,7 @@ describe('TypesenseApi', () => {
         const results = await service.documents.import(
           [testDocuments[0]],
           'jsonl',
-          { return_id: true }
+          { return_id: true },
         )
 
         expect(results[0].success).toBe(true)
@@ -912,7 +912,7 @@ describe('TypesenseApi', () => {
         const results = await service.documents.import(
           [testDocuments[0]],
           'jsonl',
-          { return_doc: true }
+          { return_doc: true },
         )
 
         expect(results[0].success).toBe(true)
@@ -923,11 +923,11 @@ describe('TypesenseApi', () => {
       it('should handle batch_size option', async () => {
         const manyDocs = Array.from({ length: 10 }, (_, i) => ({
           ...testDocuments[0],
-          id: `batch-${i}`
+          id: `batch-${i}`,
         }))
 
         const results = await service.documents.import(manyDocs, 'jsonl', {
-          batch_size: 5
+          batch_size: 5,
         })
 
         expect(results).toHaveLength(10)
@@ -940,7 +940,7 @@ describe('TypesenseApi', () => {
         const invalidDocs = [
           testDocuments[0],
           { id: 'invalid', title: 123 }, // Invalid type
-          testDocuments[1]
+          testDocuments[1],
         ]
 
         const results = await service.documents.import(invalidDocs as any)
@@ -970,7 +970,7 @@ describe('TypesenseApi', () => {
         const manyDocs = Array.from({ length: 100 }, (_, i) => ({
           ...testDocuments[0],
           id: `stream-${i}`,
-          title: `Document ${i}`
+          title: `Document ${i}`,
         }))
 
         let jsonlData = manyDocs.map(doc => JSON.stringify(doc)).join('\n')
@@ -985,11 +985,11 @@ describe('TypesenseApi', () => {
             } else {
               this.push(null)
             }
-          }
+          },
         })
 
         const results = await service.documents.import(stream, 'jsonl', {
-          batch_size: 20
+          batch_size: 20,
         })
 
         expect(results).toHaveLength(100)
@@ -1001,13 +1001,13 @@ describe('TypesenseApi', () => {
 
       it('should throw error for unsupported format', async () => {
         await expect(
-          service.documents.import('data', 'xml' as any)
+          service.documents.import('data', 'xml' as any),
         ).rejects.toThrow('Unsupported format')
       })
 
       it('should throw error for CSV format', async () => {
         await expect(service.documents.import('data', 'csv')).rejects.toThrow(
-          'CSV import requires conversion'
+          'CSV import requires conversion',
         )
       })
     })
@@ -1065,7 +1065,7 @@ describe('TypesenseApi', () => {
 
       it('should export with filters', async () => {
         const exported = await service.documents.export('json', {
-          filter_by: 'category:=programming'
+          filter_by: 'category:=programming',
         })
 
         const docs = exported as TypesenseDocument<TestDocument>[]
@@ -1077,7 +1077,7 @@ describe('TypesenseApi', () => {
 
       it('should export with field inclusion', async () => {
         const exported = await service.documents.export('json', {
-          include_fields: 'id,title,category'
+          include_fields: 'id,title,category',
         })
 
         const docs = exported as TypesenseDocument<TestDocument>[]
@@ -1093,7 +1093,7 @@ describe('TypesenseApi', () => {
 
       it('should export with field exclusion', async () => {
         const exported = await service.documents.export('json', {
-          exclude_fields: 'content,tags'
+          exclude_fields: 'content,tags',
         })
 
         const docs = exported as TypesenseDocument<TestDocument>[]
@@ -1117,14 +1117,14 @@ describe('TypesenseApi', () => {
           category: 'test',
           tags: ['tag1', 'tag2'],
           views: 100,
-          published: true
+          published: true,
         }
 
         await service.documents.import([specialDoc])
         await new Promise(resolve => setTimeout(resolve, 100))
 
         const exported = await service.documents.export('csv', {
-          filter_by: 'id:=csv-special'
+          filter_by: 'id:=csv-special',
         })
 
         const csvString = exported as string
@@ -1142,21 +1142,21 @@ describe('TypesenseApi', () => {
 
       it('should handle empty export', async () => {
         const exported = await service.documents.export('json', {
-          filter_by: 'id:=nonexistent'
+          filter_by: 'id:=nonexistent',
         })
 
         const docs = exported as TypesenseDocument<TestDocument>[]
         expect(docs).toEqual([])
 
         const csvExported = await service.documents.export('csv', {
-          filter_by: 'id:=nonexistent'
+          filter_by: 'id:=nonexistent',
         })
         expect(csvExported).toBe('')
       })
 
       it('should throw error for unsupported export format', async () => {
         await expect(service.documents.export('xml' as any)).rejects.toThrow(
-          'Unsupported export format'
+          'Unsupported export format',
         )
       })
     })
@@ -1167,7 +1167,7 @@ describe('TypesenseApi', () => {
         const manyDocs = Array.from({ length: 100 }, (_, i) => ({
           ...testDocuments[0],
           id: `export-${i}`,
-          title: `Export Document ${i}`
+          title: `Export Document ${i}`,
         }))
 
         await service.documents.import(manyDocs, 'jsonl', { batch_size: 50 })
@@ -1204,13 +1204,13 @@ describe('TypesenseApi', () => {
       it('should export stream with filters', async () => {
         // First, let's check what IDs we have
         const _allDocs = (await service.documents.export(
-          'json'
+          'json',
         )) as TypesenseDocument<TestDocument>[]
 
         // Use a filter that will match our documents
         const stream = await service.documents.exportStream({
           filter_by:
-            'id:=[export-0, export-1, export-2, export-3, export-4, export-5, export-6, export-7, export-8, export-9]'
+            'id:=[export-0, export-1, export-2, export-3, export-4, export-5, export-6, export-7, export-8, export-9]',
         })
 
         const chunks: string[] = []
@@ -1240,7 +1240,7 @@ describe('TypesenseApi', () => {
         const badService = new TypesenseApi<TestDocument>({
           prefixUrl: typesenseUrl,
           token: testApiKey,
-          collectionName: 'nonexistent-collection'
+          collectionName: 'nonexistent-collection',
         })
 
         await expect(badService.documents.exportStream()).rejects.toThrow()
@@ -1285,14 +1285,14 @@ describe('TypesenseApi', () => {
           category: i % 2 === 0 ? 'even' : 'odd',
           tags: [`tag${i % 10}`, `group${Math.floor(i / 100)}`],
           views: Math.floor(Math.random() * 10000),
-          published: i % 3 !== 0
+          published: i % 3 !== 0,
         }))
 
         // Import in batches
         const importResults = await service.documents.import(
           largeDataset,
           'jsonl',
-          { batch_size: 50 }
+          { batch_size: 50 },
         )
 
         expect(importResults.length).toBe(200)
@@ -1303,7 +1303,7 @@ describe('TypesenseApi', () => {
 
         // Export and verify count
         const exported = (await service.documents.export(
-          'json'
+          'json',
         )) as TypesenseDocument<TestDocument>[]
         expect(exported.length).toBeGreaterThanOrEqual(200)
 
@@ -1331,7 +1331,7 @@ describe('TypesenseApi', () => {
       it('should create and update an alias', async () => {
         const alias = await service.aliases.createOrUpdate(
           aliasName,
-          testCollectionName
+          testCollectionName,
         )
 
         expect(alias.name).toBe(aliasName)
@@ -1381,7 +1381,7 @@ describe('TypesenseApi', () => {
 
           expect(stats.collection_name).toBe(testCollectionName)
           expect(stats.num_documents).toBeGreaterThanOrEqual(
-            testDocuments.length
+            testDocuments.length,
           )
           expect(stats.created_at).toBeDefined()
           expect(stats.num_memory_shards).toBeDefined()
@@ -1389,7 +1389,7 @@ describe('TypesenseApi', () => {
           // Skip test if stats endpoint is not available (404)
           if (error.status === 404 || error.response?.status === 404) {
             console.log(
-              'Collection stats endpoint not available, skipping test'
+              'Collection stats endpoint not available, skipping test',
             )
             return
           }
@@ -1408,7 +1408,7 @@ describe('TypesenseApi', () => {
           // Skip test if stats endpoint is not available (404)
           if (error.status === 404 || error.response?.status === 404) {
             console.log(
-              'Collection stats endpoint not available, skipping test'
+              'Collection stats endpoint not available, skipping test',
             )
             return
           }
@@ -1420,7 +1420,7 @@ describe('TypesenseApi', () => {
     describe('Synonyms', () => {
       const testSynonym = {
         id: 'test-synonym-1',
-        synonyms: ['laptop', 'notebook', 'portable computer']
+        synonyms: ['laptop', 'notebook', 'portable computer'],
       }
 
       afterEach(async () => {
@@ -1446,7 +1446,7 @@ describe('TypesenseApi', () => {
         const oneWaySynonym = {
           id: 'test-one-way-synonym',
           root: 'computer',
-          synonyms: ['pc', 'desktop']
+          synonyms: ['pc', 'desktop'],
         }
 
         const created = await service.synonyms.upsert(oneWaySynonym)
@@ -1460,7 +1460,7 @@ describe('TypesenseApi', () => {
 
         const updated = await service.synonyms.upsert({
           id: created.id,
-          synonyms: ['laptop', 'notebook', 'portable computer', 'netbook']
+          synonyms: ['laptop', 'notebook', 'portable computer', 'netbook'],
         })
 
         expect(updated.id).toBe(created.id)
@@ -1480,7 +1480,7 @@ describe('TypesenseApi', () => {
         await service.synonyms.upsert(testSynonym)
         await service.synonyms.upsert({
           id: 'test-synonym-2',
-          synonyms: ['phone', 'mobile', 'cellphone']
+          synonyms: ['phone', 'mobile', 'cellphone'],
         })
 
         const result = await service.synonyms.list()
@@ -1505,12 +1505,12 @@ describe('TypesenseApi', () => {
         id: 'test-override-1',
         rule: {
           query: 'apple',
-          match: 'exact' as const
+          match: 'exact' as const,
         },
         includes: [
           { id: '1', position: 1 },
-          { id: '2', position: 2 }
-        ]
+          { id: '2', position: 2 },
+        ],
       }
 
       afterEach(async () => {
@@ -1538,9 +1538,9 @@ describe('TypesenseApi', () => {
           id: 'test-override-with-excludes',
           rule: {
             query: 'samsung',
-            match: 'contains' as const
+            match: 'contains' as const,
           },
-          excludes: [{ id: '3' }, { id: '4' }]
+          excludes: [{ id: '3' }, { id: '4' }],
         }
 
         const created = await service.overrides.upsert(overrideWithExcludes)
@@ -1554,7 +1554,7 @@ describe('TypesenseApi', () => {
         const updated = await service.overrides.upsert({
           ...testOverride,
           id: created.id,
-          filter_by: 'category:=electronics'
+          filter_by: 'category:=electronics',
         })
 
         expect(updated.id).toBe(created.id)
@@ -1632,7 +1632,7 @@ describe('TypesenseApi', () => {
         const query: TypesenseQuery = {
           q: 'typescript',
           query_by: 'title,content',
-          preset: 'default-search'
+          preset: 'default-search',
         }
 
         // Search should succeed and return results
@@ -1649,7 +1649,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           collectionName: 'auto-created-collection',
-          autoCreateCollection: true
+          autoCreateCollection: true,
         })
 
         // Clean up first
@@ -1667,7 +1667,7 @@ describe('TypesenseApi', () => {
           category: 'test',
           tags: ['auto', 'create'],
           views: 100,
-          published: true
+          published: true,
         }
 
         const result = await autoService.documents.insert(doc)
@@ -1687,7 +1687,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           collectionName: 'non-existent-collection',
-          autoCreateCollection: false
+          autoCreateCollection: false,
         })
 
         const doc = {
@@ -1697,7 +1697,7 @@ describe('TypesenseApi', () => {
           category: 'test',
           tags: [],
           views: 0,
-          published: false
+          published: false,
         }
 
         await expect(noAutoService.documents.insert(doc)).rejects.toThrow()
@@ -1713,14 +1713,14 @@ describe('TypesenseApi', () => {
           collectionName: testCollectionName,
           resilience: {
             maxFailures: 3, // Circuit opens on the 3rd failure
-            resetTimeout: 1000 // Short timeout for testing
-          }
+            resetTimeout: 1000, // Short timeout for testing
+          },
         })
 
         // Make failing requests
         const doc = {
           id: '1',
-          title: 'test'
+          title: 'test',
         } as TypesenseDocument<TestDocument>
 
         // First two requests should fail normally with 401
@@ -1734,12 +1734,12 @@ describe('TypesenseApi', () => {
 
         // Third request should open the circuit and fail with circuit breaker error
         await expect(failService.documents.insert(doc)).rejects.toThrow(
-          'Circuit breaker is open'
+          'Circuit breaker is open',
         )
 
         // Subsequent requests should also fail with circuit breaker error
         await expect(failService.documents.insert(doc)).rejects.toThrow(
-          'Circuit breaker is open'
+          'Circuit breaker is open',
         )
 
         // Wait for circuit to reset
@@ -1762,7 +1762,7 @@ describe('TypesenseApi', () => {
           collectionName: testCollectionName,
           searchTimeout: 5000,
           importTimeout: 30000,
-          defaultTimeout: 10000
+          defaultTimeout: 10000,
         })
 
         // These tests just verify the service accepts the timeout options
@@ -1775,33 +1775,33 @@ describe('TypesenseApi', () => {
       it('should throw error when updating with undefined id', async () => {
         const doc = {
           id: undefined,
-          title: 'Invalid'
+          title: 'Invalid',
         } as any
 
         await expect(service.documents.update(doc)).rejects.toThrow(
-          'updateDocument requires a valid document id'
+          'updateDocument requires a valid document id',
         )
       })
 
       it('should throw error when updating with null id', async () => {
         const doc = {
           id: null,
-          title: 'Invalid'
+          title: 'Invalid',
         } as any
 
         await expect(service.documents.update(doc)).rejects.toThrow(
-          'updateDocument requires a valid document id'
+          'updateDocument requires a valid document id',
         )
       })
 
       it('should throw error when updating with empty string id', async () => {
         const doc = {
           id: '',
-          title: 'Invalid'
+          title: 'Invalid',
         }
 
         await expect(service.documents.update(doc)).rejects.toThrow(
-          'updateDocument requires a valid document id'
+          'updateDocument requires a valid document id',
         )
       })
     })
@@ -1817,8 +1817,8 @@ describe('TypesenseApi', () => {
             async request => {
               hookCalled = true
               expect(request).toBeInstanceOf(Request)
-            }
-          ]
+            },
+          ],
         })
 
         // Make any request
@@ -1838,8 +1838,8 @@ describe('TypesenseApi', () => {
               hookCalled = true
               // Note: afterResponse hook implementation may have compatibility issues
               // For now, just verify the hook is called
-            }
-          ]
+            },
+          ],
         })
 
         try {
@@ -1847,20 +1847,20 @@ describe('TypesenseApi', () => {
           await Promise.race([
             hookService.admin.health(),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Hook test timeout')), 3000)
-            )
+              setTimeout(() => reject(new Error('Hook test timeout')), 3000),
+            ),
           ])
 
           // Note: afterResponse hooks may not work properly with current ky integration
           // This is a known limitation and doesn't affect core functionality
           console.log(
             'AfterResponse hook test completed, hookCalled:',
-            hookCalled
+            hookCalled,
           )
         } catch (error: any) {
           if (error.message === 'Hook test timeout') {
             console.log(
-              'AfterResponse hooks not working properly (known limitation)'
+              'AfterResponse hooks not working properly (known limitation)',
             )
             return // Skip assertion
           }
@@ -1875,15 +1875,15 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           headers: {
             'X-TYPESENSE-API-KEY': testApiKey,
-            'X-Custom-Header': 'custom-value'
-          }
+            'X-Custom-Header': 'custom-value',
+          },
         })
 
         const customService = new TypesenseApi<TestDocument>({
           prefixUrl: typesenseUrl,
           token: testApiKey,
           collectionName: testCollectionName,
-          kyInstance: customKy
+          kyInstance: customKy,
         })
 
         // Should work with custom instance
@@ -1907,20 +1907,20 @@ describe('TypesenseApi', () => {
         prefixUrl: typesenseUrl,
         token: testApiKey,
         tenantId: tenant1Id,
-        collectionName: 'products'
+        collectionName: 'products',
       })
 
       tenant2Api = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: testApiKey,
         tenantId: tenant2Id,
-        collectionName: 'products'
+        collectionName: 'products',
       })
 
       noTenantApi = new TypesenseApi<TestDocument>({
         prefixUrl: typesenseUrl,
         token: testApiKey,
-        collectionName: 'products'
+        collectionName: 'products',
       })
     })
 
@@ -1958,8 +1958,8 @@ describe('TypesenseApi', () => {
           fields: [
             { name: 'id', type: 'string' },
             { name: 'name', type: 'string' },
-            { name: 'price', type: 'float' }
-          ]
+            { name: 'price', type: 'float' },
+          ],
         }
 
         // Create collections for both tenants (handle if they already exist)
@@ -1982,7 +1982,7 @@ describe('TypesenseApi', () => {
         // List all collections
         const allCollections = await tenant1Api.collections.list()
         const collectionNames = allCollections.map(
-          (c: TypesenseCollection) => c.name
+          (c: TypesenseCollection) => c.name,
         )
 
         // Verify both tenant collections exist
@@ -1995,25 +1995,25 @@ describe('TypesenseApi', () => {
         await tenant1Api.documents.upsert({
           id: '1',
           name: 'Acme Widget',
-          price: 19.99
+          price: 19.99,
         } as any)
 
         await tenant2Api.documents.upsert({
           id: '1', // Same ID is fine - different collection
           name: 'Globex Gadget',
-          price: 29.99
+          price: 29.99,
         } as any)
 
         // Search in tenant 1
         const tenant1Results = await tenant1Api.search.query({
           q: '*',
-          query_by: 'name'
+          query_by: 'name',
         })
 
         // Search in tenant 2
         const tenant2Results = await tenant2Api.search.query({
           q: '*',
-          query_by: 'name'
+          query_by: 'name',
         })
 
         // Verify isolation
@@ -2029,8 +2029,8 @@ describe('TypesenseApi', () => {
           name: 'products',
           fields: [
             { name: 'id', type: 'string' },
-            { name: 'name', type: 'string' }
-          ]
+            { name: 'name', type: 'string' },
+          ],
         }
 
         try {
@@ -2043,12 +2043,12 @@ describe('TypesenseApi', () => {
 
         await noTenantApi.documents.upsert({
           id: '1',
-          name: 'Global Product'
+          name: 'Global Product',
         } as any)
 
         const results = await noTenantApi.search.query({
           q: '*',
-          query_by: 'name'
+          query_by: 'name',
         })
 
         expect(results.hits?.length).toBe(1)
@@ -2066,7 +2066,7 @@ describe('TypesenseApi', () => {
             prefixUrl: typesenseUrl,
             token: testApiKey,
             tenantId: tenantId,
-            collectionName: collName
+            collectionName: collName,
           })
 
           try {
@@ -2074,8 +2074,8 @@ describe('TypesenseApi', () => {
               name: collName,
               fields: [
                 { name: 'id', type: 'string' },
-                { name: 'data', type: 'string' }
-              ]
+                { name: 'data', type: 'string' },
+              ],
             })
           } catch (error: any) {
             if (error.status !== 409) {
@@ -2089,7 +2089,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: tenantId,
-          collectionName: 'any'
+          collectionName: 'any',
         })
 
         const beforeDelete = await listApi.listTenantCollections()
@@ -2102,7 +2102,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: tenantId,
-          collectionName: 'inventory'
+          collectionName: 'inventory',
         })
 
         const deleteResult = await inventoryApi.collections.delete()
@@ -2120,7 +2120,7 @@ describe('TypesenseApi', () => {
             prefixUrl: typesenseUrl,
             token: testApiKey,
             tenantId: tenantId,
-            collectionName: collName
+            collectionName: collName,
           })
           try {
             await api.collections.delete()
@@ -2138,7 +2138,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: 'admin-test-tenant',
-          collectionName: 'test'
+          collectionName: 'test',
         })
 
         // Create multiple collections for admin test tenant
@@ -2147,23 +2147,23 @@ describe('TypesenseApi', () => {
             name: 'products',
             fields: [
               { name: 'id', type: 'string' },
-              { name: 'name', type: 'string' }
-            ]
+              { name: 'name', type: 'string' },
+            ],
           },
           {
             name: 'users',
             fields: [
               { name: 'id', type: 'string' },
-              { name: 'email', type: 'string' }
-            ]
+              { name: 'email', type: 'string' },
+            ],
           },
           {
             name: 'orders',
             fields: [
               { name: 'id', type: 'string' },
-              { name: 'total', type: 'float' }
-            ]
-          }
+              { name: 'total', type: 'float' },
+            ],
+          },
         ]
 
         for (const schema of schemas) {
@@ -2172,7 +2172,7 @@ describe('TypesenseApi', () => {
               prefixUrl: typesenseUrl,
               token: testApiKey,
               tenantId: 'admin-test-tenant',
-              collectionName: schema.name
+              collectionName: schema.name,
             })
             await api.collections.create(schema)
           } catch (error: any) {
@@ -2188,7 +2188,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: 'admin-test-tenant',
-          collectionName: 'test'
+          collectionName: 'test',
         })
 
         const tenantCollections = await adminTestApi.listTenantCollections()
@@ -2206,7 +2206,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: 'admin-test-tenant',
-          collectionName: 'test'
+          collectionName: 'test',
         })
 
         const baseNames = await adminTestApi.listTenantBaseCollectionNames()
@@ -2221,7 +2221,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: 'admin-test-tenant',
-          collectionName: 'test'
+          collectionName: 'test',
         })
 
         const exists = await adminTestApi.tenantCollectionExists('products')
@@ -2240,7 +2240,7 @@ describe('TypesenseApi', () => {
             prefixUrl: typesenseUrl,
             token: testApiKey,
             tenantId: 'invalid@tenant',
-            collectionName: 'test'
+            collectionName: 'test',
           })
         }).toThrow('Tenant ID can only contain alphanumeric characters')
       })
@@ -2250,13 +2250,13 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: 'UPPERCASE-TENANT',
-          collectionName: 'test'
+          collectionName: 'test',
         })
 
         try {
           await upperApi.collections.create({
             name: 'test',
-            fields: [{ name: 'id', type: 'string' }]
+            fields: [{ name: 'id', type: 'string' }],
           })
         } catch (error: any) {
           if (error.status !== 409) {
@@ -2285,7 +2285,7 @@ describe('TypesenseApi', () => {
           prefixUrl: typesenseUrl,
           token: testApiKey,
           tenantId: 'synonym-tenant',
-          collectionName: 'synonym-test-collection'
+          collectionName: 'synonym-test-collection',
         })
 
         // Ensure collection exists
@@ -2294,8 +2294,8 @@ describe('TypesenseApi', () => {
             name: 'synonym-test-collection',
             fields: [
               { name: 'id', type: 'string' },
-              { name: 'name', type: 'string' }
-            ]
+              { name: 'name', type: 'string' },
+            ],
           })
         } catch (error: any) {
           if (error.status !== 409) {
@@ -2305,7 +2305,7 @@ describe('TypesenseApi', () => {
 
         const synonym = {
           id: 'test-synonym',
-          synonyms: ['laptop', 'notebook', 'computer']
+          synonyms: ['laptop', 'notebook', 'computer'],
         }
 
         await synonymTestApi.synonyms.upsert(synonym)

@@ -5,7 +5,7 @@ import { AsyncPredicate } from './transform/transformMap'
  */
 export async function pFilter<T>(
   iterable: Iterable<T>,
-  filterFn: AsyncPredicate<T>
+  filterFn: AsyncPredicate<T>,
 ): Promise<T[]> {
   // Handle arrays more efficiently
   if (Array.isArray(iterable)) {
@@ -35,7 +35,7 @@ export async function pFilter<T>(
 
     // For larger arrays, use Promise.all but pre-allocate result array
     const predicates = await Promise.all(
-      iterable.map((item, i) => filterFn(item, i))
+      iterable.map((item, i) => filterFn(item, i)),
     )
 
     // Count true values first to pre-allocate result array with exact size
@@ -67,7 +67,7 @@ export async function pFilter<T>(
   // Fallback for non-array iterables
   const items = [...iterable]
   const predicates = await Promise.all(
-    items.map((item, i) => filterFn(item, i))
+    items.map((item, i) => filterFn(item, i)),
   )
   return items.filter((_, i) => predicates[i])
 }

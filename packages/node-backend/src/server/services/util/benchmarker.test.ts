@@ -22,7 +22,7 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.30 ± 5.1',
           'Throughput avg (ops/s)': '1000.00 ± 50.0',
           'Throughput med (ops/s)': '950.00 ± 25.0',
-          Samples: 100
+          Samples: 100,
         },
         {
           'Task name': 'Task B',
@@ -30,7 +30,7 @@ describe('benchmarker', () => {
           'Latency med (ns)': '190.25 ± 15.3',
           'Throughput avg (ops/s)': '500.00 ± 30.0',
           'Throughput med (ops/s)': '480.00 ± 20.0',
-          Samples: 150
+          Samples: 150,
         },
         {
           'Task name': 'Task C',
@@ -38,8 +38,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '48.75 ± 3.2',
           'Throughput avg (ops/s)': '2000.00 ± 100.0',
           'Throughput med (ops/s)': '1950.00 ± 75.0',
-          Samples: 200
-        }
+          Samples: 200,
+        },
       ]
 
       const result = analyzeBenchmarkResults(mockResults)
@@ -58,7 +58,7 @@ describe('benchmarker', () => {
       // Task B should be the worst performer
       expect(result[2].name).toBe('Task B')
       expect(result[2].latencyImprovement).toBeLessThan(
-        result[1].latencyImprovement
+        result[1].latencyImprovement,
       )
     })
 
@@ -70,8 +70,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.00 ± 3.0',
           'Throughput avg (ops/s)': '1000.00 ± 50.0',
           'Throughput med (ops/s)': '950.00 ± 25.0',
-          Samples: 100
-        }
+          Samples: 100,
+        },
       ]
 
       const result = analyzeBenchmarkResults(mockResults)
@@ -90,7 +90,7 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.00 ± 3.0',
           'Throughput avg (ops/s)': '1000.00 ± 50.0',
           'Throughput med (ops/s)': '950.00 ± 25.0',
-          Samples: 100
+          Samples: 100,
         },
         {
           'Task name': 'Task B',
@@ -98,8 +98,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.00 ± 3.0',
           'Throughput avg (ops/s)': '1000.00 ± 50.0',
           'Throughput med (ops/s)': '950.00 ± 25.0',
-          Samples: 100
-        }
+          Samples: 100,
+        },
       ]
 
       const result = analyzeBenchmarkResults(mockResults)
@@ -119,8 +119,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.30',
           'Throughput avg (ops/s)': '1000.00',
           'Throughput med (ops/s)': '950.00',
-          Samples: 100
-        }
+          Samples: 100,
+        },
       ]
 
       const result = analyzeBenchmarkResults(mockResults)
@@ -139,7 +139,7 @@ describe('benchmarker', () => {
           'Latency med (ns)': '0.45 ± 0.02',
           'Throughput avg (ops/s)': '10000.50 ± 500.0',
           'Throughput med (ops/s)': '9500.25 ± 250.0',
-          Samples: 1000
+          Samples: 1000,
         },
         {
           'Task name': 'Slow Task',
@@ -147,8 +147,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '1.60 ± 0.10',
           'Throughput avg (ops/s)': '5000.25 ± 200.0',
           'Throughput med (ops/s)': '4800.75 ± 150.0',
-          Samples: 500
-        }
+          Samples: 500,
+        },
       ]
 
       const result = analyzeBenchmarkResults(mockResults)
@@ -174,7 +174,7 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.00 ± 3.0',
           'Throughput avg (ops/s)': '500.00 ± 25.0',
           'Throughput med (ops/s)': '480.00 ± 20.0',
-          Samples: 100
+          Samples: 100,
         },
         {
           'Task name': 'Best Throughput',
@@ -182,8 +182,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '190.00 ± 8.0',
           'Throughput avg (ops/s)': '1000.00 ± 50.0',
           'Throughput med (ops/s)': '950.00 ± 40.0',
-          Samples: 150
-        }
+          Samples: 150,
+        },
       ]
 
       const result = analyzeBenchmarkResults(mockResults)
@@ -211,7 +211,7 @@ describe('benchmarker', () => {
           'Latency med (ns)': '290.00 ± 12.0',
           'Throughput avg (ops/s)': '300.00 ± 15.0',
           'Throughput med (ops/s)': '280.00 ± 10.0',
-          Samples: 50
+          Samples: 50,
         },
         {
           'Task name': 'Best',
@@ -219,7 +219,7 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.00 ± 3.0',
           'Throughput avg (ops/s)': '1000.00 ± 50.0',
           'Throughput med (ops/s)': '950.00 ± 40.0',
-          Samples: 200
+          Samples: 200,
         },
         {
           'Task name': 'Middle',
@@ -227,8 +227,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '190.00 ± 8.0',
           'Throughput avg (ops/s)': '500.00 ± 25.0',
           'Throughput med (ops/s)': '480.00 ± 20.0',
-          Samples: 100
-        }
+          Samples: 100,
+        },
       ]
 
       const result = analyzeBenchmarkResults(mockResults)
@@ -240,10 +240,10 @@ describe('benchmarker', () => {
 
       // Improvements should be in descending order
       expect(result[0].latencyImprovement).toBeGreaterThanOrEqual(
-        result[1].latencyImprovement
+        result[1].latencyImprovement,
       )
       expect(result[1].latencyImprovement).toBeGreaterThanOrEqual(
-        result[2].latencyImprovement
+        result[2].latencyImprovement,
       )
     })
 
@@ -255,8 +255,8 @@ describe('benchmarker', () => {
           'Latency med (ns)': '95.00 ± 3.0',
           'Throughput avg (ops/s)': '1000.00 ± 50.0',
           'Throughput med (ops/s)': '950.00 ± 25.0',
-          Samples: 100
-        }
+          Samples: 100,
+        },
       ]
 
       analyzeBenchmarkResults(mockResults)
@@ -269,9 +269,9 @@ describe('benchmarker', () => {
             latencyMed: 95,
             throughputAvg: 1000,
             throughputMed: 950,
-            samples: 100
-          })
-        ])
+            samples: 100,
+          }),
+        ]),
       })
 
       expect(console.table).toHaveBeenCalledWith(
@@ -279,9 +279,9 @@ describe('benchmarker', () => {
           expect.objectContaining({
             'Task Name': 'Test Task',
             'Latency Improvement (%)': '0.00',
-            'Throughput Improvement (%)': '0.00'
-          })
-        ])
+            'Throughput Improvement (%)': '0.00',
+          }),
+        ]),
       )
     })
 

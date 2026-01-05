@@ -6,7 +6,7 @@ import { TransformOptions, WritableTyped } from './streams.model'
  */
 export function writablePushToArray<TInput>(
   arr: TInput[],
-  opt: TransformOptions = {}
+  opt: TransformOptions = {},
 ): WritableTyped<TInput> {
   return new Writable({
     objectMode: true,
@@ -15,6 +15,6 @@ export function writablePushToArray<TInput>(
       arr.push(chunk)
       // callback to signal that we processed input, but not emitting any output
       cb()
-    }
+    },
   })
 }

@@ -6,7 +6,7 @@ import type {
   TypesenseDocument,
   TypesenseImportFormat,
   TypesenseImportOptions,
-  TypesenseImportResult
+  TypesenseImportResult,
 } from '../../typesense.model'
 import { TypesenseError } from '../../typesense.model'
 
@@ -15,7 +15,7 @@ export async function importDocuments<T extends Record<string, any>>(
   documents: TypesenseDocument<T>[] | string | Readable,
   format: TypesenseImportFormat = 'jsonl',
   importOptions?: TypesenseImportOptions,
-  collectionOptions?: TypesenseCollectionOptions
+  collectionOptions?: TypesenseCollectionOptions,
 ): Promise<TypesenseImportResult[]> {
   // Validate format
   const supportedFormats: TypesenseImportFormat[] = ['jsonl', 'json', 'csv']
@@ -54,7 +54,7 @@ export async function importDocuments<T extends Record<string, any>>(
 
   const searchParams: any = {
     ...importOptions,
-    action: importOptions?.action || 'create'
+    action: importOptions?.action || 'create',
   }
 
   // Stream directly to HTTP body for large files
@@ -64,8 +64,8 @@ export async function importDocuments<T extends Record<string, any>>(
       method: 'POST',
       body: bodyStream,
       searchParams,
-      timeout: ctx.httpClient.importTimeout
-    }
+      timeout: ctx.httpClient.importTimeout,
+    },
   )
 
   // Parse JSONL response to array

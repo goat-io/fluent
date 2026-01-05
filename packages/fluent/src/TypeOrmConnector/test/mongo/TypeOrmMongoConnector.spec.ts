@@ -23,7 +23,7 @@ beforeAll(async () => {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     entities: dbEntitiesMongo,
-    logging: false
+    logging: false,
   })
 
   await dataSource.initialize()

@@ -21,7 +21,7 @@ class HashesClass {
    */
   saltCompare = async (
     providedPass: string,
-    storedPass: string
+    storedPass: string,
   ): Promise<boolean> => {
     return await comparer(providedPass, storedPass)
   }

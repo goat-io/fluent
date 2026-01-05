@@ -11,7 +11,7 @@ import type {
   ShouldQueue,
   TaskConnector,
   TaskStatus,
-  TaskStatusName
+  TaskStatusName,
 } from '@goatlab/tasks-core'
 
 interface StoredTask {
@@ -36,7 +36,7 @@ export class MockCloudTaskConnector implements TaskConnector<object> {
    * This allows the mock to execute tasks when they are queued.
    */
   async startWorker({
-    tasks
+    tasks,
   }: {
     workerName?: string
     tasks: ShouldQueue[]
@@ -107,7 +107,7 @@ export class MockCloudTaskConnector implements TaskConnector<object> {
         created: new Date().toISOString(),
         nextRun: null,
         nextRunMinutes: null,
-        payload: {}
+        payload: {},
       }
     }
 
@@ -120,7 +120,7 @@ export class MockCloudTaskConnector implements TaskConnector<object> {
       created: task.created,
       nextRun: null,
       nextRunMinutes: null,
-      payload: task.payload
+      payload: task.payload,
     }
   }
 
@@ -145,7 +145,7 @@ export class MockCloudTaskConnector implements TaskConnector<object> {
       attempts: 0,
       created: now,
       output: '',
-      handle: params.handle
+      handle: params.handle,
     }
 
     this.tasks.set(id, storedTask)
@@ -158,7 +158,7 @@ export class MockCloudTaskConnector implements TaskConnector<object> {
       status: 'QUEUED',
       created: now,
       nextRun: null,
-      nextRunMinutes: null
+      nextRunMinutes: null,
     }
   }
 

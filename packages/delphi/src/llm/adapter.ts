@@ -78,7 +78,7 @@ export class LLMAdapter {
         model,
         messages: options.messages,
         temperature: options.temperature,
-        maxTokens: options.maxTokens
+        maxTokens: options.maxTokens,
       })
 
       return {
@@ -88,9 +88,9 @@ export class LLMAdapter {
           ? {
               promptTokens: result.usage.promptTokens,
               completionTokens: result.usage.completionTokens,
-              totalTokens: result.usage.totalTokens
+              totalTokens: result.usage.totalTokens,
             }
-          : undefined
+          : undefined,
       }
     } catch (error: any) {
       // Check if retryable

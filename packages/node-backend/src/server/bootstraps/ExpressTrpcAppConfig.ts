@@ -153,7 +153,7 @@ export type ExpressTrpcAppConfigInput = RequiredExpressTrpcAppConfig &
  */
 function deepMerge<T extends Record<string, any>>(
   target: T,
-  source: Partial<T>
+  source: Partial<T>,
 ): T {
   const result = { ...target }
 
@@ -194,7 +194,7 @@ function deepMerge<T extends Record<string, any>>(
  * Get complete default configuration
  */
 export function getDefaultConfig(
-  userConfig: ExpressTrpcAppConfigInput
+  userConfig: ExpressTrpcAppConfigInput,
 ): ExpressTrpcAppConfig {
   // Determine environment from user config or default
   const environment = userConfig.environment || 'local'
@@ -229,7 +229,7 @@ export function getDefaultConfig(
       openApiDocs: false,
       sentry: isProduction,
       trustProxy: true,
-      etag: 'strong'
+      etag: 'strong',
     },
 
     // Security configuration
@@ -239,43 +239,43 @@ export function getDefaultConfig(
           ? []
           : ['http://localhost:3000', 'http://localhost:3001'],
         credentials: true,
-        maxAge: 86400
+        maxAge: 86400,
       },
       helmet: {
         contentSecurityPolicy: isProduction,
-        crossOriginEmbedderPolicy: !isDevelopment
+        crossOriginEmbedderPolicy: !isDevelopment,
       },
       rateLimit: {
         global: {
           windowMs: 15 * 60 * 1000, // 15 minutes
-          max: 100
+          max: 100,
         },
         auth: {
           windowMs: 15 * 60 * 1000, // 15 minutes
-          max: 5
+          max: 5,
         },
         api: {
           windowMs: 15 * 60 * 1000, // 15 minutes
-          max: 100
-        }
+          max: 100,
+        },
       },
-      requestTimeout: 30000 // 30 seconds
+      requestTimeout: 30000, // 30 seconds
     },
 
     // Body parsing configuration
     bodyParsing: {
       json: {
         limit: '100kb',
-        type: ['application/json', 'text/plain']
+        type: ['application/json', 'text/plain'],
       },
       urlencoded: {
         limit: '100kb',
-        extended: true
+        extended: true,
       },
       raw: {
         limit: '100kb',
-        inflate: true
-      }
+        inflate: true,
+      },
     },
 
     // Performance settings
@@ -285,7 +285,7 @@ export function getDefaultConfig(
         level: 6,
         threshold: 1024,
         chunkSize: 16 * 1024,
-        memLevel: 8
+        memLevel: 8,
       },
       memoryMonitoring: {
         enabled: true,
@@ -293,31 +293,31 @@ export function getDefaultConfig(
         criticalThreshold: 95,
         monitorInterval: 30000,
         enableGarbageCollection: isProduction,
-        addHeaders: !isProduction
+        addHeaders: !isProduction,
       },
       caching: {
         staticAssets: {
-          maxAge: 31536000 // 1 year
-        }
-      }
+          maxAge: 31536000, // 1 year
+        },
+      },
     },
 
     // Server configuration
     server: {
       viewEngine: 'ejs',
-      viewPaths: []
+      viewPaths: [],
     },
 
     // Health check configuration
     healthCheck: {
       path: '/health',
-      customChecks: undefined
+      customChecks: undefined,
     },
 
     // Ready check configuration
     readyCheck: {
       path: '/ready',
-      customChecks: undefined
+      customChecks: undefined,
     },
 
     // Process management
@@ -325,11 +325,11 @@ export function getDefaultConfig(
       gracefulShutdown: {
         enabled: true,
         timeout: 30000,
-        onShutdown: undefined
+        onShutdown: undefined,
       },
       uncaughtException: undefined,
-      unhandledRejection: undefined
-    }
+      unhandledRejection: undefined,
+    },
   }
 
   // Deep merge user configuration with defaults

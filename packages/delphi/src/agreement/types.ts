@@ -45,15 +45,15 @@ export const ConsensusResultSchema = z.object({
         proposalId: z.string().uuid(),
         vote: z.enum(['approve', 'reject', 'abstain']),
         rationale: z.string(),
-        weight: z.number()
-      })
+        weight: z.number(),
+      }),
     ),
-    score: z.number().min(0).max(1)
+    score: z.number().min(0).max(1),
   }),
   auditTrail: z.array(z.string().uuid()),
   sessionId: z.string().uuid(),
   duration: z.number().positive(),
-  iterations: z.number().int().nonnegative()
+  iterations: z.number().int().nonnegative(),
 })
 
 export type ValidatedConsensusResult = z.infer<typeof ConsensusResultSchema>

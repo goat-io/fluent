@@ -10,7 +10,7 @@ export enum LokiStorageType {
   FsStructured = 'fsStructured',
   File = 'file',
   CryptedFile = 'cryptedFile',
-  Json = 'json'
+  Json = 'json',
 }
 
 export type LokiParams = {
@@ -32,13 +32,13 @@ export class LokiClass {
   public createDb<T extends LokiParams>({
     dbName,
     storage,
-    secret
+    secret,
   }: LokiCreateParams<T>): LokiJS {
     const dbConfig = {
       autoload: true,
       autosave: true,
       autosaveInterval: 1000,
-      throttledSaves: false
+      throttledSaves: false,
     }
 
     switch (storage) {
@@ -48,9 +48,9 @@ export class LokiClass {
           adapter: new LokiJS.LokiPartitioningAdapter(
             new LokiIndexedAdapter(dbName),
             {
-              paging: true
-            }
-          )
+              paging: true,
+            },
+          ),
         })
       case LokiStorageType.File:
         return new LokiJS(dbName, dbConfig)
@@ -60,14 +60,14 @@ export class LokiClass {
           adapter: new LokiJS.LokiPartitioningAdapter(
             new LokiJS.LokiMemoryAdapter({
               asyncResponses: true,
-              asyncTimeout: 50
-            })
-          )
+              asyncTimeout: 50,
+            }),
+          ),
         })
       case LokiStorageType.FsStructured:
         return new LokiJS(dbName, {
           ...dbConfig,
-          adapter: new lfsa()
+          adapter: new lfsa(),
         })
       case LokiStorageType.CryptedFile:
         cryptedFile.setSecret(secret)
@@ -75,15 +75,15 @@ export class LokiClass {
       case LokiStorageType.Json:
         return new LokiJS(dbName, {
           ...dbConfig,
-          adapter: new LokiNativescriptAdapter()
+          adapter: new LokiNativescriptAdapter(),
         })
 
       default:
         return new LokiJS(dbName, {
           ...dbConfig,
           adapter: new LokiJS.LokiPartitioningAdapter(
-            new LokiJS.LokiMemoryAdapter()
-          )
+            new LokiJS.LokiMemoryAdapter(),
+          ),
         })
     }
   }

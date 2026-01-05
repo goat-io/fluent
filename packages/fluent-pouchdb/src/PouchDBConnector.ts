@@ -3,7 +3,7 @@ import {
   getOutputKeys,
   getRelationsFromModelGenerator,
   LogicOperator,
-  modelGeneratorDataSource
+  modelGeneratorDataSource,
 } from '@goatlab/fluent'
 import type { AnyObject } from '@goatlab/js-utils'
 import { Objects } from '@goatlab/js-utils'
@@ -64,21 +64,21 @@ interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   replaceById(id: string, data: Partial<InputDTO>): Promise<OutputDTO>
   deleteById(id: string): Promise<string>
   findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
   findFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null>
   findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
   requireById(
     id: string,
-    q?: FindByIdFilter<ModelDTO>
+    q?: FindByIdFilter<ModelDTO>,
   ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>>
   requireFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>>
   pluck(path: any, query?: FluentQuery<ModelDTO>): Promise<any[]>
   clear(): Promise<boolean>
@@ -92,7 +92,7 @@ abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   protected relationQuery?: any
 
   async findFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null> {
     const data = await this.findMany({ ...query, limit: 1 } as T)
     return data[0] || null
@@ -100,12 +100,12 @@ abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
   async requireById(
     id: string,
-    q?: FindByIdFilter<ModelDTO>
+    q?: FindByIdFilter<ModelDTO>,
   ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>> {
     const found = await this.findByIds([id], {
       select: q?.select,
       include: q?.include,
-      limit: 1
+      limit: 1,
     })
 
     if (!found[0]) {
@@ -119,7 +119,7 @@ abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   async requireFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>> {
     const found = await this.findFirst(query)
     if (!found) {
@@ -130,13 +130,13 @@ abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
   async findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     return this.findMany({
       where: { id: { in: ids } },
       select: q?.select,
       include: q?.include,
-      limit: q?.limit
+      limit: q?.limit,
     } as unknown as FluentQuery<ModelDTO>)
   }
 
@@ -150,7 +150,7 @@ abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   abstract replaceById(id: string, data: Partial<InputDTO>): Promise<OutputDTO>
   abstract deleteById(id: string): Promise<string>
   abstract findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
   abstract pluck(path: any, query?: FluentQuery<ModelDTO>): Promise<any[]>
   abstract clear(): Promise<boolean>
@@ -159,7 +159,7 @@ abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 export class PouchDBConnector<
     ModelDTO = AnyObject,
     InputDTO = ModelDTO,
-    OutputDTO = ModelDTO
+    OutputDTO = ModelDTO,
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
@@ -176,7 +176,7 @@ export class PouchDBConnector<
     entity,
     dataSource,
     inputSchema,
-    outputSchema
+    outputSchema,
   }: PouchDBConnectorParams<InputDTO, OutputDTO>) {
     super()
     this.dataSource = dataSource
@@ -234,7 +234,7 @@ export class PouchDBConnector<
 
     // Validate Output
     return this.outputSchema.parse(
-      Objects.clearEmpties(Objects.deleteNulls(datum))
+      Objects.clearEmpties(Objects.deleteNulls(datum)),
     )
   }
 
@@ -272,7 +272,7 @@ export class PouchDBConnector<
     }
 
     const elements = await this.dataSource.bulkGet({
-      docs: insertedOK
+      docs: insertedOK,
     })
 
     const results = elements.results
@@ -312,7 +312,7 @@ export class PouchDBConnector<
    */
   public async updateById(
     id: string,
-    data: Partial<InputDTO>
+    data: Partial<InputDTO>,
   ): Promise<OutputDTO> {
     // Get existing document
     const existing = await this.dataSource.get(id)
@@ -328,7 +328,7 @@ export class PouchDBConnector<
     // Merge with new data
     const merged = {
       ...existing,
-      ...data
+      ...data,
     }
 
     if (this.outputKeys.includes('updated')) {
@@ -356,9 +356,9 @@ export class PouchDBConnector<
       {
         ...validatedData,
         _id: id,
-        _rev: existingRev
+        _rev: existingRev,
       },
-      { force: true }
+      { force: true },
     )
 
     if (!updateResults.ok) {
@@ -384,7 +384,7 @@ export class PouchDBConnector<
 
     // Validate Output
     return this.outputSchema?.parse(
-      Objects.clearEmpties(Objects.deleteNulls(dbResult))
+      Objects.clearEmpties(Objects.deleteNulls(dbResult)),
     )
   }
 
@@ -398,7 +398,7 @@ export class PouchDBConnector<
    */
   public async replaceById(
     id: string,
-    data: Partial<InputDTO>
+    data: Partial<InputDTO>,
   ): Promise<OutputDTO> {
     const existing = await this.dataSource.get(id)
     const existingId = (existing as any)._id
@@ -407,7 +407,7 @@ export class PouchDBConnector<
 
     // For replace, we start with only the provided data
     const newData: any = {
-      ...data
+      ...data,
     }
 
     // Preserve system fields
@@ -426,9 +426,9 @@ export class PouchDBConnector<
       {
         ...validatedData,
         _id: existingId,
-        _rev: existingRev
+        _rev: existingRev,
       },
-      { force: true }
+      { force: true },
     )
 
     if (!updateResults.ok) {
@@ -464,7 +464,7 @@ export class PouchDBConnector<
   }
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     const pouchQuery: any = this.getPouchDBWhere(query?.where)
 
@@ -576,7 +576,7 @@ export class PouchDBConnector<
             query.paginated.page === 1 ? null : query.paginated.page - 1,
           from: (query.paginated.page - 1) * query.paginated.perPage + 1,
           to: query.paginated.perPage * query.paginated.page,
-          data: processed as unknown as Promise<QueryOutput<T, ModelDTO>[]>[]
+          data: processed as unknown as Promise<QueryOutput<T, ModelDTO>[]>[],
         }
 
       return paginationInfo as unknown as Promise<QueryOutput<T, ModelDTO>[]>
@@ -630,16 +630,16 @@ export class PouchDBConnector<
   }
 
   public getPouchDBWhere(
-    where?: FluentQuery<ModelDTO>['where']
+    where?: FluentQuery<ModelDTO>['where'],
   ): PouchDB.Find.FindRequest<any> {
     if (!where || Object.keys(where).length === 0) {
       return {
-        selector: {}
+        selector: {},
       }
     }
 
     const Filters: { where: { $or: any[] } } = {
-      where: { $or: [{ $and: [] }] }
+      where: { $or: [{ $and: [] }] },
     }
 
     const orConditions = extractConditions(where.OR)
@@ -663,7 +663,7 @@ export class PouchDBConnector<
       [LogicOperator.NotIn]: value => ({ $not: { $in: value } }),
       [LogicOperator.Exists]: () => ({ $exists: true }),
       [LogicOperator.NotExists]: () => ({ $exists: false }),
-      [LogicOperator.Regexp]: value => ({ $regex: value })
+      [LogicOperator.Regexp]: value => ({ $regex: value }),
     }
 
     const processCondition = (condition: any, target: any[]) => {
@@ -723,13 +723,13 @@ export class PouchDBConnector<
     // to avoid polluting attributes (relatedQuery)
     const detachedClass = Object.assign(
       Object.create(Object.getPrototypeOf(this)),
-      this
+      this,
     ) as PouchDBConnector<ModelDTO, InputDTO, OutputDTO>
 
     detachedClass.setRelatedQuery({
       entity: this.entity,
       repository: this,
-      query
+      query,
     })
 
     return detachedClass
@@ -744,9 +744,9 @@ export class PouchDBConnector<
       repository: this,
       query: {
         where: {
-          id
-        }
-      } as unknown as FluentQuery<ModelDTO>
+          id,
+        },
+      } as unknown as FluentQuery<ModelDTO>,
     })
 
     return newInstance as LoadedResult<this>
@@ -757,13 +757,13 @@ export class PouchDBConnector<
       entity: this.entity,
       dataSource: this.dataSource,
       inputSchema: this.inputSchema,
-      outputSchema: this.outputSchema
+      outputSchema: this.outputSchema,
     })
   }
 
   public async findById<T extends FindByIdFilter<ModelDTO>>(
     id: string,
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null> {
     const results = await this.findByIds([id], q)
     return results[0] || null
@@ -771,7 +771,7 @@ export class PouchDBConnector<
 
   public async findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     // Call parent implementation
     const results = await super.findByIds(ids, q)
@@ -863,7 +863,7 @@ export class PouchDBConnector<
         await Promise.all(
           currentBatchSize < maxBatchSize
             ? deletePromises.slice(0, currentBatchSize)
-            : deletePromises
+            : deletePromises,
         )
       }
 

@@ -1,6 +1,6 @@
 import type {
   TypesenseCollection,
-  TypesenseCollectionField
+  TypesenseCollectionField,
 } from '../typesense.model'
 
 /**
@@ -90,7 +90,7 @@ export type InferFromCollection<C extends TypesenseCollection> =
  * Helper to create a typed collection definition
  */
 export function defineCollection<const C extends TypesenseCollection>(
-  collection: C
+  collection: C,
 ): C {
   return collection
 }

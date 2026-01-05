@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { Http } from './Http'
 
 const client = Http.getClient({
-  prefixUrl: 'https://api.github.com'
+  prefixUrl: 'https://api.github.com',
 })
 
 describe(' Http.getClient', () => {
@@ -47,7 +47,7 @@ describe(' Http.getClient', () => {
   it('should respect timeout option', async () => {
     const slowClient = Http.getClient({
       prefixUrl: 'https://httpstat.us',
-      timeout: 100
+      timeout: 100,
     })
     expect.assertions(1)
     try {
@@ -59,11 +59,11 @@ describe(' Http.getClient', () => {
 
   it('should allow custom headers', async () => {
     const customClient = Http.getClient({
-      prefixUrl: 'https://httpbin.org'
+      prefixUrl: 'https://httpbin.org',
     })
     const res = await customClient
       .get('headers', {
-        headers: { 'X-Test-Header': 'test-value' }
+        headers: { 'X-Test-Header': 'test-value' },
       })
       .json<any>()
     expect(res.headers['X-Test-Header']).toBe('test-value')
@@ -71,7 +71,7 @@ describe(' Http.getClient', () => {
 
   it('should send POST requests with JSON body', async () => {
     const postClient = Http.getClient({
-      prefixUrl: 'https://httpbin.org'
+      prefixUrl: 'https://httpbin.org',
     })
     const data = { foo: 'bar' }
     const res = await postClient.post('post', { json: data }).json<any>()
@@ -80,7 +80,7 @@ describe(' Http.getClient', () => {
 
   it('should send query parameters', async () => {
     const queryClient = Http.getClient({
-      prefixUrl: 'https://httpbin.org'
+      prefixUrl: 'https://httpbin.org',
     })
     const res = await queryClient.get('get?hello=world').json<any>()
     expect(res.args.hello).toBe('world')

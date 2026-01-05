@@ -7,13 +7,13 @@ import {
   applyIsOptionalDecorator,
   inheritPropertyInitializers,
   inheritTransformationMetadata,
-  inheritValidationMetadata
+  inheritValidationMetadata,
 } from './apply-is-optional.decorator'
 import { Field } from './field.decorator'
 
 export function PartialType<T>(
   classRef: Type<T>,
-  decorator?: ClassDecoratorFactory
+  decorator?: ClassDecoratorFactory,
 ): Type<Partial<T>> {
   const { fields, decoratorFactory } = getFieldsAndDecoratorForType(classRef)
 
@@ -41,7 +41,7 @@ export function PartialType<T>(
     }
     Field(item.typeFn, { ...item.options, nullable: true })(
       PartialObjectType.prototype,
-      item.name
+      item.name,
     )
     applyIsOptionalDecorator(PartialObjectType, item.name)
     applyFieldDecorators(PartialObjectType, item)
@@ -50,12 +50,12 @@ export function PartialType<T>(
   if (PartialObjectType[METADATA_FACTORY_NAME]) {
     const pluginFields = Object.keys(PartialObjectType[METADATA_FACTORY_NAME]())
     pluginFields.forEach(key =>
-      applyIsOptionalDecorator(PartialObjectType, key)
+      applyIsOptionalDecorator(PartialObjectType, key),
     )
   }
 
   Object.defineProperty(PartialObjectType, 'name', {
-    value: `Partial${classRef.name}`
+    value: `Partial${classRef.name}`,
   })
   return PartialObjectType as Type<Partial<T>>
 }

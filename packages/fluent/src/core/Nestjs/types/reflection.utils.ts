@@ -2,7 +2,7 @@ import { Type } from './common'
 import { UndefinedTypeError } from './errors/undefined-type.error'
 import {
   GqlTypeReference,
-  ReturnTypeFunc
+  ReturnTypeFunc,
 } from './interfaces/return-type-func.interface'
 import { TypeOptions } from './interfaces/type-options.interface'
 
@@ -13,7 +13,7 @@ const get = (obj, path, defaultValue = undefined) => {
       .filter(Boolean)
       .reduce(
         (res, key) => (res !== null && res !== undefined ? res[key] : res),
-        obj
+        obj,
       )
   const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/)
   return result === undefined || result === obj ? defaultValue : result
@@ -36,7 +36,7 @@ export interface TypeMetadata {
 }
 
 export function reflectTypeFromMetadata(
-  reflectOptions: ReflectTypeOptions
+  reflectOptions: ReflectTypeOptions,
 ): TypeMetadata {
   const {
     metadataKey,
@@ -44,14 +44,14 @@ export function reflectTypeFromMetadata(
     propertyKey,
     explicitTypeFn,
     typeOptions = {},
-    index
+    index,
   } = reflectOptions
 
   const options = { ...typeOptions }
   const reflectedType: Type<unknown>[] | Type<unknown> = Reflect.getMetadata(
     metadataKey,
     prototype!,
-    propertyKey
+    propertyKey,
   )
   const implicitType = extractTypeIfArray(metadataKey, reflectedType, index!)
   const isNotAllowed = implicitType && NOT_ALLOWED_TYPES.includes(implicitType)
@@ -63,13 +63,13 @@ export function reflectTypeFromMetadata(
     throw new UndefinedTypeError(
       get(prototype, 'constructor.name'),
       propertyKey,
-      index
+      index,
     )
   }
   if (explicitTypeFn) {
     return {
       typeFn: createWrappedExplicitTypeFn(explicitTypeFn, options),
-      options
+      options,
     }
   }
   return {
@@ -79,16 +79,16 @@ export function reflectTypeFromMetadata(
         ? {
             ...options,
             isArray: true,
-            arrayDepth: 1
+            arrayDepth: 1,
           }
-        : options
+        : options,
   }
 }
 
 function extractTypeIfArray(
   metadataKey: 'design:type' | 'design:returntype' | 'design:paramtypes',
   reflectedType: Type<unknown> | Type<unknown>[],
-  index: number
+  index: number,
 ): Type<unknown> {
   if (metadataKey === 'design:paramtypes') {
     return (reflectedType as Type<unknown>[])[index] as Type<unknown>
@@ -100,7 +100,7 @@ type DeepArray<T> = Array<DeepArray<T> | T>
 
 function getTypeReferenceAndArrayDepth<T = any>(
   [typeOrArray]: DeepArray<T>,
-  depth = 1
+  depth = 1,
 ) {
   if (!Array.isArray(typeOrArray)) {
     return { depth, typeRef: typeOrArray }
@@ -110,7 +110,7 @@ function getTypeReferenceAndArrayDepth<T = any>(
 
 function createWrappedExplicitTypeFn(
   explicitTypeFn: ReturnTypeFunc,
-  options: TypeOptions
+  options: TypeOptions,
 ) {
   return () => {
     const explicitTypeRef = explicitTypeFn()

@@ -15,7 +15,7 @@ export type * from '@trpc/server/unstable-core-do-not-import'
 export { Container } from './container/Container'
 export {
   DistributedCacheInvalidator,
-  getDistributedCacheInvalidator
+  getDistributedCacheInvalidator,
 } from './container/DistributedCacheInvalidator'
 export { createServiceCache } from './container/LruCache'
 export type {
@@ -29,7 +29,7 @@ export type {
   ContainerOptions,
   Factory,
   MapInterface,
-  PreloadStructure
+  PreloadStructure,
 } from './container/types'
 export type { ExpressTrpcAppConfig } from './server/bootstraps/ExpressTrpcAppConfig'
 export { getDefaultConfig } from './server/bootstraps/ExpressTrpcAppConfig'
@@ -47,25 +47,25 @@ export { SentryService } from './server/sentry/sentry.service'
 export type {
   EmailAttachment,
   EmailTemplates,
-  Theme
+  Theme,
 } from './server/services/email/email.model'
 export {
   Content,
   EmailCategory,
-  Layout
+  Layout,
 } from './server/services/email/email.model'
 export { EmailService } from './server/services/email/email.service'
 export { getGcpServiceAccountFromBase64 } from './server/services/gcp/getGcpServiceAccountFromBase64'
 export type {
   SecretProvider,
-  VaultConfig
+  VaultConfig,
 } from './server/services/secrets/secret.service'
 export { SecretService } from './server/services/secrets/secret.service'
 export type { SendGridEmailResponse } from './server/services/sendgrid/sendgrid.model'
 export { SendgridService } from './server/services/sendgrid/sendgridApi.service'
 export {
   tr,
-  translationService
+  translationService,
 } from './server/services/translations/translation.service'
 export { paginationUtility } from './server/services/util/pagination'
 export { UrlService } from './server/services/util/url.service'

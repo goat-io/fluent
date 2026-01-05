@@ -13,7 +13,7 @@ interface LoginResponse {
 export async function loginAdminUser({
   userName,
   password,
-  baseUrl
+  baseUrl,
 }: {
   userName: string
   password: string
@@ -26,8 +26,8 @@ export async function loginAdminUser({
       method: 'POST',
       body: {
         username: userName,
-        password: password
-      }
+        password: password,
+      },
     })
 
     const loginData = (await loginRes.json()) as LoginResponse

@@ -15,7 +15,7 @@ import { ShouldQueue } from '../ShouldQueue.js'
 import type {
   TaskConnector,
   TenantCredentials,
-  UnknownInputType
+  UnknownInputType,
 } from '../ShouldQueue.types.js'
 import type { TestFramework, TestSuiteOptions } from './types.js'
 import { delay, generateTestId, waitForTaskCompletion } from './utils.js'
@@ -25,7 +25,7 @@ import { delay, generateTestId, waitForTaskCompletion } from './utils.js'
  */
 export type TenantConnectorFactory<TInput extends object = object> = (
   tenantId: string,
-  credentials?: TenantCredentials
+  credentials?: TenantCredentials,
 ) => TaskConnector<TInput> | Promise<TaskConnector<TInput>>
 
 /**
@@ -48,7 +48,7 @@ export interface MultiTenantTestOptions extends TestSuiteOptions {
    */
   startTenantWorker: (
     tenantId: string,
-    tasks: ShouldQueue[]
+    tasks: ShouldQueue[],
   ) => Promise<() => Promise<void>>
 
   /**
@@ -84,7 +84,7 @@ export interface MultiTenantTestOptions extends TestSuiteOptions {
  */
 export function createMultiTenantTestTask(
   connector: TaskConnector<{ text: string; tenantMarker: string }>,
-  testPostUrl = 'http://localhost/test/multi-tenant'
+  testPostUrl = 'http://localhost/test/multi-tenant',
 ) {
   return class MultiTenantTestTask extends ShouldQueue<{
     text: string
@@ -134,7 +134,7 @@ export function createMultiTenantTestTask(
  */
 export function multiTenantTestSuite(
   test: TestFramework,
-  options: MultiTenantTestOptions
+  options: MultiTenantTestOptions,
 ) {
   const {
     createTenantConnector,
@@ -146,7 +146,7 @@ export function multiTenantTestSuite(
     taskCompletionTimeout = 10000,
     statusCheckInterval = 500,
     setup,
-    cleanup
+    cleanup,
   } = options
 
   // Generate unique tenant IDs for each test run to avoid conflicts
@@ -224,7 +224,7 @@ export function multiTenantTestSuite(
       test.it('tenant A can queue tasks', async () => {
         const status = await taskA.queue({
           text: 'tenant A task',
-          tenantMarker: tenantA
+          tenantMarker: tenantA,
         })
 
         test.expect(status).toBeDefined()
@@ -235,7 +235,7 @@ export function multiTenantTestSuite(
       test.it('tenant B can queue tasks', async () => {
         const status = await taskB.queue({
           text: 'tenant B task',
-          tenantMarker: tenantB
+          tenantMarker: tenantB,
         })
 
         test.expect(status).toBeDefined()
@@ -248,15 +248,15 @@ export function multiTenantTestSuite(
         async () => {
           const statusA = await taskA.queue({
             text: 'unique ID test A',
-            tenantMarker: tenantA
+            tenantMarker: tenantA,
           })
           const statusB = await taskB.queue({
             text: 'unique ID test B',
-            tenantMarker: tenantB
+            tenantMarker: tenantB,
           })
 
           test.expect(statusA.id).not.toBe(statusB.id)
-        }
+        },
       )
     })
 
@@ -267,18 +267,18 @@ export function multiTenantTestSuite(
         async () => {
           const status = await taskA.queue({
             text: 'completion test A',
-            tenantMarker: tenantA
+            tenantMarker: tenantA,
           })
 
           const finalStatus = await waitForTaskCompletion(
             () => taskA.getStatus(status.id),
-            { timeout: taskCompletionTimeout, interval: statusCheckInterval }
+            { timeout: taskCompletionTimeout, interval: statusCheckInterval },
           )
 
           test.expect(finalStatus.status).toBe('COMPLETED')
           test.expect((finalStatus.payload as any).tenantMarker).toBe(tenantA)
         },
-        taskCompletionTimeout + 5000
+        taskCompletionTimeout + 5000,
       )
 
       test.it(
@@ -286,18 +286,18 @@ export function multiTenantTestSuite(
         async () => {
           const status = await taskB.queue({
             text: 'completion test B',
-            tenantMarker: tenantB
+            tenantMarker: tenantB,
           })
 
           const finalStatus = await waitForTaskCompletion(
             () => taskB.getStatus(status.id),
-            { timeout: taskCompletionTimeout, interval: statusCheckInterval }
+            { timeout: taskCompletionTimeout, interval: statusCheckInterval },
           )
 
           test.expect(finalStatus.status).toBe('COMPLETED')
           test.expect((finalStatus.payload as any).tenantMarker).toBe(tenantB)
         },
-        taskCompletionTimeout + 5000
+        taskCompletionTimeout + 5000,
       )
 
       test.it(
@@ -308,27 +308,27 @@ export function multiTenantTestSuite(
             taskA.queue({ text: 'concurrent A1', tenantMarker: tenantA }),
             taskA.queue({ text: 'concurrent A2', tenantMarker: tenantA }),
             taskB.queue({ text: 'concurrent B1', tenantMarker: tenantB }),
-            taskB.queue({ text: 'concurrent B2', tenantMarker: tenantB })
+            taskB.queue({ text: 'concurrent B2', tenantMarker: tenantB }),
           ])
 
           // Wait for all to complete
           const [finalA1, finalA2, finalB1, finalB2] = await Promise.all([
             waitForTaskCompletion(() => taskA.getStatus(statusA1.id), {
               timeout: taskCompletionTimeout,
-              interval: statusCheckInterval
+              interval: statusCheckInterval,
             }),
             waitForTaskCompletion(() => taskA.getStatus(statusA2.id), {
               timeout: taskCompletionTimeout,
-              interval: statusCheckInterval
+              interval: statusCheckInterval,
             }),
             waitForTaskCompletion(() => taskB.getStatus(statusB1.id), {
               timeout: taskCompletionTimeout,
-              interval: statusCheckInterval
+              interval: statusCheckInterval,
             }),
             waitForTaskCompletion(() => taskB.getStatus(statusB2.id), {
               timeout: taskCompletionTimeout,
-              interval: statusCheckInterval
-            })
+              interval: statusCheckInterval,
+            }),
           ])
 
           // All should complete
@@ -343,7 +343,7 @@ export function multiTenantTestSuite(
           test.expect((finalB1.payload as any).tenantMarker).toBe(tenantB)
           test.expect((finalB2.payload as any).tenantMarker).toBe(tenantB)
         },
-        taskCompletionTimeout * 2 + 10000
+        taskCompletionTimeout * 2 + 10000,
       )
     })
 
@@ -354,7 +354,7 @@ export function multiTenantTestSuite(
           // Queue a task in tenant B
           const statusB = await taskB.queue({
             text: 'isolation test B',
-            tenantMarker: tenantB
+            tenantMarker: tenantB,
           })
 
           // Wait for it to be persisted
@@ -387,7 +387,7 @@ export function multiTenantTestSuite(
           // Queue a task in tenant A
           const statusA = await taskA.queue({
             text: 'isolation test A',
-            tenantMarker: tenantA
+            tenantMarker: tenantA,
           })
 
           // Wait for it to be persisted
@@ -424,7 +424,7 @@ export function multiTenantTestSuite(
             for (let i = 0; i < tasksToQueue; i++) {
               const status = await taskA.queue({
                 text: `count test A ${i}`,
-                tenantMarker: tenantA
+                tenantMarker: tenantA,
               })
               tenantAIds.push(status.id)
             }
@@ -433,7 +433,7 @@ export function multiTenantTestSuite(
             for (let i = 0; i < tasksToQueue; i++) {
               const status = await taskB.queue({
                 text: `count test B ${i}`,
-                tenantMarker: tenantB
+                tenantMarker: tenantB,
               })
               tenantBIds.push(status.id)
             }
@@ -448,18 +448,18 @@ export function multiTenantTestSuite(
               ...tenantAIds.map(id =>
                 waitForTaskCompletion(() => taskA.getStatus(id), {
                   timeout: taskCompletionTimeout,
-                  interval: statusCheckInterval
-                })
+                  interval: statusCheckInterval,
+                }),
               ),
               ...tenantBIds.map(id =>
                 waitForTaskCompletion(() => taskB.getStatus(id), {
                   timeout: taskCompletionTimeout,
-                  interval: statusCheckInterval
-                })
-              )
+                  interval: statusCheckInterval,
+                }),
+              ),
             ])
           },
-          taskCompletionTimeout * 3 + 10000
+          taskCompletionTimeout * 3 + 10000,
         )
       })
     }
@@ -479,7 +479,7 @@ export function multiTenantTestSuite(
             const newConnector = connectorA.forTenant!(newTenantId)
 
             test.expect(newConnector.tenantId).toBe(newTenantId)
-          }
+          },
         )
 
         test.it('forTenant() creates isolated connectors', async () => {
@@ -487,10 +487,10 @@ export function multiTenantTestSuite(
           const tenantD = `tenant_d_${generateTestId()}`
 
           const connectorC = (await createTenantConnector(
-            tenantC
+            tenantC,
           )) as TaskConnector<{ text: string; tenantMarker: string }>
           const connectorD = (await createTenantConnector(
-            tenantD
+            tenantD,
           )) as TaskConnector<{ text: string; tenantMarker: string }>
 
           test.expect(connectorC.tenantId).toBe(tenantC)
@@ -511,13 +511,13 @@ export function multiTenantTestSuite(
             nested: { deep: { value: 'tenant-a-data' } },
             array: [1, 2, 3],
             number: 42,
-            bool: true
+            bool: true,
           } as any
 
           const status = await taskA.queue(complexPayload)
           const finalStatus = await waitForTaskCompletion(
             () => taskA.getStatus(status.id),
-            { timeout: taskCompletionTimeout, interval: statusCheckInterval }
+            { timeout: taskCompletionTimeout, interval: statusCheckInterval },
           )
 
           const payload = finalStatus.payload as any
@@ -527,7 +527,7 @@ export function multiTenantTestSuite(
           test.expect(payload.number).toBe(42)
           test.expect(payload.bool).toBe(true)
         },
-        taskCompletionTimeout + 5000
+        taskCompletionTimeout + 5000,
       )
 
       test.it(
@@ -539,13 +539,13 @@ export function multiTenantTestSuite(
             nested: { deep: { value: 'tenant-b-data' } },
             array: [4, 5, 6],
             number: 99,
-            bool: false
+            bool: false,
           } as any
 
           const status = await taskB.queue(complexPayload)
           const finalStatus = await waitForTaskCompletion(
             () => taskB.getStatus(status.id),
-            { timeout: taskCompletionTimeout, interval: statusCheckInterval }
+            { timeout: taskCompletionTimeout, interval: statusCheckInterval },
           )
 
           const payload = finalStatus.payload as any
@@ -555,7 +555,7 @@ export function multiTenantTestSuite(
           test.expect(payload.number).toBe(99)
           test.expect(payload.bool).toBe(false)
         },
-        taskCompletionTimeout + 5000
+        taskCompletionTimeout + 5000,
       )
     })
   })

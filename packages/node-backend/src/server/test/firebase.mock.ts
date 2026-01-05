@@ -2,11 +2,11 @@ import type { FirebaseDecodedToken } from '../schemas/user.schema'
 import { BasicAccount } from './mock.model'
 
 export const mockedFirebaseDecodedToken = (
-  mockedAccount?: Partial<BasicAccount>
+  mockedAccount?: Partial<BasicAccount>,
 ): FirebaseDecodedToken => {
   const account = mockedAccount || {
     email: 'testemail@test.com',
-    firebaseId: 'testfirebaseId'
+    firebaseId: 'testfirebaseId',
   }
 
   const payload: FirebaseDecodedToken = {
@@ -19,7 +19,7 @@ export const mockedFirebaseDecodedToken = (
     iss: 'someFakeProject',
     sub: '12312312312',
     uid: account.firebaseId ?? 'someFakeFirebaseId',
-    firebase: true
+    firebase: true,
   }
   return payload
 }

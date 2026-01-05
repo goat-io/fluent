@@ -41,14 +41,14 @@ export type AnyObject = Record<string, any>
 export type ObjectPredicate<Obj> = (
   key: keyof Obj,
   value: Exclude<Obj[keyof Obj], undefined>,
-  obj: Obj
+  obj: Obj,
 ) => boolean
 
 // Mapper function type for object transformations
 export type ObjectMapper<Obj, Out> = (
   key: string,
   value: Exclude<Obj[keyof Obj], undefined>,
-  obj: Obj
+  obj: Obj,
 ) => Out
 
 // Utility type to extract all possible values from an object type
@@ -56,12 +56,12 @@ export type ValueOf<T> = T[keyof T]
 
 // Typed version of Object.entries for StringMap
 export const stringMapEntries = Object.entries as <T>(
-  m: StringMap<T>
+  m: StringMap<T>,
 ) => [k: string, v: T][]
 
 // Type for defining typed keys that resolve to primitive values or arrays
 export type TypedKeys<T> = (
-  key: TypedPathWrapper<T, Record<never, never>>
+  key: TypedPathWrapper<T, Record<never, never>>,
 ) =>
   | TypedPathWrapper<Primitives, Record<never, never>>
   | TypedPathWrapper<Primitives[], Record<never, never>>

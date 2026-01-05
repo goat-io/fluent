@@ -28,13 +28,13 @@ export const ComplexNumberForm = (() => ({
         step: 'any',
         integer: '',
         multiple: '',
-        custom: ''
+        custom: '',
       },
       type: 'number',
       labelPosition: 'top',
       tags: [],
       conditional: { show: '', when: null, eq: '' },
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -49,8 +49,8 @@ export const ComplexNumberForm = (() => ({
       action: 'submit',
       disableOnInvalid: false,
       theme: 'primary',
-      type: 'button'
-    }
+      type: 'button',
+    },
   ],
   revisions: '',
   _vid: 0,
@@ -61,10 +61,10 @@ export const ComplexNumberForm = (() => ({
       roles: [
         '5c069517f137d96a8e76ce7b',
         '5c069517f137d953c476ce7c',
-        '5c069517f137d9542f76ce7d'
+        '5c069517f137d9542f76ce7d',
       ],
-      type: 'read_all'
-    }
+      type: 'read_all',
+    },
   ],
   submissionAccess: [],
   settings: {},
@@ -74,5 +74,5 @@ export const ComplexNumberForm = (() => ({
   project: '5c069516f137d9410176ce7a',
   created: '2019-07-09T19:20:49.908Z',
   modified: '2019-07-09T19:59:22.867Z',
-  machineName: 'salsodtztlfxtzh:test'
+  machineName: 'salsodtztlfxtzh:test',
 }))()

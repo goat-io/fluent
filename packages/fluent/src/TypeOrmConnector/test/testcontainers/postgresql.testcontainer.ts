@@ -1,6 +1,6 @@
 import {
   PostgreSqlContainer,
-  StartedPostgreSqlContainer
+  StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql'
 import { DataSource } from 'typeorm'
 import { dbEntities } from '../dbEntities'
@@ -27,7 +27,7 @@ export class PostgreSQLTestContainer {
       database: this.container.getDatabase(),
       entities: dbEntities,
       synchronize: true,
-      logging: false
+      logging: false,
     })
 
     await this.dataSource.initialize()

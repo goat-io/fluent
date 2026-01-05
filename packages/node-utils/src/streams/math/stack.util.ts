@@ -48,7 +48,7 @@ export class Stack<T> {
     // Buffer was filled and started to "overwrite itself", will need to return 2 slices
     return [
       ...this.items.slice(this.nextIndex),
-      ...this.items.slice(0, this.nextIndex)
+      ...this.items.slice(0, this.nextIndex),
     ]
   }
 }

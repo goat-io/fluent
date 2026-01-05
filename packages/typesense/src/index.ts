@@ -17,7 +17,7 @@ export * from './typesense.model'
 export {
   defineCollection,
   type InferDocumentType,
-  type InferFromCollection
+  type InferFromCollection,
 } from './utils/schema-to-types'
 
 export { createSchemaTypedApi } from './utils/schema-typed-api'

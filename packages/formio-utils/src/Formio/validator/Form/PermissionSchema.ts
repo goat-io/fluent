@@ -17,13 +17,13 @@ export default new Schema({
       'read_own',
       'update_own',
       'delete_own',
-      'self'
+      'self',
     ],
     required:
-      'A permission type is required to associate an available permission with a given role.'
+      'A permission type is required to associate an available permission with a given role.',
   },
   roles: {
     type: [Schema.Types.ObjectId],
-    ref: 'role'
-  }
+    ref: 'role',
+  },
 })

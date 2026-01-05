@@ -15,7 +15,7 @@ export type CommonLogLevel = 'log' | 'warn' | 'error'
 export const commonLogLevelNumber: Record<CommonLogLevel, number> = {
   log: 10,
   warn: 20,
-  error: 30
+  error: 30,
 }
 
 /**
@@ -27,7 +27,7 @@ export const commonLogLevelNumber: Record<CommonLogLevel, number> = {
 export type CommonLogFunction = (...args: any[]) => void
 export type CommonLogWithLevelFunction = (
   level: CommonLogLevel,
-  args: any[]
+  args: any[],
 ) => void
 
 /**
@@ -50,7 +50,7 @@ export interface CommonLogger {
 export const commonLoggerNoop: CommonLogger = {
   log: noop,
   warn: noop,
-  error: noop
+  error: noop,
 }
 
 /**
@@ -59,7 +59,7 @@ export const commonLoggerNoop: CommonLogger = {
 export function commonLoggerMinLevel(
   logger: CommonLogger,
   minLevel: CommonLogLevel,
-  mutate = false
+  mutate = false,
 ): CommonLogger {
   const level = commonLogLevelNumber[minLevel]
   if (mutate) {
@@ -88,7 +88,7 @@ export function commonLoggerMinLevel(
   return {
     log: noop, // otherwise it is "log everything" logger (same logger as input)
     warn: level <= commonLogLevelNumber.warn ? logger.warn.bind(logger) : noop,
-    error: logger.error.bind(logger) // otherwise it's "log nothing" logger (same as noopLogger)
+    error: logger.error.bind(logger), // otherwise it's "log nothing" logger (same as noopLogger)
   }
 }
 
@@ -99,7 +99,7 @@ export function commonLoggerPipe(loggers: CommonLogger[]): CommonLogger {
   return {
     log: (...args) => loggers.forEach(logger => logger.log(...args)),
     warn: (...args) => loggers.forEach(logger => logger.warn(...args)),
-    error: (...args) => loggers.forEach(logger => logger.error(...args))
+    error: (...args) => loggers.forEach(logger => logger.error(...args)),
   }
 }
 
@@ -113,7 +113,7 @@ export function commonLoggerPrefix(
   return {
     log: (...args) => logger.log(...prefixes, ...args),
     warn: (...args) => logger.warn(...prefixes, ...args),
-    error: (...args) => logger.error(...prefixes, ...args)
+    error: (...args) => logger.error(...prefixes, ...args),
   }
 }
 
@@ -121,11 +121,11 @@ export function commonLoggerPrefix(
  * Creates a CommonLogger from a single function that takes `level` and `args`.
  */
 export function commonLoggerCreate(
-  fn: CommonLogWithLevelFunction
+  fn: CommonLogWithLevelFunction,
 ): CommonLogger {
   return {
     log: (...args) => fn('log', args),
     warn: (...args) => fn('warn', args),
-    error: (...args) => fn('error', args)
+    error: (...args) => fn('error', args),
   }
 }

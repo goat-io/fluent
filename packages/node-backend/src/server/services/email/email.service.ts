@@ -9,7 +9,7 @@ import type {
   EmailTemplates,
   EmailTest,
   SendEmailFromTemplateParams,
-  Theme
+  Theme,
 } from './email.model'
 import { EmailCategory } from './email.model'
 
@@ -27,7 +27,7 @@ export class EmailService {
     baseDomain,
     emailTransport,
     emailArchive,
-    theme
+    theme,
   }: {
     fromName: string
     shouldSendEmail: boolean
@@ -59,14 +59,14 @@ export class EmailService {
       `${config.templateDir}/${template.content}`,
       {
         ...template.placeholders,
-        theme: this.theme
-      }
+        theme: this.theme,
+      },
     )
 
     const html = await renderFile(`${config.templateDir}/${template.layout}`, {
       ...template.placeholders,
       theme: this.theme,
-      content: innerContent
+      content: innerContent,
     })
 
     return html
@@ -74,7 +74,7 @@ export class EmailService {
 
   private compileMjml(mjml: string): string {
     const compiledMjMl = mjml2html(mjml, {
-      keepComments: false
+      keepComments: false,
     })
 
     if (compiledMjMl.errors.length) {
@@ -90,14 +90,14 @@ export class EmailService {
     to,
     subject,
     attachments,
-    archive
+    archive,
   }: SendEmailFromTemplateParams): Promise<SendGridEmailResponse> {
     if (!this.shouldSendEmail) {
       return {
         isSuccess: true,
         statusCode: 1,
         body: 'Email not sent. No emails are sent in test mode',
-        headers: {}
+        headers: {},
       }
     }
 
@@ -107,7 +107,7 @@ export class EmailService {
     const bcc: EmailAddress[] = []
     if (archive && this.emailArchive?.length) {
       bcc.push({
-        email: this.emailArchive
+        email: this.emailArchive,
       })
     }
 
@@ -135,16 +135,16 @@ export class EmailService {
         isSuccess: false,
         statusCode: 1,
         body: 'Email not sent. TEST_EMAIL_ADDRESS env variable is missing',
-        headers: {}
+        headers: {},
       }
     }
 
     const recipient = shouldSendEmailToRealUser
       ? {
-          email: to
+          email: to,
         }
       : {
-          email: process.env.TEST_EMAIL_ADDRESS || ''
+          email: process.env.TEST_EMAIL_ADDRESS || '',
         }
 
     if (!this.emailTransport) {
@@ -160,12 +160,12 @@ export class EmailService {
       recipients: [recipient],
       attachments,
       categories: template.categories,
-      bcc
+      bcc,
     })
   }
 
   async sendEmailTemplateTest(
-    email: EmailTest
+    email: EmailTest,
   ): Promise<SendGridEmailResponse> {
     const html = this.compileMjml(email.mjml)
 
@@ -188,10 +188,10 @@ export class EmailService {
       replyTo: `no_reply@${this.baseDomain}`,
       recipients: [
         {
-          email: `${username}@${this.baseDomain}`
-        }
+          email: `${username}@${this.baseDomain}`,
+        },
       ],
-      categories: [EmailCategory.TEST_EMAIL]
+      categories: [EmailCategory.TEST_EMAIL],
     })
   }
 }

@@ -19,7 +19,7 @@ describe('OpenCode Integration', () => {
     it('should fall back to default model when small_model not configured', () => {
       const adapter = getLLMAdapter({
         model: 'openai/gpt-4',
-        small_model: undefined
+        small_model: undefined,
       })
 
       const config = adapter.getConfig()
@@ -32,7 +32,7 @@ describe('OpenCode Integration', () => {
     it('should parse model strings correctly', () => {
       const adapter = getLLMAdapter({
         model: 'anthropic/claude-3-opus',
-        small_model: 'ollama/llama3'
+        small_model: 'ollama/llama3',
       })
 
       const config = adapter.getConfig()
@@ -58,7 +58,7 @@ describe('OpenCode Integration', () => {
       async () => {
         const testInput = {
           messages: [{ role: 'user' as const, content: 'Hello, test' }],
-          useSmall: true
+          useSmall: true,
         }
 
         // Mock the CLI execution
@@ -70,18 +70,18 @@ describe('OpenCode Integration', () => {
                   JSON.stringify({
                     content: 'Test response',
                     model: 'test/model',
-                    usage: { totalTokens: 100 }
-                  })
+                    usage: { totalTokens: 100 },
+                  }),
                 )
               }
-            })
+            }),
           },
           stderr: { on: vi.fn() },
           on: vi.fn((event, callback) => {
             if (event === 'close') {
               callback(0)
             }
-          })
+          }),
         }
 
         const _spawnSpy = vi
@@ -91,7 +91,7 @@ describe('OpenCode Integration', () => {
         // Execute via subprocess (simulating Python calling the CLI)
         const result = await new Promise<any>((resolve, reject) => {
           const child = spawn('npx', ['tsx', 'src/llm/cli.ts'], {
-            env: { ...process.env }
+            env: { ...process.env },
           })
 
           let output = ''
@@ -113,7 +113,7 @@ describe('OpenCode Integration', () => {
         expect(result).toHaveProperty('content')
         expect(result).toHaveProperty('model')
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     )
   })
 
@@ -124,7 +124,7 @@ describe('OpenCode Integration', () => {
       // Start MCP server
       serverProcess = spawn('npx', ['tsx', 'delphi-mcp.ts'], {
         env: { ...process.env },
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
       })
 
       // Wait for server to start
@@ -145,7 +145,7 @@ describe('OpenCode Integration', () => {
           jsonrpc: '2.0',
           id: 1,
           method: 'tools/list',
-          params: {}
+          params: {},
         }
 
         serverProcess.stdin.write(`${JSON.stringify(request)}\n`)
@@ -166,11 +166,11 @@ describe('OpenCode Integration', () => {
 
         expect(response.result.tools).toContainEqual(
           expect.objectContaining({
-            name: 'delphi.run'
-          })
+            name: 'delphi.run',
+          }),
         )
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     )
 
     it(
@@ -182,8 +182,8 @@ describe('OpenCode Integration', () => {
           method: 'tools/call',
           params: {
             name: 'delphi.status',
-            arguments: {}
-          }
+            arguments: {},
+          },
         }
 
         serverProcess.stdin.write(`${JSON.stringify(request)}\n`)
@@ -207,28 +207,28 @@ describe('OpenCode Integration', () => {
         expect(content.version).toBe('1.0.0')
         expect(content.capabilities).toHaveProperty(
           'llm',
-          'OpenCode integrated'
+          'OpenCode integrated',
         )
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     )
   })
 
   describe('End-to-End with Different Models', () => {
     it('should work with mock OpenAI model', async () => {
       const adapter = getLLMAdapter({
-        model: 'openai/gpt-3.5-turbo'
+        model: 'openai/gpt-3.5-turbo',
       })
 
       // Mock the actual API call
       vi.spyOn(adapter as any, 'chat').mockResolvedValue({
         content: 'Mocked response',
         model: 'openai/gpt-3.5-turbo',
-        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 }
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       })
 
       const response = await adapter.chat({
-        messages: [{ role: 'user', content: 'Test' }]
+        messages: [{ role: 'user', content: 'Test' }],
       })
 
       expect(response.content).toBe('Mocked response')
@@ -238,17 +238,17 @@ describe('OpenCode Integration', () => {
     it('should work with mock Ollama model', async () => {
       const adapter = getLLMAdapter({
         model: 'ollama/llama3',
-        endpoints: { ollama: 'http://localhost:11434' }
+        endpoints: { ollama: 'http://localhost:11434' },
       })
 
       vi.spyOn(adapter as any, 'chat').mockResolvedValue({
         content: 'Local LLM response',
         model: 'ollama/llama3',
-        usage: undefined // Ollama might not provide usage
+        usage: undefined, // Ollama might not provide usage
       })
 
       const response = await adapter.chat({
-        messages: [{ role: 'user', content: 'Test' }]
+        messages: [{ role: 'user', content: 'Test' }],
       })
 
       expect(response.content).toBe('Local LLM response')
@@ -276,7 +276,7 @@ describe('OpenCode Integration', () => {
 
       const response = await (adapter as any).retryClient.request(async () => ({
         content: 'Success after retry',
-        model: 'test'
+        model: 'test',
       }))
 
       expect(attempts).toBeGreaterThanOrEqual(1)
@@ -310,7 +310,7 @@ describe('OpenCode Integration', () => {
       process.env.OPENCODE_RUNTIME_CFG = JSON.stringify({
         model: 'anthropic/claude-3',
         small_model: 'openai/gpt-3.5-turbo',
-        api_keys: { anthropic: 'test-key' }
+        api_keys: { anthropic: 'test-key' },
       })
 
       const adapter = getLLMAdapter()

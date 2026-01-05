@@ -11,14 +11,14 @@ export const BrowserEvents = (() => {
     const eventParams = params || {
       bubbles: false,
       cancelable: false,
-      detail: undefined
+      detail: undefined,
     }
 
     evt.initCustomEvent(
       event,
       eventParams.bubbles,
       eventParams.cancelable,
-      eventParams.detail
+      eventParams.detail,
     )
     return evt
   }
@@ -28,7 +28,7 @@ export const BrowserEvents = (() => {
    */
   const emit = (
     name: string,
-    { data, text }: EventOptions = { data: {}, text: '' }
+    { data, text }: EventOptions = { data: {}, text: '' },
   ) => {
     if (!name) {
       throw new Error('Event must have a name.')
@@ -37,8 +37,8 @@ export const BrowserEvents = (() => {
     const customEvent = CustomEvent(name, {
       detail: {
         data,
-        text
-      }
+        text,
+      },
     })
 
     window.dispatchEvent(customEvent)
@@ -74,6 +74,6 @@ export const BrowserEvents = (() => {
   return Object.freeze({
     emit,
     listen,
-    remove
+    remove,
   })
 })()

@@ -21,7 +21,7 @@ export type CustomDecorator<TKey = string> = MethodDecorator &
  */
 export const SetMetadata = <K = string, V = any>(
   metadataKey: K,
-  metadataValue: V
+  metadataValue: V,
 ): CustomDecorator<K> => {
   const decoratorFactory = (target: object, _key?: any, descriptor?: any) => {
     if (descriptor) {

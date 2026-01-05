@@ -7,7 +7,7 @@ import { LLMAdapter } from '../llm/adapter.js'
 import {
   ModelConfig,
   ModelConfigSchema,
-  modelSelector
+  modelSelector,
 } from './model-config.js'
 import { Agent, AgreementOrchestrator } from './orchestrator.js'
 import { AgentRole, AgreementSessionConfig } from './protocol.js'
@@ -25,14 +25,14 @@ export const DiscussionContextSchema = z.object({
       z.object({
         input: z.string(),
         output: z.string(),
-        explanation: z.string().optional()
-      })
+        explanation: z.string().optional(),
+      }),
     )
     .optional(),
   domain: z
     .enum(['code', 'architecture', 'testing', 'review', 'design'])
     .optional()
-    .default('code')
+    .default('code'),
 })
 
 export type DiscussionContext = z.infer<typeof DiscussionContextSchema>
@@ -47,7 +47,7 @@ export const AgentConfigSchema = z.object({
     .enum(['analytical', 'creative', 'critical', 'supportive'])
     .optional(),
   weight: z.number().min(0).max(1).default(1),
-  systemPrompt: z.string().optional()
+  systemPrompt: z.string().optional(),
 })
 
 export type AgentConfig = z.infer<typeof AgentConfigSchema>
@@ -63,7 +63,7 @@ export const DiscussionParametersSchema = z.object({
     .default('majority'),
   parallelExecution: z.boolean().default(true),
   requireExplanation: z.boolean().default(true),
-  allowDissent: z.boolean().default(true)
+  allowDissent: z.boolean().default(true),
 })
 
 export type DiscussionParameters = z.infer<typeof DiscussionParametersSchema>
@@ -93,7 +93,7 @@ export class DiscussionBuilder<_T = any> {
   withConstraints(...constraints: string[]): this {
     this.context.constraints = [
       ...(this.context.constraints || []),
-      ...constraints
+      ...constraints,
     ]
     return this
   }
@@ -104,7 +104,7 @@ export class DiscussionBuilder<_T = any> {
   expecting(...deliverables: string[]): this {
     this.context.deliverables = [
       ...(this.context.deliverables || []),
-      ...deliverables
+      ...deliverables,
     ]
     return this
   }
@@ -115,7 +115,7 @@ export class DiscussionBuilder<_T = any> {
   successWhen(...criteria: string[]): this {
     this.context.successCriteria = [
       ...(this.context.successCriteria || []),
-      ...criteria
+      ...criteria,
     ]
     return this
   }
@@ -134,7 +134,7 @@ export class DiscussionBuilder<_T = any> {
   withExample(input: string, output: string, explanation?: string): this {
     this.context.examples = [
       ...(this.context.examples || []),
-      { input, output, explanation }
+      { input, output, explanation },
     ]
     return this
   }
@@ -197,14 +197,14 @@ export class DiscussionBuilder<_T = any> {
    */
   withReviewers(
     count: number,
-    baseConfig: Partial<Omit<AgentConfig, 'role' | 'id'>>
+    baseConfig: Partial<Omit<AgentConfig, 'role' | 'id'>>,
   ): this {
     for (let i = 0; i < count; i++) {
       this.agents.push({
         id: `reviewer-${i + 1}`,
         role: AgentRole.REVIEWER,
         weight: 1,
-        ...baseConfig
+        ...baseConfig,
       })
     }
     return this
@@ -270,7 +270,7 @@ export class DiscussionBuilder<_T = any> {
     const validatedContext = DiscussionContextSchema.parse({
       ...this.context,
       deliverables: this.context.deliverables || [],
-      successCriteria: this.context.successCriteria || []
+      successCriteria: this.context.successCriteria || [],
     })
 
     // Validate parameters
@@ -290,7 +290,7 @@ export class DiscussionBuilder<_T = any> {
 
     // Create agent instances
     const agentInstances = this.agents.map(config =>
-      this.createAgent(config, validatedContext, adapter)
+      this.createAgent(config, validatedContext, adapter),
     )
 
     // Create session config
@@ -305,14 +305,14 @@ export class DiscussionBuilder<_T = any> {
         id: a.id,
         role: a.role,
         weight: a.weight,
-        model: typeof a.model === 'string' ? a.model : a.model?.model
-      }))
+        model: typeof a.model === 'string' ? a.model : a.model?.model,
+      })),
     }
 
     return {
       context: validatedContext,
       agents: agentInstances,
-      config: sessionConfig
+      config: sessionConfig,
     }
   }
 
@@ -324,7 +324,7 @@ export class DiscussionBuilder<_T = any> {
 
     // Create orchestrator
     const orchestrator = new AgreementOrchestrator(config, agents, {
-      enableTracing: true
+      enableTracing: true,
     })
 
     try {
@@ -336,14 +336,14 @@ export class DiscussionBuilder<_T = any> {
       const timeoutPromise = new Promise<null>((_, reject) => {
         setTimeout(
           () => reject(new Error(`Discussion timeout after ${timeoutMs}ms`)),
-          timeoutMs
+          timeoutMs,
         )
       })
 
       // Race between agreement and timeout
       const result = await Promise.race([
         orchestrator.runAgreement(proposal),
-        timeoutPromise
+        timeoutPromise,
       ])
 
       // Transform to ConsensusResult
@@ -355,7 +355,7 @@ export class DiscussionBuilder<_T = any> {
           auditTrail: result.auditTrail,
           sessionId: config.sessionId,
           duration: Date.now() - orchestrator.getStartTime(),
-          iterations: orchestrator.getIterationCount()
+          iterations: orchestrator.getIterationCount(),
         } as ConsensusResult
       }
 
@@ -381,7 +381,7 @@ export class DiscussionBuilder<_T = any> {
   private createAgent(
     config: AgentConfig,
     context: DiscussionContext,
-    adapter: LLMAdapter
+    adapter: LLMAdapter,
   ): Agent {
     const systemPrompt =
       config.systemPrompt || this.generateSystemPrompt(config, context)
@@ -412,12 +412,12 @@ export class DiscussionBuilder<_T = any> {
         const messages = [
           {
             role: 'system' as const,
-            content: systemPrompt
+            content: systemPrompt,
           },
           {
             role: 'user' as const,
-            content: prompt
-          }
+            content: prompt,
+          },
         ]
 
         const response = await adapter.chat({
@@ -431,7 +431,7 @@ export class DiscussionBuilder<_T = any> {
             (typeof config.model === 'object' &&
               config.model?.model &&
               (config.model.model.includes('small') ||
-                config.model.model.includes('haiku')))
+                config.model.model.includes('haiku'))),
         })
 
         return {
@@ -443,29 +443,29 @@ export class DiscussionBuilder<_T = any> {
           payload: this.parseAgentResponse(
             response.content,
             config.role,
-            execContext.step
+            execContext.step,
           ),
           tokenUsage: response.usage
             ? {
                 prompt: response.usage.promptTokens,
                 completion: response.usage.completionTokens,
-                total: response.usage.totalTokens
+                total: response.usage.totalTokens,
               }
-            : undefined
+            : undefined,
         }
-      }
+      },
     }
   }
 
   private generateSystemPrompt(
     config: AgentConfig,
-    context: DiscussionContext
+    context: DiscussionContext,
   ): string {
     const rolePrompts = {
       [AgentRole.PROPOSER]: `You are a proposer agent responsible for creating and refining proposals.`,
       [AgentRole.REVIEWER]: `You are a reviewer agent responsible for critically evaluating proposals.`,
       [AgentRole.ARBITER]: `You are an arbiter agent responsible for resolving conflicts and making final decisions.`,
-      [AgentRole.OBSERVER]: `You are an observer agent monitoring the discussion.`
+      [AgentRole.OBSERVER]: `You are an observer agent monitoring the discussion.`,
     }
 
     const personalityTraits = {
@@ -475,7 +475,7 @@ export class DiscussionBuilder<_T = any> {
       critical:
         'You identify potential issues and edge cases others might miss.',
       supportive:
-        "You build on others' ideas and find ways to make proposals work."
+        "You build on others' ideas and find ways to make proposals work.",
     }
 
     return `
@@ -506,7 +506,7 @@ ${context.examples
 Input: ${e.input}
 Output: ${e.output}
 ${e.explanation ? `Explanation: ${e.explanation}` : ''}
-`
+`,
   )
   .join('\n')}
 `
@@ -530,10 +530,10 @@ When participating in the discussion:
         deliverables: context.deliverables,
         successCriteria: context.successCriteria,
         context: context.context,
-        examples: context.examples
+        examples: context.examples,
       },
       null,
-      2
+      2,
     )
   }
 
@@ -553,7 +553,7 @@ When participating in the discussion:
   private parseAgentResponse(
     content: string,
     _role: AgentRole,
-    step: string
+    step: string,
   ): any {
     try {
       return JSON.parse(content)
@@ -563,7 +563,7 @@ When participating in the discussion:
         return {
           content: content,
           rationale: 'Generated proposal',
-          confidence: 0.7
+          confidence: 0.7,
         }
       }
       if (step === 'critique') {
@@ -571,11 +571,11 @@ When participating in the discussion:
           proposalId: 'current',
           concerns: [],
           overallAssessment: 'refine',
-          confidence: 0.6
+          confidence: 0.6,
         }
       }
       return {
-        content: content
+        content: content,
       }
     }
   }

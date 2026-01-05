@@ -25,7 +25,7 @@ export const FactSchema = z.object({
   content: z.unknown(),
   references: z.array(z.string().uuid()).default([]),
   immutable: z.literal(true).default(true),
-  hash: z.string().optional()
+  hash: z.string().optional(),
 })
 
 export type Fact = z.infer<typeof FactSchema>
@@ -59,7 +59,7 @@ export class Blackboard {
 
   constructor(
     dbPath: string = '.delphi/blackboard.db',
-    cleanupConfig?: SessionCleanupConfig
+    cleanupConfig?: SessionCleanupConfig,
   ) {
     // Ensure directory exists
     const dir = path.dirname(dbPath)
@@ -153,7 +153,7 @@ export class Blackboard {
         SELECT * FROM facts 
         WHERE session_id = ?
         ORDER BY timestamp ASC
-      `)
+      `),
     }
 
     // Add cleanup statements if cleanup is enabled
@@ -177,11 +177,11 @@ export class Blackboard {
    * Append a fact to the blackboard (immutable)
    */
   async appendFact(
-    fact: Omit<Fact, 'id' | 'timestamp' | 'hash' | 'immutable'>
+    fact: Omit<Fact, 'id' | 'timestamp' | 'hash' | 'immutable'>,
   ): Promise<Fact> {
     const validatedFact = FactSchema.parse({
       ...fact,
-      immutable: true
+      immutable: true,
     })
 
     // Calculate content hash for deduplication
@@ -189,7 +189,7 @@ export class Blackboard {
       sessionId: validatedFact.sessionId,
       agentId: validatedFact.agentId,
       type: validatedFact.type,
-      content: validatedFact.content
+      content: validatedFact.content,
     })
 
     const hash = await this.calculateHash(contentStr)
@@ -204,7 +204,7 @@ export class Blackboard {
         validatedFact.type,
         JSON.stringify(validatedFact.content),
         JSON.stringify(validatedFact.references),
-        hash
+        hash,
       )
 
       return validatedFact
@@ -239,7 +239,7 @@ export class Blackboard {
       type,
       since,
       since,
-      limit
+      limit,
     ) as any[]
 
     return results.map(row => this.deserializeFact(row))
@@ -264,7 +264,7 @@ export class Blackboard {
       consensusMethod: string
       consensusScore: number
       factIds: string[]
-    }
+    },
   ): Promise<string> {
     const decisionId = uuidv4()
 
@@ -282,7 +282,7 @@ export class Blackboard {
         decision.rationale,
         decision.consensusMethod,
         decision.consensusScore,
-        JSON.stringify(decision.factIds)
+        JSON.stringify(decision.factIds),
       )
 
     return decisionId
@@ -308,7 +308,7 @@ export class Blackboard {
       rationale: row.rationale,
       consensusMethod: row.consensus_method,
       consensusScore: row.consensus_score,
-      factIds: JSON.parse(row.fact_ids)
+      factIds: JSON.parse(row.fact_ids),
     }
   }
 
@@ -322,7 +322,7 @@ export class Blackboard {
       content: JSON.parse(row.content),
       references: JSON.parse(row.fact_references),
       immutable: true,
-      hash: row.hash
+      hash: row.hash,
     }
   }
 
@@ -371,7 +371,7 @@ export class Blackboard {
       .prepare(
         sessionId
           ? 'SELECT COUNT(*) as count FROM decisions WHERE session_id = ?'
-          : 'SELECT COUNT(*) as count FROM decisions'
+          : 'SELECT COUNT(*) as count FROM decisions',
       )
       .get(sessionId) as any
 
@@ -379,9 +379,9 @@ export class Blackboard {
       totalFacts: totalFacts.count,
       factsByType: Object.fromEntries(factsByType.map(r => [r.type, r.count])),
       factsByAgent: Object.fromEntries(
-        factsByAgent.map(r => [r.agent_id, r.count])
+        factsByAgent.map(r => [r.agent_id, r.count]),
       ),
-      decisionsCount: decisionsCount.count
+      decisionsCount: decisionsCount.count,
     }
   }
 
@@ -394,7 +394,7 @@ export class Blackboard {
         const result = await this.cleanupOldSessions()
         if (result.deletedSessions > 0) {
           console.log(
-            `[Blackboard] Auto-cleanup: Removed ${result.deletedSessions} old sessions`
+            `[Blackboard] Auto-cleanup: Removed ${result.deletedSessions} old sessions`,
           )
         }
       } catch (error) {
@@ -413,7 +413,7 @@ export class Blackboard {
   }> {
     if (!this.cleanupConfig?.enabled && !retentionDays) {
       throw new Error(
-        'Cleanup is not enabled. Enable it in constructor or provide retentionDays parameter.'
+        'Cleanup is not enabled. Enable it in constructor or provide retentionDays parameter.',
       )
     }
 
@@ -473,7 +473,7 @@ export class Blackboard {
     return {
       deletedSessions: beforeCount.count || 0,
       deletedFacts: beforeFactsCount.count || 0,
-      deletedDecisions: beforeDecisionsCount.count || 0
+      deletedDecisions: beforeDecisionsCount.count || 0,
     }
   }
 
@@ -503,7 +503,7 @@ export class Blackboard {
     return sessions.map(s => ({
       sessionId: s.session_id,
       lastActivity: s.last_activity,
-      factCount: s.fact_count
+      factCount: s.fact_count,
     }))
   }
 
@@ -524,7 +524,7 @@ export class Blackboard {
 
       return {
         deletedFacts: factsResult.changes,
-        deletedDecisions: decisionsResult.changes
+        deletedDecisions: decisionsResult.changes,
       }
     })
 

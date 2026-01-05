@@ -24,6 +24,6 @@ export function writableVoid(opt: WritableVoidOptions = {}): Writable {
     final(cb) {
       cb()
       opt.streamDone?.resolve()
-    }
+    },
   })
 }

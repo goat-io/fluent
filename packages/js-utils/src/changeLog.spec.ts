@@ -23,8 +23,8 @@ describe('Changelogs', () => {
         path: ['b'],
         author: author,
         timestamp: expect.any(String),
-        new: '2'
-      }
+        new: '2',
+      },
     ])
   })
 
@@ -38,8 +38,8 @@ describe('Changelogs', () => {
         path: ['b'],
         author: author,
         timestamp: expect.any(String),
-        previous: '2'
-      }
+        previous: '2',
+      },
     ])
   })
 
@@ -54,8 +54,8 @@ describe('Changelogs', () => {
         author: author,
         timestamp: expect.any(String),
         previous: '1',
-        new: '2'
-      }
+        new: '2',
+      },
     ])
   })
 
@@ -70,8 +70,8 @@ describe('Changelogs', () => {
         author: author,
         timestamp: expect.any(String),
         previous: '2',
-        new: '3'
-      }
+        new: '3',
+      },
     ])
   })
 
@@ -86,7 +86,7 @@ describe('Changelogs', () => {
       author: author,
       timestamp: expect.any(String),
       previous: '1',
-      new: '2'
+      new: '2',
     })
     expect(changes).toContainEqual({
       kind: ChangeType.EDITED,
@@ -94,7 +94,7 @@ describe('Changelogs', () => {
       author: author,
       timestamp: expect.any(String),
       previous: '2',
-      new: '3'
+      new: '3',
     })
   })
 
@@ -104,16 +104,16 @@ describe('Changelogs', () => {
         previous: {
           id: '1',
           data: {
-            name: 'Pedro'
-          }
+            name: 'Pedro',
+          },
         },
         current: {
           id: '1',
           data: {
-            name: 'Jose'
-          }
+            name: 'Jose',
+          },
         },
-        author: 'cabrera'
+        author: 'cabrera',
       })
 
       expect(changelog.length).toBe(1)
@@ -130,17 +130,17 @@ describe('Changelogs', () => {
           id: '1',
           data: {
             name: 'Pedro',
-            children: ['a', 'b']
-          }
+            children: ['a', 'b'],
+          },
         },
         current: {
           id: '1',
           data: {
             name: 'Jose',
-            children: ['a', 'b', 'c']
-          }
+            children: ['a', 'b', 'c'],
+          },
         },
-        author: 'cabrera'
+        author: 'cabrera',
       })
 
       // Checks for the edited name
@@ -165,10 +165,10 @@ describe('Changelogs', () => {
           emails: ['john@example.com', 'john.doe@example.com'],
           address: {
             city: 'New York',
-            zip: '10001'
-          }
+            zip: '10001',
+          },
         },
-        tags: ['developer', 'tester', 'admin']
+        tags: ['developer', 'tester', 'admin'],
       }
 
       const current = {
@@ -180,11 +180,11 @@ describe('Changelogs', () => {
           address: {
             city: 'Los Angeles',
             zip: '90001',
-            country: 'USA'
-          }
+            country: 'USA',
+          },
         },
         tags: ['developer', 'admin'],
-        status: 'active'
+        status: 'active',
       }
 
       const changelog = Changelogs.get({ previous, current, author: 'cabrera' })
@@ -195,7 +195,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify('John'),
-        new: JSON.stringify('John Doe')
+        new: JSON.stringify('John Doe'),
       })
 
       expect(changelog).toContainEqual({
@@ -204,7 +204,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(30),
-        new: JSON.stringify(31)
+        new: JSON.stringify(31),
       })
 
       expect(changelog).toContainEqual({
@@ -213,7 +213,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify('john@example.com'),
-        new: JSON.stringify('john.doe@example.com')
+        new: JSON.stringify('john.doe@example.com'),
       })
 
       expect(changelog).toContainEqual({
@@ -221,7 +221,7 @@ describe('Changelogs', () => {
         path: ['author', 'emails', '1'],
         author: 'cabrera',
         timestamp: expect.any(String),
-        previous: JSON.stringify('john.doe@example.com')
+        previous: JSON.stringify('john.doe@example.com'),
       })
 
       expect(changelog).toContainEqual({
@@ -230,7 +230,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify('New York'),
-        new: JSON.stringify('Los Angeles')
+        new: JSON.stringify('Los Angeles'),
       })
 
       expect(changelog).toContainEqual({
@@ -239,7 +239,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify('10001'),
-        new: JSON.stringify('90001')
+        new: JSON.stringify('90001'),
       })
 
       expect(changelog).toContainEqual({
@@ -247,7 +247,7 @@ describe('Changelogs', () => {
         path: ['author', 'address', 'country'],
         author: 'cabrera',
         timestamp: expect.any(String),
-        new: JSON.stringify('USA')
+        new: JSON.stringify('USA'),
       })
 
       expect(changelog).toContainEqual({
@@ -256,7 +256,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify('tester'),
-        new: JSON.stringify('admin')
+        new: JSON.stringify('admin'),
       })
 
       expect(changelog).toContainEqual({
@@ -264,7 +264,7 @@ describe('Changelogs', () => {
         path: ['tags', '2'],
         author: 'cabrera',
         timestamp: expect.any(String),
-        previous: JSON.stringify('admin')
+        previous: JSON.stringify('admin'),
       })
 
       expect(changelog).toContainEqual({
@@ -272,7 +272,7 @@ describe('Changelogs', () => {
         path: ['status'],
         author: 'cabrera',
         timestamp: expect.any(String),
-        new: JSON.stringify('active')
+        new: JSON.stringify('active'),
       })
     })
 
@@ -285,9 +285,9 @@ describe('Changelogs', () => {
         author: {
           verified: false,
           age: undefined,
-          score: 0
+          score: 0,
         },
-        tags: ['active', null, 'available']
+        tags: ['active', null, 'available'],
       }
 
       const current = {
@@ -298,9 +298,9 @@ describe('Changelogs', () => {
         author: {
           verified: true,
           age: 25,
-          score: null
+          score: null,
         },
-        tags: ['active', 'inactive', undefined]
+        tags: ['active', 'inactive', undefined],
       }
 
       const changelog = Changelogs.get({ previous, current, author: 'cabrera' })
@@ -311,7 +311,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(false),
-        new: JSON.stringify(true)
+        new: JSON.stringify(true),
       })
 
       expect(changelog).toContainEqual({
@@ -320,7 +320,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(0),
-        new: JSON.stringify(10)
+        new: JSON.stringify(10),
       })
 
       expect(changelog).toContainEqual({
@@ -329,7 +329,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(null),
-        new: JSON.stringify('A description')
+        new: JSON.stringify('A description'),
       })
 
       expect(changelog).toContainEqual({
@@ -338,7 +338,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(false),
-        new: JSON.stringify(true)
+        new: JSON.stringify(true),
       })
 
       expect(changelog).toContainEqual({
@@ -347,7 +347,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(undefined),
-        new: JSON.stringify(25)
+        new: JSON.stringify(25),
       })
 
       expect(changelog).toContainEqual({
@@ -356,7 +356,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(0),
-        new: JSON.stringify(null)
+        new: JSON.stringify(null),
       })
 
       expect(changelog).toContainEqual({
@@ -365,7 +365,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify(null),
-        new: JSON.stringify('inactive')
+        new: JSON.stringify('inactive'),
       })
 
       expect(changelog).toContainEqual({
@@ -374,7 +374,7 @@ describe('Changelogs', () => {
         author: 'cabrera',
         timestamp: expect.any(String),
         previous: JSON.stringify('available'),
-        new: JSON.stringify(undefined)
+        new: JSON.stringify(undefined),
       })
     })
   })

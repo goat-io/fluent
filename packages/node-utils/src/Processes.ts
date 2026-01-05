@@ -11,7 +11,7 @@ class ProcessesClass {
       rss: Units.megaBytes(rss),
       heapTotal: Units.megaBytes(heapTotal),
       heapUsed: Units.megaBytes(heapUsed),
-      external: Units.megaBytes(external)
+      external: Units.megaBytes(external),
     }
   }
 
@@ -26,7 +26,7 @@ class ProcessesClass {
       external: Units.megaBytes(external),
       totalMem: Units.megaBytes(totalMem),
       freeMem: Units.megaBytes(freeMem),
-      usedMem: Units.megaBytes(totalMem - freeMem)
+      usedMem: Units.megaBytes(totalMem - freeMem),
     }
   }
 
@@ -41,7 +41,7 @@ class ProcessesClass {
   stopMemoryTimer(afterMillis = 0): void {
     setTimeout(
       () => clearInterval(this.timer as unknown as number),
-      afterMillis
+      afterMillis,
     )
   }
 
@@ -50,7 +50,7 @@ class ProcessesClass {
     return {
       avg1: avg[0]!.toFixed(2),
       avg5: avg[1]!.toFixed(2),
-      avg15: avg[2]!.toFixed(2)
+      avg15: avg[2]!.toFixed(2),
     }
   }
 
@@ -59,7 +59,7 @@ class ProcessesClass {
     return {
       count: os.cpus().length,
       model: c.model,
-      speed: c.speed
+      speed: c.speed,
     }
   }
 
@@ -94,8 +94,8 @@ class ProcessesClass {
       },
       {
         idle: 0,
-        total: 0
-      }
+        total: 0,
+      },
     )
   }
 
@@ -105,19 +105,19 @@ class ProcessesClass {
     const dateComponents = [
       now.getUTCFullYear(),
       (now.getUTCMonth() + 1).toString().padStart(2, '0'),
-      now.getUTCDate().toString().padStart(2, '0')
+      now.getUTCDate().toString().padStart(2, '0'),
     ]
 
     const timeComponents = [
       now.getUTCHours().toString().padStart(2, '0'),
-      now.getUTCMinutes().toString().padStart(2, '0')
+      now.getUTCMinutes().toString().padStart(2, '0'),
     ]
     const seconds = now.getUTCSeconds().toString().padStart(2, '0')
 
     const tsStr = `${dateComponents.join('-')} ${timeComponents.join(':')}:${seconds}`
 
     const ver = [`${dateComponents.join('')}_${timeComponents.join('')}`].join(
-      '_'
+      '_',
     )
 
     return {
@@ -127,7 +127,7 @@ class ProcessesClass {
       branch: '',
       ver,
       env: 'dev',
-      dev: true
+      dev: true,
     }
   }
 }

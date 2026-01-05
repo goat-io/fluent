@@ -30,7 +30,7 @@ export const FlowStateSchema = z.object({
   threadId: z
     .string()
     .optional()
-    .describe('LangGraph thread ID for checkpointing')
+    .describe('LangGraph thread ID for checkpointing'),
 })
 
 // Infer TypeScript type from Zod schema
@@ -79,7 +79,7 @@ export class DelphiError extends Error {
   constructor(
     message: string,
     public code: string,
-    public details?: any
+    public details?: any,
   ) {
     super(message)
     this.name = 'DelphiError'

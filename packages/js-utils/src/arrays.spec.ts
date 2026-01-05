@@ -91,7 +91,7 @@ describe('ArraysClass', () => {
     it('handles arrays that do not divide evenly by the chunk size', () => {
       expect(arrays.chunk([1, 2, 3, 4, 5], 3)).toEqual([
         [1, 2, 3],
-        [4, 5]
+        [4, 5],
       ])
     })
 
@@ -105,10 +105,10 @@ describe('ArraysClass', () => {
 
     it('throws an error for zero or negative chunk size', () => {
       expect(() => arrays.chunk([1, 2, 3], 0)).toThrow(
-        'Size must be greater than 0'
+        'Size must be greater than 0',
       )
       expect(() => arrays.chunk([1, 2, 3], -1)).toThrow(
-        'Size must be greater than 0'
+        'Size must be greater than 0',
       )
     })
 
@@ -134,7 +134,7 @@ describe('ArraysClass', () => {
       expect(arrays.deDuplicate(['a', 'b', 'a', 'b', 'c'])).toEqual([
         'a',
         'b',
-        'c'
+        'c',
       ])
     })
 
@@ -142,7 +142,7 @@ describe('ArraysClass', () => {
       const obj = { key: 'value' }
       expect(arrays.deDuplicate([obj, obj, { key: 'value' }])).toEqual([
         obj,
-        { key: 'value' }
+        { key: 'value' },
       ])
     })
 
@@ -170,7 +170,7 @@ describe('ArraysClass', () => {
 
     it('flattens arrays with varying lengths', () => {
       expect(arrays.collapse([[1], [2, 3], [4, 5, 6]])).toEqual([
-        1, 2, 3, 4, 5, 6
+        1, 2, 3, 4, 5, 6,
       ])
     })
 
@@ -185,12 +185,12 @@ describe('ArraysClass', () => {
     it('does not modify the original array', () => {
       const original = [
         [1, 2],
-        [3, 4]
+        [3, 4],
       ]
       arrays.collapse(original)
       expect(original).toEqual([
         [1, 2],
-        [3, 4]
+        [3, 4],
       ])
     })
   })
@@ -201,17 +201,17 @@ describe('ArraysClass', () => {
     it('groups numbers by their modulo 2 value', () => {
       expect(arrays.groupBy([1, 2, 3, 4, 5], num => num % 2)).toEqual({
         '1': [1, 3, 5],
-        '0': [2, 4]
+        '0': [2, 4],
       })
     })
 
     it('groups strings by their first letter', () => {
       expect(
-        arrays.groupBy(['carrot', 'apple', 'banana'], str => str.charAt(0))
+        arrays.groupBy(['carrot', 'apple', 'banana'], str => str.charAt(0)),
       ).toEqual({
         c: ['carrot'],
         a: ['apple'],
-        b: ['banana']
+        b: ['banana'],
       })
     })
 
@@ -225,24 +225,24 @@ describe('ArraysClass', () => {
       const item3 = { type: 'fruit', name: 'banana' }
       expect(arrays.groupBy([item1, item2, item3], item => item.type)).toEqual({
         fruit: [item1, item3],
-        vegetable: [item2]
+        vegetable: [item2],
       })
     })
 
     it('groups items with undefined mapper result into undefined key', () => {
       expect(
-        arrays.groupBy([1, 2, 3], num => (num > 3 ? 'greater' : undefined))
+        arrays.groupBy([1, 2, 3], num => (num > 3 ? 'greater' : undefined)),
       ).toEqual({
-        undefined: [1, 2, 3]
+        undefined: [1, 2, 3],
       })
     })
 
     it('applies the mapper function with index', () => {
       expect(
-        arrays.groupBy(['a', 'b', 'c'], (_item, index) => index % 2)
+        arrays.groupBy(['a', 'b', 'c'], (_item, index) => index % 2),
       ).toEqual({
         '0': ['a', 'c'],
-        '1': ['b']
+        '1': ['b'],
       })
     })
   })
@@ -258,7 +258,7 @@ describe('ArraysClass', () => {
       expect(arrays.sortBy(['banana', 'apple', 'carrot'], x => x)).toEqual([
         'apple',
         'banana',
-        'carrot'
+        'carrot',
       ])
     })
 
@@ -267,13 +267,13 @@ describe('ArraysClass', () => {
       expect(arrays.sortBy(arr, item => item.age)).toEqual([
         { age: 20 },
         { age: 30 },
-        { age: 40 }
+        { age: 40 },
       ])
     })
 
     it('sorts in descending order when specified', () => {
       expect(arrays.sortBy([3, 1, 4, 1], x => x, false, true)).toEqual([
-        4, 3, 1, 1
+        4, 3, 1, 1,
       ])
     })
 
@@ -293,13 +293,13 @@ describe('ArraysClass', () => {
       const arr = [
         { age: 20, name: 'John' },
         { age: 20, name: 'Jane' },
-        { age: 30, name: 'Alice' }
+        { age: 30, name: 'Alice' },
       ]
       // Sorting by age first, and then by name if ages are equal
       expect(arrays.sortBy(arr, item => `${item.age}-${item.name}`)).toEqual([
         { age: 20, name: 'Jane' },
         { age: 20, name: 'John' },
-        { age: 30, name: 'Alice' }
+        { age: 30, name: 'Alice' },
       ])
     })
 
@@ -335,13 +335,13 @@ describe('ArraysClass', () => {
 
     it('handles all elements being undefined', () => {
       expect(
-        arrays.findLast([undefined, undefined], x => x !== undefined)
+        arrays.findLast([undefined, undefined], x => x !== undefined),
       ).toBeUndefined()
     })
 
     it('processes an array with multiple types', () => {
       expect(
-        arrays.findLast([1, 'two', 3, 'four'], x => typeof x === 'string')
+        arrays.findLast([1, 'two', 3, 'four'], x => typeof x === 'string'),
       ).toBe('four')
     })
   })
@@ -353,7 +353,7 @@ describe('ArraysClass', () => {
       expect(arrays.countBy([1, 2, 2, 3, 3, 3], x => x)).toEqual({
         '1': 1,
         '2': 2,
-        '3': 3
+        '3': 3,
       })
     })
 
@@ -368,11 +368,11 @@ describe('ArraysClass', () => {
       const arr = [
         { type: 'fruit', name: 'apple' },
         { type: 'vegetable', name: 'carrot' },
-        { type: 'fruit', name: 'banana' }
+        { type: 'fruit', name: 'banana' },
       ]
       expect(arrays.countBy(arr, item => item.type)).toEqual({
         fruit: 2,
-        vegetable: 1
+        vegetable: 1,
       })
     })
 
@@ -384,19 +384,19 @@ describe('ArraysClass', () => {
       expect(arrays.countBy([1, '1', true, 'true'], x => typeof x)).toEqual({
         number: 1,
         string: 2,
-        boolean: 1
+        boolean: 1,
       })
     })
 
     it('counts with a function that returns a complex key', () => {
       expect(
-        arrays.countBy([1.2, 1.3, 1.2, 2.3, 2.3], x => Math.floor(x))
+        arrays.countBy([1.2, 1.3, 1.2, 2.3, 2.3], x => Math.floor(x)),
       ).toEqual({ '1': 3, '2': 2 })
     })
 
     it('treats undefined and null distinctly', () => {
       expect(
-        arrays.countBy([undefined, null, undefined, null], x => x)
+        arrays.countBy([undefined, null, undefined, null], x => x),
       ).toEqual({ undefined: 2, null: 2 })
     })
   })
@@ -466,8 +466,8 @@ describe('ArraysClass', () => {
       const mixedArray = [{ value: 1 }, { value: 'two' }, { value: 3 }]
       expect(
         arrays.sumBy(mixedArray, obj =>
-          typeof obj.value === 'number' ? obj.value : 0
-        )
+          typeof obj.value === 'number' ? obj.value : 0,
+        ),
       ).toBe(4)
     })
   })
@@ -478,59 +478,59 @@ describe('ArraysClass', () => {
     it('converts an array of objects to an object with specified keys and values', () => {
       const objects = [
         { id: 1, value: 'a' },
-        { id: 2, value: 'b' }
+        { id: 2, value: 'b' },
       ]
       expect(
-        arrays.mapToObject(objects, item => [item.id, item.value])
+        arrays.mapToObject(objects, item => [item.id, item.value]),
       ).toEqual({ '1': 'a', '2': 'b' })
     })
 
     it('handles an array with a single object', () => {
       const objects = [{ id: 1, value: 'a' }]
       expect(
-        arrays.mapToObject(objects, item => [item.id, item.value])
+        arrays.mapToObject(objects, item => [item.id, item.value]),
       ).toEqual({ '1': 'a' })
     })
 
     it('returns an empty object for an empty array', () => {
       const emptyArray: { id: string; value: string }[] = []
       expect(
-        arrays.mapToObject(emptyArray, item => [item.id, item.value])
+        arrays.mapToObject(emptyArray, item => [item.id, item.value]),
       ).toEqual({})
     })
 
     it('ignores items where the mapper function returns null or undefined', () => {
       const objects = [
         { id: 1, value: 'a' },
-        { id: 2, value: null }
+        { id: 2, value: null },
       ]
       expect(
         arrays.mapToObject(objects, item =>
-          item.value ? [item.id, item.value] : null
-        )
+          item.value ? [item.id, item.value] : null,
+        ),
       ).toEqual({ '1': 'a' })
     })
 
     it('allows for complex key-value generation', () => {
       const objects = [
         { id: 1, value: 'a' },
-        { id: 2, value: 'b' }
+        { id: 2, value: 'b' },
       ]
       expect(
         arrays.mapToObject(objects, item => [
           `${item.id}_key`,
-          item.value.toUpperCase()
-        ])
+          item.value.toUpperCase(),
+        ]),
       ).toEqual({ '1_key': 'A', '2_key': 'B' })
     })
 
     it('handles cases where keys are duplicated, overwriting previous values', () => {
       const objects = [
         { id: 1, value: 'a' },
-        { id: 1, value: 'b' }
+        { id: 1, value: 'b' },
       ]
       expect(
-        arrays.mapToObject(objects, item => [item.id, item.value])
+        arrays.mapToObject(objects, item => [item.id, item.value]),
       ).toEqual({ '1': 'b' })
     })
   })
@@ -599,7 +599,7 @@ describe('ArraysClass', () => {
         true,
         4,
         5,
-        'six'
+        'six',
       ])
     })
 
@@ -617,7 +617,7 @@ describe('ArraysClass', () => {
         undefined,
         2,
         3,
-        4
+        4,
       ])
     })
   })
@@ -629,7 +629,7 @@ describe('ArraysClass', () => {
       expect(arrays.zip([1, 2, 3], ['a', 'b', 'c'])).toEqual([
         [1, 'a'],
         [2, 'b'],
-        [3, 'c']
+        [3, 'c'],
       ])
     })
 
@@ -637,7 +637,7 @@ describe('ArraysClass', () => {
       expect(arrays.zip([1, 2], ['a', 'b', 'c'])).toEqual([
         [1, 'a'],
         [2, 'b'],
-        [undefined, 'c']
+        [undefined, 'c'],
       ])
     })
 
@@ -647,11 +647,11 @@ describe('ArraysClass', () => {
 
     it('zips with arrays containing various types, including null and undefined', () => {
       expect(
-        arrays.zip([1, null, 3], ['a', 'b', undefined], [true, false, true])
+        arrays.zip([1, null, 3], ['a', 'b', undefined], [true, false, true]),
       ).toEqual([
         [1, 'a', true],
         [null, 'b', false],
-        [3, undefined, true]
+        [3, undefined, true],
       ])
     })
 
@@ -662,7 +662,7 @@ describe('ArraysClass', () => {
     it('zips more than two arrays', () => {
       expect(arrays.zip([1, 2], ['a', 'b'], [true, false])).toEqual([
         [1, 'a', true],
-        [2, 'b', false]
+        [2, 'b', false],
       ])
     })
   })
@@ -714,7 +714,7 @@ describe('ArraysClass', () => {
       const array: (string | number | boolean)[] = ['a', 1, true, 'b', 2, false]
       const [pass, fail] = Arrays.partition(
         array,
-        elem => typeof elem === 'string'
+        elem => typeof elem === 'string',
       )
       expect(pass).toEqual(['a', 'b'])
       expect(fail).toEqual([1, true, 2, false])
@@ -770,12 +770,12 @@ describe('ArraysClass', () => {
       const array = [
         { id: 1, value: 'a' },
         { id: 2, value: 'b' },
-        { id: 1, value: 'c' }
+        { id: 1, value: 'c' },
       ]
       const result = Arrays.uniqueBy(array, element => element.id)
       expect(result).toEqual([
         { id: 1, value: 'a' },
-        { id: 2, value: 'b' }
+        { id: 2, value: 'b' },
       ])
     })
 
@@ -905,7 +905,7 @@ describe('ArraysClass', () => {
         true,
         'a',
         {},
-        []
+        [],
       ]
       const result = Arrays.compact(array)
       expect(result).toEqual([1, true, 'a', {}, []])
@@ -925,7 +925,7 @@ describe('ArraysClass', () => {
 
     it('should handle large arrays efficiently', () => {
       const array = Array.from({ length: 10000 }, (_, i) =>
-        i % 2 === 0 ? '' : i
+        i % 2 === 0 ? '' : i,
       ) // Every even index is falsy
       const result = Arrays.compact(array)
       expect(result.length).toBe(5000) // Expect 5000 truthy elements remaining
@@ -972,7 +972,7 @@ describe('ArraysClass', () => {
 
     it('should handle large arrays efficiently', () => {
       const arrays = Array.from({ length: 1000 }, (_, i) =>
-        Array.from({ length: 1000 }, (_, j) => i * 1000 + j)
+        Array.from({ length: 1000 }, (_, j) => i * 1000 + j),
       )
       const result = Arrays.concatAll(...arrays)
       expect(result.length).toBe(1000000) // Expect 1,000,000 elements in total

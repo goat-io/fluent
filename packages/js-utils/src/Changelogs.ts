@@ -4,7 +4,7 @@ export enum ChangeType {
   NEW = 'N',
   DELETED = 'D',
   EDITED = 'E',
-  ARRAY = 'A'
+  ARRAY = 'A',
 }
 
 interface ChangelogInput {
@@ -28,7 +28,7 @@ export const Changelogs = (() => {
     previous,
     current,
     author,
-    timeStamp
+    timeStamp,
   }: ChangelogInput): Changelog[] => {
     const timestamp = timeStamp || new Date().toISOString()
     const changes: Changelog[] = []
@@ -36,7 +36,7 @@ export const Changelogs = (() => {
     function addChange(
       kind: ChangeType,
       path: string[],
-      data: { previous?: unknown; new?: unknown }
+      data: { previous?: unknown; new?: unknown },
     ) {
       changes.push({
         kind,
@@ -47,7 +47,7 @@ export const Changelogs = (() => {
           data.previous !== undefined
             ? JSON.stringify(data.previous)
             : undefined,
-        new: data.new !== undefined ? JSON.stringify(data.new) : undefined
+        new: data.new !== undefined ? JSON.stringify(data.new) : undefined,
       })
     }
 
@@ -55,7 +55,7 @@ export const Changelogs = (() => {
       lhs: unknown[],
       rhs: unknown[],
       path: string[],
-      compareFunc: (l: unknown, r: unknown, p: string[]) => void
+      compareFunc: (l: unknown, r: unknown, p: string[]) => void,
     ) {
       const maxLength = Math.max(lhs.length, rhs.length)
       for (let i = 0; i < maxLength; i++) {
@@ -74,7 +74,7 @@ export const Changelogs = (() => {
       lhs: AnyObject,
       rhs: AnyObject,
       path: string[],
-      compareFunc: (l: unknown, r: unknown, p: string[]) => void
+      compareFunc: (l: unknown, r: unknown, p: string[]) => void,
     ) {
       const allKeys = new Set([...Object.keys(lhs), ...Object.keys(rhs)])
       for (const key of allKeys) {
@@ -116,6 +116,6 @@ export const Changelogs = (() => {
   }
 
   return Object.freeze({
-    get
+    get,
   })
 })()

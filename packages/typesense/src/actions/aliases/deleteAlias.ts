@@ -4,11 +4,11 @@ import { createTenantQualifiedName } from '../../utils/tenant'
 
 export async function deleteAlias(
   ctx: TypesenseContext,
-  aliasName: string
+  aliasName: string,
 ): Promise<TypesenseAliasResponse> {
   const qualifiedAliasName = createTenantQualifiedName(ctx.tenantId, aliasName)
   return await ctx.httpClient.request<TypesenseAliasResponse>(
     `/aliases/${qualifiedAliasName}`,
-    { method: 'DELETE' }
+    { method: 'DELETE' },
   )
 }

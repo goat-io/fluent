@@ -3,7 +3,7 @@
 import { ShouldQueue } from '@goatlab/tasks-core'
 import {
   multiTenantTestSuite,
-  taskConnectorTestSuite
+  taskConnectorTestSuite,
 } from '@goatlab/tasks-core/test-suite'
 import {
   afterAll,
@@ -12,7 +12,7 @@ import {
   beforeEach,
   describe,
   expect,
-  it
+  it,
 } from 'vitest'
 import { CloudTaskConnector } from './CloudTaskConnector.js'
 
@@ -24,7 +24,7 @@ if (!serviceAccountBase64) {
 }
 
 const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString(
-  'utf8'
+  'utf8',
 )
 const gcpServiceAccount = JSON.parse(serviceAccountJson)
 
@@ -35,7 +35,7 @@ const cloudTaskConnector = new CloudTaskConnector({
   encryptionKey: 'test-encryption-key-32chars!!!!',
   gcpProject: gcpServiceAccount.project_id,
   // Enable payload cache for testing - GCP removes completed tasks immediately
-  enablePayloadCache: true
+  enablePayloadCache: true,
 })
 
 // Run the standardized test suite
@@ -52,8 +52,8 @@ taskConnectorTestSuite(
     // it uses HTTP callbacks. Without a real HTTP server, tasks will fail.
     skipLifecycleTests: true,
     // No startWorker for GCP - it's HTTP callback based
-    startWorker: undefined
-  }
+    startWorker: undefined,
+  },
 )
 
 // GCP-specific tests for the HTTP callback model
@@ -127,7 +127,7 @@ describe('CloudTaskConnector GCP-Specific Tests', () => {
 
     // encryptBody expects an object with 'content' key containing stringified data
     const encrypted = cloudTaskConnector.encryptBody({
-      content: JSON.stringify(original)
+      content: JSON.stringify(original),
     })
 
     expect(encrypted).toBeDefined()
@@ -142,7 +142,7 @@ describe('CloudTaskConnector GCP-Specific Tests', () => {
       location: 'europe-west1',
       encryptionKey: 'test-encryption-key-32chars!!!!',
       gcpProject: gcpServiceAccount.project_id,
-      tenantId: 'test-tenant'
+      tenantId: 'test-tenant',
     })
 
     expect(tenantConnector.tenantId).toBe('test-tenant')
@@ -170,7 +170,7 @@ const baseConnector = new CloudTaskConnector({
   encryptionKey: 'test-encryption-key-32chars!!!!',
   gcpProject: gcpServiceAccount.project_id,
   // Enable payload cache for testing - GCP removes completed tasks immediately
-  enablePayloadCache: true
+  enablePayloadCache: true,
 })
 
 // Store tenant connectors for cleanup
@@ -201,6 +201,6 @@ multiTenantTestSuite(
     testPostUrl: 'https://httpbin.org/post',
     // Skip data isolation tests - GCP tasks are identified by full path which
     // includes the task name, so cross-tenant getStatus would require different logic
-    runIsolationTests: false
-  }
+    runIsolationTests: false,
+  },
 )

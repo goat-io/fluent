@@ -6,7 +6,7 @@ import type { JobDescription } from '../types/job'
 import type {
   MessageBroker,
   MessageProducer,
-  MessageSubscriber
+  MessageSubscriber,
 } from '../types/message'
 
 type InternalTask = {
@@ -31,13 +31,13 @@ export class FastQBroker implements MessageBroker {
   async publish({
     queueName,
     data,
-    topic = 'topic'
+    topic = 'topic',
   }: MessageProducer): Promise<boolean> {
     const task: InternalTask = {
       id: randomUUID(),
       data,
       topic,
-      queueName
+      queueName,
     }
 
     await this.queue.push(task)
@@ -47,7 +47,7 @@ export class FastQBroker implements MessageBroker {
   async subscribe({
     queueName,
     handle,
-    topics = ['default']
+    topics = ['default'],
   }: MessageSubscriber): Promise<void> {
     for (const topic of topics) {
       const key = this.getKey(queueName, topic)
@@ -67,7 +67,7 @@ export class FastQBroker implements MessageBroker {
       id: task.id,
       name: task.topic,
       data: task.data,
-      instance: task
+      instance: task,
     }
 
     const [error] = await Promises.try(handler(job))

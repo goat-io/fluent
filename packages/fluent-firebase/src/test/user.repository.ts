@@ -3,7 +3,7 @@ import { UsersEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations
 import {
   UsersDtoIn,
   UsersDtoOut,
-  userInputSchema
+  userInputSchema,
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/user/user.schema'
 import { FirebaseConnector } from '../FirebaseConnector'
 import { CarsRepository } from './car.repository'
@@ -18,20 +18,20 @@ export class UserRepository extends FirebaseConnector<
   constructor() {
     super({
       entity: UsersEntity,
-      inputSchema: userInputSchema
+      inputSchema: userInputSchema,
     })
   }
 
   public cars = () => {
     return this.hasMany({
       repository: CarsRepository,
-      model: CarsEntity
+      model: CarsEntity,
     })
   }
 
   public roles = () =>
     this.belongsToMany({
       repository: RoleRepository,
-      pivot: RoleUsersRepository
+      pivot: RoleUsersRepository,
     })
 }

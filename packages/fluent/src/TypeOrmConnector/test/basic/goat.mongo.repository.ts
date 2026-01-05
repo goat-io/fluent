@@ -14,7 +14,7 @@ export class GoatRepository extends TypeOrmConnector<
         (() => {
           throw new Error('DataSource not provided to GoatRepository')
         }),
-      inputSchema: GoatSchema
+      inputSchema: GoatSchema,
     })
   }
 }

@@ -20,7 +20,7 @@ try {
           engine: { name: 'Unknown', version: '' },
           os: { name: 'Unknown', version: '' },
           device: { type: 'desktop' },
-          cpu: { architecture: 'unknown' }
+          cpu: { architecture: 'unknown' },
         }
       }
     }
@@ -46,7 +46,7 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
         ? {
             decodedToken: token,
             email: 'email' in token ? token.email : undefined,
-            firebaseId: 'uid' in token ? token.uid : undefined
+            firebaseId: 'uid' in token ? token.uid : undefined,
           }
         : undefined,
     url: request.url,
@@ -83,7 +83,7 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
       return {
         ip,
         publicIp: publicIp || '',
-        ...location
+        ...location,
       }
     },
     endpoint: [request.method, request.path || request.url]
@@ -97,7 +97,7 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
         result.os.name === 'Mac OS' || result?.device?.model === 'Macintosh',
       os: result.os.name,
       isIOS: result.os.name === 'iOS',
-      isAndroid: result.os.name === 'Android'
-    }
+      isAndroid: result.os.name === 'Android',
+    },
   }
 }

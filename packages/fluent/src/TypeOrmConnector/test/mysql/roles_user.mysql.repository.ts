@@ -2,7 +2,7 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { RolesUser } from '../relations/roles/roles_user.entity'
 import {
   RolesUserInputSchema,
-  RolesUserSchema
+  RolesUserSchema,
 } from '../relations/roles/roles_user.schema'
 import { MYSQLDataSource } from './mysqlDataSource'
 
@@ -14,7 +14,7 @@ export class RoleUsersRepository extends TypeOrmConnector<
     super({
       entity: RolesUser,
       dataSource: MYSQLDataSource,
-      inputSchema: RolesUserSchema
+      inputSchema: RolesUserSchema,
     })
   }
 }

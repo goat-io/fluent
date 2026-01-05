@@ -147,7 +147,7 @@ export type ServiceType<C, ServicePath extends string> = C extends Container<
  */
 type GetServiceType<
   T,
-  Path extends string
+  Path extends string,
 > = Path extends `${infer K}.${infer Rest}`
   ? K extends keyof T
     ? GetServiceType<T[K], Rest>
@@ -200,7 +200,7 @@ export type HasService<C, ServicePath extends string> = ServiceType<
  */
 export type ServiceFactoryParams<
   C,
-  ServicePath extends string
+  ServicePath extends string,
 > = C extends Container<infer Defs, any>
   ? GetFactoryParams<Defs, ServicePath>
   : never
@@ -210,7 +210,7 @@ export type ServiceFactoryParams<
  */
 type GetFactoryParams<
   T,
-  Path extends string
+  Path extends string,
 > = Path extends `${infer K}.${infer Rest}`
   ? K extends keyof T
     ? GetFactoryParams<T[K], Rest>

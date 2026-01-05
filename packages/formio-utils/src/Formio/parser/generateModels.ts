@@ -11,7 +11,7 @@ import { getRelations } from './getRelations'
 
 const findDataGrids = (components: FormioComponent[]) => {
   const dataGrids = findComponents(components, {
-    type: 'datagrid'
+    type: 'datagrid',
   })
 
   if (!dataGrids || dataGrids.length === 0) {
@@ -40,14 +40,14 @@ const findDataGrids = (components: FormioComponent[]) => {
 
 const findObjects = (components: FormioComponent[]) => {
   const selectBoxes = findComponents(components, {
-    type: 'selectboxes'
+    type: 'selectboxes',
   })
   const containers = findComponents(components, {
-    type: 'container'
+    type: 'container',
   })
 
   const surveys = findComponents(components, {
-    type: 'survey'
+    type: 'survey',
   })
 
   const objects: FormioComponent[] = [...selectBoxes, ...containers, ...surveys]
@@ -75,7 +75,7 @@ const findObjects = (components: FormioComponent[]) => {
 }
 
 export const generateGoatModels = async (
-  forms: FormioForm[]
+  forms: FormioForm[],
 ): Promise<FluentModel[]> => {
   const relations = getRelations(forms)
 
@@ -107,16 +107,16 @@ export const generateGoatModels = async (
 
     const hasNGram = findComponents(form.components, {
       type: 'textfield',
-      path: '_ngram'
+      path: '_ngram',
     })
 
     if (hasNGram) {
       Model.mixins.Search.enabled = true
       Model.mixins.Search.fullText = findComponents(form.components, {
-        'properties.search': 'text'
+        'properties.search': 'text',
       }).map(f => f.key)
       Model.mixins.Search.nGram = findComponents(form.components, {
-        'properties.search': 'fuzzy'
+        'properties.search': 'fuzzy',
       }).map(f => f.key)
     }
 

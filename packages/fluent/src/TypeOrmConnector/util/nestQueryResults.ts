@@ -3,7 +3,7 @@ import { AnyObject } from '../../types'
 
 export const nestQueryResults = (
   results: AnyObject[],
-  keyToNestedKeyMap: AnyObject
+  keyToNestedKeyMap: AnyObject,
 ): AnyObject[] => {
   const nestableObject = {}
   let currentLevel = 0

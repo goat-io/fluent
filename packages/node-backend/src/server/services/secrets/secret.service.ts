@@ -213,8 +213,8 @@ export class SecretService<SecretType> {
 
       console.log(
         `🔐 Secrets loaded: ${magenta(
-          this.location.split('/').slice(-2).join('/')
-        )}`
+          this.location.split('/').slice(-2).join('/'),
+        )}`,
       )
 
       // Only decrypt if encryptionKey is provided
@@ -223,11 +223,11 @@ export class SecretService<SecretType> {
         try {
           secrets = Security.decryptObject(
             secretEncryptedObject,
-            this.encryptionKey!
+            this.encryptionKey!,
           )
         } catch (decryptError: any) {
           console.warn(
-            `Failed to decrypt secrets from file: ${decryptError.message}`
+            `Failed to decrypt secrets from file: ${decryptError.message}`,
           )
           // Fall back to using the raw secrets if decryption fails
           secrets = secretEncryptedObject
@@ -238,7 +238,7 @@ export class SecretService<SecretType> {
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
-        `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`
+        `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`,
       )
       return secrets as any as SecretType
     } catch (err: unknown) {
@@ -278,8 +278,8 @@ export class SecretService<SecretType> {
 
     console.log(
       `🔐 Secrets loaded: ${magenta(
-        this.location.split('/').slice(-2).join('/')
-      )}`
+        this.location.split('/').slice(-2).join('/'),
+      )}`,
     )
 
     try {
@@ -289,11 +289,11 @@ export class SecretService<SecretType> {
         try {
           secrets = Security.decryptObject(
             secretEncryptedObject,
-            this.encryptionKey!
+            this.encryptionKey!,
           )
         } catch (decryptError: any) {
           console.warn(
-            `Failed to decrypt secrets from file: ${decryptError.message}`
+            `Failed to decrypt secrets from file: ${decryptError.message}`,
           )
           // Fall back to using the raw secrets if decryption fails
           secrets = secretEncryptedObject
@@ -304,7 +304,7 @@ export class SecretService<SecretType> {
 
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
-        `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`
+        `⏱️ loadSecrets(${this.location}) took ${durationMs.toFixed(3)}ms`,
       )
       return secrets as any as SecretType
     } catch (err: unknown) {
@@ -322,7 +322,7 @@ export class SecretService<SecretType> {
       try {
         return Security.decryptObject(
           secrets,
-          this.encryptionKey!
+          this.encryptionKey!,
         ) as any as SecretType
       } catch (error: any) {
         console.warn(`Failed to decrypt GCP secrets: ${error.message}`)
@@ -368,7 +368,7 @@ export class SecretService<SecretType> {
       // Log warning if no prefix is specified
       if (!this.location) {
         console.warn(
-          'ENV provider without location prefix - this will expose all environment variables'
+          'ENV provider without location prefix - this will expose all environment variables',
         )
       }
 
@@ -378,7 +378,7 @@ export class SecretService<SecretType> {
         try {
           decryptedSecrets = Security.decryptObject(
             secrets,
-            this.encryptionKey!
+            this.encryptionKey!,
           )
         } catch (error: any) {
           // If decryption fails, assume secrets are not encrypted
@@ -391,8 +391,8 @@ export class SecretService<SecretType> {
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
         `🔐 Secrets loaded from ENV: ${magenta(
-          this.location || 'all'
-        )} (${durationMs.toFixed(3)}ms)`
+          this.location || 'all',
+        )} (${durationMs.toFixed(3)}ms)`,
       )
 
       return decryptedSecrets as any as SecretType
@@ -423,7 +423,7 @@ export class SecretService<SecretType> {
         this.vaultConfig.mount || 'secret'
       }/data/${this.location}`
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       }
 
       // Add token authentication
@@ -438,12 +438,12 @@ export class SecretService<SecretType> {
 
       const response = await fetch(vaultUrl, {
         method: 'GET',
-        headers
+        headers,
       })
 
       if (!response.ok) {
         throw new Error(
-          `Vault request failed: ${response.status} ${response.statusText}`
+          `Vault request failed: ${response.status} ${response.statusText}`,
         )
       }
 
@@ -469,8 +469,8 @@ export class SecretService<SecretType> {
       const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000
       console.log(
         `🔐 Secrets loaded from Vault: ${magenta(
-          this.location
-        )} (${durationMs.toFixed(3)}ms)`
+          this.location,
+        )} (${durationMs.toFixed(3)}ms)`,
       )
 
       return secrets as SecretType
@@ -490,7 +490,7 @@ export class SecretService<SecretType> {
         this.vaultConfig.mount || 'secret'
       }/data/${this.location}`
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       }
 
       // Add token authentication
@@ -508,24 +508,24 @@ export class SecretService<SecretType> {
       if (this.encryptionKey) {
         dataToStore = Security.encryptObject(
           secrets as StringMap,
-          this.encryptionKey!
+          this.encryptionKey!,
         )
       }
 
       // For Vault KV v2, data needs to be wrapped in a data object
       const payload = {
-        data: dataToStore
+        data: dataToStore,
       }
 
       const response = await fetch(vaultUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
         throw new Error(
-          `Vault store request failed: ${response.status} ${response.statusText}`
+          `Vault store request failed: ${response.status} ${response.statusText}`,
         )
       }
 
@@ -568,7 +568,7 @@ export class SecretService<SecretType> {
 
     if (!secret) {
       throw new Error(
-        `Secret ${secretName.toString()} does not exist in ${this.location} env`
+        `Secret ${secretName.toString()} does not exist in ${this.location} env`,
       )
     }
 
@@ -595,7 +595,7 @@ export class SecretService<SecretType> {
   getSecretSync(secretName: keyof SecretType): string {
     if (!this.isPreloaded || !this.preloadedSecrets) {
       throw new Error(
-        'Secrets not preloaded. Call preload() before using synchronous methods.'
+        'Secrets not preloaded. Call preload() before using synchronous methods.',
       )
     }
 
@@ -603,7 +603,7 @@ export class SecretService<SecretType> {
 
     if (!secret) {
       throw new Error(
-        `Secret ${secretName.toString()} does not exist in ${this.location} env`
+        `Secret ${secretName.toString()} does not exist in ${this.location} env`,
       )
     }
 

@@ -1,14 +1,14 @@
 import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollectionOptions,
-  TypesenseDocument
+  TypesenseDocument,
 } from '../../typesense.model'
 import { isValidDocumentId } from '../../typesense.model'
 
 export async function getDocumentById<T extends Record<string, any>>(
   ctx: TypesenseContext,
   id: string | number,
-  options?: TypesenseCollectionOptions
+  options?: TypesenseCollectionOptions,
 ): Promise<TypesenseDocument<T>> {
   if (!isValidDocumentId(id)) {
     throw new Error('Invalid document id')
@@ -17,6 +17,6 @@ export async function getDocumentById<T extends Record<string, any>>(
   const collectionName = options?.collection || ctx.fqcn()
 
   return await ctx.httpClient.request<TypesenseDocument<T>>(
-    `/collections/${collectionName}/documents/${id}`
+    `/collections/${collectionName}/documents/${id}`,
   )
 }

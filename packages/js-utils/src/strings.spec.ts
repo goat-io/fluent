@@ -38,7 +38,7 @@ it('Should limit a given string', () => {
   const limit = Strings.limit(
     'The quick brown fox jumps over the lazy dog',
     20,
-    ' (...)'
+    ' (...)',
   )
   expect(limit).toBe('The quick brown fox (...)')
 })
@@ -97,7 +97,7 @@ it('Should split string into words', () => {
   expect(Strings.words('fred, barney, & pebbles')).toEqual([
     'fred',
     'barney',
-    'pebbles'
+    'pebbles',
   ])
   expect(Strings.words('fooBar')).toEqual(['foo', 'Bar'])
   expect(Strings.words('XMLHttpRequest')).toEqual(['XML', 'Http', 'Request'])
@@ -106,21 +106,21 @@ it('Should split string into words', () => {
     'fred',
     'barney',
     '&',
-    'pebbles'
+    'pebbles',
   ])
 })
 
 // Tests for jsonParseIfPossible
 it('Should parse JSON when possible', () => {
   expect(Strings.jsonParseIfPossible('{"name": "John"}')).toEqual({
-    name: 'John'
+    name: 'John',
   })
   expect(Strings.jsonParseIfPossible('[1, 2, 3]')).toEqual([1, 2, 3])
   expect(Strings.jsonParseIfPossible('123')).toBe(123)
   expect(Strings.jsonParseIfPossible('"hello"')).toBe('hello')
   expect(Strings.jsonParseIfPossible('not json')).toBe('not json')
   expect(Strings.jsonParseIfPossible('{"invalid": json}')).toBe(
-    '{"invalid": json}'
+    '{"invalid": json}',
   )
   expect(Strings.jsonParseIfPossible(null)).toBe(null)
   expect(Strings.jsonParseIfPossible(undefined)).toBe(undefined)
@@ -141,7 +141,7 @@ it('Should split with limit', () => {
   expect(Strings.split('one,two,three,four', ',', 3)).toEqual([
     'one',
     'two',
-    'three,four'
+    'three,four',
   ])
   expect(Strings.split('hello world', ' ', 1)).toEqual(['hello world'])
 })
@@ -165,7 +165,7 @@ it('Should truncate strings', () => {
 it('Should truncate from middle', () => {
   expect(Strings.truncateMiddle('hello world test', 10)).toBe('hell...est')
   expect(Strings.truncateMiddle('hello world test', 10, '***')).toBe(
-    'hell***est'
+    'hell***est',
   )
   expect(Strings.truncateMiddle('hello', 10)).toBe('hello')
   expect(Strings.truncateMiddle('', 5)).toBe('')
@@ -181,7 +181,7 @@ it('Should get substring before delimiter', () => {
 // Tests for substringBeforeLast
 it('Should get substring before last delimiter', () => {
   expect(Strings.substringBeforeLast('hello-world-test', '-')).toBe(
-    'hello-world'
+    'hello-world',
   )
   expect(Strings.substringBeforeLast('no-delimiter', '|')).toBe('no-delimiter')
   expect(Strings.substringBeforeLast('', '-')).toBe('')
@@ -204,20 +204,20 @@ it('Should get substring after last delimiter', () => {
 // Tests for substringBetweenLast
 it('Should get substring between last left and first right delimiter', () => {
   expect(
-    Strings.substringBetweenLast('/Users/lalala/someFile.test.ts', '/', '.')
+    Strings.substringBetweenLast('/Users/lalala/someFile.test.ts', '/', '.'),
   ).toBe('someFile')
   expect(Strings.substringBetweenLast('path/to/file.name.ext', '/', '.')).toBe(
-    'file'
+    'file',
   )
   expect(Strings.substringBetweenLast('no-delimiters', '/', '.')).toBe(
-    'no-delimiters'
+    'no-delimiters',
   )
 })
 
 // Tests for replaceAll
 it('Should replace all occurrences', () => {
   expect(Strings.replaceAll('hello world hello', 'hello', 'hi')).toBe(
-    'hi world hi'
+    'hi world hi',
   )
   expect(Strings.replaceAll('test.test.test', '.', '-')).toBe('test-test-test')
   expect(Strings.replaceAll('no match', 'x', 'y')).toBe('no match')
@@ -227,7 +227,7 @@ it('Should replace all occurrences', () => {
 it('Should convert newlines to br tags', () => {
   expect(Strings.nl2br('hello\nworld')).toBe('hello<br>\nworld')
   expect(Strings.nl2br('line1\nline2\nline3')).toBe(
-    'line1<br>\nline2<br>\nline3'
+    'line1<br>\nline2<br>\nline3',
   )
   expect(Strings.nl2br('no newlines')).toBe('no newlines')
 })
@@ -236,18 +236,18 @@ it('Should convert newlines to br tags', () => {
 it('Should parse query strings', () => {
   expect(Strings.parseQueryString('?name=John&age=30')).toEqual({
     name: 'John',
-    age: '30'
+    age: '30',
   })
   expect(Strings.parseQueryString('name=John&age=30')).toEqual({
     name: 'John',
-    age: '30'
+    age: '30',
   })
   expect(Strings.parseQueryString('key1=value1&key2=')).toEqual({
     key1: 'value1',
-    key2: ''
+    key2: '',
   })
   expect(Strings.parseQueryString('encoded=%20space%20')).toEqual({
-    encoded: ' space '
+    encoded: ' space ',
   })
   expect(Strings.parseQueryString('')).toEqual({})
   expect(Strings.parseQueryString('key')).toEqual({ key: '' })
@@ -279,7 +279,7 @@ test('Original text should not change', () => {
 
 test('Should generate Ngram from Text', () => {
   expect(generatedNgram).toBe(
-    'S Se Sea ear arc rch Sear earc arch Searc earch Search'
+    'S Se Sea ear arc rch Sear earc arch Searc earch Search',
   )
 })
 
@@ -306,8 +306,8 @@ const simpleSubmission = {
   data: {
     name: 'Pedro',
     lastName: 'Cabrera',
-    rut: '14.434.545-1'
-  }
+    rut: '14.434.545-1',
+  },
 }
 
 const fuzzy = ['data.name', 'data.lastName']
@@ -317,7 +317,7 @@ const expectedNgram =
 test('Should Generate Ngram from array Submission', () => {
   const generatedNgram = Strings.ngramFromObject({
     fields: fuzzy,
-    object: simpleSubmission
+    object: simpleSubmission,
   })
 
   expect(generatedNgram).toBe(expectedNgram)
@@ -326,7 +326,7 @@ test('Should Generate Ngram from array Submission', () => {
 test('Should Generate Ngram from array', () => {
   const generatedNgram = Strings.ngramFromArray([
     simpleSubmission.data.name,
-    simpleSubmission.data.lastName
+    simpleSubmission.data.lastName,
   ])
 
   expect(generatedNgram).toBe(expectedNgram)
@@ -345,7 +345,7 @@ test('Should handle array with empty strings in ngramFromArray', () => {
 test('Should handle missing fields in ngramFromObject', () => {
   const result = Strings.ngramFromObject({
     fields: ['data.nonexistent'],
-    object: simpleSubmission
+    object: simpleSubmission,
   })
   expect(result).toBe('')
 })

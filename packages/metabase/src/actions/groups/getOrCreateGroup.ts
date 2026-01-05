@@ -10,7 +10,7 @@ export async function getOrCreateGroup({
   baseUrl,
   sessionToken,
   apiKey,
-  groupName
+  groupName,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -23,7 +23,7 @@ export async function getOrCreateGroup({
     sessionToken,
     apiKey,
     endpoint: '/api/permissions/group',
-    method: 'GET'
+    method: 'GET',
   })
 
   if (!response.ok) {
@@ -46,6 +46,6 @@ export async function getOrCreateGroup({
     baseUrl,
     sessionToken,
     apiKey,
-    groupName
+    groupName,
   })
 }

@@ -7,23 +7,23 @@ import { EmailService } from './email.service'
 
 // Mock dependencies
 vi.mock('ejs', () => ({
-  renderFile: vi.fn()
+  renderFile: vi.fn(),
 }))
 
 vi.mock('mjml', () => ({
-  default: vi.fn()
+  default: vi.fn(),
 }))
 
 vi.mock('@goatlab/js-utils', () => ({
   Strings: {
-    capitalize: vi.fn(str => str.charAt(0).toUpperCase() + str.slice(1))
-  }
+    capitalize: vi.fn(str => str.charAt(0).toUpperCase() + str.slice(1)),
+  },
 }))
 
 vi.mock('../../consts', () => ({
   config: {
-    templateDir: '/test/templates'
-  }
+    templateDir: '/test/templates',
+  },
 }))
 
 describe('EmailService', () => {
@@ -35,7 +35,7 @@ describe('EmailService', () => {
   beforeEach(() => {
     // Mock SendgridService
     mockSendgridService = {
-      sendFinalizedEmail: vi.fn()
+      sendFinalizedEmail: vi.fn(),
     } as any
 
     mockTheme = {
@@ -48,7 +48,7 @@ describe('EmailService', () => {
       facebook: 'example',
       instagram: 'example',
       twitter: 'https://twitter.com/example',
-      appName: 'Example App'
+      appName: 'Example App',
     }
 
     mockTemplate = {
@@ -58,8 +58,8 @@ describe('EmailService', () => {
       placeholders: {
         greeting: 'Hello',
         body: 'Test body',
-        footer: 'Test footer'
-      }
+        footer: 'Test footer',
+      },
     }
 
     emailService = new EmailService({
@@ -68,7 +68,7 @@ describe('EmailService', () => {
       baseDomain: 'example.com',
       emailTransport: mockSendgridService,
       emailArchive: 'archive@example.com',
-      theme: mockTheme
+      theme: mockTheme,
     })
 
     // Reset environment variables
@@ -79,7 +79,7 @@ describe('EmailService', () => {
     // Mock process.platform
     Object.defineProperty(process, 'platform', {
       value: 'darwin',
-      writable: true
+      writable: true,
     })
   })
 
@@ -93,7 +93,7 @@ describe('EmailService', () => {
         fromName: 'Test',
         shouldSendEmail: true,
         emailTransport: mockSendgridService,
-        theme: mockTheme
+        theme: mockTheme,
       })
 
       expect(service).toBeDefined()
@@ -105,7 +105,7 @@ describe('EmailService', () => {
         shouldSendEmail: true,
         baseDomain: 'custom.com',
         emailTransport: mockSendgridService,
-        theme: mockTheme
+        theme: mockTheme,
       })
 
       expect(service).toBeDefined()
@@ -120,14 +120,14 @@ describe('EmailService', () => {
       vi.mocked(ejs.renderFile).mockResolvedValue('<mjml>test content</mjml>')
       vi.mocked(mjml.default).mockReturnValue({
         html: '<html>compiled</html>',
-        errors: []
+        errors: [],
       })
 
       mockSendgridService.sendFinalizedEmail = vi.fn().mockResolvedValue({
         isSuccess: true,
         statusCode: 202,
         body: 'Email sent successfully',
-        headers: {}
+        headers: {},
       })
     })
 
@@ -136,20 +136,20 @@ describe('EmailService', () => {
         fromName: 'Test',
         shouldSendEmail: false,
         emailTransport: mockSendgridService,
-        theme: mockTheme
+        theme: mockTheme,
       })
 
       const result = await service.sendEmailFromTemplate({
         template: mockTemplate,
         to: 'test@example.com',
-        subject: 'Test Subject'
+        subject: 'Test Subject',
       })
 
       expect(result).toEqual({
         isSuccess: true,
         statusCode: 1,
         body: 'Email not sent. No emails are sent in test mode',
-        headers: {}
+        headers: {},
       })
 
       expect(mockSendgridService.sendFinalizedEmail).not.toHaveBeenCalled()
@@ -159,7 +159,7 @@ describe('EmailService', () => {
       const result = await emailService.sendEmailFromTemplate({
         template: mockTemplate,
         to: 'test@example.com',
-        subject: 'Test Subject'
+        subject: 'Test Subject',
       })
 
       expect(result.isSuccess).toBe(true)
@@ -172,7 +172,7 @@ describe('EmailService', () => {
         recipients: [{ email: 'test@example.com' }],
         attachments: undefined,
         categories: [EmailCategory.SIMPLE],
-        bcc: []
+        bcc: [],
       })
     })
 
@@ -180,13 +180,13 @@ describe('EmailService', () => {
       await emailService.sendEmailFromTemplate({
         template: mockTemplate,
         to: 'user@example.com',
-        subject: 'Test Subject'
+        subject: 'Test Subject',
       })
 
       expect(mockSendgridService.sendFinalizedEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          recipients: [{ email: 'user@example.com' }]
-        })
+          recipients: [{ email: 'user@example.com' }],
+        }),
       )
     })
 
@@ -196,13 +196,13 @@ describe('EmailService', () => {
       await emailService.sendEmailFromTemplate({
         template: mockTemplate,
         to: 'user@external.com',
-        subject: 'Test Subject'
+        subject: 'Test Subject',
       })
 
       expect(mockSendgridService.sendFinalizedEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          recipients: [{ email: 'test@test.com' }]
-        })
+          recipients: [{ email: 'test@test.com' }],
+        }),
       )
     })
 
@@ -213,14 +213,14 @@ describe('EmailService', () => {
       const result = await emailService.sendEmailFromTemplate({
         template: mockTemplate,
         to: 'user@external.com',
-        subject: 'Test Subject'
+        subject: 'Test Subject',
       })
 
       expect(result).toEqual({
         isSuccess: false,
         statusCode: 1,
         body: 'Email not sent. TEST_EMAIL_ADDRESS env variable is missing',
-        headers: {}
+        headers: {},
       })
 
       expect(mockSendgridService.sendFinalizedEmail).not.toHaveBeenCalled()
@@ -233,13 +233,13 @@ describe('EmailService', () => {
       await emailService.sendEmailFromTemplate({
         template: mockTemplate,
         to: 'user@external.com',
-        subject: 'Test Subject'
+        subject: 'Test Subject',
       })
 
       expect(mockSendgridService.sendFinalizedEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          recipients: [{ email: 'user@external.com' }]
-        })
+          recipients: [{ email: 'user@external.com' }],
+        }),
       )
     })
   })
@@ -249,14 +249,14 @@ describe('EmailService', () => {
       const mjml = await vi.importMock<typeof import('mjml')>('mjml')
       vi.mocked(mjml.default).mockReturnValue({
         html: '<html>test email</html>',
-        errors: []
+        errors: [],
       })
 
       mockSendgridService.sendFinalizedEmail = vi.fn().mockResolvedValue({
         isSuccess: true,
         statusCode: 202,
         body: 'Test email sent',
-        headers: {}
+        headers: {},
       })
     })
 
@@ -264,7 +264,7 @@ describe('EmailService', () => {
       const emailTest: EmailTest = {
         to: 'testuser@example.com',
         subject: 'Test Email',
-        mjml: '<mjml><mj-body>Test</mj-body></mjml>'
+        mjml: '<mjml><mj-body>Test</mj-body></mjml>',
       }
 
       const result = await emailService.sendEmailTemplateTest(emailTest)
@@ -277,7 +277,7 @@ describe('EmailService', () => {
         subject: 'Test Email',
         replyTo: 'no_reply@example.com',
         recipients: [{ email: 'testuser@example.com' }],
-        categories: [EmailCategory.TEST_EMAIL]
+        categories: [EmailCategory.TEST_EMAIL],
       })
     })
 
@@ -285,11 +285,11 @@ describe('EmailService', () => {
       const emailTest: EmailTest = {
         to: 'user@external.com',
         subject: 'Test Email',
-        mjml: '<mjml><mj-body>Test</mj-body></mjml>'
+        mjml: '<mjml><mj-body>Test</mj-body></mjml>',
       }
 
       await expect(
-        emailService.sendEmailTemplateTest(emailTest)
+        emailService.sendEmailTemplateTest(emailTest),
       ).rejects.toThrow('Cannot send emails to external.com accounts')
     })
   })

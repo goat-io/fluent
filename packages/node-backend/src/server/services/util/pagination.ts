@@ -29,7 +29,7 @@ class PaginationUtility {
    */
   calculatePaginationCursor({
     cursor = 1,
-    perPage = 10
+    perPage = 10,
   }: {
     cursor?: number | null
     perPage?: number | null
@@ -53,7 +53,7 @@ class PaginationUtility {
     cursor = 1,
     perPage = 10,
     total,
-    items
+    items,
   }: PaginationParams<T>): PaginationResult<T> {
     const page = Math.max(1, cursor ?? 1)
     const itemsPerPage = Math.max(1, perPage || 10)
@@ -68,14 +68,14 @@ class PaginationUtility {
       lastPage,
       nextPage,
       previousPage,
-      data: items
+      data: items,
     }
   }
 
   getNextCursor<T extends ZodTypeAny>({
     limit,
     items,
-    schema
+    schema,
   }: {
     limit: number
     items: any[]

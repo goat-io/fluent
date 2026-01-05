@@ -2,7 +2,7 @@ import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollectionOptions,
   TypesenseDocument,
-  WithRequiredId
+  WithRequiredId,
 } from '../../typesense.model'
 import { isValidDocumentId, TypesenseError } from '../../typesense.model'
 import { getOrCreateCollection } from '../collections/getOrCreateCollection'
@@ -10,7 +10,7 @@ import { getOrCreateCollection } from '../collections/getOrCreateCollection'
 export async function insertDocument<TDoc extends Record<string, any>>(
   ctx: TypesenseContext<TDoc>,
   document: WithRequiredId<TDoc>,
-  options?: TypesenseCollectionOptions
+  options?: TypesenseCollectionOptions,
 ): Promise<TypesenseDocument<TDoc>> {
   if (!isValidDocumentId(document.id)) {
     throw new TypesenseError('Document must have a valid id', 400)
@@ -23,8 +23,8 @@ export async function insertDocument<TDoc extends Record<string, any>>(
       `/collections/${collectionName}/documents`,
       {
         method: 'POST',
-        body: document
-      }
+        body: document,
+      },
     )
   } catch (error: any) {
     // Auto-create collection if enabled
@@ -35,13 +35,13 @@ export async function insertDocument<TDoc extends Record<string, any>>(
       // Infer schema from document
       const inferredSchema = ctx.schemaManager.inferSchemaFromDocument(
         document,
-        collectionName
+        collectionName,
       )
 
       // Create collection
       await getOrCreateCollection(ctx, {
         ...inferredSchema,
-        name: collectionName
+        name: collectionName,
       })
 
       // Retry insert
@@ -49,8 +49,8 @@ export async function insertDocument<TDoc extends Record<string, any>>(
         `/collections/${collectionName}/documents`,
         {
           method: 'POST',
-          body: document
-        }
+          body: document,
+        },
       )
     }
     throw error

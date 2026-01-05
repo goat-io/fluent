@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   type GCPServiceAccount,
-  getGcpServiceAccountFromBase64
+  getGcpServiceAccountFromBase64,
 } from './getGcpServiceAccountFromBase64'
 
 describe('getGcpServiceAccountFromBase64', () => {
@@ -19,12 +19,12 @@ describe('getGcpServiceAccountFromBase64', () => {
     token_uri: 'https://oauth2.googleapis.com/token',
     auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
     client_x509_cert_url:
-      'https://www.googleapis.com/robot/v1/metadata/x509/test%40test-project-123.iam.gserviceaccount.com'
+      'https://www.googleapis.com/robot/v1/metadata/x509/test%40test-project-123.iam.gserviceaccount.com',
   }
 
   it('should parse valid base64 encoded service account', () => {
     const base64 = Buffer.from(JSON.stringify(mockServiceAccount)).toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
@@ -32,7 +32,7 @@ describe('getGcpServiceAccountFromBase64', () => {
     expect(result).toEqual(mockServiceAccount)
     expect(result?.project_id).toBe('test-project-123')
     expect(result?.client_email).toBe(
-      'test@test-project-123.iam.gserviceaccount.com'
+      'test@test-project-123.iam.gserviceaccount.com',
     )
     expect(result?.type).toBe('service_account')
   })
@@ -50,11 +50,11 @@ describe('getGcpServiceAccountFromBase64', () => {
       token_uri: 'https://oauth2.googleapis.com/token',
       auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
       client_x509_cert_url:
-        'https://www.googleapis.com/robot/v1/metadata/x509/minimal.iam.gserviceaccount.com'
+        'https://www.googleapis.com/robot/v1/metadata/x509/minimal.iam.gserviceaccount.com',
     }
 
     const base64 = Buffer.from(JSON.stringify(minimalAccount)).toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
@@ -68,12 +68,12 @@ describe('getGcpServiceAccountFromBase64', () => {
       customProperty: 'custom-value',
       anotherProperty: 123,
       nestedProperty: {
-        nested: 'value'
-      }
+        nested: 'value',
+      },
     }
 
     const base64 = Buffer.from(JSON.stringify(extendedAccount)).toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
@@ -87,17 +87,17 @@ describe('getGcpServiceAccountFromBase64', () => {
   it('should handle unicode characters in service account', () => {
     const unicodeAccount = {
       ...mockServiceAccount,
-      description: 'Service account with émojis 🚀 and ünïcödé characters'
+      description: 'Service account with émojis 🚀 and ünïcödé characters',
     }
 
     const base64 = Buffer.from(JSON.stringify(unicodeAccount), 'utf8').toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
 
     expect(result?.description).toBe(
-      'Service account with émojis 🚀 and ünïcödé characters'
+      'Service account with émojis 🚀 and ünïcödé characters',
     )
   })
 
@@ -131,11 +131,11 @@ describe('getGcpServiceAccountFromBase64', () => {
     const accountWithNulls = {
       ...mockServiceAccount,
       optionalField: null,
-      undefinedField: undefined
+      undefinedField: undefined,
     }
 
     const base64 = Buffer.from(JSON.stringify(accountWithNulls)).toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
@@ -150,11 +150,11 @@ describe('getGcpServiceAccountFromBase64', () => {
       isActive: true,
       isTest: false,
       createdAt: 1234567890,
-      expiresIn: 3600.5
+      expiresIn: 3600.5,
     }
 
     const base64 = Buffer.from(JSON.stringify(accountWithTypes)).toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
@@ -170,20 +170,20 @@ describe('getGcpServiceAccountFromBase64', () => {
       ...mockServiceAccount,
       scopes: [
         'https://www.googleapis.com/auth/cloud-platform',
-        'https://www.googleapis.com/auth/bigquery'
+        'https://www.googleapis.com/auth/bigquery',
       ],
-      permissions: []
+      permissions: [],
     }
 
     const base64 = Buffer.from(JSON.stringify(accountWithArrays)).toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
 
     expect(result?.scopes).toEqual([
       'https://www.googleapis.com/auth/cloud-platform',
-      'https://www.googleapis.com/auth/bigquery'
+      'https://www.googleapis.com/auth/bigquery',
     ])
     expect(result?.permissions).toEqual([])
   })
@@ -193,27 +193,27 @@ describe('getGcpServiceAccountFromBase64', () => {
       ...mockServiceAccount,
       private_key:
         '  -----BEGIN PRIVATE KEY-----\n  test-key-content  \n  -----END PRIVATE KEY-----  ',
-      description: '  Service account with leading/trailing spaces  '
+      description: '  Service account with leading/trailing spaces  ',
     }
 
     const base64 = Buffer.from(JSON.stringify(accountWithWhitespace)).toString(
-      'base64'
+      'base64',
     )
 
     const result = getGcpServiceAccountFromBase64(base64)
 
     expect(result?.private_key).toBe(
-      '  -----BEGIN PRIVATE KEY-----\n  test-key-content  \n  -----END PRIVATE KEY-----  '
+      '  -----BEGIN PRIVATE KEY-----\n  test-key-content  \n  -----END PRIVATE KEY-----  ',
     )
     expect(result?.description).toBe(
-      '  Service account with leading/trailing spaces  '
+      '  Service account with leading/trailing spaces  ',
     )
   })
 
   it('should handle very large service account objects', () => {
     const largeAccount = {
       ...mockServiceAccount,
-      largeField: 'x'.repeat(10000) // 10KB string
+      largeField: 'x'.repeat(10000), // 10KB string
     }
 
     const base64 = Buffer.from(JSON.stringify(largeAccount)).toString('base64')

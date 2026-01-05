@@ -8,7 +8,7 @@ export interface ResiliencePolicyOptions {
   maxRetries?: number
   onStateChange?: (
     state: 'open' | 'closed' | 'half-open',
-    metadata?: any
+    metadata?: any,
   ) => void
   onRetry?: (attempt: number, error: any) => void
   onRateLimitUpdate?: (info: TypesenseRateLimitInfo) => void
@@ -28,7 +28,7 @@ export class ResiliencePolicy {
       retryDelay: 1000,
       maxRetries: 3,
       enabled: true, // Enabled by default
-      ...options
+      ...options,
     }
   }
 
@@ -103,7 +103,7 @@ export class ResiliencePolicy {
         this.options.onStateChange('open', {
           failures: this.failures,
           openUntil: new Date(this.circuitOpenUntil),
-          resetTimeout: this.options.resetTimeout || 60000
+          resetTimeout: this.options.resetTimeout || 60000,
         })
       }
     }
@@ -119,7 +119,7 @@ export class ResiliencePolicy {
       limit: limit ? Number.parseInt(limit, 10) : undefined,
       remaining: remaining ? Number.parseInt(remaining, 10) : undefined,
       resetMs: resetMs ? Number.parseInt(resetMs, 10) : undefined,
-      retryAfter: retryAfter ? Number.parseInt(retryAfter, 10) : undefined
+      retryAfter: retryAfter ? Number.parseInt(retryAfter, 10) : undefined,
     }
 
     // Set retry-after period if present
@@ -176,7 +176,7 @@ export class ResiliencePolicy {
       circuitOpenUntil: this.circuitOpenUntil,
       rateLimited: this.isRateLimited(),
       retryAfterUntil: this.retryAfterUntil,
-      rateLimit: this.rateLimitInfo
+      rateLimit: this.rateLimitInfo,
     }
   }
 }

@@ -14,12 +14,12 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => {
           return {
             HELLO: row.COLB,
-            WORLD: row.COLC
+            WORLD: row.COLC,
           }
         },
         batchSize: 5,
@@ -27,8 +27,8 @@ describe('xlsxStream', () => {
           results.push(...row)
         },
         mapOptions: {
-          concurrency: 1
-        }
+          concurrency: 1,
+        },
       })
       expect(results.length).toBeGreaterThan(0)
       expect(results[0]).toHaveProperty('HELLO')
@@ -41,7 +41,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => row,
         batchSize: 10,
@@ -49,8 +49,8 @@ describe('xlsxStream', () => {
           batchSizes.push(rows.length)
         },
         mapOptions: {
-          concurrency: 1
-        }
+          concurrency: 1,
+        },
       })
       // Should have processed 44 rows in batches of 10 (last batch smaller)
       expect(batchSizes.slice(0, -1).every(size => size === 10)).toBe(true)
@@ -64,7 +64,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => {
           // Only map rows where COLA is even
@@ -78,8 +78,8 @@ describe('xlsxStream', () => {
           mapped.push(...rows)
         },
         mapOptions: {
-          concurrency: 2
-        }
+          concurrency: 2,
+        },
       })
       expect(mapped.every(n => n % 2 === 0)).toBe(true)
       expect(mapped.length).toBe(0)
@@ -91,7 +91,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => row,
         batchSize: 7,
@@ -99,8 +99,8 @@ describe('xlsxStream', () => {
           batches.push(rows.length)
         },
         mapOptions: {
-          concurrency: 4
-        }
+          concurrency: 4,
+        },
       })
       expect(batches.length).toBeGreaterThan(0)
       expect(batches.reduce((a, b) => a + b, 0)).toBe(44)
@@ -113,7 +113,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './empty.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => row,
         batchSize: 5,
@@ -121,8 +121,8 @@ describe('xlsxStream', () => {
           processed.push(...rows)
         },
         mapOptions: {
-          concurrency: 1
-        }
+          concurrency: 1,
+        },
       })
       expect(processed.length).toBe(0)
     })
@@ -133,7 +133,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => row,
         batchSize: 1,
@@ -141,8 +141,8 @@ describe('xlsxStream', () => {
           rows.push(row)
         },
         mapOptions: {
-          concurrency: 1
-        }
+          concurrency: 1,
+        },
       })
       // Should have processed 44 rows (assuming test.xlsx has 44 rows)
       expect(rows.length).toBe(44)
@@ -158,7 +158,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => {
           // Only map rows where COLA is odd
@@ -172,8 +172,8 @@ describe('xlsxStream', () => {
           mapped.push(row)
         },
         mapOptions: {
-          concurrency: 2
-        }
+          concurrency: 2,
+        },
       })
       expect(mapped.every(n => n % 2 === 1)).toBe(true)
       expect(mapped.length).toBeGreaterThan(0)
@@ -185,7 +185,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => row,
         batchSize: 1,
@@ -193,8 +193,8 @@ describe('xlsxStream', () => {
           processed.push(row)
         },
         mapOptions: {
-          concurrency: 4
-        }
+          concurrency: 4,
+        },
       })
       expect(processed.length).toBe(44)
     })
@@ -205,7 +205,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './empty.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (row: Record<Header, string>) => row,
         batchSize: 1,
@@ -213,8 +213,8 @@ describe('xlsxStream', () => {
           processed.push(row)
         },
         mapOptions: {
-          concurrency: 1
-        }
+          concurrency: 1,
+        },
       })
       expect(processed.length).toBe(0)
     })
@@ -225,7 +225,7 @@ describe('xlsxStream', () => {
         file: {
           filePath: join(__dirname, './test.xlsx'),
           sheet: 0,
-          withHeader: true
+          withHeader: true,
         },
         rowMapper: (_row: Record<Header, string>) => {
           // Skip all rows
@@ -236,8 +236,8 @@ describe('xlsxStream', () => {
           processed.push(row)
         },
         mapOptions: {
-          concurrency: 1
-        }
+          concurrency: 1,
+        },
       })
       expect(processed.length).toBe(0)
     })

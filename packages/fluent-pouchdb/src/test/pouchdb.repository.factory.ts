@@ -4,7 +4,7 @@ import {
   GoatSchema,
   TypeORMDataModelInputSchema,
   TypeORMDataModelSchema,
-  TypeOrmEntity
+  TypeOrmEntity,
 } from '@goatlab/fluent'
 import PouchDB from 'pouchdb'
 import { PouchDBConnector } from '../PouchDBConnector'
@@ -16,13 +16,13 @@ export class PouchDBGoatRepositoryFactory extends PouchDBConnector<
   constructor() {
     // Create a fresh in-memory PouchDB instance for each test
     const pouchDB = new PouchDB(`goats-${Date.now()}-${Math.random()}`, {
-      adapter: 'memory'
+      adapter: 'memory',
     })
 
     super({
       entity: GoatEntity,
       dataSource: pouchDB,
-      inputSchema: GoatSchema as any
+      inputSchema: GoatSchema as any,
     })
   }
 }
@@ -34,13 +34,13 @@ export class PouchDBTypeOrmRepositoryFactory extends PouchDBConnector<
   constructor() {
     // Create a fresh in-memory PouchDB instance for each test
     const pouchDB = new PouchDB(`advanced-${Date.now()}-${Math.random()}`, {
-      adapter: 'memory'
+      adapter: 'memory',
     })
 
     super({
       entity: TypeOrmEntity,
       dataSource: pouchDB,
-      inputSchema: TypeORMDataModelSchema as any
+      inputSchema: TypeORMDataModelSchema as any,
     })
   }
 }

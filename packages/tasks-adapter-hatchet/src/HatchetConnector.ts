@@ -3,7 +3,7 @@ import type {
   ShouldQueue,
   TaskConnector,
   TaskStatus,
-  TenantCredentials
+  TenantCredentials,
 } from '@goatlab/tasks-core'
 import { Hatchet } from '@hatchet-dev/typescript-sdk'
 
@@ -154,11 +154,11 @@ export class HatchetConnector implements TaskConnector<object> {
    */
   forTenant(
     tenantId: string,
-    _credentials?: TenantCredentials
+    _credentials?: TenantCredentials,
   ): HatchetConnector {
     return new HatchetConnector({
       ...this.config,
-      tenantId
+      tenantId,
     })
   }
 
@@ -182,8 +182,8 @@ export class HatchetConnector implements TaskConnector<object> {
       // This prefixes workflows and isolates events/workers
       namespace: this._tenantId || '',
       tls_config: {
-        tls_strategy: 'none'
-      }
+        tls_strategy: 'none',
+      },
     })
 
     return hatchet
@@ -193,7 +193,7 @@ export class HatchetConnector implements TaskConnector<object> {
     const hatchetTask = this.getHatchetClient().task({
       name: task.taskName,
       retries: task.retries || 3,
-      fn: task.handle.bind(task)
+      fn: task.handle.bind(task),
     })
 
     this.registeredWorkflows.set(task.taskName, hatchetTask)
@@ -203,7 +203,7 @@ export class HatchetConnector implements TaskConnector<object> {
   async startWorker({
     workerName,
     tasks,
-    slots = 100
+    slots = 100,
   }: {
     workerName?: string
     tasks: any[]
@@ -218,8 +218,8 @@ export class HatchetConnector implements TaskConnector<object> {
         // 👀 Declare the workflows that the worker can execute
         workflows,
         // 👀 Declare the number of concurrent task runs the worker can accept
-        slots
-      }
+        slots,
+      },
     )
 
     void worker.start()
@@ -266,7 +266,7 @@ export class HatchetConnector implements TaskConnector<object> {
           name: taskName,
           nextRun: null,
           nextRunMinutes: null,
-          output: run?.output as any
+          output: run?.output as any,
         }
       } catch (error: any) {
         // Retry on 404 - eventual consistency between gRPC and REST API
@@ -279,7 +279,7 @@ export class HatchetConnector implements TaskConnector<object> {
     }
 
     throw new Error(
-      `Failed to get status for ${id} after ${maxRetries} attempts`
+      `Failed to get status for ${id} after ${maxRetries} attempts`,
     )
   }
 
@@ -299,7 +299,7 @@ export class HatchetConnector implements TaskConnector<object> {
     const ref = await hatchet.admin.runWorkflow(
       params.taskName,
       params.taskBody,
-      {}
+      {},
     )
     const runId = await ref.getWorkflowRunId()
 
@@ -311,7 +311,7 @@ export class HatchetConnector implements TaskConnector<object> {
       status: 'QUEUED',
       created: new Date().toISOString(),
       nextRun: null,
-      nextRunMinutes: null
+      nextRunMinutes: null,
     }
   }
 }

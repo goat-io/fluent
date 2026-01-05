@@ -6,5 +6,5 @@ export const MongoDataSource = new DataSource({
   useNewUrlParser: true,
   useUnifiedTopology: true,
   entities: dbEntities,
-  logging: false
+  logging: false,
 })

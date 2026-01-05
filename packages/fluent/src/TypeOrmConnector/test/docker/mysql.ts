@@ -1,6 +1,6 @@
 import startContainer, {
   killOldContainers,
-  Options as WithContainerOptions
+  Options as WithContainerOptions,
 } from './docker'
 
 const { createConnection } = require('mysql2')
@@ -26,7 +26,7 @@ export interface Options
 
 export async function waitForConnection(
   databaseURL: string,
-  timeoutSeconds: number
+  timeoutSeconds: number,
 ) {
   const start = Date.now()
   const timeoutMilliseconds = timeoutSeconds * 1000
@@ -92,7 +92,7 @@ export async function killDatabase(options: Partial<Options> = {}) {
   await killOldContainers({
     debug: DEFAULT_MYSQL_DEBUG,
     containerName: DEFAULT_CONTAINER_NAME,
-    ...options
+    ...options,
   })
 }
 
@@ -113,7 +113,7 @@ export default async function getDatabase(options: Partial<Options> = {}) {
     mysqlDb: DEFAULT_MYSQL_DB,
     defaultExternalPort: DEFAULT_MYSQL_PORT,
     // externalPort: config.test.port,
-    ...options
+    ...options,
   }
 
   const { proc, externalPort, kill } = await startContainer({
@@ -127,15 +127,15 @@ export default async function getDatabase(options: Partial<Options> = {}) {
       MYSQL_USER: mysqlUser,
       MYSQL_ROOT_PASSWORD: mysqlPassword,
       MYSQL_PASSWORD: mysqlPassword,
-      MYSQL_DATABASE: mysqlDb
+      MYSQL_DATABASE: mysqlDb,
     },
     enableDebugInstructions: `To view logs, run with MYSQL_TEST_DEBUG=true environment variable.`,
     command: [
       '--default_authentication_plugin=mysql_native_password',
       '--character-set-server=utf8mb4',
-      '--collation-server=utf8mb4_unicode_ci'
+      '--collation-server=utf8mb4_unicode_ci',
     ],
-    capAdd: 'SYS_NICE'
+    capAdd: 'SYS_NICE',
   })
 
   const databaseURL = `mysql://${mysqlUser}:${mysqlPassword}@localhost:${externalPort}/${mysqlDb}`
@@ -149,6 +149,6 @@ export default async function getDatabase(options: Partial<Options> = {}) {
     user: mysqlUser,
     password: mysqlPassword,
     port: externalPort,
-    dbName: mysqlDb
+    dbName: mysqlDb,
   }
 }
