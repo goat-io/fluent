@@ -1,8 +1,18 @@
 // npx vitest run ./src/services/search/typesense/tests/export-formatter.test.ts
 
-import { Readable } from 'node:stream'
 import { describe, expect, it } from 'vitest'
 import { ExportFormatter } from '../components/export-formatter'
+
+/** Helper: Collect all chunks from a ReadableStream into an array */
+async function collectStream<T>(reader: ReadableStreamDefaultReader<T>): Promise<T[]> {
+  const results: T[] = []
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    results.push(value)
+  }
+  return results
+}
 
 describe('ExportFormatter', () => {
   const sampleDocuments = [
@@ -100,19 +110,18 @@ describe('ExportFormatter', () => {
   describe('Streaming Transforms', () => {
     it('should create streaming CSV transform', async () => {
       const transform = ExportFormatter.createStreamingCSVTransform()
-      const results: string[] = []
+      const writer = transform.writable.getWriter()
+      const reader = transform.readable.getReader()
 
-      transform.on('data', chunk => {
-        results.push(chunk.toString())
-      })
+      // Start reading concurrently to avoid backpressure deadlock
+      const readPromise = collectStream(reader)
 
       // Write documents
-      transform.write(sampleDocuments[0])
-      transform.write(sampleDocuments[1])
-      transform.end()
+      await writer.write(sampleDocuments[0])
+      await writer.write(sampleDocuments[1])
+      await writer.close()
 
-      await new Promise(resolve => transform.on('end', resolve))
-
+      const results = await readPromise
       const output = results.join('')
       expect(output).toContain('content,id,published,tags,title,views')
       expect(output).toContain('Document 1')
@@ -121,18 +130,17 @@ describe('ExportFormatter', () => {
 
     it('should create streaming JSONL transform', async () => {
       const transform = ExportFormatter.createStreamingJSONLTransform()
-      const results: string[] = []
+      const writer = transform.writable.getWriter()
+      const reader = transform.readable.getReader()
 
-      transform.on('data', chunk => {
-        results.push(chunk.toString())
-      })
+      // Start reading concurrently to avoid backpressure deadlock
+      const readPromise = collectStream(reader)
 
-      transform.write(sampleDocuments[0])
-      transform.write(sampleDocuments[1])
-      transform.end()
+      await writer.write(sampleDocuments[0])
+      await writer.write(sampleDocuments[1])
+      await writer.close()
 
-      await new Promise(resolve => transform.on('end', resolve))
-
+      const results = await readPromise
       const output = results.join('')
       const lines = output.trim().split('\n')
       expect(lines).toHaveLength(2)
@@ -147,16 +155,16 @@ describe('ExportFormatter', () => {
         .map(doc => JSON.stringify(doc))
         .join('\n')
       const parser = ExportFormatter.createDocumentParser('jsonl')
-      const results: any[] = []
+      const writer = parser.writable.getWriter()
+      const reader = parser.readable.getReader()
 
-      parser.on('data', doc => {
-        results.push(doc)
-      })
+      // Start reading concurrently
+      const readPromise = collectStream(reader)
 
-      parser.write(Buffer.from(jsonlData))
-      parser.end()
+      await writer.write(jsonlData)
+      await writer.close()
 
-      await new Promise(resolve => parser.on('end', resolve))
+      const results = await readPromise
 
       expect(results).toHaveLength(3)
       expect(results[0]).toEqual(sampleDocuments[0])
@@ -165,16 +173,16 @@ describe('ExportFormatter', () => {
     it('should parse JSON format', async () => {
       const jsonData = JSON.stringify(sampleDocuments)
       const parser = ExportFormatter.createDocumentParser('json')
-      const results: any[] = []
+      const writer = parser.writable.getWriter()
+      const reader = parser.readable.getReader()
 
-      parser.on('data', doc => {
-        results.push(doc)
-      })
+      // Start reading concurrently
+      const readPromise = collectStream(reader)
 
-      parser.write(Buffer.from(jsonData))
-      parser.end()
+      await writer.write(jsonData)
+      await writer.close()
 
-      await new Promise(resolve => parser.on('end', resolve))
+      const results = await readPromise
 
       expect(results).toHaveLength(3)
       expect(results[0]).toEqual(sampleDocuments[0])
@@ -182,22 +190,22 @@ describe('ExportFormatter', () => {
 
     it('should handle partial JSONL chunks', async () => {
       const parser = ExportFormatter.createDocumentParser('jsonl')
-      const results: any[] = []
+      const writer = parser.writable.getWriter()
+      const reader = parser.readable.getReader()
 
-      parser.on('data', doc => {
-        results.push(doc)
-      })
+      // Start reading concurrently
+      const readPromise = collectStream(reader)
 
       // Write partial chunks
       const line1 = JSON.stringify(sampleDocuments[0])
       const line2 = JSON.stringify(sampleDocuments[1])
 
-      parser.write(Buffer.from(line1.slice(0, 10)))
-      parser.write(Buffer.from(`${line1.slice(10)}\n${line2.slice(0, 15)}`))
-      parser.write(Buffer.from(line2.slice(15)))
-      parser.end()
+      await writer.write(line1.slice(0, 10))
+      await writer.write(`${line1.slice(10)}\n${line2.slice(0, 15)}`)
+      await writer.write(line2.slice(15))
+      await writer.close()
 
-      await new Promise(resolve => parser.on('end', resolve))
+      const results = await readPromise
 
       expect(results).toHaveLength(2)
       expect(results[0]).toEqual(sampleDocuments[0])
@@ -214,7 +222,12 @@ describe('ExportFormatter', () => {
   describe('Stream Utilities', () => {
     it('should convert stream to string', async () => {
       const data = 'Hello World'
-      const stream = Readable.from([Buffer.from(data)])
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(data))
+          controller.close()
+        },
+      })
 
       const result = await ExportFormatter.streamToString(stream)
       expect(result).toBe(data)
@@ -246,19 +259,22 @@ describe('ExportFormatter', () => {
   describe('Error Handling', () => {
     it('should handle invalid JSON in JSONL parser', async () => {
       const parser = ExportFormatter.createDocumentParser('jsonl')
+      const writer = parser.writable.getWriter()
+      const reader = parser.readable.getReader()
+
+      // Start reading concurrently -- expect it to reject
+      const readPromise = reader.read()
+
+      await writer.write('invalid json\n')
+      // Close the writer (may reject due to errored transform)
+      await writer.close().catch(() => {})
+
       let error: Error | null = null
-
-      parser.on('error', err => {
+      try {
+        await readPromise
+      } catch (err: any) {
         error = err
-      })
-
-      parser.write(Buffer.from('invalid json\n'))
-      parser.end()
-
-      await new Promise(resolve => {
-        parser.on('error', resolve)
-        parser.on('end', resolve)
-      })
+      }
 
       expect(error).toBeInstanceOf(Error)
       expect(error?.message).toContain('Invalid JSON')
@@ -266,19 +282,21 @@ describe('ExportFormatter', () => {
 
     it('should handle invalid JSON in JSON parser', async () => {
       const parser = ExportFormatter.createDocumentParser('json')
+      const writer = parser.writable.getWriter()
+      const reader = parser.readable.getReader()
+
+      // Start reading concurrently
+      const readPromise = collectStream(reader)
+
+      await writer.write('invalid json')
+      await writer.close().catch(() => {})
+
       let error: Error | null = null
-
-      parser.on('error', err => {
+      try {
+        await readPromise
+      } catch (err: any) {
         error = err
-      })
-
-      parser.write(Buffer.from('invalid json'))
-      parser.end()
-
-      await new Promise(resolve => {
-        parser.on('error', resolve)
-        parser.on('end', resolve)
-      })
+      }
 
       expect(error).toBeInstanceOf(Error)
       expect(error?.message).toContain('Invalid JSON')

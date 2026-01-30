@@ -1,6 +1,5 @@
 // npx vitest run ./src/services/search/typesense/tests/typesense.api.test.ts
 
-import { Readable } from 'node:stream'
 import { Http } from '@goatlab/js-utils'
 import {
   afterAll,
@@ -956,7 +955,12 @@ describe('TypesenseApi', () => {
           .map(doc => JSON.stringify(doc))
           .join('\n')
 
-        const stream = Readable.from([jsonlData])
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(jsonlData))
+            controller.close()
+          },
+        })
 
         const results = await service.documents.import(stream, 'jsonl')
 
@@ -976,14 +980,14 @@ describe('TypesenseApi', () => {
         let jsonlData = manyDocs.map(doc => JSON.stringify(doc)).join('\n')
 
         // Create stream that emits data in chunks
-        const stream = new Readable({
-          read() {
+        const stream = new ReadableStream({
+          pull(controller) {
             if (jsonlData.length > 0) {
               const chunk = jsonlData.slice(0, 1000)
-              this.push(chunk)
+              controller.enqueue(new TextEncoder().encode(chunk))
               jsonlData = jsonlData.slice(1000)
             } else {
-              this.push(null)
+              controller.close()
             }
           },
         })
@@ -1178,12 +1182,16 @@ describe('TypesenseApi', () => {
       it('should export documents as stream', async () => {
         const stream = await service.documents.exportStream()
 
-        expect(stream).toBeInstanceOf(Readable)
+        expect(stream).toBeInstanceOf(ReadableStream)
 
-        // Collect stream data
+        // Collect stream data using reader pattern
+        const reader = stream.getReader()
         const chunks: string[] = []
-        for await (const chunk of stream) {
-          chunks.push(chunk.toString())
+        const decoder = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          chunks.push(typeof value === 'string' ? value : decoder.decode(value))
         }
 
         const data = chunks.join('')
@@ -1213,9 +1221,13 @@ describe('TypesenseApi', () => {
             'id:=[export-0, export-1, export-2, export-3, export-4, export-5, export-6, export-7, export-8, export-9]',
         })
 
+        const reader = stream.getReader()
         const chunks: string[] = []
-        for await (const chunk of stream) {
-          chunks.push(chunk.toString())
+        const decoder = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          chunks.push(typeof value === 'string' ? value : decoder.decode(value))
         }
 
         const data = chunks.join('')
