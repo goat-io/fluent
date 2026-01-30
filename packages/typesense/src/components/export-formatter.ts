@@ -1,6 +1,4 @@
-// ExportFormatter - Handles CSV/gzip helpers with streaming support
-import { Readable, Transform } from 'node:stream'
-import { createGzip } from 'node:zlib'
+// ExportFormatter - Handles CSV helpers with streaming support
 import { TypesenseDocument, TypesenseExportFormat } from '../typesense.model'
 
 export class ExportFormatter {
@@ -45,18 +43,20 @@ export class ExportFormatter {
     return csvLines.join('\n')
   }
 
-  static createStreamingCSVTransform<T>(): Transform {
+  static createStreamingCSVTransform<T>(): TransformStream<
+    TypesenseDocument<T>,
+    string
+  > {
     let isFirstRow = true
     let headers: string[] = []
 
-    return new Transform({
-      objectMode: true,
-      transform(chunk: TypesenseDocument<T>, _encoding, callback) {
+    return new TransformStream({
+      transform(chunk, controller) {
         try {
           if (isFirstRow) {
             // Extract headers from first document
             headers = Object.keys(chunk).sort()
-            this.push(`${headers.join(',')}\n`)
+            controller.enqueue(`${headers.join(',')}\n`)
             isFirstRow = false
           }
 
@@ -66,34 +66,34 @@ export class ExportFormatter {
             return ExportFormatter.escapeCsvValue(value)
           })
 
-          this.push(`${row.join(',')}\n`)
-          callback()
-        } catch (error) {
-          callback(error)
+          controller.enqueue(`${row.join(',')}\n`)
+        } catch (error: any) {
+          controller.error(error)
         }
       },
     })
   }
 
-  static createStreamingJSONLTransform<T>(): Transform {
-    return new Transform({
-      objectMode: true,
-      transform(chunk: TypesenseDocument<T>, _encoding, callback) {
-        try {
-          this.push(`${JSON.stringify(chunk)}\n`)
-          callback()
-        } catch (error) {
-          callback(error)
-        }
+  static createStreamingJSONLTransform<T>(): TransformStream<
+    TypesenseDocument<T>,
+    string
+  > {
+    return new TransformStream({
+      transform(chunk, controller) {
+        controller.enqueue(`${JSON.stringify(chunk)}\n`)
       },
     })
   }
 
-  static createGzipStream(): Transform {
-    return createGzip()
+  static createGzipStream(): never {
+    throw new Error(
+      'createGzipStream is not available in browser environments. Use CompressionStream API or a server-side solution.',
+    )
   }
 
-  static createDocumentParser(format: TypesenseExportFormat): Transform {
+  static createDocumentParser(
+    format: TypesenseExportFormat,
+  ): TransformStream<string, any> {
     switch (format) {
       case 'jsonl':
         return ExportFormatter.createJSONLParser()
@@ -104,13 +104,12 @@ export class ExportFormatter {
     }
   }
 
-  private static createJSONLParser(): Transform {
+  private static createJSONLParser(): TransformStream<string, any> {
     let buffer = ''
 
-    return new Transform({
-      objectMode: true,
-      transform(chunk: Buffer, _encoding, callback) {
-        buffer += chunk.toString()
+    return new TransformStream({
+      transform(chunk, controller) {
+        buffer += chunk
         const lines = buffer.split('\n')
 
         // Keep the last incomplete line in buffer
@@ -119,53 +118,48 @@ export class ExportFormatter {
         for (const line of lines) {
           if (line.trim()) {
             try {
-              const document = JSON.parse(line)
-              this.push(document)
+              controller.enqueue(JSON.parse(line))
             } catch (_error) {
-              return callback(new Error(`Invalid JSON in line: ${line}`))
+              controller.error(new Error(`Invalid JSON in line: ${line}`))
+              return
             }
           }
         }
-
-        callback()
       },
 
-      flush(callback) {
+      flush(controller) {
         if (buffer.trim()) {
           try {
-            const document = JSON.parse(buffer)
-            this.push(document)
+            controller.enqueue(JSON.parse(buffer))
           } catch (_error) {
-            return callback(new Error(`Invalid JSON in final line: ${buffer}`))
+            controller.error(
+              new Error(`Invalid JSON in final line: ${buffer}`),
+            )
           }
         }
-        callback()
       },
     })
   }
 
-  private static createJSONParser(): Transform {
+  private static createJSONParser(): TransformStream<string, any> {
     let buffer = ''
 
-    return new Transform({
-      objectMode: true,
-      transform(chunk: Buffer, _encoding, callback) {
-        buffer += chunk.toString()
-        callback()
+    return new TransformStream({
+      transform(chunk, controller) {
+        buffer += chunk
       },
 
-      flush(callback) {
+      flush(controller) {
         try {
           const documents = JSON.parse(buffer)
           if (Array.isArray(documents)) {
-            documents.forEach(doc => this.push(doc))
+            documents.forEach(doc => controller.enqueue(doc))
           } else {
-            this.push(documents)
+            controller.enqueue(documents)
           }
-        } catch (error) {
-          return callback(new Error(`Invalid JSON: ${error.message}`))
+        } catch (error: any) {
+          controller.error(new Error(`Invalid JSON: ${error.message}`))
         }
-        callback()
       },
     })
   }
@@ -203,51 +197,45 @@ export class ExportFormatter {
     return stringValue
   }
 
-  static async streamToString(stream: Readable): Promise<string> {
-    const chunks: Buffer[] = []
-
-    return new Promise((resolve, reject) => {
-      stream.on('data', chunk => chunks.push(chunk))
-      stream.on('error', reject)
-      stream.on('end', () => {
-        resolve(Buffer.concat(chunks).toString())
-      })
-    })
+  static async streamToString(stream: ReadableStream): Promise<string> {
+    const reader = stream.getReader()
+    const decoder = new TextDecoder()
+    let result = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      result += typeof value === 'string' ? value : decoder.decode(value, { stream: true })
+    }
+    result += decoder.decode()
+    return result
   }
 
-  static async *streamToAsyncIterator<T>(stream: Readable): AsyncGenerator<T> {
-    const reader = stream[Symbol.asyncIterator]?.() || stream
-
-    if (typeof reader[Symbol.asyncIterator] === 'function') {
-      for await (const chunk of reader) {
-        yield chunk
+  static async *streamToAsyncIterator<T>(
+    stream: ReadableStream<T>,
+  ): AsyncGenerator<T> {
+    const reader = stream.getReader()
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        yield value
       }
-    } else {
-      // Fallback for streams without async iterator support
-      const chunks: T[] = []
-
-      await new Promise<void>((resolve, reject) => {
-        stream.on('data', (chunk: T) => chunks.push(chunk))
-        stream.on('error', reject)
-        stream.on('end', resolve)
-      })
-
-      for (const chunk of chunks) {
-        yield chunk
-      }
+    } finally {
+      reader.releaseLock()
     }
   }
 
-  static createDocumentStream<T>(documents: TypesenseDocument<T>[]): Readable {
+  static createDocumentStream<T>(
+    documents: TypesenseDocument<T>[],
+  ): ReadableStream<T> {
     let index = 0
 
-    return new Readable({
-      objectMode: true,
-      read() {
+    return new ReadableStream({
+      pull(controller) {
         if (index < documents.length) {
-          this.push(documents[index++])
+          controller.enqueue(documents[index++] as T)
         } else {
-          this.push(null) // End stream
+          controller.close()
         }
       },
     })
