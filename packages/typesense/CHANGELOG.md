@@ -1,5 +1,11 @@
 # @goatlab/typesense
 
+## 0.1.5
+
+### Patch Changes
+
+- Replace node:stream and node:zlib imports with Web Streams API for browser, React Native, and Expo compatibility
+
 ## 0.1.4
 
 ### Patch Changes
