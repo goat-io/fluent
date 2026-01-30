@@ -48,7 +48,8 @@
 		"@goatlab/js-utils": "workspace:*",
 		"@goatlab/node-utils": "workspace:*",
 		"@goatlab/tasks-core": "workspace:*",
-		"bullmq": "^5.65.1"
+		"bullmq": "^5.65.1",
+		"ioredis": "^5.6.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.3",
