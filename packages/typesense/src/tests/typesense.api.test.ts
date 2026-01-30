@@ -1190,7 +1190,9 @@ describe('TypesenseApi', () => {
         const decoder = new TextDecoder()
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
+          if (done) {
+            break
+          }
           chunks.push(typeof value === 'string' ? value : decoder.decode(value))
         }
 
@@ -1226,7 +1228,9 @@ describe('TypesenseApi', () => {
         const decoder = new TextDecoder()
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
+          if (done) {
+            break
+          }
           chunks.push(typeof value === 'string' ? value : decoder.decode(value))
         }
 

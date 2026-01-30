@@ -4,11 +4,15 @@ import { describe, expect, it } from 'vitest'
 import { ExportFormatter } from '../components/export-formatter'
 
 /** Helper: Collect all chunks from a ReadableStream into an array */
-async function collectStream<T>(reader: ReadableStreamDefaultReader<T>): Promise<T[]> {
+async function collectStream<T>(
+  reader: ReadableStreamDefaultReader<T>,
+): Promise<T[]> {
   const results: T[] = []
   while (true) {
     const { done, value } = await reader.read()
-    if (done) break
+    if (done) {
+      break
+    }
     results.push(value)
   }
   return results

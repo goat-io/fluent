@@ -132,9 +132,7 @@ export class ExportFormatter {
           try {
             controller.enqueue(JSON.parse(buffer))
           } catch (_error) {
-            controller.error(
-              new Error(`Invalid JSON in final line: ${buffer}`),
-            )
+            controller.error(new Error(`Invalid JSON in final line: ${buffer}`))
           }
         }
       },
@@ -145,7 +143,7 @@ export class ExportFormatter {
     let buffer = ''
 
     return new TransformStream({
-      transform(chunk, controller) {
+      transform(chunk, _controller) {
         buffer += chunk
       },
 
@@ -203,8 +201,13 @@ export class ExportFormatter {
     let result = ''
     while (true) {
       const { done, value } = await reader.read()
-      if (done) break
-      result += typeof value === 'string' ? value : decoder.decode(value, { stream: true })
+      if (done) {
+        break
+      }
+      result +=
+        typeof value === 'string'
+          ? value
+          : decoder.decode(value, { stream: true })
     }
     result += decoder.decode()
     return result
@@ -217,7 +220,9 @@ export class ExportFormatter {
     try {
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) {
+          break
+        }
         yield value
       }
     } finally {
