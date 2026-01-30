@@ -55,6 +55,7 @@ export {
 // Runtime - TasksRuntime lifecycle orchestrator
 export {
   TasksRuntime,
+  type TaskClass,
   type TasksRuntimeConfig,
   type TasksRuntimeLogger,
   type WorkerManager,

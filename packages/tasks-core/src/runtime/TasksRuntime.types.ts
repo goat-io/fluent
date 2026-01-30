@@ -1,4 +1,5 @@
-import type { ShouldQueue } from '../ShouldQueue'
+import type { ShouldQueue, ShouldQueueOptions } from '../ShouldQueue'
+import type { TaskConnector } from '../ShouldQueue.types'
 import type { DispatchConfig } from '../dispatch/dispatch.types'
 import type { DispatchConnector } from '../dispatch/DispatchConnector'
 
@@ -19,14 +20,34 @@ export interface SchedulerManager {
   stop(): Promise<void>
 }
 
+/**
+ * A task class constructor.
+ * Accepts optional ShouldQueueOptions (connector injected by TasksRuntime).
+ */
+export type TaskClass = new (opts?: ShouldQueueOptions<any>) => ShouldQueue
+
 export interface TasksRuntimeConfig {
   mode: 'api-only' | 'isolated' | 'shared'
-  tasks: ShouldQueue[]
+
+  /**
+   * Tasks to manage. Accepts either:
+   * - Pre-instantiated ShouldQueue instances (legacy)
+   * - Task class constructors (preferred — TasksRuntime handles instantiation)
+   */
+  tasks: ShouldQueue[] | TaskClass[]
+
+  /**
+   * Factory to create a TaskConnector for task instances.
+   * Required when passing task classes. TasksRuntime calls this once
+   * and injects the connector into each instantiated task.
+   */
+  createTaskConnector?: () => TaskConnector<any>
+
   dispatch?: {
     config: DispatchConfig
     createConnector: () => DispatchConnector
   }
-  createWorkerManager?: () => WorkerManager
+  createWorkerManager?: (tasks: ShouldQueue[]) => WorkerManager
   createSchedulerManager?: () => SchedulerManager
   logger?: TasksRuntimeLogger
 }

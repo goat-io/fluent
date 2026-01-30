@@ -1,13 +1,28 @@
-import type { TasksRuntimeConfig, TasksRuntimeLogger, WorkerManager, SchedulerManager } from './TasksRuntime.types'
+import type { ShouldQueue } from '../ShouldQueue'
+import type {
+  TaskClass,
+  TasksRuntimeConfig,
+  TasksRuntimeLogger,
+  WorkerManager,
+  SchedulerManager,
+} from './TasksRuntime.types'
 import { WorkerPoolManager } from '../dispatch/WorkerPoolManager'
 import { DispatchFanOut } from '../dispatch/DispatchFanOut'
 import type { DispatchConnector } from '../dispatch/DispatchConnector'
+
+/**
+ * Check whether a value is a class constructor (function) vs an instance.
+ */
+function isTaskClass(value: unknown): value is TaskClass {
+  return typeof value === 'function'
+}
 
 export class TasksRuntime {
   private static instance: TasksRuntime | null = null
   private workerManager: WorkerManager | null = null
   private schedulerManager: SchedulerManager | null = null
   private dispatchConnector: DispatchConnector | null = null
+  private tasks: ShouldQueue[] = []
   private isRunning = false
   private readonly logger: Required<TasksRuntimeLogger>
 
@@ -35,8 +50,36 @@ export class TasksRuntime {
     return TasksRuntime.instance
   }
 
+  private resolveTasks(): ShouldQueue[] {
+    const items = this.config.tasks
+
+    if (items.length === 0) return []
+
+    // Check if first element is a class constructor or an instance
+    if (isTaskClass(items[0])) {
+      // Task classes — instantiate them
+      const classes = items as TaskClass[]
+      const connector = this.config.createTaskConnector?.()
+
+      return classes.map((TaskCls) => {
+        const instance = new TaskCls()
+        if (connector) {
+          instance.setConnector(connector)
+        }
+        return instance
+      })
+    }
+
+    // Already instances
+    return items as ShouldQueue[]
+  }
+
   private async initialize(): Promise<void> {
     this.logger.info(`[TasksRuntime] Starting in ${this.config.mode} mode`)
+
+    // Resolve tasks (instantiate from classes if needed)
+    this.tasks = this.resolveTasks()
+    this.logger.info(`[TasksRuntime] ${this.tasks.length} task(s) registered`)
 
     if (this.config.mode === 'api-only') {
       this.logger.info('[TasksRuntime] API-only mode: no workers or schedulers')
@@ -46,7 +89,7 @@ export class TasksRuntime {
 
     if (this.config.mode === 'isolated') {
       if (this.config.createWorkerManager) {
-        this.workerManager = this.config.createWorkerManager()
+        this.workerManager = this.config.createWorkerManager(this.tasks)
         await this.workerManager.start()
         this.logger.info('[TasksRuntime] Worker manager started (isolated mode)')
       } else {
@@ -73,13 +116,20 @@ export class TasksRuntime {
     this.logger.info('[TasksRuntime] Initialization complete')
   }
 
+  /**
+   * Get the resolved task instances.
+   */
+  getTasks(): ShouldQueue[] {
+    return this.tasks
+  }
+
   getDispatchConnector(): DispatchConnector | null {
     return this.dispatchConnector
   }
 
   createWorkerPoolManager(): WorkerPoolManager | null {
     if (!this.dispatchConnector || !this.config.dispatch) return null
-    const taskRegistry = WorkerPoolManager.createTaskRegistry(this.config.tasks)
+    const taskRegistry = WorkerPoolManager.createTaskRegistry(this.tasks)
     return new WorkerPoolManager({
       connector: this.dispatchConnector,
       dispatchConfig: this.config.dispatch.config,

@@ -23,7 +23,7 @@ type TrackedPayload<T> = T & {
 }
 
 export interface ShouldQueueOptions<TInput> {
-  connector: TaskConnector<TInput>
+  connector?: TaskConnector<TInput>
   basePostUrl?: string
   /**
    * Optional TaskTracker for status tracking.
@@ -43,7 +43,7 @@ export abstract class ShouldQueue<
   public abstract handle(taskBody: TInput): Promise<TResult>
 
   public retries = 3
-  public connector: TaskConnector<TInput>
+  public connector!: TaskConnector<TInput>
   public tracker?: TaskTracker
 
   /**
@@ -58,10 +58,20 @@ export abstract class ShouldQueue<
    */
   private _currentTenantId?: string
 
-  constructor(options: ShouldQueueOptions<TInput>) {
-    this.connector = options.connector
-    this.basePostUrl = options.basePostUrl
-    this.tracker = options.tracker
+  constructor(options?: ShouldQueueOptions<TInput>) {
+    if (options?.connector) {
+      this.connector = options.connector
+    }
+    this.basePostUrl = options?.basePostUrl
+    this.tracker = options?.tracker
+  }
+
+  /**
+   * Set the connector for this task.
+   * Used by TasksRuntime to inject the connector after construction.
+   */
+  setConnector(connector: TaskConnector<TInput>): void {
+    this.connector = connector
   }
 
   /**
@@ -98,6 +108,13 @@ export abstract class ShouldQueue<
    * If a tracker is configured, automatically creates a tracked task.
    */
   async queue(taskBody: TInput): Promise<Omit<TaskStatus, 'payload'>> {
+    if (!this.connector) {
+      throw new Error(
+        `[ShouldQueue] No connector set for task "${this.taskName}". ` +
+        'Pass a connector in the constructor or call setConnector() before queueing.',
+      )
+    }
+
     let trackerId: string | undefined
 
     // Create tracked task if tracker is available
