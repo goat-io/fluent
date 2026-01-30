@@ -13,12 +13,19 @@
 
 import { ShouldQueue } from '../ShouldQueue.js'
 import type {
+  InputType,
   TaskConnector,
   TenantCredentials,
   UnknownInputType,
 } from '../ShouldQueue.types.js'
 import type { TestFramework, TestSuiteOptions } from './types.js'
 import { delay, generateTestId, waitForTaskCompletion } from './utils.js'
+
+/**
+ * Constructor type for ShouldQueue subclasses.
+ * Used to avoid TypeScript errors with private member exposure in class expressions.
+ */
+type ShouldQueueConstructor<T extends InputType> = new () => ShouldQueue<T>
 
 /**
  * Factory function type for creating tenant-scoped connectors.
@@ -85,7 +92,7 @@ export interface MultiTenantTestOptions extends TestSuiteOptions {
 export function createMultiTenantTestTask(
   connector: TaskConnector<{ text: string; tenantMarker: string }>,
   testPostUrl = 'http://localhost/test/multi-tenant',
-) {
+): ShouldQueueConstructor<{ text: string; tenantMarker: string }> {
   return class MultiTenantTestTask extends ShouldQueue<{
     text: string
     tenantMarker: string

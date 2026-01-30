@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-loki",
-  "version": "0.9.23",
+  "version": "0.9.27",
   "scripts": {
     "prebuild": "rimraf dist",
     "prestart": "rimraf dist",

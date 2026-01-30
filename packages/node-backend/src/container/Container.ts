@@ -1,11 +1,12 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { instantiate, safeDispose } from './helpers'
+import { disposeWithResult, instantiate, safeDispose } from './helpers'
 import { createServiceCache } from './LruCache'
 import {
   BatchBootstrapOptions,
   BatchBootstrapResult,
   BatchInvalidationResult,
   ContainerOptions,
+  DisposalResult,
   Factory,
   InstancesStructure,
   MapInterface,
@@ -166,14 +167,22 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   private readonly contextProxyCache = new WeakMap<any, any>()
 
   /**
-   * Initializer cache: stores initialized instances per tenant
+   * Initializer cache: stores initialized instances per tenant with LRU eviction
    * Avoids re-running the expensive initializer function for the same tenant
    * Key is a serialized version of tenant metadata, value is the initialized instances
+   * Uses accessOrder to track LRU for eviction when cache exceeds maxInitializerCacheSize
    */
   private readonly initializerCache = new Map<
     string,
     Partial<InstancesStructure<Defs>>
   >()
+
+  /**
+   * Tracks access order for LRU eviction of initializerCache entries
+   * Key is cache key, value is access timestamp (incrementing counter)
+   */
+  private readonly initializerAccessOrder = new Map<string, number>()
+  private initializerAccessCounter = 0
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 📊 PERFORMANCE METRICS
@@ -271,8 +280,10 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     options: ContainerOptions = {},
   ) {
     // Apply default options
+    const cacheSize = options.cacheSize ?? 100
     this.options = {
-      cacheSize: 100,
+      cacheSize,
+      maxInitializerCacheSize: options.maxInitializerCacheSize ?? cacheSize,
       enableMetrics: false,
       enableDiagnostics: false,
       enableDistributedInvalidation: false,
@@ -608,8 +619,35 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   }
 
   /**
+   * Evict the least recently used entry from initializerCache if at capacity
+   * Called before adding a new entry when cache is at maxInitializerCacheSize
+   */
+  private evictLruFromInitializerCache(): void {
+    if (this.initializerCache.size < this.options.maxInitializerCacheSize) {
+      return
+    }
+
+    // Find the LRU entry (lowest access counter)
+    let lruKey: string | null = null
+    let lruTime = Number.POSITIVE_INFINITY
+
+    for (const [key, time] of this.initializerAccessOrder) {
+      if (time < lruTime) {
+        lruTime = time
+        lruKey = key
+      }
+    }
+
+    if (lruKey) {
+      this.initializerCache.delete(lruKey)
+      this.initializerAccessOrder.delete(lruKey)
+    }
+  }
+
+  /**
    * Get or create initialized instances for a tenant with race condition protection
    * Uses both result caching and inflight promise deduplication
+   * Implements LRU eviction when cache exceeds maxInitializerCacheSize
    */
   private async getOrCreateInstances(
     meta: TenantMetadata,
@@ -620,6 +658,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     const cachedInstances = this.initializerCache.get(cacheKey)
     if (cachedInstances) {
       this.inc(Container.METRIC.INIT_HITS)
+      // Update access order for LRU tracking
+      this.initializerAccessOrder.set(cacheKey, ++this.initializerAccessCounter)
       return cachedInstances
     }
 
@@ -635,8 +675,12 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
 
     try {
       const instances = await initPromise
+      // Evict LRU entry if cache is at capacity
+      this.evictLruFromInitializerCache()
       // Cache the result for future use
       this.initializerCache.set(cacheKey, instances)
+      // Track access order for LRU
+      this.initializerAccessOrder.set(cacheKey, ++this.initializerAccessCounter)
       return instances
     } finally {
       // Clean up inflight promise tracking
@@ -1035,6 +1079,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Clear optimization caches as well
     this.proxyCache.clear()
     this.initializerCache.clear()
+    this.initializerAccessOrder.clear()
     this.initializerPromises.clear()
 
     // Note: contextProxyCache is a WeakMap and will be garbage collected automatically
@@ -1044,14 +1089,42 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Async version of clearCaches that properly awaits all disposal operations
    * Use this method when you need to ensure all resources are fully disposed
    * before continuing (e.g., during graceful shutdown)
+   * @returns DisposalResult with counts and any errors encountered
    */
-  async clearCachesAsync(): Promise<void> {
-    // Dispose instances before clearing to prevent memory leaks
-    await Promise.all(
-      Object.values(this.managers).flatMap(m =>
-        [...(m.values?.() ?? [])].map(safeDispose),
-      ),
+  async clearCachesAsync(): Promise<DisposalResult> {
+    const result: DisposalResult = {
+      disposed: 0,
+      failed: 0,
+      succeeded: 0,
+      errors: [],
+    }
+
+    // Collect all instances to dispose
+    const instancesToDispose: unknown[] = []
+    for (const manager of Object.values(this.managers)) {
+      if (manager.values) {
+        instancesToDispose.push(...manager.values())
+      }
+    }
+
+    // Dispose instances and collect errors using disposeWithResult
+    const disposalResults = await Promise.all(
+      instancesToDispose.map(inst => disposeWithResult(inst)),
     )
+
+    for (const disposeResult of disposalResults) {
+      if (disposeResult.disposed && !disposeResult.error) {
+        result.disposed++
+        result.succeeded++
+      } else if (disposeResult.error) {
+        result.failed++
+        result.errors.push({ error: disposeResult.error })
+        // Log errors when diagnostics is enabled (for backward compatibility)
+        if (this.options.enableDiagnostics) {
+          console.error('Disposal error:', disposeResult.error)
+        }
+      }
+    }
 
     // Clear all managers
     for (const manager of Object.values(this.managers)) {
@@ -1061,9 +1134,11 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Clear optimization caches as well
     this.proxyCache.clear()
     this.initializerCache.clear()
+    this.initializerAccessOrder.clear()
     this.initializerPromises.clear()
 
     // Note: contextProxyCache is a WeakMap and will be garbage collected automatically
+    return result
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1249,17 +1324,53 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Dispose all service instances across all tenants and clear caches
    * Useful for graceful shutdown and testing cleanup
    * Note: This also clears all caches to prevent resurrection of disposed services
+   * @returns DisposalResult with counts and any errors encountered during disposal
    */
-  async disposeAll(): Promise<void> {
-    // First dispose all instances
-    await Promise.all(
-      Object.values(this.managers).flatMap(manager =>
-        [...(manager.values?.() ?? [])].map(safeDispose),
-      ),
+  async disposeAll(): Promise<DisposalResult> {
+    const result: DisposalResult = {
+      disposed: 0,
+      failed: 0,
+      succeeded: 0,
+      errors: [],
+    }
+
+    // Collect all instances to dispose
+    const instancesToDispose: unknown[] = []
+    for (const manager of Object.values(this.managers)) {
+      if (manager.values) {
+        instancesToDispose.push(...manager.values())
+      }
+    }
+
+    // Dispose all instances and collect errors using disposeWithResult
+    const disposalResults = await Promise.all(
+      instancesToDispose.map(inst => disposeWithResult(inst)),
     )
 
-    // Then clear all caches to prevent resurrection
-    await this.clearCachesAsync()
+    for (const disposeResult of disposalResults) {
+      if (disposeResult.disposed && !disposeResult.error) {
+        result.disposed++
+        result.succeeded++
+      } else if (disposeResult.error) {
+        result.failed++
+        result.errors.push({ error: disposeResult.error })
+        // Log errors when diagnostics is enabled (for backward compatibility)
+        if (this.options.enableDiagnostics) {
+          console.error('Disposal error:', disposeResult.error)
+        }
+      }
+    }
+
+    // Clear all caches (managers are already empty after disposal iteration)
+    for (const manager of Object.values(this.managers)) {
+      manager.clear()
+    }
+    this.proxyCache.clear()
+    this.initializerCache.clear()
+    this.initializerAccessOrder.clear()
+    this.initializerPromises.clear()
+
+    return result
   }
 
   /**

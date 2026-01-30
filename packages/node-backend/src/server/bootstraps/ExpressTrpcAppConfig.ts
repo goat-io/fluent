@@ -1,9 +1,79 @@
 import type { CommonLogger } from '@goatlab/js-utils'
 import type { BuiltRouter } from '@trpc/server/unstable-core-do-not-import'
-import type { RequestHandler, Router } from 'express'
+import type { Request, RequestHandler, Router } from 'express'
 import { pkg } from '../consts'
 import type { SentryService } from '../sentry/sentry.service'
 import type { Environment } from '../types/Envinronment'
+
+/**
+ * Validated user from Better Auth or other auth provider
+ */
+export interface ValidatedAuthUser {
+  /** User's unique ID */
+  id: string
+  /** User's email address */
+  email: string
+  /** Whether email has been verified */
+  emailVerified?: boolean
+  /** User's display name */
+  name?: string
+  /** User's profile image URL */
+  image?: string
+  /** Session ID if using session-based auth */
+  sessionId?: string
+  /** Additional metadata */
+  metadata?: Record<string, unknown>
+}
+
+/**
+ * Result of token validation
+ */
+export interface AuthValidationResult {
+  /** Whether the token is valid */
+  valid: boolean
+  /** Validated user info (only present if valid) */
+  user?: ValidatedAuthUser
+  /** Error message (only present if invalid) */
+  error?: string
+}
+
+/**
+ * Auth configuration for Better Auth integration
+ */
+export interface AuthConfig {
+  /**
+   * Validate a token and return the authenticated user.
+   * This callback is called for each request with a Bearer token.
+   *
+   * @param token - The token from Authorization header (without "Bearer " prefix)
+   * @param req - The Express request object (for accessing headers, tenant info, etc.)
+   * @returns Validation result with user info or error
+   *
+   * @example
+   * ```typescript
+   * validateToken: async (token, req) => {
+   *   const tenantId = req.headers['x-tenant-id'] as string
+   *   const auth = await getBetterAuthForTenant(tenantId)
+   *   const session = await auth.api.getSession({
+   *     headers: new Headers({ authorization: `Bearer ${token}` })
+   *   })
+   *   if (!session?.user) {
+   *     return { valid: false, error: 'Invalid session' }
+   *   }
+   *   return {
+   *     valid: true,
+   *     user: {
+   *       id: session.user.id,
+   *       email: session.user.email,
+   *       emailVerified: session.user.emailVerified,
+   *       name: session.user.name,
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  validateToken?: (token: string, req: Request) => Promise<AuthValidationResult>
+}
 
 // Required configuration - only what's absolutely necessary
 export interface RequiredExpressTrpcAppConfig {
@@ -28,6 +98,9 @@ export interface OptionalExpressTrpcAppConfig {
   // Express extensions
   expressResources?: Router[] | readonly Router[]
   customHandlers?: RequestHandler[]
+
+  // Authentication configuration (Better Auth)
+  auth?: AuthConfig
 
   // Feature flags
   features?: {
@@ -223,6 +296,11 @@ export function getDefaultConfig(
     // Express extensions
     expressResources: [],
     customHandlers: [],
+
+    // Authentication (Better Auth) - no default validator
+    auth: {
+      validateToken: undefined,
+    },
 
     // Feature flags
     features: {

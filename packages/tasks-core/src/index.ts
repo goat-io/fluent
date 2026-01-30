@@ -1,4 +1,4 @@
-export { ShouldQueue } from './ShouldQueue'
+export { ShouldQueue, type ShouldQueueOptions } from './ShouldQueue'
 
 export type {
   InputType,
@@ -12,3 +12,24 @@ export type {
   TenantCredentials,
   UnknownInputType,
 } from './ShouldQueue.types'
+
+// TaskTracker - Queue-agnostic status tracking
+export {
+  type CreateTrackedTaskOptions,
+  DEFAULT_TRACKER_CONFIG,
+  IngestBuffer,
+  type IngestBufferConfig,
+  InMemoryTaskTrackerConnector,
+  type ProgressOptions,
+  type RedisClient,
+  type RedisPipeline,
+  type RedisTaskTrackerConfig,
+  RedisTaskTrackerConnector,
+  type TaskStateCallback,
+  TaskTracker,
+  type TaskTrackerConfig,
+  type TaskTrackerConnector,
+  type TrackedTaskState,
+  type TrackedTaskStatus,
+  type Unsubscribe,
+} from './tracker'

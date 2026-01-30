@@ -1,5 +1,48 @@
 # 0.5.20
 
+## 1.2.1
+
+### Patch Changes
+
+- Add errorFormatter support to getTrpc function
+
+  - Add `errorFormatter` parameter to `getTrpc()` for custom error formatting
+  - Allows apps to customize tRPC error responses
+
+## 1.2.0
+
+### Minor Changes
+
+- Replace Firebase auth with Better Auth support
+
+  - Add `auth.validateToken` callback to `ExpressTrpcAppConfig` for Better Auth token validation
+  - Add `createContextFactory` to create tRPC/Express context with auth configuration
+  - Add `ValidatedAuthUser`, `AuthConfig`, and `AuthValidationResult` types
+  - Add `req.betterAuthUser` support for pre-validated users from middleware
+  - Rename `firebaseId` to `userId` in request context
+  - Update user schema to be Better Auth compatible
+  - Remove Firebase-specific dependencies from context creation
+
+## 1.1.24
+
+### Patch Changes
+
+- Fix typo in request.context.ts: xTenandId -> xTenantId
+
+## 1.1.22
+
+### Patch Changes
+
+- Add 'e2e' to Environment type for E2E testing scenarios
+
+  The `@goatlab/node-backend` library intentionally skips starting the HTTP server when `environment === 'test'` to support unit testing. However, E2E tests require the server to start so Playwright can interact with it.
+
+  This change adds `'e2e'` to the Environment type (`'test' | 'e2e' | 'local' | 'dev' | 'prod'`), allowing E2E test runners to use `APP_ENV='e2e'` which:
+
+  - Starts the HTTP server normally (unlike 'test')
+  - Clearly indicates a test context (unlike 'local' or 'dev')
+  - Works with TestContainers and ephemeral databases
+
 ## 1.1.21
 
 ### Patch Changes

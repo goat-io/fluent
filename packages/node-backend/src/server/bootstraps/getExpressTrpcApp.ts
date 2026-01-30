@@ -19,7 +19,7 @@ const responseTime = require('response-time')
 
 import { yellow } from 'kleur/colors'
 import { createOpenApiExpressMiddleware } from 'trpc-to-openapi'
-import { createContext } from '../context/trpc.context'
+import { createContextFactory } from '../context/trpc.context'
 import { initOpenApiDocs } from '../initOpenApiDocs'
 import { genericErrorMiddleware } from '../middleware/error.middleware'
 import { expressRequestLogger } from '../middleware/logs.middleware'
@@ -59,6 +59,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     logger = console,
     expressResources,
     customHandlers,
+    auth,
     features,
     security,
     bodyParsing,
@@ -68,6 +69,12 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     readyCheck,
     processManagement,
   } = fullConfig
+
+  // Create context factory with auth config
+  const createContext = createContextFactory({
+    validateToken: auth?.validateToken,
+    logger,
+  })
 
   logger.log(`Starting ${appName}`)
   const app = express()

@@ -1,5 +1,39 @@
 # 0.5.20
 
+## 0.6.1
+
+### Patch Changes
+
+- Add getOwnerId() method to ShouldQueue for owner-based task tracking
+
+## 0.6.0
+
+### Minor Changes
+
+- Add owner-based task querying to TaskTracker
+
+  - Add `ownerId` field to `TrackedTaskState` for tracking task ownership
+  - Add `ownerId` option to `CreateTrackedTaskOptions` for setting owner on creation
+  - Add `ListByOwnerOptions` interface for filtering tasks by status and limit
+  - Add `listByOwner()` method to `TaskTrackerConnector` interface
+  - Implement `listByOwner()` in `RedisTaskTrackerConnector` with owner index
+  - Implement `listByOwner()` in `InMemoryTaskTrackerConnector` with owner index
+  - Add `listByOwner()` helper method to `TaskTracker` class
+  - Export `ListByOwnerOptions` type from the package
+
+## 0.5.0
+
+### Minor Changes
+
+- Add TaskTracker for real-time task status tracking
+
+  - Implement TaskTracker service with high-throughput buffered writes
+  - Add IngestBuffer with Fibonacci-based dynamic sizing for adaptive batching
+  - Add RedisTaskTrackerConnector for production use with Pub/Sub support
+  - Add InMemoryTaskTrackerConnector for testing
+  - Integrate TaskTracker with ShouldQueue for automatic lifecycle tracking
+  - Add comprehensive test suite (150 unit and integration tests)
+
 ## 0.4.1
 
 ### Patch Changes

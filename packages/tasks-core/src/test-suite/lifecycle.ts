@@ -1,5 +1,9 @@
 import { ShouldQueue } from '../ShouldQueue.js'
-import type { TaskConnector, UnknownInputType } from '../ShouldQueue.types.js'
+import type {
+  InputType,
+  TaskConnector,
+  UnknownInputType,
+} from '../ShouldQueue.types.js'
 import type {
   ConnectorFactory,
   TestFramework,
@@ -8,9 +12,17 @@ import type {
 import { delay, waitForTaskCompletion } from './utils.js'
 
 /**
+ * Constructor type for ShouldQueue subclasses.
+ * Used to avoid TypeScript errors with private member exposure in class expressions.
+ */
+type ShouldQueueConstructor<T extends InputType> = new () => ShouldQueue<T>
+
+/**
  * Creates a test task that completes successfully
  */
-export function createSuccessTask(connector: TaskConnector<{ text: string }>) {
+export function createSuccessTask(
+  connector: TaskConnector<{ text: string }>,
+): ShouldQueueConstructor<{ text: string }> {
   return class SuccessTask extends ShouldQueue<{ text: string }> {
     postUrl = 'http://localhost/test/success'
     taskName = 'test_success_task'
@@ -36,7 +48,7 @@ export function createSuccessTask(connector: TaskConnector<{ text: string }>) {
  */
 export function createFailingTask(
   connector: TaskConnector<{ text: string; shouldFail?: boolean }>,
-) {
+): ShouldQueueConstructor<{ text: string; shouldFail?: boolean }> {
   return class FailingTask extends ShouldQueue<{
     text: string
     shouldFail?: boolean

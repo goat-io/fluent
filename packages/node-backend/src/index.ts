@@ -31,7 +31,12 @@ export type {
   MapInterface,
   PreloadStructure,
 } from './container/types'
-export type { ExpressTrpcAppConfig } from './server/bootstraps/ExpressTrpcAppConfig'
+export type {
+  AuthConfig,
+  AuthValidationResult,
+  ExpressTrpcAppConfig,
+  ValidatedAuthUser,
+} from './server/bootstraps/ExpressTrpcAppConfig'
 export { getDefaultConfig } from './server/bootstraps/ExpressTrpcAppConfig'
 // New backend package
 export { getExpressTrpcApp } from './server/bootstraps/getExpressTrpcApp'
@@ -39,9 +44,24 @@ export type { PackageInfo } from './server/consts'
 export { config } from './server/consts'
 export type { LocationOutput } from './server/context/context.model'
 export { requestContext } from './server/context/request.context'
+export {
+  type ContextFactoryOptions,
+  createContextFactory,
+  type TrpcContext,
+} from './server/context/trpc.context'
 export { useCloudTaskDecryptMiddleware } from './server/middleware/cloudTaskDecrypt.middleware'
 export { handleRequest } from './server/middleware/handleRequest.middleware'
 export { getLogger } from './server/middleware/logger/logger.service'
+export type {
+  DecodedUserToken,
+  RequestUser,
+  TokenBasedAccess,
+} from './server/schemas/user.schema'
+export {
+  decodedUserTokenSchema,
+  internalTokenSchema,
+  requestTokenSchema,
+} from './server/schemas/user.schema'
 export { getSentry } from './server/sentry/getSentry'
 export { SentryService } from './server/sentry/sentry.service'
 export type {

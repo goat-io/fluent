@@ -1,5 +1,9 @@
 import { ShouldQueue } from '../ShouldQueue.js'
-import type { TaskConnector, UnknownInputType } from '../ShouldQueue.types.js'
+import type {
+  InputType,
+  TaskConnector,
+  UnknownInputType,
+} from '../ShouldQueue.types.js'
 import type {
   ConnectorFactory,
   TestFramework,
@@ -8,10 +12,18 @@ import type {
 import { delay } from './utils.js'
 
 /**
+ * Constructor type for ShouldQueue subclasses.
+ * Used to avoid TypeScript errors with private member exposure in class expressions.
+ */
+type ShouldQueueConstructor<T extends InputType> = new () => ShouldQueue<T>
+
+/**
  * Creates a test task class for the given connector
  * @internal
  */
-export function createApiTestTask(connector: TaskConnector<{ text: string }>) {
+export function createApiTestTask(
+  connector: TaskConnector<{ text: string }>,
+): ShouldQueueConstructor<{ text: string }> {
   return class ApiTestTask extends ShouldQueue<{ text: string }> {
     postUrl = 'http://localhost/test/task'
     taskName = 'test_api_task'

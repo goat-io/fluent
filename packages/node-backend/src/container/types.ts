@@ -288,6 +288,8 @@ export interface BatchInvalidationResult {
 export interface ContainerOptions {
   /** Maximum number of instances to cache per service (default: 100) */
   cacheSize?: number
+  /** Maximum number of tenant initializations to cache (default: cacheSize) */
+  maxInitializerCacheSize?: number
   /** Enable performance metrics collection (default: false) */
   enableMetrics?: boolean
   /** Enable detailed error logging and diagnostics (default: false) */
@@ -296,4 +298,21 @@ export interface ContainerOptions {
   enableDistributedInvalidation?: boolean
   /** Distributed cache invalidator instance */
   distributedInvalidator?: DistributedCacheInvalidator
+}
+
+/**
+ * Result of a disposal operation
+ */
+export interface DisposalResult {
+  /** Number of instances successfully disposed */
+  disposed: number
+  /** Number of disposal failures */
+  failed: number
+  /** Errors encountered during disposal */
+  errors: Array<{
+    instanceId?: string
+    error: Error
+  }>
+  /** Total number of successful disposals */
+  succeeded: number
 }

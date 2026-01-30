@@ -38,7 +38,7 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
     (request.headers['x-forwarded-for'] as string) ??
     ''
 
-  const xTenandId = (request.headers['x-tenant-id'] as string) || ''
+  const xTenantId = (request.headers['x-tenant-id'] as string) || ''
 
   return {
     user:
@@ -46,12 +46,12 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
         ? {
             decodedToken: token,
             email: 'email' in token ? token.email : undefined,
-            firebaseId: 'uid' in token ? token.uid : undefined,
+            userId: 'uid' in token ? token.uid : undefined,
           }
         : undefined,
     url: request.url,
     method: request.method,
-    xTenandId,
+    xTenantId,
     origin: request.get('origin'),
     ip,
     async getLocation(): Promise<LocationOutput> {

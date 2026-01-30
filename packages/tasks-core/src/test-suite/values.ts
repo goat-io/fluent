@@ -12,12 +12,18 @@ import type {
 import { delay, waitForTaskCompletion } from './utils.js'
 
 /**
+ * Constructor type for ShouldQueue subclasses.
+ * Used to avoid TypeScript errors with private member exposure in class expressions.
+ */
+type ShouldQueueConstructor<T extends InputType> = new () => ShouldQueue<T>
+
+/**
  * Creates a generic test task for any payload type
  */
 export function createGenericTask<T extends InputType>(
   connector: TaskConnector<T>,
   taskName: string,
-) {
+): ShouldQueueConstructor<T> {
   return class GenericTask extends ShouldQueue<T> {
     postUrl = 'http://localhost/test/generic'
     taskName = taskName
