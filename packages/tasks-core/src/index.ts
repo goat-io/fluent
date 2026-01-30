@@ -51,3 +51,12 @@ export {
   type DispatchFanOutConfig,
   type FanOutResult,
 } from './dispatch'
+
+// Runtime - TasksRuntime lifecycle orchestrator
+export {
+  TasksRuntime,
+  type TasksRuntimeConfig,
+  type TasksRuntimeLogger,
+  type WorkerManager,
+  type SchedulerManager,
+} from './runtime'
