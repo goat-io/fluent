@@ -106,4 +106,18 @@ export interface TaskConnector<TInput> {
     tenantId: string,
     credentials?: TenantCredentials,
   ): TaskConnector<TInput>
+
+  /**
+   * Optional hook called after a job is enqueued to the tenant queue.
+   * Used by the dispatch system to write a hint to the global dispatch queue.
+   * Only active in 'shared' dispatch mode.
+   *
+   * @param params - Job metadata for dispatch hint creation
+   */
+  onAfterQueue?(params: {
+    tenantId: string
+    queueName: string
+    jobId: string
+    priority?: number
+  }): Promise<void>
 }
