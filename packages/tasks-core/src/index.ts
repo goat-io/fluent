@@ -33,3 +33,15 @@ export {
   type TrackedTaskStatus,
   type Unsubscribe,
 } from './tracker'
+
+// Dispatch - Provider-agnostic multi-tenant dispatch system
+export {
+  calculateDispatchPriority,
+  type DispatchConfig,
+  type DispatchConnector,
+  type DispatchCycleResult,
+  type DispatchHint,
+  type DispatchMode,
+  type DispatchStatus,
+  type TenantPriority,
+} from './dispatch'
