@@ -1,5 +1,11 @@
 # @goatlab/typesense
 
+## 0.1.6
+
+### Patch Changes
+
+- Fix multiSearch to apply tenant FQCN transformation to collection names in request body
+
 ## 0.1.5
 
 ### Patch Changes
