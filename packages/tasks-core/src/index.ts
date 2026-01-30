@@ -44,4 +44,10 @@ export {
   type DispatchMode,
   type DispatchStatus,
   type TenantPriority,
+  WorkerPoolManager,
+  type WorkerPoolManagerConfig,
+  type TaskRegistry,
+  DispatchFanOut,
+  type DispatchFanOutConfig,
+  type FanOutResult,
 } from './dispatch'
