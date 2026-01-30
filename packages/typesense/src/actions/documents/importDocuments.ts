@@ -1,4 +1,3 @@
-import { Readable } from 'node:stream'
 import { ExportFormatter } from '../../components/export-formatter'
 import type { TypesenseContext } from '../../types'
 import type {
@@ -12,7 +11,7 @@ import { TypesenseError } from '../../typesense.model'
 
 export async function importDocuments<T extends Record<string, any>>(
   ctx: TypesenseContext,
-  documents: TypesenseDocument<T>[] | string | Readable,
+  documents: TypesenseDocument<T>[] | string | ReadableStream,
   format: TypesenseImportFormat = 'jsonl',
   importOptions?: TypesenseImportOptions,
   collectionOptions?: TypesenseCollectionOptions,
@@ -24,10 +23,10 @@ export async function importDocuments<T extends Record<string, any>>(
   }
 
   const collectionName = collectionOptions?.collection || ctx.fqcn()
-  let bodyStream: Readable
+  let body: string | ReadableStream
 
-  if (documents instanceof Readable) {
-    bodyStream = documents
+  if (documents instanceof ReadableStream) {
+    body = documents
   } else if (typeof documents === 'string') {
     if (format === 'csv') {
       throw new TypesenseError('CSV import requires conversion', 400)
@@ -38,10 +37,10 @@ export async function importDocuments<T extends Record<string, any>>(
       const jsonlData = parsedDocuments
         .map((doc: any) => JSON.stringify(doc))
         .join('\n')
-      bodyStream = Readable.from([jsonlData])
+      body = jsonlData
     } else {
       // Assume it's already JSONL
-      bodyStream = Readable.from([documents])
+      body = documents
     }
   } else {
     // Array of documents
@@ -49,7 +48,7 @@ export async function importDocuments<T extends Record<string, any>>(
       throw new TypesenseError('CSV import requires conversion', 400)
     }
     const formatted = ExportFormatter.formatDocuments(documents, format)
-    bodyStream = Readable.from([formatted as string])
+    body = formatted as string
   }
 
   const searchParams: any = {
@@ -57,12 +56,12 @@ export async function importDocuments<T extends Record<string, any>>(
     action: importOptions?.action || 'create',
   }
 
-  // Stream directly to HTTP body for large files
+  // Send body directly to HTTP for large files
   const response = await ctx.httpClient.requestTextWithRawBody(
     `/collections/${collectionName}/documents/import`,
     {
       method: 'POST',
-      body: bodyStream,
+      body,
       searchParams,
       timeout: ctx.httpClient.importTimeout,
     },
