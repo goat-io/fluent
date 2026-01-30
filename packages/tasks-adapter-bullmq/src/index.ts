@@ -3,3 +3,4 @@ export type {
 	BullMQConnectorConfig,
 } from "./BullMQConnector.js";
 export { BullMQConnector } from "./BullMQConnector.js";
+export { BullMQDispatchConnector, type BullMQDispatchConnectorConfig } from "./BullMQDispatchConnector.js";
