@@ -24,7 +24,7 @@
     "formiojs": "^4.14.5",
     "handlebars": "^4.7.7",
     "joi": "14.3.1",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "memory-cache": "^0.2.0",
     "mongoose": "^6.2.9",
     "path": "^0.12.7",
