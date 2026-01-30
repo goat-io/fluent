@@ -2145,6 +2145,51 @@ describe('TypesenseApi', () => {
           }
         }
       })
+
+      it('should apply FQCN to collection names in multiSearch', async () => {
+        // Ensure tenant1 has a products collection with a document
+        // (collection may already exist from prior tests in this describe block)
+        const productSchema: TypesenseCollection = {
+          name: 'products',
+          fields: [
+            { name: 'id', type: 'string' },
+            { name: 'name', type: 'string' },
+            { name: 'price', type: 'float' },
+          ],
+        }
+
+        try {
+          await tenant1Api.collections.create(productSchema)
+        } catch (error: any) {
+          // Ignore 409 Conflict (collection already exists)
+          const status = error.status || error.response?.status
+          if (status !== 409) {
+            throw error
+          }
+        }
+
+        await tenant1Api.documents.upsert({
+          id: 'ms-1',
+          name: 'Multi Search Widget',
+          price: 29.99,
+        } as any)
+
+        // Use search.multi with raw collection name - should be FQCN transformed
+        const result = await tenant1Api.search.multi({
+          searches: [
+            {
+              collection: 'products',
+              q: 'Widget',
+              query_by: 'name',
+            },
+          ],
+        })
+
+        expect(result).toBeDefined()
+        expect(result.results).toBeDefined()
+        expect(result.results.length).toBe(1)
+        expect(result.results[0].found).toBeGreaterThanOrEqual(1)
+      })
     })
 
     describe('Admin Operations', () => {
