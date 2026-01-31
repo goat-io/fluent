@@ -10,3 +10,4 @@ export type {
 } from './TaskRegistry.types'
 
 export { snakeToCamelCase } from './TaskRegistry.types'
+export { TaskRegistry } from './TaskRegistry'
