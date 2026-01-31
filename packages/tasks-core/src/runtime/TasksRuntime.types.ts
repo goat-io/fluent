@@ -25,7 +25,7 @@ export interface SchedulerManager {
  * A task class constructor.
  * Accepts optional ShouldQueueOptions (connector injected by TasksRuntime).
  */
-export type TaskClass = new (opts?: ShouldQueueOptions<any>) => ShouldQueue<any, any>
+export type TaskClass = new (opts?: ShouldQueueOptions<any>) => ShouldQueue<any, any, any>
 
 export interface TasksRuntimeConfig {
   mode: 'api-only' | 'isolated' | 'shared'

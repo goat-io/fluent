@@ -35,8 +35,9 @@ export interface ShouldQueueOptions<TInput> {
 export abstract class ShouldQueue<
   TInput extends InputType = UnknownInputType,
   TResult extends OutputType = undefined,
+  TName extends string = string,
 > {
-  public abstract readonly taskName: string
+  public abstract readonly taskName: TName
   public abstract readonly postUrl: string
   public basePostUrl?: string
 
