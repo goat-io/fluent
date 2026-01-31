@@ -9,6 +9,7 @@ export {
 } from './dispatch.types'
 
 export type { DispatchConnector } from './DispatchConnector'
+export type { DispatchListener } from './DispatchListener'
 
 export { WorkerPoolManager } from './WorkerPoolManager'
 export type { WorkerPoolManagerConfig, TaskRegistry } from './WorkerPoolManager'
