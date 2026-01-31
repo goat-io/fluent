@@ -41,6 +41,7 @@ export {
   type DispatchConnector,
   type DispatchCycleResult,
   type DispatchHint,
+  type DispatchListener,
   type DispatchMode,
   type DispatchStatus,
   type TenantPriority,
