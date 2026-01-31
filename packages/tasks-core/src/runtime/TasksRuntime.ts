@@ -9,6 +9,7 @@ import type {
 import { WorkerPoolManager } from '../dispatch/WorkerPoolManager'
 import { DispatchFanOut } from '../dispatch/DispatchFanOut'
 import type { DispatchConnector } from '../dispatch/DispatchConnector'
+import type { DispatchListener } from '../dispatch/DispatchListener'
 
 /**
  * Check whether a value is a class constructor (function) vs an instance.
@@ -22,6 +23,7 @@ export class TasksRuntime {
   private workerManager: WorkerManager | null = null
   private schedulerManager: SchedulerManager | null = null
   private dispatchConnector: DispatchConnector | null = null
+  private dispatchListener: DispatchListener | null = null
   private tasks: ShouldQueue[] = []
   private isRunning = false
   private readonly logger: Required<TasksRuntimeLogger>
@@ -101,6 +103,15 @@ export class TasksRuntime {
       if (this.config.dispatch) {
         this.dispatchConnector = this.config.dispatch.createConnector()
         this.logger.info('[TasksRuntime] Dispatch connector initialized (shared mode)')
+
+        // Start dispatch listener if adapter provides one
+        if (this.config.dispatch.createListener) {
+          this.dispatchListener = this.config.dispatch.createListener()
+          await this.dispatchListener.start()
+          this.logger.info('[TasksRuntime] Dispatch listener started (shared mode)')
+        } else {
+          this.logger.info('[TasksRuntime] No dispatch listener (adapter uses HTTP push)')
+        }
       } else {
         this.logger.warn('[TasksRuntime] Shared mode but no dispatch config provided')
       }
@@ -125,6 +136,10 @@ export class TasksRuntime {
 
   getDispatchConnector(): DispatchConnector | null {
     return this.dispatchConnector
+  }
+
+  getDispatchListener(): DispatchListener | null {
+    return this.dispatchListener
   }
 
   createWorkerPoolManager(): WorkerPoolManager | null {
@@ -168,6 +183,11 @@ export class TasksRuntime {
   async stop(): Promise<void> {
     if (!this.isRunning) return
     this.logger.info('[TasksRuntime] Stopping...')
+    if (this.dispatchListener) {
+      await this.dispatchListener.stop()
+      this.dispatchListener = null
+      this.logger.info('[TasksRuntime] Dispatch listener stopped')
+    }
     if (this.workerManager) { await this.workerManager.stop(); this.workerManager = null }
     if (this.schedulerManager) { await this.schedulerManager.stop(); this.schedulerManager = null }
     if (this.dispatchConnector) { await this.dispatchConnector.close(); this.dispatchConnector = null }

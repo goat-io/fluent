@@ -2,6 +2,7 @@ import type { ShouldQueue, ShouldQueueOptions } from '../ShouldQueue'
 import type { TaskConnector } from '../ShouldQueue.types'
 import type { DispatchConfig } from '../dispatch/dispatch.types'
 import type { DispatchConnector } from '../dispatch/DispatchConnector'
+import type { DispatchListener } from '../dispatch/DispatchListener'
 
 export interface TasksRuntimeLogger {
   info?: (...args: unknown[]) => void
@@ -46,6 +47,8 @@ export interface TasksRuntimeConfig {
   dispatch?: {
     config: DispatchConfig
     createConnector: () => DispatchConnector
+    /** Optional factory to create a dispatch listener. Not needed for push-based adapters (e.g., GCP Cloud Tasks). */
+    createListener?: () => DispatchListener
   }
   createWorkerManager?: (tasks: ShouldQueue[]) => WorkerManager
   createSchedulerManager?: () => SchedulerManager
