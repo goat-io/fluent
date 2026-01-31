@@ -47,7 +47,7 @@ export {
   type TenantPriority,
   WorkerPoolManager,
   type WorkerPoolManagerConfig,
-  type TaskRegistry,
+  type TaskRegistry as DispatchTaskRegistry,
   DispatchFanOut,
   type DispatchFanOutConfig,
   type FanOutResult,
@@ -63,8 +63,9 @@ export {
   type SchedulerManager,
 } from './runtime'
 
-// Registry - Typed task registry types
+// Registry - Typed task registry API
 export {
+  TaskRegistry,
   type SnakeToCamelCase,
   type ExtractTaskName,
   type ExtractTaskInput,

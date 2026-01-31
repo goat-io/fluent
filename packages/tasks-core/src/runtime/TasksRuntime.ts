@@ -10,6 +10,8 @@ import { WorkerPoolManager } from '../dispatch/WorkerPoolManager'
 import { DispatchFanOut } from '../dispatch/DispatchFanOut'
 import type { DispatchConnector } from '../dispatch/DispatchConnector'
 import type { DispatchListener } from '../dispatch/DispatchListener'
+import { TaskRegistry } from '../registry/TaskRegistry'
+import type { TaskRegistryConfig } from '../registry/TaskRegistry.types'
 
 /**
  * Check whether a value is a class constructor (function) vs an instance.
@@ -175,6 +177,38 @@ export class TasksRuntime {
         debug: this.config.logger.debug ?? (() => {}),
       } : undefined,
     })
+  }
+
+  /**
+   * Create a typed TaskRegistry from the resolved tasks.
+   *
+   * The registry provides a type-safe queue API:
+   * ```typescript
+   * const tasks = runtime.createTaskRegistry({ getTenantId, queueFn })
+   * await tasks.queue({ processPost: { postId: '123' } })
+   * ```
+   *
+   * The registry is a lightweight wrapper -- create one per request context
+   * or store in the DI container for reuse.
+   *
+   * @param config - Callbacks for tenant resolution and queueing
+   * @returns A typed TaskRegistry instance
+   */
+  createTaskRegistry<
+    TTasks extends readonly ShouldQueue<any, any, any>[] = ShouldQueue<any, any, any>[],
+  >(
+    config: TaskRegistryConfig = {},
+  ): TaskRegistry<TTasks> {
+    return new TaskRegistry<TTasks>(
+      this.tasks as unknown as TTasks,
+      config,
+      this.config.logger ? {
+        info: this.config.logger.info ?? (() => {}),
+        warn: this.config.logger.warn ?? (() => {}),
+        error: this.config.logger.error ?? (() => {}),
+        debug: this.config.logger.debug ?? (() => {}),
+      } : undefined,
+    )
   }
 
   get running(): boolean { return this.isRunning }
