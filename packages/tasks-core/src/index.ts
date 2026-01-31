@@ -62,3 +62,16 @@ export {
   type WorkerManager,
   type SchedulerManager,
 } from './runtime'
+
+// Registry - Typed task registry types
+export {
+  type SnakeToCamelCase,
+  type ExtractTaskName,
+  type ExtractTaskInput,
+  type ExtractTaskResult,
+  type TaskQueueMap,
+  type TaskQueueInput,
+  type TaskQueueResult,
+  type TaskRegistryConfig,
+  snakeToCamelCase,
+} from './registry'
