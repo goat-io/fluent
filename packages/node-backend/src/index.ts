@@ -24,6 +24,7 @@ export type {
   BatchInvalidationResult,
   ContainerBootstrapResult,
   ContainerContext,
+  ContainerEvent,
   ContainerFactories,
   ContainerMetadata,
   ContainerOptions,
@@ -31,6 +32,7 @@ export type {
   MapInterface,
   PreloadStructure,
 } from './container/types'
+export { NO_CONTAINER_PROXY } from './container/types'
 export type {
   AuthConfig,
   AuthValidationResult,

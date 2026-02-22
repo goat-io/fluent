@@ -10,7 +10,7 @@ export class PerformanceChart {
    */
   renderBarChart(
     results: BenchmarkResult[],
-    metric: 'operationsPerSecond' | 'averageTime' | 'memoryUsage'
+    metric: 'operationsPerSecond' | 'averageTime' | 'memoryUsage',
   ): void {
     if (results.length === 0) {
       return
@@ -34,7 +34,7 @@ export class PerformanceChart {
     const range = maxValue - minValue
 
     console.log(
-      chalk.bold.cyan(`\n📊 ${this.getMetricTitle(metric)} Comparison`)
+      chalk.bold.cyan(`\n📊 ${this.getMetricTitle(metric)} Comparison`),
     )
     console.log(chalk.grey('─'.repeat(80)))
 
@@ -50,7 +50,7 @@ export class PerformanceChart {
       const valueStr = this.formatValue(value, metric).padStart(12)
 
       console.log(
-        `${chalk.bold(label)} ${coloredBar} ${chalk.yellow(valueStr)}`
+        `${chalk.bold(label)} ${coloredBar} ${chalk.yellow(valueStr)}`,
       )
     })
 
@@ -88,7 +88,7 @@ export class PerformanceChart {
 
       const yLabel = this.formatValue(
         threshold,
-        'operationsPerSecond'
+        'operationsPerSecond',
       ).padStart(8)
       chartLines.push(`${chalk.grey(yLabel)} │ ${line}`)
     }
@@ -141,7 +141,7 @@ export class PerformanceChart {
       times.forEach(time => {
         const bucketIndex = Math.min(
           Math.floor((time - minTime) / bucketSize),
-          9
+          9,
         )
         buckets[bucketIndex]++
       })
@@ -156,7 +156,7 @@ export class PerformanceChart {
       const coloredBar = this.colorizeBar(bar, normalizedValue)
 
       console.log(
-        `${bucketLabels[index].padEnd(20)} ${coloredBar} ${chalk.yellow(count.toString())}`
+        `${bucketLabels[index].padEnd(20)} ${coloredBar} ${chalk.yellow(count.toString())}`,
       )
     })
 
@@ -185,7 +185,7 @@ export class PerformanceChart {
     const scenarios = [...new Set(results.map(r => r.name.split(' - ')[1]))]
 
     console.log(
-      `${'Scenario'.padEnd(20)} │ ${'MySQL2'.padEnd(12)} │ ${'Prisma'.padEnd(12)} │ ${'Winner'.padEnd(10)} │ Advantage`
+      `${'Scenario'.padEnd(20)} │ ${'MySQL2'.padEnd(12)} │ ${'Prisma'.padEnd(12)} │ ${'Winner'.padEnd(10)} │ Advantage`,
     )
     console.log('─'.repeat(80))
 
@@ -204,7 +204,7 @@ export class PerformanceChart {
         const prismaColor = prismaOps > mysql2Ops ? chalk.green : chalk.red
 
         console.log(
-          `${scenario.padEnd(20)} │ ${mysql2Color(mysql2Ops.toFixed(0).padEnd(12))} │ ${prismaColor(prismaOps.toFixed(0).padEnd(12))} │ ${winner === 'MySQL2' ? chalk.green('MySQL2') : chalk.blue('Prisma')} │ ${chalk.yellow(`${advantage.toFixed(1)}%`)}`
+          `${scenario.padEnd(20)} │ ${mysql2Color(mysql2Ops.toFixed(0).padEnd(12))} │ ${prismaColor(prismaOps.toFixed(0).padEnd(12))} │ ${winner === 'MySQL2' ? chalk.green('MySQL2') : chalk.blue('Prisma')} │ ${chalk.yellow(`${advantage.toFixed(1)}%`)}`,
         )
       }
     })
@@ -235,7 +235,7 @@ export class PerformanceChart {
       const coloredBar = this.colorizeMemoryBar(bar, normalizedValue)
 
       console.log(
-        `${result.name.padEnd(25)} ${coloredBar} ${chalk.magenta(`${memoryMB.toFixed(2)} MB`)}`
+        `${result.name.padEnd(25)} ${coloredBar} ${chalk.magenta(`${memoryMB.toFixed(2)} MB`)}`,
       )
     })
 

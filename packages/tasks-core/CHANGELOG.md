@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.14.6
+
+### Patch Changes
+
+- Fix Redis owner index key to use configured keyPrefix for ACL compliance. Owner keys now follow the same tenant-scoped prefix as task keys (e.g., `tenant:agrosocial:task:owner:...` instead of `owner:agrosocial:...`), ensuring they pass Redis ACL rules that restrict key access by tenant prefix.
+
 ## 0.6.1
 
 ### Patch Changes

@@ -31,15 +31,15 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'SELECT * FROM users LIMIT 50',
         iterations: 500,
         warmupRuns: 50,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Prisma benchmark
     const prismaResult = await runner.run(
       async () => {
         await prisma.user.findMany({
-          take: 50
+          take: 50,
         })
       },
       {
@@ -47,8 +47,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'findMany with take: 50',
         iterations: 500,
         warmupRuns: 50,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Assert benchmarks completed successfully
@@ -75,7 +75,7 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
       async () => {
         await mysql2Conn.execute(
           'SELECT * FROM users WHERE status = ? AND age > ?',
-          ['active', 25]
+          ['active', 25],
         )
       },
       {
@@ -83,8 +83,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'WHERE status = active AND age > 25',
         iterations: 500,
         warmupRuns: 50,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Prisma benchmark
@@ -93,8 +93,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         await prisma.user.findMany({
           where: {
             status: 'active',
-            age: { gt: 25 }
-          }
+            age: { gt: 25 },
+          },
         })
       },
       {
@@ -102,8 +102,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'where: { status: active, age: { gt: 25 } }',
         iterations: 500,
         warmupRuns: 50,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     expect(mysql2Result.iterations).toBe(500)
@@ -136,8 +136,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'Users with order aggregation',
         iterations: 200,
         warmupRuns: 20,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Prisma benchmark
@@ -149,11 +149,11 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
             orders: {
               select: {
                 id: true,
-                totalAmount: true
-              }
-            }
+                totalAmount: true,
+              },
+            },
           },
-          take: 50
+          take: 50,
         })
       },
       {
@@ -161,8 +161,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'Users with orders include',
         iterations: 200,
         warmupRuns: 20,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     expect(mysql2Result.iterations).toBe(200)
@@ -189,8 +189,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
             'User',
             'active',
             30,
-            'US'
-          ]
+            'US',
+          ],
         )
       },
       {
@@ -198,8 +198,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'Single user INSERT',
         iterations: 100,
         warmupRuns: 10,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Prisma benchmark
@@ -213,8 +213,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
             lastName: 'User',
             status: 'active',
             age: 30,
-            country: 'US'
-          }
+            country: 'US',
+          },
         })
       },
       {
@@ -222,8 +222,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'Single user create',
         iterations: 100,
         warmupRuns: 10,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     expect(mysql2Result.iterations).toBe(100)
@@ -244,7 +244,7 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         const randomId = Math.floor(Math.random() * 1000) + 1
         await mysql2Conn.execute('UPDATE users SET age = ? WHERE id = ?', [
           Math.floor(Math.random() * 50) + 18,
-          randomId
+          randomId,
         ])
       },
       {
@@ -252,8 +252,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'Single user UPDATE',
         iterations: 100,
         warmupRuns: 10,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Prisma benchmark
@@ -263,7 +263,7 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         try {
           await prisma.user.update({
             where: { id: randomId },
-            data: { age: Math.floor(Math.random() * 50) + 18 }
+            data: { age: Math.floor(Math.random() * 50) + 18 },
           })
         } catch (_error) {
           // Ignore record not found errors in benchmark
@@ -274,8 +274,8 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         description: 'Single user update',
         iterations: 100,
         warmupRuns: 10,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     expect(mysql2Result.iterations).toBe(100)
@@ -298,16 +298,16 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         name: 'Simple SELECT',
         mysql2: () => mysql2Conn.execute('SELECT * FROM users LIMIT 10'),
         prisma: () => prisma.user.findMany({ take: 10 }),
-        iterations: 300
+        iterations: 300,
       },
       {
         name: 'Filtered SELECT',
         mysql2: () =>
           mysql2Conn.execute('SELECT * FROM users WHERE status = ?', [
-            'active'
+            'active',
           ]),
         prisma: () => prisma.user.findMany({ where: { status: 'active' } }),
-        iterations: 300
+        iterations: 300,
       },
       {
         name: 'Complex JOIN',
@@ -323,10 +323,10 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
           prisma.product.findMany({
             where: { isActive: true },
             include: { category: { select: { name: true } } },
-            take: 20
+            take: 20,
           }),
-        iterations: 200
-      }
+        iterations: 200,
+      },
     ]
 
     for (const scenario of scenarios) {
@@ -334,14 +334,14 @@ describe('MySQL2 vs Prisma Containerized Benchmarks', () => {
         name: `MySQL2 - ${scenario.name}`,
         iterations: scenario.iterations,
         warmupRuns: Math.floor(scenario.iterations / 10),
-        concurrency: 1
+        concurrency: 1,
       })
 
       const prismaResult = await runner.run(scenario.prisma, {
         name: `Prisma - ${scenario.name}`,
         iterations: scenario.iterations,
         warmupRuns: Math.floor(scenario.iterations / 10),
-        concurrency: 1
+        concurrency: 1,
       })
 
       benchmarks.push(mysql2Result, prismaResult)

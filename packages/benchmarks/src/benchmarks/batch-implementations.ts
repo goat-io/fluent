@@ -18,7 +18,7 @@ export const batchImplementations = {
       r.lastName,
       r.status,
       r.age,
-      r.country
+      r.country,
     ])
 
     const placeholders = records.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
@@ -27,7 +27,7 @@ export const batchImplementations = {
       .promise()
       .execute(
         `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
-        values.flat()
+        values.flat(),
       )
   },
 
@@ -38,14 +38,14 @@ export const batchImplementations = {
       r.lastName,
       r.status,
       r.age,
-      r.country
+      r.country,
     ])
 
     const placeholders = records.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
 
     await pool.execute(
       `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
-      values.flat()
+      values.flat(),
     )
   },
 
@@ -56,7 +56,7 @@ export const batchImplementations = {
       last_name: r.lastName,
       status: r.status,
       age: r.age,
-      country: r.country
+      country: r.country,
     }))
 
     await knex('users').insert(data)
@@ -69,7 +69,7 @@ export const batchImplementations = {
       lastName: r.lastName,
       status: r.status,
       age: r.age,
-      country: r.country
+      country: r.country,
     }))
 
     await prisma.user.createMany({ data })
@@ -82,7 +82,7 @@ export const batchImplementations = {
       last_name: r.lastName,
       status: r.status,
       age: r.age,
-      country: r.country
+      country: r.country,
     }))
 
     await db.insertInto('users').values(data).execute()
@@ -95,7 +95,7 @@ export const batchImplementations = {
       lastName: r.lastName,
       status: r.status,
       age: r.age,
-      country: r.country
+      country: r.country,
     }))
 
     await db.insert(schema.users).values(data)
@@ -112,8 +112,8 @@ export const batchImplementations = {
         lastName: r.lastName,
         status: r.status,
         age: r.age,
-        country: r.country
-      })
+        country: r.country,
+      }),
     )
 
     await repository.save(users)
@@ -128,7 +128,7 @@ export const batchImplementations = {
       lastName: r.lastName,
       status: r.status,
       age: r.age,
-      country: r.country
+      country: r.country,
     }))
 
     await User.bulkCreate(data)
@@ -145,10 +145,10 @@ export const batchImplementations = {
         lastName: r.lastName,
         status: r.status,
         age: r.age,
-        country: r.country
-      })
+        country: r.country,
+      }),
     )
 
     await em.persistAndFlush(users)
-  }
+  },
 }

@@ -112,7 +112,7 @@ export abstract class ShouldQueue<
     if (!this.connector) {
       throw new Error(
         `[ShouldQueue] No connector set for task "${this.taskName}". ` +
-        'Pass a connector in the constructor or call setConnector() before queueing.',
+          'Pass a connector in the constructor or call setConnector() before queueing.',
       )
     }
 

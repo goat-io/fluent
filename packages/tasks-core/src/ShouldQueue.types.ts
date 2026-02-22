@@ -65,6 +65,14 @@ export interface TenantConfig {
   credentials?: TenantCredentials
 }
 
+/**
+ * A task class constructor.
+ * Accepts optional ShouldQueueOptions (connector injected after construction).
+ */
+export type TaskClass = new (
+  opts?: any,
+) => import('./ShouldQueue').ShouldQueue<any, any, any>
+
 export interface TaskConnector<TInput> {
   /**
    * The tenant ID this connector is scoped to.
@@ -110,7 +118,7 @@ export interface TaskConnector<TInput> {
   /**
    * Optional hook called after a job is enqueued to the tenant queue.
    * Used by the dispatch system to write a hint to the global dispatch queue.
-   * Only active in 'shared' dispatch mode.
+   * Active when dispatch is configured.
    *
    * @param params - Job metadata for dispatch hint creation
    */
@@ -120,4 +128,48 @@ export interface TaskConnector<TInput> {
     jobId: string
     priority?: number
   }): Promise<void>
+
+  /**
+   * Process incoming dispatch work for this tenant's queues.
+   * Called by the HTTP dispatch endpoint after tenant container is bootstrapped.
+   *
+   * Each adapter handles this differently:
+   * - BullMQ: Creates temp Workers, fetches jobs from tenant queues, executes handler
+   * - GCP: Executes task from hint.data (already included in HTTP push)
+   * - Hatchet: Similar to BullMQ
+   */
+  processIncomingDispatch?(params: {
+    /** Callback to execute a task by queue name and payload */
+    handleTask: (queueName: string, data: unknown) => Promise<unknown>
+    /** Time budget in ms (default 25_000). Processing stops when exceeded. */
+    timeBudgetMs?: number
+    /** Valid queue names to process. If provided, unknown queues are skipped. */
+    validQueueNames?: Set<string>
+    /** Hint from the dispatch notification (optional — may contain data for push-based adapters) */
+    hint?: {
+      tenantId?: string
+      queueName?: string
+      jobId?: string
+      data?: unknown
+    }
+  }): Promise<{ processed: number; failed: number }>
+
+  /**
+   * Start persistent workers that consume jobs from queues.
+   *
+   * Each adapter handles this differently:
+   * - BullMQ: Creates persistent Workers per task queue
+   * - GCP: Could set up Cloud Tasks push receivers
+   * - Hatchet: Registers workflow listeners
+   *
+   * @returns Handle to stop the workers and check running status
+   */
+  listen?(params: {
+    tasks: Array<{
+      taskName: string
+      handle: (data: unknown) => Promise<unknown>
+      concurrency?: number
+    }>
+    defaultConcurrency?: number
+  }): Promise<{ stop: () => Promise<void>; isRunning: () => boolean }>
 }

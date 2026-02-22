@@ -7,7 +7,7 @@ import {
 } from '@goatlab/fluent'
 import type { AnyObject } from '@goatlab/js-utils'
 import { Objects } from '@goatlab/js-utils'
-import PouchDB from 'pouchdb'
+import PouchDB from 'pouchdb-core'
 import { z } from 'zod'
 
 PouchDB.plugin(require('pouchdb-find'))

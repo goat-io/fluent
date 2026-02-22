@@ -52,24 +52,29 @@ export class BullMQDispatchListener implements DispatchListener {
 
   async start(): Promise<void> {
     if (this.worker) {
-      this.logger.warn('[BullMQDispatchListener] Already started, ignoring start() call')
+      this.logger.warn(
+        '[BullMQDispatchListener] Already started, ignoring start() call',
+      )
       return
     }
 
     this.worker = new Worker(
       DISPATCH_QUEUE_NAME,
-      async (job) => {
+      async job => {
         // Fire HTTP POST to the dispatch endpoint
         const abortController = new AbortController()
         const timeoutId = setTimeout(() => abortController.abort(), 60_000)
 
         try {
+          const hint = job.data || {}
           const response = await globalThis.fetch(this.config.dispatchUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'X-Dispatch-Source': 'listener',
+              ...(hint.tenantId ? { 'X-Tenant-ID': hint.tenantId } : {}),
             },
+            body: JSON.stringify(hint),
             signal: abortController.signal,
           })
 
@@ -77,13 +82,20 @@ export class BullMQDispatchListener implements DispatchListener {
 
           if (!response.ok) {
             const errorText = await response.text().catch(() => 'Unknown error')
-            throw new Error(`Dispatch endpoint returned ${response.status}: ${errorText}`)
+            throw new Error(
+              `Dispatch endpoint returned ${response.status}: ${errorText}`,
+            )
           }
 
-          this.logger.debug(`[BullMQDispatchListener] Triggered dispatch for hint ${job.id}`)
+          this.logger.debug(
+            `[BullMQDispatchListener] Triggered dispatch for hint ${job.id}`,
+          )
         } catch (error) {
           clearTimeout(timeoutId)
-          this.logger.error(`[BullMQDispatchListener] Failed to trigger dispatch for hint ${job.id}:`, error)
+          this.logger.error(
+            `[BullMQDispatchListener] Failed to trigger dispatch for hint ${job.id}:`,
+            error,
+          )
           throw error // BullMQ will retry
         }
       },
@@ -99,15 +111,20 @@ export class BullMQDispatchListener implements DispatchListener {
     )
 
     // Attach event handlers
-    this.worker.on('error', (error) => {
+    this.worker.on('error', error => {
       this.logger.error('[BullMQDispatchListener] Worker error:', error)
     })
 
     this.worker.on('failed', (job, error) => {
-      this.logger.error(`[BullMQDispatchListener] Job ${job?.id} failed:`, error)
+      this.logger.error(
+        `[BullMQDispatchListener] Job ${job?.id} failed:`,
+        error,
+      )
     })
 
-    this.logger.info('[BullMQDispatchListener] Started listening on dispatch-hints queue')
+    this.logger.info(
+      '[BullMQDispatchListener] Started listening on dispatch-hints queue',
+    )
   }
 
   async stop(): Promise<void> {

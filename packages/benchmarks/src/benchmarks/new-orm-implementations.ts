@@ -64,10 +64,10 @@ export const typeOrmImplementations = {
       lastName: 'User',
       status: 'active',
       age: 30,
-      country: 'US'
+      country: 'US',
     })
     await dataSource.getRepository(User).save(user)
-  }
+  },
 }
 
 export const sequelizeImplementations = {
@@ -81,8 +81,8 @@ export const sequelizeImplementations = {
     await User.findAll({
       where: {
         status: 'active',
-        age: { [Op.gt]: 25 }
-      }
+        age: { [Op.gt]: 25 },
+      },
     })
   },
 
@@ -98,7 +98,7 @@ export const sequelizeImplementations = {
       GROUP BY u.id
       LIMIT 30
     `,
-      { type: sequelize.QueryTypes.SELECT }
+      { type: sequelize.QueryTypes.SELECT },
     )
   },
 
@@ -115,7 +115,7 @@ export const sequelizeImplementations = {
       GROUP BY p.id
       LIMIT 25
     `,
-      { type: sequelize.QueryTypes.SELECT }
+      { type: sequelize.QueryTypes.SELECT },
     )
   },
 
@@ -128,9 +128,9 @@ export const sequelizeImplementations = {
       lastName: 'User',
       status: 'active',
       age: 30,
-      country: 'US'
+      country: 'US',
     })
-  }
+  },
 }
 
 export const mikroOrmImplementations = {
@@ -145,7 +145,7 @@ export const mikroOrmImplementations = {
     const em = orm.em.fork()
     await em.find(User, {
       status: 'active',
-      age: { $gt: 25 }
+      age: { $gt: 25 },
     })
   },
 
@@ -186,8 +186,8 @@ export const mikroOrmImplementations = {
       lastName: 'User',
       status: 'active',
       age: 30,
-      country: 'US'
+      country: 'US',
     })
     await em.persistAndFlush(user)
-  }
+  },
 }

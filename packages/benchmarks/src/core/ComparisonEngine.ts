@@ -27,7 +27,7 @@ export class ComparisonEngine {
    */
   compareResults(
     result1: BenchmarkResult,
-    result2: BenchmarkResult
+    result2: BenchmarkResult,
   ): ComparisonResult {
     const speedRatio = result1.operationsPerSecond / result2.operationsPerSecond
     const memoryRatio =
@@ -46,7 +46,7 @@ export class ComparisonEngine {
     const recommendation = this.generateRecommendation(
       speedAdvantage,
       memoryAdvantage,
-      winner
+      winner,
     )
 
     return {
@@ -56,7 +56,7 @@ export class ComparisonEngine {
       memoryAdvantage,
       overallScore,
       grade,
-      recommendation
+      recommendation,
     }
   }
 
@@ -74,7 +74,7 @@ export class ComparisonEngine {
       const mysql2Score = this.calculateLibraryScore(mysql2Results, results)
       scoreCards.push({
         library: 'MySQL2',
-        ...mysql2Score
+        ...mysql2Score,
       })
     }
 
@@ -83,7 +83,7 @@ export class ComparisonEngine {
       const prismaScore = this.calculateLibraryScore(prismaResults, results)
       scoreCards.push({
         library: 'Prisma',
-        ...prismaScore
+        ...prismaScore,
       })
     }
 
@@ -100,8 +100,8 @@ export class ComparisonEngine {
           padding: 1,
           margin: 1,
           borderStyle: 'double',
-          borderColor: 'blue'
-        })
+          borderColor: 'blue',
+        }),
     )
 
     const scoreCards = this.generateScoreCards(results)
@@ -139,7 +139,7 @@ export class ComparisonEngine {
             `📈 Consistency:       ${this.formatScore(card.consistency)}`,
             '',
             `🏆 Overall Score:     ${chalk.bold[cardColor](card.overall.toFixed(1))}`,
-            `🎯 Grade:             ${this.formatGrade(card.grade)}`
+            `🎯 Grade:             ${this.formatGrade(card.grade)}`,
           ].join('\n'),
           {
             padding: 1,
@@ -147,9 +147,9 @@ export class ComparisonEngine {
             borderStyle: 'round',
             borderColor: cardColor,
             title: card.library,
-            titleAlignment: 'center'
-          }
-        )
+            titleAlignment: 'center',
+          },
+        ),
       )
     })
   }
@@ -164,10 +164,10 @@ export class ComparisonEngine {
 
     scenarios.forEach(scenario => {
       const mysql2Result = results.find(
-        r => r.name.includes('MySQL2') && r.name.includes(scenario)
+        r => r.name.includes('MySQL2') && r.name.includes(scenario),
       )
       const prismaResult = results.find(
-        r => r.name.includes('Prisma') && r.name.includes(scenario)
+        r => r.name.includes('Prisma') && r.name.includes(scenario),
       )
 
       if (mysql2Result && prismaResult) {
@@ -176,7 +176,7 @@ export class ComparisonEngine {
           scenario,
           comparison,
           mysql2Result,
-          prismaResult
+          prismaResult,
         )
       }
     })
@@ -189,7 +189,7 @@ export class ComparisonEngine {
     scenario: string,
     comparison: ComparisonResult,
     _mysql2: BenchmarkResult,
-    _prisma: BenchmarkResult
+    _prisma: BenchmarkResult,
   ): void {
     const winnerColor = comparison.winner.includes('MySQL2') ? 'green' : 'blue'
     const _loserColor = comparison.winner.includes('MySQL2') ? 'red' : 'red'
@@ -206,16 +206,16 @@ export class ComparisonEngine {
           `💾 Memory Advantage: ${chalk.blue.bold(`${comparison.memoryAdvantage.toFixed(1)}%`)}`,
           `📊 Overall Score: ${this.formatGrade(comparison.grade)}`,
           '',
-          `💡 ${chalk.italic(comparison.recommendation)}`
+          `💡 ${chalk.italic(comparison.recommendation)}`,
         ].join('\n'),
         {
           padding: 1,
           margin: 1,
           borderStyle: 'round',
           borderColor: winnerColor,
-          width: 60
-        }
-      )
+          width: 60,
+        },
+      ),
     )
   }
 
@@ -244,7 +244,7 @@ export class ComparisonEngine {
           this.renderProgressBar('MySQL2', mysql2Wins, totalScenarios, 'green'),
           this.renderProgressBar('Prisma', prismaWins, totalScenarios, 'blue'),
           '',
-          `🎯 ${chalk.bold(mysql2Wins > prismaWins ? 'MySQL2 DOMINATES' : prismaWins > mysql2Wins ? 'PRISMA WINS' : 'TIE GAME')}`
+          `🎯 ${chalk.bold(mysql2Wins > prismaWins ? 'MySQL2 DOMINATES' : prismaWins > mysql2Wins ? 'PRISMA WINS' : 'TIE GAME')}`,
         ].join('\n'),
         {
           padding: 1,
@@ -256,9 +256,9 @@ export class ComparisonEngine {
               : prismaWins > mysql2Wins
                 ? 'blue'
                 : 'yellow',
-          width: 50
-        }
-      )
+          width: 50,
+        },
+      ),
     )
   }
 
@@ -282,7 +282,7 @@ export class ComparisonEngine {
     const verdict = this.generateVerdict(winner, margin)
     const recommendation = this.generateFinalRecommendation(
       mysql2Card,
-      prismaCard
+      prismaCard,
     )
 
     console.log(
@@ -298,16 +298,16 @@ export class ComparisonEngine {
           chalk.italic(recommendation),
           '',
           `${chalk.bold.yellow('⚖️  VERDICT:')}`,
-          chalk.italic(verdict)
+          chalk.italic(verdict),
         ].join('\n'),
         {
           padding: 1,
           margin: 1,
           borderStyle: 'double',
           borderColor: 'green',
-          width: 65
-        }
-      )
+          width: 65,
+        },
+      ),
     )
   }
 
@@ -315,7 +315,7 @@ export class ComparisonEngine {
    * Calculate grade based on performance score
    */
   private calculateGrade(
-    score: number
+    score: number,
   ): 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' {
     if (score >= 1.5) {
       return 'A+'
@@ -344,7 +344,7 @@ export class ComparisonEngine {
   private generateRecommendation(
     speedAdvantage: number,
     _memoryAdvantage: number,
-    winner: string
+    winner: string,
   ): string {
     if (speedAdvantage > 50) {
       return `${winner} shows exceptional speed advantage - ideal for high-throughput scenarios`
@@ -363,7 +363,7 @@ export class ComparisonEngine {
    */
   private calculateLibraryScore(
     libraryResults: BenchmarkResult[],
-    allResults: BenchmarkResult[]
+    allResults: BenchmarkResult[],
   ): {
     speed: number
     memory: number
@@ -380,7 +380,7 @@ export class ComparisonEngine {
 
     // Calculate consistency (lower variance = higher consistency)
     const opsVariance = this.calculateVariance(
-      libraryResults.map(r => r.operationsPerSecond)
+      libraryResults.map(r => r.operationsPerSecond),
     )
     const consistency = Math.max(0, 100 - (opsVariance / avgOps) * 100)
 
@@ -397,7 +397,7 @@ export class ComparisonEngine {
       memory,
       consistency,
       overall,
-      grade: this.calculateGrade(overall / 100)
+      grade: this.calculateGrade(overall / 100),
     }
   }
 
@@ -413,7 +413,7 @@ export class ComparisonEngine {
 
   private countWins(
     results1: BenchmarkResult[],
-    results2: BenchmarkResult[]
+    results2: BenchmarkResult[],
   ): number {
     let wins = 0
     results1.forEach(r1 => {
@@ -435,7 +435,7 @@ export class ComparisonEngine {
     label: string,
     value: number,
     total: number,
-    color: string
+    color: string,
   ): string {
     const percentage = value / total
     const barLength = 20
@@ -475,7 +475,7 @@ export class ComparisonEngine {
 
   private generateFinalRecommendation(
     mysql2: ScoreCard,
-    prisma: ScoreCard
+    prisma: ScoreCard,
   ): string {
     const winner = mysql2.overall > prisma.overall ? mysql2 : prisma
     const loser = mysql2.overall > prisma.overall ? prisma : mysql2

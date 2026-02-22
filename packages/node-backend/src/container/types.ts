@@ -6,6 +6,28 @@ import type { Container } from './Container'
 import { DistributedCacheInvalidator } from './DistributedCacheInvalidator'
 
 /**
+ * Symbol that services can use to opt out of context proxy wrapping.
+ * Set this property to `true` on any service object to prevent the
+ * Container from wrapping it in a Proxy.
+ *
+ * This replaces brittle duck-typing checks for specific libraries
+ * (Prisma, Redis, Keyv, etc.) with a universal opt-out mechanism.
+ *
+ * @example
+ * ```typescript
+ * import { NO_CONTAINER_PROXY } from './types'
+ *
+ * class PrismaService {
+ *   [NO_CONTAINER_PROXY] = true
+ *   // ... prisma methods
+ * }
+ * ```
+ */
+export const NO_CONTAINER_PROXY: unique symbol = Symbol.for(
+  'goatlab.container.noProxy',
+)
+
+/**
  * Interface for disposable objects
  * Services implementing this interface will have their dispose method
  * called when they are evicted from cache or when caches are cleared
@@ -298,7 +320,63 @@ export interface ContainerOptions {
   enableDistributedInvalidation?: boolean
   /** Distributed cache invalidator instance */
   distributedInvalidator?: DistributedCacheInvalidator
+  /** Cooldown in ms before retrying a failed tenant initializer (default: 0 = no cooldown) */
+  initializerCooldownMs?: number
+  /** Optional event handler for structured container events */
+  onEvent?: (event: ContainerEvent) => void
+  /** Maximum heap usage ratio (0-1) before rejecting new bootstraps (default: 0 = disabled) */
+  maxHeapUsageRatio?: number
+  /** Check heap every Nth bootstrap call (default: 10). Avoids overhead on every call. */
+  heapCheckInterval?: number
 }
+
+/**
+ * Structured events emitted by the Container for observability
+ */
+export type ContainerEvent =
+  | { type: 'bootstrap:start'; tenantId?: string; timestamp: number }
+  | {
+      type: 'bootstrap:complete'
+      tenantId?: string
+      durationMs: number
+      cached: boolean
+      timestamp: number
+    }
+  | {
+      type: 'bootstrap:error'
+      tenantId?: string
+      error: Error
+      durationMs: number
+      timestamp: number
+    }
+  | {
+      type: 'tenant:blocked'
+      tenantId: string
+      timestamp: number
+    }
+  | {
+      type: 'tenant:invalidated'
+      tenantId: string
+      reason?: string
+      timestamp: number
+    }
+  | {
+      type: 'service:invalidated'
+      serviceType: string
+      reason?: string
+      timestamp: number
+    }
+  | {
+      type: 'disposal:error'
+      error: Error
+      timestamp: number
+    }
+  | {
+      type: 'cooldown:active'
+      tenantId?: string
+      remainingMs: number
+      timestamp: number
+    }
 
 /**
  * Result of a disposal operation

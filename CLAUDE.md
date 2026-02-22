@@ -32,34 +32,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm act` - Run GitHub Actions locally using act
 - Individual package tests: `cd packages/<package-name> && pnpm test`
 
-### Delphi Package Commands
-
-**Build & Fix Issues:**
-- `cd packages/delphi && pnpm build` - Build TypeScript (should pass without errors)
-- `cd packages/delphi && npx tsc --noEmit` - Check types without building
-- `cd packages/delphi && npx biome check --write --unsafe .` - Auto-fix lint issues
-- `cd packages/delphi && npx biome check src/` - Check specific directory
-
-**Agreement System Testing:**
-- `cd packages/delphi && npx vitest run tests/agreement.spec.ts` - Run agreement tests (⚠️ 8 failing)
-- `cd packages/delphi && npx vitest run tests/blackboard-cleanup.spec.ts` - Test session cleanup
-- `cd packages/delphi && npx vitest run tests/sqlite-concurrency.spec.ts` - Test SQLite concurrency
-- `cd packages/delphi && npx vitest run tests/circuit-breaker.spec.ts` - Test circuit breaker
-- `cd packages/delphi && npx vitest run --reporter=verbose` - Run all tests with details
-
-**Run Agreement Examples:**
-- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts review --goal "Review PR"` - Code review
-- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts architecture` - Architecture decision
-- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts refactor` - Refactoring discussion
-- `cd packages/delphi && npx tsx examples/model-configuration.ts simple` - Model config example
-- `cd packages/delphi && npx tsx examples/model-configuration.ts custom` - Custom model config
-- `cd packages/delphi && npx tsx examples/model-configuration.ts cost` - Cost-optimized config
-- `cd packages/delphi && npx tsx examples/agreement-with-cleanup.ts` - Session cleanup example
-
-**Debug & Development:**
-- `LOG_LEVEL=debug npx tsx <script>` - Enable debug logging
-- `DEBUG=delphi:* npx tsx <script>` - Enable detailed traces
-- `OTEL_ENABLED=true npx tsx <script>` - Enable OpenTelemetry tracing
 
 ## Architecture Overview
 
@@ -121,44 +93,6 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 
 Uses changesets for versioning. Release dependency chain: js-utils → node-utils → fluent (other packages depend on these core packages).
 
-## Delphi Agreement System Patterns
-
-### Model Configuration
-Models are configured directly in agent definitions for clarity:
-```typescript
-.withProposer({ 
-  id: 'architect',
-  model: 'claude-opus-4.1',  // Simple preset
-  expertise: ['system-design'],
-  weight: 1.0
-})
-.withReviewer({
-  id: 'expert',
-  model: { provider: 'openai', model: 'gpt-4o', temperature: 0.7 },  // Custom config
-  expertise: ['security']
-})
-```
-
-### Session Cleanup
-Always configure cleanup for production deployments:
-```typescript
-const orchestrator = new AgreementOrchestrator(config, agents, {
-  sessionCleanupConfig: {
-    enabled: true,
-    retentionDays: 7,
-    autoCleanupInterval: 3600000  // 1 hour
-  }
-})
-```
-
-### Strategy Usage
-Use predefined strategies for common scenarios:
-```typescript
-new DiscussionBuilder()
-  .useStrategy('code-review')  // Applies optimized model mapping
-  .withProposer({ id: 'author', expertise: ['implementation'] })
-```
-
 ## Common TypeScript/Build Fixes
 
 ### ES Module Import Issues
@@ -181,49 +115,3 @@ z.record(z.unknown())
 z.record(z.string(), z.unknown())
 ```
 
-### Pino Logger Import
-Use default import for pino:
-```typescript
-// ❌ Wrong
-import { pino } from 'pino'
-
-// ✅ Correct
-import pino from 'pino'
-const logger = (pino as any)({ /* config */ })
-```
-
-### SqliteSaver Constructor
-Use database instance, not path:
-```typescript
-// ❌ Wrong
-super({ dbPath: '/path/to/db' })
-
-// ✅ Correct
-const db = new Database(dbPath)
-super({ db } as any)
-```
-
-### OpenTelemetry Type Issues
-Temporary workaround for version conflicts:
-```typescript
-// Add type assertions until versions are aligned
-new BatchSpanProcessor(exporter) as any
-```
-
-### Known Type Assertion Hacks
-These locations use `as any` and need proper typing:
-- `src/checkpoint/sqlite.ts:34` - SqliteSaver constructor
-- `src/graph.ts:470` - checkpointer.getTuple() call
-- `src/utils/tracing.ts:59,70` - OpenTelemetry processors
-- `src/agreement/resource-manager.ts:21` - pino function call
-
-### Quick Type Check
-```bash
-# Check types without building
-cd packages/delphi && npx tsc --noEmit
-
-# If build fails, check for:
-# 1. Missing .js extensions in imports
-# 2. z.record() missing second parameter
-# 3. Duplicate exports in the same file
-```

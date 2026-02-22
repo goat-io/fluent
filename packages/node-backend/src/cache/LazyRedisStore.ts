@@ -99,14 +99,6 @@ export class LazyRedisStore {
     return this._connecting
   }
 
-  /**
-   * Get the store synchronously if already connected.
-   * Returns undefined if not yet connected.
-   */
-  private getStoreSync(): KeyvRedis | undefined {
-    return this._store
-  }
-
   // Keyv store interface methods - all lazily connect
 
   async get(key: string): Promise<any> {

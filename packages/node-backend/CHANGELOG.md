@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 1.3.0
+
+### Minor Changes
+
+- Add optional `requestLogPrefix` config to `getExpressTrpcApp` for prefixing request log lines with contextual info (e.g., tenant ID in multi-tenant apps)
+
 ## 1.2.1
 
 ### Patch Changes

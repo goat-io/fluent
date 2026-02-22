@@ -45,10 +45,10 @@ export class BenchmarkReporter {
     console.log(`Min Time: ${this.formatTime(result.minTime)}`)
     console.log(`Max Time: ${this.formatTime(result.maxTime)}`)
     console.log(
-      `Operations/sec: ${this.formatOpsPerSecond(result.operationsPerSecond)}`
+      `Operations/sec: ${this.formatOpsPerSecond(result.operationsPerSecond)}`,
     )
     console.log(
-      `Memory Change: ${this.formatMemory(result.memoryUsage.heapUsed)}`
+      `Memory Change: ${this.formatMemory(result.memoryUsage.heapUsed)}`,
     )
     console.log(`Timestamp: ${result.timestamp.toISOString()}`)
   }
@@ -56,10 +56,10 @@ export class BenchmarkReporter {
   printSuite(suite: BenchmarkSuite): void {
     console.log(`\n🚀 Benchmark Suite: ${suite.name}`)
     console.log(
-      `Environment: Node ${suite.environment.node} on ${suite.environment.platform} ${suite.environment.arch}`
+      `Environment: Node ${suite.environment.node} on ${suite.environment.platform} ${suite.environment.arch}`,
     )
     console.log(
-      `CPUs: ${suite.environment.cpus}, Memory: ${this.formatMemory(suite.environment.memory)}`
+      `CPUs: ${suite.environment.cpus}, Memory: ${this.formatMemory(suite.environment.memory)}`,
     )
     console.log(`Started: ${suite.timestamp.toISOString()}\n`)
 
@@ -71,9 +71,9 @@ export class BenchmarkReporter {
         'Ops/sec',
         'Min Time',
         'Max Time',
-        'Memory'
+        'Memory',
       ],
-      colWidths: [30, 12, 12, 12, 12, 12]
+      colWidths: [30, 12, 12, 12, 12, 12],
     })
 
     suite.results.forEach(result => {
@@ -83,7 +83,7 @@ export class BenchmarkReporter {
         this.formatOpsPerSecond(result.operationsPerSecond),
         this.formatTime(result.minTime),
         this.formatTime(result.maxTime),
-        this.formatMemory(result.memoryUsage.heapUsed)
+        this.formatMemory(result.memoryUsage.heapUsed),
       ])
     })
 
@@ -105,12 +105,12 @@ export class BenchmarkReporter {
     const fastest = results.reduce((fastest, current) =>
       current.operationsPerSecond > fastest.operationsPerSecond
         ? current
-        : fastest
+        : fastest,
     )
 
     const table = new Table({
       head: ['Benchmark', 'Ops/sec', 'Relative Performance', 'Avg Time'],
-      colWidths: [25, 15, 20, 15]
+      colWidths: [25, 15, 20, 15],
     })
 
     results
@@ -125,7 +125,7 @@ export class BenchmarkReporter {
           result.name,
           this.formatOpsPerSecond(result.operationsPerSecond),
           relativeText,
-          this.formatTime(result.averageTime)
+          this.formatTime(result.averageTime),
         ])
       })
 

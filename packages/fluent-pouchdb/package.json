@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/fluent-pouchdb",
-  "version": "0.9.27",
+  "version": "0.9.28",
   "description": "Fluent query Interface for Pouchdb",
   "scripts": {
     "prebuild": "rimraf dist",
@@ -29,7 +29,7 @@
     "@goatlab/tsconfig": "workspace:*",
     "@goatlab/fluent": "workspace:*",
     "@goatlab/js-utils": "workspace:*",
-    "pouchdb": "^9.0.0",
+    "pouchdb-core": "^9.0.0",
     "pouchdb-adapter-memory": "^9.0.0",
     "pouchdb-find": "^9.0.0",
     "pouchdb-json": "^9.0.0"

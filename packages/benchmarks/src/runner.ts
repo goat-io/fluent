@@ -15,7 +15,7 @@ const dbConfig: DatabaseConfig = {
   port: Number.parseInt(process.env.DB_PORT || '3306'),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'benchmark_db'
+  database: process.env.DB_NAME || 'benchmark_db',
 }
 
 program
@@ -29,7 +29,7 @@ program
   .option(
     '-i, --iterations <number>',
     'Number of iterations per benchmark',
-    '1000'
+    '1000',
   )
   .option('-w, --warmup <number>', 'Number of warmup runs', '100')
   .option('-c, --concurrency <number>', 'Concurrency level', '1')

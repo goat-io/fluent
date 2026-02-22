@@ -1,10 +1,41 @@
+// Dispatch - Provider-agnostic multi-tenant dispatch system
+export {
+  calculateDispatchPriority,
+  createHintRegistry,
+  type DispatchConfig,
+  type DispatchHint,
+  type DispatchHintPayload,
+  DispatchHintTask,
+  type DispatchListener,
+  type DispatchStatus,
+  type HintRegistry,
+  type TenantPriority,
+} from './dispatch'
+// Registry - Typed task registry API
+export {
+  type ExtractTaskInput,
+  type ExtractTaskName,
+  type ExtractTaskResult,
+  type ListenHandle,
+  type ListenInput,
+  type ListenTaskConfig,
+  type SnakeToCamelCase,
+  snakeToCamelCase,
+  type TaskQueueInput,
+  type TaskQueueMap,
+  type TaskQueueResult,
+  TaskRegistry,
+  type TaskRegistryConfig,
+  type TaskRegistryOptions,
+  type ToInstances,
+} from './registry'
 export { ShouldQueue, type ShouldQueueOptions } from './ShouldQueue'
-
 export type {
   InputType,
   JsonObject,
   JsonValue,
   OutputType,
+  TaskClass,
   TaskConnector,
   TaskStatus,
   TaskStatusName,
@@ -12,7 +43,6 @@ export type {
   TenantCredentials,
   UnknownInputType,
 } from './ShouldQueue.types'
-
 // TaskTracker - Queue-agnostic status tracking
 export {
   type CreateTrackedTaskOptions,
@@ -33,46 +63,3 @@ export {
   type TrackedTaskStatus,
   type Unsubscribe,
 } from './tracker'
-
-// Dispatch - Provider-agnostic multi-tenant dispatch system
-export {
-  calculateDispatchPriority,
-  type DispatchConfig,
-  type DispatchConnector,
-  type DispatchCycleResult,
-  type DispatchHint,
-  type DispatchListener,
-  type DispatchMode,
-  type DispatchStatus,
-  type TenantPriority,
-  WorkerPoolManager,
-  type WorkerPoolManagerConfig,
-  type TaskRegistry as DispatchTaskRegistry,
-  DispatchFanOut,
-  type DispatchFanOutConfig,
-  type FanOutResult,
-} from './dispatch'
-
-// Runtime - TasksRuntime lifecycle orchestrator
-export {
-  TasksRuntime,
-  type TaskClass,
-  type TasksRuntimeConfig,
-  type TasksRuntimeLogger,
-  type WorkerManager,
-  type SchedulerManager,
-} from './runtime'
-
-// Registry - Typed task registry API
-export {
-  TaskRegistry,
-  type SnakeToCamelCase,
-  type ExtractTaskName,
-  type ExtractTaskInput,
-  type ExtractTaskResult,
-  type TaskQueueMap,
-  type TaskQueueInput,
-  type TaskQueueResult,
-  type TaskRegistryConfig,
-  snakeToCamelCase,
-} from './registry'

@@ -548,10 +548,10 @@ describe('SecretService - VAULT Provider with real Vault', () => {
       expect(updated.API_KEY).toBe('new-key')
     })
 
-    it('should require encryption key for Vault operations', async () => {
+    it('should allow Vault operations without encryption key (optional since v1.1.4)', async () => {
       const serviceWithoutKey = new SecretService({
         provider: 'VAULT',
-        location: 'test/no-key',
+        location: `test/no-key-${Date.now()}`,
         encryptionKey: '',
         vaultConfig: {
           endpoint: vaultUrl,
@@ -560,15 +560,12 @@ describe('SecretService - VAULT Provider with real Vault', () => {
         },
       })
 
-      await expect(
-        serviceWithoutKey.storeSecretsToVault({ API_KEY: 'test' }),
-      ).rejects.toThrow(
-        'Encryption key is required for storing secrets in Vault',
-      )
+      // Encryption key is now optional - secrets are stored/loaded unencrypted
+      const testSecrets = { API_KEY: 'test-plain' }
+      await serviceWithoutKey.storeSecretsToVault(testSecrets)
 
-      await expect(serviceWithoutKey.loadSecretsFromVault()).rejects.toThrow(
-        'Encryption key is required for Vault provider',
-      )
+      const loaded = await serviceWithoutKey.loadSecretsFromVault()
+      expect(loaded).toEqual(testSecrets)
     })
   })
 })

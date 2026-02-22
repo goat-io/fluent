@@ -7,8 +7,9 @@
  * - TTL-based automatic cleanup
  * - Multi-tenant key isolation
  *
- * Key patterns:
+ * Key patterns (with default keyPrefix "task"):
  * - Task state: task:{tenantId}:{taskId} (Hash)
+ * - Owner index: task:{tenantId}:owner:{ownerId} (Set)
  * - Pub/Sub channel: task-updates:{tenantId}:{taskId}
  *
  * Requires ioredis as a peer dependency.
@@ -141,9 +142,11 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
 
   /**
    * Generate the Redis key for the owner index.
+   * Uses the same keyPrefix as task keys so all keys fall under
+   * the same tenant ACL namespace (e.g., tenant:agrosocial:task:owner:...).
    */
   private getOwnerKey(tenantId: string, ownerId: string): string {
-    return `owner:${tenantId}:${ownerId}`
+    return `${this.config.keyPrefix}:${tenantId}:owner:${ownerId}`
   }
 
   /**

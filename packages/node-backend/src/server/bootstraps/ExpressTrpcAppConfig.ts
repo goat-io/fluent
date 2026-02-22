@@ -2,6 +2,7 @@ import type { CommonLogger } from '@goatlab/js-utils'
 import type { BuiltRouter } from '@trpc/server/unstable-core-do-not-import'
 import type { Request, RequestHandler, Router } from 'express'
 import { pkg } from '../consts'
+import type { RequestLogPrefixFn } from '../middleware/logs.middleware'
 import type { SentryService } from '../sentry/sentry.service'
 import type { Environment } from '../types/Envinronment'
 
@@ -98,6 +99,18 @@ export interface OptionalExpressTrpcAppConfig {
   // Express extensions
   expressResources?: Router[] | readonly Router[]
   customHandlers?: RequestHandler[]
+
+  /**
+   * Optional function to extract a prefix for request log lines.
+   * Called on each request's `finish` event.
+   * Useful for multi-tenant apps to prepend tenant ID.
+   *
+   * @example
+   * ```typescript
+   * requestLogPrefix: (req) => req.headers['x-tenant-id'] as string
+   * ```
+   */
+  requestLogPrefix?: RequestLogPrefixFn
 
   // Authentication configuration (Better Auth)
   auth?: AuthConfig
@@ -296,6 +309,7 @@ export function getDefaultConfig(
     // Express extensions
     expressResources: [],
     customHandlers: [],
+    requestLogPrefix: undefined,
 
     // Authentication (Better Auth) - no default validator
     auth: {

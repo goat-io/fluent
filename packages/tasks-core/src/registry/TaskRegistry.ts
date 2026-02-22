@@ -1,6 +1,13 @@
 import type { ShouldQueue } from '../ShouldQueue'
-import type { InputType } from '../ShouldQueue.types'
-import type { TaskQueueInput, TaskRegistryConfig } from './TaskRegistry.types'
+import type { InputType, TaskConnector } from '../ShouldQueue.types'
+import type {
+  ListenHandle,
+  ListenInput,
+  ListenTaskConfig,
+  TaskQueueInput,
+  TaskRegistryOptions,
+  ToInstances,
+} from './TaskRegistry.types'
 import { snakeToCamelCase } from './TaskRegistry.types'
 
 /**
@@ -8,11 +15,12 @@ import { snakeToCamelCase } from './TaskRegistry.types'
  *
  * Usage:
  * ```typescript
- * const tasks = runtime.createTaskRegistry<typeof myTasks>({
- *   getTenantId: () => container.context.tenantMeta.id,
- *   queueFn: async ({ task, payload, tenantId }) => { ... },
- *   writeDispatchHint: async ({ tenantId, taskName, jobId }) => { ... },
- * })
+ * // Preferred: instantiate from classes (return type inferred from taskClasses)
+ * const tasks = TaskRegistry.fromClasses(
+ *   taskClasses,
+ *   queueService.getBullMQ(),
+ *   { tenantId: id, writeDispatchHint: ..., logger },
+ * )
  *
  * // Type-safe queueing with autocomplete:
  * await tasks.queue({ processPost: { postId: '123' } })
@@ -25,7 +33,11 @@ import { snakeToCamelCase } from './TaskRegistry.types'
  * ```
  */
 export class TaskRegistry<
-  TTasks extends readonly ShouldQueue<any, any, any>[] = ShouldQueue<any, any, any>[],
+  TTasks extends readonly ShouldQueue<any, any, any>[] = ShouldQueue<
+    any,
+    any,
+    any
+  >[],
 > {
   /**
    * Internal lookup: camelCase key -> task instance.
@@ -38,7 +50,7 @@ export class TaskRegistry<
    */
   private readonly tasksByName: Map<string, ShouldQueue<any, any, any>>
 
-  private readonly config: TaskRegistryConfig
+  private readonly connector: TaskConnector<any>
 
   private readonly logger: {
     info: (...args: unknown[]) => void
@@ -49,20 +61,16 @@ export class TaskRegistry<
 
   constructor(
     tasks: TTasks,
-    config: TaskRegistryConfig = {},
-    logger?: {
-      info?: (...args: unknown[]) => void
-      warn?: (...args: unknown[]) => void
-      error?: (...args: unknown[]) => void
-      debug?: (...args: unknown[]) => void
-    },
+    connector: TaskConnector<any>,
+    options: TaskRegistryOptions = {},
   ) {
-    this.config = config
+    this.connector = connector
+    const l = options.logger
     this.logger = {
-      info: logger?.info ?? console.log.bind(console),
-      warn: logger?.warn ?? console.warn.bind(console),
-      error: logger?.error ?? console.error.bind(console),
-      debug: logger?.debug ?? (() => {}),
+      info: l?.info?.bind(l) ?? console.log.bind(console),
+      warn: l?.warn?.bind(l) ?? console.warn.bind(console),
+      error: l?.error?.bind(l) ?? console.error.bind(console),
+      debug: l?.debug?.bind(l) ?? (() => {}),
     }
 
     this.taskMap = new Map()
@@ -74,25 +82,57 @@ export class TaskRegistry<
       this.tasksByName.set(task.taskName, task)
     }
 
-    this.logger.debug(
-      `[TaskRegistry] Registered ${tasks.length} task(s):`,
-      [...this.taskMap.keys()],
+    this.logger.debug(`[TaskRegistry] Registered ${tasks.length} task(s):`, [
+      ...this.taskMap.keys(),
+    ])
+  }
+
+  /**
+   * Factory: create a TaskRegistry by instantiating task classes.
+   *
+   * Each class is `new`-ed, then `setConnector(connector)` is called
+   * so the instances are ready for `queue()`.
+   *
+   * The return type is inferred from the classes tuple:
+   * ```typescript
+   * const tasks = TaskRegistry.fromClasses({
+   *   classes: taskClasses,
+   *   connector: queueService.getBullMQ(),
+   *   options: { tenantId, writeDispatchHint, logger },
+   * })
+   * //  ^? TaskRegistry<[ProcessPostTask, SendMessageTask, ...]>
+   * ```
+   */
+  static fromClasses<
+    TClasses extends readonly (new (
+      ...args: any[]
+    ) => ShouldQueue<any, any, any>)[],
+  >(params: {
+    classes: TClasses
+    connector: TaskConnector<any>
+    options?: TaskRegistryOptions
+  }): TaskRegistry<ToInstances<TClasses>> {
+    const { classes, connector, options = {} } = params
+    const instances = classes.map(Cls => {
+      const instance = new Cls()
+      instance.setConnector(connector)
+      return instance
+    }) as unknown as ToInstances<TClasses>
+    return new TaskRegistry<ToInstances<TClasses>>(
+      instances,
+      connector,
+      options,
     )
   }
 
   /**
    * Queue one or more tasks by camelCase name.
    *
-   * Automatically:
-   * 1. Resolves the current tenant from getTenantId()
-   * 2. Queues each task via queueFn()
-   * 3. Writes dispatch hints via writeDispatchHint() (if provided, non-fatal on failure)
+   * Queues each task via the connector and optionally writes dispatch hints.
    *
    * @param input - Object with camelCase task keys and their payloads
    * @returns Object mapping each queued task key to its job ID
    *
-   * @throws Error if getTenantId is not configured
-   * @throws Error if queueFn is not configured
    * @throws Error if a task key is not found in the registry
    */
   async queue(
@@ -104,70 +144,167 @@ export class TaskRegistry<
       return {}
     }
 
-    if (!this.config.getTenantId) {
-      throw new Error(
-        '[TaskRegistry] getTenantId callback not configured. ' +
-        'Cannot queue tasks without tenant context.',
-      )
-    }
-
-    if (!this.config.queueFn) {
-      throw new Error(
-        '[TaskRegistry] queueFn callback not configured. ' +
-        'Cannot queue tasks without a queue function.',
-      )
-    }
-
-    const tenantId = this.config.getTenantId()
     const results: Record<string, { id: string }> = {}
 
     for (const [camelKey, payload] of entries) {
-      if (payload === undefined) continue
+      if (payload === undefined) {
+        continue
+      }
 
       const task = this.taskMap.get(camelKey)
       if (!task) {
         throw new Error(
-          `[TaskRegistry] Unknown task key: "${camelKey}". ` +
-          `Available keys: ${[...this.taskMap.keys()].join(', ')}`,
+          `[TaskRegistry] Unknown task: "${camelKey}". ` +
+            `Available: ${[...this.taskMap.keys()].join(', ')}`,
         )
       }
 
-      // Step 1: Queue to tenant queue
-      const result = await this.config.queueFn({
-        task,
-        payload,
-        tenantId,
+      const uniqueTaskName = task.getUniqueTaskName?.(payload) || task.taskName
+      const result = await this.connector.queue({
+        uniqueTaskName,
+        taskName: task.taskName,
+        postUrl: '',
+        taskBody: payload as object,
+        handle: async () => task.handle(payload),
       })
 
-      results[camelKey] = result
-
-      // Step 2: Write dispatch hint (non-fatal)
-      if (this.config.writeDispatchHint) {
-        try {
-          await this.config.writeDispatchHint({
-            tenantId,
-            taskName: task.taskName,
-            jobId: result.id,
-          })
-          this.logger.debug('[TaskRegistry] Dispatch hint written', {
-            tenantId,
-            taskName: task.taskName,
-            jobId: result.id,
-          })
-        } catch (error) {
-          // Dispatch hint failure is NOT fatal.
-          // The job is already in the tenant queue (source of truth).
-          // The reconciler will catch orphaned jobs.
-          this.logger.warn('[TaskRegistry] Failed to write dispatch hint (non-fatal)', {
-            taskName: task.taskName,
-            jobId: result.id,
-            error: error instanceof Error ? error.message : String(error),
-          })
-        }
-      }
+      results[camelKey] = { id: result.id }
     }
 
     return results
+  }
+
+  /**
+   * Execute one or more task handlers directly by camelCase name.
+   *
+   * Same typed API as `queue()`, but calls `handle()` directly
+   * instead of enqueueing via the connector.
+   *
+   * @param input - Object with camelCase task keys and their payloads
+   * @returns Object mapping each handled task key to its result
+   *
+   * @throws Error if a task key is not found in the registry
+   */
+  async handle(
+    input: TaskQueueInput<TTasks>,
+  ): Promise<Record<string, unknown>> {
+    const entries = Object.entries(input as Record<string, InputType>)
+
+    if (entries.length === 0) {
+      return {}
+    }
+
+    const results: Record<string, unknown> = {}
+
+    for (const [camelKey, payload] of entries) {
+      if (payload === undefined) {
+        continue
+      }
+
+      const task = this.taskMap.get(camelKey)
+      if (!task) {
+        throw new Error(
+          `[TaskRegistry] Unknown task: "${camelKey}". ` +
+            `Available: ${[...this.taskMap.keys()].join(', ')}`,
+        )
+      }
+
+      results[camelKey] = await task.handle(payload)
+    }
+
+    return results
+  }
+
+  /**
+   * Execute a task handler by its snake_case taskName.
+   *
+   * Designed for dispatch, where the task name and payload are
+   * runtime values from the dispatch hint / job data.
+   *
+   * @param name - snake_case task name (e.g., 'process_post')
+   * @param data - The job payload
+   * @returns The task handler's result
+   *
+   * @throws Error if no task is registered with that name
+   */
+  async handleByName(name: string, data: unknown): Promise<unknown> {
+    const task = this.tasksByName.get(name)
+    if (!task) {
+      throw new Error(
+        `[TaskRegistry] Unknown task: "${name}". ` +
+          `Available: ${[...this.tasksByName.keys()].join(', ')}`,
+      )
+    }
+    return task.handle(data as any)
+  }
+
+  /**
+   * Start persistent workers that consume jobs from queues for selected tasks.
+   *
+   * Completes the TaskRegistry API surface:
+   * - `queue()` → enqueue a task
+   * - `handle()` → execute a task directly
+   * - `listen()` → consume tasks from queue
+   *
+   * @param input - Object selecting which tasks to listen to (omit for all)
+   * @param options - Global defaults (e.g., default concurrency)
+   * @returns Handle to stop the workers and check running status
+   *
+   * @example
+   * ```typescript
+   * // Listen to specific tasks
+   * const handle = await tasks.listen({ processPost: { concurrency: 10 } })
+   *
+   * // Listen to all registered tasks
+   * const handle = await tasks.listen()
+   *
+   * // Stop listening
+   * await handle.stop()
+   * ```
+   *
+   * @throws Error if connector does not support listen()
+   * @throws Error if a task key is not found in the registry
+   */
+  async listen(
+    input?: ListenInput<TTasks>,
+    options?: { concurrency?: number },
+  ): Promise<ListenHandle> {
+    if (!this.connector.listen) {
+      throw new Error('[TaskRegistry] Connector does not support listen()')
+    }
+
+    // If no input, listen to ALL tasks
+    const entries: [string, ListenTaskConfig][] = input
+      ? (Object.entries(input as Record<string, ListenTaskConfig>).filter(
+          ([_, v]) => v !== undefined,
+        ) as [string, ListenTaskConfig][])
+      : [...this.taskMap.keys()].map(k => [k, true as const])
+
+    const tasksToListen = entries.map(([camelKey, config]) => {
+      const task = this.taskMap.get(camelKey)
+      if (!task) {
+        throw new Error(
+          `[TaskRegistry] Unknown task: "${camelKey}". ` +
+            `Available: ${[...this.taskMap.keys()].join(', ')}`,
+        )
+      }
+      return {
+        taskName: task.taskName,
+        handle: (data: unknown) => task.handle(data as any),
+        concurrency:
+          typeof config === 'object' ? config.concurrency : undefined,
+      }
+    })
+
+    this.logger.debug(
+      `[TaskRegistry] Starting listeners for:`,
+      tasksToListen.map(t => t.taskName),
+    )
+
+    return this.connector.listen({
+      tasks: tasksToListen,
+      defaultConcurrency: options?.concurrency,
+    })
   }
 
   /**

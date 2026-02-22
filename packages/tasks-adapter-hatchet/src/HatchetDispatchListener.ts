@@ -36,7 +36,9 @@ export interface HatchetDispatchListenerConfig {
 export class HatchetDispatchListener implements DispatchListener {
   private worker: any = null
   private running = false
-  private readonly logger: Required<NonNullable<HatchetDispatchListenerConfig['logger']>>
+  private readonly logger: Required<
+    NonNullable<HatchetDispatchListenerConfig['logger']>
+  >
 
   constructor(private readonly config: HatchetDispatchListenerConfig) {
     this.logger = {
@@ -87,16 +89,21 @@ export class HatchetDispatchListener implements DispatchListener {
               throw new Error(`Dispatch failed: ${response.status}`)
             }
 
-            this.logger.debug('[HatchetDispatchListener] Dispatch trigger succeeded')
+            this.logger.debug(
+              '[HatchetDispatchListener] Dispatch trigger succeeded',
+            )
           } catch (fetchError) {
             clearTimeout(timeoutId)
             throw fetchError
           }
         } catch (error) {
           // Log error but let Hatchet handle retry
-          this.logger.error('[HatchetDispatchListener] Dispatch trigger failed', {
-            error: error instanceof Error ? error.message : String(error),
-          })
+          this.logger.error(
+            '[HatchetDispatchListener] Dispatch trigger failed',
+            {
+              error: error instanceof Error ? error.message : String(error),
+            },
+          )
           throw error
         }
       },

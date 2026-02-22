@@ -49,13 +49,13 @@ async function main() {
     port,
     user: 'benchmark_user',
     password: 'benchmark_pass',
-    database: 'benchmark_db'
+    database: 'benchmark_db',
   })
 
   process.env.DATABASE_URL = `mysql://benchmark_user:benchmark_pass@${host}:${port}/benchmark_db`
 
   const prismaClient = new PrismaClient({
-    log: ['error']
+    log: ['error'],
   })
 
   const pool = createPool({
@@ -64,11 +64,11 @@ async function main() {
     user: 'benchmark_user',
     password: 'benchmark_pass',
     database: 'benchmark_db',
-    connectionLimit: 10
+    connectionLimit: 10,
   })
 
   const kyselyDb = new Kysely<Database>({
-    dialect: new MysqlDialect({ pool })
+    dialect: new MysqlDialect({ pool }),
   })
 
   const drizzleDb = drizzle(pool, { schema, mode: 'default' })
@@ -99,14 +99,14 @@ async function main() {
       `LastName${i}`,
       'active',
       Math.floor(Math.random() * 50) + 20,
-      'US'
+      'US',
     ])
   }
 
   const placeholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
   await mysql2Connection.execute(
     `INSERT IGNORE INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
-    users.flat()
+    users.flat(),
   )
 
   console.log(chalk.green('✅ Setup complete with 1000 users\n'))
@@ -137,39 +137,39 @@ async function main() {
       drizzle: async () => {
         queryCount.drizzle++
         await drizzleDb.select().from(schema.users).limit(50)
-      }
-    }
+      },
+    },
   ]
 
   // Run each driver
   for (const scenario of scenarios) {
     console.log(
-      `\nRunning ${scenario.iterations} iterations for each driver...`
+      `\nRunning ${scenario.iterations} iterations for each driver...`,
     )
 
     // Run benchmarks
     const mysql2Result = await runner.run(scenario.mysql2, {
       name: 'MySQL2',
       iterations: scenario.iterations,
-      warmupRuns: 2
+      warmupRuns: 2,
     })
 
     const prismaResult = await runner.run(scenario.prisma, {
       name: 'Prisma',
       iterations: scenario.iterations,
-      warmupRuns: 2
+      warmupRuns: 2,
     })
 
     const kyselyResult = await runner.run(scenario.kysely, {
       name: 'Kysely',
       iterations: scenario.iterations,
-      warmupRuns: 2
+      warmupRuns: 2,
     })
 
     const drizzleResult = await runner.run(scenario.drizzle, {
       name: 'Drizzle',
       iterations: scenario.iterations,
-      warmupRuns: 2
+      warmupRuns: 2,
     })
 
     console.log('\nQuery counts (including warmup):')
@@ -180,16 +180,16 @@ async function main() {
 
     console.log('\nPerformance results:')
     console.log(
-      `MySQL2:  ${mysql2Result.operationsPerSecond.toFixed(0)} ops/sec, ${mysql2Result.averageTime.toFixed(2)}ms avg`
+      `MySQL2:  ${mysql2Result.operationsPerSecond.toFixed(0)} ops/sec, ${mysql2Result.averageTime.toFixed(2)}ms avg`,
     )
     console.log(
-      `Prisma:  ${prismaResult.operationsPerSecond.toFixed(0)} ops/sec, ${prismaResult.averageTime.toFixed(2)}ms avg`
+      `Prisma:  ${prismaResult.operationsPerSecond.toFixed(0)} ops/sec, ${prismaResult.averageTime.toFixed(2)}ms avg`,
     )
     console.log(
-      `Kysely:  ${kyselyResult.operationsPerSecond.toFixed(0)} ops/sec, ${kyselyResult.averageTime.toFixed(2)}ms avg`
+      `Kysely:  ${kyselyResult.operationsPerSecond.toFixed(0)} ops/sec, ${kyselyResult.averageTime.toFixed(2)}ms avg`,
     )
     console.log(
-      `Drizzle: ${drizzleResult.operationsPerSecond.toFixed(0)} ops/sec, ${drizzleResult.averageTime.toFixed(2)}ms avg`
+      `Drizzle: ${drizzleResult.operationsPerSecond.toFixed(0)} ops/sec, ${drizzleResult.averageTime.toFixed(2)}ms avg`,
     )
   }
 
@@ -201,7 +201,7 @@ async function main() {
     mysql2: [],
     prisma: [],
     kysely: [],
-    drizzle: []
+    drizzle: [],
   }
 
   // MySQL2
@@ -238,11 +238,11 @@ async function main() {
     const first10Avg = driverTimes.slice(0, 10).reduce((a, b) => a + b, 0) / 10
     const last10Avg = driverTimes.slice(-10).reduce((a, b) => a + b, 0) / 10
     const improvement = (((first10Avg - last10Avg) / first10Avg) * 100).toFixed(
-      1
+      1,
     )
 
     console.log(
-      `${driver.padEnd(8)}: First 10 avg=${first10Avg.toFixed(2)}ms, Last 10 avg=${last10Avg.toFixed(2)}ms, Improvement=${improvement}%`
+      `${driver.padEnd(8)}: First 10 avg=${first10Avg.toFixed(2)}ms, Last 10 avg=${last10Avg.toFixed(2)}ms, Improvement=${improvement}%`,
     )
   }
 

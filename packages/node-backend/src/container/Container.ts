@@ -5,11 +5,13 @@ import {
   BatchBootstrapOptions,
   BatchBootstrapResult,
   BatchInvalidationResult,
+  ContainerEvent,
   ContainerOptions,
   DisposalResult,
   Factory,
   InstancesStructure,
   MapInterface,
+  NO_CONTAINER_PROXY,
   PreloadStructure,
 } from './types'
 
@@ -111,6 +113,25 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   private readonly managers: Record<string, MapInterface<unknown>> = {}
 
   /**
+   * Kill switch: Set of blocked tenant IDs
+   * Blocked tenants are rejected immediately at bootstrap without initialization
+   */
+  private readonly blockedTenants = new Set<string>()
+
+  /**
+   * Cooldown tracker: tenants whose initializer recently failed
+   * Maps tenant cache key -> expiry timestamp (Date.now() + cooldown)
+   * Prevents retry storms when a tenant's initializer is broken
+   */
+  private readonly initializerCooldowns = new Map<string, number>()
+
+  /**
+   * Bootstrap call counter for sampled heap checks
+   * Only check memory every N calls to minimize overhead
+   */
+  private bootstrapCounter = 0
+
+  /**
    * AsyncLocalStorage provides automatic tenant context isolation
    * Each async call tree gets its own isolated service instances
    * Also stores tenant metadata for introspection
@@ -148,6 +169,13 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     Promise<Partial<InstancesStructure<Defs>>>
   >()
 
+  /**
+   * Tracks in-flight disposal operations per tenant
+   * Bootstrap waits for pending disposal to complete before re-initializing
+   * Prevents duplicate live instances when invalidation overlaps with re-bootstrap
+   */
+  private readonly disposalPromises = new Map<string, Promise<void>>()
+
   // ═══════════════════════════════════════════════════════════════════════════
   // ⚡ PERFORMANCE OPTIMIZATION CACHES
   // ═══════════════════════════════════════════════════════════════════════════
@@ -169,20 +197,11 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   /**
    * Initializer cache: stores initialized instances per tenant with LRU eviction
    * Avoids re-running the expensive initializer function for the same tenant
-   * Key is a serialized version of tenant metadata, value is the initialized instances
-   * Uses accessOrder to track LRU for eviction when cache exceeds maxInitializerCacheSize
+   * Uses tiny-lru for O(1) eviction instead of hand-rolled linear scan
    */
-  private readonly initializerCache = new Map<
-    string,
+  private readonly initializerCache: MapInterface<
     Partial<InstancesStructure<Defs>>
-  >()
-
-  /**
-   * Tracks access order for LRU eviction of initializerCache entries
-   * Key is cache key, value is access timestamp (incrementing counter)
-   */
-  private readonly initializerAccessOrder = new Map<string, number>()
-  private initializerAccessCounter = 0
+  >
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 📊 PERFORMANCE METRICS
@@ -253,6 +272,14 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     ++this.metrics[idx]
   }
 
+  /**
+   * Emit a structured event if an event handler is configured
+   * No-op if onEvent is not set, keeping zero overhead when unused
+   */
+  private emit(event: ContainerEvent): void {
+    this.options.onEvent?.(event)
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // 🏗️ CONSTRUCTOR & INITIALIZATION
   // ═══════════════════════════════════════════════════════════════════════════
@@ -288,8 +315,17 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       enableDiagnostics: false,
       enableDistributedInvalidation: false,
       distributedInvalidator: undefined,
+      initializerCooldownMs: 0,
+      onEvent: undefined,
+      maxHeapUsageRatio: 0,
+      heapCheckInterval: 10,
       ...options,
     } as Required<ContainerOptions>
+
+    // Initialize LRU cache for initializer results (O(1) eviction)
+    this.initializerCache = createServiceCache<
+      Partial<InstancesStructure<Defs>>
+    >(this.options.maxInitializerCacheSize)
 
     // Pre-cache factory lookups for better performance
     this.preloadFactoryCache()
@@ -547,24 +583,27 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         }
 
         // Only wrap objects that are safe to wrap
-        // Avoid wrapping Promises, arrays, thenable objects, Prisma clients, or Redis clients
+        // Avoid wrapping Promises, arrays, thenable objects, or opted-out services
         if (
           typeof value === 'object' &&
           value !== null &&
           !Array.isArray(value) &&
           !(value instanceof Promise) &&
           typeof value.then !== 'function' &&
-          // Avoid wrapping Prisma clients (they have complex internal properties)
+          // Symbol-based opt-out: preferred mechanism for any service
+          !(NO_CONTAINER_PROXY in value && value[NO_CONTAINER_PROXY]) &&
+          // Legacy duck-typing checks (kept for backwards compatibility)
+          // Prisma clients
           !(
             '_engine' in value &&
             '_extensions' in value &&
             '$connect' in value
           ) &&
-          // Avoid wrapping Redis clients (they have ioredis-specific properties)
+          // Redis/ioredis clients
           !('options' in value && 'status' in value && 'connector' in value) &&
-          // Avoid wrapping cache service objects (Keyv instances with opts property)
+          // Keyv instances
           !('opts' in value) &&
-          // Avoid wrapping cache store objects
+          // Cache store objects
           !('store' in value && 'namespace' in value)
         ) {
           // Safe to wrap - create nested proxy
@@ -613,34 +652,14 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       const json = JSON.stringify(meta)
       return `tenant:hash:${this.simpleHash(json)}`
     } catch {
-      // Last resort for circular refs
-      return `tenant:ts:${Date.now()}`
-    }
-  }
-
-  /**
-   * Evict the least recently used entry from initializerCache if at capacity
-   * Called before adding a new entry when cache is at maxInitializerCacheSize
-   */
-  private evictLruFromInitializerCache(): void {
-    if (this.initializerCache.size < this.options.maxInitializerCacheSize) {
-      return
-    }
-
-    // Find the LRU entry (lowest access counter)
-    let lruKey: string | null = null
-    let lruTime = Number.POSITIVE_INFINITY
-
-    for (const [key, time] of this.initializerAccessOrder) {
-      if (time < lruTime) {
-        lruTime = time
-        lruKey = key
-      }
-    }
-
-    if (lruKey) {
-      this.initializerCache.delete(lruKey)
-      this.initializerAccessOrder.delete(lruKey)
+      // For circular refs, build a stable key from sorted own-property keys + values
+      // This is deterministic unlike Date.now() which guarantees cache misses
+      const keys = Object.keys(m).sort()
+      const parts = keys.map(k => {
+        const v = m[k]
+        return `${k}=${typeof v === 'object' ? typeof v : v}`
+      })
+      return `tenant:keys:${this.simpleHash(parts.join('|'))}`
     }
   }
 
@@ -654,12 +673,31 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   ): Promise<Partial<InstancesStructure<Defs>>> {
     const cacheKey = this.createTenantCacheKey(meta)
 
+    // Wait for any pending disposal before re-initializing this tenant
+    const m = meta as any
+    const tenantId = m.id ?? m.tenantId ?? m.name
+    if (tenantId) {
+      const pendingDisposal = this.disposalPromises.get(String(tenantId))
+      if (pendingDisposal) {
+        await pendingDisposal
+      }
+    }
+
+    // Check cooldown: reject if initializer recently failed for this tenant
+    if (this.options.initializerCooldownMs > 0) {
+      const cooldownExpiry = this.initializerCooldowns.get(cacheKey)
+      if (cooldownExpiry && Date.now() < cooldownExpiry) {
+        const remainingMs = cooldownExpiry - Date.now()
+        throw new Error(
+          `Tenant initializer is in cooldown (${remainingMs}ms remaining). Previous initialization failed.`,
+        )
+      }
+    }
+
     // Check if we already have initialized instances for this tenant
     const cachedInstances = this.initializerCache.get(cacheKey)
     if (cachedInstances) {
       this.inc(Container.METRIC.INIT_HITS)
-      // Update access order for LRU tracking
-      this.initializerAccessOrder.set(cacheKey, ++this.initializerAccessCounter)
       return cachedInstances
     }
 
@@ -675,13 +713,20 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
 
     try {
       const instances = await initPromise
-      // Evict LRU entry if cache is at capacity
-      this.evictLruFromInitializerCache()
-      // Cache the result for future use
+      // Cache the result for future use (LRU eviction handled by tiny-lru)
       this.initializerCache.set(cacheKey, instances)
-      // Track access order for LRU
-      this.initializerAccessOrder.set(cacheKey, ++this.initializerAccessCounter)
+      // Clear any previous cooldown on success
+      this.initializerCooldowns.delete(cacheKey)
       return instances
+    } catch (error) {
+      // Set cooldown on failure to prevent retry storms
+      if (this.options.initializerCooldownMs > 0) {
+        this.initializerCooldowns.set(
+          cacheKey,
+          Date.now() + this.options.initializerCooldownMs,
+        )
+      }
+      throw error
     } finally {
       // Clean up inflight promise tracking
       this.initializerPromises.delete(cacheKey)
@@ -718,9 +763,48 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     meta: TenantMetadata,
     fn?: () => Promise<T>,
   ): Promise<{ instances: InstancesStructure<Defs>; result?: T }> {
+    // Kill switch: reject blocked tenants immediately
+    const m = meta as any
+    const tenantId = m.id ?? m.tenantId ?? m.name
+    const tenantIdStr = tenantId ? String(tenantId) : undefined
+
+    if (tenantIdStr && this.blockedTenants.has(tenantIdStr)) {
+      this.emit({
+        type: 'tenant:blocked',
+        tenantId: tenantIdStr,
+        timestamp: Date.now(),
+      })
+      throw new Error(
+        `Tenant '${tenantIdStr}' is blocked. Use container.unblockTenant() to restore access.`,
+      )
+    }
+
+    // Memory pressure check (sampled to avoid overhead)
+    if (this.options.maxHeapUsageRatio > 0) {
+      this.bootstrapCounter++
+      if (this.bootstrapCounter % this.options.heapCheckInterval === 0) {
+        const { heapUsed, heapTotal } = process.memoryUsage()
+        const ratio = heapUsed / heapTotal
+        if (ratio > this.options.maxHeapUsageRatio) {
+          throw new Error(
+            `Memory pressure: heap usage ${(ratio * 100).toFixed(1)}% exceeds limit ${(this.options.maxHeapUsageRatio * 100).toFixed(1)}%. Rejecting new bootstrap.`,
+          )
+        }
+      }
+    }
+
+    const startTime = Date.now()
+    this.emit({
+      type: 'bootstrap:start',
+      tenantId: tenantIdStr,
+      timestamp: startTime,
+    })
+
     try {
       // Phase 1: Get or create services for this tenant (with caching)
       const instances = await this.getOrCreateInstances(meta)
+      const cached =
+        this.initializerCache.get(this.createTenantCacheKey(meta)) !== undefined
 
       // Phase 2: Run user function within tenant context
       const result = await this.runWithContext(
@@ -729,10 +813,25 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         fn || (async () => undefined),
       )
 
+      this.emit({
+        type: 'bootstrap:complete',
+        tenantId: tenantIdStr,
+        durationMs: Date.now() - startTime,
+        cached,
+        timestamp: Date.now(),
+      })
+
       // Type assertion: we trust that initializer provides all required services
       // In practice, this is validated at runtime by the context proxy
       return { instances: instances as InstancesStructure<Defs>, result }
     } catch (err) {
+      this.emit({
+        type: 'bootstrap:error',
+        tenantId: tenantIdStr,
+        error: err instanceof Error ? err : new Error(String(err)),
+        durationMs: Date.now() - startTime,
+        timestamp: Date.now(),
+      })
       if (this.options.enableDiagnostics) {
         console.error('Container bootstrap failed:', err)
       }
@@ -792,121 +891,107 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       onProgress,
     } = options
 
-    const results: BatchBootstrapResult<Defs, TMetadata, T>[] = []
     const total = tenantBatch.length
+    const results: BatchBootstrapResult<Defs, TMetadata, T>[] = new Array(total)
     let completed = 0
+    let nextIndex = 0
     let shouldAbort = false
 
-    // Process tenants in chunks based on concurrency limit
-    for (let i = 0; i < total; i += concurrency) {
-      // Check if we should abort due to previous error in fail-fast mode
-      if (shouldAbort) {
-        break
-      }
+    // Process a single tenant and return its result at the correct index
+    const processTenant = async (index: number): Promise<void> => {
+      const { metadata, fn } = tenantBatch[index]
+      const startTime = Date.now()
 
-      const chunk = tenantBatch.slice(i, i + concurrency)
+      try {
+        let bootstrapPromise = this.bootstrap(
+          metadata as any as TenantMetadata,
+          fn,
+        )
 
-      const chunkPromises = chunk.map(async ({ metadata, fn }) => {
-        const startTime = Date.now()
-
-        try {
-          // Apply timeout if specified
-          let bootstrapPromise = this.bootstrap(
-            metadata as any as TenantMetadata,
-            fn,
-          )
-
-          if (timeout) {
-            bootstrapPromise = Promise.race([
-              bootstrapPromise,
-              new Promise<never>((_, reject) =>
-                setTimeout(
-                  () =>
-                    reject(new Error(`Bootstrap timeout after ${timeout}ms`)),
-                  timeout,
-                ),
+        if (timeout) {
+          bootstrapPromise = Promise.race([
+            bootstrapPromise,
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error(`Bootstrap timeout after ${timeout}ms`)),
+                timeout,
               ),
-            ])
-          }
-
-          const { instances, result } = await bootstrapPromise
-          const endTime = Date.now()
-
-          this.inc(Container.METRIC.BATCH_OPS)
-
-          return {
-            metadata,
-            status: 'success' as const,
-            instances,
-            result,
-            metrics: {
-              startTime,
-              endTime,
-              duration: endTime - startTime,
-            },
-          }
-        } catch (error) {
-          const endTime = Date.now()
-
-          this.inc(Container.METRIC.BATCH_ERRORS)
-
-          if (this.options.enableDiagnostics) {
-            console.error(`Batch bootstrap failed for tenant:`, metadata, error)
-          }
-
-          const result: BatchBootstrapResult<Defs, TMetadata, T> = {
-            metadata,
-            status: 'error',
-            error: error instanceof Error ? error : new Error(String(error)),
-            metrics: {
-              startTime,
-              endTime,
-              duration: endTime - startTime,
-            },
-          }
-
-          if (!continueOnError) {
-            // Mark that we should abort processing
-            shouldAbort = true
-          }
-
-          return result
-        } finally {
-          completed++
-          onProgress?.(completed, total, metadata)
+            ),
+          ])
         }
-      })
 
-      // Wait for current chunk to complete before starting next
-      const chunkResults = await Promise.allSettled(chunkPromises)
+        const { instances, result } = await bootstrapPromise
+        const endTime = Date.now()
 
-      // Extract results from Promise.allSettled
-      for (const settledResult of chunkResults) {
-        if (settledResult.status === 'fulfilled') {
-          results.push(settledResult.value)
-        } else if (continueOnError) {
-          // This shouldn't happen as we handle errors above, but just in case
-          results.push({
-            metadata: tenantBatch[results.length].metadata,
-            status: 'error',
-            error: settledResult.reason,
-            metrics: {
-              startTime: Date.now(),
-              endTime: Date.now(),
-              duration: 0,
-            },
-          })
+        this.inc(Container.METRIC.BATCH_OPS)
+
+        results[index] = {
+          metadata,
+          status: 'success' as const,
+          instances,
+          result,
+          metrics: {
+            startTime,
+            endTime,
+            duration: endTime - startTime,
+          },
         }
-      }
+      } catch (error) {
+        const endTime = Date.now()
 
-      // Check if we had any errors and should fail fast
-      if (!continueOnError && results.some(r => r.status === 'error')) {
-        const errorResult = results.find(r => r.status === 'error')
-        throw errorResult?.error || new Error('Batch operation failed')
+        this.inc(Container.METRIC.BATCH_ERRORS)
+
+        if (this.options.enableDiagnostics) {
+          console.error(`Batch bootstrap failed for tenant:`, metadata, error)
+        }
+
+        results[index] = {
+          metadata,
+          status: 'error',
+          error: error instanceof Error ? error : new Error(String(error)),
+          metrics: {
+            startTime,
+            endTime,
+            duration: endTime - startTime,
+          },
+        }
+
+        if (!continueOnError) {
+          shouldAbort = true
+        }
+      } finally {
+        completed++
+        onProgress?.(completed, total, metadata)
       }
     }
 
-    return results
+    // Pool-based concurrency: start new work as soon as any slot frees up
+    const workers: Promise<void>[] = []
+    const runWorker = async (): Promise<void> => {
+      while (!shouldAbort && nextIndex < total) {
+        const index = nextIndex++
+        await processTenant(index)
+      }
+    }
+
+    // Launch workers up to the concurrency limit
+    const workerCount = Math.min(concurrency, total)
+    for (let i = 0; i < workerCount; i++) {
+      workers.push(runWorker())
+    }
+
+    await Promise.allSettled(workers)
+
+    // In fail-fast mode, throw the first error found
+    if (!continueOnError) {
+      const errorResult = results.find(r => r?.status === 'error')
+      if (errorResult?.error) {
+        throw errorResult.error
+      }
+    }
+
+    // Filter out any undefined slots (from aborted processing)
+    return results.filter(Boolean)
   }
 
   /**
@@ -1079,8 +1164,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Clear optimization caches as well
     this.proxyCache.clear()
     this.initializerCache.clear()
-    this.initializerAccessOrder.clear()
     this.initializerPromises.clear()
+    this.disposalPromises.clear()
+    this.initializerCooldowns.clear()
 
     // Note: contextProxyCache is a WeakMap and will be garbage collected automatically
   }
@@ -1134,8 +1220,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     // Clear optimization caches as well
     this.proxyCache.clear()
     this.initializerCache.clear()
-    this.initializerAccessOrder.clear()
     this.initializerPromises.clear()
+    this.disposalPromises.clear()
+    this.initializerCooldowns.clear()
 
     // Note: contextProxyCache is a WeakMap and will be garbage collected automatically
     return result
@@ -1249,6 +1336,12 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * This only affects the current instance
    */
   private invalidateTenantLocally(tenantId: string, reason?: string): void {
+    this.emit({
+      type: 'tenant:invalidated',
+      tenantId,
+      reason,
+      timestamp: Date.now(),
+    })
     if (this.options.enableDiagnostics) {
       console.log(
         `Invalidating tenant cache locally: ${tenantId}`,
@@ -1256,24 +1349,34 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       )
     }
 
-    // Clear service instance caches for this tenant with disposal
+    // Clear service instance caches for this tenant with tracked disposal
+    const disposalTasks: Promise<void>[] = []
     for (const manager of Object.values(this.managers)) {
       const instance = manager.get(tenantId)
       if (instance) {
-        safeDispose(instance).catch(err => {
-          if (this.options.enableDiagnostics) {
-            console.warn('Error disposing tenant instance:', err)
-          }
-        })
+        disposalTasks.push(
+          safeDispose(instance).catch(err => {
+            if (this.options.enableDiagnostics) {
+              console.warn('Error disposing tenant instance:', err)
+            }
+          }),
+        )
       }
       manager.delete(tenantId)
     }
 
-    // Clear initializer cache for this tenant
-    for (const [cacheKey] of this.initializerCache.entries()) {
-      if (cacheKey.includes(tenantId)) {
-        this.initializerCache.delete(cacheKey)
-      }
+    // Track disposal so bootstrap can wait for it before re-initializing
+    if (disposalTasks.length > 0) {
+      const disposalPromise = Promise.all(disposalTasks).then(() => {
+        this.disposalPromises.delete(tenantId)
+      })
+      this.disposalPromises.set(tenantId, disposalPromise)
+    }
+
+    // Clear initializer cache for this tenant (exact match, not substring)
+    const exactKey = `tenant:${tenantId}`
+    if (this.initializerCache.get(exactKey) !== undefined) {
+      this.initializerCache.delete(exactKey)
     }
   }
 
@@ -1281,6 +1384,12 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Invalidate cached data for a specific service type (local only) with disposal support
    */
   private invalidateServiceLocally(serviceType: string, reason?: string): void {
+    this.emit({
+      type: 'service:invalidated',
+      serviceType,
+      reason,
+      timestamp: Date.now(),
+    })
     if (this.options.enableDiagnostics) {
       console.log(
         `Invalidating service cache locally: ${serviceType}`,
@@ -1367,8 +1476,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     }
     this.proxyCache.clear()
     this.initializerCache.clear()
-    this.initializerAccessOrder.clear()
     this.initializerPromises.clear()
+    this.disposalPromises.clear()
+    this.initializerCooldowns.clear()
 
     return result
   }
@@ -1419,7 +1529,10 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       pathCacheSize: 0, // removed - no longer tracked
       proxyCacheSize: this.proxyCache.size,
       factoryCacheSize: this.factoryCache.size,
-      initializerCacheSize: this.initializerCache.size,
+      initializerCacheSize:
+        typeof this.initializerCache.size === 'function'
+          ? this.initializerCache.size()
+          : (this.initializerCache.size ?? 0),
       initializerPromisesSize: this.initializerPromises.size,
       cacheHitRatio: hits + misses > 0 ? hits / (hits + misses) : 0,
       batchSuccessRatio: batchOps > 0 ? (batchOps - batchErrors) / batchOps : 0,
@@ -1583,5 +1696,38 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         services.push(currentPath.join('.'))
       }
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🛑 KILL SWITCH
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Block a tenant from bootstrapping. Blocked tenants are rejected immediately.
+   * Use this for: runaway crons, infinite loops, compromised keys, legal holds.
+   */
+  blockTenant(tenantId: string): void {
+    this.blockedTenants.add(tenantId)
+  }
+
+  /**
+   * Unblock a previously blocked tenant, restoring normal bootstrap behavior.
+   */
+  unblockTenant(tenantId: string): void {
+    this.blockedTenants.delete(tenantId)
+  }
+
+  /**
+   * Check if a tenant is currently blocked.
+   */
+  isTenantBlocked(tenantId: string): boolean {
+    return this.blockedTenants.has(tenantId)
+  }
+
+  /**
+   * Get the set of all currently blocked tenant IDs.
+   */
+  getBlockedTenants(): ReadonlySet<string> {
+    return this.blockedTenants
   }
 }

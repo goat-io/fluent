@@ -1,13 +1,17 @@
+export { TaskRegistry } from './TaskRegistry'
 export type {
-  SnakeToCamelCase,
-  ExtractTaskName,
   ExtractTaskInput,
+  ExtractTaskName,
   ExtractTaskResult,
-  TaskQueueMap,
+  ListenHandle,
+  ListenInput,
+  ListenTaskConfig,
+  SnakeToCamelCase,
   TaskQueueInput,
+  TaskQueueMap,
   TaskQueueResult,
   TaskRegistryConfig,
+  TaskRegistryOptions,
+  ToInstances,
 } from './TaskRegistry.types'
-
 export { snakeToCamelCase } from './TaskRegistry.types'
-export { TaskRegistry } from './TaskRegistry'

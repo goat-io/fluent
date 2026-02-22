@@ -48,13 +48,13 @@ export default async function setup() {
       username: mysqlContainer.getUsername(),
       password: mysqlContainer.getUserPassword(),
       database: mysqlContainer.getDatabase(),
-      connectionString: `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getHost()}:${mysqlContainer.getMappedPort(3306)}/${mysqlContainer.getDatabase()}`
+      connectionString: `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getHost()}:${mysqlContainer.getMappedPort(3306)}/${mysqlContainer.getDatabase()}`,
     },
     redis: {
       host: redisContainer.getHost(),
       port: redisContainer.getMappedPort(6379),
-      connectionString: redisContainer.getConnectionUrl()
-    }
+      connectionString: redisContainer.getConnectionUrl(),
+    },
   }
 
   // Save container data to file

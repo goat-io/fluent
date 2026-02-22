@@ -1,5 +1,12 @@
 # 0.5.20
 
+## 0.4.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.14.6
+
 ## 0.4.5
 
 ### Patch Changes

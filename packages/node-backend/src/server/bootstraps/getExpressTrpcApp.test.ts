@@ -33,6 +33,7 @@ vi.mock('../consts', () => ({
 }))
 
 vi.mock('../context/trpc.context', () => ({
+  createContextFactory: vi.fn().mockReturnValue(vi.fn().mockResolvedValue({})),
   createContext: vi.fn().mockResolvedValue({}),
 }))
 

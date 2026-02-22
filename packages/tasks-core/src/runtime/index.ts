@@ -1,8 +1,1 @@
-export { TasksRuntime } from './TasksRuntime'
-export type {
-  TaskClass,
-  TasksRuntimeConfig,
-  TasksRuntimeLogger,
-  WorkerManager,
-  SchedulerManager,
-} from './TasksRuntime.types'
+// TasksRuntime removed — dispatch is now handled by processIncomingDispatch on TaskConnector

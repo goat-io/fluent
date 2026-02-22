@@ -42,6 +42,11 @@ let testContainerContext: any = null
 
 // Mock context creation to use our container
 vi.mock('../context/trpc.context', () => ({
+  createContextFactory: vi.fn().mockReturnValue(
+    vi.fn().mockImplementation(async () => ({
+      services: testContainerContext,
+    })),
+  ),
   createContext: vi.fn().mockImplementation(async () => ({
     services: testContainerContext,
   })),

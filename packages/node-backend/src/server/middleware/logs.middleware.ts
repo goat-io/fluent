@@ -1,6 +1,12 @@
 import { CommonLogger, Time } from '@goatlab/js-utils'
 import type { NextFunction, Request, Response } from 'express'
-import { bgBlack, green, magenta, red, yellow } from 'kleur/colors'
+import { bgBlack, cyan, green, magenta, red, yellow } from 'kleur/colors'
+
+/**
+ * Optional function to extract a log prefix from the request.
+ * Useful for multi-tenant apps to prepend tenant ID to log lines.
+ */
+export type RequestLogPrefixFn = (req: Request) => string | undefined
 
 // Adds color to HTTP status codes based on their range
 export const httpResponseCodeColor = (statusCode: number): string => {
@@ -51,24 +57,28 @@ export const getActualRequestDurationInMilliseconds = (
 export const getCurrentTimeFormatted = (): string => new Date().toISOString()
 
 const formatRequestLog = ({
+  prefix,
   method,
   url,
   statusCode,
   statusMessage,
   durationInMilliseconds,
 }: {
+  prefix?: string
   method: string
   url: string
   statusCode: number
   statusMessage: string
   durationInMilliseconds: number
 }) => {
-  return `${magenta(method)}: ${bgBlack(url)} | Response: ${httpResponseCodeColor(
+  const prefixStr = prefix ? `[${cyan(prefix)}] ` : ''
+  return `${prefixStr}${magenta(method)}: ${bgBlack(url)} | Response: ${httpResponseCodeColor(
     statusCode,
   )} (${statusMessage}) ${httpResponseTimeColor(durationInMilliseconds)}`
 }
 
 function logBatchRequests({
+  prefix,
   date,
   method,
   url,
@@ -77,6 +87,7 @@ function logBatchRequests({
   durationInMilliseconds,
   logger,
 }: {
+  prefix?: string
   date: string
   method: string
   url: string
@@ -109,6 +120,7 @@ function logBatchRequests({
         endpoints.forEach((endpoint, index) => {
           const params = parsedInput[index]
           const message = ` ${formatRequestLog({
+            prefix,
             method,
             url: endpoint,
             statusCode,
@@ -124,6 +136,7 @@ function logBatchRequests({
       }
     } else {
       const message = formatRequestLog({
+        prefix,
         method,
         url: `${baseUrl}?${queryParams.toString()}`,
         statusCode,
@@ -134,6 +147,7 @@ function logBatchRequests({
     }
   } else {
     const message = formatRequestLog({
+      prefix,
       method,
       url: baseUrl,
       statusCode,
@@ -149,6 +163,7 @@ export const expressRequestLogger = (
   response: Response,
   next: NextFunction,
   logger: CommonLogger,
+  getLogPrefix?: RequestLogPrefixFn,
 ): void => {
   const formattedDate = getCurrentTimeFormatted()
   const start = process.hrtime()
@@ -157,8 +172,10 @@ export const expressRequestLogger = (
     const { method, originalUrl } = request
     const { statusCode, statusMessage } = response
     const durationInMilliseconds = getActualRequestDurationInMilliseconds(start)
+    const prefix = getLogPrefix?.(request)
 
     logBatchRequests({
+      prefix,
       date: formattedDate,
       method,
       url: originalUrl,

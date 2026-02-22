@@ -46,7 +46,9 @@ export interface CloudTaskDispatchListenerConfig {
  */
 export class CloudTaskDispatchListener implements DispatchListener {
   private running = false
-  private readonly logger: Required<NonNullable<CloudTaskDispatchListenerConfig['logger']>>
+  private readonly logger: Required<
+    NonNullable<CloudTaskDispatchListenerConfig['logger']>
+  >
 
   constructor(private readonly config: CloudTaskDispatchListenerConfig) {
     this.logger = {
@@ -65,12 +67,15 @@ export class CloudTaskDispatchListener implements DispatchListener {
    */
   async start(): Promise<void> {
     this.running = true
-    this.logger.info('[CloudTaskDispatchListener] Started (queue-managed push)', {
-      gcpProject: this.config.gcpProject,
-      location: this.config.location,
-      queueName: this.config.queueName ?? 'dispatch-hints',
-      note: 'Cloud Tasks queue pushes directly to dispatch HTTP endpoint via httpTarget',
-    })
+    this.logger.info(
+      '[CloudTaskDispatchListener] Started (queue-managed push)',
+      {
+        gcpProject: this.config.gcpProject,
+        location: this.config.location,
+        queueName: this.config.queueName ?? 'dispatch-hints',
+        note: 'Cloud Tasks queue pushes directly to dispatch HTTP endpoint via httpTarget',
+      },
+    )
   }
 
   /**

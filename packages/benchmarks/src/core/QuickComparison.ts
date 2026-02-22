@@ -22,14 +22,14 @@ export class QuickComparison {
       { name: 'MySQL2', results: mysql2Results },
       { name: 'Prisma', results: prismaResults },
       { name: 'Kysely', results: kyselyResults },
-      { name: 'Drizzle', results: drizzleResults }
+      { name: 'Drizzle', results: drizzleResults },
     ]
       .filter(d => d.results.length > 0)
       .map(d => ({
         name: d.name,
         avgOps:
           d.results.reduce((sum, r) => sum + r.operationsPerSecond, 0) /
-          d.results.length
+          d.results.length,
       }))
       .sort((a, b) => b.avgOps - a.avgOps)
 
@@ -49,12 +49,12 @@ export class QuickComparison {
       `${icon} ${chalk.bold[color](winner.name)} is ${chalk.bold(`${advantage.toFixed(0)}%`)} faster`,
       '',
       ...drivers.map(
-        d => `${chalk.bold(`${d.name}:`)} ${d.avgOps.toFixed(0)} ops/sec`
+        d => `${chalk.bold(`${d.name}:`)} ${d.avgOps.toFixed(0)} ops/sec`,
       ),
       '',
       chalk.italic(
-        QuickComparison.getQuickRecommendation(winner.name, advantage)
-      )
+        QuickComparison.getQuickRecommendation(winner.name, advantage),
+      ),
     ]
 
     console.log(
@@ -65,8 +65,8 @@ export class QuickComparison {
           borderStyle: 'double',
           borderColor: color,
           width: 50,
-          textAlignment: 'center'
-        })
+          textAlignment: 'center',
+        }),
     )
   }
 
@@ -82,27 +82,27 @@ export class QuickComparison {
     const drivers = [
       {
         name: 'MySQL2',
-        results: results.filter(r => r.name.includes('MySQL2'))
+        results: results.filter(r => r.name.includes('MySQL2')),
       },
       {
         name: 'Prisma',
-        results: results.filter(r => r.name.includes('Prisma'))
+        results: results.filter(r => r.name.includes('Prisma')),
       },
       {
         name: 'Kysely',
-        results: results.filter(r => r.name.includes('Kysely'))
+        results: results.filter(r => r.name.includes('Kysely')),
       },
       {
         name: 'Drizzle',
-        results: results.filter(r => r.name.includes('Drizzle'))
-      }
+        results: results.filter(r => r.name.includes('Drizzle')),
+      },
     ]
       .filter(d => d.results.length > 0)
       .map(d => ({
         name: d.name,
         avgOps:
           d.results.reduce((sum, r) => sum + r.operationsPerSecond, 0) /
-          d.results.length
+          d.results.length,
       }))
       .sort((a, b) => b.avgOps - a.avgOps)
 
@@ -130,7 +130,7 @@ export class QuickComparison {
       '',
       ...drivers.map(d => `${chalk.bold(`${d.name}:`)} ${getTrafficLight(d)}`),
       '',
-      `Performance Gap: ${chalk.bold(`${((winner.avgOps / drivers[drivers.length - 1].avgOps - 1) * 100).toFixed(0)}%`)}`
+      `Performance Gap: ${chalk.bold(`${((winner.avgOps / drivers[drivers.length - 1].avgOps - 1) * 100).toFixed(0)}%`)}`,
     ]
 
     console.log(
@@ -141,8 +141,8 @@ export class QuickComparison {
           borderStyle: 'round',
           borderColor: 'white',
           width: 40,
-          textAlignment: 'center'
-        })
+          textAlignment: 'center',
+        }),
     )
   }
 
@@ -160,13 +160,13 @@ export class QuickComparison {
         .map(driver => ({
           driver,
           result: results.find(
-            r => r.name.includes(driver) && r.name.includes(scenario)
-          )
+            r => r.name.includes(driver) && r.name.includes(scenario),
+          ),
         }))
         .filter(d => d.result)
         .sort(
           (a, b) =>
-            b.result!.operationsPerSecond - a.result!.operationsPerSecond
+            b.result!.operationsPerSecond - a.result!.operationsPerSecond,
         )
 
       if (scenarioResults.length >= 2) {
@@ -197,7 +197,7 @@ export class QuickComparison {
         acc[driver] = 0
         return acc
       },
-      {} as Record<string, number>
+      {} as Record<string, number>,
     )
 
     scenarios.forEach(scenario => {
@@ -205,13 +205,13 @@ export class QuickComparison {
         .map(driver => ({
           driver,
           result: results.find(
-            r => r.name.includes(driver) && r.name.includes(scenario)
-          )
+            r => r.name.includes(driver) && r.name.includes(scenario),
+          ),
         }))
         .filter(d => d.result)
         .sort(
           (a, b) =>
-            b.result!.operationsPerSecond - a.result!.operationsPerSecond
+            b.result!.operationsPerSecond - a.result!.operationsPerSecond,
         )
 
       if (scenarioResults.length > 0) {
@@ -225,7 +225,7 @@ export class QuickComparison {
       .map(driver => ({
         driver,
         wins: winCounts[driver],
-        percentage: (winCounts[driver] / totalScenarios) * 100
+        percentage: (winCounts[driver] / totalScenarios) * 100,
       }))
       .sort((a, b) => b.wins - a.wins)
 
@@ -237,10 +237,10 @@ export class QuickComparison {
       '',
       ...driverStats.map(
         (d, i) =>
-          `${chalk.bold(`${d.driver}:`)} ${chalk[colors[i] || 'white'](`${d.percentage.toFixed(0)}%`)} (${d.wins}/${totalScenarios})`
+          `${chalk.bold(`${d.driver}:`)} ${chalk[colors[i] || 'white'](`${d.percentage.toFixed(0)}%`)} (${d.wins}/${totalScenarios})`,
       ),
       '',
-      chalk.italic(`${topWinner.driver} wins more scenarios`)
+      chalk.italic(`${topWinner.driver} wins more scenarios`),
     ]
 
     console.log(
@@ -251,8 +251,8 @@ export class QuickComparison {
           borderStyle: 'round',
           borderColor: colors[0],
           width: 35,
-          textAlignment: 'center'
-        })
+          textAlignment: 'center',
+        }),
     )
   }
 
@@ -264,27 +264,27 @@ export class QuickComparison {
     const drivers = [
       {
         name: 'MySQL2',
-        results: results.filter(r => r.name.includes('MySQL2'))
+        results: results.filter(r => r.name.includes('MySQL2')),
       },
       {
         name: 'Prisma',
-        results: results.filter(r => r.name.includes('Prisma'))
+        results: results.filter(r => r.name.includes('Prisma')),
       },
       {
         name: 'Kysely',
-        results: results.filter(r => r.name.includes('Kysely'))
+        results: results.filter(r => r.name.includes('Kysely')),
       },
       {
         name: 'Drizzle',
-        results: results.filter(r => r.name.includes('Drizzle'))
-      }
+        results: results.filter(r => r.name.includes('Drizzle')),
+      },
     ]
       .filter(d => d.results.length > 0)
       .map(d => ({
         name: d.name,
         avgOps:
           d.results.reduce((sum, r) => sum + r.operationsPerSecond, 0) /
-          d.results.length
+          d.results.length,
       }))
       .sort((a, b) => b.avgOps - a.avgOps)
 
@@ -305,15 +305,15 @@ export class QuickComparison {
             margin: 1,
             borderStyle: 'double',
             borderColor: 'green',
-            textAlignment: 'center'
-          }
-        )
+            textAlignment: 'center',
+          },
+        ),
     )
   }
 
   private static getQuickRecommendation(
     winner: string,
-    advantage: number
+    advantage: number,
   ): string {
     if (advantage > 50) {
       return `${winner} is significantly faster - clear choice for performance`

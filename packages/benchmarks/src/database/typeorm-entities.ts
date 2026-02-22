@@ -6,7 +6,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
 } from 'typeorm'
 
 @Entity('users')
@@ -32,7 +32,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: ['active', 'inactive', 'suspended'],
-    default: 'active'
+    default: 'active',
   })
   status: 'active' | 'inactive' | 'suspended'
 
@@ -44,13 +44,13 @@ export class User {
 
   @OneToMany(
     () => Order,
-    order => order.user
+    order => order.user,
   )
   orders: Order[]
 
   @OneToMany(
     () => Review,
-    review => review.user
+    review => review.user,
   )
   reviews: Review[]
 }
@@ -86,20 +86,20 @@ export class Product {
 
   @ManyToOne(
     () => Category,
-    category => category.products
+    category => category.products,
   )
   @JoinColumn({ name: 'category_id' })
   category: Category
 
   @OneToMany(
     () => OrderItem,
-    orderItem => orderItem.product
+    orderItem => orderItem.product,
   )
   orderItems: OrderItem[]
 
   @OneToMany(
     () => Review,
-    review => review.product
+    review => review.product,
   )
   reviews: Review[]
 }
@@ -120,7 +120,7 @@ export class Category {
 
   @OneToMany(
     () => Product,
-    product => product.category
+    product => product.category,
   )
   products: Product[]
 }
@@ -136,7 +136,7 @@ export class Order {
   @Column({
     type: 'enum',
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
-    default: 'pending'
+    default: 'pending',
   })
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
 
@@ -154,14 +154,14 @@ export class Order {
 
   @ManyToOne(
     () => User,
-    user => user.orders
+    user => user.orders,
   )
   @JoinColumn({ name: 'user_id' })
   user: User
 
   @OneToMany(
     () => OrderItem,
-    orderItem => orderItem.order
+    orderItem => orderItem.order,
   )
   orderItems: OrderItem[]
 }
@@ -185,14 +185,14 @@ export class OrderItem {
 
   @ManyToOne(
     () => Order,
-    order => order.orderItems
+    order => order.orderItems,
   )
   @JoinColumn({ name: 'order_id' })
   order: Order
 
   @ManyToOne(
     () => Product,
-    product => product.orderItems
+    product => product.orderItems,
   )
   @JoinColumn({ name: 'product_id' })
   product: Product
@@ -220,14 +220,14 @@ export class Review {
 
   @ManyToOne(
     () => User,
-    user => user.reviews
+    user => user.reviews,
   )
   @JoinColumn({ name: 'user_id' })
   user: User
 
   @ManyToOne(
     () => Product,
-    product => product.reviews
+    product => product.reviews,
   )
   @JoinColumn({ name: 'product_id' })
   product: Product

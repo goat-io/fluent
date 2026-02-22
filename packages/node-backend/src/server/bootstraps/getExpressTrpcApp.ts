@@ -59,6 +59,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     logger = console,
     expressResources,
     customHandlers,
+    requestLogPrefix,
     auth,
     features,
     security,
@@ -316,7 +317,9 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     })
   }
 
-  app.use((req, _res, next) => expressRequestLogger(req, _res, next, logger))
+  app.use((req, _res, next) =>
+    expressRequestLogger(req, _res, next, logger, requestLogPrefix),
+  )
 
   app.use(
     genericErrorMiddleware({

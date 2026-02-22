@@ -13,7 +13,7 @@ import * as schema from '../database/drizzle-schema'
 import {
   ECOMMERCE_WORKLOAD,
   OLTP_WORKLOAD,
-  WorkloadProfile
+  WorkloadProfile,
 } from './transaction-types'
 
 interface Database {
@@ -67,7 +67,7 @@ export class FixedEnhancedBenchmark {
         'Knex',
         'Prisma',
         'Kysely',
-        'Drizzle'
+        'Drizzle',
       ]
 
       const allResults: ScenarioResult[] = []
@@ -87,15 +87,15 @@ export class FixedEnhancedBenchmark {
             const result = await this.runDriverBenchmark(
               workload,
               driver,
-              connection
+              connection,
             )
             workloadResults.push(result)
 
             // Immediate feedback
             console.log(
               chalk.green(
-                `    ✓ ${result.iterations} operations, ${result.operationsPerSecond.toFixed(0)} ops/sec`
-              )
+                `    ✓ ${result.iterations} operations, ${result.operationsPerSecond.toFixed(0)} ops/sec`,
+              ),
             )
           } catch (error) {
             console.error(chalk.red(`    ✗ Error: ${error}`))
@@ -105,7 +105,7 @@ export class FixedEnhancedBenchmark {
         allResults.push({
           scenario: workload.name,
           workload: workload.name,
-          results: workloadResults
+          results: workloadResults,
         })
 
         // Show results for this workload
@@ -125,7 +125,7 @@ export class FixedEnhancedBenchmark {
   private async runDriverBenchmark(
     workload: WorkloadProfile,
     driver: string,
-    connection: any
+    connection: any,
   ): Promise<BenchmarkResult> {
     const latencies: number[] = []
     let operations = 0
@@ -182,13 +182,13 @@ export class FixedEnhancedBenchmark {
       p50: this.getPercentile(sortedLatencies, 50),
       p90: this.getPercentile(sortedLatencies, 90),
       p95: this.getPercentile(sortedLatencies, 95),
-      p99: this.getPercentile(sortedLatencies, 99)
+      p99: this.getPercentile(sortedLatencies, 99),
     }
   }
 
   private createTransactionExecutors(
     driver: string,
-    connection: any
+    connection: any,
   ): Record<string, () => Promise<void>> {
     switch (driver) {
       case 'MySQL2':
@@ -205,7 +205,7 @@ export class FixedEnhancedBenchmark {
               .promise()
               .execute(
                 'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50',
-                ['active', age]
+                ['active', age],
               )
           },
           joinQuery: async () => {
@@ -235,9 +235,9 @@ export class FixedEnhancedBenchmark {
               .promise()
               .execute(
                 'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-                [`bench_${id}@test.com`, 'Test', 'User', 'active', 30, 'US']
+                [`bench_${id}@test.com`, 'Test', 'User', 'active', 30, 'US'],
               )
-          }
+          },
         }
 
       case 'MySQL2/Promise':
@@ -250,7 +250,7 @@ export class FixedEnhancedBenchmark {
             const age = 20 + Math.floor(Math.random() * 40)
             await connection.execute(
               'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50',
-              ['active', age]
+              ['active', age],
             )
           },
           joinQuery: async () => {
@@ -278,9 +278,9 @@ export class FixedEnhancedBenchmark {
             const id = `${++this.insertCounter}_${Date.now()}`
             await connection.execute(
               'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-              [`bench_${id}@test.com`, 'Test', 'User', 'active', 30, 'US']
+              [`bench_${id}@test.com`, 'Test', 'User', 'active', 30, 'US'],
             )
-          }
+          },
         }
 
       case 'Knex':
@@ -324,9 +324,9 @@ export class FixedEnhancedBenchmark {
               last_name: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
+              country: 'US',
             })
-          }
+          },
         }
 
       case 'Prisma':
@@ -339,21 +339,21 @@ export class FixedEnhancedBenchmark {
             const age = 20 + Math.floor(Math.random() * 40)
             await connection.user.findMany({
               where: { status: 'active', age: { gt: age } },
-              take: 50
+              take: 50,
             })
           },
           joinQuery: async () => {
             await connection.user.findMany({
               where: { status: 'active' },
               include: { orders: true },
-              take: 30
+              take: 30,
             })
           },
           complexJoin: async () => {
             await connection.product.findMany({
               where: { isActive: true },
               include: { category: true, reviews: true },
-              take: 25
+              take: 25,
             })
           },
           insert: async () => {
@@ -365,10 +365,10 @@ export class FixedEnhancedBenchmark {
                 lastName: 'User',
                 status: 'active',
                 age: 30,
-                country: 'US'
-              }
+                country: 'US',
+              },
             })
-          }
+          },
         }
 
       case 'Kysely':
@@ -425,10 +425,10 @@ export class FixedEnhancedBenchmark {
                 last_name: 'User',
                 status: 'active',
                 age: 30,
-                country: 'US'
+                country: 'US',
               })
               .execute()
-          }
+          },
         }
 
       case 'Drizzle':
@@ -448,8 +448,8 @@ export class FixedEnhancedBenchmark {
               .where(
                 and(
                   eq(schema.users.status, 'active'),
-                  gt(schema.users.age, age)
-                )
+                  gt(schema.users.age, age),
+                ),
               )
               .limit(50)
           },
@@ -458,12 +458,12 @@ export class FixedEnhancedBenchmark {
               .select({
                 id: schema.users.id,
                 email: schema.users.email,
-                orderCount: drizzleSql<number>`count(${schema.orders.id})`
+                orderCount: drizzleSql<number>`count(${schema.orders.id})`,
               })
               .from(schema.users)
               .leftJoin(
                 schema.orders,
-                eq(schema.users.id, schema.orders.userId)
+                eq(schema.users.id, schema.orders.userId),
               )
               .where(eq(schema.users.status, 'active'))
               .groupBy(schema.users.id)
@@ -475,16 +475,16 @@ export class FixedEnhancedBenchmark {
                 id: schema.products.id,
                 name: schema.products.name,
                 categoryName: schema.categories.name,
-                reviewCount: drizzleSql<number>`count(${schema.reviews.id})`
+                reviewCount: drizzleSql<number>`count(${schema.reviews.id})`,
               })
               .from(schema.products)
               .leftJoin(
                 schema.categories,
-                eq(schema.products.categoryId, schema.categories.id)
+                eq(schema.products.categoryId, schema.categories.id),
               )
               .leftJoin(
                 schema.reviews,
-                eq(schema.products.id, schema.reviews.productId)
+                eq(schema.products.id, schema.reviews.productId),
               )
               .where(eq(schema.products.isActive, true))
               .groupBy(schema.products.id)
@@ -498,9 +498,9 @@ export class FixedEnhancedBenchmark {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
+              country: 'US',
             })
-          }
+          },
         }
 
       default:
@@ -532,14 +532,14 @@ export class FixedEnhancedBenchmark {
 
   private printWorkloadResults(
     workloadName: string,
-    results: BenchmarkResult[]
+    results: BenchmarkResult[],
   ): void {
     console.log(chalk.bold(`\n📊 ${workloadName} Results`))
     console.log(chalk.gray('─'.repeat(80)))
 
     // Sort by ops/sec
     const sorted = [...results].sort(
-      (a, b) => b.operationsPerSecond - a.operationsPerSecond
+      (a, b) => b.operationsPerSecond - a.operationsPerSecond,
     )
 
     // Header
@@ -551,7 +551,7 @@ export class FixedEnhancedBenchmark {
         'P90'.padStart(8) +
         'P95'.padStart(8) +
         'P99'.padStart(8) +
-        'Errors'.padStart(8)
+        'Errors'.padStart(8),
     )
     console.log(chalk.gray('─'.repeat(80)))
 
@@ -591,7 +591,7 @@ export class FixedEnhancedBenchmark {
 
     allResults.forEach(scenario => {
       const winner = scenario.results.sort(
-        (a, b) => b.operationsPerSecond - a.operationsPerSecond
+        (a, b) => b.operationsPerSecond - a.operationsPerSecond,
       )[0]
 
       scenario.results.forEach(result => {
@@ -612,12 +612,12 @@ export class FixedEnhancedBenchmark {
       .map(([driver, stats]) => ({
         driver,
         avgOps: stats.totalOps / stats.count,
-        wins: stats.wins
+        wins: stats.wins,
       }))
       .sort((a, b) => b.avgOps - a.avgOps)
 
     console.log(
-      'Driver'.padEnd(15) + 'Avg Ops/sec'.padStart(15) + 'Wins'.padStart(10)
+      'Driver'.padEnd(15) + 'Avg Ops/sec'.padStart(15) + 'Wins'.padStart(10),
     )
     console.log(chalk.gray('─'.repeat(40)))
 
@@ -627,7 +627,7 @@ export class FixedEnhancedBenchmark {
       console.log(
         (stat.driver + medal).padEnd(15) +
           stat.avgOps.toFixed(0).padStart(15) +
-          `${stat.wins}/${allResults.length}`.padStart(10)
+          `${stat.wins}/${allResults.length}`.padStart(10),
       )
     })
 
@@ -641,7 +641,7 @@ export class FixedEnhancedBenchmark {
         MYSQL_ROOT_PASSWORD: 'root',
         MYSQL_DATABASE: 'benchmark_db',
         MYSQL_USER: 'benchmark_user',
-        MYSQL_PASSWORD: 'benchmark_pass'
+        MYSQL_PASSWORD: 'benchmark_pass',
       })
       .withExposedPorts(3306)
       .withStartupTimeout(60000)
@@ -659,7 +659,7 @@ export class FixedEnhancedBenchmark {
       port: this.mysqlContainer.getMappedPort(3306),
       user: 'benchmark_user',
       password: 'benchmark_pass',
-      database: 'benchmark_db'
+      database: 'benchmark_db',
     })
 
     const conn = pool.promise()
@@ -743,14 +743,14 @@ export class FixedEnhancedBenchmark {
         `Last${i}`,
         i % 10 === 0 ? 'inactive' : 'active',
         20 + (i % 50),
-        ['US', 'UK', 'CA', 'AU', 'DE'][i % 5]
+        ['US', 'UK', 'CA', 'AU', 'DE'][i % 5],
       ])
     }
 
     const userPlaceholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
     await conn.execute(
       `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${userPlaceholders}`,
-      users.flat()
+      users.flat(),
     )
 
     // Categories
@@ -771,14 +771,14 @@ export class FixedEnhancedBenchmark {
         `Description for product ${i}`,
         (Math.random() * 1000).toFixed(2),
         (i % 5) + 1,
-        i % 20 !== 0
+        i % 20 !== 0,
       ])
     }
 
     const productPlaceholders = products.map(() => '(?, ?, ?, ?, ?)').join(', ')
     await conn.execute(
       `INSERT INTO products (name, description, price, category_id, is_active) VALUES ${productPlaceholders}`,
-      products.flat()
+      products.flat(),
     )
 
     // Orders
@@ -787,14 +787,14 @@ export class FixedEnhancedBenchmark {
       orders.push([
         Math.floor(Math.random() * 1000) + 1,
         (Math.random() * 500).toFixed(2),
-        ['pending', 'completed', 'cancelled'][i % 3]
+        ['pending', 'completed', 'cancelled'][i % 3],
       ])
     }
 
     const orderPlaceholders = orders.map(() => '(?, ?, ?)').join(', ')
     await conn.execute(
       `INSERT INTO orders (user_id, total_amount, status) VALUES ${orderPlaceholders}`,
-      orders.flat()
+      orders.flat(),
     )
 
     // Reviews
@@ -804,14 +804,14 @@ export class FixedEnhancedBenchmark {
         Math.floor(Math.random() * 500) + 1,
         Math.floor(Math.random() * 1000) + 1,
         Math.floor(Math.random() * 5) + 1,
-        `Review comment ${i}`
+        `Review comment ${i}`,
       ])
     }
 
     const reviewPlaceholders = reviews.map(() => '(?, ?, ?, ?)').join(', ')
     await conn.execute(
       `INSERT INTO reviews (product_id, user_id, rating, comment) VALUES ${reviewPlaceholders}`,
-      reviews.flat()
+      reviews.flat(),
     )
 
     await pool.end()
@@ -834,7 +834,7 @@ export class FixedEnhancedBenchmark {
           password: 'benchmark_pass',
           database: 'benchmark_db',
           waitForConnections: true,
-          connectionLimit: 10
+          connectionLimit: 10,
         })
         break
 
@@ -846,7 +846,7 @@ export class FixedEnhancedBenchmark {
           password: 'benchmark_pass',
           database: 'benchmark_db',
           waitForConnections: true,
-          connectionLimit: 10
+          connectionLimit: 10,
         })
         break
 
@@ -858,9 +858,9 @@ export class FixedEnhancedBenchmark {
             port: this.mysqlContainer.getMappedPort(3306),
             user: 'benchmark_user',
             password: 'benchmark_pass',
-            database: 'benchmark_db'
+            database: 'benchmark_db',
           },
-          pool: { min: 2, max: 10 }
+          pool: { min: 2, max: 10 },
         })
         break
 
@@ -868,10 +868,10 @@ export class FixedEnhancedBenchmark {
         connection = new PrismaClient({
           datasources: {
             db: {
-              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db`
-            }
+              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db`,
+            },
           },
-          log: ['error']
+          log: ['error'],
         })
         await connection.$connect()
         break
@@ -884,8 +884,8 @@ export class FixedEnhancedBenchmark {
             user: 'benchmark_user',
             password: 'benchmark_pass',
             database: 'benchmark_db',
-            connectionLimit: 10
-          })
+            connectionLimit: 10,
+          }),
         })
         connection = new Kysely<Database>({ dialect })
         break
@@ -898,7 +898,7 @@ export class FixedEnhancedBenchmark {
           user: 'benchmark_user',
           password: 'benchmark_pass',
           database: 'benchmark_db',
-          connectionLimit: 10
+          connectionLimit: 10,
         })
         connection = drizzle(pool, { schema, mode: 'default' })
         break

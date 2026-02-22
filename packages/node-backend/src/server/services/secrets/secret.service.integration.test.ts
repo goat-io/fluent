@@ -236,7 +236,7 @@ describe('SecretService Integration Tests', () => {
       )
     })
 
-    it('should handle invalid JSON in secret file', async () => {
+    it('should handle invalid JSON in secret file by treating as plain text', async () => {
       const invalidJsonPath = path.join(tempDir, 'invalid.json')
       await fs.writeFile(invalidJsonPath, 'not a valid json')
 
@@ -246,7 +246,11 @@ describe('SecretService Integration Tests', () => {
         encryptionKey: TENANT_1_KEY,
       })
 
-      await expect(invalidService.preload()).rejects.toThrow('Invalid JSON')
+      // Plain text files are now handled gracefully by wrapping in { value: content }
+      // Decryption will fail on the plain text wrapper, falling back to raw data
+      await invalidService.preload()
+      const rawValue = invalidService.getSecretSync('value' as any)
+      expect(rawValue).toBe('not a valid json')
     })
 
     it('should respect cache TTL for file provider', async () => {
@@ -625,9 +629,10 @@ describe('SecretService Integration Tests', () => {
       await service2.preload()
 
       // Service 2 should have the raw encrypted data, not the decrypted values
+      // When encryptObject encrypts per-key, the keys are preserved but values are encrypted strings
       const rawValue = service2.getSecretSync('API_KEY')
       expect(rawValue).not.toBe(tenant1Secrets.API_KEY) // Should not equal the decrypted value
-      expect(typeof rawValue).toBe('undefined') // Raw encrypted object doesn't have API_KEY directly
+      expect(typeof rawValue).toBe('string') // Raw encrypted value is a base64 string
 
       // Clean up
       service1.dispose()

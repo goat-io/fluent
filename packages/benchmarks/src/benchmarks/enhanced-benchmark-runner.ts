@@ -4,7 +4,7 @@ import {
   DataDistribution,
   ThinkTimeConfig,
   TransactionMix,
-  WorkloadProfile
+  WorkloadProfile,
 } from './transaction-types'
 
 export interface LatencyMetrics {
@@ -62,7 +62,7 @@ export class EnhancedBenchmarkRunner {
   // Calculate delay based on think time configuration
   private calculateDelay(
     config: ThinkTimeConfig,
-    type: 'keying' | 'thinking'
+    type: 'keying' | 'thinking',
   ): number {
     const range = type === 'keying' ? config.keyingTime : config.thinkingTime
     const { min, max } = range
@@ -106,7 +106,7 @@ export class EnhancedBenchmarkRunner {
 
   // Select transaction based on weights
   private selectWeightedTransaction(
-    transactions: TransactionMix[]
+    transactions: TransactionMix[],
   ): TransactionMix {
     const totalWeight = transactions.reduce((sum, t) => sum + t.weight, 0)
     let random = Math.random() * totalWeight
@@ -124,7 +124,7 @@ export class EnhancedBenchmarkRunner {
   // Calculate percentiles from sorted array
   private calculatePercentile(
     sortedArray: number[],
-    percentile: number
+    percentile: number,
   ): number {
     const index = Math.ceil((percentile / 100) * sortedArray.length) - 1
     return sortedArray[Math.max(0, index)]
@@ -143,7 +143,7 @@ export class EnhancedBenchmarkRunner {
         p95: 0,
         p99: 0,
         p999: 0,
-        histogram: []
+        histogram: [],
       }
     }
 
@@ -160,14 +160,14 @@ export class EnhancedBenchmarkRunner {
       p95: this.calculatePercentile(sorted, 95),
       p99: this.calculatePercentile(sorted, 99),
       p999: this.calculatePercentile(sorted, 99.9),
-      histogram: this.createHistogram(sorted)
+      histogram: this.createHistogram(sorted),
     }
   }
 
   // Create histogram buckets
   private createHistogram(sortedLatencies: number[]): number[] {
     const buckets = [
-      1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000
+      1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
     ]
     const histogram: number[] = new Array(buckets.length + 1).fill(0)
 
@@ -191,7 +191,7 @@ export class EnhancedBenchmarkRunner {
   // Generate data based on distribution pattern
   public generateDataId(
     totalRecords: number,
-    distribution: DataDistribution
+    distribution: DataDistribution,
   ): number {
     switch (distribution.type) {
       case 'uniform':
@@ -264,7 +264,7 @@ export class EnhancedBenchmarkRunner {
       const stats = poolStats()
       this.connectionMetrics.push({
         timestamp: Date.now(),
-        ...stats
+        ...stats,
       })
     }, 100) // Sample every 100ms
   }
@@ -280,7 +280,7 @@ export class EnhancedBenchmarkRunner {
       .filter(t => t > 0)
 
     const activeConnections = this.connectionMetrics.map(
-      m => m.activeConnections || 0
+      m => m.activeConnections || 0,
     )
 
     return {
@@ -290,7 +290,7 @@ export class EnhancedBenchmarkRunner {
       avgActiveConnections:
         activeConnections.reduce((a, b) => a + b, 0) /
           activeConnections.length || 0,
-      maxActiveConnections: Math.max(...activeConnections, 0)
+      maxActiveConnections: Math.max(...activeConnections, 0),
     }
   }
 
@@ -298,7 +298,7 @@ export class EnhancedBenchmarkRunner {
   public async paceForThroughput(
     targetOpsPerSecond: number,
     completedOps: number,
-    startTime: number
+    startTime: number,
   ): Promise<void> {
     const elapsedSeconds = (Date.now() - startTime) / 1000
     const expectedOps = targetOpsPerSecond * elapsedSeconds
@@ -324,7 +324,7 @@ export class EnhancedBenchmarkRunner {
       virtualUsers: number
       connectionPoolConfig?: ConnectionPoolConfig
       dataDistribution?: DataDistribution
-    }
+    },
   ): Promise<EnhancedBenchmarkResult> {
     const transactionMetrics = new Map<
       string,
@@ -342,7 +342,7 @@ export class EnhancedBenchmarkRunner {
         count: 0,
         errors: 0,
         latencies: [],
-        totalTime: 0
+        totalTime: 0,
       })
     }
 
@@ -383,7 +383,7 @@ export class EnhancedBenchmarkRunner {
 
     // Phase 3: Measurement
     console.log(
-      `  Phase 3/4: Measurement (${options.measurementDuration}ms)...`
+      `  Phase 3/4: Measurement (${options.measurementDuration}ms)...`,
     )
     const measurementStart = Date.now()
     const measurementEnd = measurementStart + options.measurementDuration
@@ -415,7 +415,7 @@ export class EnhancedBenchmarkRunner {
           await this.paceForThroughput(
             workload.targetThroughput,
             totalOperations,
-            measurementStart
+            measurementStart,
           )
         }
       } catch (_error) {
@@ -448,7 +448,7 @@ export class EnhancedBenchmarkRunner {
           errors: metrics.errors,
           totalTime: metrics.totalTime,
           latency: this.calculateLatencyMetrics(metrics.latencies),
-          throughput: metrics.count / (options.measurementDuration / 1000)
+          throughput: metrics.count / (options.measurementDuration / 1000),
         })
         totalErrors += metrics.errors
         totalTime += metrics.totalTime
@@ -468,7 +468,7 @@ export class EnhancedBenchmarkRunner {
         warmup: options.warmupDuration,
         rampup: options.rampupDuration,
         measurement: options.measurementDuration,
-        cooldown: options.cooldownDuration
+        cooldown: options.cooldownDuration,
       },
       transactions,
       overall: {
@@ -476,9 +476,9 @@ export class EnhancedBenchmarkRunner {
         totalErrors,
         throughput: overallThroughput,
         avgResponseTime,
-        errorRate: (totalErrors / totalOperations) * 100
+        errorRate: (totalErrors / totalOperations) * 100,
       },
-      connectionPool: this.calculateConnectionPoolStats()
+      connectionPool: this.calculateConnectionPoolStats(),
     }
   }
 }

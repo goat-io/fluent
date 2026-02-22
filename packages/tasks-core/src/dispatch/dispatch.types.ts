@@ -1,11 +1,4 @@
 /**
- * Dispatch mode: shared (dispatch-based) vs isolated (direct consume).
- * - shared: Multi-tenant dispatcher enabled. Jobs processed via dispatch queue.
- * - isolated: Dispatcher disabled. Adapter consumes jobs directly (existing behavior).
- */
-export type DispatchMode = 'shared' | 'isolated'
-
-/**
  * Tenant priority tier for dispatch scheduling.
  * Higher numeric value = higher priority in the dispatch queue.
  */
@@ -38,8 +31,6 @@ export interface DispatchHint {
  * Configuration for the dispatch system.
  */
 export interface DispatchConfig {
-  /** shared = dispatch-based multi-tenant, isolated = direct consume */
-  mode: DispatchMode
   /** Time budget for processing a batch (ms). Default: 25000 (25s) */
   timeBudgetMs?: number
   /** Max jobs to process per dispatch cycle. Default: 50 */

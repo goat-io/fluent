@@ -281,6 +281,446 @@ describe('Container Critical Fixes', () => {
   })
 })
 
+describe('Tenant invalidation exact match', () => {
+  test('should not invalidate tenant "abc" when invalidating tenant "a"', async () => {
+    const factories = {
+      service: () => ({ value: 1 }),
+    }
+    const initCount = { a: 0, abc: 0 }
+    const initializer = async (preload: any, meta: { id: string }) => {
+      initCount[meta.id as keyof typeof initCount]++
+      return { service: preload.service(meta.id) }
+    }
+
+    const container = new Container(factories, initializer, {
+      enableMetrics: true,
+    })
+
+    // Bootstrap both tenants
+    await container.bootstrap({ id: 'a' })
+    await container.bootstrap({ id: 'abc' })
+    expect(initCount.a).toBe(1)
+    expect(initCount.abc).toBe(1)
+
+    // Invalidate only tenant "a" - should NOT affect "abc"
+    await container.invalidateTenantDistributed('a', 'test')
+
+    // Re-bootstrap both - only "a" should re-initialize
+    await container.bootstrap({ id: 'a' })
+    await container.bootstrap({ id: 'abc' })
+    expect(initCount.a).toBe(2) // re-initialized
+    expect(initCount.abc).toBe(1) // still cached
+
+    await container.disposeAll()
+  })
+})
+
+describe('Circular ref metadata caching', () => {
+  test('should produce stable cache keys for circular ref metadata', async () => {
+    const factories = { service: () => ({ value: 1 }) }
+    let initCount = 0
+    const initializer = async (preload: any, _meta: any) => {
+      initCount++
+      return { service: preload.service('t') }
+    }
+
+    const container = new Container(factories, initializer, {
+      enableMetrics: true,
+    })
+
+    // Create circular ref metadata (no id/tenantId/name, and JSON.stringify will throw)
+    const meta: any = { config: { deep: true } }
+    meta.config.self = meta // circular reference
+
+    await container.bootstrap(meta)
+    expect(initCount).toBe(1)
+
+    // Second bootstrap with same circular structure should hit cache
+    await container.bootstrap(meta)
+    expect(initCount).toBe(1) // still 1 = cache hit
+
+    const metrics = container.getMetrics()
+    expect(metrics.initializerCacheHits).toBe(1)
+
+    await container.disposeAll()
+  })
+})
+
+describe('Kill switch', () => {
+  const factories = { service: () => ({ value: 1 }) }
+  const initializer = async (preload: any, meta: { id: string }) => ({
+    service: preload.service(meta.id),
+  })
+
+  test('should reject blocked tenants immediately', async () => {
+    const container = new Container(factories, initializer)
+
+    container.blockTenant('bad-tenant')
+
+    await expect(container.bootstrap({ id: 'bad-tenant' })).rejects.toThrow(
+      "Tenant 'bad-tenant' is blocked",
+    )
+
+    // Other tenants still work
+    const result = await container.bootstrap({ id: 'good-tenant' })
+    expect(result.instances).toBeDefined()
+  })
+
+  test('should allow unblocking tenants', async () => {
+    const container = new Container(factories, initializer)
+
+    container.blockTenant('temp-blocked')
+    expect(container.isTenantBlocked('temp-blocked')).toBe(true)
+
+    container.unblockTenant('temp-blocked')
+    expect(container.isTenantBlocked('temp-blocked')).toBe(false)
+
+    // Should work now
+    const result = await container.bootstrap({ id: 'temp-blocked' })
+    expect(result.instances).toBeDefined()
+  })
+
+  test('should list blocked tenants', () => {
+    const container = new Container(factories, initializer)
+
+    container.blockTenant('t1')
+    container.blockTenant('t2')
+
+    const blocked = container.getBlockedTenants()
+    expect(blocked.has('t1')).toBe(true)
+    expect(blocked.has('t2')).toBe(true)
+    expect(blocked.size).toBe(2)
+  })
+})
+
+describe('Initializer cooldown', () => {
+  test('should block retries during cooldown after failure', async () => {
+    let callCount = 0
+    const factories = { service: () => ({ value: 1 }) }
+    const initializer = async (preload: any, meta: { id: string }) => {
+      callCount++
+      if (callCount === 1) {
+        throw new Error('Init failed')
+      }
+      return { service: preload.service(meta.id) }
+    }
+
+    const container = new Container(factories, initializer, {
+      initializerCooldownMs: 5000,
+    })
+
+    // First call fails
+    await expect(container.bootstrap({ id: 'tenant1' })).rejects.toThrow(
+      'Init failed',
+    )
+
+    // Second call should be blocked by cooldown
+    await expect(container.bootstrap({ id: 'tenant1' })).rejects.toThrow(
+      'cooldown',
+    )
+
+    // Initializer should only have been called once
+    expect(callCount).toBe(1)
+  })
+
+  test('should allow retry after cooldown expires', async () => {
+    let callCount = 0
+    const factories = { service: () => ({ value: 1 }) }
+    const initializer = async (preload: any, meta: { id: string }) => {
+      callCount++
+      if (callCount === 1) {
+        throw new Error('Init failed')
+      }
+      return { service: preload.service(meta.id) }
+    }
+
+    const container = new Container(factories, initializer, {
+      initializerCooldownMs: 50, // very short for test
+    })
+
+    // First call fails
+    await expect(container.bootstrap({ id: 'tenant1' })).rejects.toThrow(
+      'Init failed',
+    )
+
+    // Wait for cooldown to expire
+    await new Promise(resolve => setTimeout(resolve, 60))
+
+    // Should work now
+    const result = await container.bootstrap({ id: 'tenant1' })
+    expect(result.instances).toBeDefined()
+    expect(callCount).toBe(2)
+  })
+
+  test('should not apply cooldown when initializerCooldownMs is 0', async () => {
+    let callCount = 0
+    const factories = { service: () => ({ value: 1 }) }
+    const initializer = async (preload: any, meta: { id: string }) => {
+      callCount++
+      if (callCount === 1) {
+        throw new Error('Init failed')
+      }
+      return { service: preload.service(meta.id) }
+    }
+
+    const container = new Container(factories, initializer)
+
+    // First call fails
+    await expect(container.bootstrap({ id: 'tenant1' })).rejects.toThrow()
+
+    // Second call should retry immediately (no cooldown)
+    const result = await container.bootstrap({ id: 'tenant1' })
+    expect(result.instances).toBeDefined()
+    expect(callCount).toBe(2)
+  })
+})
+
+describe('Structured events', () => {
+  const factories = { service: () => ({ value: 1 }) }
+  const initializer = async (preload: any, meta: { id: string }) => ({
+    service: preload.service(meta.id),
+  })
+
+  test('should emit bootstrap:start and bootstrap:complete events', async () => {
+    const events: any[] = []
+    const container = new Container(factories, initializer, {
+      onEvent: e => events.push(e),
+    })
+
+    await container.bootstrap({ id: 'tenant1' })
+
+    expect(events.some(e => e.type === 'bootstrap:start')).toBe(true)
+    expect(events.some(e => e.type === 'bootstrap:complete')).toBe(true)
+
+    const complete = events.find(e => e.type === 'bootstrap:complete')
+    expect(complete.tenantId).toBe('tenant1')
+    expect(complete.durationMs).toBeGreaterThanOrEqual(0)
+  })
+
+  test('should emit bootstrap:error on failure', async () => {
+    const events: any[] = []
+    const failingInitializer = async () => {
+      throw new Error('boom')
+    }
+    const container = new Container(factories, failingInitializer, {
+      onEvent: e => events.push(e),
+    })
+
+    await expect(container.bootstrap({ id: 'tenant1' })).rejects.toThrow('boom')
+
+    const errorEvent = events.find(e => e.type === 'bootstrap:error')
+    expect(errorEvent).toBeDefined()
+    expect(errorEvent.tenantId).toBe('tenant1')
+    expect(errorEvent.error.message).toBe('boom')
+  })
+
+  test('should emit tenant:blocked when kill switch triggers', async () => {
+    const events: any[] = []
+    const container = new Container(factories, initializer, {
+      onEvent: e => events.push(e),
+    })
+
+    container.blockTenant('blocked-t')
+
+    await expect(container.bootstrap({ id: 'blocked-t' })).rejects.toThrow()
+
+    expect(events.some(e => e.type === 'tenant:blocked')).toBe(true)
+  })
+
+  test('should emit tenant:invalidated on invalidation', async () => {
+    const events: any[] = []
+    const container = new Container(factories, initializer, {
+      onEvent: e => events.push(e),
+    })
+
+    await container.bootstrap({ id: 'tenant1' })
+    await container.invalidateTenantDistributed('tenant1', 'config change')
+
+    const event = events.find(e => e.type === 'tenant:invalidated')
+    expect(event).toBeDefined()
+    expect(event.tenantId).toBe('tenant1')
+    expect(event.reason).toBe('config change')
+  })
+
+  test('should not fail when onEvent is not provided', async () => {
+    const container = new Container(factories, initializer)
+    // Should work fine without onEvent
+    const result = await container.bootstrap({ id: 'tenant1' })
+    expect(result.instances).toBeDefined()
+  })
+})
+
+describe('Memory pressure protection', () => {
+  const factories = { service: () => ({ value: 1 }) }
+  const initializer = async (preload: any, meta: { id: string }) => ({
+    service: preload.service(meta.id),
+  })
+
+  test('should reject bootstrap when heap usage exceeds threshold', async () => {
+    // Mock process.memoryUsage to simulate high heap usage
+    const original = process.memoryUsage
+    process.memoryUsage = (() => ({
+      heapUsed: 900_000_000,
+      heapTotal: 1_000_000_000, // 90% usage
+      rss: 0,
+      external: 0,
+      arrayBuffers: 0,
+    })) as any
+
+    try {
+      const container = new Container(factories, initializer, {
+        maxHeapUsageRatio: 0.85,
+        heapCheckInterval: 1, // check every call for test
+      })
+
+      await expect(container.bootstrap({ id: 'tenant1' })).rejects.toThrow(
+        'Memory pressure',
+      )
+    } finally {
+      process.memoryUsage = original
+    }
+  })
+
+  test('should allow bootstrap when heap usage is under threshold', async () => {
+    const original = process.memoryUsage
+    process.memoryUsage = (() => ({
+      heapUsed: 500_000_000,
+      heapTotal: 1_000_000_000, // 50% usage
+      rss: 0,
+      external: 0,
+      arrayBuffers: 0,
+    })) as any
+
+    try {
+      const container = new Container(factories, initializer, {
+        maxHeapUsageRatio: 0.85,
+        heapCheckInterval: 1,
+      })
+
+      const result = await container.bootstrap({ id: 'tenant1' })
+      expect(result.instances).toBeDefined()
+    } finally {
+      process.memoryUsage = original
+    }
+  })
+
+  test('should not check heap when maxHeapUsageRatio is 0', async () => {
+    const container = new Container(factories, initializer)
+    // Default is 0, should work fine
+    const result = await container.bootstrap({ id: 'tenant1' })
+    expect(result.instances).toBeDefined()
+  })
+
+  test('should only check every Nth call based on heapCheckInterval', async () => {
+    let checkCount = 0
+    const original = process.memoryUsage
+    process.memoryUsage = (() => {
+      checkCount++
+      return {
+        heapUsed: 500_000_000,
+        heapTotal: 1_000_000_000,
+        rss: 0,
+        external: 0,
+        arrayBuffers: 0,
+      }
+    }) as any
+
+    try {
+      const container = new Container(factories, initializer, {
+        maxHeapUsageRatio: 0.85,
+        heapCheckInterval: 5,
+      })
+
+      // Bootstrap 10 times, should check heap exactly 2 times (at 5th and 10th)
+      checkCount = 0
+      for (let i = 0; i < 10; i++) {
+        await container.bootstrap({ id: `tenant${i}` })
+      }
+      expect(checkCount).toBe(2)
+    } finally {
+      process.memoryUsage = original
+    }
+  })
+})
+
+describe('Symbol-based proxy opt-out', () => {
+  // Import the symbol - use Symbol.for to get the same symbol
+  const NO_CONTAINER_PROXY = Symbol.for('goatlab.container.noProxy')
+
+  test('should not wrap objects with NO_CONTAINER_PROXY symbol', async () => {
+    const customService = {
+      [NO_CONTAINER_PROXY]: true,
+      query: vi.fn(() => 'result'),
+      _internalProp: 'should not throw',
+    }
+
+    const factories = {
+      custom: () => customService,
+    }
+    const initializer = async (preload: any, meta: { id: string }) => ({
+      custom: preload.custom(meta.id),
+    })
+
+    const container = new Container(factories, initializer)
+
+    await container.bootstrap({ id: 'tenant1' }, async () => {
+      const ctx = container.context as any
+      // Accessing the service should return the raw object (not proxied)
+      expect(ctx.custom.query()).toBe('result')
+      // Internal properties should be accessible without proxy interference
+      expect(ctx.custom._internalProp).toBe('should not throw')
+    })
+  })
+
+  test('should still wrap objects without the symbol', async () => {
+    const nestedService = {
+      inner: {
+        value: 42,
+      },
+    }
+
+    const factories = {
+      nested: () => nestedService,
+    }
+    const initializer = async (preload: any, meta: { id: string }) => ({
+      nested: preload.nested(meta.id),
+    })
+
+    const container = new Container(factories, initializer)
+
+    await container.bootstrap({ id: 'tenant1' }, async () => {
+      const ctx = container.context as any
+      expect(ctx.nested.inner.value).toBe(42)
+
+      // Accessing non-existent should throw (proxy is active)
+      expect(() => ctx.nested.inner.nonExistent).toThrow('not initialized')
+    })
+  })
+
+  test('legacy duck-typing still works for Prisma-like objects', async () => {
+    const prismaLike = {
+      _engine: {},
+      _extensions: {},
+      $connect: vi.fn(),
+      findMany: vi.fn(() => []),
+    }
+
+    const factories = { db: () => prismaLike }
+    const initializer = async (preload: any, meta: { id: string }) => ({
+      db: preload.db(meta.id),
+    })
+
+    const container = new Container(factories, initializer)
+
+    await container.bootstrap({ id: 'tenant1' }, async () => {
+      const ctx = container.context as any
+      // Should not be proxied (legacy duck-typing)
+      expect(ctx.db.findMany()).toEqual([])
+      expect(ctx.db._engine).toBeDefined()
+    })
+  })
+})
+
 describe('Container ContainerOptions type extension', () => {
   test('should accept maxInitializerCacheSize in options', () => {
     const factories = {

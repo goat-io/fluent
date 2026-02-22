@@ -1,491 +1,658 @@
-import { Ids, Memo } from "@goatlab/js-utils";
+import { Ids, Memo } from '@goatlab/js-utils'
 import type {
-	ShouldQueue,
-	TaskConnector,
-	TaskStatus,
-	TaskStatusName,
-	TenantCredentials,
-} from "@goatlab/tasks-core";
-import type { ConnectionOptions, JobsOptions } from "bullmq";
-import { type Job, Queue, Worker } from "bullmq";
+  ShouldQueue,
+  TaskConnector,
+  TaskStatus,
+  TaskStatusName,
+  TenantCredentials,
+} from '@goatlab/tasks-core'
+import type { ConnectionOptions, JobsOptions } from 'bullmq'
+import { type Job, Queue, Worker } from 'bullmq'
 
 // Default configuration constants
-const DEFAULT_HOST = "localhost";
-const DEFAULT_PORT = 6379;
-const DEFAULT_MAX_RETRIES = 3;
-const DEFAULT_CONCURRENCY = 100;
-const DEFAULT_PREFIX = "bull";
+const DEFAULT_HOST = 'localhost'
+const DEFAULT_PORT = 6379
+const DEFAULT_MAX_RETRIES = 3
+const DEFAULT_CONCURRENCY = 100
+const DEFAULT_PREFIX = 'bull'
 
 export interface BullMQConnectionOptions {
-	host?: string;
-	port?: number;
-	username?: string;
-	password?: string;
-	db?: number;
-	family?: 4 | 6;
-	maxRetriesPerRequest?: number | null;
+  host?: string
+  port?: number
+  username?: string
+  password?: string
+  db?: number
+  family?: 4 | 6
+  maxRetriesPerRequest?: number | null
 }
 
 export interface BullMQConnectorConfig {
-	connection?: BullMQConnectionOptions;
-	defaultJobOptions?: JobsOptions;
-	/**
-	 * Tenant ID for multi-tenant isolation.
-	 * When set, this tenant ID is used as a prefix for all Redis keys.
-	 *
-	 * Key pattern: {tenantId}:bull:{queueName}:{keyType}
-	 * Example: "acme-corp:bull:email-queue:waiting"
-	 *
-	 * This enables Redis ACL rules like: ~acme-corp:* +@all
-	 * to restrict tenant access to only their prefixed keys.
-	 */
-	tenantId?: string;
+  connection?: BullMQConnectionOptions
+  defaultJobOptions?: JobsOptions
+  /**
+   * Tenant ID for multi-tenant isolation.
+   * When set, this tenant ID is used as a prefix for all Redis keys.
+   *
+   * Key pattern: {tenantId}:bull:{queueName}:{keyType}
+   * Example: "acme-corp:bull:email-queue:waiting"
+   *
+   * This enables Redis ACL rules like: ~acme-corp:* +@all
+   * to restrict tenant access to only their prefixed keys.
+   */
+  tenantId?: string
+  /**
+   * Custom Redis key prefix override.
+   * When set, overrides the default prefix logic entirely.
+   * Default: '{tenantId}:bull' if tenantId is set, otherwise 'bull'.
+   *
+   * Useful for dispatch queues that need a different namespace (e.g., 'dispatch').
+   */
+  prefix?: string
+  /**
+   * Optional hook called after a job is successfully enqueued.
+   * Used by the dispatch system to write a hint to the global dispatch queue.
+   * Failures are non-fatal — the job is already enqueued.
+   */
+  onAfterQueue?: (params: {
+    tenantId: string
+    queueName: string
+    jobId: string
+    priority?: number
+  }) => Promise<void>
 }
 
 /**
  * Maps BullMQ job states to TaskStatusName
  */
 const mapJobStateToStatus = (state: string | undefined): TaskStatusName => {
-	switch (state) {
-		case "completed":
-			return "COMPLETED";
-		case "failed":
-			return "FAILED";
-		case "active":
-			return "RUNNING";
-		case "waiting":
-		case "delayed":
-		case "prioritized":
-		case "waiting-children":
-			return "QUEUED";
-		default:
-			return "QUEUED";
-	}
-};
+  switch (state) {
+    case 'completed':
+      return 'COMPLETED'
+    case 'failed':
+      return 'FAILED'
+    case 'active':
+      return 'RUNNING'
+    case 'waiting':
+    case 'delayed':
+    case 'prioritized':
+    case 'waiting-children':
+      return 'QUEUED'
+    default:
+      return 'QUEUED'
+  }
+}
 
 export class BullMQConnector implements TaskConnector<object> {
-	private readonly connectionOptions: ConnectionOptions;
-	private readonly defaultJobOptions: JobsOptions;
-	private readonly queues: Map<string, Queue> = new Map();
-	private readonly workers: Map<string, Worker> = new Map();
-	private readonly _tenantId?: string;
-	private readonly _prefix: string;
-	private readonly config: BullMQConnectorConfig;
+  private readonly connectionOptions: ConnectionOptions
+  private readonly defaultJobOptions: JobsOptions
+  private readonly queues: Map<string, Queue> = new Map()
+  private readonly workers: Map<string, Worker> = new Map()
+  private readonly _tenantId?: string
+  private readonly _prefix: string
+  private readonly config: BullMQConnectorConfig
 
-	/**
-	 * The tenant ID this connector is scoped to.
-	 * When set, all Redis keys are prefixed with this tenant ID.
-	 */
-	public get tenantId(): string | undefined {
-		return this._tenantId;
-	}
+  /**
+   * Optional hook called after a job is successfully enqueued.
+   * Set via constructor config. Failures are non-fatal.
+   */
+  public onAfterQueue?: TaskConnector<object>['onAfterQueue']
 
-	/**
-	 * The Redis key prefix used by this connector.
-	 * Format: "{tenantId}:bull" if tenant is set, otherwise "bull" (default)
-	 *
-	 * This prefix is applied to all queue names, resulting in keys like:
-	 * - With tenant: "acme-corp:bull:email-queue:waiting"
-	 * - Without tenant: "bull:email-queue:waiting"
-	 */
-	public get prefix(): string {
-		return this._prefix;
-	}
+  /**
+   * The tenant ID this connector is scoped to.
+   * When set, all Redis keys are prefixed with this tenant ID.
+   */
+  public get tenantId(): string | undefined {
+    return this._tenantId
+  }
 
-	constructor(config?: BullMQConnectorConfig) {
-		this.config = config || {};
-		this._tenantId = config?.tenantId;
+  /**
+   * The Redis key prefix used by this connector.
+   * Format: "{tenantId}:bull" if tenant is set, otherwise "bull" (default)
+   *
+   * This prefix is applied to all queue names, resulting in keys like:
+   * - With tenant: "acme-corp:bull:email-queue:waiting"
+   * - Without tenant: "bull:email-queue:waiting"
+   */
+  public get prefix(): string {
+    return this._prefix
+  }
 
-		// Use tenant ID as prefix for multi-tenant isolation
-		// Keys will be: {tenantId}:bull:{queueName}:{keyType}
-		// This allows Redis ACL rules like: ~{tenantId}:* +@all
-		this._prefix = config?.tenantId
-			? `${config.tenantId}:${DEFAULT_PREFIX}`
-			: DEFAULT_PREFIX;
+  constructor(config?: BullMQConnectorConfig) {
+    this.config = config || {}
+    this._tenantId = config?.tenantId
 
-		this.connectionOptions = {
-			host: config?.connection?.host || DEFAULT_HOST,
-			port: config?.connection?.port || DEFAULT_PORT,
-			username: config?.connection?.username,
-			password: config?.connection?.password,
-			db: config?.connection?.db || 0,
-			family: config?.connection?.family || 4,
-			maxRetriesPerRequest: config?.connection?.maxRetriesPerRequest ?? null,
-		};
+    // Prefix priority: explicit prefix > tenantId-based > default 'bull'
+    // Keys will be: {prefix}:{queueName}:{keyType}
+    this._prefix =
+      config?.prefix ??
+      (config?.tenantId
+        ? `${config.tenantId}:${DEFAULT_PREFIX}`
+        : DEFAULT_PREFIX)
 
-		this.defaultJobOptions = config?.defaultJobOptions || {
-			attempts: DEFAULT_MAX_RETRIES,
-			backoff: {
-				type: "exponential",
-				delay: 1000,
-			},
-			removeOnComplete: false,
-			removeOnFail: false,
-		};
-	}
+    this.connectionOptions = {
+      host: config?.connection?.host || DEFAULT_HOST,
+      port: config?.connection?.port || DEFAULT_PORT,
+      username: config?.connection?.username,
+      password: config?.connection?.password,
+      db: config?.connection?.db || 0,
+      family: config?.connection?.family || 4,
+      maxRetriesPerRequest: config?.connection?.maxRetriesPerRequest ?? null,
+    }
 
-	/**
-	 * Creates a new BullMQConnector instance scoped to a specific tenant.
-	 * The new connector uses the tenant ID as a Redis key prefix for isolation.
-	 *
-	 * @param tenantId - The tenant identifier for isolation
-	 * @param credentials - Optional credentials for the tenant's Redis user
-	 * @returns A new BullMQConnector instance scoped to the tenant
-	 *
-	 * @example
-	 * ```typescript
-	 * const baseConnector = new BullMQConnector({ connection: { host: 'localhost' } })
-	 *
-	 * // Create tenant-scoped connector (uses prefix isolation)
-	 * const tenantConnector = baseConnector.forTenant('acme-corp')
-	 * // Keys: acme-corp:queue-name:*
-	 *
-	 * // With Redis ACL credentials for stronger isolation
-	 * const secureConnector = baseConnector.forTenant('acme-corp', {
-	 *   username: 'tenant_acme',
-	 *   password: 'secret'
-	 * })
-	 * ```
-	 */
-	forTenant(
-		tenantId: string,
-		credentials?: TenantCredentials,
-	): BullMQConnector {
-		return new BullMQConnector({
-			...this.config,
-			tenantId,
-			connection: {
-				...this.config.connection,
-				// Override credentials if provided for stronger isolation
-				...(credentials?.username && { username: credentials.username }),
-				...(credentials?.password && { password: credentials.password }),
-			},
-		});
-	}
+    this.defaultJobOptions = config?.defaultJobOptions || {
+      attempts: DEFAULT_MAX_RETRIES,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
+      removeOnComplete: false,
+      removeOnFail: false,
+    }
 
-	/**
-	 * Gets or creates a queue for a given queue name.
-	 * Queues are memoized to avoid creating multiple instances.
-	 *
-	 * When a tenant ID is set, the queue uses the tenant ID as the Redis key prefix.
-	 * This ensures all keys are namespaced under the tenant.
-	 *
-	 * Key patterns:
-	 * - With tenant "acme-corp": acme-corp:bull:email-queue:waiting
-	 * - Without tenant: bull:email-queue:waiting
-	 */
-	@Memo.syncMethod()
-	public getQueue(queueName: string): Queue {
-		const cacheKey = `${this._prefix}:${queueName}`;
-		const existing = this.queues.get(cacheKey);
-		if (existing) {
-			return existing;
-		}
+    this.onAfterQueue = config?.onAfterQueue
+  }
 
-		const queue = new Queue(queueName, {
-			connection: this.connectionOptions,
-			defaultJobOptions: this.defaultJobOptions,
-			prefix: this._prefix,
-		});
+  /**
+   * Creates a new BullMQConnector instance scoped to a specific tenant.
+   * The new connector uses the tenant ID as a Redis key prefix for isolation.
+   *
+   * @param tenantId - The tenant identifier for isolation
+   * @param credentials - Optional credentials for the tenant's Redis user
+   * @returns A new BullMQConnector instance scoped to the tenant
+   *
+   * @example
+   * ```typescript
+   * const baseConnector = new BullMQConnector({ connection: { host: 'localhost' } })
+   *
+   * // Create tenant-scoped connector (uses prefix isolation)
+   * const tenantConnector = baseConnector.forTenant('acme-corp')
+   * // Keys: acme-corp:queue-name:*
+   *
+   * // With Redis ACL credentials for stronger isolation
+   * const secureConnector = baseConnector.forTenant('acme-corp', {
+   *   username: 'tenant_acme',
+   *   password: 'secret'
+   * })
+   * ```
+   */
+  forTenant(
+    tenantId: string,
+    credentials?: TenantCredentials,
+  ): BullMQConnector {
+    return new BullMQConnector({
+      ...this.config,
+      tenantId,
+      connection: {
+        ...this.config.connection,
+        // Override credentials if provided for stronger isolation
+        ...(credentials?.username && { username: credentials.username }),
+        ...(credentials?.password && { password: credentials.password }),
+      },
+    })
+  }
 
-		this.queues.set(cacheKey, queue);
-		return queue;
-	}
+  /**
+   * Gets or creates a queue for a given queue name.
+   * Queues are memoized to avoid creating multiple instances.
+   *
+   * When a tenant ID is set, the queue uses the tenant ID as the Redis key prefix.
+   * This ensures all keys are namespaced under the tenant.
+   *
+   * Key patterns:
+   * - With tenant "acme-corp": acme-corp:bull:email-queue:waiting
+   * - Without tenant: bull:email-queue:waiting
+   */
+  @Memo.syncMethod()
+  public getQueue(queueName: string): Queue {
+    const cacheKey = `${this._prefix}:${queueName}`
+    const existing = this.queues.get(cacheKey)
+    if (existing) {
+      return existing
+    }
 
-	/**
-	 * Creates a worker for processing jobs from a BullMQ task.
-	 * Similar to Hatchet's getHatchetTask but creates a worker.
-	 *
-	 * IMPORTANT: The worker uses the same prefix as the queue to ensure
-	 * it processes jobs from the correct tenant namespace.
-	 */
-	public getBullMQWorker(
-		task: ShouldQueue,
-		concurrency = DEFAULT_CONCURRENCY,
-	): Worker {
-		const worker = new Worker(
-			task.taskName,
-			async (job: Job) => {
-				return task.handle(job.data);
-			},
-			{
-				connection: this.connectionOptions,
-				concurrency,
-				prefix: this._prefix,
-			},
-		);
+    const queue = new Queue(queueName, {
+      connection: this.connectionOptions,
+      defaultJobOptions: this.defaultJobOptions,
+      prefix: this._prefix,
+    })
 
-		return worker;
-	}
+    this.queues.set(cacheKey, queue)
+    return queue
+  }
 
-	/**
-	 * Starts a worker to process jobs for the given tasks.
-	 * Similar pattern to HatchetConnector.startWorker().
-	 *
-	 * IMPORTANT: Workers use the same prefix as queues to ensure
-	 * they only process jobs from the correct tenant namespace.
-	 */
-	async startWorker({
-		workerName,
-		tasks,
-		concurrency = DEFAULT_CONCURRENCY,
-	}: {
-		workerName?: string;
-		tasks: ShouldQueue[];
-		concurrency?: number;
-	}): Promise<Worker[]> {
-		const workers: Worker[] = [];
+  /**
+   * Creates a worker for processing jobs from a BullMQ task.
+   * Similar to Hatchet's getHatchetTask but creates a worker.
+   *
+   * IMPORTANT: The worker uses the same prefix as the queue to ensure
+   * it processes jobs from the correct tenant namespace.
+   */
+  public getBullMQWorker(
+    task: ShouldQueue,
+    concurrency = DEFAULT_CONCURRENCY,
+  ): Worker {
+    const worker = new Worker(
+      task.taskName,
+      async (job: Job) => {
+        return task.handle(job.data)
+      },
+      {
+        connection: this.connectionOptions,
+        concurrency,
+        prefix: this._prefix,
+      },
+    )
 
-		for (const task of tasks) {
-			const workerKey = `${this._prefix}:${task.taskName}`;
-			const worker = new Worker(
-				task.taskName,
-				async (job: Job) => {
-					return task.handle(job.data);
-				},
-				{
-					connection: this.connectionOptions,
-					concurrency,
-					name: `${workerName || task.taskName}-${Ids.nanoId(5)}`,
-					prefix: this._prefix,
-				},
-			);
+    return worker
+  }
 
-			this.workers.set(workerKey, worker);
-			workers.push(worker);
-		}
+  /**
+   * Starts a worker to process jobs for the given tasks.
+   * Similar pattern to HatchetConnector.startWorker().
+   *
+   * IMPORTANT: Workers use the same prefix as queues to ensure
+   * they only process jobs from the correct tenant namespace.
+   */
+  async startWorker({
+    workerName,
+    tasks,
+    concurrency = DEFAULT_CONCURRENCY,
+  }: {
+    workerName?: string
+    tasks: ShouldQueue[]
+    concurrency?: number
+  }): Promise<Worker[]> {
+    const workers: Worker[] = []
 
-		// Give workers some time to start and connect to Redis
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+    for (const task of tasks) {
+      const workerKey = `${this._prefix}:${task.taskName}`
+      const worker = new Worker(
+        task.taskName,
+        async (job: Job) => {
+          return task.handle(job.data)
+        },
+        {
+          connection: this.connectionOptions,
+          concurrency,
+          name: `${workerName || task.taskName}-${Ids.nanoId(5)}`,
+          prefix: this._prefix,
+        },
+      )
 
-		return workers;
-	}
+      this.workers.set(workerKey, worker)
+      workers.push(worker)
+    }
 
-	/**
-	 * Stops all workers and closes all queue connections.
-	 */
-	async close(): Promise<void> {
-		const closePromises: Promise<void>[] = [];
+    // Give workers some time to start and connect to Redis
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-		for (const worker of this.workers.values()) {
-			closePromises.push(worker.close());
-		}
+    return workers
+  }
 
-		for (const queue of this.queues.values()) {
-			closePromises.push(queue.close());
-		}
+  /**
+   * Stops all workers and closes all queue connections.
+   */
+  async close(): Promise<void> {
+    const closePromises: Promise<void>[] = []
 
-		await Promise.all(closePromises);
-		this.workers.clear();
-		this.queues.clear();
-	}
+    for (const worker of this.workers.values()) {
+      closePromises.push(worker.close())
+    }
 
-	/**
-	 * Gets the status of a job by its ID.
-	 * Implements the TaskConnector interface.
-	 * @param id - Job ID (in format: queueName:jobId or just jobId if queueName is known)
-	 */
-	async getStatus(id: string): Promise<TaskStatus> {
-		// Parse the id which may be in format "queueName:jobId"
-		const [queueName, jobId] = id.includes(":")
-			? id.split(":")
-			: [this.getDefaultQueueName(), id];
+    for (const queue of this.queues.values()) {
+      closePromises.push(queue.close())
+    }
 
-		const queue = this.getQueue(queueName);
-		const job = await queue.getJob(jobId);
+    await Promise.all(closePromises)
+    this.workers.clear()
+    this.queues.clear()
+  }
 
-		if (!job) {
-			// Job not found - could be completed and removed
-			return {
-				id,
-				name: queueName,
-				status: "COMPLETED",
-				output: "",
-				attempts: 0,
-				created: new Date().toISOString(),
-				nextRun: null,
-				nextRunMinutes: null,
-				payload: {},
-			};
-		}
+  /**
+   * Gets the status of a job by its ID.
+   * Implements the TaskConnector interface.
+   * @param id - Job ID (in format: queueName:jobId or just jobId if queueName is known)
+   */
+  async getStatus(id: string): Promise<TaskStatus> {
+    // Parse the id which may be in format "queueName:jobId"
+    const [queueName, jobId] = id.includes(':')
+      ? id.split(':')
+      : [this.getDefaultQueueName(), id]
 
-		const state = await job.getState();
-		const status = mapJobStateToStatus(state);
+    const queue = this.getQueue(queueName)
+    const job = await queue.getJob(jobId)
 
-		return {
-			id,
-			name: job.name,
-			status,
-			output: job.returnvalue ? JSON.stringify(job.returnvalue) : "",
-			attempts: job.attemptsMade,
-			created: new Date(job.timestamp).toISOString(),
-			nextRun: job.processedOn ? new Date(job.processedOn).toISOString() : null,
-			nextRunMinutes: null,
-			payload: job.data || {},
-		};
-	}
+    if (!job) {
+      // Job not found - could be completed and removed
+      return {
+        id,
+        name: queueName,
+        status: 'COMPLETED',
+        output: '',
+        attempts: 0,
+        created: new Date().toISOString(),
+        nextRun: null,
+        nextRunMinutes: null,
+        payload: {},
+      }
+    }
 
-	/**
-	 * Gets the default queue name.
-	 * Used when no queue name is specified.
-	 */
-	private getDefaultQueueName(): string {
-		return "default";
-	}
+    const state = await job.getState()
+    const status = mapJobStateToStatus(state)
 
-	/**
-	 * Queues a task to be run in the background.
-	 * Implements the TaskConnector interface.
-	 * @param params
-	 * @param params.uniqueTaskName - Unique name for this task instance
-	 * @param params.taskName - Name of the task/queue
-	 * @param params.postUrl - URL to post the task to (not used in BullMQ, kept for interface compatibility)
-	 * @param params.taskBody - Body/data of the task
-	 * @param params.handle - Handler function for the task
-	 */
-	async queue(params: {
-		uniqueTaskName: string;
-		taskName: string;
-		postUrl: string;
-		taskBody: object;
-		handle: () => Promise<any>;
-	}): Promise<Omit<TaskStatus, "payload">> {
-		const queue = this.getQueue(params.taskName);
+    return {
+      id,
+      name: job.name,
+      status,
+      output: job.returnvalue ? JSON.stringify(job.returnvalue) : '',
+      attempts: job.attemptsMade,
+      created: new Date(job.timestamp).toISOString(),
+      nextRun: job.processedOn ? new Date(job.processedOn).toISOString() : null,
+      nextRunMinutes: null,
+      payload: job.data || {},
+    }
+  }
 
-		// Create a unique job ID using the uniqueTaskName and a nanoId
-		const jobId = `${params.uniqueTaskName}_${Ids.nanoId(5)}`;
+  /**
+   * Gets the default queue name.
+   * Used when no queue name is specified.
+   */
+  private getDefaultQueueName(): string {
+    return 'default'
+  }
 
-		const job = await queue.add(params.taskName, params.taskBody, {
-			jobId,
-			...this.defaultJobOptions,
-		});
+  /**
+   * Queues a task to be run in the background.
+   * Implements the TaskConnector interface.
+   * @param params
+   * @param params.uniqueTaskName - Unique name for this task instance
+   * @param params.taskName - Name of the task/queue
+   * @param params.postUrl - URL to post the task to (not used in BullMQ, kept for interface compatibility)
+   * @param params.taskBody - Body/data of the task
+   * @param params.handle - Handler function for the task
+   */
+  async queue(params: {
+    uniqueTaskName: string
+    taskName: string
+    postUrl: string
+    taskBody: object
+    handle: () => Promise<any>
+  }): Promise<Omit<TaskStatus, 'payload'>> {
+    const queue = this.getQueue(params.taskName)
 
-		const now = new Date().toISOString();
+    // Create a unique job ID using the uniqueTaskName and a nanoId
+    const jobId = `${params.uniqueTaskName}_${Ids.nanoId(5)}`
 
-		return {
-			id: `${params.taskName}:${job.id}`,
-			name: params.taskName,
-			output: "",
-			attempts: 0,
-			status: "QUEUED",
-			created: now,
-			nextRun: null,
-			nextRunMinutes: null,
-		};
-	}
+    const job = await queue.add(params.taskName, params.taskBody, {
+      jobId,
+      ...this.defaultJobOptions,
+    })
 
-	/**
-	 * Adds a job to a queue with custom options.
-	 * This is a convenience method for more advanced usage.
-	 */
-	async addJob<T extends object>(
-		queueName: string,
-		jobName: string,
-		data: T,
-		options?: JobsOptions,
-	): Promise<Job<T>> {
-		const queue = this.getQueue(queueName);
-		return queue.add(jobName, data, {
-			...this.defaultJobOptions,
-			...options,
-		});
-	}
+    const resultId = `${params.taskName}:${job.id}`
 
-	/**
-	 * Gets a job by its ID from a specific queue.
-	 */
-	async getJob<T = any>(
-		queueName: string,
-		jobId: string,
-	): Promise<Job<T> | undefined> {
-		const queue = this.getQueue(queueName);
-		return queue.getJob(jobId);
-	}
+    // Fire onAfterQueue hook (non-fatal — job is already enqueued)
+    if (this.onAfterQueue && this._tenantId) {
+      try {
+        await this.onAfterQueue({
+          tenantId: this._tenantId,
+          queueName: params.taskName,
+          jobId: resultId,
+        })
+      } catch {
+        // Dispatch hint failure is non-fatal
+      }
+    }
 
-	/**
-	 * Removes a job by its ID from a specific queue.
-	 */
-	async removeJob(queueName: string, jobId: string): Promise<void> {
-		const queue = this.getQueue(queueName);
-		const job = await queue.getJob(jobId);
-		if (job) {
-			await job.remove();
-		}
-	}
+    const now = new Date().toISOString()
 
-	/**
-	 * Pauses a queue.
-	 */
-	async pauseQueue(queueName: string): Promise<void> {
-		const queue = this.getQueue(queueName);
-		await queue.pause();
-	}
+    return {
+      id: resultId,
+      name: params.taskName,
+      output: '',
+      attempts: 0,
+      status: 'QUEUED',
+      created: now,
+      nextRun: null,
+      nextRunMinutes: null,
+    }
+  }
 
-	/**
-	 * Resumes a paused queue.
-	 */
-	async resumeQueue(queueName: string): Promise<void> {
-		const queue = this.getQueue(queueName);
-		await queue.resume();
-	}
+  /**
+   * Adds a job to a queue with custom options.
+   * This is a convenience method for more advanced usage.
+   */
+  async addJob<T extends object>(
+    queueName: string,
+    jobName: string,
+    data: T,
+    options?: JobsOptions,
+  ): Promise<Job<T>> {
+    const queue = this.getQueue(queueName)
+    return queue.add(jobName, data, {
+      ...this.defaultJobOptions,
+      ...options,
+    })
+  }
 
-	/**
-	 * Gets the count of jobs in different states for a queue.
-	 */
-	async getJobCounts(queueName: string): Promise<{
-		waiting: number;
-		active: number;
-		completed: number;
-		failed: number;
-		delayed: number;
-	}> {
-		const queue = this.getQueue(queueName);
-		const counts = await queue.getJobCounts(
-			"waiting",
-			"active",
-			"completed",
-			"failed",
-			"delayed",
-		);
-		return {
-			waiting: counts.waiting ?? 0,
-			active: counts.active ?? 0,
-			completed: counts.completed ?? 0,
-			failed: counts.failed ?? 0,
-			delayed: counts.delayed ?? 0,
-		};
-	}
+  /**
+   * Gets a job by its ID from a specific queue.
+   */
+  async getJob<T = any>(
+    queueName: string,
+    jobId: string,
+  ): Promise<Job<T> | undefined> {
+    const queue = this.getQueue(queueName)
+    return queue.getJob(jobId)
+  }
 
-	/**
-	 * Lists failed jobs in a queue.
-	 */
-	async listFailedJobs(
-		queueName: string,
-		start = 0,
-		end = 100,
-	): Promise<Job[]> {
-		const queue = this.getQueue(queueName);
-		return queue.getFailed(start, end);
-	}
+  /**
+   * Removes a job by its ID from a specific queue.
+   */
+  async removeJob(queueName: string, jobId: string): Promise<void> {
+    const queue = this.getQueue(queueName)
+    const job = await queue.getJob(jobId)
+    if (job) {
+      await job.remove()
+    }
+  }
 
-	/**
-	 * Retries a failed job.
-	 */
-	async retryJob(queueName: string, jobId: string): Promise<void> {
-		const queue = this.getQueue(queueName);
-		const job = await queue.getJob(jobId);
-		if (job) {
-			await job.retry();
-		}
-	}
+  /**
+   * Pauses a queue.
+   */
+  async pauseQueue(queueName: string): Promise<void> {
+    const queue = this.getQueue(queueName)
+    await queue.pause()
+  }
 
-	/**
-	 * Obliterates a queue - removes all jobs and data.
-	 * Use with caution!
-	 */
-	async obliterateQueue(queueName: string): Promise<void> {
-		const queue = this.getQueue(queueName);
-		await queue.obliterate();
-		this.queues.delete(queueName);
-	}
+  /**
+   * Resumes a paused queue.
+   */
+  async resumeQueue(queueName: string): Promise<void> {
+    const queue = this.getQueue(queueName)
+    await queue.resume()
+  }
+
+  /**
+   * Gets the count of jobs in different states for a queue.
+   */
+  async getJobCounts(queueName: string): Promise<{
+    waiting: number
+    active: number
+    completed: number
+    failed: number
+    delayed: number
+  }> {
+    const queue = this.getQueue(queueName)
+    const counts = await queue.getJobCounts(
+      'waiting',
+      'active',
+      'completed',
+      'failed',
+      'delayed',
+    )
+    return {
+      waiting: counts.waiting ?? 0,
+      active: counts.active ?? 0,
+      completed: counts.completed ?? 0,
+      failed: counts.failed ?? 0,
+      delayed: counts.delayed ?? 0,
+    }
+  }
+
+  /**
+   * Lists failed jobs in a queue.
+   */
+  async listFailedJobs(
+    queueName: string,
+    start = 0,
+    end = 100,
+  ): Promise<Job[]> {
+    const queue = this.getQueue(queueName)
+    return queue.getFailed(start, end)
+  }
+
+  /**
+   * Retries a failed job.
+   */
+  async retryJob(queueName: string, jobId: string): Promise<void> {
+    const queue = this.getQueue(queueName)
+    const job = await queue.getJob(jobId)
+    if (job) {
+      await job.retry()
+    }
+  }
+
+  /**
+   * Obliterates a queue - removes all jobs and data.
+   * Use with caution!
+   */
+  async obliterateQueue(queueName: string): Promise<void> {
+    const queue = this.getQueue(queueName)
+    await queue.obliterate()
+    this.queues.delete(queueName)
+  }
+
+  /**
+   * Start persistent workers that consume jobs from queues.
+   *
+   * Creates one BullMQ Worker per task, each processing jobs from its
+   * respective queue. Workers use the connector's prefix and connection.
+   *
+   * @returns Handle to stop all workers and check running status
+   */
+  async listen(params: {
+    tasks: Array<{
+      taskName: string
+      handle: (data: unknown) => Promise<unknown>
+      concurrency?: number
+    }>
+    defaultConcurrency?: number
+  }): Promise<{ stop: () => Promise<void>; isRunning: () => boolean }> {
+    const { tasks, defaultConcurrency = DEFAULT_CONCURRENCY } = params
+    const workers: Worker[] = []
+
+    for (const task of tasks) {
+      const concurrency = task.concurrency ?? defaultConcurrency
+      const workerKey = `${this._prefix}:${task.taskName}`
+      const worker = new Worker(
+        task.taskName,
+        async (job: Job) => task.handle(job.data),
+        {
+          connection: this.connectionOptions,
+          concurrency,
+          prefix: this._prefix,
+        },
+      )
+      this.workers.set(workerKey, worker)
+      workers.push(worker)
+    }
+
+    // Give workers time to connect to Redis
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    let running = true
+    return {
+      stop: async () => {
+        await Promise.all(workers.map(w => w.close()))
+        for (const task of tasks) {
+          this.workers.delete(`${this._prefix}:${task.taskName}`)
+        }
+        running = false
+      },
+      isRunning: () => running && workers.every(w => !w.closing),
+    }
+  }
+
+  /**
+   * Process incoming dispatch work for this tenant's queues.
+   * Creates temporary Workers per queue, manually fetches jobs, and processes
+   * them within the time budget using the tenant connector's own connection
+   * options and prefix.
+   */
+  async processIncomingDispatch(params: {
+    handleTask: (queueName: string, data: unknown) => Promise<unknown>
+    timeBudgetMs?: number
+    validQueueNames?: Set<string>
+    hint?: {
+      tenantId?: string
+      queueName?: string
+      jobId?: string
+      data?: unknown
+    }
+  }): Promise<{ processed: number; failed: number }> {
+    const { handleTask, timeBudgetMs = 25_000, validQueueNames, hint } = params
+    const deadline = Date.now() + timeBudgetMs
+    let processed = 0
+    let failed = 0
+
+    // Determine which queues to drain
+    const queueNames = validQueueNames
+      ? [...validQueueNames]
+      : hint?.queueName
+        ? [hint.queueName]
+        : []
+
+    // Prioritize the hinted queue (move to front)
+    if (hint?.queueName && queueNames.includes(hint.queueName)) {
+      const idx = queueNames.indexOf(hint.queueName)
+      if (idx > 0) {
+        queueNames.splice(idx, 1)
+        queueNames.unshift(hint.queueName)
+      }
+    }
+
+    for (const queueName of queueNames) {
+      if (Date.now() >= deadline) {
+        break
+      }
+
+      const tempWorker = new Worker(queueName, undefined as any, {
+        connection: this.connectionOptions,
+        prefix: this._prefix,
+        autorun: false,
+      })
+
+      try {
+        while (Date.now() < deadline) {
+          const job = await tempWorker.getNextJob('dispatch')
+          if (!job) {
+            break // no more jobs in this queue
+          }
+
+          try {
+            const result = await handleTask(queueName, job.data)
+            await job.moveToCompleted(result, job.token || '0', false)
+            processed++
+          } catch (err) {
+            await job.moveToFailed(err as Error, job.token || '0', false)
+            failed++
+          }
+        }
+      } finally {
+        await tempWorker.close()
+      }
+    }
+
+    return { processed, failed }
+  }
 }

@@ -65,8 +65,8 @@ export class CleanEnhancedBenchmark {
       console.log(chalk.gray('Testing realistic workload patterns'))
       console.log(
         chalk.gray(
-          `Think time: ${this.APPLY_THINK_TIME ? 'ENABLED (realistic user simulation)' : 'DISABLED (pure throughput)'}\n`
-        )
+          `Think time: ${this.APPLY_THINK_TIME ? 'ENABLED (realistic user simulation)' : 'DISABLED (pure throughput)'}\n`,
+        ),
       )
 
       await this.setupEnvironment()
@@ -91,14 +91,14 @@ export class CleanEnhancedBenchmark {
             const result = await this.benchmarkDriver(
               workload,
               driver,
-              connection
+              connection,
             )
             results.push(result)
 
             console.log(
               chalk.green(
-                `✓ ${result.totalOperations} ops @ ${result.operationsPerSecond.toFixed(0)} ops/sec`
-              )
+                `✓ ${result.totalOperations} ops @ ${result.operationsPerSecond.toFixed(0)} ops/sec`,
+              ),
             )
           } catch (error) {
             console.log(chalk.red(`✗ Error: ${error}`))
@@ -113,7 +113,7 @@ export class CleanEnhancedBenchmark {
       // Compare with/without think time
       if (this.APPLY_THINK_TIME) {
         console.log(
-          chalk.yellow.bold('\n📊 Running comparison without think time...')
+          chalk.yellow.bold('\n📊 Running comparison without think time...'),
         )
         this.APPLY_THINK_TIME = false
         // Run quick test without think time for comparison
@@ -128,7 +128,7 @@ export class CleanEnhancedBenchmark {
   private async benchmarkDriver(
     workload: WorkloadProfile,
     driver: string,
-    connection: any
+    connection: any,
   ): Promise<DriverResult> {
     const transactions = new Map<string, TransactionStats>()
 
@@ -139,7 +139,7 @@ export class CleanEnhancedBenchmark {
         count: 0,
         totalLatency: 0,
         latencies: [],
-        errors: 0
+        errors: 0,
       })
     })
 
@@ -188,7 +188,7 @@ export class CleanEnhancedBenchmark {
         // Optional: Apply thinking time (simulating user processing time)
         if (this.APPLY_THINK_TIME) {
           const thinkingTime = this.getThinkTime(
-            workload.thinkTime.thinkingTime
+            workload.thinkTime.thinkingTime,
           )
           await new Promise(resolve => setTimeout(resolve, thinkingTime))
         }
@@ -217,7 +217,7 @@ export class CleanEnhancedBenchmark {
       p90: this.getPercentile(sortedLatencies, 90),
       p95: this.getPercentile(sortedLatencies, 95),
       p99: this.getPercentile(sortedLatencies, 99),
-      transactions
+      transactions,
     }
   }
 
@@ -262,13 +262,13 @@ export class CleanEnhancedBenchmark {
         '   P95'.padStart(8) +
         '   P99'.padStart(8) +
         ' Errors'.padStart(8) +
-        ' Status'
+        ' Status',
     )
     console.log(chalk.gray('─'.repeat(85)))
 
     // Sort by ops/sec
     const sorted = [...results].sort(
-      (a, b) => b.operationsPerSecond - a.operationsPerSecond
+      (a, b) => b.operationsPerSecond - a.operationsPerSecond,
     )
     const fastest = sorted[0]?.operationsPerSecond || 1
 
@@ -305,7 +305,7 @@ export class CleanEnhancedBenchmark {
   private displayTransactionBreakdown(results: DriverResult[]): void {
     console.log(chalk.bold('\n📈 Transaction Breakdown'))
     console.log(
-      chalk.gray('Shows how each driver handled different transaction types')
+      chalk.gray('Shows how each driver handled different transaction types'),
     )
     console.log(chalk.gray('─'.repeat(85)))
 
@@ -316,7 +316,7 @@ export class CleanEnhancedBenchmark {
     // Header
     console.log(
       'Transaction'.padEnd(20) +
-        results.map(r => r.driver.padStart(12)).join('')
+        results.map(r => r.driver.padStart(12)).join(''),
     )
     console.log(chalk.gray('─'.repeat(85)))
 
@@ -337,7 +337,7 @@ export class CleanEnhancedBenchmark {
 
   private getTransactionExecutors(
     driver: string,
-    connection: any
+    connection: any,
   ): Record<string, () => Promise<void>> {
     // Simplified transaction implementations focusing on the main patterns
     const userId = () => Math.floor(Math.random() * 1000) + 1
@@ -356,7 +356,7 @@ export class CleanEnhancedBenchmark {
               .promise()
               .execute(
                 'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50',
-                ['active', age()]
+                ['active', age()],
               )
           },
           joinQuery: async () => {
@@ -386,22 +386,22 @@ export class CleanEnhancedBenchmark {
               .promise()
               .execute(
                 'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-                [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US']
+                [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US'],
               )
-          }
+          },
         }
 
       case 'MySQL2/Promise':
         return {
           simpleSelect: async () => {
             await connection.execute('SELECT * FROM users WHERE id = ?', [
-              userId()
+              userId(),
             ])
           },
           filteredSelect: async () => {
             await connection.execute(
               'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50',
-              ['active', age()]
+              ['active', age()],
             )
           },
           joinQuery: async () => {
@@ -429,9 +429,9 @@ export class CleanEnhancedBenchmark {
             const id = `${++this.insertCounter}_${Date.now()}`
             await connection.execute(
               'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-              [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US']
+              [`test_${id}@example.com`, 'Test', 'User', 'active', 30, 'US'],
             )
-          }
+          },
         }
 
       case 'Knex':
@@ -473,9 +473,9 @@ export class CleanEnhancedBenchmark {
               last_name: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
+              country: 'US',
             })
-          }
+          },
         }
 
       case 'Prisma':
@@ -486,21 +486,21 @@ export class CleanEnhancedBenchmark {
           filteredSelect: async () => {
             await connection.user.findMany({
               where: { status: 'active', age: { gt: age() } },
-              take: 50
+              take: 50,
             })
           },
           joinQuery: async () => {
             await connection.user.findMany({
               where: { status: 'active' },
               include: { orders: true },
-              take: 30
+              take: 30,
             })
           },
           complexJoin: async () => {
             await connection.product.findMany({
               where: { isActive: true },
               include: { category: true, reviews: true },
-              take: 25
+              take: 25,
             })
           },
           insert: async () => {
@@ -512,10 +512,10 @@ export class CleanEnhancedBenchmark {
                 lastName: 'User',
                 status: 'active',
                 age: 30,
-                country: 'US'
-              }
+                country: 'US',
+              },
             })
-          }
+          },
         }
 
       case 'Kysely':
@@ -570,10 +570,10 @@ export class CleanEnhancedBenchmark {
                 last_name: 'User',
                 status: 'active',
                 age: 30,
-                country: 'US'
+                country: 'US',
               })
               .execute()
-          }
+          },
         }
 
       case 'Drizzle':
@@ -591,8 +591,8 @@ export class CleanEnhancedBenchmark {
               .where(
                 and(
                   eq(schema.users.status, 'active'),
-                  gt(schema.users.age, age())
-                )
+                  gt(schema.users.age, age()),
+                ),
               )
               .limit(50)
           },
@@ -601,12 +601,12 @@ export class CleanEnhancedBenchmark {
               .select({
                 id: schema.users.id,
                 email: schema.users.email,
-                orderCount: drizzleSql<number>`count(${schema.orders.id})`
+                orderCount: drizzleSql<number>`count(${schema.orders.id})`,
               })
               .from(schema.users)
               .leftJoin(
                 schema.orders,
-                eq(schema.users.id, schema.orders.userId)
+                eq(schema.users.id, schema.orders.userId),
               )
               .where(eq(schema.users.status, 'active'))
               .groupBy(schema.users.id)
@@ -618,16 +618,16 @@ export class CleanEnhancedBenchmark {
                 id: schema.products.id,
                 name: schema.products.name,
                 categoryName: schema.categories.name,
-                reviewCount: drizzleSql<number>`count(${schema.reviews.id})`
+                reviewCount: drizzleSql<number>`count(${schema.reviews.id})`,
               })
               .from(schema.products)
               .leftJoin(
                 schema.categories,
-                eq(schema.products.categoryId, schema.categories.id)
+                eq(schema.products.categoryId, schema.categories.id),
               )
               .leftJoin(
                 schema.reviews,
-                eq(schema.products.id, schema.reviews.productId)
+                eq(schema.products.id, schema.reviews.productId),
               )
               .where(eq(schema.products.isActive, true))
               .groupBy(schema.products.id)
@@ -641,9 +641,9 @@ export class CleanEnhancedBenchmark {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
+              country: 'US',
             })
-          }
+          },
         }
 
       case 'Prisma+Kysely':
@@ -698,10 +698,10 @@ export class CleanEnhancedBenchmark {
                 last_name: 'User',
                 status: 'active',
                 age: 30,
-                country: 'US'
+                country: 'US',
               })
               .execute()
-          }
+          },
         }
 
       case 'TypeORM':
@@ -759,10 +759,10 @@ export class CleanEnhancedBenchmark {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
+              country: 'US',
             })
             await connection.getRepository(User).save(user)
-          }
+          },
         }
 
       case 'Sequelize':
@@ -777,9 +777,9 @@ export class CleanEnhancedBenchmark {
             await User.findAll({
               where: {
                 status: 'active',
-                age: { [Op.gt]: age() }
+                age: { [Op.gt]: age() },
               },
-              limit: 50
+              limit: 50,
             })
           },
           joinQuery: async () => {
@@ -792,7 +792,7 @@ export class CleanEnhancedBenchmark {
               GROUP BY u.id
               LIMIT 30
             `,
-              { type: connection.QueryTypes.SELECT }
+              { type: connection.QueryTypes.SELECT },
             )
           },
           complexJoin: async () => {
@@ -806,7 +806,7 @@ export class CleanEnhancedBenchmark {
               GROUP BY p.id
               LIMIT 25
             `,
-              { type: connection.QueryTypes.SELECT }
+              { type: connection.QueryTypes.SELECT },
             )
           },
           insert: async () => {
@@ -818,9 +818,9 @@ export class CleanEnhancedBenchmark {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
+              country: 'US',
             })
-          }
+          },
         }
 
       case 'MikroORM':
@@ -841,9 +841,9 @@ export class CleanEnhancedBenchmark {
               User,
               {
                 status: 'active',
-                age: { $gt: age() }
+                age: { $gt: age() },
               },
-              { limit: 50 }
+              { limit: 50 },
             )
           },
           joinQuery: async () => {
@@ -881,10 +881,10 @@ export class CleanEnhancedBenchmark {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
+              country: 'US',
             })
             await em.persistAndFlush(user)
-          }
+          },
         }
 
       default:
@@ -899,7 +899,7 @@ export class CleanEnhancedBenchmark {
         MYSQL_ROOT_PASSWORD: 'root',
         MYSQL_DATABASE: 'benchmark_db',
         MYSQL_USER: 'benchmark_user',
-        MYSQL_PASSWORD: 'benchmark_pass'
+        MYSQL_PASSWORD: 'benchmark_pass',
       })
       .withExposedPorts(3306)
       .withStartupTimeout(60000)
@@ -917,7 +917,7 @@ export class CleanEnhancedBenchmark {
       port: this.mysqlContainer.getMappedPort(3306),
       user: 'benchmark_user',
       password: 'benchmark_pass',
-      database: 'benchmark_db'
+      database: 'benchmark_db',
     })
 
     const conn = pool.promise()
@@ -1011,14 +1011,14 @@ export class CleanEnhancedBenchmark {
         `Last${i}`,
         i % 10 === 0 ? 'inactive' : 'active',
         20 + (i % 50),
-        ['US', 'UK', 'CA', 'AU', 'DE'][i % 5]
+        ['US', 'UK', 'CA', 'AU', 'DE'][i % 5],
       ])
     }
 
     const userPlaceholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
     await conn.execute(
       `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${userPlaceholders}`,
-      users.flat()
+      users.flat(),
     )
 
     // Seed categories
@@ -1040,7 +1040,7 @@ export class CleanEnhancedBenchmark {
         (Math.random() * 1000).toFixed(2),
         (i % 5) + 1,
         Math.floor(Math.random() * 100),
-        i % 20 !== 0
+        i % 20 !== 0,
       ])
     }
 
@@ -1049,7 +1049,7 @@ export class CleanEnhancedBenchmark {
       .join(', ')
     await conn.execute(
       `INSERT INTO products (name, description, price, category_id, stock_quantity, is_active) VALUES ${productPlaceholders}`,
-      products.flat()
+      products.flat(),
     )
 
     // Seed orders
@@ -1058,14 +1058,14 @@ export class CleanEnhancedBenchmark {
       orders.push([
         Math.floor(Math.random() * 1000) + 1,
         (Math.random() * 500).toFixed(2),
-        ['pending', 'completed', 'cancelled'][i % 3]
+        ['pending', 'completed', 'cancelled'][i % 3],
       ])
     }
 
     const orderPlaceholders = orders.map(() => '(?, ?, ?)').join(', ')
     await conn.execute(
       `INSERT INTO orders (user_id, total_amount, status) VALUES ${orderPlaceholders}`,
-      orders.flat()
+      orders.flat(),
     )
 
     // Seed reviews
@@ -1075,14 +1075,14 @@ export class CleanEnhancedBenchmark {
         Math.floor(Math.random() * 500) + 1,
         Math.floor(Math.random() * 1000) + 1,
         Math.floor(Math.random() * 5) + 1,
-        `Review comment ${i}`
+        `Review comment ${i}`,
       ])
     }
 
     const reviewPlaceholders = reviews.map(() => '(?, ?, ?, ?)').join(', ')
     await conn.execute(
       `INSERT INTO reviews (product_id, user_id, rating, comment) VALUES ${reviewPlaceholders}`,
-      reviews.flat()
+      reviews.flat(),
     )
 
     await pool.end()
@@ -1105,7 +1105,7 @@ export class CleanEnhancedBenchmark {
           password: 'benchmark_pass',
           database: 'benchmark_db',
           waitForConnections: true,
-          connectionLimit: 10
+          connectionLimit: 10,
         })
         break
 
@@ -1117,7 +1117,7 @@ export class CleanEnhancedBenchmark {
           password: 'benchmark_pass',
           database: 'benchmark_db',
           waitForConnections: true,
-          connectionLimit: 10
+          connectionLimit: 10,
         })
         break
 
@@ -1129,9 +1129,9 @@ export class CleanEnhancedBenchmark {
             port: this.mysqlContainer.getMappedPort(3306),
             user: 'benchmark_user',
             password: 'benchmark_pass',
-            database: 'benchmark_db'
+            database: 'benchmark_db',
           },
-          pool: { min: 2, max: 10 }
+          pool: { min: 2, max: 10 },
         })
         break
 
@@ -1139,10 +1139,10 @@ export class CleanEnhancedBenchmark {
         connection = new PrismaClient({
           datasources: {
             db: {
-              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db`
-            }
+              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db`,
+            },
           },
-          log: ['error']
+          log: ['error'],
         })
         await connection.$connect()
         break
@@ -1155,8 +1155,8 @@ export class CleanEnhancedBenchmark {
             user: 'benchmark_user',
             password: 'benchmark_pass',
             database: 'benchmark_db',
-            connectionLimit: 10
-          })
+            connectionLimit: 10,
+          }),
         })
         connection = new Kysely<Database>({ dialect })
         break
@@ -1169,7 +1169,7 @@ export class CleanEnhancedBenchmark {
           user: 'benchmark_user',
           password: 'benchmark_pass',
           database: 'benchmark_db',
-          connectionLimit: 10
+          connectionLimit: 10,
         })
         connection = drizzle(pool, { schema, mode: 'default' })
         break
@@ -1179,10 +1179,10 @@ export class CleanEnhancedBenchmark {
         const basePrisma = new PrismaClient({
           datasources: {
             db: {
-              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db`
-            }
+              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db`,
+            },
           },
-          log: ['error']
+          log: ['error'],
         })
 
         connection = basePrisma.$extends(
@@ -1193,10 +1193,10 @@ export class CleanEnhancedBenchmark {
                   createDriver: () => driver,
                   createAdapter: () => new MysqlAdapter(),
                   createIntrospector: db => new MysqlIntrospector(db),
-                  createQueryCompiler: () => new MysqlQueryCompiler()
-                }
-              })
-          })
+                  createQueryCompiler: () => new MysqlQueryCompiler(),
+                },
+              }),
+          }),
         )
 
         await connection.$connect()
@@ -1217,7 +1217,7 @@ export class CleanEnhancedBenchmark {
           entities: [User, Product, Category, Order, OrderItem, Review],
           synchronize: false,
           logging: false,
-          poolSize: 10
+          poolSize: 10,
         })
 
         await connection.initialize()
@@ -1237,8 +1237,8 @@ export class CleanEnhancedBenchmark {
             max: 10,
             min: 0,
             acquire: 30000,
-            idle: 10000
-          }
+            idle: 10000,
+          },
         })
         break
 
@@ -1252,7 +1252,7 @@ export class CleanEnhancedBenchmark {
           dbName: 'benchmark_db',
           entities: ['../database/mikro-orm-entities-fixed.ts'],
           pool: { min: 2, max: 10 },
-          debug: false
+          debug: false,
         })
         break
 

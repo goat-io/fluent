@@ -6,7 +6,7 @@ import {
   TypeORMDataModelSchema,
   TypeOrmEntity,
 } from '@goatlab/fluent'
-import PouchDB from 'pouchdb'
+import PouchDB from 'pouchdb-core'
 import { PouchDBConnector } from '../PouchDBConnector'
 
 export class PouchDBGoatRepositoryFactory extends PouchDBConnector<

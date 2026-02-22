@@ -7,7 +7,7 @@ export function getContainerData(): ContainerData {
 
   if (!existsSync(filePath)) {
     throw new Error(
-      'Container data file not found. Make sure to run tests with container setup.'
+      'Container data file not found. Make sure to run tests with container setup.',
     )
   }
 
@@ -22,7 +22,7 @@ export function getMySqlConfig() {
     port: containerData.mysql.port,
     user: containerData.mysql.username,
     password: containerData.mysql.password,
-    database: containerData.mysql.database
+    database: containerData.mysql.database,
   }
 }
 
@@ -31,7 +31,7 @@ export function getRedisConfig() {
   return {
     host: containerData.redis.host,
     port: containerData.redis.port,
-    connectionString: containerData.redis.connectionString
+    connectionString: containerData.redis.connectionString,
   }
 }
 
