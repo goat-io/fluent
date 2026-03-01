@@ -27,7 +27,7 @@ w3lib==1.21.0
 zope.interface==5.1.0  # Updated from 4.6.0
 astroid==2.3.3  # Updated from 2.1.0
 autopep8==1.5.1  # Updated from 1.4.3
-awscli==1.18.41  # Updated from 1.16.79
+awscli==1.44.38  # Updated from 1.16.79
 backcall==0.1.0
 beautifulsoup4==4.9.0  # Updated from 4.7.1
 bleach==3.3.0  # Updated from 3.1.0
