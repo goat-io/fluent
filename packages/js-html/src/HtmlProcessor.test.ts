@@ -16,10 +16,10 @@ describe('HtmlProcessor', () => {
     const html = '<div>Hello <b>World</b><br>Test</div>'
     expect(HtmlProcessor.extractTextFromHTML(html)).toBe('Hello WorldTest')
     expect(
-      HtmlProcessor.extractTextFromHTML('<div><script>bad()</script>ok</div>')
+      HtmlProcessor.extractTextFromHTML('<div><script>bad()</script>ok</div>'),
     ).toBe('ok')
     expect(HtmlProcessor.extractTextFromHTML('<style>body{}</style>abc')).toBe(
-      'abc'
+      'abc',
     )
   })
 
@@ -37,7 +37,7 @@ describe('HtmlProcessor', () => {
     const processor = new HtmlProcessor({ html })
     const truncated = processor.getTruncatedHtml({
       truncate: 11,
-      ellipsis: '...'
+      ellipsis: '...',
     })
     expect(truncated).toContain('...')
     expect(truncated.length).toBeGreaterThan(0)
@@ -48,7 +48,7 @@ describe('HtmlProcessor', () => {
     const processor = new HtmlProcessor({ html })
     const truncated = processor.getTruncatedHtml({
       truncate: 100,
-      ellipsis: '...'
+      ellipsis: '...',
     })
     expect(truncated).not.toContain('...')
   })
@@ -83,7 +83,7 @@ describe('HtmlProcessor', () => {
     expect(processor.formatAttributes({})).toBe('')
     // @ts-expect-error testing private method
     expect(processor.formatAttributes({ href: 'x', class: 'y' })).toBe(
-      ' href="x" class="y"'
+      ' href="x" class="y"',
     )
   })
   it('should handle HTML with only attributes as not empty', () => {
@@ -113,7 +113,7 @@ describe('HtmlProcessor', () => {
     const processor = new HtmlProcessor({ html })
     const truncated = processor.getTruncatedHtml({
       truncate: 0,
-      ellipsis: '...'
+      ellipsis: '...',
     })
     expect(truncated).toContain('...')
   })
@@ -122,7 +122,7 @@ describe('HtmlProcessor', () => {
     const processor = new HtmlProcessor({ html: '' })
     const truncated = processor.getTruncatedHtml({
       truncate: 5,
-      ellipsis: '...'
+      ellipsis: '...',
     })
     expect(truncated).toBe('')
   })
@@ -222,7 +222,7 @@ describe('HtmlProcessor', () => {
 
     const truncated = processor.getTruncatedHtml({
       truncate: 10,
-      ellipsis: '...See more'
+      ellipsis: '...See more',
     })
 
     // Should not have links to /tags/ for regular spaces
@@ -273,7 +273,7 @@ describe('HtmlProcessor', () => {
     // Test getTruncatedHtml - this was the main culprit with triple linkify calls
     const truncated = processor.getTruncatedHtml({
       truncate: 100,
-      ellipsis: '...See more'
+      ellipsis: '...See more',
     })
     expect(truncated).toContain('average')
     // Should NOT have spurious links for spaces or regular words
@@ -309,7 +309,7 @@ describe('HtmlProcessor', () => {
     // and caused spaces to be matched
     const processor1 = new HtmlProcessor({
       html: 'Hello world',
-      keywords: ['...See more '] // Note the trailing space - this was the bug trigger
+      keywords: ['...See more '], // Note the trailing space - this was the bug trigger
     })
     const parsed1 = processor1.getParsedHtml()
 
@@ -320,7 +320,7 @@ describe('HtmlProcessor', () => {
 
     // Now test with the complex AI response after the keyword was registered
     const processor2 = new HtmlProcessor({
-      html: '<div>This is a test message with spaces</div>'
+      html: '<div>This is a test message with spaces</div>',
     })
     const parsed2 = processor2.getParsedHtml()
 
@@ -336,7 +336,7 @@ describe('HtmlProcessor', () => {
 
     const truncated = processor.getTruncatedHtml({
       truncate: 50,
-      ellipsis: '...'
+      ellipsis: '...',
     })
 
     // Should have the URL linkified exactly once (not nested <a> tags)
@@ -358,12 +358,12 @@ describe('HtmlProcessor', () => {
 
     const htmlProcessor = new HtmlProcessor({
       html: content,
-      keywords: [expandKeyWord]
+      keywords: [expandKeyWord],
     })
 
     const finalHtml = htmlProcessor.getTruncatedHtml({
       truncate: 100,
-      ellipsis: expandKeyWord
+      ellipsis: expandKeyWord,
     })
 
     // Should contain the ellipsis
@@ -386,18 +386,18 @@ describe('HtmlProcessor', () => {
     const contents = [
       '<div>First message with spaces</div>',
       '<div>Second message with more spaces</div>',
-      '<div>Third message also has spaces</div>'
+      '<div>Third message also has spaces</div>',
     ]
 
     // Process multiple messages like RichTextDisplay does
     const results = contents.map(content => {
       const processor = new HtmlProcessor({
         html: content,
-        keywords: [expandKeyWord]
+        keywords: [expandKeyWord],
       })
       return processor.getTruncatedHtml({
         truncate: 20,
-        ellipsis: expandKeyWord
+        ellipsis: expandKeyWord,
       })
     })
 
@@ -448,7 +448,7 @@ describe('HtmlProcessor', () => {
     // This test validates that the current fix (single linkify after truncation) works
     const truncated = processor.getTruncatedHtml({
       truncate: 20,
-      ellipsis: '...See more'
+      ellipsis: '...See more',
     })
     console.log('Truncated result:', truncated)
 
@@ -469,7 +469,7 @@ describe('HtmlProcessor', () => {
 
     const truncated = processor.getTruncatedHtml({
       truncate: 15, // "Contact @farmer" = 15 chars
-      ellipsis: '...'
+      ellipsis: '...',
     })
 
     console.log('Truncated mention:', truncated)
@@ -492,12 +492,12 @@ describe('HtmlProcessor', () => {
 
     const processor = new HtmlProcessor({
       html,
-      keywords: [singleSpaceEllipsis] // This simulates RichTextDisplay registering the ellipsis as keyword
+      keywords: [singleSpaceEllipsis], // This simulates RichTextDisplay registering the ellipsis as keyword
     })
 
     const truncated = processor.getTruncatedHtml({
       truncate: 35,
-      ellipsis: singleSpaceEllipsis
+      ellipsis: singleSpaceEllipsis,
     })
 
     console.log('With single space ellipsis:', truncated)
@@ -525,12 +525,12 @@ describe('HtmlProcessor', () => {
 
     const processor = new HtmlProcessor({
       html,
-      keywords: [expandKeyWord]
+      keywords: [expandKeyWord],
     })
 
     const truncated = processor.getTruncatedHtml({
       truncate: 30,
-      ellipsis: expandKeyWord
+      ellipsis: expandKeyWord,
     })
 
     console.log('See more result:', truncated)
@@ -556,19 +556,19 @@ describe('HtmlProcessor', () => {
     // Test 1: Simple single-word keyword
     const processor1 = new HtmlProcessor({
       html: '<div>Check the documentation</div>',
-      keywords: ['documentation']
+      keywords: ['documentation'],
     })
     const result1 = processor1.getParsedHtml()
     console.log('Single word keyword:', result1)
     console.log(
       'Single word has link:',
-      result1.includes('href="/tags/documentation"')
+      result1.includes('href="/tags/documentation"'),
     )
 
     // Test 2: Multi-word keyword with spaces
     const processor2 = new HtmlProcessor({
       html: '<div>Check See more info</div>',
-      keywords: ['See more']
+      keywords: ['See more'],
     })
     const result2 = processor2.getParsedHtml()
     console.log('Multi-word keyword:', result2)
@@ -576,7 +576,7 @@ describe('HtmlProcessor', () => {
     // Test 3: Keyword with dots
     const processor3 = new HtmlProcessor({
       html: '<div>Check ...See more info</div>',
-      keywords: ['...See more']
+      keywords: ['...See more'],
     })
     const result3 = processor3.getParsedHtml()
     console.log('Dots keyword:', result3)
@@ -584,7 +584,7 @@ describe('HtmlProcessor', () => {
     // Test 4: The actual expandKeyWord pattern
     const processor4 = new HtmlProcessor({
       html: '<div>Long text ...See more </div>',
-      keywords: ['...See more ']
+      keywords: ['...See more '],
     })
     const result4 = processor4.getParsedHtml()
     console.log('Full expandKeyWord:', result4)
@@ -603,12 +603,12 @@ describe('HtmlProcessor', () => {
 
     const processor = new HtmlProcessor({
       html,
-      keywords: [] // Not registering as keyword - just plain text ellipsis
+      keywords: [], // Not registering as keyword - just plain text ellipsis
     })
 
     const truncated = processor.getTruncatedHtml({
       truncate: 20,
-      ellipsis: customEllipsis
+      ellipsis: customEllipsis,
     })
 
     console.log('Custom ellipsis appended:', truncated)
@@ -699,12 +699,12 @@ describe('HtmlProcessor', () => {
 
     const processor = new HtmlProcessor({
       html,
-      keywords: [expandKeyWord]
+      keywords: [expandKeyWord],
     })
 
     const truncated = processor.getTruncatedHtml({
       truncate: 50,
-      ellipsis: expandKeyWord
+      ellipsis: expandKeyWord,
     })
 
     console.log('HTML-heavy truncated:', truncated)
@@ -782,12 +782,12 @@ describe('HtmlProcessor', () => {
 
     const processor = new HtmlProcessor({
       html,
-      keywords: [expandKeyWord]
+      keywords: [expandKeyWord],
     })
 
     const truncated = processor.getTruncatedHtml({
       truncate: 20,
-      ellipsis: expandKeyWord
+      ellipsis: expandKeyWord,
     })
 
     console.log('Truncated through tags:', truncated)
@@ -823,7 +823,7 @@ describe('HtmlProcessor', () => {
     const expandKeyWord = '...See more '
     const processor = new HtmlProcessor({
       html,
-      keywords: [expandKeyWord]
+      keywords: [expandKeyWord],
     })
 
     // Test full parsing
@@ -836,7 +836,7 @@ describe('HtmlProcessor', () => {
     // Test truncation with See more
     const truncated = processor.getTruncatedHtml({
       truncate: 50,
-      ellipsis: expandKeyWord
+      ellipsis: expandKeyWord,
     })
 
     console.log('AI response truncated:', truncated)
@@ -864,7 +864,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 20,
-        ellipsis: 'See more'
+        ellipsis: 'See more',
       })
 
       // MUST contain href="/expand"
@@ -879,13 +879,13 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 15,
-        ellipsis: '...Read more'
+        ellipsis: '...Read more',
       })
 
       // Should have the gray color and no text decoration
       expect(truncated).toContain('style="color: gray;text-decoration: none;"')
       expect(truncated).toMatch(
-        /<a[^>]*style="color: gray;text-decoration: none;"[^>]*>/
+        /<a[^>]*style="color: gray;text-decoration: none;"[^>]*>/,
       )
     })
 
@@ -896,7 +896,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 20,
-        ellipsis: '...See more'
+        ellipsis: '...See more',
       })
 
       // Content fits exactly, no ellipsis needed
@@ -910,7 +910,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 100,
-        ellipsis: '...See more'
+        ellipsis: '...See more',
       })
 
       expect(truncated).not.toContain('...See more')
@@ -923,7 +923,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 10,
-        ellipsis: ''
+        ellipsis: '',
       })
 
       // Should still truncate but with empty ellipsis
@@ -937,7 +937,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 15,
-        ellipsis: '… Ver más' // Spanish with Unicode ellipsis
+        ellipsis: '… Ver más', // Spanish with Unicode ellipsis
       })
 
       expect(truncated).toContain('href="/expand"')
@@ -951,7 +951,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 15,
-        ellipsis: '&hellip; More'
+        ellipsis: '&hellip; More',
       })
 
       expect(truncated).toContain('href="/expand"')
@@ -965,7 +965,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 10,
-        ellipsis: '...'
+        ellipsis: '...',
       })
 
       expect(truncated).toContain('href="/expand"')
@@ -980,7 +980,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 20,
-        ellipsis: '...See more '
+        ellipsis: '...See more ',
       })
 
       // Simulate RichTextDisplay detection logic
@@ -999,7 +999,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 15,
-        ellipsis: 'Ver más'
+        ellipsis: 'Ver más',
       })
 
       // Extract the href value
@@ -1023,7 +1023,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 30,
-        ellipsis: '...See more'
+        ellipsis: '...See more',
       })
 
       // Ellipsis MUST be linkified even with complex HTML
@@ -1042,11 +1042,11 @@ describe('HtmlProcessor', () => {
       // Call getTruncatedHtml multiple times (simulating re-renders)
       const truncated1 = processor.getTruncatedHtml({
         truncate: 15,
-        ellipsis: 'More'
+        ellipsis: 'More',
       })
       const truncated2 = processor.getTruncatedHtml({
         truncate: 15,
-        ellipsis: 'More'
+        ellipsis: 'More',
       })
 
       // Both should have exactly one expand link
@@ -1069,7 +1069,7 @@ describe('HtmlProcessor', () => {
 
       const truncated = processor.getTruncatedHtml({
         truncate: 15,
-        ellipsis: ' '
+        ellipsis: ' ',
       })
 
       // Should have the expand link (even for space ellipsis)
@@ -1091,12 +1091,12 @@ describe('HtmlProcessor', () => {
 
       const processor = new HtmlProcessor({
         html,
-        keywords: [' '] // RichTextDisplay registers ellipsis as keyword
+        keywords: [' '], // RichTextDisplay registers ellipsis as keyword
       })
 
       const truncated = processor.getTruncatedHtml({
         truncate: 35,
-        ellipsis: ' '
+        ellipsis: ' ',
       })
 
       // Should NOT create spurious links for spaces
@@ -1147,17 +1147,17 @@ describe('HtmlProcessor', () => {
     const content = '<div>Hello world this is a test</div>'
     const processor1 = new HtmlProcessor({
       html: content,
-      keywords: [' '] // Worst case: registering a space as keyword
+      keywords: [' '], // Worst case: registering a space as keyword
     })
     const result1 = processor1.getParsedHtml()
 
     const processor2 = new HtmlProcessor({
       html: content,
-      keywords: ['...See more '] // The actual RichTextDisplay pattern
+      keywords: ['...See more '], // The actual RichTextDisplay pattern
     })
     const result2 = processor2.getTruncatedHtml({
       truncate: 15,
-      ellipsis: '...See more '
+      ellipsis: '...See more ',
     })
 
     // Neither should have spurious links for spaces

@@ -23,9 +23,9 @@ const isEmptyHTML = (html: string) => {
         if (text.trim()) {
           isEmpty = false
         }
-      }
+      },
     },
-    { decodeEntities: false }
+    { decodeEntities: false },
   )
 
   parser.write(html)
@@ -44,12 +44,12 @@ export class HtmlProcessor {
     attributes: (_href, element) => {
       if (element === 'keyword') {
         return {
-          style: 'color: gray;text-decoration: none;'
+          style: 'color: gray;text-decoration: none;',
         }
       }
       if (element === 'hashtag') {
         return {
-          style: 'color: green;text-decoration: none;'
+          style: 'color: green;text-decoration: none;',
         }
       }
       return {}
@@ -67,7 +67,7 @@ export class HtmlProcessor {
       },
       hashtag: href => `/hashtag/${href.substr(1)}`,
       ticket: href => `/issues/${href.substr(1)}`,
-      mention: href => `account${href}` //TODO: Cambiar luego x la url real
+      mention: href => `account${href}`, //TODO: Cambiar luego x la url real
     },
     ignoreTags: ['script', 'style'],
     nl2br: false,
@@ -75,7 +75,7 @@ export class HtmlProcessor {
     tagName: 'a',
     target: {},
     truncate: 0,
-    validate: {}
+    validate: {},
   }
 
   constructor({ html, keywords = [] }: { html: string; keywords?: string[] }) {
@@ -95,7 +95,7 @@ export class HtmlProcessor {
         if (name === 'br') {
           textContent += '\n'
         }
-      }
+      },
     }
 
     let skipText = false
@@ -116,9 +116,9 @@ export class HtmlProcessor {
             skipText = false
           }
         },
-        ...toAdd
+        ...toAdd,
       },
-      { decodeEntities: true }
+      { decodeEntities: true },
     )
 
     parser.write(html)
@@ -134,25 +134,25 @@ export class HtmlProcessor {
       allowedTags: ['b', 'i', 'em', 'strong', 'a', 'p', 'div', 'br'],
       allowedAttributes: {
         a: ['href'],
-        div: ['style']
+        div: ['style'],
       },
       transformTags: {
         br: (_tagname, _attr) => {
           return {
             tagName: 'div',
             attribs: {
-              style: 'display:flex; margin:5px 0;'
-            }
+              style: 'display:flex; margin:5px 0;',
+            },
           }
-        }
-      }
+        },
+      },
     })
     return linkifyHtml(sanitized, this.parsingOptions)
   }
 
   getTruncatedHtml({
     truncate = Number.POSITIVE_INFINITY,
-    ellipsis = 'See more'
+    ellipsis = 'See more',
   }: {
     truncate?: number
     ellipsis?: string
@@ -162,7 +162,7 @@ export class HtmlProcessor {
     let truncatedHtml = truncateHtml(parsed, truncate, {
       ellipsis: '',
       keepImageTag: true,
-      truncateLastWord: true
+      truncateLastWord: true,
     })
 
     const extractedText = HtmlProcessor.extractTextFromHTML(parsed).trim()
@@ -220,9 +220,9 @@ export class HtmlProcessor {
           if (name !== 'br') {
             output += `</${name}>`
           }
-        }
+        },
       },
-      { decodeEntities: true }
+      { decodeEntities: true },
     )
 
     parser.write(html)

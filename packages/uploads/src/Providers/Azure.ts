@@ -13,10 +13,10 @@ export const Azure = (config: MulterConfiguration) => {
 
   const resolveBlobName: MASNameResolver = (
     _req: any,
-    file: any
+    file: any,
   ): Promise<string> =>
     new Promise<string>((resolve, _reject) =>
-      resolve(config.fileName + extname(file.originalname))
+      resolve(config.fileName + extname(file.originalname)),
     )
 
   return new MulterAzureStorage({
@@ -26,6 +26,6 @@ export const Azure = (config: MulterConfiguration) => {
     connectionString: process.env.AZURE_CONNECTION_STRING,
     containerAccessLevel: 'blob',
     containerName: config.folder,
-    urlExpirationTime: 60
+    urlExpirationTime: 60,
   })
 }

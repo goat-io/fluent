@@ -18,6 +18,6 @@ export const Google = (config: MulterConfiguration) => {
       cb(null, config.fileName + extname(file.originalname))
     },
     bucket: config.folder,
-    keyFilename: config.fileKey
+    keyFilename: config.fileKey,
   })
 }

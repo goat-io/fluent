@@ -61,14 +61,16 @@ describe('SecretService Integration Tests', () => {
 
     // Initialize Vault with test data
     await initializeVault()
-  })
+  }, 120_000)
 
   afterAll(async () => {
     // Clean up temporary directory
-    await fs.rm(tempDir, { recursive: true, force: true })
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
 
     // Stop Vault container
-    await vaultContainer.stop()
+    if (vaultContainer) {
+      await vaultContainer.stop()
+    }
   })
 
   async function initializeVault() {

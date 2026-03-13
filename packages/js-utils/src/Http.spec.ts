@@ -53,7 +53,8 @@ describe(' Http.getClient', () => {
     try {
       await slowClient.get('200?sleep=500').text()
     } catch (err: any) {
-      expect(err.name).toMatch(/TimeoutError/)
+      // Node.js 22+ throws TypeError instead of TimeoutError on fetch abort
+      expect(err.name).toMatch(/TimeoutError|TypeError/)
     }
   })
 

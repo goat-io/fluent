@@ -6,7 +6,7 @@ import { MulterConfiguration } from '../Upload'
 const s3 = new Aws.S3()
 Aws.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEYid,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 })
 
 export const S3 = (config: MulterConfiguration) => {
@@ -19,6 +19,6 @@ export const S3 = (config: MulterConfiguration) => {
     key: (_request, file, cb) => {
       cb(null, config.fileName + extname(file.originalname))
     },
-    s3
+    s3,
   })
 }

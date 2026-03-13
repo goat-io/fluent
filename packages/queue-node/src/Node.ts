@@ -4,11 +4,11 @@ import type {
   JobDescription,
   RepeatEvery,
   Scheduler,
-  TimeZones
+  TimeZones,
 } from '../../queue-core/src'
 
 export enum NodeTimeZones {
-  EuropeStockholm = 'Europe/Stockholm'
+  EuropeStockholm = 'Europe/Stockholm',
 }
 
 const repeatEveryToNodeCronTime = (value?: RepeatEvery): string => {
@@ -35,7 +35,7 @@ const repeatEveryToNodeCronTime = (value?: RepeatEvery): string => {
     hours7: '0 */7 * * *',
     hours8: '0 */8 * * *',
     hours9: '0 */9 * * *',
-    hours10: '0 */10 * * *'
+    hours10: '0 */10 * * *',
   }
 
   return map[value]
@@ -47,17 +47,17 @@ const getTimezoneString = (timeZone: TimeZones): NodeTimeZones =>
 export class NodeScheduler implements Scheduler {
   async schedule(options: Job) {
     const croneString = repeatEveryToNodeCronTime(
-      options.repeat?.cronTime || 'never'
+      options.repeat?.cronTime || 'never',
     )
     const timezoneString = getTimezoneString(
-      options.repeat?.timeZone || 'Europe/Stockholm'
+      options.repeat?.timeZone || 'Europe/Stockholm',
     )
 
     const jobDescription: JobDescription = {
       data: options.data,
       id: options.jobName,
       instance: undefined,
-      name: options.jobName
+      name: options.jobName,
     }
 
     let runAt: string | Date = croneString
@@ -73,7 +73,7 @@ export class NodeScheduler implements Scheduler {
       onTick: async _job => options.handle(jobDescription),
       runOnInit: options.repeat.runOnInit,
       start: true,
-      timeZone: timezoneString
+      timeZone: timezoneString,
     })
 
     return
