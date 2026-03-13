@@ -8,6 +8,7 @@ import type {
 } from '@goatlab/tasks-core'
 import type { ConnectionOptions, JobsOptions } from 'bullmq'
 import { type Job, Queue, Worker } from 'bullmq'
+import type { Cluster, Redis } from 'ioredis'
 
 // Default configuration constants
 const DEFAULT_HOST = 'localhost'
@@ -28,6 +29,13 @@ export interface BullMQConnectionOptions {
 
 export interface BullMQConnectorConfig {
   connection?: BullMQConnectionOptions
+  /**
+   * Pre-built ioredis instance (Redis or Cluster).
+   * Takes precedence over `connection` options.
+   * BullMQ Queue/Worker accept ioredis instances directly as `connection`.
+   * Cluster instances are safe to share across tenants since isolation is via key prefix.
+   */
+  redisInstance?: Redis | Cluster
   defaultJobOptions?: JobsOptions
   /**
    * Tenant ID for multi-tenant isolation.
@@ -123,21 +131,39 @@ export class BullMQConnector implements TaskConnector<object> {
 
     // Prefix priority: explicit prefix > tenantId-based > default 'bull'
     // Keys will be: {prefix}:{queueName}:{keyType}
-    this._prefix =
+    let prefix =
       config?.prefix ??
       (config?.tenantId
         ? `${config.tenantId}:${DEFAULT_PREFIX}`
         : DEFAULT_PREFIX)
 
-    this.connectionOptions = {
-      host: config?.connection?.host || DEFAULT_HOST,
-      port: config?.connection?.port || DEFAULT_PORT,
-      username: config?.connection?.username,
-      password: config?.connection?.password,
-      db: config?.connection?.db || 0,
-      family: config?.connection?.family || 4,
-      maxRetriesPerRequest: config?.connection?.maxRetriesPerRequest ?? null,
+    // Redis Cluster: BullMQ Lua scripts touch multiple keys per queue.
+    // All must hash to the same slot. Wrapping the prefix in {} hash tags
+    // ensures Redis uses only the tagged portion for slot calculation.
+    // Detect Cluster by checking for the .nodes() method.
+    const isCluster =
+      config?.redisInstance &&
+      typeof (config.redisInstance as any).nodes === 'function'
+    if (isCluster && !prefix.startsWith('{')) {
+      prefix = `{${prefix}}`
     }
+
+    this._prefix = prefix
+
+    // If a pre-built ioredis instance is provided, use it directly.
+    // BullMQ Queue/Worker accept ioredis.Redis or ioredis.Cluster as connection.
+    this.connectionOptions = config?.redisInstance
+      ? config.redisInstance
+      : {
+          host: config?.connection?.host || DEFAULT_HOST,
+          port: config?.connection?.port || DEFAULT_PORT,
+          username: config?.connection?.username,
+          password: config?.connection?.password,
+          db: config?.connection?.db || 0,
+          family: config?.connection?.family || 4,
+          maxRetriesPerRequest:
+            config?.connection?.maxRetriesPerRequest ?? null,
+        }
 
     this.defaultJobOptions = config?.defaultJobOptions || {
       attempts: DEFAULT_MAX_RETRIES,
@@ -182,6 +208,8 @@ export class BullMQConnector implements TaskConnector<object> {
     return new BullMQConnector({
       ...this.config,
       tenantId,
+      // Propagate pre-built Redis instance (cluster instances are safe to share)
+      redisInstance: this.config.redisInstance,
       connection: {
         ...this.config.connection,
         // Override credentials if provided for stronger isolation

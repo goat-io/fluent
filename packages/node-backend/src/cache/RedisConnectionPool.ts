@@ -1,5 +1,6 @@
 // npx vitest run ./src/cache/RedisConnectionPool.test.ts
 import KeyvRedis from '@keyv/redis'
+import { Cluster, type ClusterNode, type ClusterOptions } from 'ioredis'
 
 interface PoolEntry {
   client: any // Redis client instance
@@ -51,6 +52,53 @@ export class RedisConnectionPool {
     })
 
     return store
+  }
+
+  /**
+   * Get a Redis store backed by an ioredis Cluster instance.
+   * Pools the underlying Cluster connection by a key derived from the sorted node list.
+   *
+   * IMPORTANT: Uses `useRedisSets: false` because MULTI/EXEC (used by the default
+   * useRedisSets: true) is not supported across slots in Redis Cluster.
+   *
+   * @param nodes Cluster seed nodes
+   * @param options ioredis ClusterOptions
+   * @returns KeyvRedis store wrapping the shared Cluster instance
+   */
+  public getClusterConnection(
+    nodes: ClusterNode[],
+    options?: ClusterOptions,
+  ): KeyvRedis {
+    const poolKey = `cluster:${JSON.stringify(
+      [...nodes].sort((a, b) =>
+        JSON.stringify(a).localeCompare(JSON.stringify(b)),
+      ),
+    )}`
+
+    const entry = this.pool.get(poolKey)
+
+    if (entry) {
+      entry.refCount++
+      return new KeyvRedis(entry.client, { useRedisSets: false })
+    }
+
+    const cluster = new Cluster(nodes, {
+      enableReadyCheck: true,
+      scaleReads: 'slave',
+      dnsLookup: (address, callback) => callback(null, address),
+      ...options,
+      redisOptions: {
+        maxRetriesPerRequest: null,
+        ...options?.redisOptions,
+      },
+    })
+
+    this.pool.set(poolKey, {
+      client: cluster,
+      refCount: 1,
+    })
+
+    return new KeyvRedis(cluster as any, { useRedisSets: false })
   }
 
   /**

@@ -1,14 +1,15 @@
 import type { Options } from 'keyv'
-import { Cache, type CacheOptions } from './Cache'
-import { LazyRedisStore } from './cache/LazyRedisStore'
+import { Cache, type CacheClusterConfig, type CacheOptions } from './Cache'
+import { type ClusterConfig, LazyRedisStore } from './cache/LazyRedisStore'
 import { RedisConnectionPool } from './cache/RedisConnectionPool'
 
 export { Cache, LazyRedisStore, RedisConnectionPool }
-export type { CacheOptions, Options }
+export type { CacheClusterConfig, CacheOptions, ClusterConfig, Options }
 
 export type * from '@trpc/server'
 export { TRPCError } from '@trpc/server'
 export type * from '@trpc/server/unstable-core-do-not-import'
+export type { ClusterNode, ClusterOptions } from 'ioredis'
 ////////////////////////
 // Container System
 ////////////////////////

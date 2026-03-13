@@ -1,4 +1,5 @@
 import { type Milliseconds, Promises } from '@goatlab/js-utils'
+import type { ClusterOptions } from 'ioredis'
 import type { Options } from 'keyv'
 
 const Keyv = require('keyv')
@@ -6,6 +7,11 @@ const Keyv = require('keyv')
 import { KeyvLru } from './cache/KeyvLrus'
 import { LazyRedisStore } from './cache/LazyRedisStore'
 import { RedisConnectionPool } from './cache/RedisConnectionPool'
+
+export interface CacheClusterConfig {
+  nodes: Array<{ host: string; port: number }>
+  options?: ClusterOptions
+}
 
 export interface CacheOptions<T> extends Options<T> {
   usesLRUMemory?: boolean
@@ -20,6 +26,12 @@ export interface CacheOptions<T> extends Options<T> {
    * @default true
    */
   lazy?: boolean
+  /**
+   * Redis Cluster configuration.
+   * When provided, the cache connects to a Redis Cluster instead of standalone Redis.
+   * Takes precedence over the `connection` string for store creation.
+   */
+  cluster?: CacheClusterConfig
 }
 
 export class Cache<T extends object = any> extends Keyv<T> {
@@ -42,6 +54,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
     const tenantId = opts?.tenantId
     const namespace = opts?.namespace || ''
     const lazy = opts?.lazy !== false // Default to true
+    const clusterConfig = opts?.cluster
 
     // Build the full namespace including tenant ID if provided
     // Format: "tenantId:namespace" or "tenantId" or "namespace" or ""
@@ -57,7 +70,14 @@ export class Cache<T extends object = any> extends Keyv<T> {
     let store: any
     let lazyStore: LazyRedisStore | undefined
 
-    if (connection) {
+    if (clusterConfig) {
+      // Cluster mode: always lazy, use cluster config
+      lazyStore = new LazyRedisStore(connection || 'cluster', {
+        nodes: clusterConfig.nodes,
+        options: clusterConfig.options,
+      })
+      store = lazyStore
+    } else if (connection) {
       if (lazy) {
         // Lazy mode: use LazyRedisStore that defers connection
         lazyStore = new LazyRedisStore(connection)
@@ -296,12 +316,21 @@ export class Cache<T extends object = any> extends Keyv<T> {
     // Try to get direct Redis access for batch deletion (much faster)
     const redis = await this.getRedisClient()
     if (redis) {
-      // Use Redis SCAN + UNLINK for fast bulk deletion
       const pattern = this.ns ? `${this.ns}:*` : '*'
-      const keys = await redis.keys(pattern)
-      if (keys.length > 0) {
-        // UNLINK is non-blocking and faster than DEL for large keysets
-        await redis.unlink(keys)
+
+      if (typeof redis.nodes === 'function') {
+        // Redis Cluster: SCAN each master node individually
+        // redis.keys() fails on cluster because it only hits one slot
+        const masterNodes: any[] = redis.nodes('master')
+        for (const node of masterNodes) {
+          await this.scanAndUnlink(node, pattern)
+        }
+      } else {
+        // Standalone: Use Redis SCAN + UNLINK for fast bulk deletion
+        const keys = await redis.keys(pattern)
+        if (keys.length > 0) {
+          await redis.unlink(keys)
+        }
       }
     } else {
       // Fallback: iterator-based deletion (slower but works for any store)
@@ -328,6 +357,27 @@ export class Cache<T extends object = any> extends Keyv<T> {
     if (this.usesLRUMemory) {
       await this.memoryCache.clear()
     }
+  }
+
+  /**
+   * SCAN a single Redis node for keys matching a pattern and UNLINK them.
+   * Used for cluster-safe flush operations where `keys()` is not viable.
+   */
+  private async scanAndUnlink(node: any, pattern: string): Promise<void> {
+    let cursor = '0'
+    do {
+      const [nextCursor, keys]: [string, string[]] = await node.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        200,
+      )
+      cursor = nextCursor
+      if (keys.length > 0) {
+        await node.unlink(...keys)
+      }
+    } while (cursor !== '0')
   }
 
   /**

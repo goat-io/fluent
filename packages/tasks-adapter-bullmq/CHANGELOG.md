@@ -1,5 +1,24 @@
 # @goatlab/tasks-adapter-bullmq
 
+## 0.8.1
+
+### Patch Changes
+
+- Fix CROSSSLOT errors on Redis Cluster: auto-wrap BullMQ prefix in {} hash tags when redisInstance is a Cluster
+
+## 0.8.0
+
+### Minor Changes
+
+- Add Redis Cluster support for GCP Memorystore Valkey compatibility
+
+  - node-backend: RedisConnectionPool.getClusterConnection() pools ioredis.Cluster instances with useRedisSets:false (MULTI/EXEC breaks on cluster)
+  - node-backend: LazyRedisStore accepts optional ClusterConfig for deferred cluster connections
+  - node-backend: Cache accepts cluster option and flush() uses per-node SCAN instead of keys() on cluster
+  - node-backend: Export ClusterNode, ClusterOptions, CacheClusterConfig types
+  - tasks-adapter-bullmq: BullMQConnectorConfig accepts redisInstance (pre-built ioredis Redis or Cluster)
+  - tasks-adapter-bullmq: forTenant() propagates redisInstance for shared cluster connections
+
 ## 0.7.1
 
 ### Patch Changes

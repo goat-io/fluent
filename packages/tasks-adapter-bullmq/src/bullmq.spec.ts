@@ -154,6 +154,63 @@ describe('BullMQConnector Specific Tests', () => {
     expect(tenantConnector.tenantId).toBe('acme-corp')
     // Credentials are stored internally in connectionOptions
   })
+
+  it('should wrap prefix in {} hash tags when redisInstance is a Cluster', () => {
+    // Mock a Cluster instance (has .nodes() method)
+    const fakeCluster = { nodes: () => [] } as any
+
+    const clusterConnector = new BullMQConnector({
+      redisInstance: fakeCluster,
+      tenantId: 'tenant:acme',
+    })
+
+    expect(clusterConnector.prefix).toBe('{tenant:acme:bull}')
+  })
+
+  it('should wrap explicit prefix in {} hash tags when redisInstance is a Cluster', () => {
+    const fakeCluster = { nodes: () => [] } as any
+
+    const clusterConnector = new BullMQConnector({
+      redisInstance: fakeCluster,
+      prefix: 'tenant:sodium-platform:dispatch',
+    })
+
+    expect(clusterConnector.prefix).toBe('{tenant:sodium-platform:dispatch}')
+  })
+
+  it('should NOT wrap prefix when redisInstance is standalone Redis (no .nodes())', () => {
+    const fakeRedis = {} as any
+
+    const standaloneConnector = new BullMQConnector({
+      redisInstance: fakeRedis,
+      tenantId: 'tenant:acme',
+    })
+
+    expect(standaloneConnector.prefix).toBe('tenant:acme:bull')
+  })
+
+  it('should NOT double-wrap prefix already containing {}', () => {
+    const fakeCluster = { nodes: () => [] } as any
+
+    const clusterConnector = new BullMQConnector({
+      redisInstance: fakeCluster,
+      prefix: '{already-wrapped}',
+    })
+
+    expect(clusterConnector.prefix).toBe('{already-wrapped}')
+  })
+
+  it('forTenant() should preserve cluster hash tag wrapping', () => {
+    const fakeCluster = { nodes: () => [] } as any
+
+    const baseCluster = new BullMQConnector({
+      redisInstance: fakeCluster,
+      tenantId: 'base',
+    })
+
+    const tenantConnector = baseCluster.forTenant('tenant:acme')
+    expect(tenantConnector.prefix).toBe('{tenant:acme:bull}')
+  })
 })
 
 // Multi-tenant isolation tests

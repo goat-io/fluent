@@ -1,5 +1,18 @@
 # 0.5.20
 
+## 1.4.0
+
+### Minor Changes
+
+- Add Redis Cluster support for GCP Memorystore Valkey compatibility
+
+  - node-backend: RedisConnectionPool.getClusterConnection() pools ioredis.Cluster instances with useRedisSets:false (MULTI/EXEC breaks on cluster)
+  - node-backend: LazyRedisStore accepts optional ClusterConfig for deferred cluster connections
+  - node-backend: Cache accepts cluster option and flush() uses per-node SCAN instead of keys() on cluster
+  - node-backend: Export ClusterNode, ClusterOptions, CacheClusterConfig types
+  - tasks-adapter-bullmq: BullMQConnectorConfig accepts redisInstance (pre-built ioredis Redis or Cluster)
+  - tasks-adapter-bullmq: forTenant() propagates redisInstance for shared cluster connections
+
 ## 1.3.0
 
 ### Minor Changes

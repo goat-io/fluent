@@ -1,5 +1,11 @@
 import KeyvRedis from '@keyv/redis'
+import type { ClusterNode, ClusterOptions } from 'ioredis'
 import { RedisConnectionPool } from './RedisConnectionPool'
+
+export interface ClusterConfig {
+  nodes: ClusterNode[]
+  options?: ClusterOptions
+}
 
 /**
  * A lazy-loading Redis store for Keyv.
@@ -7,12 +13,18 @@ import { RedisConnectionPool } from './RedisConnectionPool'
  * This prevents connection exhaustion during Cloud Run/serverless deployments
  * where old and new containers may briefly run simultaneously.
  *
+ * Supports both standalone Redis (via connection string) and Redis Cluster (via clusterConfig).
+ *
  * @example
  * ```typescript
+ * // Standalone
  * const store = new LazyRedisStore('redis://localhost:6379')
- * // No connection yet!
  *
- * await store.get('key') // Connection established on first use
+ * // Cluster
+ * const store = new LazyRedisStore('cluster', {
+ *   nodes: [{ host: '10.0.0.2', port: 6379 }],
+ *   options: { redisOptions: { password: 'secret', tls: { rejectUnauthorized: false } } }
+ * })
  * ```
  */
 export class LazyRedisStore {
@@ -21,6 +33,7 @@ export class LazyRedisStore {
   private _store: KeyvRedis | undefined
   private _connecting: Promise<KeyvRedis> | undefined
   private _namespace: string | undefined
+  private _clusterConfig?: ClusterConfig
 
   /**
    * Opts property for Keyv compatibility.
@@ -30,8 +43,9 @@ export class LazyRedisStore {
    */
   public readonly opts: { dialect: string; url: string }
 
-  constructor(connectionString: string) {
+  constructor(connectionString: string, clusterConfig?: ClusterConfig) {
     this.connectionString = connectionString
+    this._clusterConfig = clusterConfig
     this.pool = RedisConnectionPool.getInstance()
 
     // Set opts for Keyv iterator detection
@@ -81,7 +95,12 @@ export class LazyRedisStore {
     // Start connection
     this._connecting = new Promise((resolve, reject) => {
       try {
-        this._store = this.pool.getConnection(this.connectionString)
+        this._store = this._clusterConfig
+          ? this.pool.getClusterConnection(
+              this._clusterConfig.nodes,
+              this._clusterConfig.options,
+            )
+          : this.pool.getConnection(this.connectionString)
 
         // Forward namespace to the underlying store if set
         // This is critical for clear() and other namespace-scoped operations
