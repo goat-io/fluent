@@ -29,6 +29,12 @@ export class RedisConnectionPool {
   /**
    * Get a Redis store from the pool. Creates a new KeyvRedis instance that uses
    * a shared Redis client if one exists, or creates a new client if not.
+   *
+   * For `rediss://` (TLS) URLs, automatically adds `tls: { rejectUnauthorized: false }`
+   * so that connections to Redis instances using non-public CA certificates (e.g., GCP
+   * Memorystore with Google-managed certs) work without disabling TLS validation
+   * process-wide via NODE_TLS_REJECT_UNAUTHORIZED.
+   *
    * @param connectionString The Redis connection string
    * @returns KeyvRedis store instance
    */
@@ -41,8 +47,19 @@ export class RedisConnectionPool {
       return new KeyvRedis(entry.client)
     }
 
-    // Create new connection - KeyvRedis will create the Redis client
-    const store = new KeyvRedis(connectionString)
+    // For rediss:// (TLS) URLs, pass per-connection TLS options to ioredis
+    // so we don't need the process-wide NODE_TLS_REJECT_UNAUTHORIZED=0 hack.
+    // GCP Memorystore Valkey uses Google-managed CA certs not in Node's default
+    // CA bundle, so rejectUnauthorized must be false for those connections.
+    const isTls = connectionString.startsWith('rediss://')
+    const store = isTls
+      ? new KeyvRedis({
+          uri: connectionString,
+          tls: { rejectUnauthorized: false },
+          family: 4,
+        } as any)
+      : new KeyvRedis(connectionString)
+
     // @ts-expect-error - accessing private property to get the client
     const client = store.redis || store.client
 
