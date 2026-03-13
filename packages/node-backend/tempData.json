@@ -1,0 +1,1 @@
+{"redisUrl":"redis://localhost:55101","vaultUrl":"http://localhost:55102","vaultToken":"test-token"}

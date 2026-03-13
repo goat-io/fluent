@@ -8,7 +8,7 @@ import type {
 } from '@goatlab/tasks-core'
 import type { ConnectionOptions, JobsOptions } from 'bullmq'
 import { type Job, Queue, Worker } from 'bullmq'
-import type { Cluster, Redis } from 'ioredis'
+import type { Cluster, Redis, RedisOptions } from 'ioredis'
 
 // Default configuration constants
 const DEFAULT_HOST = 'localhost'
@@ -17,15 +17,11 @@ const DEFAULT_MAX_RETRIES = 3
 const DEFAULT_CONCURRENCY = 100
 const DEFAULT_PREFIX = 'bull'
 
-export interface BullMQConnectionOptions {
-  host?: string
-  port?: number
-  username?: string
-  password?: string
-  db?: number
-  family?: 4 | 6
-  maxRetriesPerRequest?: number | null
-}
+/**
+ * Connection options passed through to ioredis.
+ * Supports all RedisOptions (TLS, keepAlive, reconnectOnError, etc.)
+ */
+export type BullMQConnectionOptions = RedisOptions
 
 export interface BullMQConnectorConfig {
   connection?: BullMQConnectionOptions
@@ -152,17 +148,15 @@ export class BullMQConnector implements TaskConnector<object> {
 
     // If a pre-built ioredis instance is provided, use it directly.
     // BullMQ Queue/Worker accept ioredis.Redis or ioredis.Cluster as connection.
+    // Otherwise, spread ALL user connection options so TLS, keepAlive, etc. pass through.
     this.connectionOptions = config?.redisInstance
       ? config.redisInstance
       : {
-          host: config?.connection?.host || DEFAULT_HOST,
-          port: config?.connection?.port || DEFAULT_PORT,
-          username: config?.connection?.username,
-          password: config?.connection?.password,
-          db: config?.connection?.db || 0,
-          family: config?.connection?.family || 4,
-          maxRetriesPerRequest:
-            config?.connection?.maxRetriesPerRequest ?? null,
+          host: DEFAULT_HOST,
+          port: DEFAULT_PORT,
+          maxRetriesPerRequest: null, // Required by BullMQ
+          family: 4,
+          ...config?.connection, // Spread ALL user options (TLS, keepAlive, etc.)
         }
 
     this.defaultJobOptions = config?.defaultJobOptions || {
