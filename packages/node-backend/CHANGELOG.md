@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 1.4.1
+
+### Patch Changes
+
+- Fix TLS validation for Redis connections: pass per-connection `tls: { rejectUnauthorized: false }` for `rediss://` URLs instead of requiring the process-wide `NODE_TLS_REJECT_UNAUTHORIZED=0` env var
+
 ## 1.4.0
 
 ### Minor Changes
