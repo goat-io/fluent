@@ -60,6 +60,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
     expressResources,
     customHandlers,
     requestLogPrefix,
+    logging,
     auth,
     features,
     security,
@@ -318,7 +319,7 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
   }
 
   app.use((req, _res, next) =>
-    expressRequestLogger(req, _res, next, logger, requestLogPrefix),
+    expressRequestLogger(req, _res, next, logger, requestLogPrefix, logging),
   )
 
   app.use(

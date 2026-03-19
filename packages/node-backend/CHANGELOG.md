@@ -1,5 +1,20 @@
 # 0.5.20
 
+## 1.5.0
+
+### Minor Changes
+
+- Structured Cloud Run logging and request log improvements
+
+  - **Structured JSON logging**: Replace `@google-cloud/logging-winston` with a built-in `CloudRunJsonTransport` that writes structured JSON to stdout. Cloud Run automatically parses this into `jsonPayload` with proper severity, labels, and trace correlation. Removes the `@google-cloud/logging-winston` dependency.
+  - **Fix production log level**: Change from `'error'` to `'info'` so request logs and warnings are visible in production (previously silently dropped).
+  - **Fix request log levels**: 2xx responses now log at `info` level instead of `warn`.
+  - **Structured metadata**: Request logs include structured fields (`tenantId`, `httpMethod`, `httpStatus`, `durationMs`, `url`, `trpcPath`) for Cloud Logging filtering.
+  - **Suppressed paths**: New `logging.suppressedPaths` config option to skip noisy health check paths (`/livez`, `/readyz`, `/health`, `/ready` by default).
+  - **Trace correlation**: New `logging.getTraceContext` callback to extract Cloud Trace headers for request-scoped log grouping.
+  - **Memory monitor debounce**: Only logs on state transitions (normal→warning→critical) instead of every interval, dramatically reducing log noise.
+  - **Strip ANSI codes**: Memory monitor no longer wraps messages in kleur color codes that produce escape characters in structured logs.
+
 ## 1.4.1
 
 ### Patch Changes

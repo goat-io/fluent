@@ -2,7 +2,6 @@
 
 import { CommonLogger } from '@goatlab/js-utils'
 import type { NextFunction, Request, Response } from 'express'
-import { red, yellow } from 'kleur/colors'
 
 interface MemoryMonitorOptions {
   logger?: CommonLogger
@@ -12,6 +11,8 @@ interface MemoryMonitorOptions {
   enableGarbageCollection?: boolean
   addHeaders?: boolean
 }
+
+type MemoryState = 'normal' | 'warning' | 'critical'
 
 interface MemoryMetrics {
   heapUsedMB: number
@@ -31,6 +32,7 @@ class MemoryMonitor {
   private intervalTimer?: NodeJS.Timeout
   private lastMetrics?: MemoryMetrics
   private gcAvailable: boolean
+  private lastState: MemoryState = 'normal'
 
   constructor(options: MemoryMonitorOptions = {}) {
     this.logger = options.logger || console
@@ -73,12 +75,25 @@ class MemoryMonitor {
   private checkMemoryUsage(metrics: MemoryMetrics): void {
     const { heapUsedPercentage } = metrics
 
+    // Determine current state
+    let currentState: MemoryState = 'normal'
     if (heapUsedPercentage >= this.criticalThreshold) {
-      this.logger.error(
-        red(
-          `CRITICAL: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`,
-        ),
-      )
+      currentState = 'critical'
+    } else if (heapUsedPercentage >= this.warningThreshold) {
+      currentState = 'warning'
+    }
+
+    // Only log on state transitions to avoid flooding logs
+    if (currentState === this.lastState) {
+      return
+    }
+    const previousState = this.lastState
+    this.lastState = currentState
+
+    const memInfo = `Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`
+
+    if (currentState === 'critical') {
+      this.logger.error(`CRITICAL: ${memInfo}`)
 
       // Attempt garbage collection if available and enabled
       if (this.enableGarbageCollection && this.gcAvailable) {
@@ -95,12 +110,11 @@ class MemoryMonitor {
           )
         }, 100)
       }
-    } else if (heapUsedPercentage >= this.warningThreshold) {
-      this.logger.warn(
-        yellow(
-          `WARNING: Memory usage at ${heapUsedPercentage.toFixed(1)}% - ${this.formatMemoryMetrics(metrics)}`,
-        ),
-      )
+    } else if (currentState === 'warning') {
+      this.logger.warn(`WARNING: ${memInfo}`)
+    } else if (previousState !== 'normal') {
+      // Recovered from warning/critical — log the good news
+      this.logger.log(`Memory recovered: ${memInfo}`)
     }
   }
 

@@ -8,6 +8,27 @@ import { bgBlack, cyan, green, magenta, red, yellow } from 'kleur/colors'
  */
 export type RequestLogPrefixFn = (req: Request) => string | undefined
 
+/**
+ * Options for the Express request logger.
+ */
+export interface RequestLoggerOptions {
+  /**
+   * Paths to suppress from request logs (e.g. health checks).
+   * Only suppresses successful (< 400) responses on these paths.
+   * @example ['/livez', '/readyz', '/health']
+   */
+  suppressedPaths?: string[]
+
+  /**
+   * Extract trace context from the request for structured logging.
+   * Returns trace/span IDs for Cloud Logging correlation.
+   */
+  getTraceContext?: (req: Request) => {
+    traceId?: string
+    spanId?: string
+  }
+}
+
 // Adds color to HTTP status codes based on their range
 export const httpResponseCodeColor = (statusCode: number): string => {
   if (statusCode >= 200 && statusCode < 400) {
@@ -30,18 +51,21 @@ export const httpResponseTimeColor = (msTime: number): string => {
   return red(Time.ms(msTime))
 }
 
-// Utility function to log based on status code
+// Utility function to log based on status code with optional structured metadata
 const logMessage = (
   message: string,
   statusCode: number,
   logger: CommonLogger,
+  meta?: Record<string, unknown>,
 ) => {
+  const args = meta ? [message, meta] : [message]
+
   if (statusCode >= 500) {
-    logger.error(message)
+    logger.error(...args)
   } else if (statusCode >= 400) {
-    logger.warn(message)
+    logger.warn(...args)
   } else {
-    logger.warn(message)
+    logger.log(...args)
   }
 }
 
@@ -86,6 +110,7 @@ function logBatchRequests({
   statusMessage,
   durationInMilliseconds,
   logger,
+  traceMeta,
 }: {
   prefix?: string
   date: string
@@ -95,7 +120,16 @@ function logBatchRequests({
   statusMessage: string
   durationInMilliseconds: number
   logger: CommonLogger
+  traceMeta?: Record<string, unknown>
 }) {
+  const baseMeta: Record<string, unknown> = {
+    ...(prefix && { tenantId: prefix }),
+    httpMethod: method,
+    httpStatus: statusCode,
+    durationMs: Math.round(durationInMilliseconds),
+    ...traceMeta,
+  }
+
   const decodedUrl = decodeURIComponent(url)
   const urlParts = decodedUrl.split('?')
   const baseUrl = urlParts[0] || ''
@@ -112,7 +146,7 @@ function logBatchRequests({
         const endpoints = endpointString ? endpointString.split(',') : []
 
         if (endpoints.length > 1) {
-          logger.warn(
+          logger.log(
             `Batch Requests: ${yellow(`${endpoints.length} endpoints`)} \n\n${method.toUpperCase()} ${baseUrl} \n\n`,
           )
         }
@@ -127,7 +161,11 @@ function logBatchRequests({
             statusMessage,
             durationInMilliseconds,
           })} | ${yellow('Batch Params')}: ${JSON.stringify(params, null, 2)}`
-          logMessage(message, statusCode, logger)
+          logMessage(message, statusCode, logger, {
+            ...baseMeta,
+            url: endpoint,
+            trpcPath: endpoint,
+          })
         })
       } catch (err: any) {
         logger.error(
@@ -135,15 +173,21 @@ function logBatchRequests({
         )
       }
     } else {
+      const cleanUrl = `${baseUrl}?${queryParams.toString()}`
       const message = formatRequestLog({
         prefix,
         method,
-        url: `${baseUrl}?${queryParams.toString()}`,
+        url: cleanUrl,
         statusCode,
         statusMessage,
         durationInMilliseconds,
       })
-      logMessage(message, statusCode, logger)
+      const trpcPath = baseUrl.split('/trpc/')[1]
+      logMessage(message, statusCode, logger, {
+        ...baseMeta,
+        url: cleanUrl,
+        ...(trpcPath && { trpcPath }),
+      })
     }
   } else {
     const message = formatRequestLog({
@@ -154,7 +198,12 @@ function logBatchRequests({
       statusMessage,
       durationInMilliseconds,
     })
-    logMessage(message, statusCode, logger)
+    const trpcPath = baseUrl.split('/trpc/')[1]
+    logMessage(message, statusCode, logger, {
+      ...baseMeta,
+      url: baseUrl,
+      ...(trpcPath && { trpcPath }),
+    })
   }
 }
 
@@ -164,6 +213,7 @@ export const expressRequestLogger = (
   next: NextFunction,
   logger: CommonLogger,
   getLogPrefix?: RequestLogPrefixFn,
+  options?: RequestLoggerOptions,
 ): void => {
   const formattedDate = getCurrentTimeFormatted()
   const start = process.hrtime()
@@ -172,7 +222,32 @@ export const expressRequestLogger = (
     const { method, originalUrl } = request
     const { statusCode, statusMessage } = response
     const durationInMilliseconds = getActualRequestDurationInMilliseconds(start)
+
+    // Suppress noisy paths (e.g. health checks) for successful responses
+    if (options?.suppressedPaths?.length) {
+      const basePath = originalUrl.split('?')[0]
+      if (
+        basePath &&
+        options.suppressedPaths.includes(basePath) &&
+        statusCode < 400
+      ) {
+        return
+      }
+    }
+
     const prefix = getLogPrefix?.(request)
+
+    // Build trace context for structured logging
+    const traceMeta: Record<string, unknown> = {}
+    if (options?.getTraceContext) {
+      const { traceId, spanId } = options.getTraceContext(request)
+      if (traceId) {
+        traceMeta['logging.googleapis.com/trace'] = traceId
+      }
+      if (spanId) {
+        traceMeta['logging.googleapis.com/spanId'] = spanId
+      }
+    }
 
     logBatchRequests({
       prefix,
@@ -183,6 +258,7 @@ export const expressRequestLogger = (
       statusMessage,
       durationInMilliseconds,
       logger,
+      traceMeta,
     })
   })
 

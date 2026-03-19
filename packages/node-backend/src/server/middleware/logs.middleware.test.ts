@@ -159,6 +159,7 @@ describe('logs.middleware', () => {
       mockNext = vi.fn()
 
       mockLogger = {
+        log: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
       }
@@ -215,7 +216,7 @@ describe('logs.middleware', () => {
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
 
     it('should handle TRPC batch requests', () => {
@@ -242,7 +243,7 @@ describe('logs.middleware', () => {
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
 
     it('should handle malformed JSON in batch requests', () => {
@@ -296,7 +297,7 @@ describe('logs.middleware', () => {
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
 
     it('should handle error status codes', () => {
@@ -376,7 +377,7 @@ describe('logs.middleware', () => {
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
   })
 })

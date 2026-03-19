@@ -54,7 +54,12 @@ export {
 } from './server/context/trpc.context'
 export { useCloudTaskDecryptMiddleware } from './server/middleware/cloudTaskDecrypt.middleware'
 export { handleRequest } from './server/middleware/handleRequest.middleware'
+export {
+  CloudRunJsonTransport,
+  type CloudRunJsonTransportOptions,
+} from './server/middleware/logger/cloudRun.logger'
 export { getLogger } from './server/middleware/logger/logger.service'
+export type { RequestLoggerOptions } from './server/middleware/logs.middleware'
 export type {
   DecodedUserToken,
   RequestUser,
