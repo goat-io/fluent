@@ -2,7 +2,10 @@ import type { CommonLogger } from '@goatlab/js-utils'
 import type { BuiltRouter } from '@trpc/server/unstable-core-do-not-import'
 import type { Request, RequestHandler, Router } from 'express'
 import { pkg } from '../consts'
-import type { RequestLogPrefixFn } from '../middleware/logs.middleware'
+import type {
+  RequestLoggerOptions,
+  RequestLogPrefixFn,
+} from '../middleware/logs.middleware'
 import type { SentryService } from '../sentry/sentry.service'
 import type { Environment } from '../types/Envinronment'
 
@@ -111,6 +114,12 @@ export interface OptionalExpressTrpcAppConfig {
    * ```
    */
   requestLogPrefix?: RequestLogPrefixFn
+
+  /**
+   * Logging configuration for request logs.
+   * Passed through to the Express request logger middleware.
+   */
+  logging?: RequestLoggerOptions
 
   // Authentication configuration (Better Auth)
   auth?: AuthConfig
@@ -310,6 +319,11 @@ export function getDefaultConfig(
     expressResources: [],
     customHandlers: [],
     requestLogPrefix: undefined,
+
+    // Logging configuration
+    logging: {
+      suppressedPaths: ['/livez', '/readyz', '/health', '/ready'],
+    },
 
     // Authentication (Better Auth) - no default validator
     auth: {
