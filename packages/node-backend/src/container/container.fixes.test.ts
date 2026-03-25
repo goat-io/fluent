@@ -672,7 +672,7 @@ describe('Symbol-based proxy opt-out', () => {
     })
   })
 
-  test('should still wrap objects without the symbol', async () => {
+  test('should return raw objects without proxy wrapping', async () => {
     const nestedService = {
       inner: {
         value: 42,
@@ -692,8 +692,8 @@ describe('Symbol-based proxy opt-out', () => {
       const ctx = container.context as any
       expect(ctx.nested.inner.value).toBe(42)
 
-      // Accessing non-existent should throw (proxy is active)
-      expect(() => ctx.nested.inner.nonExistent).toThrow('not initialized')
+      // No proxy — accessing non-existent returns undefined
+      expect(ctx.nested.inner.nonExistent).toBeUndefined()
     })
   })
 

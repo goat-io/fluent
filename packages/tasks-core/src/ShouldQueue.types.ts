@@ -16,11 +16,14 @@ export type JsonValue =
 export type JsonObject = { [x: string]: JsonValue }
 
 /**
- * Constraint for task payloads. Any plain object is accepted —
- * concrete types like `{ tenantId: string }` satisfy this without
- * needing an explicit index signature.
+ * Constraint for task payloads. Uses `object` so that concrete
+ * interfaces like `{ tenantId: string }` satisfy the generic
+ * without needing an explicit index signature (TypeScript interfaces
+ * don't have implicit index signatures, so Record<string, unknown>
+ * doesn't work).
  */
-export type InputType = Record<string, unknown>
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export type InputType = object
 
 export type OutputType = undefined | JsonObject
 export type UnknownInputType = {}

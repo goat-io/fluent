@@ -66,13 +66,17 @@ export function createContextFactory(options: ContextFactoryOptions = {}) {
   }
 
   /**
-   * Create the tRPC/Express context for a request
+   * Create the tRPC/Express context for a request.
+   * Accepts optional `info` with `connectionParams` for SSE/subscription
+   * connections where the browser's EventSource API cannot send custom headers.
+   * The tRPC client passes the auth token via connectionParams instead.
    */
   async function createContext({
     req,
-  }: trpcExpress.CreateExpressContextOptions): Promise<
-    ReturnType<typeof requestContext>
-  > {
+    info,
+  }: trpcExpress.CreateExpressContextOptions & {
+    info?: { connectionParams?: Record<string, unknown> | null }
+  }): Promise<ReturnType<typeof requestContext>> {
     // Check if user was already validated by middleware (e.g., multi-tenant middleware)
     if (req.betterAuthUser) {
       return requestContext(req, {
@@ -89,8 +93,16 @@ export function createContextFactory(options: ContextFactoryOptions = {}) {
       })
     }
 
-    // Extract token from Authorization header
-    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req)
+    // Extract token from Authorization header first, then fall back to
+    // connectionParams (SSE/EventSource connections cannot send custom headers,
+    // so the tRPC client passes the auth token via connectionParams instead)
+    let token = ExtractJwt.fromAuthHeaderAsBearerToken()(req)
+    if (!token && info?.connectionParams) {
+      const cpAuth = info.connectionParams.authorization
+      if (typeof cpAuth === 'string' && cpAuth.startsWith('Bearer ')) {
+        token = cpAuth.slice(7)
+      }
+    }
 
     if (token) {
       // Validate using configured auth validator (Better Auth)

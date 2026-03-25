@@ -127,15 +127,13 @@ describe('Container basic tests', () => {
     expect(() => container.context).toThrow('No tenant context')
   })
 
-  test('should throw if context proxy is missing a service', async () => {
+  test('should return undefined for missing service (no proxy)', async () => {
     const meta = { tenantId: 'tenantY' }
     await container.bootstrap(meta, async () => {
       // Remove a service from context to simulate missing
       const store = (container as any).als.getStore()
       delete store.instances.serviceA
-      expect(() => container.context.serviceA).toThrow(
-        "Service 'serviceA' not initialized",
-      )
+      expect(container.context.serviceA).toBeUndefined()
     })
   })
 
@@ -894,7 +892,7 @@ describe('Container - Additional Tests', () => {
   })
 
   // Test accessing nested service that doesn't exist
-  test('should throw for nested service not initialized', async () => {
+  test('should return undefined for nested service not initialized (no proxy)', async () => {
     const incompleteInitializer = async (preload: any, meta: TenantMeta) => {
       return {
         serviceA: preload.serviceA(meta.tenantId, 42),
@@ -909,14 +907,11 @@ describe('Container - Additional Tests', () => {
     const meta = { tenantId: 'incomplete' }
 
     await incompleteContainer.bootstrap(meta, async () => {
-      expect(() => incompleteContainer.context.nested.serviceB).toThrow(
-        "Service 'nested.serviceB' not initialized",
-      )
+      expect(incompleteContainer.context.nested.serviceB).toBeUndefined()
     })
   })
 
-  // Test accessing deeply nested service that doesn't exist
-  test('should throw for deeply nested service not initialized', async () => {
+  test('should return undefined for deeply nested service not initialized (no proxy)', async () => {
     const incompleteInitializer = async (preload: any, meta: TenantMeta) => {
       return {
         serviceA: preload.serviceA(meta.tenantId, 42),
@@ -934,8 +929,8 @@ describe('Container - Additional Tests', () => {
 
     await incompleteContainer.bootstrap(meta, async () => {
       expect(
-        () => incompleteContainer.context.nested.deepNested.serviceC,
-      ).toThrow("Service 'nested.deepNested.serviceC' not initialized")
+        incompleteContainer.context.nested.deepNested.serviceC,
+      ).toBeUndefined()
     })
   })
 

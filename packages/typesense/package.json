@@ -4,7 +4,7 @@
   "name": "@goatlab/typesense",
   "description": "Modern TypeScript wrapper for Typesense search engine API",
   "author": "ignacio.cabrera@goatlab.io",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": false,
   "publishConfig": {
     "access": "public"

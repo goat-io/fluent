@@ -11,7 +11,6 @@ import {
   Factory,
   InstancesStructure,
   MapInterface,
-  NO_CONTAINER_PROXY,
   PreloadStructure,
 } from './types'
 
@@ -60,6 +59,7 @@ import {
  *
  * @template Defs - Factory definitions record (shared across tenants)
  * @template TenantMetadata - Type of tenant-specific metadata (DB config, secrets, etc.)
+ * @template TContext - Type of the context returned by the initializer (inferred from initializer return type, defaults to InstancesStructure<Defs>)
  *
  * Key Responsibilities:
  * 1. 🏭 **Factory Management**: Register and cache service factories
@@ -100,7 +100,11 @@ import {
  * })
  * ```
  */
-export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
+export class Container<
+  Defs extends Record<string, unknown>,
+  TenantMetadata,
+  TContext = InstancesStructure<Defs>,
+> {
   // ═══════════════════════════════════════════════════════════════════════════
   // 💾 CORE STORAGE SYSTEMS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -137,7 +141,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Also stores tenant metadata for introspection
    */
   private readonly als = new AsyncLocalStorage<{
-    instances: Partial<InstancesStructure<Defs>>
+    instances: TContext
     tenantMetadata: TenantMetadata
   }>()
 
@@ -164,10 +168,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Inflight promise deduplication for bootstrap operations
    * Prevents concurrent bootstrap for same tenant from running initializer twice
    */
-  private readonly initializerPromises = new Map<
-    string,
-    Promise<Partial<InstancesStructure<Defs>>>
-  >()
+  private readonly initializerPromises = new Map<string, Promise<TContext>>()
 
   /**
    * Tracks in-flight disposal operations per tenant
@@ -180,28 +181,18 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   // ⚡ PERFORMANCE OPTIMIZATION CACHES
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Path cache removed - direct string concatenation is faster
-
   /**
-   * Proxy object cache: reuses proxy objects for the same paths
+   * Proxy object cache: reuses proxy objects for the same paths (preload proxy only)
    * Reduces memory allocation and improves performance
    */
   private readonly proxyCache = new Map<string, any>()
-
-  /**
-   * Context proxy cache: reuses proxies for the same object instances
-   * Uses WeakMap for automatic garbage collection when objects are freed
-   */
-  private readonly contextProxyCache = new WeakMap<any, any>()
 
   /**
    * Initializer cache: stores initialized instances per tenant with LRU eviction
    * Avoids re-running the expensive initializer function for the same tenant
    * Uses tiny-lru for O(1) eviction instead of hand-rolled linear scan
    */
-  private readonly initializerCache: MapInterface<
-    Partial<InstancesStructure<Defs>>
-  >
+  private readonly initializerCache: MapInterface<TContext>
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 📊 PERFORMANCE METRICS
@@ -303,7 +294,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     private readonly initializer: (
       preload: PreloadStructure<Defs>,
       meta: TenantMetadata,
-    ) => Promise<Partial<InstancesStructure<Defs>>>,
+    ) => Promise<TContext>,
     options: ContainerOptions = {},
   ) {
     // Apply default options
@@ -323,9 +314,9 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     } as Required<ContainerOptions>
 
     // Initialize LRU cache for initializer results (O(1) eviction)
-    this.initializerCache = createServiceCache<
-      Partial<InstancesStructure<Defs>>
-    >(this.options.maxInitializerCacheSize)
+    this.initializerCache = createServiceCache<TContext>(
+      this.options.maxInitializerCacheSize,
+    )
 
     // Pre-cache factory lookups for better performance
     this.preloadFactoryCache()
@@ -475,7 +466,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * for testing or advanced use cases
    */
   async runWithContext<T>(
-    instances: Partial<InstancesStructure<Defs>>,
+    instances: TContext,
     tenantMetadata: TenantMetadata,
     fn: () => Promise<T>,
   ): Promise<T> {
@@ -488,7 +479,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * More efficient for pure synchronous code paths
    */
   runWithContextSync<T>(
-    instances: Partial<InstancesStructure<Defs>>,
+    instances: TContext,
     tenantMetadata: TenantMetadata,
     fn: () => T,
   ): T {
@@ -519,7 +510,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    *
    * Throws an error if called outside of a tenant context
    */
-  get context(): InstancesStructure<Defs> {
+  get context(): TContext {
     const store = this.als.getStore()
     if (!store) {
       throw new Error(
@@ -529,95 +520,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
 
     this.inc(Container.METRIC.CONTEXTS)
 
-    return this.createContextProxy(store.instances) as InstancesStructure<Defs>
-  }
-
-  /**
-   * Create a proxy for the runtime context that provides intelligent error handling
-   *
-   * The context proxy:
-   * 1. Provides helpful error messages when services are missing
-   * 2. Handles nested object access gracefully
-   * 3. Avoids wrapping Promises or arrays (which would break them)
-   * 4. Uses WeakMap caching for automatic memory management
-   *
-   * This ensures that accessing container.context.someService either works
-   * or gives you a clear error message about what's available
-   */
-  private createContextProxy(obj: any, path: (string | symbol)[] = []): any {
-    // Use WeakMap cache to avoid memory leaks
-    if (this.contextProxyCache.has(obj)) {
-      return this.contextProxyCache.get(obj)
-    }
-
-    const proxy = new Proxy(obj, {
-      get: (target, prop) => {
-        const newPath = path.length === 0 ? [prop] : [...path, prop]
-        const value = Reflect.get(target, prop)
-
-        if (value === undefined) {
-          // Check if property exists but is undefined (vs completely missing)
-          if (prop in target) {
-            // Property exists but is undefined - this is valid (e.g., optional services)
-            return undefined
-          }
-
-          // For symbols, especially well-known symbols like Symbol.iterator,
-          // just return undefined instead of throwing an error
-          if (typeof prop === 'symbol') {
-            return undefined
-          }
-
-          // Special case for 'then' to avoid Promise detection issues
-          if (prop === 'then') {
-            return undefined
-          }
-
-          // Property doesn't exist - provide helpful error message
-          const servicePath = newPath.join('.')
-          const available = Reflect.ownKeys(target).map(String).join(', ')
-          throw new Error(
-            `Service '${servicePath}' not initialized. ` +
-              `Available services: ${available}`,
-          )
-        }
-
-        // Only wrap objects that are safe to wrap
-        // Avoid wrapping Promises, arrays, thenable objects, or opted-out services
-        if (
-          typeof value === 'object' &&
-          value !== null &&
-          !Array.isArray(value) &&
-          !(value instanceof Promise) &&
-          typeof value.then !== 'function' &&
-          // Symbol-based opt-out: preferred mechanism for any service
-          !(NO_CONTAINER_PROXY in value && value[NO_CONTAINER_PROXY]) &&
-          // Legacy duck-typing checks (kept for backwards compatibility)
-          // Prisma clients
-          !(
-            '_engine' in value &&
-            '_extensions' in value &&
-            '$connect' in value
-          ) &&
-          // Redis/ioredis clients
-          !('options' in value && 'status' in value && 'connector' in value) &&
-          // Keyv instances
-          !('opts' in value) &&
-          // Cache store objects
-          !('store' in value && 'namespace' in value)
-        ) {
-          // Safe to wrap - create nested proxy
-          return this.createContextProxy(value, newPath)
-        }
-
-        // Return value as-is (primitives, functions, Promises, arrays)
-        return value
-      },
-    })
-
-    // Cache using WeakMap for automatic garbage collection
-    this.contextProxyCache.set(obj, proxy)
-    return proxy
+    return store.instances
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -668,9 +571,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Uses both result caching and inflight promise deduplication
    * Implements LRU eviction when cache exceeds maxInitializerCacheSize
    */
-  private async getOrCreateInstances(
-    meta: TenantMetadata,
-  ): Promise<Partial<InstancesStructure<Defs>>> {
+  private async getOrCreateInstances(meta: TenantMetadata): Promise<TContext> {
     const cacheKey = this.createTenantCacheKey(meta)
 
     // Wait for any pending disposal before re-initializing this tenant
@@ -762,7 +663,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
   async bootstrap<T>(
     meta: TenantMetadata,
     fn?: () => Promise<T>,
-  ): Promise<{ instances: InstancesStructure<Defs>; result?: T }> {
+  ): Promise<{ instances: TContext; result?: T }> {
     // Kill switch: reject blocked tenants immediately
     const m = meta as any
     const tenantId = m.id ?? m.tenantId ?? m.name
@@ -821,9 +722,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         timestamp: Date.now(),
       })
 
-      // Type assertion: we trust that initializer provides all required services
-      // In practice, this is validated at runtime by the context proxy
-      return { instances: instances as InstancesStructure<Defs>, result }
+      return { instances, result }
     } catch (err) {
       this.emit({
         type: 'bootstrap:error',
@@ -883,7 +782,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       fn?: () => Promise<T>
     }>,
     options: BatchBootstrapOptions<TMetadata> = {},
-  ): Promise<BatchBootstrapResult<Defs, TMetadata, T>[]> {
+  ): Promise<BatchBootstrapResult<Defs, TMetadata, T, TContext>[]> {
     const {
       concurrency = 10,
       continueOnError = true,
@@ -892,7 +791,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     } = options
 
     const total = tenantBatch.length
-    const results: BatchBootstrapResult<Defs, TMetadata, T>[] = new Array(total)
+    const results: BatchBootstrapResult<Defs, TMetadata, T, TContext>[] =
+      new Array(total)
     let completed = 0
     let nextIndex = 0
     let shouldAbort = false
@@ -1124,7 +1024,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       cacheMisses: this.metrics[Container.METRIC.MISSES],
       instanceCreations: this.metrics[Container.METRIC.CREATES],
       contextAccesses: this.metrics[Container.METRIC.CONTEXTS],
-      proxyCacheHits: this.metrics[Container.METRIC.PROXIES],
+      proxyCacheHits: 0, // Proxies removed — kept for backward compat
       initializerCacheHits: this.metrics[Container.METRIC.INIT_HITS],
       batchOperations: this.metrics[Container.METRIC.BATCH_OPS],
       batchErrors: this.metrics[Container.METRIC.BATCH_ERRORS],
@@ -1168,7 +1068,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     this.disposalPromises.clear()
     this.initializerCooldowns.clear()
 
-    // Note: contextProxyCache is a WeakMap and will be garbage collected automatically
+    // Note: no proxy cache to clear — proxies have been removed
   }
 
   /**
@@ -1224,7 +1124,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     this.disposalPromises.clear()
     this.initializerCooldowns.clear()
 
-    // Note: contextProxyCache is a WeakMap and will be garbage collected automatically
+    // Note: no proxy cache to clear — proxies have been removed
     return result
   }
 
@@ -1526,8 +1426,8 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
       ...this.getMetrics(),
       cacheStats,
       totalCacheSize,
-      pathCacheSize: 0, // removed - no longer tracked
-      proxyCacheSize: this.proxyCache.size,
+      pathCacheSize: 0, // removed
+      proxyCacheSize: 0, // proxies removed
       factoryCacheSize: this.factoryCache.size,
       initializerCacheSize:
         typeof this.initializerCache.size === 'function'
@@ -1664,7 +1564,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
     }
 
     const services: string[] = []
-    this.collectServices(store.instances, services)
+    this.collectServices(store.instances as Record<string, unknown>, services)
     return services
   }
 
@@ -1673,7 +1573,7 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
    * Helper method for getAvailableServices()
    */
   private collectServices(
-    obj: Partial<InstancesStructure<Defs>>,
+    obj: Record<string, unknown>,
     services: string[],
     path: string[] = [],
   ): void {
@@ -1690,7 +1590,11 @@ export class Container<Defs extends Record<string, unknown>, TenantMetadata> {
         !Array.isArray(value)
       ) {
         // Nested object - recurse deeper
-        this.collectServices(value, services, currentPath)
+        this.collectServices(
+          value as Record<string, unknown>,
+          services,
+          currentPath,
+        )
       } else {
         // Leaf service - add to list
         services.push(currentPath.join('.'))

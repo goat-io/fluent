@@ -13,14 +13,11 @@ publish:
 	else \
 		git pull origin master; \
 		echo "version ${CURRENT_VERSION}"; \
-		DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose build --build-arg BUILDKIT_INLINE_CACHE=1 firestore; \
-		docker tag goatlab/firebase-emulator goatlab/firebase-emulator:latest; \
-		docker tag goatlab/firebase-emulator goatlab/firebase-emulator:${CURRENT_VERSION}; \
-		docker push goatlab/firebase-emulator:latest; \
-		docker push goatlab/firebase-emulator:${CURRENT_VERSION}; \
-		docker compose build --build-arg BUILDKIT_INLINE_CACHE=1 firestore; \
-		docker tag goatlab/firebase-emulator goatlab/firebase-emulator:latest-arm64; \
-		docker tag goatlab/firebase-emulator goatlab/firebase-emulator:${CURRENT_VERSION}-arm64; \
-		docker push goatlab/firebase-emulator:latest-arm64; \
-		docker push goatlab/firebase-emulator:${CURRENT_VERSION}-arm64; \
+		docker buildx create --use --name firebase-builder 2>/dev/null || docker buildx use firebase-builder; \
+		docker buildx build \
+			--platform linux/amd64,linux/arm64 \
+			-t goatlab/firebase-emulator:latest \
+			-t goatlab/firebase-emulator:${CURRENT_VERSION} \
+			--push \
+			.; \
 	fi

@@ -57,6 +57,10 @@ export { handleRequest } from './server/middleware/handleRequest.middleware'
 export {
   CloudRunJsonTransport,
   type CloudRunJsonTransportOptions,
+  type GetLabelsFn,
+  type GetTraceFn,
+  getWinstonCloudRunConfig,
+  type WinstonCloudRunConfig,
 } from './server/middleware/logger/cloudRun.logger'
 export { getLogger } from './server/middleware/logger/logger.service'
 export type { RequestLoggerOptions } from './server/middleware/logs.middleware'

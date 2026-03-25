@@ -39,7 +39,7 @@ export class SendgridService {
   async sendFinalizedEmail(
     request: SendgridHTMLEmailRequest,
   ): Promise<SendGridEmailResponse> {
-    if (this.shouldSendEmail) {
+    if (!this.shouldSendEmail) {
       console.log('NOT SENDING EMAILS - shouldSendEmail=false')
       return {
         isSuccess: false,

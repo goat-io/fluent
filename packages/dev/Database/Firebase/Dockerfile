@@ -1,52 +1,48 @@
-FROM python:3.8-slim-buster
+FROM node:22-slim
 
-# Update and install required packages
+# Install base packages + ca-certificates (needed for curl to fetch Adoptium key)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends sudo curl git openjdk-11-jre-headless && \
+    apt-get install -y --no-install-recommends sudo curl git gnupg ca-certificates && \
+    # Add Adoptium (Eclipse Temurin) repo for JDK 21
+    curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /usr/share/keyrings/adoptium.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(. /etc/os-release && echo $VERSION_CODENAME) main" > /etc/apt/sources.list.d/adoptium.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends temurin-21-jre && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Add a non-root user
-RUN useradd -m -s /bin/bash docker
+RUN groupadd -r firebase && useradd -r -m -g firebase -s /bin/bash firebase
 
 # Add the user to the sudo group without password prompt
-RUN echo "docker ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
+RUN echo "firebase ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
 
-USER docker
-
-# Install NodeJS
-RUN curl -sL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
-    sudo apt-get install -y nodejs
+USER firebase
 
 # Install Firebase tools
 RUN sudo npm install -g firebase-tools
 
-# Install gcloud command utilities
-RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && \
-    bash /tmp/gcl --install-dir=/home/docker/google-cloud-sdk --disable-prompts
-
-# Set Python version for Google Cloud SDK
-ENV CLOUDSDK_PYTHON=python3
-
-ENV PATH $PATH:/home/docker/google-cloud-sdk/bin
-
 WORKDIR /app
 
 # Copy Firebase configuration files
-COPY firebase.json .firebaserc startfirebase.json firestore.indexes.json firestore.rules database.rules.json storage.rules /app/
+COPY --chown=firebase:firebase firebase.json .firebaserc startfirebase.json firestore.indexes.json firestore.rules database.rules.json storage.rules /app/
 
-# First run will download the current .jar files for firebase
-RUN firebase emulators:exec --project test ls >> /dev/null
+# Download emulator JARs (without starting them — avoids QEMU issues in cross-arch builds)
+RUN firebase setup:emulators:firestore && \
+    firebase setup:emulators:database && \
+    firebase setup:emulators:pubsub && \
+    firebase setup:emulators:storage && \
+    firebase setup:emulators:ui
 
 # Install npm packages for functions
-COPY functions/package.json  /app/functions/
+COPY --chown=firebase:firebase functions/package.json /app/functions/
 RUN cd functions && sudo npm install
 
 # Copy remaining files
-COPY functions /app/functions
-COPY public /app/public
+COPY --chown=firebase:firebase functions /app/functions
+COPY --chown=firebase:firebase public /app/public
 
-EXPOSE 4000 8080 8085 4400 4500 9000 5001 9099
+EXPOSE 4000 8080 8085 4400 4500 9000 5001 9099 9199 9200 9299
 
 # Set default command to start Firebase emulators
 CMD ["firebase", "emulators:start", "--only", "auth,functions,firestore,pubsub,storage,hosting,database,hub,logging", "--project", "demo-local-test-emulator"]

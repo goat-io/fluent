@@ -1,6 +1,6 @@
 import { Request, RequestHandler, Response } from 'express'
 import { existsSync, mkdirSync } from 'fs'
-import * as multer from 'multer'
+import multer from 'multer'
 import { extname } from 'path'
 // import { Azure } from './Providers/Azure'
 import { Google } from './Providers/Google'

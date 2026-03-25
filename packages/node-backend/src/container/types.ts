@@ -128,8 +128,8 @@ export type ContainerMetadata<C> = C extends Container<any, infer Meta>
  * Extract the runtime context type (available services) from a Container
  * This is what you get when calling `container.context`
  */
-export type ContainerContext<C> = C extends Container<infer Defs, any>
-  ? InstancesStructure<Defs>
+export type ContainerContext<C> = C extends Container<any, any, infer TCtx>
+  ? TCtx
   : never
 
 /**
@@ -144,8 +144,12 @@ export type ContainerPreload<C> = C extends Container<infer Defs, any>
  * Extract the bootstrap result type from a Container
  * Contains both instances and any result from the bootstrap function
  */
-export type ContainerBootstrapResult<C> = C extends Container<infer Defs, any>
-  ? { instances: InstancesStructure<Defs>; result?: any }
+export type ContainerBootstrapResult<C> = C extends Container<
+  any,
+  any,
+  infer TCtx
+>
+  ? { instances: TCtx; result?: any }
   : never
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -250,13 +254,18 @@ type GetFactoryParams<
 /**
  * Result of a single tenant bootstrap operation in a batch
  */
-export interface BatchBootstrapResult<Defs, TMetadata, T> {
+export interface BatchBootstrapResult<
+  Defs,
+  TMetadata,
+  T,
+  TContext = InstancesStructure<Defs>,
+> {
   /** The tenant metadata for this operation */
   metadata: TMetadata
   /** Status of the operation */
   status: 'success' | 'error'
   /** Instances if successful */
-  instances?: InstancesStructure<Defs>
+  instances?: TContext
   /** Result from the function if successful */
   result?: T
   /** Error if the operation failed */

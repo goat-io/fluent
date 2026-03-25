@@ -1,5 +1,12 @@
 # 0.5.20
 
+## 0.9.32
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.32
+- @goatlab/js-utils@0.10.3
+
 ## 0.9.31
 
 ### Patch Changes
