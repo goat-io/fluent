@@ -1,5 +1,12 @@
 # @goatlab/tasks-adapter-bullmq
 
+## 0.9.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.14.10
+
 ## 0.9.4
 
 ### Patch Changes

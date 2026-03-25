@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.14.10
+
+### Patch Changes
+
+- chore(tasks-core): patch release
+
 ## 0.14.9
 
 ### Patch Changes
