@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.14.7
+
+### Patch Changes
+
+- Relax InputType constraint to Record<string, unknown> so concrete payload interfaces (e.g. { tenantId: string }) satisfy the generic without needing an explicit index signature
+
 ## 0.14.6
 
 ### Patch Changes

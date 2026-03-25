@@ -15,11 +15,12 @@ export type JsonValue =
 
 export type JsonObject = { [x: string]: JsonValue }
 
-export type InputType = {
-  [x: string]: JsonValue
-} & {
-  [x: string]: JsonValue
-}
+/**
+ * Constraint for task payloads. Any plain object is accepted —
+ * concrete types like `{ tenantId: string }` satisfy this without
+ * needing an explicit index signature.
+ */
+export type InputType = Record<string, unknown>
 
 export type OutputType = undefined | JsonObject
 export type UnknownInputType = {}
