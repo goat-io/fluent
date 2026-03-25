@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 0.14.8
+
+### Patch Changes
+
+- Re-publish with resolved workspace dependencies
+
 ## 0.14.7
 
 ### Patch Changes
