@@ -57,6 +57,11 @@ export interface RedisPipeline {
   exec(): Promise<[Error | null, unknown][]>
 }
 
+export interface RedisTaskTrackerSharedClients {
+  redis: RedisClient
+  subscriber: RedisClient
+}
+
 export interface RedisTaskTrackerConfig {
   /**
    * TTL in seconds for completed tasks.
@@ -107,6 +112,13 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
     null
 
   /**
+   * When true, the connector does NOT own the Redis clients and will not
+   * call quit() on close. The caller is responsible for client lifecycle.
+   * Set automatically when using `forTenant()`.
+   */
+  private readonly shared: boolean
+
+  /**
    * Create a Redis connector.
    *
    * @param redis - Redis client for commands
@@ -116,14 +128,57 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
   constructor(
     redis: RedisClient,
     subscriber: RedisClient,
-    config?: RedisTaskTrackerConfig,
+    config?: RedisTaskTrackerConfig & { shared?: boolean },
   ) {
     this.redis = redis
     this.subscriber = subscriber
     this.config = { ...DEFAULT_CONFIG, ...config }
+    this.shared = config?.shared ?? false
 
     // Set up message handler for Pub/Sub
     this.setupMessageHandler()
+  }
+
+  /**
+   * Create a tenant-scoped connector that shares the same Redis clients.
+   * All connectors created this way reuse the parent's connections (O(1))
+   * while isolating data via key/channel prefixes.
+   *
+   * When `clients` is provided (e.g., with tenant-specific Redis ACL credentials),
+   * the connector uses those dedicated clients instead of the parent's.
+   * This supports both shared-Redis (prefix isolation) and dedicated-Redis
+   * (ACL isolation) deployments.
+   *
+   * @param tenantId - Used to build key and channel prefixes
+   * @param options - Optional: basePrefix, dedicated Redis clients
+   */
+  forTenant(
+    tenantId: string,
+    options?: {
+      /** Base prefix (default: 'tenant'). Keys become `{basePrefix}:{tenantId}:task` */
+      basePrefix?: string
+      /** Dedicated Redis clients for this tenant (e.g., with ACL credentials).
+       *  When provided, the tenant connector owns these clients and will close them. */
+      clients?: RedisTaskTrackerSharedClients
+    },
+  ): RedisTaskTrackerConnector {
+    const basePrefix = options?.basePrefix ?? 'tenant'
+    const dedicatedClients = options?.clients
+
+    return new RedisTaskTrackerConnector(
+      dedicatedClients?.redis ?? this.redis,
+      dedicatedClients?.subscriber ?? this.subscriber,
+      {
+        keyPrefix: `${basePrefix}:${tenantId}:task`,
+        channelPrefix: `${basePrefix}:${tenantId}:task`,
+        completedTTL: this.config.completedTTL,
+        failedTTL: this.config.failedTTL,
+        defaultTTL: this.config.defaultTTL,
+        // Shared = don't quit clients on close (parent owns them).
+        // Dedicated = this connector owns the clients and should quit them.
+        shared: !dedicatedClients,
+      },
+    )
   }
 
   /**
@@ -427,6 +482,9 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
 
   /**
    * Close connections.
+   * If this connector was created with `shared: true` (e.g., via `forTenant()`),
+   * it only unsubscribes from its channels but does NOT quit the Redis clients,
+   * since the parent connector owns the client lifecycle.
    */
   async close(): Promise<void> {
     // Remove message handler
@@ -445,17 +503,19 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
     }
     this.subscriptions.clear()
 
-    // Close connections - catch errors from already closed connections
-    try {
-      await this.subscriber.quit()
-    } catch {
-      // Ignore errors from already closed connections
-    }
+    // Only close connections if we own them (not shared)
+    if (!this.shared) {
+      try {
+        await this.subscriber.quit()
+      } catch {
+        // Ignore errors from already closed connections
+      }
 
-    try {
-      await this.redis.quit()
-    } catch {
-      // Ignore errors from already closed connections
+      try {
+        await this.redis.quit()
+      } catch {
+        // Ignore errors from already closed connections
+      }
     }
   }
 }

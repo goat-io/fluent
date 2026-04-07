@@ -1,5 +1,23 @@
 # @goatlab/tasks-adapter-bullmq
 
+## 0.10.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.15.0
+
+## 0.10.0
+
+### Minor Changes
+
+- Share a single Redis connection across all Queue instances and temp Workers.
+
+  - **Shared connection**: Queue instances and processIncomingDispatch temp Workers now reuse one ioredis TCP connection instead of each creating their own. 80 Queue instances across 10 tenants = 1 connection instead of 80.
+  - **waitUntilReady fix**: processIncomingDispatch calls `await tempWorker.waitUntilReady()` before `getNextJob()` — prevents hangs with auth delays, network latency, or TLS negotiation.
+  - **forTenant prefix fix**: Child connectors correctly derive their prefix from the new tenantId instead of inheriting the parent's explicit prefix.
+  - Persistent blocking Workers (startWorker/getBullMQWorker) still get dedicated connections for BRPOPLPUSH.
+
 ## 0.9.5
 
 ### Patch Changes

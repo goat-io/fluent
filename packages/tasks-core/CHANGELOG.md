@@ -1,5 +1,16 @@
 # 0.5.20
 
+## 0.15.0
+
+### Minor Changes
+
+- Add `forTenant()` to RedisTaskTrackerConnector for O(1) Redis connections.
+
+  - `forTenant(tenantId)` creates a tenant-scoped connector that shares the parent's Redis clients. 5 tenants = 2 connections instead of 10.
+  - `shared` flag on close() prevents child connectors from closing the parent's connections.
+  - Tenant isolation via key/channel prefixes (`tenant:{id}:task:*`), not separate connections.
+  - Export `RedisTaskTrackerSharedClients` type for callers managing shared clients.
+
 ## 0.14.10
 
 ### Patch Changes

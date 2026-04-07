@@ -4,4 +4,5 @@ export {
   type RedisPipeline,
   type RedisTaskTrackerConfig,
   RedisTaskTrackerConnector,
+  type RedisTaskTrackerSharedClients,
 } from './RedisConnector'

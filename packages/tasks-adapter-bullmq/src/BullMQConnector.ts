@@ -96,6 +96,18 @@ export class BullMQConnector implements TaskConnector<object> {
   private readonly config: BullMQConnectorConfig
 
   /**
+   * Shared ioredis instance for non-blocking operations (Queue enqueue,
+   * temp Worker getNextJob). Lazily created on first use. All Queue
+   * instances reuse this single TCP connection instead of each creating
+   * their own, keeping connection count O(1) per connector regardless
+   * of how many queues are used.
+   *
+   * Persistent blocking Workers (startWorker/getBullMQWorker) use raw
+   * connectionOptions so they get dedicated connections for BRPOPLPUSH.
+   */
+  private _sharedClient: Redis | Cluster | null = null
+
+  /**
    * Optional hook called after a job is successfully enqueued.
    * Set via constructor config. Failures are non-fatal.
    */
@@ -173,6 +185,39 @@ export class BullMQConnector implements TaskConnector<object> {
   }
 
   /**
+   * Returns a shared ioredis connection for non-blocking operations.
+   * Creates one lazily on first call. If the connector was constructed
+   * with a `redisInstance`, returns that directly (already shared).
+   */
+  private getSharedConnection(): ConnectionOptions {
+    // Already have a pre-built instance (passed via config or previous call)
+    if (this.config.redisInstance) {
+      return this.config.redisInstance
+    }
+
+    // Lazily create a single shared ioredis instance
+    if (!this._sharedClient) {
+      // Dynamic import would be cleaner but ioredis is already a dependency
+      // of bullmq, so it's always available.
+      const IORedis = require('ioredis').default || require('ioredis')
+      this._sharedClient = new IORedis({
+        host: DEFAULT_HOST,
+        port: DEFAULT_PORT,
+        maxRetriesPerRequest: null,
+        family: 4,
+        ...this.config.connection,
+        // Prevent ioredis from exiting the process on connection errors
+        lazyConnect: false,
+      }) as Redis
+
+      // Suppress unhandled error events (BullMQ attaches its own handlers)
+      this._sharedClient.on('error', () => {})
+    }
+
+    return this._sharedClient
+  }
+
+  /**
    * Creates a new BullMQConnector instance scoped to a specific tenant.
    * The new connector uses the tenant ID as a Redis key prefix for isolation.
    *
@@ -199,11 +244,23 @@ export class BullMQConnector implements TaskConnector<object> {
     tenantId: string,
     credentials?: TenantCredentials,
   ): BullMQConnector {
+    // When no per-tenant credentials are provided, share the parent's
+    // ioredis connection so all tenants reuse one TCP connection.
+    // Tenant isolation is via key prefix, not separate connections.
+    const sharedInstance =
+      !credentials?.username && !credentials?.password
+        ? (this.getSharedConnection() as Redis | Cluster)
+        : undefined
+
+    // Spread parent config but remove explicit prefix — the child connector
+    // should derive its prefix from the new tenantId, not inherit the parent's.
+    const { prefix: _parentPrefix, ...parentConfig } = this.config
+
     return new BullMQConnector({
-      ...this.config,
+      ...parentConfig,
       tenantId,
-      // Propagate pre-built Redis instance (cluster instances are safe to share)
-      redisInstance: this.config.redisInstance,
+      // Propagate shared Redis instance when credentials match
+      redisInstance: sharedInstance ?? this.config.redisInstance,
       connection: {
         ...this.config.connection,
         // Override credentials if provided for stronger isolation
@@ -233,7 +290,7 @@ export class BullMQConnector implements TaskConnector<object> {
     }
 
     const queue = new Queue(queueName, {
-      connection: this.connectionOptions,
+      connection: this.getSharedConnection(),
       defaultJobOptions: this.defaultJobOptions,
       prefix: this._prefix,
     })
@@ -313,6 +370,7 @@ export class BullMQConnector implements TaskConnector<object> {
 
   /**
    * Stops all workers and closes all queue connections.
+   * Also disconnects the shared ioredis client if one was created.
    */
   async close(): Promise<void> {
     const closePromises: Promise<void>[] = []
@@ -328,6 +386,12 @@ export class BullMQConnector implements TaskConnector<object> {
     await Promise.all(closePromises)
     this.workers.clear()
     this.queues.clear()
+
+    // Disconnect the shared client (only if we created it, not if user provided redisInstance)
+    if (this._sharedClient && !this.config.redisInstance) {
+      this._sharedClient.disconnect()
+      this._sharedClient = null
+    }
   }
 
   /**
@@ -649,12 +713,17 @@ export class BullMQConnector implements TaskConnector<object> {
       }
 
       const tempWorker = new Worker(queueName, undefined as any, {
-        connection: this.connectionOptions,
+        connection: this.getSharedConnection(),
         prefix: this._prefix,
         autorun: false,
       })
 
       try {
+        // Wait for the Worker's ioredis connection to be ready before
+        // calling getNextJob — otherwise it hangs or silently returns null
+        // when there's connection latency, auth delay, or TLS negotiation.
+        await tempWorker.waitUntilReady()
+
         while (Date.now() < deadline) {
           const job = await tempWorker.getNextJob('dispatch')
           if (!job) {
