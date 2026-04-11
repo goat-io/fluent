@@ -13,6 +13,7 @@ export interface WorkflowRunTable {
   workflowName: string
   workflowVersion: string
   status: string
+  definitionSnapshot: string | null    // JSON: frozen workflow definition at start time
   triggerInput: string | null
   output: string | null
   error: string | null
@@ -102,6 +103,40 @@ export interface WorkflowSignalTable {
 export type WorkflowSignal = Selectable<WorkflowSignalTable>
 export type NewWorkflowSignal = Insertable<WorkflowSignalTable>
 
+// ── External Actions ───────────────────────────────────────────────
+// The consistency layer for ALL side effects that touch the real world.
+// Every external API call (create PR, create issue, send email, deploy)
+// MUST go through this table. This guarantees exactly-once execution
+// even across retries and worker crashes.
+
+export type ExternalActionStatus = 'pending' | 'completed' | 'failed'
+
+export interface ExternalActionTable {
+  id: string
+  workflowRunId: string
+  stepName: string
+  attempt: number
+  tenantId: string
+
+  provider: string                    // 'github' | 'linear' | 'slack' | etc
+  actionType: string                  // 'create_pr' | 'create_issue' | 'comment' | etc
+  idempotencyKey: string              // unique per action, e.g. '{runId}:{stepName}:{actionType}'
+
+  status: string                      // 'pending' | 'completed' | 'failed'
+  externalId: string | null           // The ID returned by the external system (PR id, issue id)
+
+  request: string | null              // JSON: what we sent
+  response: string | null             // JSON: what we got back
+  error: string | null                // Error message if failed
+
+  createdAt: Generated<Date | string>
+  completedAt: Date | string | null
+}
+
+export type ExternalAction = Selectable<ExternalActionTable>
+export type NewExternalAction = Insertable<ExternalActionTable>
+export type ExternalActionUpdate = Updateable<ExternalActionTable>
+
 // ── Database Schema ────────────────────────────────────────────────
 
 export interface Database {
@@ -109,6 +144,7 @@ export interface Database {
   workflow_steps: WorkflowStepTable
   workflow_step_logs: WorkflowStepLogTable
   workflow_signals: WorkflowSignalTable
+  external_actions: ExternalActionTable
 }
 
 // ── JSON Helpers ───────────────────────────────────────────────────
@@ -136,6 +172,7 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
   "workflowName" VARCHAR(255) NOT NULL,
   "workflowVersion" VARCHAR(50) NOT NULL,
   status VARCHAR(20) NOT NULL,
+  "definitionSnapshot" TEXT,
   "triggerInput" TEXT,
   output TEXT,
   error TEXT,
@@ -194,9 +231,30 @@ CREATE TABLE IF NOT EXISTS workflow_signals (
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS external_actions (
+  id VARCHAR(36) PRIMARY KEY,
+  "workflowRunId" VARCHAR(36) NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+  "stepName" VARCHAR(255) NOT NULL,
+  attempt INTEGER NOT NULL,
+  "tenantId" VARCHAR(255) NOT NULL,
+  provider VARCHAR(100) NOT NULL,
+  "actionType" VARCHAR(100) NOT NULL,
+  "idempotencyKey" VARCHAR(500) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  "externalId" VARCHAR(500),
+  request TEXT,
+  response TEXT,
+  error TEXT,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "completedAt" TIMESTAMP,
+  UNIQUE("idempotencyKey")
+);
+
 CREATE INDEX IF NOT EXISTS idx_runs_tenant_status ON workflow_runs("tenantId", status);
 CREATE INDEX IF NOT EXISTS idx_steps_run_step ON workflow_steps("workflowRunId", "stepName");
 CREATE INDEX IF NOT EXISTS idx_steps_tenant_status ON workflow_steps("tenantId", status);
 CREATE INDEX IF NOT EXISTS idx_logs_tenant_step ON workflow_step_logs("tenantId", "stepId");
 CREATE INDEX IF NOT EXISTS idx_signals_run_signal ON workflow_signals("workflowRunId", "signalName", "processedAt");
+CREATE INDEX IF NOT EXISTS idx_external_actions_key ON external_actions("idempotencyKey");
+CREATE INDEX IF NOT EXISTS idx_external_actions_step ON external_actions("workflowRunId", "stepName", attempt);
 `

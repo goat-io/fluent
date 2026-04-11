@@ -33,11 +33,24 @@ import type {
   WorkflowStatus,
   WorkflowTriggerInput,
 } from '../workflow/WorkflowBuilder.types.js'
+import {
+  ExternalActionExecutor,
+  type ExternalActionRequest,
+  type ExternalActionFn,
+  type ExternalActionResult,
+} from './ExternalActionExecutor.js'
 import type { WorkflowEngineConfig } from './WorkflowEngine.types.js'
 
 export class WorkflowEngine {
   private config: WorkflowEngineConfig
   private db: Kysely<Database>
+
+  /**
+   * The consistency layer for ALL external side effects.
+   * Use `engine.externalAction()` to execute any call that modifies
+   * external systems (GitHub, Linear, Slack, etc.)
+   */
+  readonly externalActions: ExternalActionExecutor
 
   // Buffered log writer (Hatchet pattern)
   private logBuffer: Array<{
@@ -54,6 +67,14 @@ export class WorkflowEngine {
   constructor(config: WorkflowEngineConfig) {
     this.config = config
     this.db = config.db
+
+    this.externalActions = new ExternalActionExecutor({
+      db: config.db,
+      rateLimits: config.rateLimits,
+      maxConcurrentPerWorkflow: config.maxConcurrentPerWorkflow,
+      logger: config.logger,
+    })
+
     if (!config.disableLogBuffering) {
       this.startLogFlushTimer()
     }
@@ -91,6 +112,17 @@ export class WorkflowEngine {
       workflowName: trigger.workflowName,
       workflowVersion: definition.version,
       status: 'PENDING',
+      definitionSnapshot: toJson({
+        name: definition.name,
+        version: definition.version,
+        steps: definition.steps.map(s => ({
+          name: s.name,
+          dependsOn: s.dependsOn,
+          executorType: s.executorType,
+          retries: s.retries,
+          timeoutMs: s.timeoutMs,
+        })),
+      }),
       triggerInput: toJson(trigger.input),
       idempotencyKey: trigger.idempotencyKey ?? null,
       createdAt: now,

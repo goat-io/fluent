@@ -4,6 +4,7 @@ import type { TaskConnector, TaskTracker } from '@goatlab/tasks-core'
 import type { Database } from '../entities/Database.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
 import type { StepInterceptor, WorkflowDefinition } from '../workflow/WorkflowBuilder.types.js'
+import type { RateLimitConfig } from './ExternalActionExecutor.js'
 
 export interface WorkflowEngineConfig {
   db: Kysely<Database>
@@ -14,6 +15,10 @@ export interface WorkflowEngineConfig {
   tenantId: string
   interceptors?: StepInterceptor[]
   disableLogBuffering?: boolean
+  /** Rate limits for external action providers */
+  rateLimits?: Record<string, RateLimitConfig>
+  /** Max concurrent external calls per workflow run (default: 5) */
+  maxConcurrentPerWorkflow?: number
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void

@@ -57,9 +57,22 @@ export type {
   WorkflowStepUpdate,
   WorkflowSignal,
   WorkflowSignalTable,
+  ExternalAction,
+  ExternalActionTable,
+  ExternalActionUpdate,
   StepLogEvent,
 } from './entities/Database.js'
 export { CREATE_TABLES_SQL, fromJson, toJson } from './entities/Database.js'
+
+// ── External Actions (consistency layer) ───────────────────────────
+export { ExternalActionExecutor, ExternalActionPendingError } from './engine/ExternalActionExecutor.js'
+export type {
+  ExternalActionRequest,
+  ExternalActionFn,
+  ExternalActionResult,
+  ExternalActionExecutorConfig,
+  RateLimitConfig,
+} from './engine/ExternalActionExecutor.js'
 
 // ── Errors ─────────────────────────────────────────────────────────
 export {
