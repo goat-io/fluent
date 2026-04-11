@@ -68,6 +68,29 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - **fluent-pouchdb** - PouchDB connector
 - **fluent-formio** - Form.io API connector
 
+### Agent Workflow System
+
+- **agents-core** - Distributed workflow engine (Kysely/Postgres, BullMQ, DAG chaining, HITL, ExternalAction)
+- **agents-ai** - Multi-provider LLM adapter (OpenAI/Anthropic/Google/Ollama) + multi-agent consensus
+- **agents-langgraph** - LangGraph StateGraph executor with Postgres checkpointing
+- **agents-sandbox** - Docker sandboxed execution (containers with bash/git/node tools, DinD)
+- **agents-ui** - Vite+React+ReactFlow workflow dashboard (SSE real-time, embeddable)
+
+#### Agent Package Commands
+
+- `cd packages/agents-core && pnpm test` - Run engine tests (131 tests, needs Docker for testcontainers)
+- `cd packages/agents-ai && pnpm test` - Run AI layer tests (56 tests, no containers needed)
+- `cd packages/agents-sandbox && pnpm test:unit` - Run sandbox unit tests (no Docker)
+- `cd packages/agents-sandbox && pnpm test:integration` - Run Docker integration tests (needs Docker daemon)
+- `cd packages/agents-ui && pnpm dev` - Start dashboard dev server
+- `cd packages/agents-ui && npx tsx example/start.ts` - Start full example (Postgres+Redis+BullMQ+API+3 demo workflows)
+
+#### Important: agents-core uses Kysely (not TypeORM)
+- Schema defined in `packages/agents-core/src/entities/Database.ts` as plain TS interfaces
+- No decorators, no reflection, no `reflect-metadata` needed
+- JSON fields stored as TEXT with `toJson()`/`fromJson()` helpers
+- Always rebuild (`npx tsc`) before running tests in downstream packages
+
 ### Additional Packages
 
 - **formio-utils** - Form.io form parsing and validation
