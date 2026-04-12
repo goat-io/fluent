@@ -266,10 +266,13 @@ export class WorkflowEngine {
       results.push({ runId, runRow, stepRows, definition, trigger })
     }
 
-    // Batch insert all runs in ONE statement
-    await this.db.insertInto('workflow_runs').values(results.map(r => r.runRow)).execute()
+    // Use COPY FROM if pgPool is available (Hatchet fastest path), else batch INSERT
+    if (this.config.pgPool) {
+      return this.startBatchCopy(triggers)
+    }
 
-    // Batch insert all steps in ONE statement
+    // Batch INSERT fallback
+    await this.db.insertInto('workflow_runs').values(results.map(r => r.runRow)).execute()
     const allStepRows = results.flatMap(r => r.stepRows)
     if (allStepRows.length > 0) {
       await this.db.insertInto('workflow_steps').values(allStepRows).execute()
@@ -938,7 +941,30 @@ export class WorkflowEngine {
     this.logBuffer = []
 
     try {
-      const now = new Date()
+      const now = new Date().toISOString()
+
+      // COPY FROM path (fast) — if pgPool is available
+      if (this.config.pgPool) {
+        const lines = batch.map(e =>
+          [e.id, e.stepId, e.tenantId, e.event, esc(toJson(e.data ?? null)), now].join('\t'),
+        ).join('\n') + '\n'
+
+        const client = await this.config.pgPool.connect()
+        try {
+          const { from: copyFrom } = await import('pg-copy-streams')
+          const stream = client.query(copyFrom(
+            'COPY workflow_step_logs (id, "stepId", "tenantId", event, data, "createdAt") FROM STDIN',
+          ))
+          stream.write(lines)
+          stream.end()
+          await new Promise<void>((resolve, reject) => { stream.on('finish', resolve); stream.on('error', reject) })
+        } finally {
+          client.release()
+        }
+        return
+      }
+
+      // INSERT fallback (when pgPool not configured)
       await this.db.insertInto('workflow_step_logs').values(
         batch.map(e => ({
           id: e.id,
@@ -946,7 +972,7 @@ export class WorkflowEngine {
           tenantId: e.tenantId,
           event: e.event,
           data: toJson(e.data ?? null),
-          createdAt: now,
+          createdAt: new Date(),
         })),
       ).execute()
     } catch (err) {
