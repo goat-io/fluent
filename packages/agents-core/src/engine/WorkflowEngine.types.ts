@@ -11,6 +11,8 @@ import type { EventIngestionService } from '../events/EventIngestion.js'
 
 export interface WorkflowEngineConfig {
   db: Kysely<Database>
+  /** Raw pg.Pool for COPY FROM bulk inserts (optional, enables startBatchCopy) */
+  pgPool?: any
   connector: TaskConnector<object>
   tracker?: TaskTracker
   executors: Map<string, StepExecutor>

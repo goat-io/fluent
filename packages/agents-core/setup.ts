@@ -35,7 +35,7 @@ export function cleanGlobalData(): void {
 
 export default async () => {
   const redis = await new RedisContainer('redis:7-alpine').start()
-  const postgres = await new PostgreSqlContainer('postgres:16-alpine')
+  const postgres = await new PostgreSqlContainer('postgres:18-alpine')
     .withDatabase('agents_test')
     .start()
 

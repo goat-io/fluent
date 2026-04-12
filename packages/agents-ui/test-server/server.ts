@@ -41,7 +41,7 @@ async function main() {
 
   // ── Start containers ─────────────────────────────────
   console.log('  📦 Starting Postgres...')
-  const pgContainer = await new PostgreSqlContainer('postgres:16-alpine')
+  const pgContainer = await new PostgreSqlContainer('postgres:18-alpine')
     .withDatabase('agents_e2e_ui')
     .withCommand([
       'postgres',
@@ -60,18 +60,19 @@ async function main() {
   const redisContainer = await new RedisContainer('redis:7-alpine').start()
 
   // ── Kysely DB ────────────────────────────────────────
+  const pgPool = new pg.Pool({
+    host: pgContainer.getHost(),
+    port: pgContainer.getMappedPort(5432),
+    database: 'agents_e2e_ui',
+    user: pgContainer.getUsername(),
+    password: pgContainer.getPassword(),
+    max: PG_POOL_SIZE,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 5_000,
+  })
   const db = new Kysely<Database>({
     dialect: new PostgresDialect({
-      pool: new pg.Pool({
-        host: pgContainer.getHost(),
-        port: pgContainer.getMappedPort(5432),
-        database: 'agents_e2e_ui',
-        user: pgContainer.getUsername(),
-        password: pgContainer.getPassword(),
-        max: PG_POOL_SIZE,
-        idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 5_000,
-      }),
+      pool: pgPool,
     }),
   })
 
@@ -160,6 +161,7 @@ async function main() {
   // ── Engine ───────────────────────────────────────────
   const engine = new WorkflowEngine({
     db,
+    pgPool,  // For COPY FROM bulk inserts
     connector,
     executors: new Map([['function', executor]]),
     workflows: new Map([
@@ -214,9 +216,11 @@ async function main() {
       } else if (path === '/workflows/start') {
         result = await handlers.start({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/start-batch') {
-        // Batch start: body.workflows = [{workflowName, input}, ...]
         const workflows = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
         result = await handlers.startBatch({ workflows })
+      } else if (path === '/workflows/start-batch-copy') {
+        const workflows = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
+        result = await handlers.startBatchCopy({ workflows })
       } else if (path === '/workflows/status') {
         result = await handlers.getStatus({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/cancel') {
