@@ -342,6 +342,105 @@ describe('WorkflowEngine Lifecycle', () => {
     })
   })
 
+  describe('per-workflow concurrency limit', () => {
+    it('maxConcurrentStepsPerWorkflow: 1 dispatches only one step at a time in diamond DAG', async () => {
+      // Diamond DAG: A → B, C → D (B and C are parallel)
+      const wf = WorkflowBuilder.create('diamond')
+        .step('a', { executorType: 'function', executorConfig: { handler: 'echo' } })
+        .step('b', { executorType: 'function', executorConfig: { handler: 'echo' }, dependsOn: ['a'] })
+        .step('c', { executorType: 'function', executorConfig: { handler: 'echo' }, dependsOn: ['a'] })
+        .step('d', { executorType: 'function', executorConfig: { handler: 'echo' }, dependsOn: ['b', 'c'] })
+        .build()
+
+      const { connector, queuedJobs } = createMockConnector()
+      const workflows = new Map([['diamond', wf]])
+      const engine = new WorkflowEngine({
+        db,
+        connector,
+        executors: new Map([['function', executor]]),
+        workflows,
+        tenantId: 'test-tenant',
+        disableLogBuffering: true,
+        maxConcurrentStepsPerWorkflow: 1,
+      })
+
+      const { runId } = await engine.start({ workflowName: 'diamond', tenantId: 'test-tenant', input: {} })
+
+      // Only step A should be dispatched (concurrency limit = 1)
+      expect(queuedJobs).toHaveLength(1)
+      expect(queuedJobs[0].taskBody.stepName).toBe('a')
+
+      // Execute step A
+      await executeStep(engine, queuedJobs[0])
+
+      // After A completes, B and C are both ready but limit = 1
+      // So only ONE of B or C should be dispatched
+      // queuedJobs[1] should be either B or C (just one)
+      const afterA = queuedJobs.slice(1)
+      expect(afterA).toHaveLength(1)
+
+      const firstParallel = afterA[0].taskBody.stepName
+      expect(['b', 'c']).toContain(firstParallel)
+
+      // Execute that step
+      await executeStep(engine, afterA[0])
+
+      // Now the other parallel step should be dispatched
+      const afterFirst = queuedJobs.slice(2)
+      expect(afterFirst).toHaveLength(1)
+
+      const secondParallel = afterFirst[0].taskBody.stepName
+      expect(['b', 'c']).toContain(secondParallel)
+      expect(secondParallel).not.toBe(firstParallel)
+
+      // Execute second parallel step
+      await executeStep(engine, afterFirst[0])
+
+      // Now D should be dispatched
+      const afterSecond = queuedJobs.slice(3)
+      expect(afterSecond).toHaveLength(1)
+      expect(afterSecond[0].taskBody.stepName).toBe('d')
+
+      // Execute D
+      await executeStep(engine, afterSecond[0])
+
+      const status = await engine.getStatus(runId, 'test-tenant')
+      expect(status.status).toBe('COMPLETED')
+    })
+
+    it('without concurrency limit, parallel steps dispatch together', async () => {
+      const wf = WorkflowBuilder.create('diamond_no_limit')
+        .step('a', { executorType: 'function', executorConfig: { handler: 'echo' } })
+        .step('b', { executorType: 'function', executorConfig: { handler: 'echo' }, dependsOn: ['a'] })
+        .step('c', { executorType: 'function', executorConfig: { handler: 'echo' }, dependsOn: ['a'] })
+        .build()
+
+      const { connector, queuedJobs } = createMockConnector()
+      const workflows = new Map([['diamond_no_limit', wf]])
+      const engine = new WorkflowEngine({
+        db,
+        connector,
+        executors: new Map([['function', executor]]),
+        workflows,
+        tenantId: 'test-tenant',
+        disableLogBuffering: true,
+        // No maxConcurrentStepsPerWorkflow
+      })
+
+      await engine.start({ workflowName: 'diamond_no_limit', tenantId: 'test-tenant', input: {} })
+
+      // Step A dispatched
+      expect(queuedJobs).toHaveLength(1)
+      await executeStep(engine, queuedJobs[0])
+
+      // Both B and C should be dispatched (no limit)
+      const afterA = queuedJobs.slice(1)
+      expect(afterA).toHaveLength(2)
+      const names = afterA.map((j: any) => j.taskBody.stepName).sort()
+      expect(names).toEqual(['b', 'c'])
+    })
+  })
+
   describe('callbacks', () => {
     it('calls onComplete', async () => {
       let ctx: any = null

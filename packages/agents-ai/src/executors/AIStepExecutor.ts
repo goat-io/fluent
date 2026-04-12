@@ -1,10 +1,11 @@
-// npx vitest run src/__tests__/executors/ai-step-executor.spec.ts
-import type { StepPayload, StepResult } from '@goatlab/agents-core'
+// npx vitest run src/__tests__/executors/ai-tool-loop.spec.ts
+import type { StepPayload, StepResult, Skill } from '@goatlab/agents-core'
 import type { StepExecutor } from '@goatlab/agents-core'
+import { SkillRegistry } from '@goatlab/agents-core'
 import { CircuitBreaker } from '../utils/CircuitBreaker.js'
 import { isRetryableError, retryWithBackoff } from '../utils/RetryableClient.js'
 import { LLMAdapter } from '../llm/LLMAdapter.js'
-import type { ModelConfig } from '../llm/LLMAdapter.types.js'
+import type { ChatMessage, ChatResponse, ModelConfig, ToolDefinition } from '../llm/LLMAdapter.types.js'
 import { MODEL_PRESETS } from '../llm/ModelConfig.js'
 import { modelSelector } from '../llm/ModelSelector.js'
 
@@ -16,6 +17,8 @@ export interface AIStepExecutorConfig {
   /** Circuit breaker config per provider */
   circuitBreakerFailureThreshold?: number
   circuitBreakerResetTimeoutMs?: number
+  /** Optional skill registry for tool-calling loop */
+  skills?: SkillRegistry
 }
 
 export class AIStepExecutor implements StepExecutor {
@@ -39,6 +42,8 @@ export class AIStepExecutor implements StepExecutor {
       model: string | ModelConfig
       systemPrompt?: string
       outputSchema?: any
+      maxToolTurns?: number
+      maxTokenBudget?: number
       [key: string]: unknown
     }
 
@@ -53,28 +58,117 @@ export class AIStepExecutor implements StepExecutor {
       : modelNameOrConfig
 
     const breaker = this.getBreaker(resolvedModel.provider)
+    const skills = this.config.skills
 
-    const response = await breaker.execute(() =>
-      retryWithBackoff(
-        () =>
-          this.adapter.chatFromConfig(resolvedModel, [
-            ...(systemPrompt
-              ? [{ role: 'system' as const, content: systemPrompt }]
-              : []),
-            { role: 'user' as const, content: JSON.stringify(payload.input) },
-          ]),
-        {
-          maxAttempts: this.config.maxRetries ?? 3,
-          initialDelayMs: 1000,
-          shouldRetry: isRetryableError,
-        },
-      ),
-    )
+    // Build tool definitions from skills registry
+    const toolDefs: ToolDefinition[] = skills
+      ? skills.toToolDefinitions().map(td => ({
+          name: td.function.name,
+          description: td.function.description,
+          parameters: (td.function.parameters ?? {}) as Record<string, unknown>,
+        }))
+      : []
+
+    // Build initial messages
+    const messages: ChatMessage[] = [
+      ...(systemPrompt
+        ? [{ role: 'system' as const, content: systemPrompt }]
+        : []),
+      { role: 'user' as const, content: JSON.stringify(payload.input) },
+    ]
+
+    const totalUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+    const maxTurns = (extraConfig.maxToolTurns as number) ?? 10
+    let turns = 0
+    let lastResponse: ChatResponse | null = null
+
+    while (turns < maxTurns) {
+      turns++
+
+      const response = await breaker.execute(() =>
+        retryWithBackoff(
+          () =>
+            this.adapter.chat({
+              provider: resolvedModel.provider,
+              model: resolvedModel.model,
+              messages: [...messages],
+              temperature: resolvedModel.temperature,
+              maxTokens: resolvedModel.maxTokens,
+              tools: toolDefs.length > 0 ? toolDefs : undefined,
+              apiKey: resolvedModel.apiKey,
+              baseUrl: resolvedModel.baseUrl,
+            }),
+          {
+            maxAttempts: this.config.maxRetries ?? 3,
+            initialDelayMs: 1000,
+            shouldRetry: isRetryableError,
+          },
+        ),
+      )
+
+      // Accumulate usage
+      if (response.usage) {
+        totalUsage.promptTokens += response.usage.promptTokens
+        totalUsage.completionTokens += response.usage.completionTokens
+        totalUsage.totalTokens += response.usage.totalTokens
+      }
+
+      lastResponse = response
+
+      // Budget enforcement — stop if token budget exceeded
+      const maxBudget = extraConfig.maxTokenBudget as number | undefined
+      if (maxBudget && totalUsage.totalTokens > maxBudget) {
+        return {
+          output: {
+            response: response.content ?? 'Budget exceeded before completion',
+            model: resolvedModel.model,
+            usage: totalUsage,
+            _usage: {
+              tokens: totalUsage.totalTokens,
+              model: resolvedModel.model,
+              promptTokens: totalUsage.promptTokens,
+              completionTokens: totalUsage.completionTokens,
+            },
+            turns,
+            budgetExceeded: true,
+            budgetLimit: maxBudget,
+          } as any,
+        }
+      }
+
+      // No tool calls → done
+      if (!response.toolCalls?.length || !skills) {
+        break
+      }
+
+      // Execute tool calls and append results to messages
+      messages.push({ role: 'assistant', content: response.content || '' })
+
+      for (const tc of response.toolCalls) {
+        const skill = skills.get(tc.name)
+        const result = await skill.execute(
+          (tc.arguments ?? {}) as any,
+        )
+        messages.push({
+          role: 'user',
+          content: `Tool ${tc.name} result: ${JSON.stringify(result)}`,
+        })
+      }
+    }
+
+    const response = lastResponse!
 
     const output: Record<string, unknown> = {
       response: response.content,
       model: response.model,
-      usage: response.usage,
+      usage: totalUsage,
+      _usage: {
+        tokens: totalUsage.totalTokens,
+        model: resolvedModel.model,
+        promptTokens: totalUsage.promptTokens,
+        completionTokens: totalUsage.completionTokens,
+      },
+      turns,
     }
 
     // Parse structured output if schema provided

@@ -1,8 +1,8 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
 import type { StepExecutor } from './StepExecutor.js'
-import type { StepPayload, StepResult } from '../workflow/WorkflowBuilder.types.js'
+import type { StepExecutionContext, StepPayload, StepResult } from '../workflow/WorkflowBuilder.types.js'
 
-export type StepHandler = (payload: StepPayload) => Promise<StepResult>
+export type StepHandler = (payload: StepPayload, context?: StepExecutionContext) => Promise<StepResult>
 
 export class FunctionStepExecutor implements StepExecutor {
   readonly type = 'function'
@@ -13,7 +13,7 @@ export class FunctionStepExecutor implements StepExecutor {
     return this
   }
 
-  async execute(payload: StepPayload): Promise<StepResult> {
+  async execute(payload: StepPayload, context?: StepExecutionContext): Promise<StepResult> {
     const handlerName = payload.executorConfig.handler as string
     if (!handlerName) {
       throw new Error(
@@ -28,7 +28,7 @@ export class FunctionStepExecutor implements StepExecutor {
       )
     }
 
-    return handler(payload)
+    return handler(payload, context)
   }
 
   hasHandler(name: string): boolean {

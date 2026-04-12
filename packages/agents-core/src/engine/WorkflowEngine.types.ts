@@ -5,6 +5,9 @@ import type { Database } from '../entities/Database.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
 import type { StepInterceptor, WorkflowDefinition } from '../workflow/WorkflowBuilder.types.js'
 import type { RateLimitConfig } from './ExternalActionExecutor.js'
+import type { RateLimiterBackend } from './RateLimiterBackend.js'
+import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
+import type { EventIngestionService } from '../events/EventIngestion.js'
 
 export interface WorkflowEngineConfig {
   db: Kysely<Database>
@@ -19,6 +22,14 @@ export interface WorkflowEngineConfig {
   rateLimits?: Record<string, RateLimitConfig>
   /** Max concurrent external calls per workflow run (default: 5) */
   maxConcurrentPerWorkflow?: number
+  /** Pluggable rate limiter backend (default: InMemoryRateLimiter) */
+  rateLimiterBackend?: RateLimiterBackend
+  /** Typed integration registry (GitHub, Linear, Slack, etc.) */
+  integrations?: IntegrationRegistry
+  /** Event ingestion service for trigger-based workflow starts */
+  eventIngestion?: EventIngestionService
+  /** Max concurrent steps (RUNNING or QUEUED) per workflow run */
+  maxConcurrentStepsPerWorkflow?: number
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void

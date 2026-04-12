@@ -2,7 +2,7 @@
 import { ShouldQueue } from '@goatlab/tasks-core'
 import type { JsonObject } from '@goatlab/tasks-core'
 import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
-import type { StepPayload } from '../workflow/WorkflowBuilder.types.js'
+import type { StepExecutionContext, StepPayload } from '../workflow/WorkflowBuilder.types.js'
 
 export class WorkflowStepTask extends ShouldQueue<
   StepPayload,
@@ -43,8 +43,14 @@ export class WorkflowStepTask extends ShouldQueue<
         }
       }
 
+      // Build execution context with engine services
+      const executionContext: StepExecutionContext = {
+        externalActions: this.engine.externalActions,
+        integrations: this.engine['config'].integrations,
+      }
+
       // Execute the step
-      let result = await executor.execute(processedPayload)
+      let result = await executor.execute(processedPayload, executionContext)
 
       // Run interceptors afterExecute
       for (const interceptor of this.engine['config'].interceptors ?? []) {

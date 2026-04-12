@@ -29,7 +29,23 @@ export interface StepContext {
   triggerInput: JsonObject
 }
 
+// ── Step Execution Context ────────────────────────────────────────
+// Passed to StepExecutor.execute() so handlers can access engine services.
+// The externalActions field is the ONLY sanctioned way to call external APIs.
+
+import type { ExternalActionExecutor } from '../engine/ExternalActionExecutor.js'
+import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
+
+export interface StepExecutionContext {
+  /** The only sanctioned way to call external APIs from a step. */
+  externalActions: ExternalActionExecutor
+  /** Typed integration wrappers (GitHub, Linear, Slack, etc.) */
+  integrations?: IntegrationRegistry
+}
+
 // ── Step Definition ────────────────────────────────────────────────
+
+export type StepWeight = 'light' | 'heavy' | 'ai' | 'sandbox'
 
 export interface StepDefinition {
   name: string
@@ -41,6 +57,15 @@ export interface StepDefinition {
   heartbeatTimeoutMs?: number
   scheduleToStartTimeoutMs?: number
   requiresHumanApproval?: boolean
+  /** Max iterations for nextStep loops (default: 100) */
+  maxIterations?: number
+  /**
+   * Step weight controls queue routing for worker specialization.
+   * - 'light' (default): function steps, AI calls (~100MB)
+   * - 'heavy': Docker/sandbox steps (~4GB)
+   * Steps are routed to `workflow_step_light` or `workflow_step_heavy` queues.
+   */
+  stepWeight?: StepWeight
   condition?: (ctx: StepContext) => boolean | Promise<boolean>
   mapInput?: (upstreamOutputs: Record<string, JsonObject>) => JsonObject
 }
@@ -62,10 +87,23 @@ export interface WorkflowDefinition {
   defaultTimeoutMs: number
   failFast: boolean
   steps: StepDefinition[]
+  triggers?: WorkflowTrigger[]
   signals?: Record<string, SignalHandler>
   queries?: Record<string, QueryHandler>
   onComplete?: (ctx: StepContext) => Promise<void>
   onFail?: (ctx: StepContext, error: Error) => Promise<void>
+}
+
+// ── Workflow Triggers ──────────────────────────────────────────────
+
+export interface WorkflowTrigger {
+  type: 'event' | 'manual'
+  /** Event type to match (e.g. 'github.pr.opened') */
+  eventType?: string
+  /** Optional filter on event payload */
+  filter?: (payload: JsonObject) => boolean
+  /** Transform event payload into workflow input */
+  mapTriggerInput?: (payload: JsonObject) => JsonObject
 }
 
 // ── Runtime Payloads ───────────────────────────────────────────────
@@ -93,6 +131,8 @@ export interface StepPayload {
 
 export interface StepResult {
   output: JsonObject
+  /** Redirect execution to a named step (runtime loop, not DAG cycle) */
+  nextStep?: string
   waitForHuman?: {
     prompt: string
     schema?: JsonObject

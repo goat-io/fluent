@@ -8,6 +8,7 @@ import type {
   StepContext,
   StepDefinition,
   WorkflowDefinition,
+  WorkflowTrigger,
 } from './WorkflowBuilder.types.js'
 
 export type StepConfig = Omit<StepDefinition, 'name'>
@@ -19,6 +20,7 @@ export class WorkflowBuilder {
   private _defaultRetries = 3
   private _defaultTimeoutMs = 300_000 // 5 min
   private _failFast = false
+  private _triggers: WorkflowTrigger[] = []
   private _signals: Record<string, SignalHandler> = {}
   private _queries: Record<string, QueryHandler> = {}
   private _onComplete?: (ctx: StepContext) => Promise<void>
@@ -49,6 +51,12 @@ export class WorkflowBuilder {
 
   failFast(enabled = true): this {
     this._failFast = enabled
+    return this
+  }
+
+  trigger(config: Omit<WorkflowTrigger, 'type'> & { type?: 'event' | 'manual' }): this {
+    const type = config.type ?? (config.eventType ? 'event' : 'manual')
+    this._triggers.push({ ...config, type })
     return this
   }
 
@@ -92,6 +100,8 @@ export class WorkflowBuilder {
       defaultTimeoutMs: this._defaultTimeoutMs,
       failFast: this._failFast,
       steps: [...this._steps],
+      triggers:
+        this._triggers.length > 0 ? [...this._triggers] : undefined,
       signals:
         Object.keys(this._signals).length > 0 ? { ...this._signals } : undefined,
       queries:

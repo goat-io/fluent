@@ -139,10 +139,12 @@ async function main() {
   const stepTask = new WorkflowStepTask(engine)
   stepTask.setConnector(connector)
   const workerHandle = await connector.listen({
-    tasks: [{
-      taskName: stepTask.taskName,
-      handle: (data: unknown) => stepTask.handle(data as StepPayload),
-    }],
+    tasks: [
+      { taskName: 'workflow_step_light', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
+      { taskName: 'workflow_step_heavy', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
+      { taskName: 'workflow_step_ai', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
+      { taskName: 'workflow_step_sandbox', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
+    ],
     defaultConcurrency: 5,
   })
   console.log('  ✅ BullMQ worker started')
@@ -185,8 +187,14 @@ async function main() {
         result = await handlers.signal({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/query') {
         result = await handlers.query({ ...body, tenantId: TENANT })
+      } else if (path === '/workflows/ingest-event') {
+        result = await handlers.ingestEvent({ ...body, tenantId: TENANT })
+      } else if (path === '/workers/list') {
+        result = await handlers.listWorkers({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/heartbeat') {
         result = await handlers.heartbeat({ ...body, tenantId: TENANT })
+      } else if (path === '/workflows/validate') {
+        result = await handlers.validateDefinition(body)
       } else if (path === '/health') {
         result = { ok: true }
       } else {

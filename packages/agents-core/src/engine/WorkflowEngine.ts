@@ -1,7 +1,7 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
 import { Ids } from '@goatlab/js-utils'
 import type { JsonObject } from '@goatlab/tasks-core'
-import type { Kysely } from 'kysely'
+import { sql, type Kysely } from 'kysely'
 import type {
   Database,
   WorkflowRun,
@@ -72,12 +72,23 @@ export class WorkflowEngine {
       db: config.db,
       rateLimits: config.rateLimits,
       maxConcurrentPerWorkflow: config.maxConcurrentPerWorkflow,
+      rateLimiterBackend: config.rateLimiterBackend,
       logger: config.logger,
     })
 
     if (!config.disableLogBuffering) {
       this.startLogFlushTimer()
     }
+
+    // Wire event ingestion to this engine for trigger-based workflow starts
+    if (config.eventIngestion) {
+      config.eventIngestion.setEngine(this)
+    }
+  }
+
+  /** Get all registered workflow definitions */
+  getWorkflows(): Map<string, WorkflowDefinition> {
+    return this.config.workflows
   }
 
   async shutdown(): Promise<void> {
@@ -115,12 +126,22 @@ export class WorkflowEngine {
       definitionSnapshot: toJson({
         name: definition.name,
         version: definition.version,
+        defaultRetries: definition.defaultRetries,
+        defaultTimeoutMs: definition.defaultTimeoutMs,
+        failFast: definition.failFast,
+        triggers: definition.triggers,
         steps: definition.steps.map(s => ({
           name: s.name,
           dependsOn: s.dependsOn,
           executorType: s.executorType,
+          executorConfig: s.executorConfig,
           retries: s.retries,
           timeoutMs: s.timeoutMs,
+          heartbeatTimeoutMs: s.heartbeatTimeoutMs,
+          scheduleToStartTimeoutMs: s.scheduleToStartTimeoutMs,
+          requiresHumanApproval: s.requiresHumanApproval,
+          stepWeight: s.stepWeight,
+          maxIterations: s.maxIterations,
         })),
       }),
       triggerInput: toJson(trigger.input),
@@ -141,6 +162,8 @@ export class WorkflowEngine {
       attempt: 0,
       maxRetries: stepDef.retries ?? definition.defaultRetries,
       heartbeatTimeoutMs: stepDef.heartbeatTimeoutMs ?? null,
+      iterationCount: 0,
+      maxIterations: stepDef.maxIterations ?? null,
       createdAt: now,
       updatedAt: now,
     }))
@@ -191,6 +214,48 @@ export class WorkflowEngine {
       await this.logStepEvent(step.id, tenantId, 'completed', {
         outputKeys: Object.keys(result.output),
       })
+    }
+
+    // ── nextStep: runtime redirect (loop without DAG cycle) ──────
+    if (result.nextStep) {
+      const targetStepDef = definition.steps.find(s => s.name === result.nextStep)
+      if (!targetStepDef) {
+        await this.db.updateTable('workflow_steps').set({
+          status: 'FAILED',
+          error: `nextStep target "${result.nextStep}" does not exist in workflow "${definition.name}"`,
+          updatedAt: new Date(),
+        }).where('id', '=', step.id).execute()
+        await this.advanceWorkflow(runId, tenantId, definition)
+        return
+      }
+
+      const targetStep = await this.getStep(runId, result.nextStep, tenantId)
+      const currentIteration = (targetStep as any).iterationCount ?? 0
+      const maxIter = (targetStep as any).maxIterations ?? 100
+
+      if (currentIteration >= maxIter) {
+        await this.db.updateTable('workflow_steps').set({
+          status: 'FAILED',
+          error: `Step "${result.nextStep}" exceeded max iterations (${maxIter})`,
+          updatedAt: new Date(),
+        }).where('id', '=', step.id).execute()
+        await this.advanceWorkflow(runId, tenantId, definition)
+        return
+      }
+
+      // Reset target step to PENDING (bypass normal transition — runtime redirect)
+      await this.db.updateTable('workflow_steps').set({
+        status: 'PENDING',
+        output: null,
+        error: null,
+        completedAt: null,
+        startedAt: null,
+        iterationCount: currentIteration + 1,
+        updatedAt: new Date(),
+      }).where('id', '=', targetStep.id).execute()
+
+      await this.dispatchReadySteps(runId, tenantId, definition)
+      return
     }
 
     await this.advanceWorkflow(runId, tenantId, definition)
@@ -481,6 +546,19 @@ export class WorkflowEngine {
     const readyNames = getReadySteps(definition.steps, statuses)
 
     for (const name of readyNames) {
+      // Per-workflow concurrency fairness: check before each dispatch
+      if (this.config.maxConcurrentStepsPerWorkflow) {
+        const activeCount = await this.db
+          .selectFrom('workflow_steps')
+          .select(sql`count(*)`.as('count'))
+          .where('workflowRunId', '=', runId)
+          .where('status', 'in', ['QUEUED', 'RUNNING'])
+          .executeTakeFirst()
+
+        if (Number(activeCount?.count ?? 0) >= this.config.maxConcurrentStepsPerWorkflow) {
+          return // Don't dispatch more steps — at concurrency limit
+        }
+      }
       const stepDef = definition.steps.find(s => s.name === name)!
       const stepRow = steps.find(s => s.stepName === name)!
 
@@ -544,10 +622,19 @@ export class WorkflowEngine {
       scheduleToStartTimeoutMs: stepDef.scheduleToStartTimeoutMs ?? undefined,
     }
 
-    const jobId = `wf-${runId}-${step.stepName}-${step.attempt}`
+    const iterCount = (step as any).iterationCount ?? 0
+    const jobId = `wf-${runId}-${step.stepName}-${step.attempt}-i${iterCount}`
+    const QUEUE_MAP: Record<string, string> = {
+      light: 'workflow_step_light',
+      heavy: 'workflow_step_heavy',
+      ai: 'workflow_step_ai',
+      sandbox: 'workflow_step_sandbox',
+    }
+    const queueName = QUEUE_MAP[stepDef.stepWeight ?? 'light'] ?? 'workflow_step_light'
+
     await this.config.connector.queue({
       uniqueTaskName: jobId,
-      taskName: 'workflow_step',
+      taskName: queueName,
       postUrl: '/workflow/step',
       taskBody: payload,
       handle: async () => {},

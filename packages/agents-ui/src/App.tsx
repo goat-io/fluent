@@ -3,6 +3,7 @@ import { AgentsProvider } from './providers/AgentsProvider'
 import { Dashboard } from './pages/Dashboard'
 import { WorkflowRun } from './pages/WorkflowRun'
 import { Workers } from './pages/Workers'
+import { WorkflowDesigner } from './pages/WorkflowDesigner'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const TENANT_ID = import.meta.env.VITE_TENANT_ID ?? 'default'
@@ -15,6 +16,7 @@ export function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/workflows/:runId" element={<WorkflowRun />} />
           <Route path="/workers" element={<Workers />} />
+          <Route path="/designer" element={<WorkflowDesigner />} />
         </Routes>
       </BrowserRouter>
     </AgentsProvider>

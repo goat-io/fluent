@@ -373,6 +373,10 @@ async function main() {
         result = await handlers.signal({ ...body, tenantId: TENANT })
       } else if (url.pathname === '/workflows/query') {
         result = await handlers.query({ ...body, tenantId: TENANT })
+      } else if (url.pathname === '/workflows/metrics') {
+        result = await handlers.getRunMetrics(body)
+      } else if (url.pathname === '/workflows/aggregate-metrics') {
+        result = await handlers.getAggregateMetrics({ ...body, tenantId: TENANT })
       } else if (url.pathname === '/health') {
         result = { ok: true }
       } else {
