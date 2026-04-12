@@ -170,7 +170,12 @@ export class ExternalActionExecutor {
       }
     }
 
-    // ── Step 2: Concurrency protection ───────────────────
+    // ── Step 2: Failed action — delete so we can retry ────
+    if (existing?.status === 'failed') {
+      await this.db.deleteFrom('external_actions').where('id', '=', existing.id).execute()
+    }
+
+    // ── Step 3: Concurrency protection ───────────────────
     if (existing?.status === 'pending') {
       // Another execution is in progress — check if it's stale (>5 min)
       const createdAt = new Date(existing.createdAt as string).getTime()
@@ -178,10 +183,9 @@ export class ExternalActionExecutor {
       if (Date.now() - createdAt < staleMs) {
         throw new ExternalActionPendingError(idempotencyKey, req.provider, req.actionType)
       }
-      // Stale pending — clean it up and re-execute
+      // Stale pending — delete it so re-insert works (unique key)
       await this.db
-        .updateTable('external_actions')
-        .set({ status: 'failed', error: 'Stale pending action cleaned up', completedAt: new Date() })
+        .deleteFrom('external_actions')
         .where('id', '=', existing.id)
         .execute()
     }
