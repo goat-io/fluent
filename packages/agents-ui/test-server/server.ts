@@ -1,11 +1,15 @@
 #!/usr/bin/env tsx
 /**
- * Test backend server for Playwright E2E tests.
+ * Test backend server for Playwright E2E tests and k6 load tests.
  *
- * Starts: Postgres (testcontainer) + Redis (testcontainer) + Express API + BullMQ worker
- * Exposes: WorkflowHandlers as REST endpoints on port 4444
+ * Starts: Postgres (testcontainer) + Redis (testcontainer) + HTTP API + BullMQ workers
  *
  * Usage: npx tsx test-server/server.ts
+ *
+ * Env vars for tuning:
+ *   PG_POOL_SIZE=50      Postgres connection pool size
+ *   WORKER_CONCURRENCY=50  BullMQ worker concurrency per queue
+ *   DISABLE_LOG_BUFFER=false  Set to 'true' for synchronous log writes
  */
 import http from 'node:http'
 import { Kysely, PostgresDialect, sql } from 'kysely'
@@ -20,20 +24,36 @@ import {
   FunctionStepExecutor,
   createWorkflowHandlers,
   CREATE_TABLES_SQL,
+  EventIngestionService,
 } from '@goatlab/agents-core'
 import type { Database } from '@goatlab/agents-core'
 import type { StepPayload, StepResult } from '@goatlab/agents-core'
 
 const PORT = 4444
 const TENANT = 'e2e-ui-tenant'
+const PG_POOL_SIZE = parseInt(process.env.PG_POOL_SIZE ?? '20', 10) // Hatchet: ~20 optimal, too many = lock contention
+const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? '50', 10)
+const DISABLE_LOG_BUFFER = process.env.DISABLE_LOG_BUFFER === 'true'
 
 async function main() {
   console.log('🚀 Starting E2E test backend...')
+  console.log(`   PG pool: ${PG_POOL_SIZE}, Worker concurrency: ${WORKER_CONCURRENCY}, Log buffer: ${!DISABLE_LOG_BUFFER}`)
 
   // ── Start containers ─────────────────────────────────
   console.log('  📦 Starting Postgres...')
   const pgContainer = await new PostgreSqlContainer('postgres:16-alpine')
     .withDatabase('agents_e2e_ui')
+    .withCommand([
+      'postgres',
+      '-c', 'max_connections=200',
+      '-c', 'shared_buffers=256MB',
+      '-c', 'work_mem=16MB',
+      '-c', 'synchronous_commit=off',       // Faster writes (acceptable for non-critical data)
+      '-c', 'wal_level=minimal',
+      '-c', 'max_wal_senders=0',
+      '-c', 'fsync=off',                     // Faster for testing (not production!)
+      '-c', 'full_page_writes=off',
+    ])
     .start()
 
   console.log('  📦 Starting Redis...')
@@ -48,7 +68,9 @@ async function main() {
         database: 'agents_e2e_ui',
         user: pgContainer.getUsername(),
         password: pgContainer.getPassword(),
-        max: 10,
+        max: PG_POOL_SIZE,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 5_000,
       }),
     }),
   })
@@ -65,11 +87,23 @@ async function main() {
     connection: {
       host: redisContainer.getHost(),
       port: redisContainer.getMappedPort(6379),
+      maxRetriesPerRequest: null, // Required for BullMQ workers
     },
   })
 
-  // ── Executor with demo handlers ──────────────────────
+  // ── Executors ────────────────────────────────────────
   const executor = new FunctionStepExecutor()
+
+  // Fast workflow handlers (zero delay for load testing)
+  executor.register('fast_echo', async (p: StepPayload): Promise<StepResult> => ({
+    output: { echoed: true, step: p.stepName, ts: Date.now() },
+  }))
+
+  executor.register('fast_chain', async (p: StepPayload): Promise<StepResult> => ({
+    output: { chained: true, input: p.input, ts: Date.now() },
+  }))
+
+  // Demo pipeline handlers (with realistic delays)
   executor.register('analyze', async (p: StepPayload): Promise<StepResult> => {
     await new Promise(r => setTimeout(r, 500))
     return { output: { analysis: 'Feature looks viable', confidence: 0.9, requirements: ['auth', 'dashboard'] } }
@@ -82,77 +116,79 @@ async function main() {
     await new Promise(r => setTimeout(r, 800))
     return { output: { filesCreated: 5, linesOfCode: 250, branch: 'feat/new-feature' } }
   })
-  executor.register('review', async (p: StepPayload): Promise<StepResult> => {
-    return {
-      output: { reviewStarted: true },
-      waitForHuman: { prompt: 'Please review the implementation and approve or reject.', schema: { type: 'object', properties: { approved: { type: 'boolean' }, comment: { type: 'string' } } } },
-    }
-  })
+  executor.register('review', async (p: StepPayload): Promise<StepResult> => ({
+    output: { reviewStarted: true },
+    waitForHuman: { prompt: 'Please review the implementation and approve or reject.', schema: { type: 'object', properties: { approved: { type: 'boolean' }, comment: { type: 'string' } } } },
+  }))
   executor.register('deploy', async (p: StepPayload): Promise<StepResult> => {
     await new Promise(r => setTimeout(r, 400))
     return { output: { deployed: true, url: 'https://app.example.com', version: '1.0.0' } }
   })
 
-  // ── Demo workflow ────────────────────────────────────
+  // ── Workflows ────────────────────────────────────────
+
+  // Fast single-step workflow (for throughput benchmarking)
+  const fastWorkflow = WorkflowBuilder.create('fast_single')
+    .version('1.0.0')
+    .defaultRetries(0)
+    .step('work', { executorType: 'function', executorConfig: { handler: 'fast_echo' } })
+    .build()
+
+  // Fast 3-step chain (for pipeline throughput)
+  const fastChain = WorkflowBuilder.create('fast_chain')
+    .version('1.0.0')
+    .defaultRetries(0)
+    .step('a', { executorType: 'function', executorConfig: { handler: 'fast_chain' } })
+    .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: { handler: 'fast_chain' }, mapInput: (up) => ({ from: up.a }) })
+    .step('c', { dependsOn: ['b'], executorType: 'function', executorConfig: { handler: 'fast_chain' }, mapInput: (up) => ({ from: up.b }) })
+    .build()
+
+  // Demo pipeline (with realistic delays + human-in-the-loop)
   const demoWorkflow = WorkflowBuilder.create('demo_pipeline')
     .version('1.0.0')
     .defaultRetries(2)
-    .step('analyze', {
-      executorType: 'function',
-      executorConfig: { handler: 'analyze' },
-    })
-    .step('plan', {
-      dependsOn: ['analyze'],
-      executorType: 'function',
-      executorConfig: { handler: 'plan' },
-      mapInput: (up) => ({ analysis: up.analyze }),
-    })
-    .step('implement', {
-      dependsOn: ['plan'],
-      executorType: 'function',
-      executorConfig: { handler: 'implement' },
-      mapInput: (up) => ({ plan: up.plan }),
-    })
-    .step('review', {
-      dependsOn: ['implement'],
-      executorType: 'function',
-      executorConfig: { handler: 'review' },
-    })
-    .step('deploy', {
-      dependsOn: ['review'],
-      executorType: 'function',
-      executorConfig: { handler: 'deploy' },
-    })
+    .step('analyze', { executorType: 'function', executorConfig: { handler: 'analyze' } })
+    .step('plan', { dependsOn: ['analyze'], executorType: 'function', executorConfig: { handler: 'plan' }, mapInput: (up) => ({ analysis: up.analyze }) })
+    .step('implement', { dependsOn: ['plan'], executorType: 'function', executorConfig: { handler: 'implement' }, mapInput: (up) => ({ plan: up.plan }) })
+    .step('review', { dependsOn: ['implement'], executorType: 'function', executorConfig: { handler: 'review' } })
+    .step('deploy', { dependsOn: ['review'], executorType: 'function', executorConfig: { handler: 'deploy' } })
     .build()
+
+  // ── Event Ingestion ──────────────────────────────────
+  const eventService = new EventIngestionService({ db })
 
   // ── Engine ───────────────────────────────────────────
   const engine = new WorkflowEngine({
     db,
     connector,
     executors: new Map([['function', executor]]),
-    workflows: new Map([['demo_pipeline', demoWorkflow]]),
+    workflows: new Map([
+      ['demo_pipeline', demoWorkflow],
+      ['fast_single', fastWorkflow],
+      ['fast_chain', fastChain],
+    ]),
     tenantId: TENANT,
-    disableLogBuffering: true,
+    disableLogBuffering: DISABLE_LOG_BUFFER,
+    eventIngestion: eventService,
   })
 
-  // ── BullMQ Worker ────────────────────────────────────
+  // ── BullMQ Workers (high concurrency) ────────────────
   const stepTask = new WorkflowStepTask(engine)
   stepTask.setConnector(connector)
   const workerHandle = await connector.listen({
     tasks: [
-      { taskName: 'workflow_step_light', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
-      { taskName: 'workflow_step_heavy', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
-      { taskName: 'workflow_step_ai', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
-      { taskName: 'workflow_step_sandbox', handle: (data: unknown) => stepTask.handle(data as StepPayload) },
+      { taskName: 'workflow_step_light', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: WORKER_CONCURRENCY },
+      { taskName: 'workflow_step_heavy', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: Math.max(5, WORKER_CONCURRENCY / 4) },
+      { taskName: 'workflow_step_ai', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: Math.max(10, WORKER_CONCURRENCY / 2) },
+      { taskName: 'workflow_step_sandbox', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 5 },
     ],
-    defaultConcurrency: 5,
   })
-  console.log('  ✅ BullMQ worker started')
+  console.log(`  ✅ BullMQ workers started (concurrency: ${WORKER_CONCURRENCY}/queue)`)
 
   // ── API Handlers ─────────────────────────────────────
   const handlers = createWorkflowHandlers(engine)
 
-  // ── HTTP Server (minimal, no Express needed) ─────────
+  // ── HTTP Server (optimized) ──────────────────────────
   const server = http.createServer(async (req, res) => {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -215,7 +251,7 @@ async function main() {
   server.listen(PORT, () => {
     console.log(`\n✅ Test backend ready on http://localhost:${PORT}`)
     console.log(`   Tenant: ${TENANT}`)
-    console.log(`   Workflow: demo_pipeline (5 steps: analyze → plan → implement → review → deploy)`)
+    console.log(`   Workflows: demo_pipeline (5 steps), fast_single (1 step), fast_chain (3 steps)`)
     console.log(`   Review step pauses for human approval\n`)
   })
 

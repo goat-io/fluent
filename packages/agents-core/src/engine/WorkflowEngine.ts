@@ -122,7 +122,8 @@ export class WorkflowEngine {
       tenantId: trigger.tenantId,
       workflowName: trigger.workflowName,
       workflowVersion: definition.version,
-      status: 'PENDING',
+      status: 'RUNNING',
+      startedAt: now,
       definitionSnapshot: toJson({
         name: definition.name,
         version: definition.version,
@@ -172,8 +173,30 @@ export class WorkflowEngine {
       await this.db.insertInto('workflow_steps').values(stepRows).execute()
     }
 
-    await this.updateRunStatus(runId, 'RUNNING')
-    await this.dispatchReadySteps(runId, trigger.tenantId, definition)
+    // Fast path: on initial start, all steps are PENDING — skip DB read
+    // and dispatch root steps (those with no dependencies) directly
+    const rootSteps = definition.steps.filter(s => !s.dependsOn?.length)
+    for (const stepDef of rootSteps) {
+      const stepRow = stepRows.find(r => r.stepName === stepDef.name)
+      if (!stepRow) continue
+
+      // For root steps on initial start, input comes from trigger
+      let input: JsonObject = trigger.input as JsonObject
+      if (stepDef.mapInput) {
+        input = stepDef.mapInput({})
+      }
+
+      await this.db.updateTable('workflow_steps').set({
+        input: toJson(input),
+        scheduledAt: now,
+        status: 'QUEUED',
+        updatedAt: now,
+      }).where('id', '=', stepRow.id).execute()
+      this.logStepEvent(stepRow.id, trigger.tenantId, 'queued') // fire-and-forget
+
+      await this.dispatchStep(runId, trigger.tenantId,
+        { ...stepRow, input: toJson(input), status: 'QUEUED' } as any, definition)
+    }
 
     return { runId }
   }
