@@ -64,6 +64,9 @@ export class WorkflowEngine {
   private readonly LOG_FLUSH_INTERVAL = 50
   private readonly LOG_FLUSH_THRESHOLD = 50
 
+  // Note: Start buffering is handled via startBatch() for batch API.
+  // Single starts use raw SQL single-round-trip optimization.
+
   constructor(config: WorkflowEngineConfig) {
     this.config = config
     this.db = config.db
@@ -117,7 +120,7 @@ export class WorkflowEngine {
     const runId = Ids.nanoId(21)
     const now = new Date()
 
-    await this.db.insertInto('workflow_runs').values({
+    const runRow = {
       id: runId,
       tenantId: trigger.tenantId,
       workflowName: trigger.workflowName,
@@ -149,56 +152,133 @@ export class WorkflowEngine {
       idempotencyKey: trigger.idempotencyKey ?? null,
       createdAt: now,
       updatedAt: now,
-    }).execute()
+    }
 
-    const stepRows = definition.steps.map(stepDef => ({
-      id: Ids.nanoId(21),
-      workflowRunId: runId,
-      tenantId: trigger.tenantId,
-      stepName: stepDef.name,
-      status: 'PENDING',
-      executorType: stepDef.executorType,
-      executorConfig: toJson(stepDef.executorConfig),
-      dependsOn: toJson(stepDef.dependsOn ?? []),
-      attempt: 0,
-      maxRetries: stepDef.retries ?? definition.defaultRetries,
-      heartbeatTimeoutMs: stepDef.heartbeatTimeoutMs ?? null,
-      iterationCount: 0,
-      maxIterations: stepDef.maxIterations ?? null,
-      createdAt: now,
-      updatedAt: now,
-    }))
+    // Root steps get QUEUED directly (skip PENDING → QUEUED update)
+    const rootNames = new Set(definition.steps.filter(s => !s.dependsOn?.length).map(s => s.name))
 
+    const stepRows = definition.steps.map(stepDef => {
+      const isRoot = rootNames.has(stepDef.name)
+      let input: JsonObject = trigger.input as JsonObject
+      if (isRoot && stepDef.mapInput) input = stepDef.mapInput({})
+
+      return {
+        id: Ids.nanoId(21),
+        workflowRunId: runId,
+        tenantId: trigger.tenantId,
+        stepName: stepDef.name,
+        status: isRoot ? 'QUEUED' : 'PENDING',
+        executorType: stepDef.executorType,
+        executorConfig: toJson(stepDef.executorConfig),
+        dependsOn: toJson(stepDef.dependsOn ?? []),
+        input: isRoot ? toJson(input) : null,
+        scheduledAt: isRoot ? now : null,
+        attempt: 0,
+        maxRetries: stepDef.retries ?? definition.defaultRetries,
+        heartbeatTimeoutMs: stepDef.heartbeatTimeoutMs ?? null,
+        iterationCount: 0,
+        maxIterations: stepDef.maxIterations ?? null,
+        createdAt: now,
+        updatedAt: now,
+      }
+    })
+
+    // Two Kysely inserts (run + steps) — Kysely handles parameterization safely
+    await this.db.insertInto('workflow_runs').values(runRow).execute()
     if (stepRows.length > 0) {
       await this.db.insertInto('workflow_steps').values(stepRows).execute()
     }
 
-    // Fast path: on initial start, all steps are PENDING — skip DB read
-    // and dispatch root steps (those with no dependencies) directly
-    const rootSteps = definition.steps.filter(s => !s.dependsOn?.length)
-    for (const stepDef of rootSteps) {
-      const stepRow = stepRows.find(r => r.stepName === stepDef.name)
-      if (!stepRow) continue
-
-      // For root steps on initial start, input comes from trigger
-      let input: JsonObject = trigger.input as JsonObject
-      if (stepDef.mapInput) {
-        input = stepDef.mapInput({})
-      }
-
-      await this.db.updateTable('workflow_steps').set({
-        input: toJson(input),
-        scheduledAt: now,
-        status: 'QUEUED',
-        updatedAt: now,
-      }).where('id', '=', stepRow.id).execute()
-      this.logStepEvent(stepRow.id, trigger.tenantId, 'queued') // fire-and-forget
-
-      await this.dispatchStep(runId, trigger.tenantId,
-        { ...stepRow, input: toJson(input), status: 'QUEUED' } as any, definition)
+    // Dispatch root steps to BullMQ (rows are in DB now)
+    for (const stepDef of definition.steps) {
+      if (!rootNames.has(stepDef.name)) continue
+      const stepRow = stepRows.find(r => r.stepName === stepDef.name)!
+      await this.dispatchStep(runId, trigger.tenantId, stepRow as any, definition)
     }
 
     return { runId }
+  }
+
+  /**
+   * Batch start multiple workflows in a single DB transaction.
+   * Hatchet pattern: batch inserts for high-throughput scenarios.
+   * Use this instead of calling start() in a loop.
+   */
+  async startBatch(triggers: WorkflowTriggerInput[]): Promise<Array<{ runId: string }>> {
+    if (triggers.length === 0) return []
+
+    const results: Array<{ runId: string; runRow: any; stepRows: any[]; definition: WorkflowDefinition; trigger: WorkflowTriggerInput }> = []
+
+    for (const trigger of triggers) {
+      const definition = this.config.workflows.get(trigger.workflowName)
+      if (!definition) throw new WorkflowNotFoundError(trigger.workflowName)
+
+      const runId = Ids.nanoId(21)
+      const now = new Date()
+      const rootNames = new Set(definition.steps.filter(s => !s.dependsOn?.length).map(s => s.name))
+
+      const runRow = {
+        id: runId,
+        tenantId: trigger.tenantId,
+        workflowName: trigger.workflowName,
+        workflowVersion: definition.version,
+        status: 'RUNNING',
+        startedAt: now,
+        definitionSnapshot: toJson({
+          name: definition.name, version: definition.version,
+          defaultRetries: definition.defaultRetries, defaultTimeoutMs: definition.defaultTimeoutMs,
+          failFast: definition.failFast, triggers: definition.triggers,
+          steps: definition.steps.map(s => ({
+            name: s.name, dependsOn: s.dependsOn, executorType: s.executorType,
+            executorConfig: s.executorConfig, retries: s.retries, timeoutMs: s.timeoutMs,
+            heartbeatTimeoutMs: s.heartbeatTimeoutMs, scheduleToStartTimeoutMs: s.scheduleToStartTimeoutMs,
+            requiresHumanApproval: s.requiresHumanApproval, stepWeight: s.stepWeight, maxIterations: s.maxIterations,
+          })),
+        }),
+        triggerInput: toJson(trigger.input),
+        idempotencyKey: trigger.idempotencyKey ?? null,
+        createdAt: now, updatedAt: now,
+      }
+
+      const stepRows = definition.steps.map(stepDef => {
+        const isRoot = rootNames.has(stepDef.name)
+        let input: JsonObject = trigger.input as JsonObject
+        if (isRoot && stepDef.mapInput) input = stepDef.mapInput({})
+        return {
+          id: Ids.nanoId(21), workflowRunId: runId, tenantId: trigger.tenantId,
+          stepName: stepDef.name, status: isRoot ? 'QUEUED' : 'PENDING',
+          executorType: stepDef.executorType, executorConfig: toJson(stepDef.executorConfig),
+          dependsOn: toJson(stepDef.dependsOn ?? []), input: isRoot ? toJson(input) : null,
+          scheduledAt: isRoot ? now : null, attempt: 0,
+          maxRetries: stepDef.retries ?? definition.defaultRetries,
+          heartbeatTimeoutMs: stepDef.heartbeatTimeoutMs ?? null,
+          iterationCount: 0, maxIterations: stepDef.maxIterations ?? null,
+          createdAt: now, updatedAt: now,
+        }
+      })
+
+      results.push({ runId, runRow, stepRows, definition, trigger })
+    }
+
+    // Batch insert all runs in ONE statement
+    await this.db.insertInto('workflow_runs').values(results.map(r => r.runRow)).execute()
+
+    // Batch insert all steps in ONE statement
+    const allStepRows = results.flatMap(r => r.stepRows)
+    if (allStepRows.length > 0) {
+      await this.db.insertInto('workflow_steps').values(allStepRows).execute()
+    }
+
+    // Dispatch root steps for all workflows
+    for (const { runId, stepRows, definition, trigger } of results) {
+      const rootSteps = definition.steps.filter(s => !s.dependsOn?.length)
+      for (const stepDef of rootSteps) {
+        const stepRow = stepRows.find(r => r.stepName === stepDef.name)!
+        await this.dispatchStep(runId, trigger.tenantId, stepRow as any, definition)
+      }
+    }
+
+    return results.map(r => ({ runId: r.runId }))
   }
 
   // ── Step Running ───────────────────────────────────────────────

@@ -23,6 +23,9 @@ var eventLatency = new Trend('event_ingest_latency', true)
 var errorRate = new Rate('error_rate')
 var throughput = new Counter('total_requests')
 
+var batchStarted = new Counter('batch_workflows_started')
+var batchLatency = new Trend('batch_start_latency', true)
+
 var headers = { 'Content-Type': 'application/json' }
 
 export var options = {
@@ -62,7 +65,24 @@ export var options = {
       startTime: '5s',
     },
 
-    // Scenario 3: Status polling (read throughput)
+    // Scenario 3: Batch workflow starts (Hatchet pattern)
+    batch_starts: {
+      executor: 'ramping-arrival-rate',
+      startRate: 10,
+      timeUnit: '1s',
+      preAllocatedVUs: 50,
+      maxVUs: 100,
+      stages: [
+        { target: 50, duration: '10s' },
+        { target: 100, duration: '10s' },
+        { target: 100, duration: '20s' },
+        { target: 0, duration: '5s' },
+      ],
+      exec: 'startBatch',
+      startTime: '5s',
+    },
+
+    // Scenario 4: Status polling (read throughput)
     status_reads: {
       executor: 'constant-vus',
       vus: 20,
@@ -164,6 +184,42 @@ export function pollStatus() {
   sleep(0.05)
 }
 
+export function startBatch() {
+  // Batch of 50 workflows in a single request
+  var workflows = []
+  for (var i = 0; i < 50; i++) {
+    workflows.push({
+      workflowName: 'fast_single',
+      input: { batch: true, i: i, ts: Date.now() },
+    })
+  }
+
+  var payload = JSON.stringify({ workflows: workflows })
+
+  var start = Date.now()
+  var res = http.post(BASE_URL + '/workflows/start-batch', payload, { headers: headers })
+  var elapsed = Date.now() - start
+  batchLatency.add(elapsed)
+  throughput.add(1)
+
+  var ok = check(res, {
+    'batch: 200': function(r) { return r.status === 200 },
+  })
+
+  if (ok) {
+    batchStarted.add(50) // 50 workflows per batch
+    try {
+      var body = JSON.parse(res.body)
+      if (Array.isArray(body)) {
+        for (var j = 0; j < Math.min(body.length, 10); j++) {
+          if (body[j].runId && runIds.length < 500) runIds.push(body[j].runId)
+        }
+      }
+    } catch (e) {}
+  }
+  errorRate.add(!ok)
+}
+
 export function handleSummary(data) {
   var m = data.metrics
   var wfStarted = (m.workflows_started && m.workflows_started.values && m.workflows_started.values.count) || 0
@@ -178,7 +234,11 @@ export function handleSummary(data) {
   var errRate = (m.error_rate && m.error_rate.values && m.error_rate.values.rate) || 0
   var duration = (m.iteration_duration && m.iteration_duration.values && m.iteration_duration.values.med) || 0
 
+  var batchWfs = (m.batch_workflows_started && m.batch_workflows_started.values && m.batch_workflows_started.values.count) || 0
+  var batchP95 = (m.batch_start_latency && m.batch_start_latency.values && m.batch_start_latency.values['p(95)']) || 0
+  var totalWfs = wfStarted + batchWfs
   var rps = totalReqs > 0 ? Math.round(totalReqs / 60) : 0
+  var wfps = totalWfs > 0 ? Math.round(totalWfs / 60) : 0
 
   return {
     stdout: '\n' +
@@ -186,11 +246,14 @@ export function handleSummary(data) {
       '  WORKFLOW ENGINE LOAD TEST RESULTS\n' +
       '==========================================================\n' +
       '\n' +
-      '  Workflows started:    ' + wfStarted + '\n' +
+      '  Workflows (single):   ' + wfStarted + '\n' +
+      '  Workflows (batch):    ' + batchWfs + '\n' +
+      '  Workflows (total):    ' + totalWfs + '\n' +
       '  Workflows completed:  ' + wfCompleted + '\n' +
       '  Events ingested:      ' + evIngested + '\n' +
       '  Total HTTP requests:  ' + totalReqs + '\n' +
-      '  Approx throughput:    ~' + rps + ' req/sec\n' +
+      '  HTTP throughput:      ~' + rps + ' req/sec\n' +
+      '  Workflow throughput:  ~' + wfps + ' workflows/sec\n' +
       '  Error rate:           ' + (errRate * 100).toFixed(2) + '%\n' +
       '\n' +
       '  --- Workflow Start Latency ---\n' +

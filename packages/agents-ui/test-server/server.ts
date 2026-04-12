@@ -213,6 +213,10 @@ async function main() {
         result = await handlers.listWorkflows({ tenantId: TENANT })
       } else if (path === '/workflows/start') {
         result = await handlers.start({ ...body, tenantId: TENANT })
+      } else if (path === '/workflows/start-batch') {
+        // Batch start: body.workflows = [{workflowName, input}, ...]
+        const workflows = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
+        result = await handlers.startBatch({ workflows })
       } else if (path === '/workflows/status') {
         result = await handlers.getStatus({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/cancel') {

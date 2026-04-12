@@ -15,18 +15,22 @@ import type {
 export interface EventIngestionConfig {
   db: Kysely<Database>
   maxRetries?: number
+  /** Skip auto-processing after ingest (for high-throughput ingestion without triggers) */
+  skipAutoProcess?: boolean
   logger?: { info: (...args: any[]) => void; error: (...args: any[]) => void }
 }
 
 export class EventIngestionService {
   private db: Kysely<Database>
   private maxRetries: number
+  private skipAutoProcess: boolean
   private logger?: EventIngestionConfig['logger']
   private engine: WorkflowEngine | null = null
 
   constructor(config: EventIngestionConfig) {
     this.db = config.db
     this.maxRetries = config.maxRetries ?? 3
+    this.skipAutoProcess = config.skipAutoProcess ?? false
     this.logger = config.logger
   }
 
@@ -107,8 +111,10 @@ export class EventIngestionService {
         })
         .execute()
 
-      // Auto-process for trigger matching
-      await this.processEvent(eventId)
+      // Auto-process for trigger matching (skippable for high-throughput ingestion)
+      if (!this.skipAutoProcess) {
+        await this.processEvent(eventId)
+      }
       return { eventId, duplicate: false }
     } catch (err: any) {
       // Handle race condition: unique constraint violation on idempotencyKey

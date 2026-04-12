@@ -64,6 +64,20 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
     },
 
     /**
+     * Batch start multiple workflows (Hatchet pattern: single DB round-trip).
+     */
+    async startBatch(input: {
+      workflows: Array<{ workflowName: string; tenantId: string; input: Record<string, unknown>; idempotencyKey?: string }>
+    }): Promise<Array<{ runId: string }>> {
+      return engine.startBatch(input.workflows.map(w => ({
+        workflowName: w.workflowName,
+        tenantId: w.tenantId,
+        input: w.input as any,
+        idempotencyKey: w.idempotencyKey,
+      })))
+    },
+
+    /**
      * Get workflow run status with all steps.
      */
     async getStatus(input: {
