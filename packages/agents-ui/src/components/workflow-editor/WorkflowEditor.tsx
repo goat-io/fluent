@@ -141,7 +141,8 @@ export function WorkflowEditor() {
             onDragOver={onDragOver}
             onDrop={onDrop}
             fitView
-            fitViewOptions={{ padding: 0.3 }}
+            fitViewOptions={{ padding: 0.5 }}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
             proOptions={{ hideAttribution: true }}
             nodesDraggable={true}
             nodesConnectable={true}
