@@ -199,7 +199,7 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
     async heartbeat(input: {
       agentId: string
       secret: string
-    }): Promise<{ status: string; cancelJobIds: string[] }> {
+    }): Promise<{ status: string; cancelJobIds: string[]; queues?: string[] }> {
       const agent = verifyAgent(registry, input.agentId, input.secret)
       const result = registry.heartbeat(input.agentId)
 
@@ -209,7 +209,23 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
         .where('id' as any, '=', input.agentId)
         .execute().catch(() => {})
 
-      return { status: agent.status, cancelJobIds: result.cancelJobIds }
+      // Check if queues changed in DB (admin toggled via UI)
+      let queues: string[] | undefined
+      try {
+        const row = await db.selectFrom('worker_nodes' as any).selectAll()
+          .where('id' as any, '=', input.agentId).executeTakeFirst() as any
+        if (row?.capabilities) {
+          const caps = JSON.parse(row.capabilities)
+          const currentQueues = agent.capabilities.queues
+          if (JSON.stringify(caps.queues?.sort()) !== JSON.stringify(currentQueues?.sort())) {
+            queues = caps.queues
+            // Update in-memory registry
+            agent.capabilities.queues = caps.queues
+          }
+        }
+      } catch {}
+
+      return { status: agent.status, cancelJobIds: result.cancelJobIds, queues }
     },
 
     /**

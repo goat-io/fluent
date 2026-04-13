@@ -398,7 +398,9 @@ async function main() {
     if (url.pathname === '/agent/run' && req.method === 'GET') {
       const token = url.searchParams.get('token')
       if (!token) { res.writeHead(400); res.end('token required'); return }
-      const script = generateAgentScript(`http://${getNetworkIp()}:${PORT}`, token, TENANT)
+      const queuesParam = url.searchParams.get('queues')
+      const queues = queuesParam ? queuesParam.split(',') : undefined
+      const script = generateAgentScript(`http://${getNetworkIp()}:${PORT}`, token, TENANT, queues)
       res.writeHead(200, { 'Content-Type': 'application/javascript' })
       res.end(script)
       return
@@ -460,16 +462,19 @@ async function main() {
       } else if (url.pathname === '/workflows/start-batch') {
         const wfs = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
         result = await handlers.startBatch({ workflows: wfs })
+      } else if (url.pathname === '/workers/update-queues') {
+        result = await handlers.updateWorkerQueues(body)
       } else if (url.pathname === '/workers/list') {
         result = await handlers.listWorkers({ tenantId: TENANT })
       } else if (url.pathname === '/workers/generate-token') {
         // Generate token with primary IP, then add LAN IP as alternative
         const primaryIp = getNetworkIp()
         const lanIp = getLanIp()
-        const tokenResult = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://${primaryIp}:${PORT}` })
+        const tokenResult = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://${primaryIp}:${PORT}`, queues: body.queues })
         // Add LAN command if primary is Tailscale
         if (primaryIp !== lanIp) {
-          ;(tokenResult as any).lanCommand = `curl -fsSL 'http://${lanIp}:${PORT}/agent/run?token=${tokenResult.token}' | node`
+          const queueParam = body.queues?.length ? `&queues=${body.queues.join(',')}` : ''
+          ;(tokenResult as any).lanCommand = `curl -fsSL 'http://${lanIp}:${PORT}/agent/run?token=${tokenResult.token}${queueParam}' | node`
         }
         result = tokenResult
       } else if (url.pathname === '/health') {

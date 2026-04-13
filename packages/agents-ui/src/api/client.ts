@@ -129,6 +129,10 @@ export class AgentsClient {
     return this.post('/workers/list', { tenantId: this.tenantId })
   }
 
+  async updateWorkerQueues(workerId: string, queues: string[]): Promise<void> {
+    await this.post('/workers/update-queues', { workerId, queues })
+  }
+
   async generateWorkerToken(): Promise<{
     token: string
     installCommand: string

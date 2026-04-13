@@ -12,21 +12,29 @@ export function NavHeader({ title, actions }: { title?: string; actions?: React.
   const location = useLocation()
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">{title ?? 'Goat Agents'}</h1>
-        <nav className="flex items-center gap-4 text-sm">
-          {NAV_ITEMS.map((item) => (
-            <a
-              key={item.path}
-              href={item.path}
-              className={location.pathname === item.path ? 'text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-700'}
-            >
-              {item.label}
-            </a>
-          ))}
-          {actions}
-        </nav>
+    <header className="border-b border-[var(--color-border)] bg-[var(--color-surface-1)] px-6 py-4">
+      <div className="flex items-center justify-between max-w-7xl mx-auto">
+        <div className="flex items-center gap-6">
+          <h1 className="text-lg font-semibold text-[var(--color-text-primary)] tracking-tight">
+            {title ?? 'Goat Agents'}
+          </h1>
+          <nav className="flex items-center gap-1">
+            {NAV_ITEMS.map((item) => (
+              <a
+                key={item.path}
+                href={item.path}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === item.path
+                    ? 'bg-[var(--color-accent)] text-white'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+        {actions && <div className="flex items-center gap-3">{actions}</div>}
       </div>
     </header>
   )

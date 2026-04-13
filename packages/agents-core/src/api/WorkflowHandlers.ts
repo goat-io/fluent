@@ -309,6 +309,19 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       return { success: true }
     },
 
+    async updateWorkerQueues(input: { workerId: string; queues: string[] }) {
+      // Update capabilities JSON in worker_nodes, replacing the queues array
+      const row = await (engine as any).db.selectFrom('worker_nodes').selectAll()
+        .where('id', '=', input.workerId).executeTakeFirst()
+      if (!row) throw new Error('Worker not found')
+      const caps = row.capabilities ? JSON.parse(row.capabilities) : {}
+      caps.queues = input.queues
+      await (engine as any).db.updateTable('worker_nodes')
+        .set({ capabilities: JSON.stringify(caps) })
+        .where('id', '=', input.workerId).execute()
+      return { success: true }
+    },
+
     async listWorkers(input: { tenantId: string }) {
       const rows = await (engine as any).db.selectFrom('worker_nodes').selectAll()
         .where('tenantId', '=', input.tenantId).execute()
@@ -339,6 +352,7 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
     async generateWorkerToken(input: {
       tenantId: string
       engineUrl: string
+      queues?: string[]
     }): Promise<{
       token: string
       installCommand: string
@@ -364,7 +378,8 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
 
       const installCommand = `curl -fsSL ${input.engineUrl}/agent/install.sh | bash`
       // Single command — fetches self-contained agent script from the platform and pipes to node
-      const startCommand = `curl -fsSL '${input.engineUrl}/agent/run?token=${token}' | node`
+      const queueParam = input.queues?.length ? `&queues=${input.queues.join(',')}` : ''
+      const startCommand = `curl -fsSL '${input.engineUrl}/agent/run?token=${token}${queueParam}' | node`
 
       return { token, installCommand, startCommand, engineUrl: input.engineUrl }
     },

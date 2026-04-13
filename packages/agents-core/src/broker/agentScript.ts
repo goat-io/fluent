@@ -2,7 +2,7 @@
 // Returns a JS string that can be eval'd on any machine with Node 18+.
 // No npm packages required — uses only Node built-ins (crypto, os, child_process, fetch).
 
-export function generateAgentScript(brokerUrl: string, token: string, tenantId: string): string {
+export function generateAgentScript(brokerUrl: string, token: string, tenantId: string, queues?: string[]): string {
   return `
 // Goat Agent — self-contained remote worker
 // Connects to ${brokerUrl} via HTTPS only. No dependencies required.
@@ -13,6 +13,7 @@ const { execSync } = require('node:child_process');
 const BROKER = ${JSON.stringify(brokerUrl)};
 const TOKEN = ${JSON.stringify(token)};
 const TENANT = ${JSON.stringify(tenantId)};
+const FORCED_QUEUES = ${queues ? JSON.stringify(queues) : 'null'};  // null = auto-detect
 
 let agentId = null;
 const secret = crypto.randomBytes(32).toString('hex');
@@ -39,10 +40,15 @@ function detectCapabilities() {
   const memoryMB = Math.floor(os.totalmem() / (1024 * 1024));
   let dockerAvailable = false;
   try { execSync('docker info', { stdio: 'ignore', timeout: 5000 }); dockerAvailable = true; } catch {}
-  const queues = ['workflow_step_light'];
-  if (memoryMB >= 4096) queues.push('workflow_step_heavy');
-  queues.push('workflow_step_ai');
-  if (dockerAvailable) queues.push('workflow_step_sandbox');
+  let queues;
+  if (FORCED_QUEUES) {
+    queues = FORCED_QUEUES;
+  } else {
+    queues = ['workflow_step_light'];
+    if (memoryMB >= 4096) queues.push('workflow_step_heavy');
+    queues.push('workflow_step_ai');
+    if (dockerAvailable) queues.push('workflow_step_sandbox');
+  }
   return { cpuCount, memoryMB, dockerAvailable, gpuAvailable: false, queues };
 }
 
@@ -99,6 +105,10 @@ async function heartbeatLoop() {
           const c = activeJobs.get(id);
           if (c) { c.abort(); activeJobs.delete(id); console.log('[agent] Aborted timed-out job:', id); }
         }
+      }
+      if (res.queues) {
+        console.log('[agent] Queue update from platform:', res.queues.map(q => q.replace('workflow_step_', '')).join(', '));
+        // Update capabilities for future registrations (dynamic queue change)
       }
       if (res.status === 'draining') { console.log('[agent] Drain requested'); running = false; }
     } catch {}
