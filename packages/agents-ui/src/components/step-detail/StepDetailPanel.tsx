@@ -84,7 +84,7 @@ export function StepDetailPanel({
               <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Output</h4>
               <JsonViewer data={step.output} />
             </div>
-            {step.error && (
+            {step.error && step.status !== 'COMPLETED' && (
               <div>
                 <h4 className="text-xs font-medium text-red-500 uppercase mb-2">Error</h4>
                 <pre className="rounded-md bg-red-50 p-3 text-xs text-red-700 border border-red-200">

@@ -11,6 +11,7 @@ export function useRealtimeWorkflow(runId: string | undefined) {
   const [workflow, setWorkflow] = useState<WorkflowRunDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const eventSourceRef = useRef<EventSource | null>(null)
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!runId) return
@@ -19,7 +20,7 @@ export function useRealtimeWorkflow(runId: string | undefined) {
     client.getWorkflow(runId).then(data => {
       setWorkflow(data)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
 
     // Connect SSE
     const es = client.subscribe(runId)
@@ -29,7 +30,6 @@ export function useRealtimeWorkflow(runId: string | undefined) {
       try {
         const data = JSON.parse(event.data)
         if (data.type === 'workflowUpdate' && data.workflow) {
-          // Merge SSE update with existing workflow data
           setWorkflow(prev => {
             if (!prev) return prev
             const updated = data.workflow
@@ -65,15 +65,21 @@ export function useRealtimeWorkflow(runId: string | undefined) {
     es.onerror = () => {
       // SSE disconnected — fall back to polling
       es.close()
-      const interval = setInterval(() => {
-        client.getWorkflow(runId).then(setWorkflow)
-      }, 2000)
-      return () => clearInterval(interval)
+      eventSourceRef.current = null
+      if (!pollIntervalRef.current) {
+        pollIntervalRef.current = setInterval(() => {
+          client.getWorkflow(runId).then(setWorkflow).catch(() => {})
+        }, 2000)
+      }
     }
 
     return () => {
       es.close()
       eventSourceRef.current = null
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
+      }
     }
   }, [runId, client])
 
