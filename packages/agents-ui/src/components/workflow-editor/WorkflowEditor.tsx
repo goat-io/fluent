@@ -88,6 +88,9 @@ export function WorkflowEditor() {
       const type = event.dataTransfer.getData('application/workflow-step-type') as ExecutorType
       if (!type) return
 
+      const configJson = event.dataTransfer.getData('application/workflow-step-config')
+      const prefilledConfig = configJson ? JSON.parse(configJson) : undefined
+
       const bounds = reactFlowWrapper.current?.getBoundingClientRect()
       if (!bounds) return
 
@@ -96,7 +99,7 @@ export function WorkflowEditor() {
         y: event.clientY - bounds.top - 35,
       }
 
-      addStep(type, position)
+      addStep(type, position, prefilledConfig)
     },
     [addStep],
   )
@@ -122,7 +125,7 @@ export function WorkflowEditor() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar - step palette */}
-        <StepPalette onAddStep={(type) => addStep(type)} />
+        <StepPalette onAddStep={(type, config) => addStep(type, undefined, config)} />
 
         {/* Center - React Flow canvas */}
         <div className="flex-1 relative" ref={reactFlowWrapper}>

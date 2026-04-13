@@ -185,7 +185,7 @@ export function useWorkflowEditor() {
   // ── Node Operations ──────────────────────────────────────────
 
   const addStep = useCallback(
-    (type: ExecutorType, position?: { x: number; y: number }) => {
+    (type: ExecutorType, position?: { x: number; y: number }, prefilledConfig?: Record<string, unknown>) => {
       const id = generateNodeId()
       const name = `${type}_step_${nodes.length + 1}`
       const config: StepConfig = {
@@ -193,6 +193,7 @@ export function useWorkflowEditor() {
         name,
         executorType: type,
         requiresHumanApproval: type === 'human',
+        ...(prefilledConfig ? { executorConfig: prefilledConfig } : {}),
       }
       stepConfigsRef.current.set(id, config)
 

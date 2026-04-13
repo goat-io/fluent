@@ -7,63 +7,139 @@ interface PaletteItem {
   description: string
   borderColor: string
   bgColor: string
+  category: 'core' | 'integration' | 'advanced'
 }
 
 const PALETTE_ITEMS: PaletteItem[] = [
+  // Core
   {
     type: 'function',
     label: 'Function',
     icon: '\u26A1',
-    description: 'Execute a JavaScript/TypeScript function',
+    description: 'Execute a JS/TS handler',
     borderColor: '#22d3ee',
     bgColor: 'rgba(34,211,238,0.08)',
+    category: 'core',
   },
   {
     type: 'ai',
-    label: 'AI',
+    label: 'AI / LLM',
     icon: '\uD83E\uDD16',
-    description: 'Run an AI/LLM inference step',
+    description: 'LLM inference with tool calls',
     borderColor: '#a78bfa',
     bgColor: 'rgba(167,139,250,0.08)',
-  },
-  {
-    type: 'sandbox',
-    label: 'Sandbox',
-    icon: '\uD83D\uDC10',
-    description: 'Execute in a Docker sandbox',
-    borderColor: '#fb923c',
-    bgColor: 'rgba(251,146,60,0.08)',
-  },
-  {
-    type: 'human',
-    label: 'Human Approval',
-    icon: '\uD83D\uDC64',
-    description: 'Pause for human review and input',
-    borderColor: '#c084fc',
-    bgColor: 'rgba(192,132,252,0.08)',
+    category: 'core',
   },
   {
     type: 'task_runner',
     label: 'Task Runner',
     icon: '\uD83D\uDD04',
-    description: 'Fan-out/fan-in task processing',
+    description: 'Fan-out/fan-in parallel tasks',
     borderColor: '#34d399',
     bgColor: 'rgba(52,211,153,0.08)',
+    category: 'core',
+  },
+  {
+    type: 'human',
+    label: 'Human Review',
+    icon: '\uD83D\uDC64',
+    description: 'Pause for human approval',
+    borderColor: '#c084fc',
+    bgColor: 'rgba(192,132,252,0.08)',
+    category: 'core',
+  },
+  {
+    type: 'sandbox',
+    label: 'Docker Sandbox',
+    icon: '\uD83D\uDC10',
+    description: 'Isolated container execution',
+    borderColor: '#fb923c',
+    bgColor: 'rgba(251,146,60,0.08)',
+    category: 'core',
+  },
+  // Integrations
+  {
+    type: 'function' as ExecutorType,
+    label: 'GitHub',
+    icon: '\uD83D\uDC19',
+    description: 'PRs, issues, comments, merge',
+    borderColor: '#e5e5e5',
+    bgColor: 'rgba(229,229,229,0.06)',
+    category: 'integration',
+  },
+  {
+    type: 'function' as ExecutorType,
+    label: 'Linear',
+    icon: '\uD83D\uDCCB',
+    description: 'Issues, updates, comments',
+    borderColor: '#5E6AD2',
+    bgColor: 'rgba(94,106,210,0.08)',
+    category: 'integration',
+  },
+  {
+    type: 'function' as ExecutorType,
+    label: 'Slack',
+    icon: '\uD83D\uDCAC',
+    description: 'Send & update messages',
+    borderColor: '#E01E5A',
+    bgColor: 'rgba(224,30,90,0.08)',
+    category: 'integration',
+  },
+  // Advanced
+  {
+    type: 'function' as ExecutorType,
+    label: 'Web Search',
+    icon: '\uD83D\uDD0D',
+    description: 'AI skill: search the web',
+    borderColor: '#60a5fa',
+    bgColor: 'rgba(96,165,250,0.08)',
+    category: 'advanced',
+  },
+  {
+    type: 'function' as ExecutorType,
+    label: 'Code Exec',
+    icon: '\uD83D\uDCBB',
+    description: 'AI skill: run code snippets',
+    borderColor: '#f472b6',
+    bgColor: 'rgba(244,114,182,0.08)',
+    category: 'advanced',
   },
 ]
 
+// Map integration/skill labels to pre-filled executorConfig
+const PREFILLED_CONFIG: Record<string, Record<string, unknown>> = {
+  'GitHub': { handler: 'github_action', provider: 'github', actionType: 'create_pr' },
+  'Linear': { handler: 'linear_action', provider: 'linear', actionType: 'create_issue' },
+  'Slack': { handler: 'slack_action', provider: 'slack', actionType: 'send_message' },
+  'Web Search': { handler: 'ai_with_skills', skills: ['webSearch'] },
+  'Code Exec': { handler: 'ai_with_skills', skills: ['codeExecution'] },
+}
+
 interface StepPaletteProps {
-  onAddStep?: (type: ExecutorType) => void
+  onAddStep?: (type: ExecutorType, config?: Record<string, unknown>) => void
 }
 
 export function StepPalette({ onAddStep }: StepPaletteProps) {
   function handleDragStart(
     event: React.DragEvent<HTMLDivElement>,
-    type: ExecutorType,
+    item: PaletteItem,
   ) {
-    event.dataTransfer.setData('application/workflow-step-type', type)
+    event.dataTransfer.setData('application/workflow-step-type', item.type)
+    if (PREFILLED_CONFIG[item.label]) {
+      event.dataTransfer.setData('application/workflow-step-config', JSON.stringify(PREFILLED_CONFIG[item.label]))
+    }
     event.dataTransfer.effectAllowed = 'move'
   }
+
+  function handleClick(item: PaletteItem) {
+    onAddStep?.(item.type, PREFILLED_CONFIG[item.label])
+  }
+
+  const categories = [
+    { key: 'core', label: 'Steps' },
+    { key: 'integration', label: 'Integrations' },
+    { key: 'advanced', label: 'Skills' },
+  ]
 
   return (
     <div
@@ -73,54 +149,56 @@ export function StepPalette({ onAddStep }: StepPaletteProps) {
         borderRight: '1px solid var(--color-border, rgba(255,255,255,0.08))',
       }}
     >
-      <div
-        className="px-3 py-3"
-        style={{ borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))' }}
-      >
-        <h3
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-text-muted, #55556a)' }}
-        >
-          Step Palette
-        </h3>
-        <p
-          className="text-[11px] mt-0.5"
-          style={{ color: 'var(--color-text-muted, #55556a)' }}
-        >
-          Drag to canvas or click to add
-        </p>
-      </div>
-      <div className="flex flex-col gap-2 p-3">
-        {PALETTE_ITEMS.map((item) => (
-          <div
-            key={item.type}
-            draggable
-            onDragStart={(e) => handleDragStart(e, item.type)}
-            onClick={() => onAddStep?.(item.type)}
-            className="cursor-grab active:cursor-grabbing rounded-lg p-3 transition-all hover:scale-[1.02] select-none"
-            style={{
-              background: item.bgColor,
-              border: `2px solid ${item.borderColor}`,
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{item.icon}</span>
-              <span
-                className="text-sm font-semibold"
-                style={{ color: 'var(--color-text-primary, #f0f0f5)' }}
-              >
-                {item.label}
-              </span>
-            </div>
-            <p
-              className="text-[11px] mt-1 leading-tight"
-              style={{ color: 'var(--color-text-secondary, #8888a0)' }}
+      {categories.map(({ key, label }) => {
+        const items = PALETTE_ITEMS.filter(i => i.category === key)
+        if (items.length === 0) return null
+        return (
+          <div key={key}>
+            <div
+              className="px-3 py-2"
+              style={{ borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))' }}
             >
-              {item.description}
-            </p>
+              <h3
+                className="text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: 'var(--color-text-muted, #55556a)' }}
+              >
+                {label}
+              </h3>
+            </div>
+            <div className="flex flex-col gap-1.5 p-2">
+              {items.map((item, idx) => (
+                <div
+                  key={`${item.type}-${idx}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, item)}
+                  onClick={() => handleClick(item)}
+                  className="cursor-grab active:cursor-grabbing rounded-lg p-2.5 transition-all hover:scale-[1.02] select-none"
+                  style={{
+                    background: item.bgColor,
+                    border: `1.5px solid ${item.borderColor}40`,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{item.icon}</span>
+                    <span
+                      className="text-xs font-semibold"
+                      style={{ color: 'var(--color-text-primary, #f0f0f5)' }}
+                    >
+                      {item.label}
+                    </span>
+                  </div>
+                  <p
+                    className="text-[10px] mt-0.5 leading-tight"
+                    style={{ color: 'var(--color-text-secondary, #8888a0)' }}
+                  >
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+        )
+      })}
     </div>
   )
 }
