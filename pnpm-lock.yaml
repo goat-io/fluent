@@ -109,6 +109,9 @@ importers:
       '@goatlab/tasks-core':
         specifier: workspace:*
         version: link:../tasks-core
+      cron-parser:
+        specifier: ^5.5.0
+        version: 5.5.0
       kysely:
         specifier: ^0.27.6
         version: 0.27.6
@@ -6630,6 +6633,10 @@ packages:
   cron-parser@4.9.0:
     resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
     engines: {node: '>=12.0.0'}
+
+  cron-parser@5.5.0:
+    resolution: {integrity: sha512-oML4lKUXxizYswqmxuOCpgFS8BNUJpIu6k/2HVHyaL8Ynnf3wdf9tkns0yRdJLSIjkJ+b0DXHMZEHGpMwjnPww==}
+    engines: {node: '>=18'}
 
   cron@4.3.2:
     resolution: {integrity: sha512-JxBBnf5zRz+NhW9XcP16gwUKAKIimy2G0QCCQu8kk5XwM4aCGwMt+nntouAfXF9A57965XzB6hitBlJAz5Ts6w==}
@@ -19471,6 +19478,10 @@ snapshots:
   create-require@1.1.1: {}
 
   cron-parser@4.9.0:
+    dependencies:
+      luxon: 3.7.1
+
+  cron-parser@5.5.0:
     dependencies:
       luxon: 3.7.1
 

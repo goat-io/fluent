@@ -4,7 +4,7 @@ import dagre from 'dagre'
 
 // ── Types ─────────────────────────────────────────────────────────
 
-export type ExecutorType = 'function' | 'ai' | 'sandbox' | 'human'
+export type ExecutorType = 'function' | 'ai' | 'sandbox' | 'human' | 'task_runner'
 export type StepWeight = 'light' | 'heavy' | 'ai' | 'sandbox'
 
 export interface StepConfig {
@@ -17,6 +17,23 @@ export interface StepConfig {
   maxIterations: number
   nextStep?: string
   dependsOn: string[]
+  requiresHumanApproval: boolean
+  heartbeatTimeoutMs?: number
+  scheduleToStartTimeoutMs?: number
+  conditionExpression?: string
+  mapInputExpression?: string
+}
+
+export interface TriggerConfig {
+  type: 'event' | 'manual'
+  eventType?: string
+}
+
+export interface BudgetConfig {
+  maxTokens?: number
+  maxCostUsd?: number
+  maxSteps?: number
+  maxTaskExecutions?: number
 }
 
 export interface WorkflowDefinitionJson {
@@ -25,6 +42,16 @@ export interface WorkflowDefinitionJson {
   defaultRetries: number
   defaultTimeoutMs: number
   failFast: boolean
+  triggers?: Array<{
+    type: 'event' | 'manual'
+    eventType?: string
+  }>
+  budget?: {
+    maxTokens?: number
+    maxCostUsd?: number
+    maxSteps?: number
+    maxTaskExecutions?: number
+  }
   steps: Array<{
     name: string
     dependsOn?: string[]
@@ -35,6 +62,11 @@ export interface WorkflowDefinitionJson {
     weight?: string
     maxIterations?: number
     nextStep?: string
+    requiresHumanApproval?: boolean
+    heartbeatTimeoutMs?: number
+    scheduleToStartTimeoutMs?: number
+    condition?: string
+    mapInput?: string
   }>
 }
 
@@ -61,6 +93,7 @@ const DEFAULT_STEP_CONFIG: Omit<StepConfig, 'name'> = {
   weight: 'light',
   maxIterations: 1,
   dependsOn: [],
+  requiresHumanApproval: false,
 }
 
 function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
@@ -137,6 +170,14 @@ export function useWorkflowEditor() {
   const [workflowVersion, setWorkflowVersion] = useState('1.0.0')
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([])
 
+  // Workflow-level settings
+  const [defaultRetries, setDefaultRetries] = useState(3)
+  const [defaultTimeoutMs, setDefaultTimeoutMs] = useState(300_000)
+  const [failFast, setFailFast] = useState(false)
+  const [triggers, setTriggers] = useState<TriggerConfig[]>([])
+  const [budget, setBudget] = useState<BudgetConfig>({})
+  const [showSettings, setShowSettings] = useState(false)
+
   const stepConfigsRef = useRef<Map<string, StepConfig>>(new Map())
 
   // ── Node Operations ──────────────────────────────────────────
@@ -149,6 +190,7 @@ export function useWorkflowEditor() {
         ...DEFAULT_STEP_CONFIG,
         name,
         executorType: type,
+        requiresHumanApproval: type === 'human',
       }
       stepConfigsRef.current.set(id, config)
 
@@ -323,19 +365,30 @@ export function useWorkflowEditor() {
         const nextName = idToName.get(cfg.nextStep)
         if (nextName) step.nextStep = nextName
       }
+      if (cfg.requiresHumanApproval) step.requiresHumanApproval = true
+      if (cfg.heartbeatTimeoutMs) step.heartbeatTimeoutMs = cfg.heartbeatTimeoutMs
+      if (cfg.scheduleToStartTimeoutMs) step.scheduleToStartTimeoutMs = cfg.scheduleToStartTimeoutMs
+      if (cfg.conditionExpression?.trim()) step.condition = cfg.conditionExpression.trim()
+      if (cfg.mapInputExpression?.trim()) step.mapInput = cfg.mapInputExpression.trim()
 
       steps.push(step)
     }
 
-    return {
+    const def: WorkflowDefinitionJson = {
       name: workflowName,
       version: workflowVersion,
-      defaultRetries: 3,
-      defaultTimeoutMs: 300_000,
-      failFast: false,
+      defaultRetries,
+      defaultTimeoutMs,
+      failFast,
       steps,
     }
-  }, [workflowName, workflowVersion])
+
+    if (triggers.length > 0) def.triggers = triggers
+    const hasBudget = budget.maxTokens || budget.maxCostUsd || budget.maxSteps || budget.maxTaskExecutions
+    if (hasBudget) def.budget = budget
+
+    return def
+  }, [workflowName, workflowVersion, defaultRetries, defaultTimeoutMs, failFast, triggers, budget])
 
   const fromWorkflowDefinition = useCallback(
     (def: WorkflowDefinitionJson) => {
@@ -345,6 +398,11 @@ export function useWorkflowEditor() {
 
       setWorkflowName(def.name || 'my-workflow')
       setWorkflowVersion(def.version || '1.0.0')
+      setDefaultRetries(def.defaultRetries ?? 3)
+      setDefaultTimeoutMs(def.defaultTimeoutMs ?? 300_000)
+      setFailFast(def.failFast ?? false)
+      setTriggers(def.triggers ?? [])
+      setBudget(def.budget ?? {})
 
       // Create name-to-id map
       const nameToId = new Map<string, string>()
@@ -365,12 +423,17 @@ export function useWorkflowEditor() {
           name: step.name,
           executorType: (step.executorType as ExecutorType) || 'function',
           executorConfig: step.executorConfig || {},
-          retries: step.retries ?? 3,
-          timeoutMs: step.timeoutMs ?? 300_000,
+          retries: step.retries ?? def.defaultRetries ?? 3,
+          timeoutMs: step.timeoutMs ?? def.defaultTimeoutMs ?? 300_000,
           weight: (step.weight as StepWeight) || 'light',
           maxIterations: step.maxIterations ?? 1,
           dependsOn,
           nextStep: step.nextStep ? nameToId.get(step.nextStep) : undefined,
+          requiresHumanApproval: step.requiresHumanApproval ?? false,
+          heartbeatTimeoutMs: step.heartbeatTimeoutMs,
+          scheduleToStartTimeoutMs: step.scheduleToStartTimeoutMs,
+          conditionExpression: step.condition,
+          mapInputExpression: step.mapInput,
         }
 
         stepConfigsRef.current.set(id, config)
@@ -493,6 +556,13 @@ export function useWorkflowEditor() {
       })
     }
 
+    // Validate triggers
+    for (const trigger of triggers) {
+      if (trigger.type === 'event' && !trigger.eventType?.trim()) {
+        errs.push({ type: 'warning', message: 'Event trigger missing eventType' })
+      }
+    }
+
     // Warnings
     for (const [id, cfg] of stepConfigsRef.current) {
       if (cfg.retries < 0) {
@@ -509,11 +579,21 @@ export function useWorkflowEditor() {
           stepId: id,
         })
       }
+      if (cfg.executorType === 'task_runner') {
+        const ec = cfg.executorConfig
+        if (!ec.executor) {
+          errs.push({
+            type: 'warning',
+            message: `Task runner step "${cfg.name}" has no inner executor type`,
+            stepId: id,
+          })
+        }
+      }
     }
 
     setValidationErrors(errs)
     return errs
-  }, [workflowName, workflowVersion, nodes, edges])
+  }, [workflowName, workflowVersion, nodes, edges, triggers])
 
   const getValidationErrors = useCallback(() => validationErrors, [validationErrors])
 
@@ -527,7 +607,13 @@ export function useWorkflowEditor() {
     setSelectedNodeId(null)
     setWorkflowName('my-workflow')
     setWorkflowVersion('1.0.0')
+    setDefaultRetries(3)
+    setDefaultTimeoutMs(300_000)
+    setFailFast(false)
+    setTriggers([])
+    setBudget({})
     setValidationErrors([])
+    setShowSettings(false)
   }, [])
 
   // ── Auto-layout ──────────────────────────────────────────────
@@ -554,6 +640,20 @@ export function useWorkflowEditor() {
     workflowName,
     workflowVersion,
     validationErrors,
+
+    // Workflow-level settings
+    defaultRetries,
+    defaultTimeoutMs,
+    failFast,
+    triggers,
+    budget,
+    showSettings,
+    setDefaultRetries,
+    setDefaultTimeoutMs,
+    setFailFast,
+    setTriggers,
+    setBudget,
+    setShowSettings,
 
     // Setters
     setNodes,

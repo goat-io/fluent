@@ -7,6 +7,7 @@ const executorIcons: Record<ExecutorType, string> = {
   ai: '\uD83E\uDD16',
   sandbox: '\uD83D\uDC10',
   human: '\uD83D\uDC64',
+  task_runner: '\uD83D\uDD04',
 }
 
 const executorBadgeColors: Record<ExecutorType, string> = {
@@ -14,6 +15,7 @@ const executorBadgeColors: Record<ExecutorType, string> = {
   ai: 'bg-violet-100 text-violet-700',
   sandbox: 'bg-orange-100 text-orange-700',
   human: 'bg-purple-100 text-purple-700',
+  task_runner: 'bg-emerald-100 text-emerald-700',
 }
 
 export function EditorStepNode({ data, selected }: NodeProps) {
@@ -47,12 +49,34 @@ export function EditorStepNode({ data, selected }: NodeProps) {
               executorBadgeColors[config.executorType] ?? 'bg-gray-100 text-gray-600',
             )}
           >
-            {config.executorType}
+            {config.executorType === 'task_runner' ? 'tasks' : config.executorType}
           </span>
         </div>
-        {config.retries > 0 && (
-          <div className="mt-1.5 text-[11px] text-gray-400">
-            retries: {config.retries} | timeout: {Math.round(config.timeoutMs / 1000)}s
+        <div className="mt-1.5 flex items-center gap-1.5">
+          {config.retries > 0 && (
+            <span className="text-[11px] text-gray-400">
+              retries: {config.retries} | timeout: {Math.round(config.timeoutMs / 1000)}s
+            </span>
+          )}
+        </div>
+        {/* Feature badges */}
+        {(config.requiresHumanApproval || config.conditionExpression || config.executorType === 'task_runner') && (
+          <div className="mt-1 flex items-center gap-1 flex-wrap">
+            {config.requiresHumanApproval && (
+              <span className="text-[10px] bg-purple-50 text-purple-600 px-1 py-0.5 rounded" title="Requires human approval">
+                approval
+              </span>
+            )}
+            {config.conditionExpression && (
+              <span className="text-[10px] bg-amber-50 text-amber-600 px-1 py-0.5 rounded" title="Conditional step">
+                conditional
+              </span>
+            )}
+            {config.mapInputExpression && (
+              <span className="text-[10px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded" title="Input mapping">
+                mapInput
+              </span>
+            )}
           </div>
         )}
       </div>

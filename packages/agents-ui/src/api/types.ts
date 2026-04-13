@@ -60,6 +60,24 @@ export interface WorkflowRunDetail {
   completedAt: string | null
   createdAt: string
   steps: StepDetail[]
+  traceId?: string
+  parentRunId?: string
+  budget?: WorkflowBudget | null
+  budgetUsed?: BudgetUsed | null
+}
+
+export interface WorkflowBudget {
+  maxTokens?: number
+  maxCostUsd?: number
+  maxSteps?: number
+  maxTaskExecutions?: number
+}
+
+export interface BudgetUsed {
+  tokens: number
+  costUsd: number
+  steps: number
+  taskExecutions: number
 }
 
 export interface StepLog {
@@ -128,6 +146,27 @@ export interface AggregateMetrics {
   avgActionLatencyByProvider: Record<string, number>
   actionCountByProvider: Record<string, number>
   stepExecutionPercentiles: { p50: number; p95: number; p99: number } | null
+}
+
+// ── Schedule Types ───────────────────────────────────────────────
+
+export interface WorkflowSchedule {
+  id: string
+  tenantId: string
+  workflowName: string
+  cronExpression: string
+  nextRunAt: string
+  lastRunAt: string | null
+  active: boolean
+  createdAt: string
+}
+
+// ── Trace Types ─────────────────────────────────────────────────
+
+export interface TraceLineage {
+  runs: WorkflowRunSummary[]
+  events: Array<{ id: string; eventType: string; source: string; payload?: Record<string, unknown>; traceId?: string; createdAt: string }>
+  actions: Array<{ id: string; provider: string; actionType: string; status: string; traceId?: string; createdAt: string }>
 }
 
 // ── Worker Types ─────────────────────────────────────────────────

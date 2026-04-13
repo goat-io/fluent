@@ -225,6 +225,12 @@ export class ExternalActionExecutor {
     // ── Step 4: Insert pending action ────────────────────
     const actionId = Ids.nanoId(21)
     try {
+      // Look up traceId from the workflow run for lineage
+      const run = await this.db.selectFrom('workflow_runs')
+        .select('traceId')
+        .where('id', '=', req.workflowRunId)
+        .executeTakeFirst()
+
       await this.db.insertInto('external_actions').values({
         id: actionId,
         workflowRunId: req.workflowRunId,
@@ -236,6 +242,7 @@ export class ExternalActionExecutor {
         idempotencyKey,
         status: 'pending',
         request: toJson(req.request),
+        traceId: run?.traceId ?? null,
         createdAt: new Date(),
       }).execute()
     } catch (err: any) {

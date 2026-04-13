@@ -1,5 +1,5 @@
 // npx vitest run src/__tests__/state-machine.spec.ts
-import type { JsonObject } from '@goatlab/tasks-core'
+import type { JsonObject, JsonValue } from '@goatlab/tasks-core'
 
 // ── Workflow Status ────────────────────────────────────────────────
 
@@ -27,6 +27,8 @@ export interface StepContext {
   tenantId: string
   completedOutputs: Record<string, JsonObject>
   triggerInput: JsonObject
+  /** Task results from upstream steps, keyed by stepName */
+  tasks?: Record<string, Array<{ id: string; payload: JsonObject | null; result: JsonObject | null; status: string }>>
 }
 
 // ── Step Execution Context ────────────────────────────────────────
@@ -35,12 +37,17 @@ export interface StepContext {
 
 import type { ExternalActionExecutor } from '../engine/ExternalActionExecutor.js'
 import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
+import type { TaskManager } from '../engine/TaskManager.js'
 
 export interface StepExecutionContext {
   /** The only sanctioned way to call external APIs from a step. */
   externalActions: ExternalActionExecutor
   /** Typed integration wrappers (GitHub, Linear, Slack, etc.) */
   integrations?: IntegrationRegistry
+  /** Task manager for fan-out/fan-in task execution */
+  taskManager?: TaskManager
+  /** Budget check callback: increments usage and returns exceeded reason or null */
+  checkBudget?: (runId: string, field: string, amount?: number) => Promise<string | null>
 }
 
 // ── Step Definition ────────────────────────────────────────────────
@@ -114,16 +121,23 @@ export interface WorkflowTriggerInput {
   input: JsonObject
   idempotencyKey?: string
   priority?: number
+  /** Trace ID for cross-workflow lineage. Auto-generated if not provided. */
+  traceId?: string
+  /** Parent workflow run ID (for child workflows) */
+  parentRunId?: string
+  /** Origin event ID that triggered this workflow */
+  originEventId?: string
 }
 
 export interface StepPayload {
+  [key: string]: JsonValue | undefined
   workflowRunId: string
   stepName: string
   tenantId: string
   input: JsonObject
   attempt: number
   executorType: string
-  executorConfig: Record<string, unknown>
+  executorConfig: JsonObject
   lastHeartbeatData?: JsonObject
   heartbeatTimeoutMs?: number
   scheduleToStartTimeoutMs?: number

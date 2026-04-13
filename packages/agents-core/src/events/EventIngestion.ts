@@ -86,6 +86,7 @@ export class EventIngestionService {
             idempotencyKey: event.idempotencyKey ?? null,
             entityKey: event.entityKey,
             sequenceNumber: event.sequenceNumber,
+            traceId: event.traceId ?? null,
             status: 'skipped_stale',
           }).execute()
 
@@ -107,6 +108,7 @@ export class EventIngestionService {
           idempotencyKey: event.idempotencyKey ?? null,
           entityKey: event.entityKey ?? null,
           sequenceNumber: event.sequenceNumber ?? null,
+          traceId: event.traceId ?? null,
           status: 'pending',
         })
         .execute()

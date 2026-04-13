@@ -133,6 +133,50 @@ export class AgentsClient {
     return this.post('/workers/generate-token', { tenantId: this.tenantId })
   }
 
+  // ── Schedules ──────────────────────────────────────
+
+  async listSchedules(): Promise<import('./types').WorkflowSchedule[]> {
+    return this.post('/schedules/list', { tenantId: this.tenantId })
+  }
+
+  async createSchedule(
+    workflowName: string,
+    cronExpression: string,
+  ): Promise<{ scheduleId: string }> {
+    return this.post('/schedules/create', {
+      tenantId: this.tenantId,
+      workflowName,
+      cronExpression,
+    })
+  }
+
+  async deleteSchedule(scheduleId: string): Promise<void> {
+    await this.post('/schedules/delete', { scheduleId })
+  }
+
+  // ── Events ────────────────────────────────────────
+
+  async ingestEvent(
+    eventType: string,
+    source: string,
+    payload: Record<string, unknown>,
+    idempotencyKey?: string,
+  ): Promise<{ eventId: string; duplicate: boolean }> {
+    return this.post('/workflows/ingest-event', {
+      tenantId: this.tenantId,
+      eventType,
+      source,
+      payload,
+      idempotencyKey,
+    })
+  }
+
+  // ── Trace ─────────────────────────────────────────
+
+  async getTrace(traceId: string): Promise<import('./types').TraceLineage> {
+    return this.post('/workflows/trace', { traceId })
+  }
+
   // ── Real-time ──────────────────────────────────────
 
   subscribe(runId: string): EventSource {

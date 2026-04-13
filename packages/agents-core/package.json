@@ -25,6 +25,7 @@
   "dependencies": {
     "@goatlab/js-utils": "workspace:*",
     "@goatlab/tasks-core": "workspace:*",
+    "cron-parser": "^5.5.0",
     "kysely": "^0.27.6",
     "tslib": "^2.8.1"
   },

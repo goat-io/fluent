@@ -20,10 +20,11 @@ export type {
   WorkflowTriggerInput,
 } from './workflow/WorkflowBuilder.types.js'
 
-export type { WorkflowEngineConfig } from './engine/WorkflowEngine.types.js'
+export type { WorkflowEngineConfig, WorkflowBudget, BudgetUsed } from './engine/WorkflowEngine.types.js'
 
 export type { StepExecutor } from './steps/StepExecutor.js'
 export type { StepHandler } from './steps/FunctionStepExecutor.js'
+export { TaskRunnerExecutor } from './steps/TaskRunnerExecutor.js'
 
 // ── Core Classes ───────────────────────────────────────────────────
 export { WorkflowBuilder } from './workflow/WorkflowBuilder.js'
@@ -64,6 +65,13 @@ export type {
   ExternalActionTable,
   ExternalActionUpdate,
   StepLogEvent,
+  WorkflowTask,
+  WorkflowTaskTable,
+  WorkflowTaskStatus,
+  WorkflowSchedule,
+  WorkflowScheduleTable,
+  AgentToken,
+  AgentTokenTable,
 } from './entities/Database.js'
 export { CREATE_TABLES_SQL, fromJson, toJson } from './entities/Database.js'
 
@@ -84,6 +92,10 @@ export type { RateLimiterBackend, RedisClient } from './engine/RateLimiterBacken
 // ── ExternalAction Enforcement ─────────────────────────────────────
 export { ExternalActionEnforcer } from './engine/ExternalActionEnforcer.js'
 export type { ExternalActionEnforcerConfig } from './engine/ExternalActionEnforcer.js'
+
+// ── Task Manager ──────────────────────────────────────────────────
+export { TaskManager } from './engine/TaskManager.js'
+export type { TaskInput, TaskStats, JsonObject } from './engine/TaskManager.js'
 
 // ── Cost Tracking ─────────────────────────────────────────────────
 export { StepCostTracker } from './engine/StepCostTracker.js'
@@ -125,6 +137,20 @@ export { WorkerNode } from './worker/WorkerNode.js'
 export type { WorkerNodeConfig, WorkerCapabilities, WorkerRegistration, QueueDepthProvider } from './worker/WorkerNode.types.js'
 export { LocalWorkerProvisioner } from './worker/WorkerProvisioner.js'
 export type { WorkerProvisioner } from './worker/WorkerProvisioner.js'
+
+// ── Scheduler ─────────────────────────────────────────────────────
+export { SchedulerService } from './scheduler/SchedulerService.js'
+export type { SchedulerServiceConfig } from './scheduler/SchedulerService.js'
+
+// ── Broker (Agent Mode) ──────────────────────────────────────────
+export { AgentRegistry } from './broker/AgentRegistry.js'
+export type { RegisteredAgent, PendingJob, AgentCapabilities, AgentRegistryConfig } from './broker/AgentRegistry.js'
+export { WorkerBroker } from './broker/WorkerBroker.js'
+export type { WorkerBrokerConfig } from './broker/WorkerBroker.js'
+export { createBrokerHandlers } from './broker/BrokerHandlers.js'
+export type { BrokerHandlers, BrokerHandlersConfig } from './broker/BrokerHandlers.js'
+export { AgentDaemon } from './broker/AgentDaemon.js'
+export type { AgentDaemonConfig } from './broker/AgentDaemon.js'
 
 // ── Errors ─────────────────────────────────────────────────────────
 export {

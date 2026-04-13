@@ -37,6 +37,13 @@ const PALETTE_ITEMS: PaletteItem[] = [
     description: 'Pause for human review and input',
     color: 'border-purple-300 bg-purple-50',
   },
+  {
+    type: 'task_runner',
+    label: 'Task Runner',
+    icon: '\uD83D\uDD04',
+    description: 'Fan-out/fan-in task processing',
+    color: 'border-emerald-300 bg-emerald-50',
+  },
 ]
 
 interface StepPaletteProps {

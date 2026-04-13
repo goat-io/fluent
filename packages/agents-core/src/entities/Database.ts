@@ -18,6 +18,16 @@ export interface WorkflowRunTable {
   output: string | null
   error: string | null
   idempotencyKey: string | null
+  /** Trace ID for cross-workflow lineage */
+  traceId: string | null
+  /** Parent workflow run ID (for child workflows) */
+  parentRunId: string | null
+  /** Origin event ID that triggered this workflow */
+  originEventId: string | null
+  /** Budget guardrails config (JSON) */
+  budget: string | null
+  /** Accumulated budget usage (JSON) */
+  budgetUsed: string | null
   startedAt: Date | string | null
   completedAt: Date | string | null
   createdAt: Generated<Date | string>
@@ -138,6 +148,9 @@ export interface ExternalActionTable {
   response: string | null             // JSON: what we got back
   error: string | null                // Error message if failed
 
+  /** Trace ID for cross-workflow lineage */
+  traceId: string | null
+
   createdAt: Generated<Date | string>
   completedAt: Date | string | null
 }
@@ -159,6 +172,8 @@ export interface WorkflowEventTable {
   entityKey: string | null
   /** Sequence number within entity — higher = newer */
   sequenceNumber: number | null
+  /** Trace ID for cross-workflow lineage */
+  traceId: string | null
   status: string // 'pending' | 'processed' | 'failed' | 'dead_letter' | 'skipped_stale'
   error: string | null
   processedAt: Date | string | null
@@ -219,6 +234,63 @@ export type WorkflowDefinitionRow = Selectable<WorkflowDefinitionTable>
 export type NewWorkflowDefinition = Insertable<WorkflowDefinitionTable>
 export type WorkflowDefinitionUpdate = Updateable<WorkflowDefinitionTable>
 
+// ── Workflow Tasks ────────────────────────────────────────────────
+
+export type WorkflowTaskStatus = 'pending' | 'running' | 'completed' | 'failed'
+
+export interface WorkflowTaskTable {
+  id: string
+  workflowRunId: string
+  stepName: string
+  status: string
+  payload: string | null
+  result: string | null
+  error: string | null
+  attempt: number
+  maxRetries: number
+  priority: number | null
+  createdAt: Generated<Date | string>
+  updatedAt: Generated<Date | string>
+}
+
+export type WorkflowTask = Selectable<WorkflowTaskTable>
+export type NewWorkflowTask = Insertable<WorkflowTaskTable>
+export type WorkflowTaskUpdate = Updateable<WorkflowTaskTable>
+
+// ── Workflow Schedules ────────────────────────────────────────────
+
+export interface WorkflowScheduleTable {
+  id: string
+  tenantId: string
+  workflowName: string
+  cronExpression: string
+  nextRunAt: Date | string
+  lastRunAt: Date | string | null
+  active: boolean
+  createdAt: Generated<Date | string>
+}
+
+export type WorkflowSchedule = Selectable<WorkflowScheduleTable>
+export type NewWorkflowSchedule = Insertable<WorkflowScheduleTable>
+export type WorkflowScheduleUpdate = Updateable<WorkflowScheduleTable>
+
+// ── Database Schema ────────────────────────────────────────────────
+
+// ── Agent Tokens ──────────────────────────────────────────────────
+
+export interface AgentTokenTable {
+  id: string
+  tenantId: string
+  token: string
+  used: boolean
+  usedBy: string | null
+  expiresAt: Date | string | null
+  createdAt: Generated<Date | string>
+}
+
+export type AgentToken = Selectable<AgentTokenTable>
+export type NewAgentToken = Insertable<AgentTokenTable>
+
 // ── Database Schema ────────────────────────────────────────────────
 
 export interface Database {
@@ -231,6 +303,9 @@ export interface Database {
   workflow_event_subscriptions: WorkflowEventSubscriptionTable
   worker_nodes: WorkerNodeTable
   workflow_definitions: WorkflowDefinitionTable
+  workflow_tasks: WorkflowTaskTable
+  workflow_schedules: WorkflowScheduleTable
+  agent_tokens: AgentTokenTable
 }
 
 // ── JSON Helpers ───────────────────────────────────────────────────
@@ -263,6 +338,11 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
   output TEXT,
   error TEXT,
   "idempotencyKey" VARCHAR(255),
+  "traceId" VARCHAR(36),
+  "parentRunId" VARCHAR(36),
+  "originEventId" VARCHAR(36),
+  budget TEXT,
+  "budgetUsed" TEXT,
   "startedAt" TIMESTAMP,
   "completedAt" TIMESTAMP,
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -336,6 +416,7 @@ CREATE TABLE IF NOT EXISTS external_actions (
   request TEXT,
   response TEXT,
   error TEXT,
+  "traceId" VARCHAR(36),
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "completedAt" TIMESTAMP,
   UNIQUE("idempotencyKey")
@@ -358,6 +439,7 @@ CREATE TABLE IF NOT EXISTS workflow_events (
   "idempotencyKey" VARCHAR(500),
   "entityKey" VARCHAR(500),
   "sequenceNumber" INTEGER,
+  "traceId" VARCHAR(36),
   status VARCHAR(20) NOT NULL DEFAULT 'pending',
   error TEXT,
   "processedAt" TIMESTAMP,
@@ -402,4 +484,44 @@ CREATE TABLE IF NOT EXISTS workflow_definitions (
   "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_definitions_tenant_name ON workflow_definitions("tenantId", name);
+
+CREATE TABLE IF NOT EXISTS workflow_tasks (
+  id VARCHAR(36) PRIMARY KEY,
+  "workflowRunId" VARCHAR(36) NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+  "stepName" VARCHAR(255) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  payload TEXT,
+  result TEXT,
+  error TEXT,
+  attempt INTEGER NOT NULL DEFAULT 0,
+  "maxRetries" INTEGER NOT NULL DEFAULT 3,
+  priority INTEGER,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_tasks_run_step ON workflow_tasks("workflowRunId", "stepName", status);
+CREATE INDEX IF NOT EXISTS idx_tasks_status_priority ON workflow_tasks(status, priority DESC NULLS LAST);
+
+CREATE TABLE IF NOT EXISTS workflow_schedules (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  "workflowName" VARCHAR(255) NOT NULL,
+  "cronExpression" VARCHAR(100) NOT NULL,
+  "nextRunAt" TIMESTAMP NOT NULL,
+  "lastRunAt" TIMESTAMP,
+  active BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_schedules_next ON workflow_schedules(active, "nextRunAt");
+
+CREATE TABLE IF NOT EXISTS agent_tokens (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  used BOOLEAN NOT NULL DEFAULT FALSE,
+  "usedBy" VARCHAR(36),
+  "expiresAt" TIMESTAMP,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_agent_tokens_token ON agent_tokens(token);
 `

@@ -9,6 +9,24 @@ import type { RateLimiterBackend } from './RateLimiterBackend.js'
 import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
 import type { EventIngestionService } from '../events/EventIngestion.js'
 
+export interface WorkflowBudget {
+  /** Max total tokens across all steps in a workflow run */
+  maxTokens?: number
+  /** Max total cost in USD across all steps */
+  maxCostUsd?: number
+  /** Max number of step completions per run */
+  maxSteps?: number
+  /** Max number of task executions per run (for task_runner steps) */
+  maxTaskExecutions?: number
+}
+
+export interface BudgetUsed {
+  tokens: number
+  costUsd: number
+  steps: number
+  taskExecutions: number
+}
+
 export interface WorkflowEngineConfig {
   db: Kysely<Database>
   /** Raw pg.Pool for COPY FROM bulk inserts (optional, enables startBatchCopy) */
@@ -32,6 +50,8 @@ export interface WorkflowEngineConfig {
   eventIngestion?: EventIngestionService
   /** Max concurrent steps (RUNNING or QUEUED) per workflow run */
   maxConcurrentStepsPerWorkflow?: number
+  /** Default budget guardrails for all workflow runs */
+  defaultBudget?: WorkflowBudget
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAgents } from '@/providers/AgentsProvider'
 import { RelativeTime } from '@/components/common/RelativeTime'
+import { NavHeader } from '@/components/common/NavHeader'
 import type { WorkerNodeInfo } from '@/api/types'
 
 const REFRESH_INTERVAL = 10_000
@@ -91,27 +92,22 @@ export function Workers() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Worker Nodes</h1>
-          <nav className="flex items-center gap-4 text-sm">
-            <a href="/" className="text-gray-500 hover:text-gray-700">Dashboard</a>
-            <a href="/workers" className="text-gray-900 font-medium">Workers</a>
-            <a href="/designer" className="text-gray-500 hover:text-gray-700">Designer</a>
-            <button
-              onClick={async () => {
-                const data = await client.generateWorkerToken()
-                setTokenData(data)
-                setShowAddModal(true)
-                setCopied(false)
-              }}
-              className="ml-2 bg-blue-600 text-white rounded-md px-4 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              + Add Worker
-            </button>
-          </nav>
-        </div>
-      </header>
+      <NavHeader
+        title="Worker Nodes"
+        actions={
+          <button
+            onClick={async () => {
+              const data = await client.generateWorkerToken()
+              setTokenData(data)
+              setShowAddModal(true)
+              setCopied(false)
+            }}
+            className="ml-2 bg-blue-600 text-white rounded-md px-4 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            + Add Worker
+          </button>
+        }
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Stats */}

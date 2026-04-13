@@ -20,6 +20,8 @@ export interface IncomingEvent {
    * for this entity, it is skipped (last-write-wins).
    */
   sequenceNumber?: number
+  /** Trace ID for cross-workflow lineage */
+  traceId?: string
 }
 
 export interface EventSubscription {

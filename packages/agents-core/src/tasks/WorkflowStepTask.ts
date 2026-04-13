@@ -47,6 +47,9 @@ export class WorkflowStepTask extends ShouldQueue<
       const executionContext: StepExecutionContext = {
         externalActions: this.engine.externalActions,
         integrations: this.engine['config'].integrations,
+        taskManager: this.engine.taskManager,
+        checkBudget: (runId, field, amount) =>
+          this.engine.incrementBudgetUsage(runId, field as any, amount),
       }
 
       // Execute the step

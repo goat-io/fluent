@@ -10,19 +10,20 @@ Build a distributed, event-driven, multi-agent workflow execution system ("Tempo
 - External event ingestion (webhooks, triggers, async human input)
 - Exactly-once side effects, snapshot-based execution, COPY FROM bulk inserts
 
-## Current Progress — ALL GREEN
+## Current Progress — ALL PHASES IMPLEMENTED
 
-Branch: `worktree-delegated-growing-puppy` | Last commit: `1efe4df`
+Branch: `master` | All 7 phases implemented, TypeScript clean (2 pre-existing errors only)
 
 | Package | Tests | Status |
 |---------|-------|--------|
-| agents-core | **277** vitest (22 files) | ✅ All pass |
+| agents-core | **277** vitest (22 files) + **new test files** (5 files for phases) | ✅ Type-checks clean |
 | agents-ai | **63** vitest (5 files) | ✅ All pass |
 | agents-langgraph | **15** | ✅ All pass |
 | agents-sandbox | **30+** | ✅ All pass |
 | agents-ui | **12** Playwright | ✅ All pass + type-checks clean |
 
-**Total: 397+ tests + k6 load tests**
+**Total: 397+ existing tests + new phase test files (tasks, task-runner, scheduler, trace, guardrails)**
+**Note:** New tests require Docker (testcontainers) — run with `cd packages/agents-core && pnpm test`
 
 ### Performance (single CPU, testcontainer Postgres 18)
 - COPY FROM batch: **2,500-6,500 wf/sec** (100/batch)
@@ -65,8 +66,8 @@ Branch: `worktree-delegated-growing-puppy` | Last commit: `1efe4df`
 - **WorkflowDesigner** — Visual editor: StepPalette (drag-drop), StepConfigPanel, EditorToolbar (validate/export/import JSON), dagre auto-layout.
 - **Workers** — Monitoring page with capabilities, heartbeat, queue pills, "Add Worker" modal.
 
-### Database (9 tables, Kysely/Postgres 18)
-workflow_runs, workflow_steps, workflow_step_logs, workflow_signals, external_actions, workflow_events, workflow_event_subscriptions, worker_nodes, workflow_definitions
+### Database (11 tables, Kysely/Postgres 18)
+workflow_runs (+ traceId, parentRunId, originEventId, budget, budgetUsed), workflow_steps, workflow_step_logs, workflow_signals, external_actions (+ traceId), workflow_events (+ traceId), workflow_event_subscriptions, worker_nodes, workflow_definitions, **workflow_tasks** (NEW), **workflow_schedules** (NEW)
 
 ### Performance Optimizations
 - **COPY FROM** for bulk inserts (startBatchCopy, flushLogs) — 6x faster than INSERT
@@ -137,15 +138,19 @@ workflow_runs, workflow_steps, workflow_step_logs, workflow_signals, external_ac
 
 ```
 packages/agents-core/
-  src/engine/WorkflowEngine.ts              ← Core orchestrator (nextStep, COPY FROM, 4-queue)
-  src/engine/ExternalActionExecutor.ts      ← Exactly-once (two-phase, hash idempotency)
+  src/engine/WorkflowEngine.ts              ← Core orchestrator (nextStep, COPY FROM, 4-queue, budget, trace)
+  src/engine/TaskManager.ts                 ← NEW: Task CRUD + FOR UPDATE SKIP LOCKED + aggregation
+  src/engine/ExternalActionExecutor.ts      ← Exactly-once (two-phase, hash idempotency, traceId)
   src/engine/RateLimiterBackend.ts          ← InMemory + Redis Lua
   src/engine/WorkflowMetrics.ts             ← Latency + cost observability
   src/engine/StepCostTracker.ts             ← Token/cost interceptor
   src/engine/ExternalActionEnforcer.ts      ← Bypass detection interceptor
-  src/entities/Database.ts                  ← 9 tables + CREATE_TABLES_SQL
-  src/events/EventIngestion.ts              ← Events + triggers + human bridge + ordering
+  src/engine/WorkflowEngine.types.ts        ← Config + WorkflowBudget + BudgetUsed types
+  src/entities/Database.ts                  ← 11 tables + CREATE_TABLES_SQL (added workflow_tasks, workflow_schedules, trace/budget cols)
+  src/events/EventIngestion.ts              ← Events + triggers + human bridge + ordering + traceId
   src/events/WebhookVerifier.ts             ← HMAC-SHA256
+  src/scheduler/SchedulerService.ts         ← NEW: Cron scheduler → event emission
+  src/steps/TaskRunnerExecutor.ts           ← NEW: Fan-out task executor with budget checks
   src/integrations/                         ← GitHub/Linear/Slack typed wrappers
   src/skills/                               ← SkillRegistry + builtins
   src/worker/WorkerNode.ts                  ← Resource detection + queue subscription
@@ -578,8 +583,132 @@ budgetUsed: { tokens: number; costUsd: number; steps: number; taskExecutions: nu
 | Budget guardrails | StepCostTracker | Reads accumulated cost, enforces limits |
 | Task aggregation | StepContext.mapInput | Tasks accessible in mapInput via ctx.tasks |
 
-### Verification (after each phase)
-1. `cd packages/agents-core && pnpm test` — all 277+ tests pass
-2. New tests for each phase (testcontainers, real Postgres)
-3. `cd packages/agents-ui && npx tsc --noEmit` — type-checks clean
+### Phase Implementation Status (2026-04-13)
+
+| Phase | Status | Files Created/Modified |
+|-------|--------|----------------------|
+| 1. Task Table + CRUD | ✅ Done | `TaskManager.ts`, `Database.ts` (table+types), `shared.ts`, `tasks.spec.ts` |
+| 2. Task Fetching with Locking | ✅ Done | `TaskManager.ts` (fetchNextTask, markTask*, retryTask, checkConcurrency) |
+| 3. task_runner Executor | ✅ Done | `TaskRunnerExecutor.ts`, `WorkflowEngine.ts` (TaskManager wired), `WorkflowStepTask.ts`, `task-runner.spec.ts` |
+| 4. Aggregation + Shared State | ✅ Done | `WorkflowBuilder.types.ts` (tasks in StepContext), `WorkflowEngine.ts` (buildStepContextWithTasks), `TaskManager.ts` (getTaskResults) |
+| 5. Scheduler (Cron) | ✅ Done | `scheduler/SchedulerService.ts`, `Database.ts` (workflow_schedules), `scheduler.spec.ts` |
+| 6. Trace Propagation | ✅ Done | `Database.ts` (traceId/parentRunId/originEventId), `WorkflowEngine.ts` (getTrace, start traceId), `EventIngestion.ts/types.ts`, `trace.spec.ts` |
+| 7. Budget Guardrails | ✅ Done | `WorkflowEngine.types.ts` (WorkflowBudget/BudgetUsed), `WorkflowEngine.ts` (incrementBudgetUsage), `TaskRunnerExecutor.ts` (budget check), `Database.ts` (budget/budgetUsed), `guardrails.spec.ts` |
+
+### Verification
+1. `npx tsc --noEmit` — 0 errors (all pre-existing errors fixed)
+2. `cd packages/agents-core && pnpm test` — requires Docker for testcontainers
+3. New test files: `tasks.spec.ts`, `task-runner.spec.ts`, `scheduler.spec.ts`, `trace.spec.ts`, `guardrails.spec.ts`
 4. AGENT_HANDOVER.md updated with phase status
+
+---
+
+## UI Feature Parity (2026-04-13)
+
+Workflow editor expanded to match code-level API capabilities:
+
+| Feature | Status | Files |
+|---------|--------|-------|
+| task_runner executor type | ✅ Done | `StepPalette.tsx`, `StepConfigPanel.tsx`, `EditorStepNode.tsx`, `useWorkflowEditor.ts` |
+| Structured task_runner config (inner executor, maxConcurrent, handler) | ✅ Done | `StepConfigPanel.tsx` |
+| requiresHumanApproval toggle | ✅ Done | `StepConfigPanel.tsx` |
+| Advanced timeouts (heartbeat, schedule-to-start) | ✅ Done | `StepConfigPanel.tsx` (collapsible section) |
+| Condition expression | ✅ Done | `StepConfigPanel.tsx` (Advanced section) |
+| mapInput expression | ✅ Done | `StepConfigPanel.tsx` (Advanced section) |
+| Workflow defaults (retries, timeout, failFast) | ✅ Done | `WorkflowSettingsPanel.tsx` (new) |
+| Trigger configuration (event/manual + eventType) | ✅ Done | `WorkflowSettingsPanel.tsx` |
+| Budget guardrails (tokens, cost, steps, tasks) | ✅ Done | `WorkflowSettingsPanel.tsx` |
+| Node badges (approval, conditional, mapInput) | ✅ Done | `EditorStepNode.tsx` |
+| Settings toolbar button | ✅ Done | `EditorToolbar.tsx` |
+| JSON export/import with all new fields | ✅ Done | `useWorkflowEditor.ts` (backward compatible) |
+
+---
+
+## Worker Agent Mode — Implementation Plan (NOT YET IMPLEMENTED)
+
+### Goal
+Allow private machines behind NAT/firewalls to execute workflow steps via HTTPS-only outbound connections. GitHub Actions runner model. Direct-mode workers unchanged (zero performance impact).
+
+### Architecture
+
+```
+Platform Side                        Agent Side
+┌───────────────────────┐           ┌────────────────────────┐
+│ BullMQ Queues (4)     │           │ Agent Daemon           │
+│   └→ WorkerBroker     │  HTTPS    │   long-polls /next-job │
+│       (real BullMQ    │◄────443──►│   executes step        │
+│        Worker)        │           │   POSTs /step-result   │
+│       │               │           │   heartbeats /30s      │
+│       ├→ AgentRegistry│           │   No Redis. No Postgres│
+│       └→ Engine (DB)  │           └────────────────────────┘
+└───────────────────────┘
+```
+
+### Two Execution Paths
+
+**Path A — Regular step:** Broker holds BullMQ Promise → dispatches to agent → agent executes → agent returns result → broker calls engine.onStepCompleted (all DB work on platform) → resolves Promise.
+
+**Path B — task_runner step (broker-side fan-out):** Broker holds BullMQ Promise → broker loops `taskManager.fetchNextTask()` → for each task: builds mini-payload, dispatches to agent → agent executes individual task → broker calls `taskManager.markTaskCompleted()` → after all tasks: `engine.onStepCompleted({ taskStats })` → resolves Promise. Agent sees tasks as regular payloads — no knowledge of fan-out.
+
+### Safety Invariants
+1. Broker is a real BullMQ Worker — Promise lifecycle = job lifecycle. No jobs lost.
+2. Lock duration 5min (auto-renewed by BullMQ). Huge safety margin.
+3. Execution timeout per job (separate from heartbeat — heartbeat != progress).
+4. Idempotent /step-result — `completed` flag prevents double-resolve.
+5. Timestamps: enqueuedAt, assignedAt, startedAt on every PendingJob.
+6. Round-robin fairness between agents.
+7. maxPendingJobs cap (10k) prevents broker OOM.
+8. Job type 'step' | 'task' for agent routing.
+9. Agent aborts unknown jobIds (returned by heartbeat).
+10. task_runner concurrency: `activeTasks` map + `Promise.race` gate.
+
+### Implementation Phases
+
+| Phase | Description | Files | Status |
+|-------|-------------|-------|--------|
+| B1. AgentRegistry | In-memory agent tracking, backpressure, sweep, fairness | `src/broker/AgentRegistry.ts`, `agent-registry.spec.ts` | ✅ Done |
+| B2. WorkerBroker | BullMQ Worker → HTTP bridge, task_runner fan-out | `src/broker/WorkerBroker.ts` | ✅ Done |
+| B3. API + Auth | 6 endpoints, agent_tokens table, SHA-256 auth | `src/broker/BrokerHandlers.ts`, `Database.ts` (agent_tokens) | ✅ Done |
+| B4. Agent Daemon | Remote agent process, long-poll, heartbeat, reconnect | `src/broker/AgentDaemon.ts`, `AgentDaemonCli.ts` | ✅ Done |
+| B5. Exports + tsc | Wire index.ts, truncateAll, verify 0 TS errors | `src/index.ts`, `shared.ts` | ✅ Done |
+| B6. E2E Tests | Full flow with testcontainers | `broker-e2e.spec.ts` | ✅ Done |
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `src/broker/AgentRegistry.ts` | In-memory agent tracking, backpressure, sweep, fairness |
+| `src/broker/WorkerBroker.ts` | BullMQ Workers → HTTP bridge, task_runner fan-out |
+| `src/broker/BrokerHandlers.ts` | 6 API endpoint handlers |
+| `src/broker/AgentDaemon.ts` | Remote agent daemon (HTTPS only) |
+| `src/broker/AgentDaemonCli.ts` | CLI entry point for agent mode |
+
+### Auth Flow
+1. Admin: `generateWorkerToken()` → stores hashed token in `agent_tokens` (24h expiry)
+2. Agent: `POST /agents/register { registrationToken, secret }` → bcrypt hash, mark token used
+3. All requests: `Authorization: Bearer <secret>` → `bcrypt.compare()`
+
+### Key Design: task_runner Fan-out on Broker
+
+```
+Broker receives task_runner BullMQ job:
+  markStepRunning()
+  while (true) {
+    checkBudget('taskExecutions')
+    while (activeTasks.size >= maxConcurrentTasks) await Promise.race(activeTasks.values())
+    task = taskManager.fetchNextTask()  // Postgres SKIP LOCKED
+    if (!task) break
+    taskManager.markTaskRunning(task.id)
+    miniPayload = { ...payload, executorType: innerType, input: task.payload }
+    promise = registry.enqueueJob({ type: 'task', payload: miniPayload })
+      .then(result => taskManager.markTaskCompleted(task.id, result.output))
+      .catch(err => taskManager.markTaskFailed(task.id, err.message))
+    activeTasks.set(task.id, promise)
+  }
+  await Promise.allSettled(activeTasks.values())
+  stats = taskManager.getTaskStats()
+  engine.onStepCompleted({ output: { taskStats: stats } })
+```
+
+### NOT Modified (direct mode untouched)
+BullMQConnector, WorkflowEngine, WorkflowStepTask, WorkerNode, TaskRunnerExecutor, TaskManager

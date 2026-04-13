@@ -19,6 +19,7 @@ import { StepConfigPanel } from './StepConfigPanel'
 import { EditorToolbar } from './EditorToolbar'
 import { EditorStepNode } from './EditorStepNode'
 import { ValidationErrorList } from './ValidationErrorList'
+import { WorkflowSettingsPanel } from './WorkflowSettingsPanel'
 
 const nodeTypes = { editorStep: EditorStepNode }
 
@@ -158,6 +159,9 @@ export function WorkflowEditor() {
         {/* Right sidebar - step config */}
         <StepConfigPanel editor={editor} />
       </div>
+
+      {/* Settings modal */}
+      {editor.showSettings && <WorkflowSettingsPanel editor={editor} />}
     </div>
   )
 }

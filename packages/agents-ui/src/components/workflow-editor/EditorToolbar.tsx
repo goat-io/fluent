@@ -133,6 +133,13 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       </button>
 
       <button
+        onClick={() => editor.setShowSettings(true)}
+        className="bg-gray-100 text-gray-700 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+      >
+        Settings
+      </button>
+
+      <button
         onClick={handleClear}
         className="text-red-500 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-red-50 transition-colors"
       >

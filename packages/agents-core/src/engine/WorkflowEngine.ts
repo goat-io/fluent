@@ -45,7 +45,8 @@ import {
   type ExternalActionFn,
   type ExternalActionResult,
 } from './ExternalActionExecutor.js'
-import type { WorkflowEngineConfig } from './WorkflowEngine.types.js'
+import type { WorkflowEngineConfig, BudgetUsed, WorkflowBudget } from './WorkflowEngine.types.js'
+import { TaskManager } from './TaskManager.js'
 
 export class WorkflowEngine {
   private config: WorkflowEngineConfig
@@ -57,6 +58,9 @@ export class WorkflowEngine {
    * external systems (GitHub, Linear, Slack, etc.)
    */
   readonly externalActions: ExternalActionExecutor
+
+  /** Task manager for fan-out/fan-in task execution */
+  readonly taskManager: TaskManager
 
   // Buffered log writer (Hatchet pattern)
   private logBuffer: Array<{
@@ -76,6 +80,8 @@ export class WorkflowEngine {
   constructor(config: WorkflowEngineConfig) {
     this.config = config
     this.db = config.db
+
+    this.taskManager = new TaskManager(config.db)
 
     this.externalActions = new ExternalActionExecutor({
       db: config.db,
@@ -126,6 +132,9 @@ export class WorkflowEngine {
     const runId = Ids.nanoId(21)
     const now = new Date()
 
+    // Generate traceId if not provided
+    const traceId = trigger.traceId ?? Ids.nanoId(21)
+
     const runRow = {
       id: runId,
       tenantId: trigger.tenantId,
@@ -156,6 +165,11 @@ export class WorkflowEngine {
       }),
       triggerInput: toJson(trigger.input),
       idempotencyKey: trigger.idempotencyKey ?? null,
+      traceId,
+      parentRunId: trigger.parentRunId ?? null,
+      originEventId: trigger.originEventId ?? null,
+      budget: toJson(this.config.defaultBudget ?? null),
+      budgetUsed: toJson({ tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }),
       createdAt: now,
       updatedAt: now,
     }
@@ -243,6 +257,11 @@ export class WorkflowEngine {
         }),
         triggerInput: toJson(trigger.input),
         idempotencyKey: trigger.idempotencyKey ?? null,
+        traceId: trigger.traceId ?? Ids.nanoId(21),
+        parentRunId: trigger.parentRunId ?? null,
+        originEventId: trigger.originEventId ?? null,
+        budget: toJson(this.config.defaultBudget ?? null),
+        budgetUsed: toJson({ tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }),
         createdAt: now, updatedAt: now,
       }
 
@@ -331,10 +350,16 @@ export class WorkflowEngine {
 
       // Tab-delimited COPY line for workflow_runs
       // Columns: id, tenantId, workflowName, workflowVersion, status, definitionSnapshot,
-      //   triggerInput, idempotencyKey, startedAt, completedAt, createdAt, updatedAt
+      //   triggerInput, idempotencyKey, traceId, parentRunId, originEventId, budget, budgetUsed, startedAt, completedAt, createdAt, updatedAt
+      const traceId = trigger.traceId ?? Ids.nanoId(21)
+      const budgetJson = esc(toJson(this.config.defaultBudget ?? null))
+      const budgetUsedJson = esc(toJson({ tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }))
       runLines.push([
         runId, trigger.tenantId, trigger.workflowName, definition.version,
-        'RUNNING', esc(snapshot), esc(triggerInput), idempKey, now, '\\N', now, now,
+        'RUNNING', esc(snapshot), esc(triggerInput), idempKey,
+        traceId, trigger.parentRunId ?? '\\N', trigger.originEventId ?? '\\N',
+        budgetJson, budgetUsedJson,
+        now, '\\N', now, now,
       ].join('\t'))
 
       const localStepRows: any[] = []
@@ -396,7 +421,7 @@ export class WorkflowEngine {
       // COPY workflow_runs
       const { from: copyFrom } = await import('pg-copy-streams')
       const runStream = client.query(copyFrom(
-        'COPY workflow_runs (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "startedAt", "completedAt", "createdAt", "updatedAt") FROM STDIN',
+        'COPY workflow_runs (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "startedAt", "completedAt", "createdAt", "updatedAt") FROM STDIN',
       ))
       runStream.write(runLines.join('\n') + '\n')
       runStream.end()
@@ -466,6 +491,39 @@ export class WorkflowEngine {
       await this.logStepEvent(step.id, tenantId, 'completed', {
         outputKeys: Object.keys(result.output),
       })
+    }
+
+    // ── Budget enforcement: increment step counter ──────
+    if (!result.waitForHuman) {
+      const budgetExceeded = await this.incrementBudgetUsage(runId, 'steps')
+      if (budgetExceeded) {
+        this.config.logger?.warn(`Budget exceeded for run ${runId}: ${budgetExceeded}`)
+        // Mark run as failed due to budget
+        await this.db.updateTable('workflow_runs')
+          .set({ status: 'FAILED', error: budgetExceeded, completedAt: new Date(), updatedAt: new Date() })
+          .where('id', '=', runId)
+          .execute()
+        return
+      }
+
+      // Track token/cost from step output _usage field
+      const usage = result.output?._usage as Record<string, unknown> | undefined
+      if (usage) {
+        if (typeof usage.tokens === 'number') {
+          const tokenExceeded = await this.incrementBudgetUsage(runId, 'tokens', usage.tokens)
+          if (tokenExceeded) {
+            this.config.logger?.warn(`Budget exceeded for run ${runId}: ${tokenExceeded}`)
+            await this.db.updateTable('workflow_runs')
+              .set({ status: 'FAILED', error: tokenExceeded, completedAt: new Date(), updatedAt: new Date() })
+              .where('id', '=', runId)
+              .execute()
+            return
+          }
+        }
+        if (typeof usage.costUsd === 'number') {
+          await this.incrementBudgetUsage(runId, 'costUsd', usage.costUsd)
+        }
+      }
     }
 
     // ── nextStep: runtime redirect (loop without DAG cycle) ──────
@@ -690,6 +748,24 @@ export class WorkflowEngine {
     return this.config.executors.get(type)
   }
 
+  // ── Trace ──────────────────────────────────────────────────────
+
+  /**
+   * Get full trace lineage: all runs, events, and external actions sharing a traceId.
+   */
+  async getTrace(traceId: string): Promise<{
+    runs: WorkflowRun[]
+    events: import('../entities/Database.js').WorkflowEvent[]
+    actions: import('../entities/Database.js').ExternalAction[]
+  }> {
+    const [runs, events, actions] = await Promise.all([
+      this.db.selectFrom('workflow_runs').selectAll().where('traceId', '=', traceId).execute(),
+      this.db.selectFrom('workflow_events').selectAll().where('traceId', '=', traceId).execute(),
+      this.db.selectFrom('external_actions').selectAll().where('traceId', '=', traceId).execute(),
+    ])
+    return { runs, events, actions }
+  }
+
   // ── Heartbeat ──────────────────────────────────────────────────
 
   async heartbeat(runId: string, stepName: string, tenantId: string, data?: Record<string, unknown>): Promise<void> {
@@ -868,7 +944,7 @@ export class WorkflowEngine {
       input: (fromJson(step.input) ?? {}) as JsonObject,
       attempt: step.attempt,
       executorType: step.executorType,
-      executorConfig: (fromJson(step.executorConfig) ?? {}) as Record<string, unknown>,
+      executorConfig: (fromJson(step.executorConfig) ?? {}) as JsonObject,
       lastHeartbeatData: fromJson(step.lastHeartbeatData) as JsonObject | undefined,
       heartbeatTimeoutMs: step.heartbeatTimeoutMs ?? undefined,
       scheduleToStartTimeoutMs: stepDef.scheduleToStartTimeoutMs ?? undefined,
@@ -1010,6 +1086,68 @@ export class WorkflowEngine {
     return def
   }
 
+  // ── Budget Guardrails ─────────────────────────────────────────
+
+  /**
+   * Increment budget usage and check limits. Returns the reason if budget is exceeded, null otherwise.
+   */
+  async incrementBudgetUsage(
+    runId: string,
+    field: keyof BudgetUsed,
+    amount: number = 1,
+  ): Promise<string | null> {
+    const run = await this.db.selectFrom('workflow_runs')
+      .select(['budget', 'budgetUsed'])
+      .where('id', '=', runId)
+      .executeTakeFirst()
+
+    if (!run) return null
+
+    const budget = fromJson<WorkflowBudget>(run.budget)
+    const used = fromJson<BudgetUsed>(run.budgetUsed) ?? { tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }
+
+    used[field] = (used[field] ?? 0) + amount
+
+    // Persist updated usage
+    await this.db.updateTable('workflow_runs')
+      .set({ budgetUsed: toJson(used), updatedAt: new Date() })
+      .where('id', '=', runId)
+      .execute()
+
+    if (!budget) return null
+
+    // Check limits (>= because reaching the limit means it's exceeded)
+    if (budget.maxTokens && used.tokens >= budget.maxTokens) {
+      return `Token budget exceeded: ${used.tokens}/${budget.maxTokens}`
+    }
+    if (budget.maxCostUsd && used.costUsd >= budget.maxCostUsd) {
+      return `Cost budget exceeded: $${used.costUsd}/$${budget.maxCostUsd}`
+    }
+    if (budget.maxSteps && used.steps >= budget.maxSteps) {
+      return `Step budget exceeded: ${used.steps}/${budget.maxSteps}`
+    }
+    if (budget.maxTaskExecutions && used.taskExecutions >= budget.maxTaskExecutions) {
+      return `Task execution budget exceeded: ${used.taskExecutions}/${budget.maxTaskExecutions}`
+    }
+
+    return null
+  }
+
+  /**
+   * Get the current budget usage for a workflow run.
+   */
+  async getBudgetUsage(runId: string): Promise<{ budget: WorkflowBudget | null; used: BudgetUsed }> {
+    const run = await this.db.selectFrom('workflow_runs')
+      .select(['budget', 'budgetUsed'])
+      .where('id', '=', runId)
+      .executeTakeFirst()
+
+    return {
+      budget: run ? fromJson<WorkflowBudget>(run.budget) : null,
+      used: run ? (fromJson<BudgetUsed>(run.budgetUsed) ?? { tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }) : { tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 },
+    }
+  }
+
   private buildStepContext(run: WorkflowRun, steps: WorkflowStep[]): StepContext {
     const completedOutputs: Record<string, JsonObject> = {}
     for (const s of steps) {
@@ -1022,7 +1160,29 @@ export class WorkflowEngine {
       tenantId: run.tenantId,
       completedOutputs,
       triggerInput: (fromJson(run.triggerInput) ?? {}) as JsonObject,
+      // tasks are populated lazily via getTaskResults() when needed
     }
+  }
+
+  /**
+   * Build a StepContext with task results from upstream steps populated.
+   * Used by aggregation steps that need to access fan-out results.
+   */
+  async buildStepContextWithTasks(run: WorkflowRun, steps: WorkflowStep[]): Promise<StepContext> {
+    const ctx = this.buildStepContext(run, steps)
+    const tasks: Record<string, Array<{ id: string; payload: JsonObject | null; result: JsonObject | null; status: string }>> = {}
+
+    // Populate task results for all completed steps that used task_runner
+    for (const s of steps) {
+      if (s.status === 'COMPLETED' && s.executorType === 'task_runner') {
+        tasks[s.stepName] = await this.taskManager.getTaskResults(run.id, s.stepName)
+      }
+    }
+
+    if (Object.keys(tasks).length > 0) {
+      ctx.tasks = tasks
+    }
+    return ctx
   }
 
   private mergeStepOutputs(steps: WorkflowStep[]): Record<string, unknown> {

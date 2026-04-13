@@ -4,6 +4,9 @@ import { Dashboard } from './pages/Dashboard'
 import { WorkflowRun } from './pages/WorkflowRun'
 import { Workers } from './pages/Workers'
 import { WorkflowDesigner } from './pages/WorkflowDesigner'
+import { Schedules } from './pages/Schedules'
+import { Events } from './pages/Events'
+import { Trace } from './pages/Trace'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 const TENANT_ID = import.meta.env.VITE_TENANT_ID ?? 'default'
@@ -17,6 +20,9 @@ export function App() {
           <Route path="/workflows/:runId" element={<WorkflowRun />} />
           <Route path="/workers" element={<Workers />} />
           <Route path="/designer" element={<WorkflowDesigner />} />
+          <Route path="/schedules" element={<Schedules />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/trace/:traceId" element={<Trace />} />
         </Routes>
       </BrowserRouter>
     </AgentsProvider>

@@ -235,7 +235,7 @@ describe('WorkflowHandlers API', () => {
   it('definition snapshot includes triggers, stepWeight, and maxIterations', async () => {
     const wf = WorkflowBuilder.create('snapshot_full')
       .version('3.0.0')
-      .trigger({ eventType: 'pr.opened', source: 'github' })
+      .trigger({ eventType: 'pr.opened' })
       .step('loop_step', {
         executorType: 'function',
         executorConfig: { handler: 'echo' },
