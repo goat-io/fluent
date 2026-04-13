@@ -489,7 +489,12 @@ async function main() {
       let result: any
 
       if (url.pathname === '/workflows' && req.method === 'GET') {
-        result = await handlers.listWorkflows({ tenantId: TENANT })
+        const filters: any = { tenantId: TENANT }
+        if (url.searchParams.get('workflowName')) filters.workflowName = url.searchParams.get('workflowName')
+        if (url.searchParams.get('status')) filters.status = url.searchParams.get('status')!.split(',')
+        if (url.searchParams.get('limit')) filters.limit = Number(url.searchParams.get('limit'))
+        if (url.searchParams.get('offset')) filters.offset = Number(url.searchParams.get('offset'))
+        result = await handlers.listWorkflows(filters)
       } else if (url.pathname === '/workflows/start') {
         result = await handlers.start({ ...body, tenantId: TENANT })
       } else if (url.pathname === '/workflows/status') {
