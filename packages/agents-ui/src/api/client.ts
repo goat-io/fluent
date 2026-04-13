@@ -38,6 +38,15 @@ export class AgentsClient {
     return this.post('/workflows/status', { runId, tenantId: this.tenantId })
   }
 
+  async getDefinition(workflowName: string): Promise<{
+    name: string
+    version: string
+    steps: Array<{ name: string; executorType: string; dependsOn?: string[] }>
+    inputFields: Array<{ name: string; source: string }>
+  }> {
+    return this.post('/workflows/definition', { workflowName })
+  }
+
   async startWorkflow(
     workflowName: string,
     input: Record<string, unknown>,

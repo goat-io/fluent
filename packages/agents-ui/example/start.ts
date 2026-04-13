@@ -495,6 +495,8 @@ async function main() {
         if (url.searchParams.get('limit')) filters.limit = Number(url.searchParams.get('limit'))
         if (url.searchParams.get('offset')) filters.offset = Number(url.searchParams.get('offset'))
         result = await handlers.listWorkflows(filters)
+      } else if (url.pathname === '/workflows/definition') {
+        result = await handlers.getDefinition(body)
       } else if (url.pathname === '/workflows/start') {
         result = await handlers.start({ ...body, tenantId: TENANT })
       } else if (url.pathname === '/workflows/status') {

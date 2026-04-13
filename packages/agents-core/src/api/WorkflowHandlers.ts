@@ -92,6 +92,44 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
     },
 
     /**
+     * Get workflow definition with inferred input fields.
+     */
+    async getDefinition(input: { workflowName: string }) {
+      const def = engine.getWorkflows().get(input.workflowName)
+      if (!def) throw new Error(`Workflow "${input.workflowName}" not found`)
+
+      // Infer input fields from template variables in step configs
+      const inputFields: Array<{ name: string; source: string }> = []
+      const seen = new Set<string>()
+      for (const step of def.steps) {
+        const config = step.executorConfig as Record<string, unknown>
+        // Scan all string values in executorConfig for {{input.field}} patterns
+        for (const [key, value] of Object.entries(config)) {
+          if (typeof value === 'string') {
+            const matches = value.matchAll(/\{\{input\.(\w+)\}\}/g)
+            for (const match of matches) {
+              if (!seen.has(match[1])) {
+                seen.add(match[1])
+                inputFields.push({ name: match[1], source: `${step.name}.${key}` })
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        name: def.name,
+        version: def.version,
+        steps: def.steps.map(s => ({
+          name: s.name,
+          executorType: s.executorType,
+          dependsOn: s.dependsOn,
+        })),
+        inputFields,
+      }
+    },
+
+    /**
      * Get workflow run status with all steps.
      */
     async getStatus(input: {

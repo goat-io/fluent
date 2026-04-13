@@ -21,6 +21,19 @@ export function WorkflowView() {
   const [loading, setLoading] = useState(true)
   const [showTrigger, setShowTrigger] = useState(false)
   const [triggerInput, setTriggerInput] = useState('{}')
+  const [inputFields, setInputFields] = useState<Array<{ name: string; source: string }>>([])
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+
+  // Fetch workflow definition (for input fields)
+  useEffect(() => {
+    if (!workflowName) return
+    client.getDefinition(workflowName).then(def => {
+      setInputFields(def.inputFields)
+      const defaults: Record<string, string> = {}
+      for (const f of def.inputFields) defaults[f.name] = ''
+      setFieldValues(defaults)
+    }).catch(() => {})
+  }, [client, workflowName])
 
   // Fetch runs for this workflow
   const fetchRuns = useCallback(() => {
@@ -80,15 +93,26 @@ export function WorkflowView() {
   const handleTrigger = useCallback(async () => {
     if (!workflowName) return
     try {
-      const input = JSON.parse(triggerInput)
+      let input: Record<string, unknown>
+      if (inputFields.length > 0) {
+        // Build input from structured fields
+        input = {}
+        for (const f of inputFields) {
+          if (fieldValues[f.name]) input[f.name] = fieldValues[f.name]
+        }
+      } else {
+        // Fallback to raw JSON
+        input = JSON.parse(triggerInput)
+      }
       await client.startWorkflow(workflowName, input)
       setShowTrigger(false)
+      setFieldValues(prev => Object.fromEntries(Object.keys(prev).map(k => [k, ''])))
       setTriggerInput('{}')
       fetchRuns()
     } catch (err: any) {
       alert(`Error: ${err.message}`)
     }
-  }, [workflowName, triggerInput, client, fetchRuns])
+  }, [workflowName, triggerInput, inputFields, fieldValues, client, fetchRuns])
 
   const version = runs[0]?.workflowVersion ?? '1.0.0'
 
@@ -130,21 +154,49 @@ export function WorkflowView() {
 
         {/* Trigger Modal */}
         {showTrigger && (
-          <div className="mt-3 pt-3 border-t border-[var(--color-border)] flex gap-3 items-end">
-            <div className="flex-1">
-              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Input JSON</label>
-              <textarea
-                value={triggerInput}
-                onChange={(e) => setTriggerInput(e.target.value)}
-                rows={2}
-                className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                style={{ background: 'var(--color-surface-3)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-                placeholder='{"task": "..."}'
-              />
-            </div>
-            <button onClick={handleTrigger} className="text-xs bg-[var(--color-accent)] text-white rounded-lg px-4 py-2 hover:bg-[var(--color-accent-hover)] shrink-0">
-              Start
-            </button>
+          <div className="mt-3 pt-3 border-t border-[var(--color-border)]">
+            {inputFields.length > 0 ? (
+              <div className="flex gap-3 items-end">
+                <div className="flex-1 flex gap-3 flex-wrap">
+                  {inputFields.map(f => (
+                    <div key={f.name} className="flex-1 min-w-[200px]">
+                      <label className="block text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
+                        {f.name}
+                      </label>
+                      <input
+                        type="text"
+                        value={fieldValues[f.name] ?? ''}
+                        onChange={(e) => setFieldValues(prev => ({ ...prev, [f.name]: e.target.value }))}
+                        className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                        style={{ background: 'var(--color-surface-3)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                        placeholder={`Enter ${f.name}...`}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleTrigger() }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button onClick={handleTrigger} className="text-xs bg-[var(--color-accent)] text-white rounded-lg px-4 py-2 hover:bg-[var(--color-accent-hover)] shrink-0">
+                  Start
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Input JSON</label>
+                  <textarea
+                    value={triggerInput}
+                    onChange={(e) => setTriggerInput(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                    style={{ background: 'var(--color-surface-3)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                    placeholder='{"key": "value"}'
+                  />
+                </div>
+                <button onClick={handleTrigger} className="text-xs bg-[var(--color-accent)] text-white rounded-lg px-4 py-2 hover:bg-[var(--color-accent-hover)] shrink-0">
+                  Start
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
