@@ -2,7 +2,6 @@ import { useLocation } from 'react-router-dom'
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard' },
-  { path: '/designer', label: 'Designer' },
   { path: '/workers', label: 'Workers' },
 ]
 
