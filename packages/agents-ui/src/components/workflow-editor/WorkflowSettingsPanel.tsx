@@ -4,6 +4,26 @@ interface WorkflowSettingsPanelProps {
   editor: WorkflowEditorState
 }
 
+/* ── Shared inline style objects ─────────────────────────────── */
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--color-surface-3, #22222f)',
+  border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+  color: 'var(--color-text-primary, #f0f0f5)',
+}
+
+const labelStyle: React.CSSProperties = {
+  color: 'var(--color-text-muted, #55556a)',
+}
+
+const hintStyle: React.CSSProperties = {
+  color: 'var(--color-text-muted, #55556a)',
+}
+
+const sectionHeaderStyle: React.CSSProperties = {
+  color: 'var(--color-text-muted, #55556a)',
+}
+
 export function WorkflowSettingsPanel({ editor }: WorkflowSettingsPanelProps) {
   const {
     defaultRetries,
@@ -36,17 +56,36 @@ export function WorkflowSettingsPanel({ editor }: WorkflowSettingsPanelProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-black/20" onClick={() => setShowSettings(false)}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16"
+      style={{ background: 'rgba(0,0,0,0.60)', backdropFilter: 'blur(4px)' }}
+      onClick={() => setShowSettings(false)}
+    >
       <div
-        className="bg-white rounded-xl shadow-2xl border border-gray-200 w-[520px] max-h-[80vh] overflow-y-auto"
+        className="glass rounded-2xl w-[520px] max-h-[80vh] overflow-y-auto"
+        style={{
+          background: 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-800">Workflow Settings</h2>
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{ borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))' }}
+        >
+          <h2
+            className="text-base font-semibold"
+            style={{ color: 'var(--color-text-primary, #f0f0f5)' }}
+          >
+            Workflow Settings
+          </h2>
           <button
             onClick={() => setShowSettings(false)}
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+            className="text-lg leading-none transition-colors"
+            style={{ color: 'var(--color-text-muted, #55556a)' }}
           >
             x
           </button>
@@ -55,66 +94,80 @@ export function WorkflowSettingsPanel({ editor }: WorkflowSettingsPanelProps) {
         <div className="px-6 py-5 flex flex-col gap-6">
           {/* ── Defaults ──────────────────────────────────── */}
           <section>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Defaults</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={sectionHeaderStyle}>Defaults</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Default Retries</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Default Retries</label>
                 <input
                   type="number" min={0}
                   value={defaultRetries}
                   onChange={(e) => setDefaultRetries(Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Default Timeout (ms)</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Default Timeout (ms)</label>
                 <input
                   type="number" min={0} step={1000}
                   value={defaultTimeoutMs}
                   onChange={(e) => setDefaultTimeoutMs(Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                 />
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-600">Fail Fast</label>
+              <label className="text-xs font-medium" style={labelStyle}>Fail Fast</label>
               <button
                 onClick={() => setFailFast(!failFast)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  failFast ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
+                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                style={{
+                  background: failFast
+                    ? 'var(--color-accent, #6366f1)'
+                    : 'var(--color-surface-4, #2a2a38)',
+                }}
               >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                  failFast ? 'translate-x-4.5' : 'translate-x-0.5'
-                }`} />
+                <span
+                  className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+                  style={{
+                    transform: failFast ? 'translateX(18px)' : 'translateX(2px)',
+                  }}
+                />
               </button>
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">If enabled, workflow fails immediately when any step fails</p>
+            <p className="text-[11px] mt-1" style={hintStyle}>If enabled, workflow fails immediately when any step fails</p>
           </section>
 
           {/* ── Triggers ──────────────────────────────────── */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Triggers</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider" style={sectionHeaderStyle}>Triggers</h3>
               <button
                 onClick={addTrigger}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs font-medium transition-colors"
+                style={{ color: 'var(--color-accent, #6366f1)' }}
               >
                 + Add Trigger
               </button>
             </div>
 
             {triggers.length === 0 && (
-              <p className="text-xs text-gray-400">No triggers configured. Workflow will only start manually.</p>
+              <p className="text-xs" style={hintStyle}>No triggers configured. Workflow will only start manually.</p>
             )}
 
             {triggers.map((trigger, i) => (
-              <div key={i} className="flex items-start gap-2 mb-2 p-3 bg-gray-50 rounded-lg">
+              <div
+                key={i}
+                className="flex items-start gap-2 mb-2 p-3 rounded-lg"
+                style={{ background: 'var(--color-surface-3, #22222f)' }}
+              >
                 <div className="flex-1 flex flex-col gap-2">
                   <select
                     value={trigger.type}
                     onChange={(e) => updateTrigger(i, { type: e.target.value as 'event' | 'manual' })}
-                    className="border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)]"
+                    style={inputStyle}
                   >
                     <option value="event">Event</option>
                     <option value="manual">Manual</option>
@@ -124,14 +177,15 @@ export function WorkflowSettingsPanel({ editor }: WorkflowSettingsPanelProps) {
                       type="text"
                       value={trigger.eventType ?? ''}
                       onChange={(e) => updateTrigger(i, { eventType: e.target.value })}
-                      className="border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)]"
+                      style={inputStyle}
                       placeholder="e.g., github.pr.opened, cron.trigger"
                     />
                   )}
                 </div>
                 <button
                   onClick={() => removeTrigger(i)}
-                  className="text-xs text-red-400 hover:text-red-600 mt-1"
+                  className="text-xs text-red-400 hover:text-red-300 mt-1"
                 >
                   Remove
                 </button>
@@ -141,46 +195,50 @@ export function WorkflowSettingsPanel({ editor }: WorkflowSettingsPanelProps) {
 
           {/* ── Budget Guardrails ─────────────────────────── */}
           <section>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Budget Guardrails</h3>
-            <p className="text-[11px] text-gray-400 mb-3">Set limits to prevent runaway execution. Leave empty for no limit.</p>
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={sectionHeaderStyle}>Budget Guardrails</h3>
+            <p className="text-[11px] mb-3" style={hintStyle}>Set limits to prevent runaway execution. Leave empty for no limit.</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Max Tokens</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Tokens</label>
                 <input
                   type="number" min={0}
                   value={budget.maxTokens ?? ''}
                   onChange={(e) => updateBudget({ maxTokens: e.target.value ? Number(e.target.value) : undefined })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                   placeholder="No limit"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Max Cost (USD)</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Cost (USD)</label>
                 <input
                   type="number" min={0} step={0.01}
                   value={budget.maxCostUsd ?? ''}
                   onChange={(e) => updateBudget({ maxCostUsd: e.target.value ? Number(e.target.value) : undefined })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                   placeholder="No limit"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Max Steps</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Steps</label>
                 <input
                   type="number" min={0}
                   value={budget.maxSteps ?? ''}
                   onChange={(e) => updateBudget({ maxSteps: e.target.value ? Number(e.target.value) : undefined })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                   placeholder="No limit"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Max Task Executions</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Task Executions</label>
                 <input
                   type="number" min={0}
                   value={budget.maxTaskExecutions ?? ''}
                   onChange={(e) => updateBudget({ maxTaskExecutions: e.target.value ? Number(e.target.value) : undefined })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                   placeholder="No limit"
                 />
               </div>

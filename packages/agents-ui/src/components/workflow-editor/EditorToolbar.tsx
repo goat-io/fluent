@@ -76,72 +76,125 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   const warningCount = validationErrors.filter((e: ValidationError) => e.type === 'warning').length
 
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-4 flex-wrap">
+    <div
+      className="px-4 py-2 flex items-center gap-4 flex-wrap"
+      style={{
+        background: 'var(--color-surface-1, #12121a)',
+        borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+      }}
+    >
       {/* Workflow Name */}
       <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-gray-500">Name</label>
+        <label
+          className="text-xs font-medium"
+          style={{ color: 'var(--color-text-muted, #55556a)' }}
+        >
+          Name
+        </label>
         <input
           type="text"
           value={workflowName}
           onChange={(e) => setWorkflowName(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+          style={{
+            background: 'var(--color-surface-3, #22222f)',
+            border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+            color: 'var(--color-text-primary, #f0f0f5)',
+          }}
           placeholder="workflow-name"
         />
       </div>
 
       {/* Version */}
       <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-gray-500">Version</label>
+        <label
+          className="text-xs font-medium"
+          style={{ color: 'var(--color-text-muted, #55556a)' }}
+        >
+          Version
+        </label>
         <input
           type="text"
           value={workflowVersion}
           onChange={(e) => setWorkflowVersion(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="rounded-md px-3 py-1.5 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+          style={{
+            background: 'var(--color-surface-3, #22222f)',
+            border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+            color: 'var(--color-text-primary, #f0f0f5)',
+          }}
           placeholder="1.0.0"
         />
       </div>
 
-      <div className="h-6 w-px bg-gray-200" />
+      <div
+        className="h-6 w-px"
+        style={{ background: 'var(--color-border, rgba(255,255,255,0.08))' }}
+      />
 
       {/* Action Buttons */}
       <button
         onClick={handleValidate}
-        className="bg-blue-600 text-white rounded-md px-4 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
+        className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors hover:opacity-90"
+        style={{
+          background: 'var(--color-accent, #6366f1)',
+          color: '#ffffff',
+        }}
       >
         Validate
       </button>
 
       <button
         onClick={handleExport}
-        className="bg-gray-100 text-gray-700 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+        className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+        style={{
+          background: 'var(--color-surface-3, #22222f)',
+          border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+          color: 'var(--color-text-secondary, #8888a0)',
+        }}
       >
         Export JSON
       </button>
 
       <button
         onClick={handleImport}
-        className="bg-gray-100 text-gray-700 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+        className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+        style={{
+          background: 'var(--color-surface-3, #22222f)',
+          border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+          color: 'var(--color-text-secondary, #8888a0)',
+        }}
       >
         Import JSON
       </button>
 
       <button
         onClick={autoLayout}
-        className="bg-gray-100 text-gray-700 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+        className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+        style={{
+          background: 'var(--color-surface-3, #22222f)',
+          border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+          color: 'var(--color-text-secondary, #8888a0)',
+        }}
       >
         Auto Layout
       </button>
 
       <button
         onClick={() => editor.setShowSettings(true)}
-        className="bg-gray-100 text-gray-700 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+        className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+        style={{
+          background: 'var(--color-surface-3, #22222f)',
+          border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+          color: 'var(--color-text-secondary, #8888a0)',
+        }}
       >
         Settings
       </button>
 
       <button
         onClick={handleClear}
-        className="text-red-500 rounded-md px-4 py-1.5 text-sm font-medium hover:bg-red-50 transition-colors"
+        className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors text-red-400 hover:text-red-300 hover:bg-red-500/10"
       >
         Clear
       </button>
@@ -150,12 +203,12 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       {validationErrors.length > 0 && (
         <div className="ml-auto flex items-center gap-2 text-sm">
           {errorCount > 0 && (
-            <span className="text-red-600 font-medium">
+            <span className="text-red-400 font-medium">
               {errorCount} error{errorCount !== 1 ? 's' : ''}
             </span>
           )}
           {warningCount > 0 && (
-            <span className="text-amber-600 font-medium">
+            <span className="text-amber-400 font-medium">
               {warningCount} warning{warningCount !== 1 ? 's' : ''}
             </span>
           )}

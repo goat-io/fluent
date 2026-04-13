@@ -8,16 +8,23 @@ export function ValidationErrorList({ errors }: ValidationErrorListProps) {
   if (errors.length === 0) return null
 
   return (
-    <div className="bg-red-50 border-b border-red-200 px-4 py-2">
+    <div
+      className="px-4 py-2"
+      style={{
+        background: 'rgba(239,68,68,0.08)',
+        borderBottom: '1px solid rgba(239,68,68,0.2)',
+      }}
+    >
       <div className="flex flex-wrap gap-2">
         {errors.map((err, i) => (
           <span
             key={i}
-            className={`text-xs px-2 py-1 rounded-full font-medium ${
+            className="text-xs px-2 py-1 rounded-full font-medium"
+            style={
               err.type === 'error'
-                ? 'bg-red-100 text-red-700'
-                : 'bg-amber-100 text-amber-700'
-            }`}
+                ? { background: 'rgba(239,68,68,0.15)', color: '#f87171' }
+                : { background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }
+            }
           >
             {err.message}
           </span>

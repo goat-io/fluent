@@ -26,21 +26,46 @@ const STEP_WEIGHTS: { value: StepWeight; label: string }[] = [
   { value: 'sandbox', label: 'Sandbox' },
 ]
 
+/* ── Shared inline style objects ─────────────────────────────── */
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--color-surface-3, #22222f)',
+  border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+  color: 'var(--color-text-primary, #f0f0f5)',
+}
+
+const labelStyle: React.CSSProperties = {
+  color: 'var(--color-text-muted, #55556a)',
+}
+
+const hintStyle: React.CSSProperties = {
+  color: 'var(--color-text-muted, #55556a)',
+}
+
+const sectionHeaderStyle: React.CSSProperties = {
+  color: 'var(--color-text-muted, #55556a)',
+}
+
+/* ── Collapsible section ─────────────────────────────────────── */
+
 function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border-t border-gray-100 pt-3">
+    <div style={{ borderTop: '1px solid var(--color-border, rgba(255,255,255,0.08))' }} className="pt-3">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2"
+        className="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wider mb-2"
+        style={sectionHeaderStyle}
       >
         {title}
-        <span className="text-gray-400">{open ? '\u25B2' : '\u25BC'}</span>
+        <span style={{ color: 'var(--color-text-muted, #55556a)' }}>{open ? '\u25B2' : '\u25BC'}</span>
       </button>
       {open && <div className="flex flex-col gap-3">{children}</div>}
     </div>
   )
 }
+
+/* ── Main component ──────────────────────────────────────────── */
 
 export function StepConfigPanel({ editor }: StepConfigPanelProps) {
   const { selectedNodeId, getStepConfig, updateStep, removeStep, getStepConfigs } = editor
@@ -156,8 +181,14 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
 
   if (!selectedNodeId || !config) {
     return (
-      <div className="w-[350px] border-l border-gray-200 bg-white flex items-center justify-center">
-        <p className="text-sm text-gray-400">Select a step to configure</p>
+      <div
+        className="w-[350px] flex items-center justify-center"
+        style={{
+          background: 'var(--color-surface-1, #12121a)',
+          borderLeft: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+        }}
+      >
+        <p className="text-sm" style={{ color: 'var(--color-text-muted, #55556a)' }}>Select a step to configure</p>
       </div>
     )
   }
@@ -171,12 +202,26 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
   }
 
   return (
-    <div className="w-[350px] border-l border-gray-200 bg-white flex flex-col overflow-y-auto">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700">Step Configuration</h3>
+    <div
+      className="w-[350px] flex flex-col overflow-y-auto"
+      style={{
+        background: 'var(--color-surface-1, #12121a)',
+        borderLeft: '1px solid var(--color-border, rgba(255,255,255,0.08))',
+      }}
+    >
+      <div
+        className="px-4 py-3 flex items-center justify-between"
+        style={{ borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))' }}
+      >
+        <h3
+          className="text-sm font-semibold"
+          style={{ color: 'var(--color-text-primary, #f0f0f5)' }}
+        >
+          Step Configuration
+        </h3>
         <button
           onClick={() => removeStep(selectedNodeId)}
-          className="text-xs text-red-500 hover:text-red-700 font-medium"
+          className="text-xs text-red-400 hover:text-red-300 font-medium"
         >
           Delete Step
         </button>
@@ -187,23 +232,25 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
         <Section title="Basic" defaultOpen={true}>
           {/* Step Name */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Step Name</label>
+            <label className="block text-xs font-medium mb-1" style={labelStyle}>Step Name</label>
             <input
               type="text"
               value={localName}
               onChange={(e) => handleNameChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+              style={inputStyle}
               placeholder="step_name"
             />
           </div>
 
           {/* Executor Type */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Executor Type</label>
+            <label className="block text-xs font-medium mb-1" style={labelStyle}>Executor Type</label>
             <select
               value={config.executorType}
               onChange={(e) => handleExecutorTypeChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+              style={inputStyle}
             >
               {EXECUTOR_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -215,35 +262,38 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
           {config.executorType === 'task_runner' ? (
             <>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Inner Executor</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Inner Executor</label>
                 <select
                   value={(config.executorConfig.executor as string) || 'function'}
                   onChange={(e) => handleTaskRunnerConfigChange('executor', e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                 >
                   {INNER_EXECUTOR_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-gray-400 mt-1">Executor used for each individual task</p>
+                <p className="text-[11px] mt-1" style={hintStyle}>Executor used for each individual task</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Max Concurrent Tasks</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Concurrent Tasks</label>
                 <input
                   type="number"
                   min={1}
                   value={(config.executorConfig.maxConcurrentTasks as number) || 5}
                   onChange={(e) => handleTaskRunnerConfigChange('maxConcurrentTasks', Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Handler Name</label>
+                <label className="block text-xs font-medium mb-1" style={labelStyle}>Handler Name</label>
                 <input
                   type="text"
                   value={(config.executorConfig.handler as string) || ''}
                   onChange={(e) => handleTaskRunnerConfigChange('handler', e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                  style={inputStyle}
                   placeholder="handler_name"
                 />
               </div>
@@ -251,32 +301,40 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
           ) : (
             /* Executor Config (JSON) for non-task_runner */
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Executor Config (JSON)</label>
+              <label className="block text-xs font-medium mb-1" style={labelStyle}>Executor Config (JSON)</label>
               <textarea
                 value={localConfigJson}
                 onChange={(e) => handleConfigJsonChange(e.target.value)}
                 rows={4}
-                className={`w-full border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:border-transparent resize-y ${
-                  jsonError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                }`}
+                className="w-full rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:border-transparent resize-y"
+                style={{
+                  ...inputStyle,
+                  borderColor: jsonError ? '#f87171' : undefined,
+                }}
                 placeholder="{}"
               />
-              {jsonError && <p className="text-xs text-red-500 mt-1">{jsonError}</p>}
+              {jsonError && <p className="text-xs text-red-400 mt-1">{jsonError}</p>}
             </div>
           )}
 
           {/* Human Approval Toggle */}
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-600">Requires Human Approval</label>
+            <label className="text-xs font-medium" style={labelStyle}>Requires Human Approval</label>
             <button
               onClick={() => handleBooleanFieldChange('requiresHumanApproval', !config.requiresHumanApproval)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                config.requiresHumanApproval ? 'bg-blue-600' : 'bg-gray-200'
-              }`}
+              className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+              style={{
+                background: config.requiresHumanApproval
+                  ? 'var(--color-accent, #6366f1)'
+                  : 'var(--color-surface-4, #2a2a38)',
+              }}
             >
-              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                config.requiresHumanApproval ? 'translate-x-4.5' : 'translate-x-0.5'
-              }`} />
+              <span
+                className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+                style={{
+                  transform: config.requiresHumanApproval ? 'translateX(18px)' : 'translateX(2px)',
+                }}
+              />
             </button>
           </div>
         </Section>
@@ -285,30 +343,33 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
         <Section title="Execution" defaultOpen={true}>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Retries</label>
+              <label className="block text-xs font-medium mb-1" style={labelStyle}>Retries</label>
               <input
                 type="number" min={0} value={config.retries}
                 onChange={(e) => handleNumberChange('retries', Number(e.target.value))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                style={inputStyle}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Timeout (ms)</label>
+              <label className="block text-xs font-medium mb-1" style={labelStyle}>Timeout (ms)</label>
               <input
                 type="number" min={0} step={1000} value={config.timeoutMs}
                 onChange={(e) => handleNumberChange('timeoutMs', Number(e.target.value))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                style={inputStyle}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Step Weight</label>
+              <label className="block text-xs font-medium mb-1" style={labelStyle}>Step Weight</label>
               <select
                 value={config.weight}
                 onChange={(e) => handleWeightChange(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                style={inputStyle}
               >
                 {STEP_WEIGHTS.map((w) => (
                   <option key={w.value} value={w.value}>{w.label}</option>
@@ -316,29 +377,31 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Max Iterations</label>
+              <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Iterations</label>
               <input
                 type="number" min={1} value={config.maxIterations}
                 onChange={(e) => handleNumberChange('maxIterations', Number(e.target.value))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                style={inputStyle}
               />
             </div>
           </div>
 
           {/* Next Step */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Next Step (loop-back)</label>
+            <label className="block text-xs font-medium mb-1" style={labelStyle}>Next Step (loop-back)</label>
             <select
               value={config.nextStep ?? ''}
               onChange={(e) => handleNextStepChange(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+              style={inputStyle}
             >
               <option value="">None</option>
               {otherSteps.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
-            <p className="text-[11px] text-gray-400 mt-1">Dashed edge for iterative transitions</p>
+            <p className="text-[11px] mt-1" style={hintStyle}>Dashed edge for iterative transitions</p>
           </div>
         </Section>
 
@@ -346,22 +409,24 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
         <Section title="Advanced" defaultOpen={false}>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Heartbeat Timeout</label>
+              <label className="block text-xs font-medium mb-1" style={labelStyle}>Heartbeat Timeout</label>
               <input
                 type="number" min={0} step={1000}
                 value={config.heartbeatTimeoutMs ?? ''}
                 onChange={(e) => handleNumberChange('heartbeatTimeoutMs', e.target.value ? Number(e.target.value) : 0)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                style={inputStyle}
                 placeholder="ms"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Schedule-to-Start</label>
+              <label className="block text-xs font-medium mb-1" style={labelStyle}>Schedule-to-Start</label>
               <input
                 type="number" min={0} step={1000}
                 value={config.scheduleToStartTimeoutMs ?? ''}
                 onChange={(e) => handleNumberChange('scheduleToStartTimeoutMs', e.target.value ? Number(e.target.value) : 0)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
+                style={inputStyle}
                 placeholder="ms"
               />
             </div>
@@ -369,28 +434,30 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
 
           {/* Condition Expression */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Condition</label>
+            <label className="block text-xs font-medium mb-1" style={labelStyle}>Condition</label>
             <textarea
               value={config.conditionExpression ?? ''}
               onChange={(e) => handleStringFieldChange('conditionExpression', e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+              className="w-full rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent resize-y"
+              style={inputStyle}
               placeholder="ctx.completedOutputs.step_a.score > 0.8"
             />
-            <p className="text-[11px] text-gray-400 mt-1">JS expression with ctx in scope. Step runs only if truthy.</p>
+            <p className="text-[11px] mt-1" style={hintStyle}>JS expression with ctx in scope. Step runs only if truthy.</p>
           </div>
 
           {/* Map Input Expression */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Map Input</label>
+            <label className="block text-xs font-medium mb-1" style={labelStyle}>Map Input</label>
             <textarea
               value={config.mapInputExpression ?? ''}
               onChange={(e) => handleStringFieldChange('mapInputExpression', e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+              className="w-full rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent resize-y"
+              style={inputStyle}
               placeholder="{ fromA: upstream.step_a.result }"
             />
-            <p className="text-[11px] text-gray-400 mt-1">Transform upstream outputs into this step's input.</p>
+            <p className="text-[11px] mt-1" style={hintStyle}>Transform upstream outputs into this step's input.</p>
           </div>
         </Section>
       </div>

@@ -112,7 +112,7 @@ export function WorkflowEditor() {
   )
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" style={{ background: 'var(--color-surface-0, #0a0a0f)' }}>
       <EditorToolbar editor={editor} />
 
       {/* Validation errors banner */}
@@ -145,13 +145,28 @@ export function WorkflowEditor() {
             deleteKeyCode="Delete"
             snapToGrid={true}
             snapGrid={[20, 20]}
+            style={{ background: 'var(--color-surface-0, #0a0a0f)' }}
           >
-            <Background color="#e5e7eb" gap={20} />
-            <Controls />
+            <Background color="rgba(255,255,255,0.03)" gap={20} />
+            <Controls
+              style={{
+                background: 'var(--color-surface-2, #1a1a26)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              }}
+            />
             <MiniMap
               nodeStrokeWidth={3}
-              nodeColor={() => '#93c5fd'}
-              style={{ height: 80, width: 120 }}
+              nodeColor={() => 'var(--color-accent, #6366f1)'}
+              style={{
+                height: 80,
+                width: 120,
+                background: 'var(--color-surface-1, #12121a)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+              }}
+              maskColor="rgba(0,0,0,0.6)"
             />
           </ReactFlow>
         </div>
