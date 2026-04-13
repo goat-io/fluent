@@ -129,7 +129,11 @@ export class AgentsClient {
     return this.post('/workers/list', { tenantId: this.tenantId })
   }
 
-  async generateWorkerToken(): Promise<{ token: string; installCommand: string; startCommand: string }> {
+  async generateWorkerToken(): Promise<{
+    token: string
+    installCommand: string
+    startCommand: string
+  }> {
     return this.post('/workers/generate-token', { tenantId: this.tenantId })
   }
 
@@ -181,6 +185,11 @@ export class AgentsClient {
 
   subscribe(runId: string): EventSource {
     const url = `${this.baseUrl}/workflows/subscribe?runId=${runId}&tenantId=${this.tenantId}`
+    return new EventSource(url)
+  }
+
+  subscribeWorkers(): EventSource {
+    const url = `${this.baseUrl}/workers/subscribe?tenantId=${this.tenantId}`
     return new EventSource(url)
   }
 

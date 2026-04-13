@@ -5,31 +5,59 @@
 // No Redis. No Postgres. Outbound HTTPS only.
 //
 // Usage:
-//   BROKER_URL=https://platform.example.com \
-//   BROKER_TOKEN=<registration-token> \
-//   AGENTS_TENANT_ID=my-tenant \
-//   npx @goatlab/agents-core agent start
+//   npx @goatlab/agents-core agent start \
+//     --url https://platform.example.com \
+//     --token abc123 \
+//     --tenant my-tenant
 //
-// Or with tsx:
-//   npx tsx src/broker/AgentDaemonCli.ts
+// Or with environment variables as fallback:
+//   BROKER_URL=... BROKER_TOKEN=... AGENTS_TENANT_ID=... npx @goatlab/agents-core agent start
 //
 import { AgentDaemon } from './AgentDaemon.js'
 import { FunctionStepExecutor } from '../steps/FunctionStepExecutor.js'
 
-const brokerUrl = process.env.BROKER_URL || process.env.AGENTS_ENGINE_URL
-const registrationToken = process.env.BROKER_TOKEN || process.env.AGENTS_WORKER_TOKEN
-const tenantId = process.env.AGENTS_TENANT_ID || 'default'
-const name = process.env.AGENTS_WORKER_NAME
+// ── Parse CLI args ──────────────────────────────────────────────
+
+function parseArgs(argv: string[]): Record<string, string> {
+  const args: Record<string, string> = {}
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg.startsWith('--') && i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+      args[arg.slice(2)] = argv[i + 1]
+      i++
+    }
+  }
+  return args
+}
+
+const args = parseArgs(process.argv.slice(2))
+
+const brokerUrl = args.url || args.broker || process.env.BROKER_URL || process.env.AGENTS_ENGINE_URL
+const registrationToken = args.token || process.env.BROKER_TOKEN || process.env.AGENTS_WORKER_TOKEN
+const tenantId = args.tenant || process.env.AGENTS_TENANT_ID || 'default'
+const name = args.name || process.env.AGENTS_WORKER_NAME
 
 if (!brokerUrl) {
-  console.error('Error: BROKER_URL environment variable is required')
-  console.error('  Example: BROKER_URL=https://platform.example.com')
+  console.error(`
+Usage: npx @goatlab/agents-core agent start --url <URL> --token <TOKEN> --tenant <TENANT>
+
+Options:
+  --url <url>        Platform URL (required)
+  --token <token>    Registration token from "Add Worker" (required)
+  --tenant <id>      Tenant ID (default: "default")
+  --name <name>      Worker name (default: hostname)
+
+Example:
+  npx @goatlab/agents-core agent start \\
+    --url https://platform.example.com \\
+    --token abc123def456 \\
+    --tenant my-team
+`)
   process.exit(1)
 }
 
 if (!registrationToken) {
-  console.error('Error: BROKER_TOKEN environment variable is required')
-  console.error('  Generate one via the platform UI or API: POST /agents/token')
+  console.error('Error: --token is required. Generate one via the platform UI: Workers > + Add Worker')
   process.exit(1)
 }
 
@@ -51,12 +79,12 @@ const daemon = new AgentDaemon({
 
 console.log(`
 ╔══════════════════════════════════════════════╗
-║    🐐 Goat Agent — Remote Worker             ║
+║    Goat Agent — Remote Worker                ║
 ╚══════════════════════════════════════════════╝
 
-  Broker: ${brokerUrl}
-  Tenant: ${tenantId}
-  Name:   ${name || '(auto-detect hostname)'}
+  Platform: ${brokerUrl}
+  Tenant:   ${tenantId}
+  Name:     ${name || '(auto-detect hostname)'}
 `)
 
 daemon.start().catch((err) => {

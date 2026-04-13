@@ -4,8 +4,6 @@ import { RelativeTime } from '@/components/common/RelativeTime'
 import { NavHeader } from '@/components/common/NavHeader'
 import type { WorkerNodeInfo } from '@/api/types'
 
-const REFRESH_INTERVAL = 10_000
-
 function StatusBadge({ status }: { status: WorkerNodeInfo['status'] }) {
   const styles: Record<string, string> = {
     active: 'bg-green-100 text-green-800',
@@ -69,22 +67,33 @@ export function Workers() {
   const [tokenData, setTokenData] = useState<{ token: string; installCommand: string; startCommand: string } | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const fetch = useCallback(() => {
-    client
-      .listWorkers()
-      .then((data) => {
-        setWorkers(data)
-        setError(null)
-      })
+  useEffect(() => {
+    // Initial fetch
+    client.listWorkers()
+      .then((data) => { setWorkers(data); setError(null) })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [client])
 
-  useEffect(() => {
-    fetch()
-    const interval = setInterval(fetch, REFRESH_INTERVAL)
-    return () => clearInterval(interval)
-  }, [fetch])
+    // SSE for real-time updates
+    const es = client.subscribeWorkers()
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'workersUpdate' && Array.isArray(data.workers)) {
+          setWorkers(data.workers)
+          setError(null)
+          setLoading(false)
+        }
+      } catch {}
+    }
+    es.onerror = () => {
+      // Fallback: SSE disconnected, do a one-time fetch
+      client.listWorkers()
+        .then((data) => { setWorkers(data); setError(null) })
+        .catch((err) => setError(err.message))
+    }
+    return () => es.close()
+  }, [client])
 
   const activeCount = workers.filter((w) => w.status === 'active').length
   const drainingCount = workers.filter((w) => w.status === 'draining').length
@@ -226,8 +235,8 @@ export function Workers() {
             </div>
 
             <p className="text-sm text-gray-600 mb-4">
-              Run this command on any machine to connect a worker to your engine.
-              The worker will auto-detect CPU, memory, Docker, and GPU capabilities.
+              Run this command on any machine to connect it as a worker.
+              Works from anywhere — even behind NAT or firewalls. Only needs outbound HTTPS.
             </p>
 
             <div className="mb-4">
@@ -249,14 +258,10 @@ export function Workers() {
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Worker Token</label>
-              <code className="block bg-gray-100 rounded-lg p-3 text-xs text-gray-700 font-mono break-all">{tokenData.token}</code>
-            </div>
-
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-              <strong>Requirements:</strong> Node.js 18+ installed on the target machine.
-              The worker will connect to <code className="bg-blue-100 px-1 rounded">{tokenData.startCommand.match(/AGENTS_ENGINE_URL=(\S+)/)?.[1]}</code> and start processing jobs automatically.
+              <strong>Requirements:</strong> Node.js 18+ and outbound HTTPS access.
+              The worker auto-detects CPU, memory, Docker, and GPU capabilities.
+              Token is single-use and expires in 24 hours.
             </div>
           </div>
         </div>

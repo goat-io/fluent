@@ -102,6 +102,18 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
         .where('id', '=', tokenRow.id)
         .execute()
 
+      // Insert into worker_nodes table so it shows in the Workers UI
+      await db.insertInto('worker_nodes' as any).values({
+        id: agent.id,
+        tenantId: input.tenantId,
+        name: input.name,
+        hostname: input.hostname,
+        capabilities: JSON.stringify(input.capabilities),
+        status: 'active',
+        lastHeartbeatAt: new Date(),
+        registeredAt: new Date(),
+      } as any).execute()
+
       logger?.info(`Agent registered: ${input.name} (${agent.id}) for tenant ${input.tenantId}`)
       return { agentId: agent.id }
     },
@@ -190,6 +202,13 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
     }): Promise<{ status: string; cancelJobIds: string[] }> {
       const agent = verifyAgent(registry, input.agentId, input.secret)
       const result = registry.heartbeat(input.agentId)
+
+      // Keep DB row in sync for the Workers UI
+      await db.updateTable('worker_nodes' as any)
+        .set({ lastHeartbeatAt: new Date() } as any)
+        .where('id' as any, '=', input.agentId)
+        .execute().catch(() => {})
+
       return { status: agent.status, cancelJobIds: result.cancelJobIds }
     },
 
@@ -202,6 +221,13 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
     }): Promise<{ success: boolean }> {
       verifyAgent(registry, input.agentId, input.secret)
       registry.removeAgent(input.agentId)
+
+      // Mark DB row offline for the Workers UI
+      await db.updateTable('worker_nodes' as any)
+        .set({ status: 'offline' } as any)
+        .where('id' as any, '=', input.agentId)
+        .execute().catch(() => {})
+
       logger?.info(`Agent deregistered: ${input.agentId}`)
       return { success: true }
     },

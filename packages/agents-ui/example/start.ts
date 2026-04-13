@@ -26,13 +26,28 @@ import {
   WorkflowStepTask,
   FunctionStepExecutor,
   createWorkflowHandlers,
+  createBrokerHandlers,
+  AgentRegistry,
   CREATE_TABLES_SQL,
 } from '@goatlab/agents-core'
+import { generateAgentScript } from '@goatlab/agents-core/dist/broker/agentScript.js'
 import type { Database } from '@goatlab/agents-core'
 import type { StepPayload, StepResult } from '@goatlab/agents-core'
 
 const PORT = 4444
 const TENANT = 'demo'
+
+import os from 'node:os'
+
+function getNetworkIp(): string {
+  const interfaces = os.networkInterfaces()
+  for (const iface of Object.values(interfaces) as any[]) {
+    for (const cfg of iface ?? []) {
+      if (cfg.family === 'IPv4' && !cfg.internal) return cfg.address
+    }
+  }
+  return 'localhost'
+}
 
 // ── Step handlers (simulated agents) ─────────────────────────────
 
@@ -255,56 +270,28 @@ async function main() {
     disableLogBuffering: true,
   })
 
-  // Worker (all 4 queue types)
-  const stepTask = new WorkflowStepTask(engine)
-  stepTask.setConnector(connector)
-  const workerHandle = await connector.listen({
-    tasks: [
-      { taskName: 'workflow_step_light', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 10 },
-      { taskName: 'workflow_step_heavy', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 3 },
-      { taskName: 'workflow_step_ai', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 5 },
-      { taskName: 'workflow_step_sandbox', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 2 },
-    ],
-  })
-  console.log('⚡ BullMQ workers running (light:10, heavy:3, ai:5, sandbox:2)\n')
-
-  // Register the local worker so it shows up in the Workers UI
-  const os = await import('node:os')
-  const { randomUUID } = await import('node:crypto')
-  const workerId = randomUUID()
-  await db.insertInto('worker_nodes' as any).values({
-    id: workerId,
-    tenantId: TENANT,
-    name: `local-worker-${os.hostname().substring(0, 8)}`,
-    hostname: os.hostname(),
-    capabilities: JSON.stringify({
-      cpuCount: os.cpus().length,
-      memoryMB: Math.floor(os.totalmem() / (1024 * 1024)),
-      dockerAvailable: true,
-      gpuAvailable: false,
-      queues: ['workflow_step_light', 'workflow_step_heavy', 'workflow_step_ai', 'workflow_step_sandbox'],
-    }),
-    status: 'active',
-    lastHeartbeatAt: new Date(),
-    registeredAt: new Date(),
-  } as any).execute()
-
-  // Heartbeat every 15s
-  const heartbeatTimer = setInterval(async () => {
-    try {
-      await db.updateTable('worker_nodes' as any)
-        .set({ lastHeartbeatAt: new Date() } as any)
-        .where('id' as any, '=', workerId)
-        .execute()
-    } catch {}
-  }, 15_000)
-  console.log(`🤖 Worker registered: ${workerId}\n`)
+  // Worker disabled — use `npx @goatlab/agents-core start --url http://localhost:4444 --token <TOKEN>` to connect a worker
+  // const stepTask = new WorkflowStepTask(engine)
+  // stepTask.setConnector(connector)
+  // const workerHandle = await connector.listen({ ... })
+  console.log('⚠️  No embedded worker — use "+ Add Worker" in the UI to connect one\n')
 
   // API handlers
   const handlers = createWorkflowHandlers(engine)
 
+  // Broker for remote agent connections
+  const agentRegistry = new AgentRegistry({
+    maxPendingJobs: 1000,
+    sweepIntervalMs: 10_000,
+    agentStaleAfterMs: 90_000,
+    defaultJobTimeoutMs: 300_000,
+  })
+  agentRegistry.startSweep()
+  const brokerHandlers = createBrokerHandlers({ db, registry: agentRegistry })
+
   // ── SSE: track connected clients per workflow run ──────────
   const sseClients = new Map<string, Set<http.ServerResponse>>()
+  const sseWorkerClients = new Set<http.ServerResponse>()
 
   function broadcastWorkflowUpdate(runId: string, data: any) {
     const clients = sseClients.get(runId)
@@ -344,6 +331,18 @@ async function main() {
     }
   }, 1000)
 
+  // Poll workers every 2s and push to SSE clients
+  const sseWorkerPoller = setInterval(async () => {
+    if (sseWorkerClients.size === 0) return
+    try {
+      const workers = await handlers.listWorkers({ tenantId: TENANT })
+      const msg = `data: ${JSON.stringify({ type: 'workersUpdate', workers })}\n\n`
+      for (const client of sseWorkerClients) {
+        try { client.write(msg) } catch { sseWorkerClients.delete(client) }
+      }
+    } catch {}
+  }, 2000)
+
   // HTTP server
   const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -379,6 +378,37 @@ async function main() {
       req.on('close', () => {
         sseClients.get(runId)?.delete(res)
       })
+      return
+    }
+
+    // ── Agent script endpoint (self-contained, no install needed) ──
+    if (url.pathname === '/agent/run' && req.method === 'GET') {
+      const token = url.searchParams.get('token')
+      if (!token) { res.writeHead(400); res.end('token required'); return }
+      const script = generateAgentScript(`http://${getNetworkIp()}:${PORT}`, token, TENANT)
+      res.writeHead(200, { 'Content-Type': 'application/javascript' })
+      res.end(script)
+      return
+    }
+
+    // ── Workers SSE endpoint ─────────────────────────────────
+    if (url.pathname === '/workers/subscribe' && req.method === 'GET') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      })
+      res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`)
+
+      sseWorkerClients.add(res)
+
+      // Send immediate snapshot
+      try {
+        const workers = await handlers.listWorkers({ tenantId: TENANT })
+        res.write(`data: ${JSON.stringify({ type: 'workersUpdate', workers })}\n\n`)
+      } catch {}
+
+      req.on('close', () => { sseWorkerClients.delete(res) })
       return
     }
 
@@ -420,9 +450,29 @@ async function main() {
       } else if (url.pathname === '/workers/list') {
         result = await handlers.listWorkers({ tenantId: TENANT })
       } else if (url.pathname === '/workers/generate-token') {
-        result = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://localhost:${PORT}` })
+        // Use network IP so remote machines can connect
+        const networkIp = getNetworkIp()
+        result = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://${networkIp}:${PORT}` })
       } else if (url.pathname === '/health') {
         result = { ok: true }
+
+      // ── Agent / Broker endpoints ────────────────────────
+      } else if (url.pathname === '/agents/token') {
+        result = await brokerHandlers.generateAgentToken({ tenantId: TENANT })
+      } else if (url.pathname === '/agents/register') {
+        result = await brokerHandlers.register({ ...body, tenantId: TENANT })
+      } else if (url.pathname === '/agents/next-job') {
+        result = await brokerHandlers.nextJob(body)
+      } else if (url.pathname === '/agents/step-started') {
+        result = await brokerHandlers.stepStarted(body)
+      } else if (url.pathname === '/agents/step-result') {
+        result = await brokerHandlers.stepResult(body)
+      } else if (url.pathname === '/agents/step-failed') {
+        result = await brokerHandlers.stepFailed(body)
+      } else if (url.pathname === '/agents/heartbeat') {
+        result = await brokerHandlers.heartbeat(body)
+      } else if (url.pathname === '/agents/deregister') {
+        result = await brokerHandlers.deregister(body)
       } else {
         res.writeHead(404); res.end('Not found'); return
       }
@@ -435,8 +485,10 @@ async function main() {
     }
   })
 
-  server.listen(PORT, async () => {
-    console.log(`🌐 API ready on http://localhost:${PORT}\n`)
+  server.listen(PORT, '0.0.0.0', async () => {
+    const ip = getNetworkIp()
+    console.log(`🌐 API ready on http://localhost:${PORT}`)
+    console.log(`🌐 Network:    http://${ip}:${PORT}\n`)
 
     // Seed demo workflows
     console.log('🌱 Seeding demo workflows...\n')
@@ -476,10 +528,10 @@ async function main() {
   // Shutdown
   const shutdown = async () => {
     console.log('\n🛑 Shutting down...')
-    clearInterval(heartbeatTimer)
     clearInterval(ssePoller)
+    clearInterval(sseWorkerPoller)
+    agentRegistry.stopSweep()
     server.close()
-    await workerHandle.stop()
     await connector.close()
     await engine.shutdown()
     await db.destroy()

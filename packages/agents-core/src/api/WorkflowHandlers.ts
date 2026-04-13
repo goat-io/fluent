@@ -328,12 +328,31 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
     async generateWorkerToken(input: {
       tenantId: string
       engineUrl: string
-    }): Promise<{ token: string; installCommand: string; startCommand: string }> {
-      const { randomBytes } = await import('node:crypto')
+    }): Promise<{
+      token: string
+      installCommand: string
+      startCommand: string
+    }> {
+      const { randomBytes, createHash } = await import('node:crypto')
+      const { Ids } = await import('@goatlab/js-utils')
       const token = randomBytes(32).toString('hex')
 
-      const installCommand = `curl -fsSL ${input.engineUrl}/worker/install.sh | bash`
-      const startCommand = `AGENTS_ENGINE_URL=${input.engineUrl} AGENTS_WORKER_TOKEN=${token} AGENTS_TENANT_ID=${input.tenantId} npx @goatlab/agents-core worker start`
+      // Store hashed token in agent_tokens table for broker auth flow
+      const tokenHash = createHash('sha256').update(token).digest('hex')
+      const id = Ids.nanoId(21)
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      await (engine as any).db.insertInto('agent_tokens').values({
+        id,
+        tenantId: input.tenantId,
+        token: tokenHash,
+        used: false,
+        usedBy: null,
+        expiresAt,
+      }).execute()
+
+      const installCommand = `curl -fsSL ${input.engineUrl}/agent/install.sh | bash`
+      // Single command — fetches self-contained agent script from the platform and pipes to node
+      const startCommand = `curl -fsSL '${input.engineUrl}/agent/run?token=${token}' | node`
 
       return { token, installCommand, startCommand }
     },
