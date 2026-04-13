@@ -321,6 +321,23 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       }))
     },
 
+    /**
+     * Generate a worker registration token + install command.
+     * Like GitHub Actions runner setup — gives you a one-liner to run on any machine.
+     */
+    async generateWorkerToken(input: {
+      tenantId: string
+      engineUrl: string
+    }): Promise<{ token: string; installCommand: string; startCommand: string }> {
+      const { randomBytes } = await import('node:crypto')
+      const token = randomBytes(32).toString('hex')
+
+      const installCommand = `curl -fsSL ${input.engineUrl}/worker/install.sh | bash`
+      const startCommand = `AGENTS_ENGINE_URL=${input.engineUrl} AGENTS_WORKER_TOKEN=${token} AGENTS_TENANT_ID=${input.tenantId} npx @goatlab/agents-core worker start`
+
+      return { token, installCommand, startCommand }
+    },
+
     async deregisterWorker(input: { workerId: string }): Promise<{ success: true }> {
       await (engine as any).db.updateTable('worker_nodes')
         .set({ status: 'offline' })

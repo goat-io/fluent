@@ -235,6 +235,8 @@ async function main() {
         result = await handlers.ingestEvent({ ...body, tenantId: TENANT })
       } else if (path === '/workers/list') {
         result = await handlers.listWorkers({ ...body, tenantId: TENANT })
+      } else if (path === '/workers/generate-token') {
+        result = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://localhost:${PORT}` })
       } else if (path === '/workflows/heartbeat') {
         result = await handlers.heartbeat({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/validate') {

@@ -64,6 +64,9 @@ export function Workers() {
   const [workers, setWorkers] = useState<WorkerNodeInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [tokenData, setTokenData] = useState<{ token: string; installCommand: string; startCommand: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const fetch = useCallback(() => {
     client
@@ -95,6 +98,17 @@ export function Workers() {
             <a href="/" className="text-gray-500 hover:text-gray-700">Dashboard</a>
             <a href="/workers" className="text-gray-900 font-medium">Workers</a>
             <a href="/designer" className="text-gray-500 hover:text-gray-700">Designer</a>
+            <button
+              onClick={async () => {
+                const data = await client.generateWorkerToken()
+                setTokenData(data)
+                setShowAddModal(true)
+                setCopied(false)
+              }}
+              className="ml-2 bg-blue-600 text-white rounded-md px-4 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              + Add Worker
+            </button>
           </nav>
         </div>
       </header>
@@ -205,6 +219,52 @@ export function Workers() {
           </div>
         )}
       </main>
+
+      {/* Add Worker Modal */}
+      {showAddModal && tokenData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Add Worker Node</h2>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Run this command on any machine to connect a worker to your engine.
+              The worker will auto-detect CPU, memory, Docker, and GPU capabilities.
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Run this command</label>
+              <div className="relative">
+                <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-sm overflow-x-auto whitespace-pre-wrap break-all font-mono">
+                  {tokenData.startCommand}
+                </pre>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(tokenData.startCommand)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  className="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white rounded px-3 py-1 text-xs"
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Worker Token</label>
+              <code className="block bg-gray-100 rounded-lg p-3 text-xs text-gray-700 font-mono break-all">{tokenData.token}</code>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <strong>Requirements:</strong> Node.js 18+ installed on the target machine.
+              The worker will connect to <code className="bg-blue-100 px-1 rounded">{tokenData.startCommand.match(/AGENTS_ENGINE_URL=(\S+)/)?.[1]}</code> and start processing jobs automatically.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -129,6 +129,10 @@ export class AgentsClient {
     return this.post('/workers/list', { tenantId: this.tenantId })
   }
 
+  async generateWorkerToken(): Promise<{ token: string; installCommand: string; startCommand: string }> {
+    return this.post('/workers/generate-token', { tenantId: this.tenantId })
+  }
+
   // ── Real-time ──────────────────────────────────────
 
   subscribe(runId: string): EventSource {
