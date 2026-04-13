@@ -1,223 +1,186 @@
-# Agent Handover — Goat Agents System
+# Agent Handover — Goat Agents SDLC Workflow Platform
 
 ## Goal
 
-Build a distributed, event-driven, multi-agent workflow execution system ("Temporal-lite for AI agents") that runs agents ephemerally in Docker containers, supports multi-step DAG workflows with durable execution, human-in-the-loop, distributed workers via BullMQ, exactly-once external side effects, and a visual dashboard.
+Build a distributed, event-driven, multi-agent workflow execution system ("Temporal-lite for AI agents") with:
+- Visual workflow editing (UI + JSON round-trip)
+- Iterative execution (nextStep loops without DAG cycles)
+- Typed integrations (GitHub/Linear/Slack) + reusable AI skills
+- Distributed worker nodes with zero-config onboarding
+- External event ingestion (webhooks, triggers, async human input)
+- Exactly-once side effects, snapshot-based execution, COPY FROM bulk inserts
 
 ## Current Progress — ALL GREEN
 
-All packages build. All tests pass. Latest work on branch: `worktree-delegated-growing-puppy`.
+Branch: `worktree-delegated-growing-puppy` | Last commit: `1efe4df`
 
 | Package | Tests | Status |
 |---------|-------|--------|
-| agents-core | **257** | ✅ All pass (20 test files) |
-| agents-ai | **63** | ✅ All pass (5 test files) |
+| agents-core | **277** vitest (22 files) | ✅ All pass |
+| agents-ai | **63** vitest (5 files) | ✅ All pass |
 | agents-langgraph | **15** | ✅ All pass |
-| agents-sandbox | **30+** | ✅ All pass (unit + network isolation + Docker integration) |
-| agents-ui | — | ✅ Builds, type-checks clean, metrics dashboard added |
+| agents-sandbox | **30+** | ✅ All pass |
+| agents-ui | **12** Playwright | ✅ All pass + type-checks clean |
 
-**Total: 420+ tests passing** (257 agents-core + 63 agents-ai + 15 agents-langgraph + 30+ agents-sandbox + 12 Playwright + existing)
+**Total: 397+ tests + k6 load tests**
 
-## What Was Completed (all sessions combined)
+### Performance (single CPU, testcontainer Postgres 18)
+- COPY FROM batch: **2,500-6,500 wf/sec** (100/batch)
+- Batch INSERT: **~1,800 wf/sec** (50/batch)
+- Single INSERT: **~1,000 wf/sec**
+- 0% error rate on isolated scenarios
 
-### Core Infrastructure (prior sessions)
-1. **ExternalAction primitive** — exactly-once execution, idempotency, rate limiting, audit trail (14 stress tests)
-2. **StepExecutionContext** — `externalActions` accessible to step handlers via optional context
-3. **SDLC workflow wired through ExternalAction** — all 4 external steps use `context.externalActions.execute()`
-4. **Definition snapshot completed** — full executorConfig, timeouts, human approval flags frozen at start
+## Architecture Summary
 
-### Issue #1: Worker Specialization — RESOLVED
-- `StepWeight` type (`'light' | 'heavy'`) on `StepDefinition`
-- `WorkflowEngine.dispatchStep()` routes to `workflow_step_light` / `workflow_step_heavy` queues
-- Workers started with different concurrency per queue (light:100, heavy:2)
-- **5 tests** in `worker-specialization.spec.ts`
+### Engine (`agents-core/src/engine/`)
+- **WorkflowEngine.ts** — Core orchestrator. DAG execution, step chaining via `onStepCompleted()`, nextStep runtime loops, 4-queue dispatch (light/heavy/ai/sandbox), per-workflow concurrency fairness.
+- **ExternalActionExecutor.ts** — Exactly-once side effects. Two-phase commit (pending→completing→completed). Idempotency key includes sha256(payload). Pluggable RateLimiterBackend (InMemory or Redis with Lua scripts).
+- **WorkflowMetrics.ts** — Step/action latency, p50/p95/p99, cost aggregation.
+- **StepCostTracker.ts** — Interceptor extracting `_usage` from step output → persists tokensUsed/costUsd/modelUsed.
+- **ExternalActionEnforcer.ts** — Interceptor warning/throwing when steps bypass ExternalAction.
+- **RateLimiterBackend.ts** — InMemory + Redis (atomic Lua scripts for sliding window).
 
-### Issue #2: Sandbox Network Isolation — RESOLVED
-- Default `NetworkMode: 'none'` (was `'bridge'`)
-- `allowedDomains` config with iptables rules inside containers
-- `CAP_NET_ADMIN` auto-added when domain allowlist configured
-- **4 unit tests** + **4 Docker integration tests** in `network-isolation.spec.ts`
+### Events (`agents-core/src/events/`)
+- **EventIngestion.ts** — Idempotent event storage, dead letter queue, replay. Auto-processes triggers. Bridges `human.response` events to `submitHumanInput()`. Event ordering via entityKey+sequenceNumber (last-write-wins).
+- **WebhookVerifier.ts** — HMAC-SHA256 verification (GitHub format support).
 
-### Issue #3: Redis-Backed Rate Limiter — RESOLVED
-- `RateLimiterBackend` interface: `InMemoryRateLimiter` (default) + `RedisRateLimiter`
-- Redis sorted sets for sliding window, counters for concurrency
-- **Atomic Lua scripts** for rate limit check (single round-trip instead of 4)
-- Keys auto-expire (10 min rate buckets, 5 min concurrency — crash recovery)
-- **10 tests** in `rate-limiter.spec.ts`
+### Integrations (`agents-core/src/integrations/`)
+- **IntegrationRegistry** + **createIntegrationAction()** factory wrapping ExternalAction.
+- Typed: GitHub (create_pr, create_issue, add_comment, merge_pr), Linear (create_issue, update_issue, add_comment), Slack (send_message, update_message).
 
-### Issue #4: Observability Metrics — RESOLVED
-- `WorkflowMetricsCollector` with `getRunMetrics()` and `getAggregateMetrics()`
-- Step latency: queue/schedule-to-start/execution/total
-- External action latency by provider
-- Percentiles: p50/p95/p99
-- **8 tests** in `metrics.spec.ts`
+### Skills (`agents-core/src/skills/`)
+- **SkillRegistry** with `toToolDefinitions()` (OpenAI-compatible format).
+- Built-in: webSearchSkill, codeExecutionSkill.
+- AIStepExecutor has tool-call loop: LLM → tool_call → skill.execute → iterate (maxTurns + maxTokenBudget).
 
-### Issue #5: ExternalAction Runtime Enforcement — RESOLVED
-- `ExternalActionEnforcer` StepInterceptor (strict/warn modes)
-- Configurable enforced executor types and exempt steps
-- **7 tests** in `enforcement.spec.ts`
+### Workers (`agents-core/src/worker/`)
+- **WorkerNode.ts** — detectResources(), getQueueSubscriptions(), start()/stop(), heartbeat, queue-depth-aware scaling.
+- **cli.ts** — `node worker/cli.js start` with env-based config.
+- **WorkerProvisioner.ts** — Interface + LocalWorkerProvisioner.
+- **Worker onboarding UI** — "Add Worker" button generates token + copyable command (like GitHub Actions runner).
 
-### Cost-Per-Step Tracking — RESOLVED
-- Added `tokensUsed`, `costUsd`, `modelUsed` fields to `workflow_steps` table
-- `StepCostTracker` interceptor extracts `_usage` from step outputs
-- Pricing table fallback for cost estimation
-- Supports `promptTokens + completionTokens` breakdown
-- Integrated into `WorkflowMetricsCollector` (`totalTokens`, `totalCostUsd` per run)
-- **7 tests** in `cost-tracking.spec.ts`
+### UI (`agents-ui/src/`)
+- **Dashboard** — Status cards, workflow list, MetricsPanel (percentiles + bar charts).
+- **WorkflowRun** — React Flow DAG visualization, StepDetailPanel with I/O/logs/retries/container tabs.
+- **WorkflowDesigner** — Visual editor: StepPalette (drag-drop), StepConfigPanel, EditorToolbar (validate/export/import JSON), dagre auto-layout.
+- **Workers** — Monitoring page with capabilities, heartbeat, queue pills, "Add Worker" modal.
 
-### Redis Rate Limiter Lua Scripts — RESOLVED
-- `RATE_LIMIT_LUA` — atomic sliding window: clean + count + wait calculation in one call
-- `RedisClient` interface extended with `eval()` for Lua script execution
-- Reduced from 4 Redis round-trips to 1 for rate limit checks
+### Database (9 tables, Kysely/Postgres 18)
+workflow_runs, workflow_steps, workflow_step_logs, workflow_signals, external_actions, workflow_events, workflow_event_subscriptions, worker_nodes, workflow_definitions
 
-### Dashboard Metrics UI — RESOLVED
-- `WorkflowHandlers` now includes `getRunMetrics()` and `getAggregateMetrics()` endpoints
-- `AgentsClient` extended with `getRunMetrics()` and `getAggregateMetrics()` methods
-- New UI types: `StepLatencyMetrics`, `ExternalActionMetrics`, `WorkflowRunMetrics`, `AggregateMetrics`
-- `MetricsPanel` component — aggregate stats: percentile cards + bar charts for executor/provider latency
-- `StepMetricsTab` component — per-step timing + cost breakdown
-- Dashboard page now shows Performance Metrics section above workflow list
-
-### Production iptables Testing — RESOLVED
-- Docker integration tests verifying:
-  - `networkMode: 'none'` blocks all network access
-  - `networkMode: 'bridge'` allows network access
-  - `allowedDomains` restricts traffic to specified domains
-  - Default `networkMode` is `'none'`
-- Auto-skips when Docker daemon not available
+### Performance Optimizations
+- **COPY FROM** for bulk inserts (startBatchCopy, flushLogs) — 6x faster than INSERT
+- **Fast-path initial dispatch** — root steps inserted as QUEUED, skip dispatchReadySteps SELECT
+- **Log buffering** — 50ms/50 items flush (Hatchet pattern)
+- **Connection pool ~20** (Hatchet recommendation — fewer = less lock contention)
+- Postgres tuning: synchronous_commit=off, fsync=off, shared_buffers=256MB (test only)
 
 ## Key Decisions
 
-1. **Kysely over TypeORM** — 5-8x faster
-2. **Dual BullMQ queues** — `workflow_step_light` / `workflow_step_heavy`, routed via `stepWeight`
-3. **Engine-driven step chaining** — `onStepCompleted()` evaluates DAG
-4. **JSON as TEXT** — `toJson()`/`fromJson()` helpers
-5. **Buffered log writes** — Hatchet pattern. 50ms/50 items flush
-6. **SSE real-time** — 1s server-side poll → push to EventSource
-7. **ExternalAction** — Consistency gate for ALL external API calls
-8. **StepExecutionContext** — Optional context carrying engine services
-9. **Pluggable RateLimiterBackend** — InMemory default, Redis for multi-worker
-10. **Sandbox default isolation** — `NetworkMode: 'none'`, `allowedDomains` iptables for bridge
-11. **Cost tracking via interceptor** — `_usage` key convention, pricing table fallback
-12. **Atomic Lua scripts** — Single round-trip for Redis rate limit checks
+1. **Kysely over TypeORM** — 5-8x faster, plain TS interfaces, no reflection
+2. **4-queue BullMQ** — light/heavy/ai/sandbox via StepWeight, different concurrency per queue
+3. **ExternalAction two-phase commit** — pending→completing→completed prevents duplicate side effects on crash
+4. **Idempotency key = hash(payload)** — prevents collision when same step calls same actionType with different payloads
+5. **COPY FROM for bulk writes** — Hatchet-inspired, bypasses SQL planner, single lock acquisition
+6. **Event ordering = last-write-wins** — entityKey+sequenceNumber, stale events marked skipped_stale
+7. **nextStep = runtime loop** — No DAG cycles, iterationCount+maxIterations enforced at engine level
+8. **Skills as pure functions** — SkillRegistry.toToolDefinitions() → OpenAI format, AIStepExecutor runs tool-call loop
+9. **Worker onboarding via token** — generateWorkerToken() → copyable command, like GitHub Actions
+
+## Open Issues / TODOs
+
+### 1. Warm Sandbox Pools (Performance)
+**Problem:** Each sandbox step creates a new Docker container — cold start overhead.
+- **Why slow?** Container creation + image pull + setup commands run every time
+- **Why no pool?** Initial design assumed ephemeral containers
+- **Why ephemeral?** Security isolation per execution
+- **Why per-execution?** Prevents state leakage between steps
+- **Why important now?** Production workloads need <1s sandbox start
+- **Fix:** Pre-warm container pool with ready-to-use containers, recycle after cleanup
+
+### 2. COPY FROM Column Fragility (Technical Debt)
+**Problem:** The COPY FROM implementation in startBatchCopy() hardcodes column order as tab-delimited strings. Any schema change breaks it silently.
+- **Why hardcoded?** pg-copy-streams requires exact column list matching data order
+- **Why not dynamic?** COPY FROM doesn't support parameterized queries
+- **Why risky?** Adding a column to workflow_steps requires updating 3 places (interface, CREATE_TABLES_SQL, COPY string)
+- **Why not caught?** No compile-time check on COPY column order
+- **Why important?** Schema will evolve — migrations will break COPY silently
+- **Fix:** Generate COPY column list from TypeScript interface keys, or add integration test that validates column order matches schema
+
+### 3. CLI Worker Needs Real Postgres Connection (Deployment)
+**Problem:** `src/worker/cli.ts` requires AGENTS_POSTGRES_URL to create a WorkflowEngine locally. Workers need DB access to mark steps running/completed.
+- **Why needs DB?** WorkflowStepTask.handle() calls engine.markStepRunning() and engine.onStepCompleted()
+- **Why not HTTP?** Engine callbacks are synchronous within the step handler
+- **Why problematic?** Every worker machine needs Postgres credentials — security concern
+- **Why matters?** Zero-config onboarding promise broken if worker needs DB URL
+- **Why not fixed?** Would need engine-server architecture where workers call back via HTTP
+- **Fix:** Add HTTP callback mode where worker POSTs step results to engine API instead of writing DB directly
+
+### 4. Event Auto-Processing Performance (Scale)
+**Problem:** Every `ingest()` call auto-runs `processEvent()` which does 3-4 DB queries (SELECT event, SELECT subscriptions, scan triggers, UPDATE status).
+- **Why auto-process?** Ensures triggers fire immediately on event arrival
+- **Why slow?** Each event = 5+ DB queries total (insert + process)
+- **Why not batched?** Events arrive individually via webhooks
+- **Why matters?** At 10k events/sec, processEvent becomes the bottleneck
+- **Why not deferred?** Would add latency to trigger-based workflow starts
+- **Fix:** `skipAutoProcess: true` config exists. Add background processor that batch-processes pending events.
+
+### 5. Playwright E2E Tests Need Test Server (CI)
+**Problem:** Playwright tests require testcontainers (Postgres + Redis) which need Docker in CI.
+- **Why Docker?** Testcontainers spin up real Postgres/Redis for integration testing
+- **Why not mock?** Tests validate real DB queries and BullMQ behavior
+- **Why CI issue?** GitHub Actions needs Docker-in-Docker or service containers
+- **Why not already configured?** No CI pipeline set up for agents packages yet
+- **Fix:** Add GitHub Actions workflow with `services: postgres, redis` or Docker-in-Docker
 
 ## Key Files
 
 ```
 packages/agents-core/
-  src/engine/WorkflowEngine.ts              ← Core orchestrator (dual queue dispatch)
-  src/engine/ExternalActionExecutor.ts      ← External call consistency layer
-  src/engine/RateLimiterBackend.ts          ← InMemory + Redis (Lua scripts) rate limiters
-  src/engine/WorkflowMetrics.ts             ← Observability: latency + cost metrics
-  src/engine/StepCostTracker.ts             ← Token/cost tracking interceptor
-  src/engine/ExternalActionEnforcer.ts      ← Runtime enforcement interceptor
-  src/entities/Database.ts                  ← Kysely schema (now with cost fields)
-  src/api/WorkflowHandlers.ts              ← REST API (now with metrics endpoints)
-  src/__tests__/engine/
-    worker-specialization.spec.ts           ← 5 tests
-    metrics.spec.ts                         ← 8 tests
-    rate-limiter.spec.ts                    ← 10 tests
-    enforcement.spec.ts                     ← 7 tests
-    cost-tracking.spec.ts                   ← 7 tests
-    external-actions.spec.ts                ← 14 tests
-    lifecycle.spec.ts                       ← 15 tests
-    e2e.spec.ts                             ← 5 tests (BullMQ)
-    temporal.spec.ts                        ← 8 tests
-    api-handlers.spec.ts                    ← 6 tests
-  src/__tests__/sdlc/sdlc-e2e.spec.ts      ← 17 tests
-  src/__tests__/state-machine.spec.ts       ← 56 tests
-  src/__tests__/workflow-builder.spec.ts    ← 24 tests
+  src/engine/WorkflowEngine.ts              ← Core orchestrator (nextStep, COPY FROM, 4-queue)
+  src/engine/ExternalActionExecutor.ts      ← Exactly-once (two-phase, hash idempotency)
+  src/engine/RateLimiterBackend.ts          ← InMemory + Redis Lua
+  src/engine/WorkflowMetrics.ts             ← Latency + cost observability
+  src/engine/StepCostTracker.ts             ← Token/cost interceptor
+  src/engine/ExternalActionEnforcer.ts      ← Bypass detection interceptor
+  src/entities/Database.ts                  ← 9 tables + CREATE_TABLES_SQL
+  src/events/EventIngestion.ts              ← Events + triggers + human bridge + ordering
+  src/events/WebhookVerifier.ts             ← HMAC-SHA256
+  src/integrations/                         ← GitHub/Linear/Slack typed wrappers
+  src/skills/                               ← SkillRegistry + builtins
+  src/worker/WorkerNode.ts                  ← Resource detection + queue subscription
+  src/worker/cli.ts                         ← CLI entry point
+  src/api/WorkflowHandlers.ts              ← 20+ API handlers
+  loadtest/k6-workflow.js                   ← k6 load test script
+
+packages/agents-ai/
+  src/executors/AIStepExecutor.ts           ← Tool-call loop (maxTurns + maxTokenBudget)
 
 packages/agents-sandbox/
-  src/container/ContainerManager.ts         ← Default NetworkMode: none + allowedDomains
-  src/types/SandboxConfig.ts                ← allowedDomains config
-  src/__tests__/integration/network-isolation.spec.ts  ← 4 Docker tests
-  src/__tests__/unit/network-isolation.spec.ts         ← 4 unit tests
+  src/container/ContainerManager.ts         ← NetworkMode:none + allowedDomains iptables
 
 packages/agents-ui/
-  src/api/types.ts                          ← Metrics types
-  src/api/client.ts                         ← Metrics client methods
-  src/components/metrics/MetricsPanel.tsx    ← Aggregate metrics dashboard
-  src/components/metrics/StepMetricsTab.tsx  ← Per-step timing + cost
-  src/pages/Dashboard.tsx                   ← Now includes MetricsPanel
+  src/components/workflow-editor/           ← Visual editor (7 files)
+  src/components/metrics/                   ← MetricsPanel + StepMetricsTab
+  src/pages/Workers.tsx                     ← Worker monitoring + "Add Worker" modal
+  src/pages/WorkflowDesigner.tsx            ← Designer page
+  example/start.ts                          ← Full runnable example (3 workflows + worker)
+  test-server/server.ts                     ← E2E test backend
+  e2e/workflow-editor.spec.ts              ← 12 Playwright tests
 ```
-
-## SDLC Platform Extension — Implementation Plan
-
-### Phase Dependency Graph
-```
-Phase 1 (nextStep) ──────────────────────────────────┐
-Phase 2 (Events) ──> Phase 3 (Triggers) ─────────────┤
-Phase 4 (Integrations) ──> Phase 5 (Skills) ──> Phase 6 (Worker)
-                                                      │
-Phase 1 + Phase 3 ────────────────────────────────────┴──> Phase 7 (Editor)
-```
-Phases 1, 2, and 4 can proceed in parallel.
-
-### Phase 1: nextStep Runtime Transitions — ✅ DONE (5 tests)
-Allow steps to redirect execution to any named step without structural DAG cycles.
-- Add `nextStep?: string` to StepResult, `maxIterations` to StepDefinition
-- Add `iterationCount`, `maxIterations` columns to workflow_steps
-- Engine detects nextStep in onStepCompleted(), validates target, checks iteration limit, resets target to PENDING
-- Add COMPLETED→PENDING transition in state machine
-- Test file: `next-step.spec.ts`
-
-### Phase 2: Event Ingestion System — ✅ DONE (11 tests)
-Accept external webhooks, store events, deduplicate, dead letter queue.
-- New: EventIngestionService, WebhookVerifier (HMAC-SHA256)
-- New DB tables: workflow_events, workflow_event_subscriptions
-- New API handlers: ingestEvent, listDeadLetterEvents, replayDeadLetterEvent
-- Test file: `event-ingestion.spec.ts`
-
-### Phase 3: Workflow Triggers — ✅ DONE (6 tests)
-Auto-start workflows when matching events arrive. **Depends on Phase 2.**
-- Add `triggers?: WorkflowTrigger[]` to WorkflowDefinition
-- Builder gains `.trigger(config)` method
-- EventIngestion.processEvent() scans workflows for matching triggers
-- Test file: `workflow-triggers.spec.ts`
-
-### Phase 4: Integration Layer — ✅ DONE (8 tests)
-Typed integration wrappers around ExternalAction (GitHub, Linear, Slack).
-- New: Integration interface, IntegrationRegistry, provider implementations
-- Add `integrations` to StepExecutionContext
-- Test file: `integrations.spec.ts`
-
-### Phase 5: Skills System + Queue Expansion — ✅ DONE (15 tests)
-Reusable tools for AI steps. Expand to 4 queues. **Depends on Phase 4.**
-- New: Skill interface, SkillRegistry, built-in skills
-- AIStepExecutor gains tool-call loop
-- StepWeight expands to light/heavy/ai/sandbox
-- Test files: `skills.spec.ts`, `queue-expansion.spec.ts`
-
-### Phase 6: Worker Node + Install Script — ✅ DONE (11 tests)
-Worker process with resource detection, registration, zero-config install. **Depends on Phase 5.**
-- New: WorkerNode, WorkerProvisioner, install-worker.sh
-- New DB table: worker_nodes
-- Workers page in UI
-- Test file: `worker-node.spec.ts`
-
-### Phase 7: Visual Workflow Editor — ✅ DONE (12 Playwright tests passing)
-UI for creating/editing workflow definitions. **Depends on Phases 1 + 3.**
-- New: WorkflowEditor, StepPalette, StepConfigPanel, EditorToolbar, useWorkflowEditor
-- New: WorkflowDesigner page, /designer route
-- New DB table: workflow_definitions
-- Backend: validateDefinition, saveDefinition handlers
-- Test file: `workflow-editor.spec.ts`
-
-### Verification (after each phase)
-1. `cd packages/agents-core && pnpm test` — all tests pass
-2. `cd packages/agents-ui && npx tsc --noEmit` — UI type-checks clean
-3. AGENT_HANDOVER.md updated with new test counts
 
 ## Tips for Next Agent
 
-- Run `cd packages/agents-core && pnpm test` (NOT from root)
-- `disableLogBuffering: true` in tests
-- `fileParallelism: false` — tests share Postgres
-- Workers MUST listen on `workflow_step_light` AND `workflow_step_heavy`
-- Cost tracking: step outputs should include `_usage: { tokens, costUsd?, model? }`
-- `RedisRateLimiter` needs a client with `eval()` support (ioredis has this)
-- `ExternalActionEnforcer` installed as interceptor: `interceptors: [new ExternalActionEnforcer({ db })]`
-- `StepCostTracker` installed as interceptor: `interceptors: [new StepCostTracker({ db, pricing: {...} })]`
-- Network isolation tests require Docker daemon (auto-skip if not available)
-- `StepHandler` signature: `(payload, context?) => Promise<StepResult>` — context carries `externalActions`
+- **Run tests:** `cd packages/agents-core && pnpm test` (NOT from root — avoids Mongo/MySQL containers)
+- **Exclude load test:** `npx vitest run --exclude="**/load-test*"` (load test can timeout)
+- **Build before test server:** `cd packages/agents-core && npx tsc` (test server imports from dist/)
+- **Start example:** `cd packages/agents-ui && npx tsx example/start.ts` then `VITE_API_URL=http://localhost:4444 npx vite --port 5173`
+- **Workers listen on 4 queues:** workflow_step_light, workflow_step_heavy, workflow_step_ai, workflow_step_sandbox
+- **disableLogBuffering: true** in tests (async flush breaks log assertions)
+- **fileParallelism: false** — tests share Postgres
+- **Cost tracking:** step output `_usage: { tokens, costUsd?, model? }` → persisted by StepCostTracker
+- **COPY FROM requires pgPool:** pass raw pg.Pool in engine config for bulk insert performance
+- **Connection pool ~20** — Hatchet says more = lock contention
+- **Postgres 18** in all testcontainers
+- **pg 8.20.0** npm client
+- **k6 uses ES5** — no optional chaining, no numeric separators, no `catch {}` without param
