@@ -94,6 +94,17 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
     /**
      * Get workflow definition with inferred input fields.
      */
+    /**
+     * List all registered workflow definitions (names + versions).
+     */
+    async listDefinitions() {
+      const defs: Array<{ name: string; version: string; stepCount: number }> = []
+      for (const [, def] of engine.getWorkflows()) {
+        defs.push({ name: def.name, version: def.version, stepCount: def.steps.length })
+      }
+      return defs
+    },
+
     async getDefinition(input: { workflowName: string }) {
       const def = engine.getWorkflows().get(input.workflowName)
       if (!def) throw new Error(`Workflow "${input.workflowName}" not found`)

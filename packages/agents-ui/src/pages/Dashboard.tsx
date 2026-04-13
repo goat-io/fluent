@@ -34,9 +34,12 @@ export function Dashboard() {
     client.listWorkflows(filters).then(setWorkflows).catch(() => {})
   }, [client, statusFilter, nameFilter, limit])
 
+  const [definitions, setDefinitions] = useState<Array<{ name: string; version: string; stepCount: number }>>([])
+
   useEffect(() => {
     fetchWorkflows()
     client.listWorkers().then(setWorkers).catch(() => {})
+    client.listDefinitions().then(setDefinitions).catch(() => {})
     setLoading(false)
     const interval = setInterval(() => {
       fetchWorkflows()
@@ -51,16 +54,29 @@ export function Dashboard() {
     )
   }
 
-  // Group runs by workflow name
+  // Group runs by workflow name — include all definitions even without runs
   const grouped = useMemo((): WorkflowGroup[] => {
     const map = new Map<string, WorkflowGroup>()
+
+    // Start with all registered definitions
+    for (const def of definitions) {
+      map.set(def.name, {
+        name: def.name,
+        version: def.version,
+        runs: [],
+        lastRun: '',
+        statusCounts: {},
+      })
+    }
+
+    // Add runs to their groups
     for (const run of workflows) {
       if (!map.has(run.workflowName)) {
         map.set(run.workflowName, {
           name: run.workflowName,
           version: run.workflowVersion,
           runs: [],
-          lastRun: run.startedAt ?? run.createdAt,
+          lastRun: '',
           statusCounts: {},
         })
       }
@@ -68,11 +84,17 @@ export function Dashboard() {
       group.runs.push(run)
       group.statusCounts[run.status] = (group.statusCounts[run.status] ?? 0) + 1
       const runTime = run.startedAt ?? run.createdAt
-      if (runTime > group.lastRun) group.lastRun = runTime
+      if (!group.lastRun || runTime > group.lastRun) group.lastRun = runTime
     }
-    // Sort by most recent activity
-    return Array.from(map.values()).sort((a, b) => b.lastRun.localeCompare(a.lastRun))
-  }, [workflows])
+
+    // Sort: most recently run first, then workflows with no runs at the bottom
+    return Array.from(map.values()).sort((a, b) => {
+      if (!a.lastRun && !b.lastRun) return a.name.localeCompare(b.name)
+      if (!a.lastRun) return 1
+      if (!b.lastRun) return -1
+      return b.lastRun.localeCompare(a.lastRun)
+    })
+  }, [workflows, definitions])
 
   const totalCounts = {
     RUNNING: workflows.filter(w => w.status === 'RUNNING').length,
@@ -178,13 +200,17 @@ export function Dashboard() {
                     <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{wf.name}</h3>
                     <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">v{wf.version}</p>
                   </div>
-                  <span className="text-xs text-[var(--color-text-muted)]">
-                    <RelativeTime date={wf.lastRun} />
-                  </span>
+                  {wf.lastRun ? (
+                    <span className="text-xs text-[var(--color-text-muted)]"><RelativeTime date={wf.lastRun} /></span>
+                  ) : (
+                    <span className="text-[10px] text-[var(--color-text-muted)]">No runs</span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-xs text-[var(--color-text-secondary)]">{wf.runs.length} run{wf.runs.length !== 1 ? 's' : ''}</span>
+                  <span className="text-xs text-[var(--color-text-secondary)]">
+                    {wf.runs.length > 0 ? `${wf.runs.length} run${wf.runs.length !== 1 ? 's' : ''}` : 'Ready to run'}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">

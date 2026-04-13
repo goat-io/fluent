@@ -38,6 +38,10 @@ export class AgentsClient {
     return this.post('/workflows/status', { runId, tenantId: this.tenantId })
   }
 
+  async listDefinitions(): Promise<Array<{ name: string; version: string; stepCount: number }>> {
+    return this.get('/workflows/definitions')
+  }
+
   async getDefinition(workflowName: string): Promise<{
     name: string
     version: string
