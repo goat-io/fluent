@@ -184,3 +184,402 @@ packages/agents-ui/
 - **Postgres 18** in all testcontainers
 - **pg 8.20.0** npm client
 - **k6 uses ES5** — no optional chaining, no numeric separators, no `catch {}` without param
+
+---
+
+## Incremental Architecture Addendum — Tasks + Scheduler + Trace
+
+### Context
+
+The platform needs 7 new primitives to unlock autonomous parallel execution:
+task system (fan-out), scheduler (cron), trace propagation (lineage), aggregation (reduce),
+task-aware executor, shared state, and budget guardrails. All built on existing patterns —
+no redesign of current components.
+
+### Phase Dependency Graph
+
+```
+Phase 1 (Tasks table + CRUD) ─────────────────────────────────┐
+Phase 2 (Task fetching with locking) ──────────────────────────┤
+Phase 3 (task_runner executor) ── depends on 1+2 ──────────────┤
+Phase 4 (Aggregation + shared state) ── depends on 1 ──────────┤
+Phase 5 (Scheduler/cron) ── independent ───────────────────────┤
+Phase 6 (Trace propagation) ── independent ────────────────────┤
+Phase 7 (Budget guardrails) ── depends on 3 ───────────────────┘
+```
+
+Phases 1-2 are sequential. Phases 3-4 depend on 1-2. Phases 5-6 are independent.
+Phase 7 depends on 3. Maximum parallelism: phases 3+4+5+6 can run together.
+
+---
+
+### Phase 1: Task Table + CRUD
+
+**Goal:** Add `workflow_tasks` as first-class dynamic execution units.
+
+**Files to modify:**
+- `src/entities/Database.ts` — Add WorkflowTaskTable interface + CREATE TABLE SQL
+- `src/engine/TaskManager.ts` — NEW: createTasks(), getTasks(), getTask()
+- `src/index.ts` — Export TaskManager + types
+- `src/__tests__/engine/shared.ts` — Add workflow_tasks to truncateAll
+
+**Database schema:**
+```sql
+CREATE TABLE IF NOT EXISTS workflow_tasks (
+  id VARCHAR(36) PRIMARY KEY,
+  "workflowRunId" VARCHAR(36) NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+  "stepName" VARCHAR(255) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  payload TEXT,
+  result TEXT,
+  error TEXT,
+  attempt INTEGER NOT NULL DEFAULT 0,
+  "maxRetries" INTEGER NOT NULL DEFAULT 3,
+  priority INTEGER,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_tasks_run_step ON workflow_tasks("workflowRunId", "stepName", status);
+CREATE INDEX IF NOT EXISTS idx_tasks_status_priority ON workflow_tasks(status, priority DESC NULLS LAST);
+```
+
+**TaskManager API:**
+```typescript
+class TaskManager {
+  constructor(db: Kysely<Database>)
+  createTasks(runId: string, stepName: string, tasks: Array<{ payload: JsonObject; priority?: number; maxRetries?: number }>): Promise<string[]>
+  getTasks(runId: string, stepName: string): Promise<WorkflowTask[]>
+  getTask(taskId: string): Promise<WorkflowTask | null>
+  getTaskStats(runId: string, stepName: string): Promise<{ total: number; pending: number; running: number; completed: number; failed: number }>
+}
+```
+
+**Tests:** `src/__tests__/engine/tasks.spec.ts`
+- createTasks inserts N rows with correct status
+- getTasks returns all tasks for run+step
+- getTaskStats returns accurate counts
+
+---
+
+### Phase 2: Task Fetching with Locking
+
+**Goal:** Concurrency-safe task assignment — no double assignment under concurrent workers.
+
+**Files to modify:**
+- `src/engine/TaskManager.ts` — Add fetchNextTask(), markTaskRunning/Completed/Failed, retryTask()
+
+**Key method — `fetchNextTask()`:**
+```sql
+SELECT id, payload FROM workflow_tasks
+WHERE "workflowRunId" = $1 AND "stepName" = $2 AND status = 'pending'
+ORDER BY priority DESC NULLS LAST, "createdAt" ASC
+LIMIT 1
+FOR UPDATE SKIP LOCKED
+```
+Uses Postgres `FOR UPDATE SKIP LOCKED` — concurrent workers skip locked rows instead of blocking.
+This is the same pattern BullMQ uses internally.
+
+**Lifecycle methods:**
+```typescript
+fetchNextTask(runId: string, stepName: string): Promise<WorkflowTask | null>
+markTaskRunning(taskId: string): Promise<void>
+markTaskCompleted(taskId: string, result: JsonObject): Promise<void>
+markTaskFailed(taskId: string, error: string): Promise<void>
+retryTask(taskId: string): Promise<void>  // increments attempt, resets to pending
+```
+
+**Concurrency enforcement:**
+```typescript
+async checkTaskConcurrency(runId: string, maxConcurrent: number): Promise<boolean> {
+  // COUNT running tasks for this run — if >= max, return false
+}
+```
+
+**Tests:** Add to `tasks.spec.ts`
+- fetchNextTask returns highest priority pending task
+- fetchNextTask returns null when no pending tasks
+- Two concurrent fetches get different tasks (FOR UPDATE SKIP LOCKED)
+- markTaskCompleted stores result
+- markTaskFailed increments attempt
+- retryTask resets to pending (if attempt < maxRetries)
+- retryTask fails when maxRetries exceeded
+
+---
+
+### Phase 3: task_runner Executor
+
+**Goal:** New executor type that pulls and executes tasks in a loop.
+
+**Files to create:**
+- `src/steps/TaskRunnerExecutor.ts` — NEW
+
+**Files to modify:**
+- `src/workflow/WorkflowBuilder.types.ts` — Add 'task_runner' to executor types docs
+- `src/engine/WorkflowEngine.ts` — Wire TaskManager into engine, pass to StepExecutionContext
+- `src/workflow/WorkflowBuilder.types.ts` — Add `taskManager?: TaskManager` to StepExecutionContext
+- `src/index.ts` — Export TaskRunnerExecutor
+
+**TaskRunnerExecutor behavior:**
+```typescript
+class TaskRunnerExecutor implements StepExecutor {
+  readonly type = 'task_runner'
+  
+  async execute(payload: StepPayload, context?: StepExecutionContext): Promise<StepResult> {
+    const { taskManager } = context!
+    const maxConcurrent = payload.executorConfig.maxConcurrentTasks ?? 5
+    const innerExecutorType = payload.executorConfig.executor ?? 'function'
+    const innerExecutor = engine.getExecutor(innerExecutorType)
+    
+    while (true) {
+      // Check budget guardrails (Phase 7)
+      
+      // Fetch next task (concurrency-safe)
+      const task = await taskManager.fetchNextTask(payload.workflowRunId, payload.stepName)
+      if (!task) break  // No more tasks
+      
+      await taskManager.markTaskRunning(task.id)
+      
+      try {
+        const result = await innerExecutor.execute({
+          ...payload,
+          input: task.payload,
+        }, context)
+        
+        await taskManager.markTaskCompleted(task.id, result.output)
+      } catch (err) {
+        await taskManager.markTaskFailed(task.id, err.message)
+        if (task.attempt < task.maxRetries) {
+          await taskManager.retryTask(task.id)
+        }
+      }
+    }
+    
+    // Return summary
+    const stats = await taskManager.getTaskStats(payload.workflowRunId, payload.stepName)
+    return { output: { taskStats: stats } }
+  }
+}
+```
+
+**Config:**
+```typescript
+executorConfig: {
+  executor: 'function' | 'ai' | 'sandbox',  // inner executor
+  handler: 'my_handler',                      // passed to inner executor
+  maxConcurrentTasks: 5,
+}
+```
+
+**Tests:** `src/__tests__/engine/task-runner.spec.ts`
+- Executes all pending tasks for a step
+- Respects maxConcurrentTasks
+- Retries failed tasks up to maxRetries
+- Returns task stats summary
+- E2E: planner step creates tasks → task_runner processes them
+
+---
+
+### Phase 4: Aggregation + Shared State
+
+**Goal:** Allow steps to access all task results for a step (reduce phase).
+
+**Files to modify:**
+- `src/engine/TaskManager.ts` — Add getTaskResults()
+- `src/workflow/WorkflowBuilder.types.ts` — Extend StepContext with task access
+- `src/engine/WorkflowEngine.ts` — Populate task results in step context
+
+**Aggregation pattern:**
+```typescript
+// In StepContext (already exists for mapInput):
+interface StepContext {
+  workflowRunId: string
+  tenantId: string
+  completedOutputs: Record<string, JsonObject>
+  triggerInput: JsonObject
+  tasks?: Record<string, WorkflowTask[]>  // NEW: stepName → tasks with results
+}
+```
+
+**TaskManager.getTaskResults():**
+```typescript
+async getTaskResults(runId: string, stepName: string): Promise<Array<{ id: string; payload: JsonObject; result: JsonObject | null; status: string }>>
+```
+
+**Engine integration:**
+In `buildStepContext()`, populate `ctx.tasks` by querying completed tasks for upstream steps.
+
+**Tests:** Add to `tasks.spec.ts`
+- Aggregation step receives all task results from prior step
+- Results accessible via `upstreamOutputs.__tasks.stepName`
+
+---
+
+### Phase 5: Scheduler (Cron → Events)
+
+**Goal:** Durable, idempotent recurring triggers via cron expressions.
+
+**Files to create:**
+- `src/scheduler/SchedulerService.ts` — NEW
+- `src/scheduler/SchedulerService.types.ts` — NEW
+
+**Files to modify:**
+- `src/entities/Database.ts` — Add workflow_schedules table
+- `src/api/WorkflowHandlers.ts` — Add createSchedule, listSchedules, deleteSchedule handlers
+- `src/index.ts` — Export SchedulerService
+
+**Database schema:**
+```sql
+CREATE TABLE IF NOT EXISTS workflow_schedules (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  "workflowName" VARCHAR(255) NOT NULL,
+  "cronExpression" VARCHAR(100) NOT NULL,
+  "nextRunAt" TIMESTAMP NOT NULL,
+  "lastRunAt" TIMESTAMP,
+  active BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_schedules_next ON workflow_schedules(active, "nextRunAt");
+```
+
+**SchedulerService:**
+```typescript
+class SchedulerService {
+  constructor(config: { db, eventIngestion, pollIntervalMs?: number })
+  
+  start(): void  // starts polling timer
+  stop(): void
+  
+  async tick(): Promise<number>  // single poll cycle, returns count of triggers emitted
+  
+  async createSchedule(tenantId, workflowName, cronExpression): Promise<string>
+  async deleteSchedule(scheduleId): Promise<void>
+  async listSchedules(tenantId): Promise<WorkflowSchedule[]>
+}
+```
+
+**Execution model:**
+- Scheduler does NOT start workflows directly
+- Emits event: `eventType: 'cron.trigger'`, `payload: { workflowName, scheduledAt }`
+- Idempotency key: `cron:{workflowName}:{scheduledAt_ISO}`
+- Uses existing EventIngestionService → existing trigger matching → workflow starts
+- Cron parsing: use `cron-parser` npm package (lightweight, no deps)
+
+**tick() logic:**
+```sql
+SELECT * FROM workflow_schedules WHERE active = true AND "nextRunAt" <= NOW()
+FOR UPDATE SKIP LOCKED
+```
+For each due schedule:
+1. Emit cron.trigger event with idempotency key
+2. Calculate next run from cron expression
+3. UPDATE nextRunAt and lastRunAt
+
+**Tests:** `src/__tests__/engine/scheduler.spec.ts`
+- createSchedule computes correct nextRunAt
+- tick() emits event for due schedules
+- tick() does not re-trigger (idempotency key)
+- tick() updates nextRunAt after trigger
+- Inactive schedules skipped
+- deleteSchedule sets active=false
+
+---
+
+### Phase 6: Trace Propagation
+
+**Goal:** Cross-workflow lineage via traceId.
+
+**Files to modify:**
+- `src/entities/Database.ts` — Add traceId/parentRunId/originEventId to workflow_runs, traceId to workflow_events and external_actions
+- `src/engine/WorkflowEngine.ts` — In start(): generate traceId if not provided, inherit from parent/event
+- `src/events/EventIngestion.ts` — Pass traceId through trigger chain
+- `src/workflow/WorkflowBuilder.types.ts` — Add traceId to WorkflowTriggerInput
+
+**New columns:**
+```sql
+-- workflow_runs: add
+"traceId" VARCHAR(36),
+"parentRunId" VARCHAR(36),
+"originEventId" VARCHAR(36)
+
+-- workflow_events: add  
+"traceId" VARCHAR(36)
+
+-- external_actions: add
+"traceId" VARCHAR(36)
+```
+
+**Trace inheritance rules:**
+1. Manual start with no traceId → generate new traceId (nanoId)
+2. Manual start with traceId → use provided traceId
+3. Event-triggered start → inherit event's traceId, set originEventId
+4. Child workflow (future) → inherit parent's traceId, set parentRunId
+5. ExternalAction → copy traceId from workflow run
+
+**API:**
+- `getTrace(traceId)` → returns all runs, events, actions for a trace
+- Add traceId to getStatus() response
+
+**Tests:** `src/__tests__/engine/trace.spec.ts`
+- New workflow gets auto-generated traceId
+- Event-triggered workflow inherits event traceId
+- Provided traceId is used as-is
+- getTrace returns full lineage
+
+---
+
+### Phase 7: Budget Guardrails
+
+**Goal:** Prevent runaway execution and uncontrolled cost.
+
+**Files to modify:**
+- `src/engine/WorkflowEngine.types.ts` — Add budget config to WorkflowEngineConfig
+- `src/engine/WorkflowEngine.ts` — Check budgets in dispatchReadySteps and onStepCompleted
+- `src/steps/TaskRunnerExecutor.ts` — Check budgets in task loop
+- `agents-ai/src/executors/AIStepExecutor.ts` — Already has maxTokenBudget, extend with global check
+
+**Budget config (per workflow run):**
+```typescript
+interface WorkflowBudget {
+  maxTokens?: number
+  maxCostUsd?: number
+  maxSteps?: number          // max step completions per run
+  maxTaskExecutions?: number // max task executions per run
+}
+```
+
+**Enforcement points:**
+1. `WorkflowEngine.onStepCompleted()` — increment step counter, check maxSteps
+2. `TaskRunnerExecutor` loop — increment task counter, check maxTaskExecutions
+3. `AIStepExecutor` loop — already checks maxTokenBudget, add global token/cost check
+4. On budget exceeded: mark step FAILED with `budgetExceeded: true`, reason string
+
+**Storage:** Add `budgetUsed` JSON field to workflow_runs:
+```typescript
+budgetUsed: { tokens: number; costUsd: number; steps: number; taskExecutions: number }
+```
+
+**Tests:** `src/__tests__/engine/guardrails.spec.ts`
+- maxSteps exceeded fails workflow with reason
+- maxTaskExecutions exceeded stops task_runner
+- maxTokens exceeded stops AI executor
+- Budget persisted in workflow_runs.budgetUsed
+
+---
+
+### Integration Points with Existing Architecture
+
+| New Component | Existing Component | Integration |
+|---|---|---|
+| TaskManager | WorkflowEngine | Engine creates TaskManager, passes via StepExecutionContext |
+| TaskRunnerExecutor | StepExecutor interface | Implements same interface, registered like FunctionStepExecutor |
+| SchedulerService | EventIngestionService | Scheduler emits events → existing trigger pipeline |
+| Trace propagation | WorkflowEngine.start() | traceId added to start() input, propagated through |
+| Budget guardrails | StepCostTracker | Reads accumulated cost, enforces limits |
+| Task aggregation | StepContext.mapInput | Tasks accessible in mapInput via ctx.tasks |
+
+### Verification (after each phase)
+1. `cd packages/agents-core && pnpm test` — all 277+ tests pass
+2. New tests for each phase (testcontainers, real Postgres)
+3. `cd packages/agents-ui && npx tsc --noEmit` — type-checks clean
+4. AGENT_HANDOVER.md updated with phase status
