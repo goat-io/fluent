@@ -299,18 +299,42 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
                 style={inputStyle}
                 placeholder="Analyze this code and suggest improvements..."
               />
-              <p className="text-[10px] mt-1" style={hintStyle}>Use {'{{input.fieldName}}'} for template variables from upstream steps</p>
+              <p className="text-[10px] mt-1" style={hintStyle}>Use {'{{input.fieldName}}'} for template variables</p>
             </div>
             <div>
               <label className={labelCls} style={labelStyle}>System Prompt</label>
               <textarea
-                value={(config.executorConfig.systemPrompt as string) || ''}
-                onChange={(e) => setConfigField('systemPrompt', e.target.value)}
+                value={(config.executorConfig.appendSystemPrompt as string) || ''}
+                onChange={(e) => setConfigField('appendSystemPrompt', e.target.value)}
                 rows={2}
                 className={inputCls + ' font-mono resize-y'}
                 style={inputStyle}
                 placeholder="You are a senior engineer..."
               />
+              <p className="text-[10px] mt-1" style={hintStyle}>Appended to Claude Code defaults</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls} style={labelStyle}>Model</label>
+                <select value={(config.executorConfig.model as string) || ''} onChange={(e) => setConfigField('model', e.target.value || undefined)} className={inputCls} style={inputStyle}>
+                  <option value="">Default</option>
+                  <option value="sonnet">Sonnet (latest)</option>
+                  <option value="opus">Opus (latest)</option>
+                  <option value="haiku">Haiku (latest)</option>
+                  <option value="claude-sonnet-4-20250514">Sonnet 4</option>
+                  <option value="claude-opus-4-20250514">Opus 4</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls} style={labelStyle}>Effort</label>
+                <select value={(config.executorConfig.effort as string) || ''} onChange={(e) => setConfigField('effort', e.target.value || undefined)} className={inputCls} style={inputStyle}>
+                  <option value="">Default</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="max">Max</option>
+                </select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -318,6 +342,7 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
                 <select value={(config.executorConfig.outputFormat as string) || 'text'} onChange={(e) => setConfigField('outputFormat', e.target.value)} className={inputCls} style={inputStyle}>
                   <option value="text">Text</option>
                   <option value="json">JSON</option>
+                  <option value="stream-json">Stream JSON</option>
                 </select>
               </div>
               <div>
@@ -325,18 +350,73 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
                 <input type="number" min={1} value={(config.executorConfig.maxTurns as number) || 1} onChange={(e) => setConfigField('maxTurns', Number(e.target.value))} className={inputCls} style={inputStyle} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls} style={labelStyle}>Budget (USD)</label>
+                <input type="number" min={0} step={0.01} value={(config.executorConfig.maxBudgetUsd as number) || ''} onChange={(e) => setConfigField('maxBudgetUsd', e.target.value ? Number(e.target.value) : undefined)} className={inputCls} style={inputStyle} placeholder="No limit" />
+              </div>
+              <div>
+                <label className={labelCls} style={labelStyle}>Timeout (ms)</label>
+                <input type="number" min={0} step={1000} value={(config.executorConfig.timeoutMs as number) || ''} onChange={(e) => setConfigField('timeoutMs', e.target.value ? Number(e.target.value) : undefined)} className={inputCls} style={inputStyle} placeholder="300000" />
+              </div>
+            </div>
             <div>
-              <label className={labelCls} style={labelStyle}>Model Override</label>
-              <select value={(config.executorConfig.model as string) || ''} onChange={(e) => setConfigField('model', e.target.value || undefined)} className={inputCls} style={inputStyle}>
-                <option value="">Default (subscription model)</option>
-                <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-                <option value="claude-opus-4-20250514">Claude Opus 4</option>
-                <option value="claude-haiku-3-5-20241022">Claude Haiku 3.5</option>
+              <label className={labelCls} style={labelStyle}>Permissions</label>
+              <select value={(config.executorConfig.permissionMode as string) || 'default'} onChange={(e) => setConfigField('permissionMode', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="default">Default (ask)</option>
+                <option value="acceptEdits">Accept Edits</option>
+                <option value="plan">Plan Only</option>
+                <option value="bypassPermissions">Bypass All (sandbox only)</option>
               </select>
             </div>
-            <div className="rounded-xl p-3" style={{ background: 'var(--color-surface-3)' }}>
+            <div>
+              <label className={labelCls} style={labelStyle}>Allowed Tools</label>
+              <input
+                type="text"
+                value={(config.executorConfig.allowedTools as string[] || []).join(', ')}
+                onChange={(e) => setConfigField('allowedTools', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                className={inputCls}
+                style={inputStyle}
+                placeholder="Bash, Read, Edit, Glob, Grep"
+              />
+              <p className="text-[10px] mt-1" style={hintStyle}>Comma-separated. Leave empty for all tools.</p>
+            </div>
+            <details className="mt-1">
+              <summary className="text-[10px] cursor-pointer" style={{ color: 'var(--color-text-muted)' }}>More options</summary>
+              <div className="flex flex-col gap-3 mt-2">
+                <div>
+                  <label className={labelCls} style={labelStyle}>Fallback Model</label>
+                  <input type="text" value={(config.executorConfig.fallbackModel as string) || ''} onChange={(e) => setConfigField('fallbackModel', e.target.value || undefined)} className={inputCls} style={inputStyle} placeholder="sonnet" />
+                  <p className="text-[10px] mt-1" style={hintStyle}>Used when primary model is overloaded</p>
+                </div>
+                <div>
+                  <label className={labelCls} style={labelStyle}>Working Directory</label>
+                  <input type="text" value={(config.executorConfig.cwd as string) || ''} onChange={(e) => setConfigField('cwd', e.target.value || undefined)} className={inputCls} style={inputStyle} placeholder="/path/to/project" />
+                </div>
+                <div>
+                  <label className={labelCls} style={labelStyle}>JSON Schema</label>
+                  <textarea value={(config.executorConfig.jsonSchema as string) || ''} onChange={(e) => setConfigField('jsonSchema', e.target.value || undefined)} rows={2} className={inputCls + ' font-mono resize-y text-xs'} style={inputStyle} placeholder='{"type":"object","properties":{"name":{"type":"string"}}}' />
+                  <p className="text-[10px] mt-1" style={hintStyle}>Validates structured output</p>
+                </div>
+                <div>
+                  <label className={labelCls} style={labelStyle}>MCP Config</label>
+                  <input type="text" value={(config.executorConfig.mcpConfig as string) || ''} onChange={(e) => setConfigField('mcpConfig', e.target.value || undefined)} className={inputCls} style={inputStyle} placeholder="path/to/mcp.json" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium" style={labelStyle}>Streaming Events</label>
+                  <button
+                    onClick={() => setConfigField('streaming', !(config.executorConfig.streaming as boolean))}
+                    className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                    style={{ background: config.executorConfig.streaming ? 'var(--color-accent)' : 'var(--color-surface-4)' }}
+                  >
+                    <span className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform" style={{ transform: config.executorConfig.streaming ? 'translateX(18px)' : 'translateX(2px)' }} />
+                  </button>
+                </div>
+              </div>
+            </details>
+            <div className="rounded-xl p-3 mt-1" style={{ background: 'var(--color-surface-3)' }}>
               <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
-                Runs via <code className="text-[var(--color-accent)]">claude -p</code> CLI. Uses your Max/Pro subscription. Worker machine must have Claude Code installed and authenticated.
+                Runs via <code className="text-[var(--color-accent)]">claude -p</code>. Uses Max/Pro subscription. Worker needs Claude Code installed.
               </p>
             </div>
           </>}
