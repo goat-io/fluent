@@ -7,9 +7,9 @@ interface StepConfigPanelProps {
 
 const EXECUTOR_TYPES: { value: ExecutorType; label: string }[] = [
   { value: 'function', label: 'Function' },
-  { value: 'ai', label: 'AI' },
-  { value: 'sandbox', label: 'Sandbox' },
-  { value: 'human', label: 'Human Approval' },
+  { value: 'ai', label: 'AI / LLM' },
+  { value: 'sandbox', label: 'Docker Sandbox' },
+  { value: 'human', label: 'Human Review' },
   { value: 'task_runner', label: 'Task Runner' },
 ]
 
@@ -26,51 +26,40 @@ const STEP_WEIGHTS: { value: StepWeight; label: string }[] = [
   { value: 'sandbox', label: 'Sandbox' },
 ]
 
-/* ── Shared inline style objects ─────────────────────────────── */
+const GITHUB_ACTIONS = ['create_pr', 'create_issue', 'add_comment', 'merge_pr']
+const LINEAR_ACTIONS = ['create_issue', 'update_issue', 'add_comment']
+const SLACK_ACTIONS = ['send_message', 'update_message']
 
+const inputCls = "w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
 const inputStyle: React.CSSProperties = {
-  background: 'var(--color-surface-3, #22222f)',
-  border: '1px solid var(--color-border, rgba(255,255,255,0.08))',
-  color: 'var(--color-text-primary, #f0f0f5)',
+  background: 'var(--color-surface-3)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text-primary)',
 }
+const labelCls = "block text-[10px] font-medium uppercase tracking-wider mb-1.5"
+const labelStyle: React.CSSProperties = { color: 'var(--color-text-muted)' }
+const hintStyle: React.CSSProperties = { color: 'var(--color-text-muted)' }
 
-const labelStyle: React.CSSProperties = {
-  color: 'var(--color-text-muted, #55556a)',
-}
-
-const hintStyle: React.CSSProperties = {
-  color: 'var(--color-text-muted, #55556a)',
-}
-
-const sectionHeaderStyle: React.CSSProperties = {
-  color: 'var(--color-text-muted, #55556a)',
-}
-
-/* ── Collapsible section ─────────────────────────────────────── */
-
-function Section({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen)
+function TabButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
-    <div style={{ borderTop: '1px solid var(--color-border, rgba(255,255,255,0.08))' }} className="pt-3">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wider mb-2"
-        style={sectionHeaderStyle}
-      >
-        {title}
-        <span style={{ color: 'var(--color-text-muted, #55556a)' }}>{open ? '\u25B2' : '\u25BC'}</span>
-      </button>
-      {open && <div className="flex flex-col gap-3">{children}</div>}
-    </div>
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+        active
+          ? 'bg-[var(--color-accent)] text-white'
+          : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)]'
+      }`}
+    >
+      {label}
+    </button>
   )
 }
-
-/* ── Main component ──────────────────────────────────────────── */
 
 export function StepConfigPanel({ editor }: StepConfigPanelProps) {
   const { selectedNodeId, getStepConfig, updateStep, removeStep, getStepConfigs } = editor
   const config = selectedNodeId ? getStepConfig(selectedNodeId) : undefined
 
+  const [tab, setTab] = useState<'params' | 'settings' | 'advanced'>('params')
   const [localName, setLocalName] = useState('')
   const [localConfigJson, setLocalConfigJson] = useState('')
   const [jsonError, setJsonError] = useState<string | null>(null)
@@ -78,388 +67,341 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
   useEffect(() => {
     if (config) {
       setLocalName(config.name)
-      if (config.executorType !== 'task_runner') {
-        setLocalConfigJson(JSON.stringify(config.executorConfig, null, 2))
-      }
+      setLocalConfigJson(JSON.stringify(config.executorConfig, null, 2))
       setJsonError(null)
+      setTab('params')
     }
-  }, [selectedNodeId, config])
+  }, [selectedNodeId])
 
-  const handleNameChange = useCallback(
-    (value: string) => {
-      setLocalName(value)
-      if (selectedNodeId) updateStep(selectedNodeId, { name: value })
-    },
-    [selectedNodeId, updateStep],
-  )
+  const handleNameChange = useCallback((value: string) => {
+    setLocalName(value)
+    if (selectedNodeId) updateStep(selectedNodeId, { name: value })
+  }, [selectedNodeId, updateStep])
 
-  const handleExecutorTypeChange = useCallback(
-    (value: string) => {
-      if (selectedNodeId) {
-        const updates: Partial<StepConfig> = { executorType: value as ExecutorType }
-        if (value === 'task_runner') {
-          updates.executorConfig = { executor: 'function', maxConcurrentTasks: 5 }
-        } else if (value === 'human') {
-          updates.requiresHumanApproval = true
-        }
-        updateStep(selectedNodeId, updates)
-      }
-    },
-    [selectedNodeId, updateStep],
-  )
+  const handleExecutorTypeChange = useCallback((value: string) => {
+    if (selectedNodeId) {
+      const updates: Partial<StepConfig> = { executorType: value as ExecutorType }
+      if (value === 'task_runner') updates.executorConfig = { executor: 'function', maxConcurrentTasks: 5 }
+      else if (value === 'human') updates.requiresHumanApproval = true
+      updateStep(selectedNodeId, updates)
+    }
+  }, [selectedNodeId, updateStep])
 
-  const handleConfigJsonChange = useCallback(
-    (value: string) => {
-      setLocalConfigJson(value)
-      try {
-        const parsed = JSON.parse(value)
-        setJsonError(null)
-        if (selectedNodeId) updateStep(selectedNodeId, { executorConfig: parsed })
-      } catch {
-        setJsonError('Invalid JSON')
-      }
-    },
-    [selectedNodeId, updateStep],
-  )
+  const handleConfigJsonChange = useCallback((value: string) => {
+    setLocalConfigJson(value)
+    try {
+      const parsed = JSON.parse(value)
+      setJsonError(null)
+      if (selectedNodeId) updateStep(selectedNodeId, { executorConfig: parsed })
+    } catch { setJsonError('Invalid JSON') }
+  }, [selectedNodeId, updateStep])
 
-  const handleNumberChange = useCallback(
-    (field: keyof StepConfig, value: number) => {
-      if (selectedNodeId) updateStep(selectedNodeId, { [field]: value } as Partial<StepConfig>)
-    },
-    [selectedNodeId, updateStep],
-  )
+  const setConfigField = useCallback((field: string, value: unknown) => {
+    if (!selectedNodeId || !config) return
+    const newConfig = { ...config.executorConfig, [field]: value }
+    updateStep(selectedNodeId, { executorConfig: newConfig })
+  }, [selectedNodeId, config, updateStep])
 
-  const handleWeightChange = useCallback(
-    (value: string) => {
-      if (selectedNodeId) updateStep(selectedNodeId, { weight: value as StepWeight })
-    },
-    [selectedNodeId, updateStep],
-  )
+  const setField = useCallback((field: keyof StepConfig, value: unknown) => {
+    if (selectedNodeId) updateStep(selectedNodeId, { [field]: value } as Partial<StepConfig>)
+  }, [selectedNodeId, updateStep])
 
-  const handleNextStepChange = useCallback(
-    (value: string) => {
-      if (!selectedNodeId) return
-      if (value === '') {
-        const currentConfig = getStepConfig(selectedNodeId)
-        if (currentConfig?.nextStep) {
-          editor.removeEdge(`next-${selectedNodeId}-${currentConfig.nextStep}`)
-        }
-        updateStep(selectedNodeId, { nextStep: undefined })
-      } else {
-        const currentConfig = getStepConfig(selectedNodeId)
-        if (currentConfig?.nextStep) {
-          editor.removeEdge(`next-${selectedNodeId}-${currentConfig.nextStep}`)
-        }
-        editor.addNextStepEdge(selectedNodeId, value)
-      }
-    },
-    [selectedNodeId, getStepConfig, updateStep, editor],
-  )
-
-  const handleTaskRunnerConfigChange = useCallback(
-    (field: string, value: string | number) => {
-      if (!selectedNodeId || !config) return
-      const newConfig = { ...config.executorConfig, [field]: value }
-      updateStep(selectedNodeId, { executorConfig: newConfig })
-    },
-    [selectedNodeId, config, updateStep],
-  )
-
-  const handleStringFieldChange = useCallback(
-    (field: keyof StepConfig, value: string) => {
-      if (selectedNodeId) updateStep(selectedNodeId, { [field]: value || undefined } as Partial<StepConfig>)
-    },
-    [selectedNodeId, updateStep],
-  )
-
-  const handleBooleanFieldChange = useCallback(
-    (field: keyof StepConfig, value: boolean) => {
-      if (selectedNodeId) updateStep(selectedNodeId, { [field]: value } as Partial<StepConfig>)
-    },
-    [selectedNodeId, updateStep],
-  )
+  const handleNextStepChange = useCallback((value: string) => {
+    if (!selectedNodeId) return
+    if (value === '') {
+      const currentConfig = getStepConfig(selectedNodeId)
+      if (currentConfig?.nextStep) editor.removeEdge(`next-${selectedNodeId}-${currentConfig.nextStep}`)
+      updateStep(selectedNodeId, { nextStep: undefined })
+    } else {
+      const currentConfig = getStepConfig(selectedNodeId)
+      if (currentConfig?.nextStep) editor.removeEdge(`next-${selectedNodeId}-${currentConfig.nextStep}`)
+      editor.addNextStepEdge(selectedNodeId, value)
+    }
+  }, [selectedNodeId, getStepConfig, updateStep, editor])
 
   if (!selectedNodeId || !config) {
     return (
-      <div
-        className="w-[350px] flex items-center justify-center"
-        style={{
-          background: 'var(--color-surface-1, #12121a)',
-          borderLeft: '1px solid var(--color-border, rgba(255,255,255,0.08))',
-        }}
-      >
-        <p className="text-sm" style={{ color: 'var(--color-text-muted, #55556a)' }}>Select a step to configure</p>
+      <div className="w-[320px] flex items-center justify-center" style={{ background: 'var(--color-surface-1)', borderLeft: '1px solid var(--color-border)' }}>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Select a step to configure</p>
       </div>
     )
   }
 
-  // Build list of other steps for nextStep dropdown
   const otherSteps: { id: string; name: string }[] = []
   for (const [id, cfg] of getStepConfigs()) {
-    if (id !== selectedNodeId) {
-      otherSteps.push({ id, name: cfg.name })
-    }
+    if (id !== selectedNodeId) otherSteps.push({ id, name: cfg.name })
   }
 
+  const provider = config.executorConfig.provider as string | undefined
+  const isIntegration = provider === 'github' || provider === 'linear' || provider === 'slack'
+  const isSkill = Array.isArray(config.executorConfig.skills)
+
   return (
-    <div
-      className="w-[350px] flex flex-col overflow-y-auto"
-      style={{
-        background: 'var(--color-surface-1, #12121a)',
-        borderLeft: '1px solid var(--color-border, rgba(255,255,255,0.08))',
-      }}
-    >
-      <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ borderBottom: '1px solid var(--color-border, rgba(255,255,255,0.08))' }}
-      >
-        <h3
-          className="text-sm font-semibold"
-          style={{ color: 'var(--color-text-primary, #f0f0f5)' }}
-        >
-          Step Configuration
-        </h3>
-        <button
-          onClick={() => removeStep(selectedNodeId)}
-          className="text-xs text-red-400 hover:text-red-300 font-medium"
-        >
-          Delete Step
+    <div className="w-[320px] flex flex-col overflow-y-auto" style={{ background: 'var(--color-surface-1)', borderLeft: '1px solid var(--color-border)' }}>
+      {/* Header */}
+      <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <div className="flex items-center gap-2 min-w-0">
+          <input
+            type="text"
+            value={localName}
+            onChange={(e) => handleNameChange(e.target.value)}
+            className="text-sm font-semibold bg-transparent border-none outline-none text-[var(--color-text-primary)] w-full truncate"
+            placeholder="step_name"
+          />
+        </div>
+        <button onClick={() => removeStep(selectedNodeId)} className="text-xs text-red-400 hover:text-red-300 font-medium shrink-0 ml-2">
+          Delete
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 p-4">
-        {/* ── Basic Section ────────────────────────────────── */}
-        <Section title="Basic" defaultOpen={true}>
-          {/* Step Name */}
-          <div>
-            <label className="block text-xs font-medium mb-1" style={labelStyle}>Step Name</label>
-            <input
-              type="text"
-              value={localName}
-              onChange={(e) => handleNameChange(e.target.value)}
-              className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-              style={inputStyle}
-              placeholder="step_name"
-            />
-          </div>
+      {/* Tabs */}
+      <div className="px-3 py-2 flex gap-1" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <TabButton active={tab === 'params'} label="Parameters" onClick={() => setTab('params')} />
+        <TabButton active={tab === 'settings'} label="Settings" onClick={() => setTab('settings')} />
+        <TabButton active={tab === 'advanced'} label="Advanced" onClick={() => setTab('advanced')} />
+      </div>
 
+      <div className="flex flex-col gap-3 p-4">
+        {/* ═══════════════ PARAMETERS TAB ═══════════════ */}
+        {tab === 'params' && <>
           {/* Executor Type */}
           <div>
-            <label className="block text-xs font-medium mb-1" style={labelStyle}>Executor Type</label>
-            <select
-              value={config.executorType}
-              onChange={(e) => handleExecutorTypeChange(e.target.value)}
-              className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-              style={inputStyle}
-            >
-              {EXECUTOR_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
+            <label className={labelCls} style={labelStyle}>Type</label>
+            <select value={config.executorType} onChange={(e) => handleExecutorTypeChange(e.target.value)} className={inputCls} style={inputStyle}>
+              {EXECUTOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
 
-          {/* Task Runner structured config */}
-          {config.executorType === 'task_runner' ? (
-            <>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={labelStyle}>Inner Executor</label>
-                <select
-                  value={(config.executorConfig.executor as string) || 'function'}
-                  onChange={(e) => handleTaskRunnerConfigChange('executor', e.target.value)}
-                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                  style={inputStyle}
-                >
-                  {INNER_EXECUTOR_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-                <p className="text-[11px] mt-1" style={hintStyle}>Executor used for each individual task</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Concurrent Tasks</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={(config.executorConfig.maxConcurrentTasks as number) || 5}
-                  onChange={(e) => handleTaskRunnerConfigChange('maxConcurrentTasks', Number(e.target.value))}
-                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1" style={labelStyle}>Handler Name</label>
-                <input
-                  type="text"
-                  value={(config.executorConfig.handler as string) || ''}
-                  onChange={(e) => handleTaskRunnerConfigChange('handler', e.target.value)}
-                  className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                  style={inputStyle}
-                  placeholder="handler_name"
-                />
-              </div>
-            </>
-          ) : (
-            /* Executor Config (JSON) for non-task_runner */
+          {/* ── Task Runner Config ── */}
+          {config.executorType === 'task_runner' && <>
             <div>
-              <label className="block text-xs font-medium mb-1" style={labelStyle}>Executor Config (JSON)</label>
+              <label className={labelCls} style={labelStyle}>Inner Executor</label>
+              <select value={(config.executorConfig.executor as string) || 'function'} onChange={(e) => setConfigField('executor', e.target.value)} className={inputCls} style={inputStyle}>
+                {INNER_EXECUTOR_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Max Concurrent Tasks</label>
+              <input type="number" min={1} value={(config.executorConfig.maxConcurrentTasks as number) || 5} onChange={(e) => setConfigField('maxConcurrentTasks', Number(e.target.value))} className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Handler</label>
+              <input type="text" value={(config.executorConfig.handler as string) || ''} onChange={(e) => setConfigField('handler', e.target.value)} className={inputCls} style={inputStyle} placeholder="handler_name" />
+            </div>
+          </>}
+
+          {/* ── GitHub Integration ── */}
+          {isIntegration && provider === 'github' && <>
+            <div>
+              <label className={labelCls} style={labelStyle}>GitHub Action</label>
+              <select value={(config.executorConfig.actionType as string) || 'create_pr'} onChange={(e) => setConfigField('actionType', e.target.value)} className={inputCls} style={inputStyle}>
+                {GITHUB_ACTIONS.map(a => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Repository</label>
+              <input type="text" value={(config.executorConfig.repo as string) || ''} onChange={(e) => setConfigField('repo', e.target.value)} className={inputCls} style={inputStyle} placeholder="owner/repo" />
+            </div>
+          </>}
+
+          {/* ── Linear Integration ── */}
+          {isIntegration && provider === 'linear' && <>
+            <div>
+              <label className={labelCls} style={labelStyle}>Linear Action</label>
+              <select value={(config.executorConfig.actionType as string) || 'create_issue'} onChange={(e) => setConfigField('actionType', e.target.value)} className={inputCls} style={inputStyle}>
+                {LINEAR_ACTIONS.map(a => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Team ID</label>
+              <input type="text" value={(config.executorConfig.teamId as string) || ''} onChange={(e) => setConfigField('teamId', e.target.value)} className={inputCls} style={inputStyle} placeholder="TEAM-123" />
+            </div>
+          </>}
+
+          {/* ── Slack Integration ── */}
+          {isIntegration && provider === 'slack' && <>
+            <div>
+              <label className={labelCls} style={labelStyle}>Slack Action</label>
+              <select value={(config.executorConfig.actionType as string) || 'send_message'} onChange={(e) => setConfigField('actionType', e.target.value)} className={inputCls} style={inputStyle}>
+                {SLACK_ACTIONS.map(a => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Channel</label>
+              <input type="text" value={(config.executorConfig.channel as string) || ''} onChange={(e) => setConfigField('channel', e.target.value)} className={inputCls} style={inputStyle} placeholder="#general" />
+            </div>
+          </>}
+
+          {/* ── AI / LLM Config ── */}
+          {config.executorType === 'ai' && !isIntegration && !isSkill && <>
+            <div>
+              <label className={labelCls} style={labelStyle}>Model</label>
+              <select value={(config.executorConfig.model as string) || ''} onChange={(e) => setConfigField('model', e.target.value)} className={inputCls} style={inputStyle}>
+                <option value="">Default</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>System Prompt</label>
+              <textarea value={(config.executorConfig.systemPrompt as string) || ''} onChange={(e) => setConfigField('systemPrompt', e.target.value)} rows={3} className={inputCls + ' font-mono resize-y'} style={inputStyle} placeholder="You are a helpful assistant..." />
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Temperature</label>
+              <input type="number" min={0} max={2} step={0.1} value={(config.executorConfig.temperature as number) ?? 0.7} onChange={(e) => setConfigField('temperature', Number(e.target.value))} className={inputCls} style={inputStyle} />
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Max Tokens</label>
+              <input type="number" min={1} value={(config.executorConfig.maxTokens as number) || ''} onChange={(e) => setConfigField('maxTokens', e.target.value ? Number(e.target.value) : undefined)} className={inputCls} style={inputStyle} placeholder="Auto" />
+            </div>
+          </>}
+
+          {/* ── Skills Config ── */}
+          {isSkill && <>
+            <div>
+              <label className={labelCls} style={labelStyle}>Skills</label>
+              <p className="text-[10px] mb-2" style={hintStyle}>AI tools available during execution</p>
+              {['webSearch', 'codeExecution'].map(skill => {
+                const skills = (config.executorConfig.skills as string[]) || []
+                const active = skills.includes(skill)
+                return (
+                  <label key={skill} className="flex items-center gap-2 mb-1.5 cursor-pointer">
+                    <input
+                      type="checkbox" checked={active}
+                      onChange={() => {
+                        const next = active ? skills.filter(s => s !== skill) : [...skills, skill]
+                        setConfigField('skills', next)
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
+                      {skill === 'webSearch' ? 'Web Search' : 'Code Execution'}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </>}
+
+          {/* ── Human Review ── */}
+          {config.executorType === 'human' && (
+            <div className="rounded-xl p-3" style={{ background: 'var(--color-surface-3)' }}>
+              <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                This step will pause the workflow until a human approves or provides input via the UI.
+              </p>
+            </div>
+          )}
+
+          {/* ── Generic function / sandbox ── */}
+          {config.executorType !== 'task_runner' && config.executorType !== 'human' && !isIntegration && !isSkill && config.executorType !== 'ai' && (
+            <div>
+              <label className={labelCls} style={labelStyle}>Handler</label>
+              <input type="text" value={(config.executorConfig.handler as string) || ''} onChange={(e) => setConfigField('handler', e.target.value)} className={inputCls} style={inputStyle} placeholder="handler_name" />
+            </div>
+          )}
+
+          {/* ── Raw JSON (collapsible) ── */}
+          {config.executorType !== 'human' && (
+            <details className="mt-2">
+              <summary className="text-[10px] cursor-pointer" style={{ color: 'var(--color-text-muted)' }}>Raw JSON Config</summary>
               <textarea
                 value={localConfigJson}
                 onChange={(e) => handleConfigJsonChange(e.target.value)}
                 rows={4}
-                className="w-full rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:border-transparent resize-y"
-                style={{
-                  ...inputStyle,
-                  borderColor: jsonError ? '#f87171' : undefined,
-                }}
+                className={inputCls + ' mt-2 font-mono resize-y text-xs'}
+                style={{ ...inputStyle, ...(jsonError ? { borderColor: 'rgba(239,68,68,0.5)' } : {}) }}
                 placeholder="{}"
               />
-              {jsonError && <p className="text-xs text-red-400 mt-1">{jsonError}</p>}
-            </div>
+              {jsonError && <p className="text-[10px] text-red-400 mt-1">{jsonError}</p>}
+            </details>
           )}
+        </>}
 
-          {/* Human Approval Toggle */}
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={labelStyle}>Requires Human Approval</label>
-            <button
-              onClick={() => handleBooleanFieldChange('requiresHumanApproval', !config.requiresHumanApproval)}
-              className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-              style={{
-                background: config.requiresHumanApproval
-                  ? 'var(--color-accent, #6366f1)'
-                  : 'var(--color-surface-4, #2a2a38)',
-              }}
-            >
-              <span
-                className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
-                style={{
-                  transform: config.requiresHumanApproval ? 'translateX(18px)' : 'translateX(2px)',
-                }}
-              />
-            </button>
-          </div>
-        </Section>
-
-        {/* ── Execution Section ────────────────────────────── */}
-        <Section title="Execution" defaultOpen={true}>
+        {/* ═══════════════ SETTINGS TAB ═══════════════ */}
+        {tab === 'settings' && <>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1" style={labelStyle}>Retries</label>
-              <input
-                type="number" min={0} value={config.retries}
-                onChange={(e) => handleNumberChange('retries', Number(e.target.value))}
-                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                style={inputStyle}
-              />
+              <label className={labelCls} style={labelStyle}>Retries</label>
+              <input type="number" min={0} value={config.retries} onChange={(e) => setField('retries', Number(e.target.value))} className={inputCls} style={inputStyle} />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1" style={labelStyle}>Timeout (ms)</label>
-              <input
-                type="number" min={0} step={1000} value={config.timeoutMs}
-                onChange={(e) => handleNumberChange('timeoutMs', Number(e.target.value))}
-                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                style={inputStyle}
-              />
+              <label className={labelCls} style={labelStyle}>Timeout (ms)</label>
+              <input type="number" min={0} step={1000} value={config.timeoutMs} onChange={(e) => setField('timeoutMs', Number(e.target.value))} className={inputCls} style={inputStyle} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1" style={labelStyle}>Step Weight</label>
-              <select
-                value={config.weight}
-                onChange={(e) => handleWeightChange(e.target.value)}
-                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                style={inputStyle}
-              >
-                {STEP_WEIGHTS.map((w) => (
-                  <option key={w.value} value={w.value}>{w.label}</option>
-                ))}
+              <label className={labelCls} style={labelStyle}>Queue Weight</label>
+              <select value={config.weight} onChange={(e) => setField('weight', e.target.value)} className={inputCls} style={inputStyle}>
+                {STEP_WEIGHTS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1" style={labelStyle}>Max Iterations</label>
-              <input
-                type="number" min={1} value={config.maxIterations}
-                onChange={(e) => handleNumberChange('maxIterations', Number(e.target.value))}
-                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                style={inputStyle}
-              />
+              <label className={labelCls} style={labelStyle}>Max Iterations</label>
+              <input type="number" min={1} value={config.maxIterations} onChange={(e) => setField('maxIterations', Number(e.target.value))} className={inputCls} style={inputStyle} />
             </div>
           </div>
 
           {/* Next Step */}
           <div>
-            <label className="block text-xs font-medium mb-1" style={labelStyle}>Next Step (loop-back)</label>
-            <select
-              value={config.nextStep ?? ''}
-              onChange={(e) => handleNextStepChange(e.target.value)}
-              className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-              style={inputStyle}
-            >
+            <label className={labelCls} style={labelStyle}>Loop Back To</label>
+            <select value={config.nextStep ?? ''} onChange={(e) => handleNextStepChange(e.target.value)} className={inputCls} style={inputStyle}>
               <option value="">None</option>
-              {otherSteps.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {otherSteps.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <p className="text-[11px] mt-1" style={hintStyle}>Dashed edge for iterative transitions</p>
+            <p className="text-[10px] mt-1" style={hintStyle}>Creates a dashed loop-back edge</p>
           </div>
-        </Section>
 
-        {/* ── Advanced Section ─────────────────────────────── */}
-        <Section title="Advanced" defaultOpen={false}>
+          {/* Human Approval Toggle */}
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={labelStyle}>Requires Human Approval</label>
+            <button
+              onClick={() => setField('requiresHumanApproval', !config.requiresHumanApproval)}
+              className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+              style={{ background: config.requiresHumanApproval ? 'var(--color-accent)' : 'var(--color-surface-4)' }}
+            >
+              <span className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform" style={{ transform: config.requiresHumanApproval ? 'translateX(18px)' : 'translateX(2px)' }} />
+            </button>
+          </div>
+        </>}
+
+        {/* ═══════════════ ADVANCED TAB ═══════════════ */}
+        {tab === 'advanced' && <>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1" style={labelStyle}>Heartbeat Timeout</label>
-              <input
-                type="number" min={0} step={1000}
-                value={config.heartbeatTimeoutMs ?? ''}
-                onChange={(e) => handleNumberChange('heartbeatTimeoutMs', e.target.value ? Number(e.target.value) : 0)}
-                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                style={inputStyle}
-                placeholder="ms"
-              />
+              <label className={labelCls} style={labelStyle}>Heartbeat Timeout</label>
+              <input type="number" min={0} step={1000} value={config.heartbeatTimeoutMs ?? ''} onChange={(e) => setField('heartbeatTimeoutMs', e.target.value ? Number(e.target.value) : undefined)} className={inputCls} style={inputStyle} placeholder="ms" />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1" style={labelStyle}>Schedule-to-Start</label>
-              <input
-                type="number" min={0} step={1000}
-                value={config.scheduleToStartTimeoutMs ?? ''}
-                onChange={(e) => handleNumberChange('scheduleToStartTimeoutMs', e.target.value ? Number(e.target.value) : 0)}
-                className="w-full rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent"
-                style={inputStyle}
-                placeholder="ms"
-              />
+              <label className={labelCls} style={labelStyle}>Schedule-to-Start</label>
+              <input type="number" min={0} step={1000} value={config.scheduleToStartTimeoutMs ?? ''} onChange={(e) => setField('scheduleToStartTimeoutMs', e.target.value ? Number(e.target.value) : undefined)} className={inputCls} style={inputStyle} placeholder="ms" />
             </div>
           </div>
 
-          {/* Condition Expression */}
           <div>
-            <label className="block text-xs font-medium mb-1" style={labelStyle}>Condition</label>
+            <label className={labelCls} style={labelStyle}>Condition</label>
             <textarea
-              value={config.conditionExpression ?? ''}
-              onChange={(e) => handleStringFieldChange('conditionExpression', e.target.value)}
-              rows={2}
-              className="w-full rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent resize-y"
-              style={inputStyle}
+              value={config.conditionExpression ?? ''} onChange={(e) => setField('conditionExpression', e.target.value || undefined)}
+              rows={2} className={inputCls + ' font-mono resize-y text-xs'} style={inputStyle}
               placeholder="ctx.completedOutputs.step_a.score > 0.8"
             />
-            <p className="text-[11px] mt-1" style={hintStyle}>JS expression with ctx in scope. Step runs only if truthy.</p>
+            <p className="text-[10px] mt-1" style={hintStyle}>JS expression — step runs only if truthy</p>
           </div>
 
-          {/* Map Input Expression */}
           <div>
-            <label className="block text-xs font-medium mb-1" style={labelStyle}>Map Input</label>
+            <label className={labelCls} style={labelStyle}>Map Input</label>
             <textarea
-              value={config.mapInputExpression ?? ''}
-              onChange={(e) => handleStringFieldChange('mapInputExpression', e.target.value)}
-              rows={2}
-              className="w-full rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)] focus:border-transparent resize-y"
-              style={inputStyle}
+              value={config.mapInputExpression ?? ''} onChange={(e) => setField('mapInputExpression', e.target.value || undefined)}
+              rows={2} className={inputCls + ' font-mono resize-y text-xs'} style={inputStyle}
               placeholder="{ fromA: upstream.step_a.result }"
             />
-            <p className="text-[11px] mt-1" style={hintStyle}>Transform upstream outputs into this step's input.</p>
+            <p className="text-[10px] mt-1" style={hintStyle}>Transform upstream outputs into this step's input</p>
           </div>
-        </Section>
+        </>}
       </div>
     </div>
   )
