@@ -25,8 +25,9 @@ export interface StepConfig {
 }
 
 export interface TriggerConfig {
-  type: 'event' | 'manual'
+  type: 'event' | 'manual' | 'schedule'
   eventType?: string
+  cronExpression?: string
 }
 
 export interface BudgetConfig {
@@ -43,8 +44,9 @@ export interface WorkflowDefinitionJson {
   defaultTimeoutMs: number
   failFast: boolean
   triggers?: Array<{
-    type: 'event' | 'manual'
+    type: 'event' | 'manual' | 'schedule'
     eventType?: string
+    cronExpression?: string
   }>
   budget?: {
     maxTokens?: number

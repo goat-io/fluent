@@ -165,11 +165,12 @@ export function WorkflowSettingsPanel({ editor }: WorkflowSettingsPanelProps) {
                 <div className="flex-1 flex flex-col gap-2">
                   <select
                     value={trigger.type}
-                    onChange={(e) => updateTrigger(i, { type: e.target.value as 'event' | 'manual' })}
+                    onChange={(e) => updateTrigger(i, { type: e.target.value as 'event' | 'manual' | 'schedule' })}
                     className="rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)]"
                     style={inputStyle}
                   >
                     <option value="event">Event</option>
+                    <option value="schedule">Schedule (Cron)</option>
                     <option value="manual">Manual</option>
                   </select>
                   {trigger.type === 'event' && (
@@ -179,8 +180,21 @@ export function WorkflowSettingsPanel({ editor }: WorkflowSettingsPanelProps) {
                       onChange={(e) => updateTrigger(i, { eventType: e.target.value })}
                       className="rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)]"
                       style={inputStyle}
-                      placeholder="e.g., github.pr.opened, cron.trigger"
+                      placeholder="e.g., github.pr.opened"
                     />
+                  )}
+                  {trigger.type === 'schedule' && (
+                    <>
+                      <input
+                        type="text"
+                        value={trigger.cronExpression ?? ''}
+                        onChange={(e) => updateTrigger(i, { cronExpression: e.target.value })}
+                        className="rounded-md px-2 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent,#6366f1)]"
+                        style={inputStyle}
+                        placeholder="*/5 * * * *"
+                      />
+                      <p className="text-[10px]" style={hintStyle}>Cron: min hour dom month dow (e.g., "0 9 * * *" = daily at 9am)</p>
+                    </>
                   )}
                 </div>
                 <button

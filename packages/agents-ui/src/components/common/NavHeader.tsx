@@ -4,8 +4,6 @@ const NAV_ITEMS = [
   { path: '/', label: 'Dashboard' },
   { path: '/designer', label: 'Designer' },
   { path: '/workers', label: 'Workers' },
-  { path: '/schedules', label: 'Schedules' },
-  { path: '/events', label: 'Events' },
 ]
 
 export function NavHeader({ title, actions }: { title?: string; actions?: React.ReactNode }) {
