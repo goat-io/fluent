@@ -17,6 +17,7 @@ const STEPS: PaletteItem[] = [
   { type: 'task_runner', label: 'Task Runner', icon: '\uD83D\uDD04', description: 'Fan-out/fan-in parallel tasks', borderColor: '#34d399', bgColor: 'rgba(52,211,153,0.08)' },
   { type: 'human', label: 'Human Review', icon: '\uD83D\uDC64', description: 'Pause for human approval', borderColor: '#c084fc', bgColor: 'rgba(192,132,252,0.08)' },
   { type: 'sandbox', label: 'Docker Sandbox', icon: '\uD83D\uDC10', description: 'Isolated container execution', borderColor: '#fb923c', bgColor: 'rgba(251,146,60,0.08)' },
+  { type: 'claude_code' as any, label: 'Claude Code', icon: '\u2728', description: 'Claude via CLI — uses Max subscription', borderColor: '#d4a574', bgColor: 'rgba(212,165,116,0.08)' },
 ]
 
 const INTEGRATIONS: PaletteItem[] = [

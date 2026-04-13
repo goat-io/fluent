@@ -8,6 +8,7 @@ const executorIcons: Record<ExecutorType, string> = {
   sandbox: '\uD83D\uDC10',
   human: '\uD83D\uDC64',
   task_runner: '\uD83D\uDD04',
+  claude_code: '\u2728',
 }
 
 const executorBadgeColors: Record<ExecutorType, string> = {
@@ -16,6 +17,7 @@ const executorBadgeColors: Record<ExecutorType, string> = {
   sandbox: 'bg-orange-900/60 text-orange-300',
   human: 'bg-purple-900/60 text-purple-300',
   task_runner: 'bg-emerald-900/60 text-emerald-300',
+  claude_code: 'bg-amber-900/60 text-amber-300',
 }
 
 export function EditorStepNode({ data, selected }: NodeProps) {

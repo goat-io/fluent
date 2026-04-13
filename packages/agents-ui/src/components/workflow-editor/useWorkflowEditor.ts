@@ -4,7 +4,7 @@ import dagre from 'dagre'
 
 // ── Types ─────────────────────────────────────────────────────────
 
-export type ExecutorType = 'function' | 'ai' | 'sandbox' | 'human' | 'task_runner'
+export type ExecutorType = 'function' | 'ai' | 'sandbox' | 'human' | 'task_runner' | 'claude_code'
 export type StepWeight = 'light' | 'heavy' | 'ai' | 'sandbox'
 
 export interface StepConfig {

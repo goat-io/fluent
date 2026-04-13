@@ -8,6 +8,7 @@ interface StepConfigPanelProps {
 const EXECUTOR_TYPES: { value: ExecutorType; label: string }[] = [
   { value: 'function', label: 'Function' },
   { value: 'ai', label: 'AI / LLM' },
+  { value: 'claude_code', label: 'Claude Code' },
   { value: 'sandbox', label: 'Docker Sandbox' },
   { value: 'human', label: 'Human Review' },
   { value: 'task_runner', label: 'Task Runner' },
@@ -283,6 +284,60 @@ export function StepConfigPanel({ editor }: StepConfigPanelProps) {
                   </label>
                 )
               })}
+            </div>
+          </>}
+
+          {/* ── Claude Code Config ── */}
+          {config.executorType === 'claude_code' && <>
+            <div>
+              <label className={labelCls} style={labelStyle}>Prompt</label>
+              <textarea
+                value={(config.executorConfig.prompt as string) || ''}
+                onChange={(e) => setConfigField('prompt', e.target.value)}
+                rows={4}
+                className={inputCls + ' font-mono resize-y'}
+                style={inputStyle}
+                placeholder="Analyze this code and suggest improvements..."
+              />
+              <p className="text-[10px] mt-1" style={hintStyle}>Use {'{{input.fieldName}}'} for template variables from upstream steps</p>
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>System Prompt</label>
+              <textarea
+                value={(config.executorConfig.systemPrompt as string) || ''}
+                onChange={(e) => setConfigField('systemPrompt', e.target.value)}
+                rows={2}
+                className={inputCls + ' font-mono resize-y'}
+                style={inputStyle}
+                placeholder="You are a senior engineer..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls} style={labelStyle}>Output Format</label>
+                <select value={(config.executorConfig.outputFormat as string) || 'text'} onChange={(e) => setConfigField('outputFormat', e.target.value)} className={inputCls} style={inputStyle}>
+                  <option value="text">Text</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls} style={labelStyle}>Max Turns</label>
+                <input type="number" min={1} value={(config.executorConfig.maxTurns as number) || 1} onChange={(e) => setConfigField('maxTurns', Number(e.target.value))} className={inputCls} style={inputStyle} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls} style={labelStyle}>Model Override</label>
+              <select value={(config.executorConfig.model as string) || ''} onChange={(e) => setConfigField('model', e.target.value || undefined)} className={inputCls} style={inputStyle}>
+                <option value="">Default (subscription model)</option>
+                <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                <option value="claude-haiku-3-5-20241022">Claude Haiku 3.5</option>
+              </select>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: 'var(--color-surface-3)' }}>
+              <p className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>
+                Runs via <code className="text-[var(--color-accent)]">claude -p</code> CLI. Uses your Max/Pro subscription. Worker machine must have Claude Code installed and authenticated.
+              </p>
             </div>
           </>}
 

@@ -25,6 +25,8 @@ export type { WorkflowEngineConfig, WorkflowBudget, BudgetUsed } from './engine/
 export type { StepExecutor } from './steps/StepExecutor.js'
 export type { StepHandler } from './steps/FunctionStepExecutor.js'
 export { TaskRunnerExecutor } from './steps/TaskRunnerExecutor.js'
+export { ClaudeCodeExecutor } from './steps/ClaudeCodeExecutor.js'
+export type { ClaudeCodeConfig } from './steps/ClaudeCodeExecutor.js'
 
 // ── Core Classes ───────────────────────────────────────────────────
 export { WorkflowBuilder } from './workflow/WorkflowBuilder.js'
