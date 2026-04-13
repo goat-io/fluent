@@ -19,7 +19,7 @@ export class PuppeteerService {
   async getPuppeteerPage() {
     // Launch the browser
     const browser = await puppeteer.connect({
-      browserWSEndpoint: this.browserServiceUrl
+      browserWSEndpoint: this.browserServiceUrl,
       // args: ['--no-sandbox', '--disable-setuid-sandbox'],
     })
 

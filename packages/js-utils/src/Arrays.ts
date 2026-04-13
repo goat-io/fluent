@@ -103,7 +103,7 @@ export class ArraysClass {
     items: T[],
     mapper: Mapper<T, any>,
     mutate = false,
-    descending = false
+    descending = false,
   ): T[] {
     const mod = descending ? -1 : 1
     const sortedItems = mutate ? items : [...items]
@@ -133,7 +133,7 @@ export class ArraysClass {
       }
       return (
         String(mappedA).localeCompare(String(mappedB), undefined, {
-          numeric: true
+          numeric: true,
         }) * mod
       )
     })
@@ -207,7 +207,7 @@ export class ArraysClass {
    */
   mapToObject<T, V>(
     array: T[],
-    mapper: (item: T) => [key: any, value: V] | FalsyValue
+    mapper: (item: T) => [key: any, value: V] | FalsyValue,
   ): StringMap<V> {
     const acc = Object.create(null) as StringMap<V>
     for (let i = 0; i < array.length; i++) {
@@ -268,7 +268,7 @@ export class ArraysClass {
   zip(...arrays: any[][]): any[][] {
     const maxLength = Math.max(...arrays.map(arr => arr.length))
     return Array.from({ length: maxLength }, (_, index) =>
-      arrays.map(arr => (index < arr.length ? arr[index] : undefined))
+      arrays.map(arr => (index < arr.length ? arr[index] : undefined)),
     )
   }
 

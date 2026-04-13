@@ -30,7 +30,7 @@ const matchComponent = (component: any, query: any) => {
  */
 export const findComponents = (
   components: FormioComponent[],
-  query: AnyObject
+  query: AnyObject,
 ): FormioComponent[] => {
   const results = []
 
@@ -42,7 +42,7 @@ export const findComponents = (
         results.push(component)
       }
     },
-    true
+    true,
   )
   return results
 }

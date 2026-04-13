@@ -13,7 +13,7 @@ export const getRules = (type: any) => [
     name: 'custom',
     params: {
       component: Joi.any(),
-      data: Joi.any()
+      data: Joi.any(),
     },
     validate(params: any, value: any, state: any, options: any): any {
       const { component } = params
@@ -35,7 +35,7 @@ export const getRules = (type: any) => [
           const replace = /({{\s{0,}(.*[^\s]){1}\s{0,}}})/g
           component.validate.custom = component.validate.custom.replace(
             replace,
-            (_match: any, _$1: any, $2: any) => _.get(data, $2)
+            (_match: any, _$1: any, $2: any) => _.get(data, $2),
           )
 
           // Create the sandbox.
@@ -47,13 +47,13 @@ export const getRules = (type: any) => [
             row: Row,
             scope: { data },
             component,
-            valid
+            valid,
           })
 
           // Execute the script.
           const script: any = new vm.Script(component.validate.custom)
           script.runInContext(sandbox, {
-            timeout: 100
+            timeout: 100,
           })
           valid = sandbox.valid
         } catch (err) {
@@ -67,19 +67,19 @@ export const getRules = (type: any) => [
             `${type}.custom`,
             { message: valid },
             state,
-            options
+            options,
           )
         }
       }
 
       return value // Everything is OK
-    }
+    },
   },
   {
     name: 'json',
     params: {
       component: Joi.any(),
-      data: Joi.any()
+      data: Joi.any(),
     },
     validate(params: any, value: any, state: any, options: any): any {
       const { component } = params
@@ -98,7 +98,7 @@ export const getRules = (type: any) => [
         try {
           valid = util.jsonLogic.apply(component.validate.json, {
             data,
-            row: Row
+            row: Row,
           })
         } catch (err) {
           valid = err.message
@@ -110,19 +110,19 @@ export const getRules = (type: any) => [
             `${type}.json`,
             { message: valid },
             state,
-            options
+            options,
           )
         }
       }
 
       return value // Everything is OK
-    }
+    },
   },
   {
     name: 'hidden',
     params: {
       component: Joi.any(),
-      data: Joi.any()
+      data: Joi.any(),
     },
     validate(params: any, value: any, state: any, options: any): any {
       // If we get here than the field has thrown an error.
@@ -143,14 +143,14 @@ export const getRules = (type: any) => [
         `${type}.hidden`,
         { message: 'hidden with value' },
         state,
-        options
+        options,
       )
-    }
+    },
   },
   {
     name: 'maxWords',
     params: {
-      maxWords: Joi.any()
+      maxWords: Joi.any(),
     },
     validate(params: any, value: any, state: any, options: any): any {
       if (
@@ -163,14 +163,14 @@ export const getRules = (type: any) => [
         `${type}.maxWords`,
         { message: 'exceeded maximum words.' },
         state,
-        options
+        options,
       )
-    }
+    },
   },
   {
     name: 'minWords',
     params: {
-      minWords: Joi.any()
+      minWords: Joi.any(),
     },
     validate(params: any, value: any, state: any, options: any): any {
       if (
@@ -183,9 +183,9 @@ export const getRules = (type: any) => [
         `${type}.minWords`,
         { message: 'does not have enough words.' },
         state,
-        options
+        options,
       )
-    }
+    },
   },
   {
     name: 'select',
@@ -194,7 +194,7 @@ export const getRules = (type: any) => [
       submission: Joi.any(),
       token: Joi.any(),
       async: Joi.any(),
-      requests: Joi.any()
+      requests: Joi.any(),
     },
     validate(params: any, value: any, state: any, _options: any) {
       // Empty values are fine.
@@ -214,7 +214,7 @@ export const getRules = (type: any) => [
         method: 'GET',
         qs: {},
         json: true,
-        headers: {}
+        headers: {},
       }
 
       // If the url is a boolean value.
@@ -256,7 +256,7 @@ export const getRules = (type: any) => [
 
       // Make sure to interpolate.
       requestOptions.url = FormioUtils.interpolate(requestOptions.url, {
-        data: submission.data
+        data: submission.data,
       })
 
       // Set custom headers.
@@ -307,7 +307,7 @@ export const getRules = (type: any) => [
                     component.label || component.key
                   }" is not a valid selection.`,
                   path: state.path,
-                  type: 'any.select'
+                  type: 'any.select',
                 }
                 cache.put(cacheKey, error, cacheTime)
                 return resolve(error)
@@ -320,16 +320,16 @@ export const getRules = (type: any) => [
               const error = {
                 message: `Select validation error: ${result.error}`,
                 path: state.path,
-                type: 'any.select'
+                type: 'any.select',
               }
               cache.put(cacheKey, error, cacheTime)
               return resolve(error)
             })
-        })
+        }),
       )
 
       return value
-    }
+    },
   },
   {
     name: 'distinct',
@@ -337,7 +337,7 @@ export const getRules = (type: any) => [
       component: Joi.any(),
       submission: Joi.any(),
       model: Joi.any(),
-      async: Joi.any()
+      async: Joi.any(),
     },
     validate(params: any, value: any, state: any, _options: any) {
       const { component, submission, model, async } = params
@@ -358,7 +358,7 @@ export const getRules = (type: any) => [
       ) {
         query[`${path}.placeid`] = {
           $regex: new RegExp(`^${util.escapeRegExp(value.placeid)}$`),
-          $options: 'i'
+          $options: 'i',
         }
       }
       /* eslint-enable  */
@@ -384,7 +384,7 @@ export const getRules = (type: any) => [
               return resolve({
                 message: err,
                 path: state.path,
-                type: 'any.unique'
+                type: 'any.unique',
               })
             }
             if (
@@ -400,15 +400,15 @@ export const getRules = (type: any) => [
               return resolve({
                 message: `"${component.label}" must be unique.`,
                 path: state.path,
-                type: 'any.unique'
+                type: 'any.unique',
               })
             }
             return resolve(null)
           })
-        })
+        }),
       )
 
       return value // Everything is OK
-    }
-  }
+    },
+  },
 ]

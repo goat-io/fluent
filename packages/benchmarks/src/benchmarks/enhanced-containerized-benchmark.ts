@@ -6,7 +6,7 @@ import * as mysqlPromise from 'mysql2/promise'
 import { GenericContainer, StartedTestContainer } from 'testcontainers'
 import {
   EnhancedBenchmarkResult,
-  EnhancedBenchmarkRunner
+  EnhancedBenchmarkRunner,
 } from './enhanced-benchmark-runner'
 import {
   CONNECTION_POOL_CONFIGS,
@@ -14,7 +14,7 @@ import {
   DataDistribution,
   ECOMMERCE_WORKLOAD,
   OLTP_WORKLOAD,
-  WorkloadProfile
+  WorkloadProfile,
 } from './transaction-types'
 
 interface BenchmarkOptions {
@@ -39,7 +39,7 @@ export class EnhancedContainerizedBenchmark {
   private insertCounters: Map<string, number> = new Map()
 
   async runFullBenchmark(
-    options: Partial<BenchmarkOptions> = {}
+    options: Partial<BenchmarkOptions> = {},
   ): Promise<void> {
     const config: BenchmarkOptions = {
       workloadProfiles: [OLTP_WORKLOAD, ECOMMERCE_WORKLOAD],
@@ -49,30 +49,30 @@ export class EnhancedContainerizedBenchmark {
         'Knex',
         'Prisma',
         'Kysely',
-        'Drizzle'
+        'Drizzle',
       ],
       connectionPoolConfigs: [
         CONNECTION_POOL_CONFIGS[1],
-        CONNECTION_POOL_CONFIGS[2]
+        CONNECTION_POOL_CONFIGS[2],
       ], // small and medium
       dataDistributions: {
         uniform: DATA_DISTRIBUTIONS.uniform,
-        hotspot: DATA_DISTRIBUTIONS.hotspot
+        hotspot: DATA_DISTRIBUTIONS.hotspot,
       },
       phases: {
         warmup: 2000,
         rampup: 3000,
         measurement: 10000,
-        cooldown: 1000
+        cooldown: 1000,
       },
       virtualUsers: 10,
       testDuration: 30000,
-      ...options
+      ...options,
     }
 
     try {
       console.log(
-        chalk.bold.blue('🚀 Starting Enhanced Database Benchmark Suite')
+        chalk.bold.blue('🚀 Starting Enhanced Database Benchmark Suite'),
       )
       console.log(chalk.gray('─'.repeat(80)))
 
@@ -89,13 +89,13 @@ export class EnhancedContainerizedBenchmark {
         for (const poolConfig of config.connectionPoolConfigs) {
           console.log(
             chalk.yellow(
-              `\n🔧 Connection Pool: ${poolConfig.name} (${poolConfig.size} connections)`
-            )
+              `\n🔧 Connection Pool: ${poolConfig.name} (${poolConfig.size} connections)`,
+            ),
           )
 
           // Test each data distribution pattern
           for (const [distName, distribution] of Object.entries(
-            config.dataDistributions
+            config.dataDistributions,
           )) {
             console.log(chalk.magenta(`\n📊 Data Distribution: ${distName}`))
 
@@ -110,7 +110,7 @@ export class EnhancedContainerizedBenchmark {
                   driver,
                   connection,
                   distribution,
-                  config
+                  config,
                 )
                 results.push(result)
 
@@ -142,7 +142,7 @@ export class EnhancedContainerizedBenchmark {
         MYSQL_ROOT_PASSWORD: 'root_password',
         MYSQL_DATABASE: 'benchmark_db',
         MYSQL_USER: 'benchmark_user',
-        MYSQL_PASSWORD: 'benchmark_pass'
+        MYSQL_PASSWORD: 'benchmark_pass',
       })
       .withExposedPorts(3306)
       .withStartupTimeout(120000)
@@ -162,7 +162,7 @@ export class EnhancedContainerizedBenchmark {
       password: 'benchmark_pass',
       database: 'benchmark_db',
       waitForConnections: true,
-      connectionLimit: 10
+      connectionLimit: 10,
     })
 
     const conn = pool.promise()
@@ -234,7 +234,7 @@ export class EnhancedContainerizedBenchmark {
           this.getRealisticStatus(id),
           this.getRealisticAge(id),
           this.getRealisticCountry(id),
-          this.getRealisticCreatedAt(id)
+          this.getRealisticCreatedAt(id),
         ])
       }
 
@@ -244,7 +244,7 @@ export class EnhancedContainerizedBenchmark {
         INSERT INTO users (email, first_name, last_name, status, age, country, created_at) 
         VALUES ${placeholders}
       `,
-        users.flat()
+        users.flat(),
       )
     }
 
@@ -268,7 +268,7 @@ export class EnhancedContainerizedBenchmark {
     // Normal distribution centered at 35
     return Math.max(
       18,
-      Math.min(80, Math.round(35 + (Math.random() - 0.5) * 30))
+      Math.min(80, Math.round(35 + (Math.random() - 0.5) * 30)),
     )
   }
 
@@ -284,7 +284,7 @@ export class EnhancedContainerizedBenchmark {
       'JP',
       'CN',
       'BR',
-      'IN'
+      'IN',
     ]
     const weights = [35, 15, 10, 8, 7, 6, 5, 5, 5, 4]
 
@@ -331,7 +331,7 @@ export class EnhancedContainerizedBenchmark {
           connectionLimit: poolConfig.size,
           queueLimit: 0,
           acquireTimeout: poolConfig.acquisitionTimeout,
-          idleTimeout: poolConfig.idleTimeout
+          idleTimeout: poolConfig.idleTimeout,
         })
         break
 
@@ -346,7 +346,7 @@ export class EnhancedContainerizedBenchmark {
           connectionLimit: poolConfig.size,
           queueLimit: 0,
           acquireTimeout: poolConfig.acquisitionTimeout,
-          idleTimeout: poolConfig.idleTimeout
+          idleTimeout: poolConfig.idleTimeout,
         })
         break
 
@@ -358,14 +358,14 @@ export class EnhancedContainerizedBenchmark {
             port: this.mysqlContainer.getMappedPort(3306),
             user: 'benchmark_user',
             password: 'benchmark_pass',
-            database: 'benchmark_db'
+            database: 'benchmark_db',
           },
           pool: {
             min: Math.floor(poolConfig.size / 4),
             max: poolConfig.size,
             acquireTimeoutMillis: poolConfig.acquisitionTimeout,
-            idleTimeoutMillis: poolConfig.idleTimeout
-          }
+            idleTimeoutMillis: poolConfig.idleTimeout,
+          },
         })
         break
 
@@ -374,9 +374,9 @@ export class EnhancedContainerizedBenchmark {
         connection = new PrismaClient({
           datasources: {
             db: {
-              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db?connection_limit=${poolConfig.size}`
-            }
-          }
+              url: `mysql://benchmark_user:benchmark_pass@${this.mysqlContainer.getHost()}:${this.mysqlContainer.getMappedPort(3306)}/benchmark_db?connection_limit=${poolConfig.size}`,
+            },
+          },
         })
         await connection.$connect()
         break
@@ -393,7 +393,7 @@ export class EnhancedContainerizedBenchmark {
     driver: string,
     connection: any,
     distribution: DataDistribution,
-    config: BenchmarkOptions
+    config: BenchmarkOptions,
   ): Promise<EnhancedBenchmarkResult> {
     const executeTransaction = async (transactionName: string) => {
       const userId = this.enhancedRunner.generateDataId(10000, distribution)
@@ -432,8 +432,8 @@ export class EnhancedContainerizedBenchmark {
         measurementDuration: config.phases.measurement,
         cooldownDuration: config.phases.cooldown,
         virtualUsers: config.virtualUsers,
-        dataDistribution: distribution
-      }
+        dataDistribution: distribution,
+      },
     )
   }
 
@@ -441,7 +441,7 @@ export class EnhancedContainerizedBenchmark {
   private async executeSimpleSelect(
     driver: string,
     connection: any,
-    userId: number
+    userId: number,
   ): Promise<void> {
     switch (driver) {
       case 'MySQL2':
@@ -465,7 +465,7 @@ export class EnhancedContainerizedBenchmark {
   private async executeFilteredSelect(
     driver: string,
     connection: any,
-    _distribution: DataDistribution
+    _distribution: DataDistribution,
   ): Promise<void> {
     const age = this.enhancedRunner.nurand(60, 18, 65)
     const status = 'active'
@@ -476,7 +476,7 @@ export class EnhancedContainerizedBenchmark {
           .promise()
           .execute(
             'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 100',
-            [status, age]
+            [status, age],
           )
         break
       // Add other implementations...
@@ -486,7 +486,7 @@ export class EnhancedContainerizedBenchmark {
   private async executeJoinQuery(
     _driver: string,
     _connection: any,
-    _userId: number
+    _userId: number,
   ): Promise<void> {
     // Implement join query
   }
@@ -494,7 +494,7 @@ export class EnhancedContainerizedBenchmark {
   private async executeComplexJoin(
     _driver: string,
     _connection: any,
-    _distribution: DataDistribution
+    _distribution: DataDistribution,
   ): Promise<void> {
     // Implement complex join
   }
@@ -516,8 +516,8 @@ export class EnhancedContainerizedBenchmark {
               'User',
               'active',
               30,
-              'US'
-            ]
+              'US',
+            ],
           )
         break
       // Add other implementations...
@@ -526,7 +526,7 @@ export class EnhancedContainerizedBenchmark {
 
   private async executeBatchInsert(
     driver: string,
-    _connection: any
+    _connection: any,
   ): Promise<void> {
     // Implement batch insert (10-100 records)
     const batchSize = Math.floor(Math.random() * 90) + 10
@@ -542,7 +542,7 @@ export class EnhancedContainerizedBenchmark {
         lastName: 'User',
         status: 'active',
         age: 25 + i,
-        country: 'US'
+        country: 'US',
       })
     }
 
@@ -553,8 +553,8 @@ export class EnhancedContainerizedBenchmark {
     console.log(chalk.gray('─'.repeat(60)))
     console.log(
       chalk.bold(
-        `Overall: ${result.overall.throughput.toFixed(0)} ops/sec, ${result.overall.avgResponseTime.toFixed(2)}ms avg latency`
-      )
+        `Overall: ${result.overall.throughput.toFixed(0)} ops/sec, ${result.overall.avgResponseTime.toFixed(2)}ms avg latency`,
+      ),
     )
 
     // Print top 3 transaction types by volume
@@ -565,13 +565,13 @@ export class EnhancedContainerizedBenchmark {
     topTransactions.forEach(tx => {
       console.log(
         `  ${tx.name}: ${tx.throughput.toFixed(0)} ops/sec, ` +
-          `p50=${tx.latency.p50.toFixed(1)}ms, p95=${tx.latency.p95.toFixed(1)}ms, p99=${tx.latency.p99.toFixed(1)}ms`
+          `p50=${tx.latency.p50.toFixed(1)}ms, p95=${tx.latency.p95.toFixed(1)}ms, p99=${tx.latency.p99.toFixed(1)}ms`,
       )
     })
 
     if (result.overall.errorRate > 0) {
       console.log(
-        chalk.red(`  Error Rate: ${result.overall.errorRate.toFixed(2)}%`)
+        chalk.red(`  Error Rate: ${result.overall.errorRate.toFixed(2)}%`),
       )
     }
   }
@@ -596,7 +596,7 @@ export class EnhancedContainerizedBenchmark {
 
       // Sort by overall throughput
       const sorted = workloadResults.sort(
-        (a, b) => b.overall.throughput - a.overall.throughput
+        (a, b) => b.overall.throughput - a.overall.throughput,
       )
 
       // Create comparison table
@@ -607,7 +607,7 @@ export class EnhancedContainerizedBenchmark {
           'Avg Latency'.padStart(12) +
           'P95 Latency'.padStart(12) +
           'P99 Latency'.padStart(12) +
-          'Errors'.padStart(8)
+          'Errors'.padStart(8),
       )
       console.log(chalk.gray('─'.repeat(80)))
 
@@ -646,11 +646,11 @@ export class EnhancedContainerizedBenchmark {
           description: 'Comprehensive benchmark with realistic workloads',
           timestamp: new Date(),
           results: results,
-          summary: this.generateSummary(results)
+          summary: this.generateSummary(results),
         },
         null,
-        2
-      )
+        2,
+      ),
     )
 
     console.log(chalk.gray(`\n${'═'.repeat(80)}`))
@@ -678,7 +678,7 @@ export class EnhancedContainerizedBenchmark {
           avgLatency: 0,
           p95Latency: 0,
           errorRate: 0,
-          workloadScores: new Map()
+          workloadScores: new Map(),
         })
       }
 
@@ -692,8 +692,8 @@ export class EnhancedContainerizedBenchmark {
         forHighThroughput: 'MySQL2 or MySQL2/Promise for raw performance',
         forLowLatency: 'Kysely for optimized query building',
         forDeveloperExperience: 'Prisma for type safety and migrations',
-        forFlexibility: 'Knex for query building flexibility'
-      }
+        forFlexibility: 'Knex for query building flexibility',
+      },
     }
   }
 
@@ -746,7 +746,7 @@ if (require.main === module) {
       warmup: 1000,
       rampup: 1000,
       measurement: 5000,
-      cooldown: 500
+      cooldown: 500,
     }
     options.workloadProfiles = [OLTP_WORKLOAD]
     options.drivers = ['MySQL2', 'Prisma', 'Kysely']

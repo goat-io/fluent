@@ -2,7 +2,7 @@ import { TypeOrmConnector } from '../../TypeOrmConnector'
 import { CarsEntity } from '../relations/car/car.entity'
 import {
   CarDtoOutput,
-  carOutputSchema
+  carOutputSchema,
 } from '../relations/car/car.output.schema'
 import { CarDtoInput, carInputSchema } from '../relations/car/car.schema'
 import { MYSQLDataSource } from './mysqlDataSource'
@@ -18,17 +18,17 @@ export class CarsRepository extends TypeOrmConnector<
       entity: CarsEntity,
       dataSource: MYSQLDataSource,
       inputSchema: carInputSchema,
-      outputSchema: carOutputSchema
+      outputSchema: carOutputSchema,
     })
   }
 
   public user = () =>
     this.belongsTo({
-      repository: UserRepository
+      repository: UserRepository,
     })
 
   public anotherRelation = () =>
     this.belongsTo({
-      repository: UserRepository
+      repository: UserRepository,
     })
 }

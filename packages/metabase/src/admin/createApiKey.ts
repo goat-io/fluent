@@ -30,7 +30,7 @@ export async function createApiKey({
   sessionToken,
   apiKey,
   keyName = 'Auto-generated API Key',
-  groupId = 1
+  groupId = 1,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -50,8 +50,8 @@ export async function createApiKey({
     method: 'POST',
     body: {
       name: finalKeyName,
-      group_id: groupId
-    }
+      group_id: groupId,
+    },
   })
 
   return (await response.json()) as ApiKeyResponse

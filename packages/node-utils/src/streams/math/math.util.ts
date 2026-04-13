@@ -16,7 +16,7 @@ export function average(values: number[]): number {
  * Same as average, but safely returns null if input array is empty or nullish.
  */
 export function averageOrNull(
-  values: number[] | undefined | null
+  values: number[] | undefined | null,
 ): number | null {
   return values?.length ? values.reduce((a, b) => a + b) / values.length : null
 }
@@ -63,7 +63,7 @@ export function percentile(values: number[], pc: number): number {
  */
 export function percentiles(
   values: number[],
-  pcs: number[]
+  pcs: number[],
 ): Record<number, number> {
   const r = {} as Record<number, number>
 
@@ -78,7 +78,7 @@ export function percentiles(
 
     r[pc] = averageWeighted(
       [sorted[floorPos]!, sorted[ceilPos]!],
-      [1 - dec, dec]
+      [1 - dec, dec],
     )
   })
 

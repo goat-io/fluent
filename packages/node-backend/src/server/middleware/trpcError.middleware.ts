@@ -8,10 +8,10 @@ const reportOnly5xx = false
 
 export function trpcErrorMiddleware({
   error,
-  sentryService
+  sentryService,
 }: { sentryService: SentryService } & any): void {
   const originalError = Errors.anyToError(error, Error, {
-    stringifyFn: Inspect.anyStringifyFn
+    stringifyFn: Inspect.anyStringifyFn,
   })
 
   let errorId: string | undefined

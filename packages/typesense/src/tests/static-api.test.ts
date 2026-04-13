@@ -24,16 +24,16 @@ describe('TypesenseApi Static Methods', () => {
       name: 'test',
       fields: [
         { name: 'id', type: 'string' as const },
-        { name: 'title', type: 'string' as const }
-      ] as const
+        { name: 'title', type: 'string' as const },
+      ] as const,
     } as const)
 
     expect(collection).toEqual({
       name: 'test',
       fields: [
         { name: 'id', type: 'string' },
-        { name: 'title', type: 'string' }
-      ]
+        { name: 'title', type: 'string' },
+      ],
     })
   })
 
@@ -43,13 +43,13 @@ describe('TypesenseApi Static Methods', () => {
       fields: [
         { name: 'id', type: 'string' as const },
         { name: 'title', type: 'string' as const },
-        { name: 'price', type: 'float' as const }
-      ] as const
+        { name: 'price', type: 'float' as const },
+      ] as const,
     } as const)
 
     const api = TypesenseApi.createSchemaTypedApi(collection)({
       prefixUrl: 'http://localhost:8108',
-      token: 'xyz'
+      token: 'xyz',
     })
 
     expect(api).toBeInstanceOf(TypesenseApi)
@@ -63,11 +63,11 @@ describe('TypesenseApi Static Methods', () => {
       fields: [
         { name: 'id', type: 'string' as const },
         { name: 'name', type: 'string' as const },
-        { name: 'email', type: 'string' as const }
-      ] as const
+        { name: 'email', type: 'string' as const },
+      ] as const,
     } as const)({
       prefixUrl: 'http://localhost:8108',
-      token: 'xyz'
+      token: 'xyz',
     })
 
     expect(api).toBeInstanceOf(TypesenseApi)

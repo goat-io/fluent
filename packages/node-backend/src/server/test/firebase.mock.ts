@@ -1,31 +1,34 @@
-import type { FirebaseDecodedToken } from '../schemas/user.schema'
+import type { DecodedUserToken } from '../schemas/user.schema'
 import { BasicAccount } from './mock.model'
 
-export const mockedFirebaseDecodedToken = (
-  mockedAccount?: Partial<BasicAccount>
-): FirebaseDecodedToken => {
+export const mockedDecodedUserToken = (
+  mockedAccount?: Partial<BasicAccount>,
+): DecodedUserToken => {
   const account = mockedAccount || {
     email: 'testemail@test.com',
-    firebaseId: 'testfirebaseId'
+    userId: 'testUserId',
   }
 
-  const payload: FirebaseDecodedToken = {
-    aud: 'someFakeAudience',
+  const payload: DecodedUserToken = {
+    aud: 'app',
     auth_time: 1664050702,
     email: account.email || '',
     email_verified: true,
     exp: 1695579492,
     iat: 1664050702,
-    iss: 'someFakeProject',
-    sub: '12312312312',
-    uid: account.firebaseId ?? 'someFakeFirebaseId',
-    firebase: true
+    iss: 'better-auth',
+    sub: account.userId ?? 'someUserId',
+    uid: account.userId ?? 'someUserId',
   }
   return payload
 }
 
-export const mockFirebaseToken = (account?: Partial<BasicAccount>): string => {
-  const payload = mockedFirebaseDecodedToken(account)
-  // This should be a JWT, but it is just a mock
+export const mockAuthToken = (account?: Partial<BasicAccount>): string => {
+  const payload = mockedDecodedUserToken(account)
+  // This should be a session token, but it is just a mock
   return JSON.stringify(payload)
 }
+
+// Legacy aliases
+export const mockedFirebaseDecodedToken = mockedDecodedUserToken
+export const mockFirebaseToken = mockAuthToken

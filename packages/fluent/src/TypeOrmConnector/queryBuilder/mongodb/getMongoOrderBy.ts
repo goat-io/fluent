@@ -8,7 +8,7 @@ export const getMongoOrderBy = (orderBy?: FluentQuery<any>['orderBy']) => {
   const order = extractOrderBy(orderBy as any)
 
   const sort = {
-    $sort: {}
+    $sort: {},
   }
 
   for (const key of Object.keys(order)) {

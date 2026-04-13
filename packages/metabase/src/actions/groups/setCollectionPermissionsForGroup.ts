@@ -14,7 +14,7 @@ export async function setCollectionPermissionsForGroup({
   apiKey,
   groupId,
   collectionId,
-  permission = 'write'
+  permission = 'write',
 }: {
   baseUrl: string
   sessionToken?: string
@@ -30,13 +30,13 @@ export async function setCollectionPermissionsForGroup({
       sessionToken,
       apiKey,
       endpoint: '/api/collection/graph?skip-graph=true',
-      method: 'GET'
+      method: 'GET',
     })
 
     if (!permissionsResponse.ok) {
       const errorText = await permissionsResponse.text()
       throw new Error(
-        `Failed to fetch collection permissions graph: ${errorText}`
+        `Failed to fetch collection permissions graph: ${errorText}`,
       )
     }
 
@@ -77,7 +77,7 @@ export async function setCollectionPermissionsForGroup({
     // Include revision if it exists
     const payload = {
       groups: updatedGraph.groups,
-      revision: updatedGraph.revision || 0
+      revision: updatedGraph.revision || 0,
     }
 
     // Update the permissions
@@ -87,7 +87,7 @@ export async function setCollectionPermissionsForGroup({
       apiKey,
       endpoint: '/api/collection/graph',
       method: 'PUT',
-      body: payload
+      body: payload,
     })
 
     if (!updateResponse.ok) {

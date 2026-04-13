@@ -1,13 +1,13 @@
 import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollectionOptions,
-  TypesenseDeleteByFilterOptions
+  TypesenseDeleteByFilterOptions,
 } from '../../typesense.model'
 
 export async function deleteByFilter(
   ctx: TypesenseContext,
   filter: string,
-  options?: TypesenseDeleteByFilterOptions & TypesenseCollectionOptions
+  options?: TypesenseDeleteByFilterOptions & TypesenseCollectionOptions,
 ): Promise<{ num_deleted: number }> {
   const collectionName = options?.collection || ctx.fqcn()
 
@@ -21,7 +21,7 @@ export async function deleteByFilter(
     `/collections/${collectionName}/documents`,
     {
       method: 'DELETE',
-      searchParams: params
-    }
+      searchParams: params,
+    },
   )
 }

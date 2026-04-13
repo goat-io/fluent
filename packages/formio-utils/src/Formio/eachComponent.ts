@@ -9,7 +9,7 @@ const CONTAINER_TYPES = [
   'columns',
   'fieldset',
   'tabs',
-  'form'
+  'form',
 ]
 
 const SPECIAL_CONTAINER_TYPES = ['datagrid', 'container', 'editgrid']
@@ -21,7 +21,7 @@ const processComponent = (
   component: FormioComponent,
   fn: ComponentProcessor,
   currentPath: string,
-  parent?: any
+  parent?: any,
 ): { noRecurse: boolean; newPath: string } => {
   const newPath = component.key
     ? currentPath
@@ -49,7 +49,7 @@ const processComponent = (
 const calculateSubPath = (
   component: FormioComponent,
   currentPath: string,
-  newPath: string
+  newPath: string,
 ): string => {
   if (!component.key) {
     return currentPath
@@ -77,7 +77,7 @@ const processColumns = (
   fn: ComponentProcessor,
   includeAll: boolean,
   subPath: string,
-  parent?: any
+  parent?: any,
 ): void => {
   if (!component.columns || !Array.isArray(component.columns)) {
     return
@@ -90,7 +90,7 @@ const processColumns = (
       fn,
       includeAll,
       subPath,
-      parent ? component : null
+      parent ? component : null,
     )
   }
 }
@@ -103,7 +103,7 @@ const processRows = (
   fn: ComponentProcessor,
   includeAll: boolean,
   subPath: string,
-  parent?: any
+  parent?: any,
 ): void => {
   if (!component.rows || !Array.isArray(component.rows)) {
     return
@@ -120,7 +120,7 @@ const processRows = (
           fn,
           includeAll,
           subPath,
-          parent ? component : null
+          parent ? component : null,
         )
       }
     }
@@ -132,7 +132,7 @@ const processRows = (
  */
 const shouldProcessComponent = (
   component: FormioComponent,
-  includeAll?: boolean
+  includeAll?: boolean,
 ): boolean => {
   const hasColumns = component.columns && Array.isArray(component.columns)
   const hasRows = component.rows && Array.isArray(component.rows)
@@ -154,7 +154,7 @@ export const eachComponent = (
   fn?: ComponentProcessor,
   includeAll?: boolean,
   path?: string,
-  parent?: any
+  parent?: any,
 ): void => {
   if (!components || !fn) {
     return
@@ -198,7 +198,7 @@ export const eachComponent = (
           fn,
           includeAll,
           subPath,
-          parent ? component : null
+          parent ? component : null,
         )
       }
     }

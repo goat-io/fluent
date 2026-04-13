@@ -57,8 +57,8 @@ export class EnhancedBenchmarkReporter {
           padding: 1,
           margin: 1,
           borderStyle: 'double',
-          borderColor: 'blue'
-        })
+          borderColor: 'blue',
+        }),
     )
   }
 
@@ -68,8 +68,8 @@ export class EnhancedBenchmarkReporter {
       colWidths: [25, 20],
       style: {
         head: ['cyan'],
-        border: ['grey']
-      }
+        border: ['grey'],
+      },
     })
 
     table.push(
@@ -81,7 +81,7 @@ export class EnhancedBenchmarkReporter {
       ['Max Time', this.formatTime(result.maxTime)],
       ['Operations/sec', this.formatOpsPerSecond(result.operationsPerSecond)],
       ['Memory Usage', this.formatMemory(result.memoryUsage.heapUsed)],
-      ['Timestamp', chalk.grey(result.timestamp.toISOString())]
+      ['Timestamp', chalk.grey(result.timestamp.toISOString())],
     )
 
     console.log(table.toString())
@@ -95,7 +95,7 @@ export class EnhancedBenchmarkReporter {
     const fastest = results.reduce((fastest, current) =>
       current.operationsPerSecond > fastest.operationsPerSecond
         ? current
-        : fastest
+        : fastest,
     )
 
     const table = new Table({
@@ -105,13 +105,13 @@ export class EnhancedBenchmarkReporter {
         chalk.bold('Relative Speed'),
         chalk.bold('Avg Time'),
         chalk.bold('Memory'),
-        chalk.bold('Status')
+        chalk.bold('Status'),
       ],
       colWidths: [25, 15, 18, 15, 12, 12],
       style: {
         head: ['cyan'],
-        border: ['grey']
-      }
+        border: ['grey'],
+      },
     })
 
     results
@@ -135,7 +135,7 @@ export class EnhancedBenchmarkReporter {
           relativeText,
           this.formatTime(result.averageTime),
           this.formatMemory(result.memoryUsage.heapUsed),
-          status
+          status,
         ])
       })
 
@@ -149,7 +149,7 @@ export class EnhancedBenchmarkReporter {
 
     // Sort results by performance
     const sortedResults = [...results].sort(
-      (a, b) => b.operationsPerSecond - a.operationsPerSecond
+      (a, b) => b.operationsPerSecond - a.operationsPerSecond,
     )
     const winner = sortedResults[0]
     const runnerUp = sortedResults[1]
@@ -181,17 +181,17 @@ export class EnhancedBenchmarkReporter {
       chalk.bold.green('🏆 PERFORMANCE BATTLE RESULTS'),
       '',
       `🥇 Winner: ${chalk.bold.green(winner.name.split(' - ')[0])}`,
-      `🥈 Runner-up: ${chalk.grey(runnerUp.name.split(' - ')[0])}`
+      `🥈 Runner-up: ${chalk.grey(runnerUp.name.split(' - ')[0])}`,
     ]
 
     // Add other participants if more than 2
     if (results.length > 2) {
       content.push(
-        `🥉 Third: ${chalk.grey(sortedResults[2].name.split(' - ')[0])}`
+        `🥉 Third: ${chalk.grey(sortedResults[2].name.split(' - ')[0])}`,
       )
       if (results.length > 3) {
         content.push(
-          `🏅 Fourth: ${chalk.grey(sortedResults[3].name.split(' - ')[0])}`
+          `🏅 Fourth: ${chalk.grey(sortedResults[3].name.split(' - ')[0])}`,
         )
       }
     }
@@ -202,7 +202,7 @@ export class EnhancedBenchmarkReporter {
       `💾 Memory Advantage: ${chalk.blue.bold(`${memoryAdvantage.toFixed(1)}%`)}`,
       `🎯 Grade: ${this.formatGrade(getGrade(speedAdvantage))}`,
       '',
-      `💡 ${chalk.italic(this.getRecommendation(winner.name.split(' - ')[0], speedAdvantage))}`
+      `💡 ${chalk.italic(this.getRecommendation(winner.name.split(' - ')[0], speedAdvantage))}`,
     )
 
     console.log(
@@ -210,8 +210,8 @@ export class EnhancedBenchmarkReporter {
         padding: 1,
         margin: 1,
         borderStyle: 'round',
-        borderColor: 'green'
-      })
+        borderColor: 'green',
+      }),
     )
   }
 
@@ -269,7 +269,7 @@ export class EnhancedBenchmarkReporter {
         acc[driver] = 0
         return acc
       },
-      {} as Record<string, number>
+      {} as Record<string, number>,
     )
 
     scenarios.forEach(scenario => {
@@ -277,13 +277,13 @@ export class EnhancedBenchmarkReporter {
         .map(driver => ({
           driver,
           result: results.find(
-            r => r.name.includes(driver) && r.name.includes(scenario)
-          )
+            r => r.name.includes(driver) && r.name.includes(scenario),
+          ),
         }))
         .filter(d => d.result)
         .sort(
           (a, b) =>
-            b.result!.operationsPerSecond - a.result!.operationsPerSecond
+            b.result!.operationsPerSecond - a.result!.operationsPerSecond,
         )
 
       if (scenarioResults.length > 0) {
@@ -292,7 +292,7 @@ export class EnhancedBenchmarkReporter {
     })
 
     const activeDrivers = drivers.filter(driver =>
-      results.some(r => r.name.includes(driver))
+      results.some(r => r.name.includes(driver)),
     )
     const content = [
       chalk.bold.yellow('📈 Summary Statistics'),
@@ -311,7 +311,7 @@ export class EnhancedBenchmarkReporter {
         return `${medal} ${driver} Wins: ${chalk[color].bold(winCounts[driver])}`
       }),
       `📊 Total Scenarios: ${chalk.yellow(scenarios.length)}`,
-      `⏱️  Total Benchmark Time: ${chalk.cyan(this.formatTime(results.reduce((sum, r) => sum + r.totalTime, 0)))}`
+      `⏱️  Total Benchmark Time: ${chalk.cyan(this.formatTime(results.reduce((sum, r) => sum + r.totalTime, 0)))}`,
     ]
 
     console.log(
@@ -319,8 +319,8 @@ export class EnhancedBenchmarkReporter {
         padding: 1,
         margin: 1,
         borderStyle: 'round',
-        borderColor: 'yellow'
-      })
+        borderColor: 'yellow',
+      }),
     )
   }
 
@@ -328,27 +328,27 @@ export class EnhancedBenchmarkReporter {
     const drivers = [
       {
         name: 'MySQL2',
-        results: results.filter(r => r.name.includes('MySQL2'))
+        results: results.filter(r => r.name.includes('MySQL2')),
       },
       {
         name: 'Prisma',
-        results: results.filter(r => r.name.includes('Prisma'))
+        results: results.filter(r => r.name.includes('Prisma')),
       },
       {
         name: 'Kysely',
-        results: results.filter(r => r.name.includes('Kysely'))
+        results: results.filter(r => r.name.includes('Kysely')),
       },
       {
         name: 'Drizzle',
-        results: results.filter(r => r.name.includes('Drizzle'))
-      }
+        results: results.filter(r => r.name.includes('Drizzle')),
+      },
     ]
       .filter(d => d.results.length > 0)
       .map(d => ({
         name: d.name,
         avgOps:
           d.results.reduce((sum, r) => sum + r.operationsPerSecond, 0) /
-          d.results.length
+          d.results.length,
       }))
       .sort((a, b) => b.avgOps - a.avgOps)
 
@@ -358,62 +358,62 @@ export class EnhancedBenchmarkReporter {
 
     if (winner.name === 'MySQL2') {
       recommendations.push(
-        '🚀 For maximum performance, MySQL2 provides direct database access'
+        '🚀 For maximum performance, MySQL2 provides direct database access',
       )
       recommendations.push(
-        '📊 MySQL2 shows consistent speed advantages for raw queries'
+        '📊 MySQL2 shows consistent speed advantages for raw queries',
       )
     } else if (winner.name === 'Kysely') {
       recommendations.push(
-        '⚡ Kysely offers excellent type safety with minimal performance overhead'
+        '⚡ Kysely offers excellent type safety with minimal performance overhead',
       )
       recommendations.push(
-        '🛠️ Consider Kysely for type-safe queries without ORM complexity'
+        '🛠️ Consider Kysely for type-safe queries without ORM complexity',
       )
     } else if (winner.name === 'Drizzle') {
       recommendations.push(
-        '🔥 Drizzle provides modern TypeScript experience with great performance'
+        '🔥 Drizzle provides modern TypeScript experience with great performance',
       )
       recommendations.push(
-        '📈 Drizzle balances developer experience with runtime efficiency'
+        '📈 Drizzle balances developer experience with runtime efficiency',
       )
     } else if (winner.name === 'Prisma') {
       recommendations.push(
-        '✨ Prisma excels in developer experience with competitive performance'
+        '✨ Prisma excels in developer experience with competitive performance',
       )
       recommendations.push(
-        '🛡️ Consider Prisma for full-featured ORM with excellent tooling'
+        '🛡️ Consider Prisma for full-featured ORM with excellent tooling',
       )
     }
 
     if (secondBest && winner.avgOps / secondBest.avgOps < 1.2) {
       recommendations.push(
-        `🤝 ${winner.name} and ${secondBest.name} show similar performance - choose based on your needs`
+        `🤝 ${winner.name} and ${secondBest.name} show similar performance - choose based on your needs`,
       )
     }
 
     recommendations.push(
-      '🔄 For read-heavy workloads, consider raw SQL approaches (MySQL2/Kysely)'
+      '🔄 For read-heavy workloads, consider raw SQL approaches (MySQL2/Kysely)',
     )
     recommendations.push(
-      '✨ For complex applications, ORMs (Prisma/Drizzle) provide better abstractions'
+      '✨ For complex applications, ORMs (Prisma/Drizzle) provide better abstractions',
     )
     recommendations.push(
-      '📈 Consider mixing approaches: ORM for CRUD, raw queries for complex operations'
+      '📈 Consider mixing approaches: ORM for CRUD, raw queries for complex operations',
     )
 
     console.log(
       boxen(
         [chalk.bold.green('💡 Recommendations'), '', ...recommendations].join(
-          '\n'
+          '\n',
         ),
         {
           padding: 1,
           margin: 1,
           borderStyle: 'round',
-          borderColor: 'green'
-        }
-      )
+          borderColor: 'green',
+        },
+      ),
     )
   }
 
@@ -422,7 +422,7 @@ export class EnhancedBenchmarkReporter {
       format: `${chalk.cyan(title)} |${chalk.cyan('{bar}')}| {percentage}% | {value}/{total} | ETA: {eta}s`,
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
-      hideCursor: true
+      hideCursor: true,
     })
     this.progressBar.start(total, 0)
   }
@@ -448,8 +448,8 @@ export class EnhancedBenchmarkReporter {
       boxen(`📁 Results exported to ${chalk.green(fileName)}`, {
         padding: 1,
         borderStyle: 'round',
-        borderColor: 'green'
-      })
+        borderColor: 'green',
+      }),
     )
   }
 
@@ -463,15 +463,15 @@ export class EnhancedBenchmarkReporter {
           `Platform: ${chalk.green(process.platform)} ${chalk.green(process.arch)}`,
           `CPU Count: ${chalk.green(require('node:os').cpus().length)}`,
           `Memory: ${this.formatMemory(require('node:os').totalmem())}`,
-          `Container: ${chalk.green('Docker Testcontainers')}`
+          `Container: ${chalk.green('Docker Testcontainers')}`,
         ].join('\n'),
         {
           padding: 1,
           margin: 1,
           borderStyle: 'round',
-          borderColor: 'blue'
-        }
-      )
+          borderColor: 'blue',
+        },
+      ),
     )
   }
 }

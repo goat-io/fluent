@@ -1,5 +1,118 @@
 # Changelog
 
+## 0.9.32
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.6.0
+  - @goatlab/js-utils@0.10.3
+
+## 0.9.31
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.5.0
+
+## 0.9.30
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.4.1
+
+## 0.9.29
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.4.0
+
+## 0.9.28
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.3.0
+
+## 0.9.27
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.2.1
+
+## 0.9.26
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.2.0
+
+## 0.9.25
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.24
+
+## 0.9.24
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.22
+
+## 0.9.23
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.3
+  - @goatlab/node-backend@1.1.21
+
+## 0.9.22
+
+### Patch Changes
+
+- @goatlab/node-backend@1.1.20
+
+## 0.9.21
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.19
+
+## 0.9.20
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.16
+
+## 0.9.19
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.15
+
+## 0.9.18
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.14
+
+## 0.9.17
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-backend@1.1.10
+
 ## 0.9.16
 
 ### Patch Changes

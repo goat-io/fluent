@@ -10,14 +10,14 @@ describe('Firebase Connector Tests with Generic Unified Suite', () => {
     // Initialize Firebase with emulator settings
     FirebaseInit({
       databaseName: 'test-project',
-      emulator: true
+      emulator: true,
     })
   })
 
   const unifiedTests = createUnifiedTests({
     createGoatConnector: () => new GoatRepository(),
     createTypeOrmConnector: () => new TypeOrmRepository(),
-    dbType: 'firebase'
+    dbType: 'firebase',
   })
 
   afterAll(async () => {

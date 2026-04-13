@@ -3,7 +3,7 @@ import {
   ErrorMode,
   Errors,
   Mapper,
-  Predicate
+  Predicate,
 } from '@goatlab/js-utils'
 import { END, SKIP } from '@goatlab/js-utils/dist/Promises/pMap'
 import { yellow } from 'kleur/colors'
@@ -61,7 +61,7 @@ export class TransformMapSync extends AbortableTransform {}
  */
 export function transformMapSync<In = any, Out = In>(
   mapper: Mapper<In, Out | typeof SKIP | typeof END>,
-  opt: TransformMapSyncOptions = {}
+  opt: TransformMapSyncOptions = {},
 ): TransformTyped<In, Out> {
   let index = -1
 
@@ -72,7 +72,7 @@ export function transformMapSync<In = any, Out = In>(
     onError,
     metric = 'stream',
     objectMode = true,
-    logger = console
+    logger = console,
   } = opt
   let isSettled = false
   let errors = 0
@@ -131,7 +131,7 @@ export function transformMapSync<In = any, Out = In>(
             this,
             this.sourceReadable,
             this.streamDone,
-            logger
+            logger,
           )
         }
 
@@ -173,14 +173,14 @@ export function transformMapSync<In = any, Out = In>(
         cb(
           new AggregateError(
             collectedErrors,
-            `transformMapSync resulted in ${collectedErrors.length} error(s)`
-          )
+            `transformMapSync resulted in ${collectedErrors.length} error(s)`,
+          ),
         )
       } else {
         // emit no error
         cb()
       }
-    }
+    },
   })
 
   function logErrorStats(final = false): void {

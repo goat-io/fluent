@@ -1,7 +1,7 @@
 {
   "author": "ignacio.cabrera@goatlab.io",
   "name": "@goatlab/js-utils",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
@@ -16,11 +16,11 @@
     "serve": "tsc -w",
     "test": "vitest run",
     "update:packages": "npm-check-updates -u && yarn",
-    "build:ky": "tsup --config tsup.config.ts && ts-node ./postBuildKy.ts"
+    "build:ky": "tsup --config tsup.config.ts && npx tsx ./postBuildKy.ts"
   },
   "dependencies": {
     "@lukeed/uuid": "^2.0.1",
-    "nanoid": "^3.3.11",
+    "nanoid": "^5.1.6",
     "typed-path": "^2.2.3"
   },
   "description": "Readable query Interface & API generator for TS and Node",
@@ -33,7 +33,7 @@
     "abort-controller": "^3.0.0",
     "dotenv-cli": "^5.1.0",
     "esbuild": "^0.25.5",
-    "ky": "^1.8.1",
+    "ky": "^1.14.2",
     "pretty-quick": "^3.1.3",
     "ts-node": "catalog:",
     "tsup": "^8.5.0",

@@ -1,6 +1,6 @@
 import { Request, RequestHandler, Response } from 'express'
 import { existsSync, mkdirSync } from 'fs'
-import * as multer from 'multer'
+import multer from 'multer'
 import { extname } from 'path'
 // import { Azure } from './Providers/Azure'
 import { Google } from './Providers/Google'
@@ -11,7 +11,7 @@ export enum Providers {
   Google = 'google',
   S3 = 's3',
   Azure = 'azure',
-  Local = 'local'
+  Local = 'local',
 }
 
 export interface MulterConfiguration {
@@ -82,7 +82,7 @@ export class Upload {
           },
           filename(_req, file, cb) {
             cb(null, config.fileName + extname(file.originalname))
-          }
+          },
         })
         break
       }
@@ -93,7 +93,7 @@ export class Upload {
 
     return multer({ storage, limits }).array(
       key,
-      1
+      1,
     ) as unknown as RequestHandler
   }
 }

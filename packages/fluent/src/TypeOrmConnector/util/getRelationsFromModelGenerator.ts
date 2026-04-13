@@ -19,7 +19,7 @@ export interface GeneratedModelRelations {
 }
 
 export const getRelationsFromModelGenerator = (
-  typeOrmRepo: Repository<any>
+  typeOrmRepo: Repository<any>,
 ): GeneratedModelRelations => {
   const relations = {}
   for (const relation of typeOrmRepo.metadata.relations) {
@@ -35,10 +35,10 @@ export const getRelationsFromModelGenerator = (
       tableName: relation.inverseEntityMetadata.tableName,
       targetClass: relation.inverseEntityMetadata.target,
       joinColumns: relation.joinColumns,
-      inverseJoinColumns: relation.inverseJoinColumns
+      inverseJoinColumns: relation.inverseJoinColumns,
     }
   }
   return {
-    relations
+    relations,
   }
 }

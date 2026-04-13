@@ -1,7 +1,7 @@
 import { CarsEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/car/car.entity'
 import {
   CarDtoInput,
-  carInputSchema
+  carInputSchema,
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/car/car.schema'
 import { UsersEntity } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/user/user.entity'
 import { FirebaseConnector } from '../FirebaseConnector'
@@ -11,13 +11,13 @@ export class CarsRepository extends FirebaseConnector<CarsEntity, CarDtoInput> {
   constructor() {
     super({
       entity: CarsEntity,
-      inputSchema: carInputSchema
+      inputSchema: carInputSchema,
     })
   }
 
   public user = () =>
     this.belongsTo({
       repository: UserRepository,
-      model: UsersEntity
+      model: UsersEntity,
     })
 }

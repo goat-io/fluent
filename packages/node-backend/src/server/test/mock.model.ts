@@ -1,5 +1,5 @@
 export type BasicAccount = {
   email?: string | null
-  firebaseId?: string | null
+  userId?: string | null
   [key: string]: unknown
 }

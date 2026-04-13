@@ -13,9 +13,9 @@ export const getMysqlContainer = (network: StartedNetwork) => {
     .withStartupTimeout(120000)
     .withCommand([
       '--default-authentication-plugin=mysql_native_password',
-      '--bind-address=0.0.0.0'
+      '--bind-address=0.0.0.0',
     ])
     .withEnvironment({
-      MYSQL_ROOT_HOST: '%'
+      MYSQL_ROOT_HOST: '%',
     })
 }

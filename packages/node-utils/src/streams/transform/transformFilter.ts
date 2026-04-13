@@ -4,7 +4,7 @@ import { TransformOptions, TransformTyped } from '../streams.model'
 import {
   AsyncPredicate,
   TransformMapOptions,
-  transformMap
+  transformMap,
 } from './transformMap'
 
 /**
@@ -12,11 +12,11 @@ import {
  */
 export function transformFilter<In = any>(
   predicate: AsyncPredicate<In>,
-  opt: TransformMapOptions = {}
+  opt: TransformMapOptions = {},
 ): TransformTyped<In, In> {
   return transformMap(v => v, {
     predicate,
-    ...opt
+    ...opt,
   })
 }
 
@@ -25,7 +25,7 @@ export function transformFilter<In = any>(
  */
 export function transformFilterSync<In = any>(
   predicate: Predicate<In>,
-  opt: TransformOptions = {}
+  opt: TransformOptions = {},
 ): TransformTyped<In, In> {
   let index = 0
 
@@ -42,6 +42,6 @@ export function transformFilterSync<In = any>(
       } catch (err) {
         cb(err as Error)
       }
-    }
+    },
   })
 }

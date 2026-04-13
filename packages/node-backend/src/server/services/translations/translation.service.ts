@@ -61,7 +61,7 @@ class TranslationService {
 
     if (loadedLanguages.length > 0) {
       console.log(
-        `Translation service initialized with languages: ${loadedLanguages.join(', ')}`
+        `Translation service initialized with languages: ${loadedLanguages.join(', ')}`,
       )
     } else {
       console.warn('Translation service: No language files were loaded')
@@ -159,7 +159,7 @@ class TranslationService {
   translateIfExists(
     key: string,
     user: UserLanguageOptions,
-    args = {}
+    args = {},
   ): string | undefined {
     // Ensure initialization
     if (!this.initialized) {
@@ -260,7 +260,7 @@ export function tr(key: string, user: UserLanguageOptions, args = {}): string {
 export function trIfExists(
   key: string,
   user: UserLanguageOptions,
-  args = {}
+  args = {},
 ): string | undefined {
   return translationService.translateIfExists(key, user, args)
 }

@@ -15,7 +15,7 @@ export enum RelationType {
   embedsOne = 'embedsOne',
   embedsMany = 'embedsMany',
   referencesOne = 'referencesOne',
-  referencesMany = 'referencesMany'
+  referencesMany = 'referencesMany',
 }
 
 export interface RelationDefinitionBase {
@@ -173,5 +173,5 @@ export type InclusionResolver<S extends Entity, T extends Entity> = (
   /**
    * Generic options object, e.g. carrying the Transaction object.
    */
-  options?: Options
+  options?: Options,
 ) => Promise<(T | undefined)[] | (T[] | undefined)[]>

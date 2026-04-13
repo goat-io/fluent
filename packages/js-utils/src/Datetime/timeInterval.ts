@@ -17,13 +17,13 @@ export type TimeIntervalString = string
 export class TimeInterval {
   private constructor(
     private _start: UnixTimestampNumber,
-    private _end: UnixTimestampNumber
+    private _end: UnixTimestampNumber,
   ) {}
 
   static of(start: LocalTimeConfig, end: LocalTimeConfig): TimeInterval {
     return new TimeInterval(
       LocalTime.parseToUnixTimestamp(start),
-      LocalTime.parseToUnixTimestamp(end)
+      LocalTime.parseToUnixTimestamp(end),
     )
   }
 

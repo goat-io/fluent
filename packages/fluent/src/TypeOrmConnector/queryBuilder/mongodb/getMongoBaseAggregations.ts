@@ -14,7 +14,7 @@ export interface GetMongoBaseAggregationParams {
  */
 export const getMongoBaseAggregation = ({
   include,
-  self
+  self,
 }: GetMongoBaseAggregationParams): any[] => {
   self.initDB()
   if (!include) {
@@ -45,7 +45,7 @@ export const getMongoBaseAggregation = ({
 
       const innerRelations = getMongoBaseAggregation({
         include: relationInclude.include,
-        self: newSelf
+        self: newSelf,
       })
 
       innerLookups.push(...innerRelations)
@@ -57,15 +57,15 @@ export const getMongoBaseAggregation = ({
         typeof relationInclude === 'object' &&
         'where' in relationInclude
           ? relationInclude.where
-          : undefined
+          : undefined,
     })
 
     if (dbRelation.isManyToOne) {
       const localField = dbRelation.joinColumns[0].propertyPath
       aggregations.push({
         $addFields: {
-          [`${localField}_object`]: { $toObjectId: `$${localField}` }
-        }
+          [`${localField}_object`]: { $toObjectId: `$${localField}` },
+        },
       })
       // Include Id in the results as we use it in every fluent query
       aggregations.push({ $addFields: { id: { $toString: '$_id' } } })
@@ -77,20 +77,20 @@ export const getMongoBaseAggregation = ({
           as: dbRelation.propertyName,
           pipeline: [
             {
-              $match: where
+              $match: where,
             },
             { $addFields: { id: { $toString: '$_id' } } },
-            ...innerLookups
+            ...innerLookups,
             //{ $limit: 2 }
-          ]
-        }
+          ],
+        },
       })
 
       aggregations.push({
         $unwind: {
           path: `$${dbRelation.propertyName}`,
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       })
     }
 
@@ -105,13 +105,13 @@ export const getMongoBaseAggregation = ({
           as: dbRelation.propertyName,
           pipeline: [
             {
-              $match: where
+              $match: where,
             },
             { $addFields: { id: { $toString: '$_id' } } },
-            ...innerLookups
+            ...innerLookups,
             //{ $limit: 2 }
-          ]
-        }
+          ],
+        },
       })
     }
 
@@ -129,13 +129,13 @@ export const getMongoBaseAggregation = ({
         !inverseForeignField
       ) {
         throw new Error(
-          `Your many to many relation is not properly set up. Please check both your models and schema for relation: ${relation}`
+          `Your many to many relation is not properly set up. Please check both your models and schema for relation: ${relation}`,
         )
       }
 
       aggregations.push({ $addFields: { id: { $toString: '$_id' } } })
       aggregations.push({
-        $addFields: { parentStringId: { $toString: '$_id' } }
+        $addFields: { parentStringId: { $toString: '$_id' } },
       })
       aggregations.push({
         $lookup: {
@@ -149,9 +149,9 @@ export const getMongoBaseAggregation = ({
             {
               $addFields: {
                 [`${inverseForeignField}_object`]: {
-                  $toObjectId: `$${inverseForeignField}`
-                }
-              }
+                  $toObjectId: `$${inverseForeignField}`,
+                },
+              },
             },
             // The other side of the relationShip
             {
@@ -161,40 +161,40 @@ export const getMongoBaseAggregation = ({
                 foreignField: '_id',
                 pipeline: [
                   {
-                    $match: where
+                    $match: where,
                   },
-                  { $addFields: { id: { $toString: '$_id' } } }
+                  { $addFields: { id: { $toString: '$_id' } } },
                   // Here we could add more filters like
                   //{ $limit: 2 }
                 ],
-                as: dbRelation.propertyName
-              }
+                as: dbRelation.propertyName,
+              },
             },
             {
               $unwind: {
                 path: `$${dbRelation.propertyName}`,
-                preserveNullAndEmptyArrays: true
-              }
+                preserveNullAndEmptyArrays: true,
+              },
             },
             // Select (ish)
             {
               $project: {
                 [dbRelation.propertyName]: `$${dbRelation.propertyName}`,
-                pivot: '$$ROOT'
-              }
+                pivot: '$$ROOT',
+              },
             },
             {
               $replaceRoot: {
                 newRoot: {
-                  $mergeObjects: ['$$ROOT', `$${dbRelation.propertyName}`]
-                }
-              }
+                  $mergeObjects: ['$$ROOT', `$${dbRelation.propertyName}`],
+                },
+              },
             },
-            { $project: { [dbRelation.propertyName]: 0 } }
+            { $project: { [dbRelation.propertyName]: 0 } },
             // Here we could add more filters like
             //{ $limit: 2 }
-          ]
-        }
+          ],
+        },
       })
     }
   }

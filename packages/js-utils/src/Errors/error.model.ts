@@ -122,7 +122,7 @@ export interface ErrorObject<DataType extends ErrorData = ErrorData> {
  * JSON HTTP response from the Backend that represents "Error".
  */
 export interface HttpErrorResponse<
-  DataType extends HttpErrorData = HttpErrorData
+  DataType extends HttpErrorData = HttpErrorData,
 > {
   error: ErrorObject<DataType>
 }

@@ -9,7 +9,7 @@ import { runCommand } from './runCommand'
 // Mock child_process
 vi.mock('child_process', () => ({
   spawn: vi.fn(),
-  execSync: vi.fn()
+  execSync: vi.fn(),
 }))
 
 describe('runCommand', () => {
@@ -34,7 +34,7 @@ describe('runCommand', () => {
         }
         processListeners.get(eventKey)!.push(listener)
         return originalOn(event, listener) as any
-      }
+      },
     )
 
     vi.spyOn(process, 'removeAllListeners').mockImplementation(
@@ -45,7 +45,7 @@ describe('runCommand', () => {
           processListeners.clear()
         }
         return originalRemoveAllListeners(event) as any
-      }
+      },
     )
 
     // Mock process.kill
@@ -62,12 +62,12 @@ describe('runCommand', () => {
     mockChildProcess.stdout = new Readable({
       read() {
         // Intentionally empty - mock readable stream
-      }
+      },
     })
     mockChildProcess.stderr = new Readable({
       read() {
         // Intentionally empty - mock readable stream
-      }
+      },
     })
 
     // Reset mocks
@@ -104,8 +104,8 @@ describe('runCommand', () => {
         expect.objectContaining({
           cwd: process.cwd(),
           stdio: 'inherit',
-          env: process.env
-        })
+          env: process.env,
+        }),
       )
     })
 
@@ -121,7 +121,7 @@ describe('runCommand', () => {
       Object.defineProperty(process, 'platform', {
         value: 'win32',
         writable: true,
-        configurable: true
+        configurable: true,
       })
 
       const winPromise = runCommand('dir')
@@ -131,7 +131,7 @@ describe('runCommand', () => {
       expect(spawn).toHaveBeenCalledWith(
         'cmd',
         ['/c', 'dir'],
-        expect.any(Object)
+        expect.any(Object),
       )
     })
   })
@@ -170,20 +170,20 @@ describe('runCommand', () => {
 
     test('should include stderr in error message when captureOutput is true', async () => {
       const commandPromise = runCommand('failing-command', {
-        captureOutput: true
+        captureOutput: true,
       })
 
       // Emit stderr data
       setImmediate(() => {
         mockChildProcess.stderr.emit(
           'data',
-          Buffer.from('Error: Command failed')
+          Buffer.from('Error: Command failed'),
         )
         mockChildProcess.emit('close', 1)
       })
 
       await expect(commandPromise).rejects.toThrow(
-        'Process exited with code 1: Error: Command failed'
+        'Process exited with code 1: Error: Command failed',
       )
     })
   })
@@ -208,13 +208,13 @@ describe('runCommand', () => {
       sigintListeners[0]()
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '\n\nReceived interrupt signal, shutting down gracefully...'
+        '\n\nReceived interrupt signal, shutting down gracefully...',
       )
 
       // Verify child process was killed (Unix)
       expect(process.kill).toHaveBeenCalledWith(
         -mockChildProcess.pid,
-        'SIGTERM'
+        'SIGTERM',
       )
 
       consoleSpy.mockRestore()
@@ -237,7 +237,7 @@ describe('runCommand', () => {
       sigtermListeners[0]()
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '\nReceived SIGTERM, shutting down gracefully...'
+        '\nReceived SIGTERM, shutting down gracefully...',
       )
 
       consoleSpy.mockRestore()
@@ -258,7 +258,7 @@ describe('runCommand', () => {
       sighupListeners[0]()
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '\nReceived SIGHUP, shutting down gracefully...'
+        '\nReceived SIGHUP, shutting down gracefully...',
       )
 
       consoleSpy.mockRestore()
@@ -270,7 +270,7 @@ describe('runCommand', () => {
       Object.defineProperty(process, 'platform', {
         value: 'win32',
         writable: true,
-        configurable: true
+        configurable: true,
       })
 
       const commandPromise = runCommand('long-running-command')
@@ -283,7 +283,7 @@ describe('runCommand', () => {
       // Verify taskkill was called on Windows
       expect(execSync).toHaveBeenCalledWith(
         `taskkill /pid ${mockChildProcess.pid} /T /F`,
-        { stdio: 'ignore' }
+        { stdio: 'ignore' },
       )
 
       mockChildProcess.emit('close', null)
@@ -375,7 +375,7 @@ describe('runCommand', () => {
       expect(spawn).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(Array),
-        expect.objectContaining({ cwd: customCwd })
+        expect.objectContaining({ cwd: customCwd }),
       )
     })
 
@@ -389,14 +389,14 @@ describe('runCommand', () => {
       expect(spawn).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(Array),
-        expect.objectContaining({ cwd: customDir })
+        expect.objectContaining({ cwd: customDir }),
       )
     })
 
     test('should prefer cwd over workingDirectory if both provided', async () => {
       const commandPromise = runCommand('pwd', {
         cwd: '/cwd/path',
-        workingDirectory: '/working/directory'
+        workingDirectory: '/working/directory',
       })
 
       setImmediate(() => mockChildProcess.emit('close', 0))
@@ -405,7 +405,7 @@ describe('runCommand', () => {
       expect(spawn).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(Array),
-        expect.objectContaining({ cwd: '/cwd/path' })
+        expect.objectContaining({ cwd: '/cwd/path' }),
       )
     })
 
@@ -418,13 +418,13 @@ describe('runCommand', () => {
       expect(spawn).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(Array),
-        expect.objectContaining({ stdio: 'pipe' })
+        expect.objectContaining({ stdio: 'pipe' }),
       )
     })
 
     test('should capture output when captureOutput is true', async () => {
       const commandPromise = runCommand('echo hello world', {
-        captureOutput: true
+        captureOutput: true,
       })
 
       setImmediate(() => {
@@ -438,13 +438,13 @@ describe('runCommand', () => {
       expect(spawn).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(Array),
-        expect.objectContaining({ stdio: ['inherit', 'pipe', 'pipe'] })
+        expect.objectContaining({ stdio: ['inherit', 'pipe', 'pipe'] }),
       )
     })
 
     test('should capture stderr when captureOutput is true', async () => {
       const commandPromise = runCommand('command-with-stderr', {
-        captureOutput: true
+        captureOutput: true,
       })
 
       setImmediate(() => {
@@ -454,13 +454,13 @@ describe('runCommand', () => {
       })
 
       await expect(commandPromise).rejects.toThrow(
-        'Process exited with code 1: error output'
+        'Process exited with code 1: error output',
       )
     })
 
     test('should handle multiple data chunks when capturing output', async () => {
       const commandPromise = runCommand('echo multiline', {
-        captureOutput: true
+        captureOutput: true,
       })
 
       setImmediate(() => {

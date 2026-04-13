@@ -5,7 +5,7 @@ export const SUPPORTED_LANGUAGES: Lang[] = [
   'en_gb',
   'es_us',
   'es_cl',
-  'es_mx'
+  'es_mx',
 ]
 export const LANG_DEFAULT = 'en_us'
 

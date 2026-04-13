@@ -24,7 +24,7 @@ export const survey = (component: FormioComponent) => {
           enum: enumArray,
           required: false,
           type: 'string',
-          unique: false
+          unique: false,
         }
       })
     }

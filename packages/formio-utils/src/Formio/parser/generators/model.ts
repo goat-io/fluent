@@ -15,27 +15,27 @@ import { template as nestModelExtended } from './templates/Nestjs/model/model.hb
 
 const FrameworkTemplatesBaseModel = {
   Loopback4: lbModelBase,
-  Nestjs: nestModelBase
+  Nestjs: nestModelBase,
 }
 
 const FrameworkTemplatesModelExtended = {
   Loopback4: lbModelExtended,
-  Nestjs: nestModelExtended
+  Nestjs: nestModelExtended,
 }
 
 const FrameworkTypes = {
   Loopback4: lbTypes,
-  Nestjs: nestTypes
+  Nestjs: nestTypes,
 }
 
 const FrameworkFaker = {
   Loopback4: lbFaker,
-  Nestjs: nestFaker
+  Nestjs: nestFaker,
 }
 
 export const generateModels = (
   Model: FluentModel,
-  framework: SupportedFrameworks
+  framework: SupportedFrameworks,
 ) => {
   const datagrids = generateDatagrids(Model, framework)
   const objects = generateObject(Model, framework)
@@ -46,7 +46,7 @@ export const generateModels = (
   return {
     baseDto: generateDtoModel,
     baseModels: [...datagrids, ...objects, baseModel],
-    extendedModels
+    extendedModels,
   }
 }
 
@@ -54,7 +54,7 @@ const generateBaseModel = (
   Model,
   framework: SupportedFrameworks,
   isChild?: boolean,
-  isArray?: boolean
+  isArray?: boolean,
 ) => {
   const source = FrameworkTemplatesBaseModel[framework]
   const partial = FrameworkTypes[framework]
@@ -124,18 +124,18 @@ const generateBaseModel = (
     framework === SupportedFrameworks.Loopback ? 'model' : 'entity'
 
   const filePath = join(
-    `${Model.folderPath}/_base/${folderName}/${Model.name}-${modelName}.ts`
+    `${Model.folderPath}/_base/${folderName}/${Model.name}-${modelName}.ts`,
   )
   // writeFileSync(filePath, result)
   return {
     file: result,
-    path: filePath
+    path: filePath,
   }
 }
 
 const generateExtendedModel = (
   Model: FluentModel,
-  framework: SupportedFrameworks
+  framework: SupportedFrameworks,
 ) => {
   const modelName =
     framework === SupportedFrameworks.Loopback ? 'model' : 'entity'
@@ -144,18 +144,18 @@ const generateExtendedModel = (
   const templateExtended = Handlebars.compile(sourceExtended)
   const resultExtended = templateExtended(Model.properties)
   const filePathExtended = join(
-    `${Model.folderPath}/${Model.name}.${modelName}.ts`
+    `${Model.folderPath}/${Model.name}.${modelName}.ts`,
   )
   // writeFileSync(filePathExtended, resultExtended)
   return {
     file: resultExtended,
-    path: filePathExtended
+    path: filePathExtended,
   }
 }
 
 const generateDatagrids = (
   Model: FluentModel,
-  framework: SupportedFrameworks
+  framework: SupportedFrameworks,
 ) => {
   const datagrids: any = []
   Object.keys(Model.datagrids).forEach(ModelName => {
@@ -191,6 +191,6 @@ const generateDto = (Model: FluentModel, _framework: SupportedFrameworks) => {
   // writeFileSync(filePath, result)
   return {
     file: result,
-    path: filePath
+    path: filePath,
   }
 }

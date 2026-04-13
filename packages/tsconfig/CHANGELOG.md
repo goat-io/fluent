@@ -1,5 +1,13 @@
 # @goatlab/tsconfig
 
+## 0.2.0
+
+### Minor Changes
+
+- feat(node-backend): remove context proxy, add TContext generic parameter, fix sendgrid email guard, add SSE auth support in tRPC context, export additional logger utilities
+  fix(uploads): fix multer import for esModuleInterop compatibility
+  feat(tsconfig): enable esModuleInterop
+
 ## 0.1.0
 
 ### Minor Changes

@@ -11,7 +11,7 @@ export class RoleUsersRepository extends TypeOrmConnector<
     super({
       entity: RolesUser,
       dataSource: MemoryDataSource,
-      inputSchema: RolesUserSchema
+      inputSchema: RolesUserSchema,
     })
   }
 }

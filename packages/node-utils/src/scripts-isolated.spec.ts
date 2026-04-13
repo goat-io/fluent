@@ -76,7 +76,7 @@ describe('runScript (isolated)', () => {
       async () => {
         resolved = true
       },
-      { noExit: true }
+      { noExit: true },
     )
 
     // Wait for promise to resolve
@@ -99,8 +99,8 @@ describe('runScript (isolated)', () => {
         onError: err => {
           errorHandled = true
           expect(err).toBe(testError)
-        }
-      }
+        },
+      },
     )
 
     // Wait for promise to resolve
@@ -121,8 +121,8 @@ describe('runScript (isolated)', () => {
         noExit: true,
         onExit: code => {
           exitCode = code
-        }
-      }
+        },
+      },
     )
 
     // Wait for promise to resolve
@@ -142,8 +142,8 @@ describe('runScript (isolated)', () => {
         noExit: true,
         onExit: code => {
           exitCode = code
-        }
-      }
+        },
+      },
     )
 
     // Wait for promise to resolve
@@ -157,7 +157,7 @@ describe('runScript (isolated)', () => {
       async () => {
         // Intentionally empty - test signal handler registration
       },
-      { noExit: true }
+      { noExit: true },
     )
 
     expect(process.once).toHaveBeenCalledWith('SIGINT', expect.any(Function))

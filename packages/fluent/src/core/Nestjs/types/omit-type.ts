@@ -3,7 +3,7 @@ import { ApiProperty, DECORATORS } from './decorators/api-property.decorator'
 import {
   inheritPropertyInitializers,
   inheritTransformationMetadata,
-  inheritValidationMetadata
+  inheritValidationMetadata,
 } from './decorators/apply-is-optional.decorator'
 import { clonePluginMetadataFactory } from './utils/mapped-types.utils'
 import { ModelPropertiesAccessor } from './utils/model-properties-accessor'
@@ -18,7 +18,7 @@ const modelPropertiesAccessor = new ModelPropertiesAccessor()
 
 export function OmitType<T, K extends keyof T>(
   classRef: Type<T>,
-  keys: readonly K[]
+  keys: readonly K[],
 ): Type<Omit<T, (typeof keys)[number]>> {
   const fields = modelPropertiesAccessor
     .getModelProperties(classRef.prototype)
@@ -38,14 +38,14 @@ export function OmitType<T, K extends keyof T>(
   clonePluginMetadataFactory(
     OmitTypeClass as Type<unknown>,
     classRef.prototype,
-    (metadata: Record<string, any>) => omit(metadata, keys)
+    (metadata: Record<string, any>) => omit(metadata, keys),
   )
 
   fields.forEach(propertyKey => {
     const metadata = Reflect.getMetadata(
       DECORATORS.API_MODEL_PROPERTIES,
       classRef.prototype,
-      propertyKey
+      propertyKey,
     )
     const decoratorFactory = ApiProperty(metadata)
     decoratorFactory(OmitTypeClass.prototype, propertyKey)

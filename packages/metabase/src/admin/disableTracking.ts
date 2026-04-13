@@ -1,7 +1,7 @@
 export async function disableTracking({
   baseUrl,
   sessionToken,
-  apiKey
+  apiKey,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -12,9 +12,9 @@ export async function disableTracking({
     headers: {
       'Content-Type': 'application/json',
       'X-Metabase-Session': sessionToken || '',
-      'X-Api-Key': apiKey || ''
+      'X-Api-Key': apiKey || '',
     },
-    body: JSON.stringify({ value: false })
+    body: JSON.stringify({ value: false }),
   })
 
   if (!response.ok) {

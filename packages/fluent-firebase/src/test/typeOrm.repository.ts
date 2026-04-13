@@ -1,7 +1,7 @@
 import {
   TypeORMDataModelInputSchema,
   TypeORMDataModelSchema,
-  TypeOrmEntity
+  TypeOrmEntity,
 } from '@goatlab/fluent'
 import { FirebaseConnector } from '../FirebaseConnector'
 
@@ -13,7 +13,7 @@ export class TypeOrmRepository extends FirebaseConnector<
     super({
       entity: TypeOrmEntity,
       inputSchema: TypeORMDataModelSchema,
-      outputSchema: TypeORMDataModelSchema
+      outputSchema: TypeORMDataModelSchema,
     })
   }
 }

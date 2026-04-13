@@ -1,5 +1,11 @@
 # @goatlab/biome
 
+## 0.1.1
+
+### Patch Changes
+
+- style: enforce trailing commas in JavaScript/TypeScript formatting
+
 ## 0.1.0
 
 ### Minor Changes

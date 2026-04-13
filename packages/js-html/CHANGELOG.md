@@ -1,5 +1,21 @@
 # 0.5.20
 
+## 0.1.3
+
+### Patch Changes
+
+- Fix HtmlProcessor ellipsis handling to prevent spurious links for spaces
+
+  - Manually wrap ellipsis in `<a>` tag with href="/expand" instead of relying on linkify-plugin-keyword
+  - Reduce linkifyHtml calls from 3 to 1 after truncation to prevent issues with multi-word keywords
+  - Ensure "See more" link always works for RichTextDisplay components
+
+## 0.1.2
+
+### Patch Changes
+
+- Redis connection pools
+
 ## 0.1.0
 
 ### Minor Changes

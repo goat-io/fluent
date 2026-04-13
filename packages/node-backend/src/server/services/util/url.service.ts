@@ -28,7 +28,7 @@ export class UrlService {
     privateBucketName,
     baseDomain,
     backendApiBaseUrl,
-    environment
+    environment,
   }: {
     publicBucketName: string
     privateBucketName: string
@@ -43,7 +43,7 @@ export class UrlService {
     this.environment = environment
   }
   public getBackendUrl = (
-    { isMobile, useIP }: UrlServiceProps = { isMobile: false, useIP: false }
+    { isMobile, useIP }: UrlServiceProps = { isMobile: false, useIP: false },
   ) => {
     if (this.environment === 'local') {
       return this.backendApiBaseUrl
@@ -66,7 +66,7 @@ export class UrlService {
    */
   public getLocalStorageHostUrl = async ({
     isMobile,
-    useIP
+    useIP,
   }: UrlServiceProps): Promise<string> => {
     if (isMobile || useIP) {
       return `http://${localIpAddress}:9199`
@@ -78,7 +78,7 @@ export class UrlService {
     if (this.environment === 'local') {
       const storageServiceUrl = await this.getLocalStorageHostUrl({
         isMobile,
-        useIP
+        useIP,
       })
 
       return `${storageServiceUrl}/${this.publicBucketName}`
@@ -93,12 +93,12 @@ export class UrlService {
 
   public getPrivateStorageUrl = async ({
     isMobile,
-    useIP
+    useIP,
   }: UrlServiceProps) => {
     if (this.environment === 'local') {
       const storageServiceUrl = await this.getLocalStorageHostUrl({
         isMobile,
-        useIP
+        useIP,
       })
 
       return `${storageServiceUrl}/${this.privateBucketName}`
@@ -155,7 +155,7 @@ export class UrlService {
   public getBackendRedirectURLForTransBankPayments({
     origin,
     orderId,
-    storeId
+    storeId,
   }: {
     origin?: string
     orderId?: string
@@ -163,7 +163,7 @@ export class UrlService {
   }) {
     const redirectUrl = this.getBackendUrl({
       useIP: true,
-      preferPublicIp: true
+      preferPublicIp: true,
     })
 
     return `${redirectUrl}/payments/process?origin=${origin}&storeId=${storeId}&orderId=${orderId}`
@@ -176,7 +176,7 @@ export class UrlService {
    */
   public getPaymentSuccessRedirectURL(
     origin: string | undefined,
-    orderId: string
+    orderId: string,
   ): PaymentSuccessRedirectURL {
     const base = this.getFrontendRedirectURL(origin)
     return `${base}/payment/processed?orderId=${encodeURIComponent(orderId)}`
@@ -189,7 +189,7 @@ export class UrlService {
    */
   public getPaymentFailedRedirectURL(
     origin: string | undefined,
-    orderId: string
+    orderId: string,
   ): PaymentFailedRedirectURL {
     const base = this.getFrontendRedirectURL(origin)
     return `${base}/payment/cancelled?paymentFailed=true&orderId=${encodeURIComponent(orderId)}`
@@ -202,7 +202,7 @@ export class UrlService {
    */
   public getPaymentCancelledRedirectURL(
     origin: string | undefined,
-    orderId: string
+    orderId: string,
   ): PaymentCancelledRedirectURL {
     const base = this.getFrontendRedirectURL(origin)
     return `${base}/payment/cancelled?orderId=${encodeURIComponent(orderId)}`

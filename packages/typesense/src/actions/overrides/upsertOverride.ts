@@ -2,13 +2,13 @@ import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollectionOptions,
   TypesenseOverride,
-  TypesenseOverrideResponse
+  TypesenseOverrideResponse,
 } from '../../typesense.model'
 
 export async function upsertOverride(
   ctx: TypesenseContext,
   override: TypesenseOverride,
-  options?: TypesenseCollectionOptions
+  options?: TypesenseCollectionOptions,
 ): Promise<TypesenseOverrideResponse> {
   const collectionName = options?.collection || ctx.fqcn()
 
@@ -16,7 +16,7 @@ export async function upsertOverride(
     `/collections/${collectionName}/overrides/${override.id}`,
     {
       method: 'PUT',
-      body: override
-    }
+      body: override,
+    },
   )
 }

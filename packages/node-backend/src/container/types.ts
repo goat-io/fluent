@@ -6,6 +6,28 @@ import type { Container } from './Container'
 import { DistributedCacheInvalidator } from './DistributedCacheInvalidator'
 
 /**
+ * Symbol that services can use to opt out of context proxy wrapping.
+ * Set this property to `true` on any service object to prevent the
+ * Container from wrapping it in a Proxy.
+ *
+ * This replaces brittle duck-typing checks for specific libraries
+ * (Prisma, Redis, Keyv, etc.) with a universal opt-out mechanism.
+ *
+ * @example
+ * ```typescript
+ * import { NO_CONTAINER_PROXY } from './types'
+ *
+ * class PrismaService {
+ *   [NO_CONTAINER_PROXY] = true
+ *   // ... prisma methods
+ * }
+ * ```
+ */
+export const NO_CONTAINER_PROXY: unique symbol = Symbol.for(
+  'goatlab.container.noProxy',
+)
+
+/**
  * Interface for disposable objects
  * Services implementing this interface will have their dispose method
  * called when they are evicted from cache or when caches are cleared
@@ -106,8 +128,8 @@ export type ContainerMetadata<C> = C extends Container<any, infer Meta>
  * Extract the runtime context type (available services) from a Container
  * This is what you get when calling `container.context`
  */
-export type ContainerContext<C> = C extends Container<infer Defs, any>
-  ? InstancesStructure<Defs>
+export type ContainerContext<C> = C extends Container<any, any, infer TCtx>
+  ? TCtx
   : never
 
 /**
@@ -122,8 +144,12 @@ export type ContainerPreload<C> = C extends Container<infer Defs, any>
  * Extract the bootstrap result type from a Container
  * Contains both instances and any result from the bootstrap function
  */
-export type ContainerBootstrapResult<C> = C extends Container<infer Defs, any>
-  ? { instances: InstancesStructure<Defs>; result?: any }
+export type ContainerBootstrapResult<C> = C extends Container<
+  any,
+  any,
+  infer TCtx
+>
+  ? { instances: TCtx; result?: any }
   : never
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -147,7 +173,7 @@ export type ServiceType<C, ServicePath extends string> = C extends Container<
  */
 type GetServiceType<
   T,
-  Path extends string
+  Path extends string,
 > = Path extends `${infer K}.${infer Rest}`
   ? K extends keyof T
     ? GetServiceType<T[K], Rest>
@@ -200,7 +226,7 @@ export type HasService<C, ServicePath extends string> = ServiceType<
  */
 export type ServiceFactoryParams<
   C,
-  ServicePath extends string
+  ServicePath extends string,
 > = C extends Container<infer Defs, any>
   ? GetFactoryParams<Defs, ServicePath>
   : never
@@ -210,7 +236,7 @@ export type ServiceFactoryParams<
  */
 type GetFactoryParams<
   T,
-  Path extends string
+  Path extends string,
 > = Path extends `${infer K}.${infer Rest}`
   ? K extends keyof T
     ? GetFactoryParams<T[K], Rest>
@@ -228,13 +254,18 @@ type GetFactoryParams<
 /**
  * Result of a single tenant bootstrap operation in a batch
  */
-export interface BatchBootstrapResult<Defs, TMetadata, T> {
+export interface BatchBootstrapResult<
+  Defs,
+  TMetadata,
+  T,
+  TContext = InstancesStructure<Defs>,
+> {
   /** The tenant metadata for this operation */
   metadata: TMetadata
   /** Status of the operation */
   status: 'success' | 'error'
   /** Instances if successful */
-  instances?: InstancesStructure<Defs>
+  instances?: TContext
   /** Result from the function if successful */
   result?: T
   /** Error if the operation failed */
@@ -288,6 +319,8 @@ export interface BatchInvalidationResult {
 export interface ContainerOptions {
   /** Maximum number of instances to cache per service (default: 100) */
   cacheSize?: number
+  /** Maximum number of tenant initializations to cache (default: cacheSize) */
+  maxInitializerCacheSize?: number
   /** Enable performance metrics collection (default: false) */
   enableMetrics?: boolean
   /** Enable detailed error logging and diagnostics (default: false) */
@@ -296,4 +329,77 @@ export interface ContainerOptions {
   enableDistributedInvalidation?: boolean
   /** Distributed cache invalidator instance */
   distributedInvalidator?: DistributedCacheInvalidator
+  /** Cooldown in ms before retrying a failed tenant initializer (default: 0 = no cooldown) */
+  initializerCooldownMs?: number
+  /** Optional event handler for structured container events */
+  onEvent?: (event: ContainerEvent) => void
+  /** Maximum heap usage ratio (0-1) before rejecting new bootstraps (default: 0 = disabled) */
+  maxHeapUsageRatio?: number
+  /** Check heap every Nth bootstrap call (default: 10). Avoids overhead on every call. */
+  heapCheckInterval?: number
+}
+
+/**
+ * Structured events emitted by the Container for observability
+ */
+export type ContainerEvent =
+  | { type: 'bootstrap:start'; tenantId?: string; timestamp: number }
+  | {
+      type: 'bootstrap:complete'
+      tenantId?: string
+      durationMs: number
+      cached: boolean
+      timestamp: number
+    }
+  | {
+      type: 'bootstrap:error'
+      tenantId?: string
+      error: Error
+      durationMs: number
+      timestamp: number
+    }
+  | {
+      type: 'tenant:blocked'
+      tenantId: string
+      timestamp: number
+    }
+  | {
+      type: 'tenant:invalidated'
+      tenantId: string
+      reason?: string
+      timestamp: number
+    }
+  | {
+      type: 'service:invalidated'
+      serviceType: string
+      reason?: string
+      timestamp: number
+    }
+  | {
+      type: 'disposal:error'
+      error: Error
+      timestamp: number
+    }
+  | {
+      type: 'cooldown:active'
+      tenantId?: string
+      remainingMs: number
+      timestamp: number
+    }
+
+/**
+ * Result of a disposal operation
+ */
+export interface DisposalResult {
+  /** Number of instances successfully disposed */
+  disposed: number
+  /** Number of disposal failures */
+  failed: number
+  /** Errors encountered during disposal */
+  errors: Array<{
+    instanceId?: string
+    error: Error
+  }>
+  /** Total number of successful disposals */
+  succeeded: number
 }

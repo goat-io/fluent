@@ -10,10 +10,10 @@ export function ArgsType(): ClassDecorator {
   return (target: globalThis.Function) => {
     const metadata = {
       name: target.name,
-      target: target as new (...args: any[]) => any
+      target: target as new (...args: any[]) => any,
     }
     LazyMetadataStorage.store(() =>
-      TypeMetadataStorage.addArgsMetadata(metadata)
+      TypeMetadataStorage.addArgsMetadata(metadata),
     )
     // This function must be called eagerly to allow resolvers
     // accessing the "name" property

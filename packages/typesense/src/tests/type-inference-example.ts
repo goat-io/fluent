@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createSchemaTypedApi,
   defineCollection,
-  type InferDocumentType
+  type InferDocumentType,
 } from '../index'
 
 describe('Type Inference Example', () => {
@@ -19,8 +19,8 @@ describe('Type Inference Example', () => {
         { name: 'description', type: 'string' as const, optional: true },
         { name: 'price', type: 'float' as const },
         { name: 'inStock', type: 'bool' as const },
-        { name: 'tags', type: 'string[]' as const, optional: true }
-      ] as const
+        { name: 'tags', type: 'string[]' as const, optional: true },
+      ] as const,
     } as const)
 
     // Verify the inferred type
@@ -30,7 +30,7 @@ describe('Type Inference Example', () => {
     const _validDoc1: ProductDoc = {
       title: 'Laptop',
       price: 999.99,
-      inStock: true
+      inStock: true,
     }
 
     const _validDoc2: ProductDoc = {
@@ -38,13 +38,13 @@ describe('Type Inference Example', () => {
       description: 'High-performance laptop',
       price: 1999.99,
       inStock: true,
-      tags: ['gaming', 'performance']
+      tags: ['gaming', 'performance'],
     }
 
     // Create typed API
     const api = createSchemaTypedApi(ProductCollection)({
       prefixUrl: 'http://localhost:8108',
-      token: 'xyz'
+      token: 'xyz',
     })
 
     // Verify API structure
@@ -84,8 +84,8 @@ describe('Type Inference Example', () => {
         { name: 'timestamp', type: 'int64' as const },
         { name: 'location', type: 'geopoint' as const },
         { name: 'attendees', type: 'int32[]' as const, optional: true },
-        { name: 'metadata', type: 'object' as const, optional: true }
-      ] as const
+        { name: 'metadata', type: 'object' as const, optional: true },
+      ] as const,
     } as const)
 
     type EventDoc = InferDocumentType<typeof EventCollection>
@@ -93,7 +93,7 @@ describe('Type Inference Example', () => {
     const validEvent: EventDoc = {
       name: 'Tech Conference',
       timestamp: Date.now(),
-      location: [37.7749, -122.4194]
+      location: [37.7749, -122.4194],
     }
 
     const validEventWithOptionals: EventDoc = {
@@ -101,7 +101,7 @@ describe('Type Inference Example', () => {
       timestamp: Date.now(),
       location: [40.7128, -74.006],
       attendees: [10, 20, 30],
-      metadata: { organizer: 'John', venue: 'Tech Hub' }
+      metadata: { organizer: 'John', venue: 'Tech Hub' },
     }
 
     expect(validEvent).toBeDefined()

@@ -7,7 +7,7 @@ import {
   getActualRequestDurationInMilliseconds,
   getCurrentTimeFormatted,
   httpResponseCodeColor,
-  httpResponseTimeColor
+  httpResponseTimeColor,
 } from './logs.middleware'
 
 // Mock kleur colors
@@ -16,14 +16,14 @@ vi.mock('kleur/colors', () => ({
   green: vi.fn(str => `green(${str})`),
   magenta: vi.fn(str => `magenta(${str})`),
   red: vi.fn(str => `red(${str})`),
-  yellow: vi.fn(str => `yellow(${str})`)
+  yellow: vi.fn(str => `yellow(${str})`),
 }))
 
 // Mock @goatlab/js-utils
 vi.mock('@goatlab/js-utils', () => ({
   Time: {
-    ms: vi.fn(ms => `${ms}ms`)
-  }
+    ms: vi.fn(ms => `${ms}ms`),
+  },
 }))
 
 describe('logs.middleware', () => {
@@ -147,20 +147,21 @@ describe('logs.middleware', () => {
     beforeEach(() => {
       mockRequest = {
         method: 'GET',
-        originalUrl: '/api/test'
+        originalUrl: '/api/test',
       }
 
       mockResponse = {
         statusCode: 200,
         statusMessage: 'OK',
-        on: vi.fn()
+        on: vi.fn(),
       }
 
       mockNext = vi.fn()
 
       mockLogger = {
+        log: vi.fn(),
         warn: vi.fn(),
-        error: vi.fn()
+        error: vi.fn(),
       }
 
       // Mock process.hrtime
@@ -174,7 +175,7 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       expect(mockNext).toHaveBeenCalledTimes(1)
@@ -185,12 +186,12 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       expect(mockResponse.on).toHaveBeenCalledWith(
         'finish',
-        expect.any(Function)
+        expect.any(Function),
       )
     })
 
@@ -209,13 +210,13 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
 
     it('should handle TRPC batch requests', () => {
@@ -236,13 +237,13 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
 
     it('should handle malformed JSON in batch requests', () => {
@@ -262,14 +263,14 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       // Trigger the finish event
       finishHandler()
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Error parsing batch input')
+        expect.stringContaining('Error parsing batch input'),
       )
     })
 
@@ -290,13 +291,13 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
 
     it('should handle error status codes', () => {
@@ -317,7 +318,7 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       // Trigger the finish event
@@ -344,7 +345,7 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       // Trigger the finish event
@@ -370,13 +371,13 @@ describe('logs.middleware', () => {
         mockRequest as Request,
         mockResponse as Response,
         mockNext,
-        mockLogger
+        mockLogger,
       )
 
       // Trigger the finish event
       finishHandler()
 
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(mockLogger.log).toHaveBeenCalled()
     })
   })
 })

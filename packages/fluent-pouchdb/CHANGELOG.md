@@ -1,5 +1,106 @@
 # 0.5.20
 
+## 0.9.32
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tsconfig@0.2.0
+  - @goatlab/fluent@0.9.32
+  - @goatlab/js-utils@0.10.3
+
+## 0.9.31
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.31
+
+## 0.9.30
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.30
+
+## 0.9.29
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.29
+
+## 0.9.28
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.28
+
+## 0.9.27
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.27
+
+## 0.9.26
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.26
+
+## 0.9.25
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.25
+
+## 0.9.24
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.24
+
+## 0.9.23
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.3
+  - @goatlab/fluent@0.9.23
+
+## 0.9.22
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.22
+
+## 0.9.21
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.21
+
+## 0.9.20
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.20
+
+## 0.9.19
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.19
+
+## 0.9.18
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.18
+
+## 0.9.17
+
+### Patch Changes
+
+- @goatlab/fluent@0.9.17
+
 ## 0.9.16
 
 ### Patch Changes

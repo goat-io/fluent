@@ -31,14 +31,14 @@ const Form = {
         maxLength: 40,
         pattern: 'regEX',
         custom: '',
-        customPrivate: false
+        customPrivate: false,
       },
       conditional: { show: '', when: null, eq: '' },
       type: 'textfield',
       labelPosition: 'top',
       inputFormat: 'plain',
       tags: [],
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -62,13 +62,13 @@ const Form = {
         step: 'any',
         integer: '',
         multiple: '',
-        custom: ''
+        custom: '',
       },
       type: 'number',
       labelPosition: 'top',
       tags: [],
       conditional: { show: '', when: null, eq: '' },
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -91,7 +91,7 @@ const Form = {
       hideLabel: false,
       tags: [],
       conditional: { show: '', when: null, eq: '' },
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -105,7 +105,7 @@ const Form = {
         json: '',
         url: '',
         resource: '',
-        custom: ''
+        custom: '',
       },
       dataSrc: 'values',
       valueProperty: '',
@@ -125,7 +125,7 @@ const Form = {
       labelPosition: 'top',
       tags: [],
       conditional: { show: '', when: null, eq: '' },
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -139,7 +139,7 @@ const Form = {
         json: '',
         url: '',
         resource: '',
-        custom: ''
+        custom: '',
       },
       dataSrc: 'values',
       valueProperty: '',
@@ -159,7 +159,7 @@ const Form = {
       labelPosition: 'top',
       tags: [],
       conditional: { show: '', when: null, eq: '' },
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -191,7 +191,7 @@ const Form = {
             maxLength: '',
             pattern: '',
             custom: '',
-            customPrivate: false
+            customPrivate: false,
           },
           conditional: { show: '', when: null, eq: '' },
           type: 'textfield',
@@ -199,7 +199,7 @@ const Form = {
           labelPosition: 'top',
           inputFormat: 'plain',
           tags: [],
-          properties: {}
+          properties: {},
         },
         {
           autofocus: false,
@@ -223,15 +223,15 @@ const Form = {
             step: 'any',
             integer: '',
             multiple: '',
-            custom: ''
+            custom: '',
           },
           type: 'number',
           inDataGrid: true,
           labelPosition: 'top',
           tags: [],
           conditional: { show: '', when: null, eq: '' },
-          properties: {}
-        }
+          properties: {},
+        },
       ],
       tableView: true,
       label: 'datagrid',
@@ -244,7 +244,7 @@ const Form = {
       addAnotherPosition: 'bottom',
       tags: [],
       conditional: { show: '', when: null, eq: '' },
-      properties: {}
+      properties: {},
     },
     {
       autofocus: false,
@@ -259,8 +259,8 @@ const Form = {
       action: 'submit',
       disableOnInvalid: false,
       theme: 'primary',
-      type: 'button'
-    }
+      type: 'button',
+    },
   ],
   revisions: '',
   vid: 0,
@@ -271,10 +271,10 @@ const Form = {
       roles: [
         '5ccb6f508fb3ef6c4f96d878',
         '5ccb6f508fb3ef48fb96d879',
-        '5ccb6f508fb3efe5f396d87a'
+        '5ccb6f508fb3efe5f396d87a',
       ],
-      type: 'read_all'
-    }
+      type: 'read_all',
+    },
   ],
   submissionAccess: [],
   settings: {},
@@ -284,7 +284,7 @@ const Form = {
   project: '5ccb6f508fb3ef72b796d877',
   created: '2019-09-06T13:20:21.299Z',
   modified: '2019-09-06T13:30:10.955Z',
-  machineName: 'suopywgtyuabhru:formDataObject'
+  machineName: 'suopywgtyuabhru:formDataObject',
 }
 
 const dataObject = getFormDataObject(Form)
@@ -298,8 +298,8 @@ const expectedDataObject = {
   datagrid: {
     datagridDgnumber: { type: 'number', required: false },
     datagridDgtext: { type: 'string', required: false },
-    isDatagrid: true
-  }
+    isDatagrid: true,
+  },
 }
 
 it('Should create the DataObject from Form', () => {

@@ -5,7 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryKey,
-  Property
+  Property,
 } from '@mikro-orm/core'
 
 @Entity({ tableName: 'users' })
@@ -25,21 +25,21 @@ export class User {
   @Property({
     type: 'Date',
     fieldName: 'created_at',
-    onCreate: () => new Date()
+    onCreate: () => new Date(),
   })
   createdAt: Date = new Date()
 
   @Property({
     type: 'Date',
     fieldName: 'updated_at',
-    onUpdate: () => new Date()
+    onUpdate: () => new Date(),
   })
   updatedAt: Date = new Date()
 
   @Enum({
     items: ['active', 'inactive', 'suspended'],
     default: 'active',
-    type: 'string'
+    type: 'string',
   })
   status: 'active' | 'inactive' | 'suspended' = 'active'
 
@@ -51,13 +51,13 @@ export class User {
 
   @OneToMany(
     () => Order,
-    order => order.user
+    order => order.user,
   )
   orders = new Collection<Order>(this)
 
   @OneToMany(
     () => Review,
-    review => review.user
+    review => review.user,
   )
   reviews = new Collection<Review>(this)
 }
@@ -82,14 +82,14 @@ export class Product {
   @Property({
     type: 'Date',
     fieldName: 'created_at',
-    onCreate: () => new Date()
+    onCreate: () => new Date(),
   })
   createdAt: Date = new Date()
 
   @Property({
     type: 'Date',
     fieldName: 'updated_at',
-    onUpdate: () => new Date()
+    onUpdate: () => new Date(),
   })
   updatedAt: Date = new Date()
 
@@ -101,13 +101,13 @@ export class Product {
 
   @OneToMany(
     () => OrderItem,
-    orderItem => orderItem.product
+    orderItem => orderItem.product,
   )
   orderItems = new Collection<OrderItem>(this)
 
   @OneToMany(
     () => Review,
-    review => review.product
+    review => review.product,
   )
   reviews = new Collection<Review>(this)
 }
@@ -128,7 +128,7 @@ export class Category {
 
   @OneToMany(
     () => Product,
-    product => product.category
+    product => product.category,
   )
   products = new Collection<Product>(this)
 }
@@ -141,7 +141,7 @@ export class Order {
   @Enum({
     items: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending',
-    type: 'string'
+    type: 'string',
   })
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' =
     'pending'
@@ -150,21 +150,21 @@ export class Order {
     fieldName: 'total_amount',
     type: 'decimal',
     precision: 10,
-    scale: 2
+    scale: 2,
   })
   totalAmount!: number
 
   @Property({
     type: 'Date',
     fieldName: 'created_at',
-    onCreate: () => new Date()
+    onCreate: () => new Date(),
   })
   createdAt: Date = new Date()
 
   @Property({
     type: 'Date',
     fieldName: 'updated_at',
-    onUpdate: () => new Date()
+    onUpdate: () => new Date(),
   })
   updatedAt: Date = new Date()
 
@@ -176,7 +176,7 @@ export class Order {
 
   @OneToMany(
     () => OrderItem,
-    orderItem => orderItem.order
+    orderItem => orderItem.order,
   )
   orderItems = new Collection<OrderItem>(this)
 }
@@ -213,7 +213,7 @@ export class Review {
   @Property({
     type: 'Date',
     fieldName: 'created_at',
-    onCreate: () => new Date()
+    onCreate: () => new Date(),
   })
   createdAt: Date = new Date()
 

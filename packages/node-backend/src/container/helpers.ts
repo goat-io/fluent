@@ -20,7 +20,7 @@ export const isClass = (fn: unknown): fn is new (...a: any[]) => any =>
  */
 export function instantiate<T, P extends readonly unknown[]>(
   factory: Factory<T, P>,
-  params: P
+  params: P,
 ): T {
   // Fast path: Use class detection to avoid try/catch
   if (isClass(factory)) {
@@ -34,7 +34,7 @@ export function instantiate<T, P extends readonly unknown[]>(
 
   // Invalid factory type
   throw new Error(
-    `Invalid factory: expected function or class constructor, got ${typeof factory}`
+    `Invalid factory: expected function or class constructor, got ${typeof factory}`,
   )
 }
 
@@ -43,7 +43,7 @@ export function instantiate<T, P extends readonly unknown[]>(
  * Supports both sync and async disposal patterns
  *
  * @param obj - Object to dispose
- * @returns Promise that resolves when disposal is complete
+ * @returns Promise that resolves when disposal is complete (for backward compatibility)
  */
 export async function safeDispose(obj: unknown): Promise<void> {
   try {
@@ -55,6 +55,32 @@ export async function safeDispose(obj: unknown): Promise<void> {
     // Swallow disposal errors to ensure cleanup continues
     if (process.env.NODE_ENV !== 'test') {
       console.error('Disposal error:', error)
+    }
+  }
+}
+
+/**
+ * Dispose of an object and return any error that occurred
+ * Unlike safeDispose, this function returns the error for aggregation
+ *
+ * @param obj - Object to dispose
+ * @returns Object with disposed flag and optional error
+ */
+export async function disposeWithResult(
+  obj: unknown,
+): Promise<{ disposed: boolean; error?: Error }> {
+  try {
+    const d = (obj as any)?.dispose
+    if (typeof d === 'function') {
+      await d.call(obj)
+      return { disposed: true }
+    }
+    // No dispose method - consider it successfully disposed
+    return { disposed: true }
+  } catch (error) {
+    return {
+      disposed: false,
+      error: error instanceof Error ? error : new Error(String(error)),
     }
   }
 }

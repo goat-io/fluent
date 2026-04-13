@@ -2,7 +2,7 @@ import { Type } from '../common'
 
 export function applyIsOptionalDecorator(
   targetClass: Function,
-  propertyKey: string
+  propertyKey: string,
 ) {
   if (!isClassValidatorAvailable()) {
     return
@@ -15,7 +15,7 @@ export function applyIsOptionalDecorator(
 export function inheritValidationMetadata(
   parentClass: Type<any>,
   targetClass: Function,
-  isPropertyInherited?: (key: string) => boolean
+  isPropertyInherited?: (key: string) => boolean,
 ) {
   if (!isClassValidatorAvailable()) {
     return
@@ -32,37 +32,37 @@ export function inheritValidationMetadata(
     const targetMetadata: ReturnType<
       typeof metadataStorage.getTargetValidationMetadatas
     > = (metadataStorage.getTargetValidationMetadatas as Function)(
-      ...getTargetValidationMetadatasArgs
+      ...getTargetValidationMetadatasArgs,
     )
     return targetMetadata
       .filter(
         ({ propertyName }) =>
-          !isPropertyInherited || isPropertyInherited(propertyName)
+          !isPropertyInherited || isPropertyInherited(propertyName),
       )
       .map(value => {
         const originalType = Reflect.getMetadata(
           'design:type',
           parentClass.prototype,
-          value.propertyName
+          value.propertyName,
         )
         if (originalType) {
           Reflect.defineMetadata(
             'design:type',
             originalType,
             targetClass.prototype,
-            value.propertyName
+            value.propertyName,
           )
         }
 
         metadataStorage.addValidationMetadata({
           ...value,
-          target: targetClass
+          target: targetClass,
         })
         return value.propertyName
       })
   } catch (err) {
     console.error(
-      `Validation ("class-validator") metadata cannot be inherited for "${parentClass.name}" class.`
+      `Validation ("class-validator") metadata cannot be inherited for "${parentClass.name}" class.`,
     )
     console.error(err)
   }
@@ -77,7 +77,7 @@ type TransformMetadataKey =
 export function inheritTransformationMetadata(
   parentClass: Type<any>,
   targetClass: Function,
-  isPropertyInherited?: (key: string) => boolean
+  isPropertyInherited?: (key: string) => boolean,
 ) {
   if (!isClassTransformerAvailable()) {
     return
@@ -87,19 +87,19 @@ export function inheritTransformationMetadata(
       '_excludeMetadatas',
       '_exposeMetadatas',
       '_transformMetadatas',
-      '_typeMetadatas'
+      '_typeMetadatas',
     ]
     transformMetadataKeys.forEach(key =>
       inheritTransformerMetadata(
         key,
         parentClass,
         targetClass,
-        isPropertyInherited
-      )
+        isPropertyInherited,
+      ),
     )
   } catch (err) {
     console.error(
-      `Transformer ("class-transformer") metadata cannot be inherited for "${parentClass.name}" class.`
+      `Transformer ("class-transformer") metadata cannot be inherited for "${parentClass.name}" class.`,
     )
     console.error(err)
   }
@@ -109,7 +109,7 @@ function inheritTransformerMetadata(
   key: TransformMetadataKey,
   parentClass: Type<any>,
   targetClass: Function,
-  isPropertyInherited?: (key: string) => boolean
+  isPropertyInherited?: (key: string) => boolean,
 ) {
   let classTransformer: any
   try {
@@ -131,7 +131,7 @@ function inheritTransformerMetadata(
       const parentMetadata = metadataMap.get(parentClass)
 
       const targetMetadataEntries: Iterable<[string, any]> = Array.from(
-        parentMetadata!.entries()
+        parentMetadata!.entries(),
       )
         .filter(([key]) => !isPropertyInherited || isPropertyInherited(key))
         .map(([key, metadata]) => {
@@ -139,7 +139,7 @@ function inheritTransformerMetadata(
             // "_transformMetadatas" is an array of elements
             const targetMetadata = metadata.map(item => ({
               ...item,
-              target: targetClass
+              target: targetClass,
             }))
             return [key, targetMetadata]
           }
@@ -150,7 +150,7 @@ function inheritTransformerMetadata(
         const existingRules = metadataMap.get(targetClass)!.entries()
         metadataMap.set(
           targetClass,
-          new Map([...existingRules, ...targetMetadataEntries])
+          new Map([...existingRules, ...targetMetadataEntries]),
         )
       } else {
         metadataMap.set(targetClass, new Map(targetMetadataEntries))
@@ -182,7 +182,7 @@ export function inheritPropertyInitializers(
   target: Record<string, any>,
   sourceClass: Type<any>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isPropertyInherited = (_key: string) => true
+  isPropertyInherited = (_key: string) => true,
 ) {
   try {
     const tempInstance = new sourceClass()
@@ -192,7 +192,7 @@ export function inheritPropertyInitializers(
       .filter(
         propertyName =>
           typeof tempInstance[propertyName] !== 'undefined' &&
-          typeof target[propertyName] === 'undefined'
+          typeof target[propertyName] === 'undefined',
       )
       .filter(propertyName => isPropertyInherited(propertyName))
       .forEach(propertyName => {

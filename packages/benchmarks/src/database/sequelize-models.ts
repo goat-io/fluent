@@ -69,42 +69,42 @@ export function initSequelizeModels(sequelize: Sequelize) {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
       },
       email: {
         type: DataTypes.STRING(255),
         unique: true,
-        allowNull: false
+        allowNull: false,
       },
       firstName: {
         type: DataTypes.STRING(100),
         allowNull: false,
-        field: 'first_name'
+        field: 'first_name',
       },
       lastName: {
         type: DataTypes.STRING(100),
         allowNull: false,
-        field: 'last_name'
+        field: 'last_name',
       },
       status: {
         type: DataTypes.ENUM('active', 'inactive', 'suspended'),
-        defaultValue: 'active'
+        defaultValue: 'active',
       },
       age: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: true,
       },
       country: {
         type: DataTypes.STRING(100),
-        allowNull: true
-      }
+        allowNull: true,
+      },
     },
     {
       sequelize,
       tableName: 'users',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   )
 
   Product.init(
@@ -112,42 +112,42 @@ export function initSequelizeModels(sequelize: Sequelize) {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
       },
       name: {
         type: DataTypes.STRING(255),
-        allowNull: false
+        allowNull: false,
       },
       description: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: true,
       },
       price: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false
+        allowNull: false,
       },
       categoryId: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        field: 'category_id'
+        field: 'category_id',
       },
       stockQuantity: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
-        field: 'stock_quantity'
+        field: 'stock_quantity',
       },
       isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
-        field: 'is_active'
-      }
+        field: 'is_active',
+      },
     },
     {
       sequelize,
       tableName: 'products',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   )
 
   Category.init(
@@ -155,27 +155,27 @@ export function initSequelizeModels(sequelize: Sequelize) {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
       },
       name: {
         type: DataTypes.STRING(100),
-        allowNull: false
+        allowNull: false,
       },
       parentId: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        field: 'parent_id'
+        field: 'parent_id',
       },
       description: {
         type: DataTypes.TEXT,
-        allowNull: true
-      }
+        allowNull: true,
+      },
     },
     {
       sequelize,
       tableName: 'categories',
-      timestamps: false
-    }
+      timestamps: false,
+    },
   )
 
   Order.init(
@@ -183,12 +183,12 @@ export function initSequelizeModels(sequelize: Sequelize) {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
       },
       userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'user_id'
+        field: 'user_id',
       },
       status: {
         type: DataTypes.ENUM(
@@ -196,27 +196,27 @@ export function initSequelizeModels(sequelize: Sequelize) {
           'processing',
           'shipped',
           'delivered',
-          'cancelled'
+          'cancelled',
         ),
-        defaultValue: 'pending'
+        defaultValue: 'pending',
       },
       totalAmount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
-        field: 'total_amount'
+        field: 'total_amount',
       },
       shippingAddress: {
         type: DataTypes.TEXT,
         allowNull: true,
-        field: 'shipping_address'
-      }
+        field: 'shipping_address',
+      },
     },
     {
       sequelize,
       tableName: 'orders',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   )
 
   OrderItem.init(
@@ -224,32 +224,32 @@ export function initSequelizeModels(sequelize: Sequelize) {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
       },
       orderId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'order_id'
+        field: 'order_id',
       },
       productId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'product_id'
+        field: 'product_id',
       },
       quantity: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       price: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false
-      }
+        allowNull: false,
+      },
     },
     {
       sequelize,
       tableName: 'order_items',
-      timestamps: false
-    }
+      timestamps: false,
+    },
   )
 
   Review.init(
@@ -257,36 +257,36 @@ export function initSequelizeModels(sequelize: Sequelize) {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
       },
       userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'user_id'
+        field: 'user_id',
       },
       productId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'product_id'
+        field: 'product_id',
       },
       rating: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       comment: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: true,
       },
       createdAt: {
         type: DataTypes.DATE,
-        field: 'created_at'
-      }
+        field: 'created_at',
+      },
     },
     {
       sequelize,
       tableName: 'reviews',
-      timestamps: false
-    }
+      timestamps: false,
+    },
   )
 
   // Define associations

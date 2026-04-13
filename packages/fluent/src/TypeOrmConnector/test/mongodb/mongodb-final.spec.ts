@@ -6,7 +6,7 @@ import { dbEntities } from '../dbEntities'
 import { flock } from '../flock'
 import {
   GoatRepositoryFactory,
-  TypeOrmRepositoryFactory
+  TypeOrmRepositoryFactory,
 } from '../repository.factory'
 import { MongoDBTestContainer } from '../testcontainers/mongodb.testcontainer'
 
@@ -42,7 +42,7 @@ describe('MongoDB Tests with Testcontainers', () => {
       const a = await GoatRepo.insert({
         id: '631ce4304f9183f61ffb613a',
         name: 'myGoat',
-        age: 13
+        age: 13,
       })
       expect(typeof a.id).toBe('string')
       expect(a.id).toBe('631ce4304f9183f61ffb613a')
@@ -69,8 +69,8 @@ describe('MongoDB Tests with Testcontainers', () => {
 
       const goat = await GoatRepo.findById(goats[0].id!, {
         select: {
-          age: true
-        }
+          age: true,
+        },
       })
 
       expect(goat).not.toHaveProperty('name')
@@ -87,7 +87,7 @@ describe('MongoDB Tests with Testcontainers', () => {
       expect(selectedGoats.length).toBe(2)
 
       expect(
-        selectedGoats[0].id === ids[0] || selectedGoats[1].id === ids[0]
+        selectedGoats[0].id === ids[0] || selectedGoats[1].id === ids[0],
       ).toBe(true)
     })
 
@@ -99,14 +99,14 @@ describe('MongoDB Tests with Testcontainers', () => {
 
       const selectedGoats = await GoatRepo.findByIds(ids, {
         select: {
-          age: true
-        }
+          age: true,
+        },
       })
 
       expect(selectedGoats.length).toBe(2)
 
       expect(
-        selectedGoats[0].age === ages[0] || selectedGoats[1].age === ages[0]
+        selectedGoats[0].age === ages[0] || selectedGoats[1].age === ages[0],
       ).toBe(true)
 
       expect(selectedGoats[0]).not.toHaveProperty('name')
@@ -125,8 +125,8 @@ describe('MongoDB Tests with Testcontainers', () => {
 
       const storedGoats = await GoatRepo.findMany({
         where: {
-          name: 'Goatee'
-        }
+          name: 'Goatee',
+        },
       })
 
       expect(Array.isArray(storedGoats)).toBe(true)
@@ -141,8 +141,8 @@ describe('MongoDB Tests with Testcontainers', () => {
       await GoatRepo.insertMany(flock)
       const storedGoats = await GoatRepo.findMany({
         where: {
-          name: 'SOMENOTEXISTINGGOAT'
-        }
+          name: 'SOMENOTEXISTINGGOAT',
+        },
       })
       expect(Array.isArray(storedGoats)).toBe(true)
       expect(storedGoats.length).toBe(0)
@@ -152,11 +152,11 @@ describe('MongoDB Tests with Testcontainers', () => {
       await GoatRepo.insertMany(flock)
       const storedGoats = await GoatRepo.findMany({
         where: {
-          name: 'Goatee'
+          name: 'Goatee',
         },
         select: {
-          age: true
-        }
+          age: true,
+        },
       })
 
       expect(Array.isArray(storedGoats)).toBe(true)
@@ -169,8 +169,8 @@ describe('MongoDB Tests with Testcontainers', () => {
 
       const storedGoats = await GoatRepo.findFirst({
         where: {
-          name: 'Goatee'
-        }
+          name: 'Goatee',
+        },
       })
 
       expect(Array.isArray(storedGoats)).toBe(false)
@@ -182,12 +182,12 @@ describe('MongoDB Tests with Testcontainers', () => {
 
       const storedGoats = await GoatRepo.findFirst({
         where: {
-          name: 'Goatee'
+          name: 'Goatee',
         },
         select: {
           name: true,
-          age: true
-        }
+          age: true,
+        },
       })
 
       expect(Array.isArray(storedGoats)).toBe(false)
@@ -198,34 +198,34 @@ describe('MongoDB Tests with Testcontainers', () => {
     it('requireFirst - Should fail if not found', async () => {
       const _insertedUser = await GoatRepo.insert({
         name: 'testGoat',
-        age: 20
+        age: 20,
       })
 
       const [error] = await Promises.try(
         GoatRepo.requireFirst({
           where: {
-            name: 'noneExistingGoat'
-          }
-        })
+            name: 'noneExistingGoat',
+          },
+        }),
       )
 
       expect(error?.message).toBe(
-        'No objects found matching:  {"where":{"name":"noneExistingGoat"}}'
+        'No objects found matching:  {"where":{"name":"noneExistingGoat"}}',
       )
     })
 
     it('requireFirst - Should find first item', async () => {
       const insertedUser = await GoatRepo.insert({
         name: 'testGoat',
-        age: 20
+        age: 20,
       })
 
       const [error, goat] = await Promises.try(
         GoatRepo.requireFirst({
           where: {
-            name: 'testGoat'
-          }
-        })
+            name: 'testGoat',
+          },
+        }),
       )
 
       expect(error).toBe(null)
@@ -238,7 +238,7 @@ describe('MongoDB Tests with Testcontainers', () => {
 
       const data = await GoatRepo.updateById(goats[0].id!, {
         age: 99,
-        name: 'MyUpdatedGoat'
+        name: 'MyUpdatedGoat',
       })
       expect(data.name).toBe('MyUpdatedGoat')
       expect(data.id).toBe(goats[0].id!)
@@ -249,7 +249,7 @@ describe('MongoDB Tests with Testcontainers', () => {
       const goats = await GoatRepo.findMany()
       const data = await GoatRepo.replaceById(goats[0].id!, {
         age: 2,
-        name: 'MyReplacedGoat'
+        name: 'MyReplacedGoat',
       })
       expect(data.name).toBe('MyReplacedGoat')
       expect(data.id).toBe(goats[0].id!)
@@ -277,10 +277,10 @@ describe('MongoDB Tests with Testcontainers', () => {
         nestedTest: {
           a: ['6', '5', '4'],
           b: { c: true, d: ['2', '1', '0'] },
-          c: 4
+          c: 4,
         },
         order: 1,
-        test: true
+        test: true,
       })
 
       await TypeOrmRepo.insert({
@@ -288,10 +288,10 @@ describe('MongoDB Tests with Testcontainers', () => {
         nestedTest: {
           a: ['3', '2', '1'],
           b: { c: true, d: ['1', '1', '0'] },
-          c: 3
+          c: 3,
         },
         order: 2,
-        test: false
+        test: false,
       })
 
       await TypeOrmRepo.insert({
@@ -299,10 +299,10 @@ describe('MongoDB Tests with Testcontainers', () => {
         nestedTest: {
           a: ['0', '-1', '-2'],
           b: { c: true, d: ['0', '1', '0'] },
-          c: 2
+          c: 2,
         },
         order: 3,
-        test: false
+        test: false,
       })
     }
 
@@ -315,16 +315,16 @@ describe('MongoDB Tests with Testcontainers', () => {
           test: true,
           nestedTest: {
             c: true,
-            a: true
-          }
+            a: true,
+          },
         },
         where: {
           nestedTest: {
             c: {
-              greaterOrEqualThan: 3
-            }
-          }
-        }
+              greaterOrEqualThan: 3,
+            },
+          },
+        },
       })
       expect(!Array.isArray(form)).toBe(true)
       expect(typeof form.nestedTest.c).toBe('number')
@@ -352,13 +352,13 @@ describe('MongoDB Tests with Testcontainers', () => {
           test: true,
           nestedTest: {
             c: true,
-            a: true
+            a: true,
           },
           created: true,
-          order: true
+          order: true,
         },
         limit: 2,
-        orderBy: [{ created: 'asc' }]
+        orderBy: [{ created: 'asc' }],
       })
 
       expect(forms.length > 0).toBe(true)
@@ -373,11 +373,11 @@ describe('MongoDB Tests with Testcontainers', () => {
           test: true,
           nestedTest: {
             c: true,
-            a: true
-          }
+            a: true,
+          },
         },
         offset: 1,
-        limit: 1
+        limit: 1,
       })
 
       expect(forms.length).toBe(1)
@@ -390,10 +390,10 @@ describe('MongoDB Tests with Testcontainers', () => {
         where: {
           nestedTest: {
             c: {
-              greaterOrEqualThan: 3
-            }
-          }
-        }
+              greaterOrEqualThan: 3,
+            },
+          },
+        },
       })
 
       expect(forms.length > 0).toBe(true)
@@ -410,16 +410,16 @@ describe('MongoDB Tests with Testcontainers', () => {
             {
               nestedTest: {
                 c: {
-                  greaterOrEqualThan: 3
-                }
-              }
+                  greaterOrEqualThan: 3,
+                },
+              },
             },
             {
-              order: 2
-            }
-          ]
+              order: 2,
+            },
+          ],
         },
-        limit: 1
+        limit: 1,
       })
 
       expect(forms.length).toBe(1)
@@ -434,17 +434,17 @@ describe('MongoDB Tests with Testcontainers', () => {
             {
               nestedTest: {
                 c: {
-                  greaterOrEqualThan: 5
-                }
-              }
+                  greaterOrEqualThan: 5,
+                },
+              },
             },
 
             {
-              order: 2
-            }
-          ]
+              order: 2,
+            },
+          ],
         },
-        limit: 1
+        limit: 1,
       })
 
       expect(forms.length).toBe(1)
@@ -463,15 +463,15 @@ describe('MongoDB Tests with Testcontainers', () => {
             a: true,
             b: {
               c: true,
-              d: true
-            }
-          }
+              d: true,
+            },
+          },
         },
         orderBy: [
           {
-            order: 'desc'
-          }
-        ]
+            order: 'desc',
+          },
+        ],
       })
 
       expect(forms[0].order).toBe(3)
@@ -490,15 +490,15 @@ describe('MongoDB Tests with Testcontainers', () => {
             a: true,
             b: {
               c: true,
-              d: true
-            }
-          }
+              d: true,
+            },
+          },
         },
         orderBy: [
           {
-            order: 'asc'
-          }
-        ]
+            order: 'asc',
+          },
+        ],
       })
 
       expect(forms[0].order).toBe(1)
@@ -516,15 +516,15 @@ describe('MongoDB Tests with Testcontainers', () => {
             a: true,
             b: {
               c: true,
-              d: true
-            }
-          }
+              d: true,
+            },
+          },
         },
         orderBy: [
           {
-            created: 'asc'
-          }
-        ]
+            created: 'asc',
+          },
+        ],
       })
 
       // MongoDB CreateDateColumn ignores provided dates and uses current timestamp
@@ -537,9 +537,9 @@ describe('MongoDB Tests with Testcontainers', () => {
       const forms = await TypeOrmRepo.findMany({
         orderBy: [
           {
-            created: 'asc'
-          }
-        ]
+            created: 'asc',
+          },
+        ],
       })
 
       // MongoDB CreateDateColumn ignores provided dates and uses current timestamp

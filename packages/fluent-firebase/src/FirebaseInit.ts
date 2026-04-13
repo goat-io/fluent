@@ -13,7 +13,7 @@ export const FirebaseInit = ({
   port,
   databaseName,
   serviceAccount,
-  emulator = false
+  emulator = false,
 }: ConnectionOptions): void => {
   if (admin.apps.length) {
     return
@@ -32,7 +32,7 @@ export const FirebaseInit = ({
   }
 
   const initOptions: admin.AppOptions = {
-    projectId: databaseName || 'fluent-firebase-test'
+    projectId: databaseName || 'fluent-firebase-test',
   }
 
   // Only add credentials if not using emulator and serviceAccount is provided

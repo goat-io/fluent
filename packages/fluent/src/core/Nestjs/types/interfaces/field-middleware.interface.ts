@@ -3,7 +3,7 @@ import { GraphQLResolveInfo } from 'graphql'
 export interface MiddlewareContext<
   TSource = any,
   TContext = {},
-  TArgs = { [argName: string]: any }
+  TArgs = { [argName: string]: any },
 > {
   source: TSource
   args: TArgs
@@ -17,8 +17,8 @@ export type FieldMiddleware<
   TSource = any,
   TContext = {},
   TArgs = { [argName: string]: any },
-  TOutput = any
+  TOutput = any,
 > = (
   ctx: MiddlewareContext<TSource, TContext, TArgs>,
-  next: NextFn
+  next: NextFn,
 ) => Promise<TOutput> | TOutput

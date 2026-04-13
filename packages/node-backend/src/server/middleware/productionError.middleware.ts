@@ -8,7 +8,7 @@ import type { Environment } from '../types/Envinronment'
  * Prevents leaking sensitive information in error responses
  */
 export function sanitizeErrorForProduction(
-  error: HttpError<HttpErrorData>
+  error: HttpError<HttpErrorData>,
 ): HttpError<HttpErrorData> {
   const isProduction = (process.env.NODE_ENV as Environment) === 'prod'
 
@@ -28,7 +28,7 @@ export function sanitizeErrorForProduction(
     sanitizedError.data = {
       httpStatusCode: error.data.httpStatusCode,
       errorId: error.data.errorId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     }
   } else if (error.data?.httpStatusCode && error.data.httpStatusCode >= 400) {
     // For 4xx errors, keep the message but remove stack traces
@@ -42,7 +42,7 @@ export function sanitizeErrorForProduction(
         errorId,
         message: message || sanitizedError.message,
         code,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }
     }
   }
@@ -79,8 +79,8 @@ export function productionErrorHandler() {
           method: req.method,
           url: req.originalUrl,
           ip: req.ip,
-          userAgent: req.get('user-agent')
-        }
+          userAgent: req.get('user-agent'),
+        },
       })
     }
 
@@ -90,8 +90,8 @@ export function productionErrorHandler() {
         message: sanitizedError.message,
         code: sanitizedError.data?.code,
         errorId: sanitizedError.data?.errorId,
-        timestamp: sanitizedError.data?.timestamp || new Date().toISOString()
-      }
+        timestamp: sanitizedError.data?.timestamp || new Date().toISOString(),
+      },
     })
   }
 }
@@ -103,8 +103,8 @@ export function asyncErrorHandler(
   fn: (
     req: Request,
     res: Response,
-    next: NextFunction
-  ) => Promise<unknown> | unknown
+    next: NextFunction,
+  ) => Promise<unknown> | unknown,
 ) {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next)

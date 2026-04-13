@@ -69,7 +69,7 @@ class FoldersClass {
   hash(directory: string): string {
     const hash = crypto.createHash('sha256')
     const stack: [string, string[]][] = [
-      [directory, fs.readdirSync(directory).sort()]
+      [directory, fs.readdirSync(directory).sort()],
     ]
 
     while (stack.length > 0) {
@@ -107,7 +107,7 @@ class FoldersClass {
   searchFileIn = async ({
     dir,
     search,
-    fileList = []
+    fileList = [],
   }: {
     dir: string
     search?: string
@@ -123,7 +123,7 @@ class FoldersClass {
         fileList = await this.searchFileIn({
           dir: filepath,
           fileList,
-          search
+          search,
         })
       } else {
         const fullPath = path.join(dir, file)

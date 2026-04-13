@@ -2,7 +2,7 @@ import { CommonLogger, ErrorMode, Errors } from '@goatlab/js-utils'
 import {
   AbortableAsyncMapper,
   END,
-  SKIP
+  SKIP,
 } from '@goatlab/js-utils/dist/Promises/pMap'
 
 import through2Concurrent = require('through2-concurrent')
@@ -14,7 +14,7 @@ import { pipelineClose } from '../pipelineClose'
 import { TransformTyped } from '../streams.model'
 export type AsyncPredicate<T> = (
   item: T,
-  index: number
+  index: number,
 ) => boolean | PromiseLike<boolean>
 
 export interface TransformMapOptions<In = any, Out = In> {
@@ -79,7 +79,7 @@ export interface TransformMapOptions<In = any, Out = In> {
  */
 export function transformMap<In = any, Out = In>(
   mapper: AbortableAsyncMapper<In, Out | typeof SKIP | typeof END>,
-  opt: TransformMapOptions<In, Out> = {}
+  opt: TransformMapOptions<In, Out> = {},
 ): TransformTyped<In, Out> {
   const {
     concurrency = 16,
@@ -88,7 +88,7 @@ export function transformMap<In = any, Out = In>(
     flattenArrayOutput,
     onError,
     metric = 'stream',
-    logger = console
+    logger = console,
   } = opt
 
   let index = -1
@@ -111,14 +111,14 @@ export function transformMap<In = any, Out = In>(
           cb(
             new AggregateError(
               collectedErrors,
-              `transformMap resulted in ${collectedErrors.length} error(s)`
-            )
+              `transformMap resulted in ${collectedErrors.length} error(s)`,
+            ),
           )
         } else {
           // emit no error
           cb()
         }
-      }
+      },
     },
     async function transformMapFn(this: AbortableTransform, chunk: In, _, cb) {
       // Stop processing if isSettled (either THROW_IMMEDIATELY was fired or END received)
@@ -140,7 +140,7 @@ export function transformMap<In = any, Out = In>(
             return (
               r !== SKIP && (!predicate || (await predicate(r, currentIndex)))
             )
-          }
+          },
         )
 
         // Use for loop for better performance with large arrays
@@ -155,7 +155,7 @@ export function transformMap<In = any, Out = In>(
             this,
             this.sourceReadable,
             this.streamDone,
-            logger
+            logger,
           )
         }
 
@@ -185,7 +185,7 @@ export function transformMap<In = any, Out = In>(
         // Tell input stream that we're done processing, but emit nothing to output - not error nor result
         cb()
       }
-    }
+    },
   )
 
   function logErrorStats(final = false): void {

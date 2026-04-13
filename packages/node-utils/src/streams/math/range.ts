@@ -17,6 +17,6 @@ export function range(fromIncl: number, toExcl?: number, step = 1): number[] {
 
   return Array.from(
     { length: Math.ceil((toExcl - fromIncl) / step) },
-    (_, i) => i * step + fromIncl
+    (_, i) => i * step + fromIncl,
   )
 }

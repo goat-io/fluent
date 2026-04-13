@@ -8,7 +8,7 @@ import { Log } from './Logger'
 import { ObjectIds } from './ObjectIds'
 import { Ports } from './Ports'
 import { Processes } from './Processes'
-import { runScript, Scripts } from './Scripts'
+import { formatDuration, runScript, Scripts } from './Scripts'
 import { Secrets } from './Secrets'
 import { Security } from './Security'
 import { Streams } from './Streams'
@@ -23,11 +23,12 @@ export {
   Folders,
   Ports,
   Security,
+  formatDuration,
   runScript,
   Env,
   Scripts,
   ObjectIds,
   Streams,
-  Ips
+  Ips,
 }
 export type { BuildInfo, RunScriptOptions }

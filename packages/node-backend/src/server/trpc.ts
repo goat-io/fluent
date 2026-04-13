@@ -1,26 +1,35 @@
 import { initTRPC, TRPCError } from '@trpc/server'
+import type {
+  DefaultErrorShape,
+  ErrorFormatter,
+} from '@trpc/server/unstable-core-do-not-import'
 import type { OpenApiMeta } from 'trpc-to-openapi'
 import type { TrpcContext } from './context/trpc.context'
 import { DecodedUserToken } from './schemas/user.schema'
 
 export function getTrpc<
   ExtendedAuthenticatedContext = Record<string, unknown>,
-  ExtendedContext = Record<string, unknown>
+  ExtendedContext = Record<string, unknown>,
 >(params?: {
+  /** Extend authenticated context with additional data (e.g., account context) */
   extendAuthenticatedContext?: (
-    user: DecodedUserToken
+    user: DecodedUserToken,
   ) => ExtendedAuthenticatedContext
+  /** Extend base context (runs for all requests) - use for tenant services, etc. */
   extendContext?: (ctx: TrpcContext) => Promise<ExtendedContext>
+  /** Custom error formatter for tRPC errors */
+  errorFormatter?: ErrorFormatter<TrpcContext, DefaultErrorShape>
 }) {
   const t = initTRPC
     .context<TrpcContext>()
     .meta<OpenApiMeta>()
     .create({
+      errorFormatter: params?.errorFormatter,
       sse: {
         maxDurationMs: 5 * 60 * 1000,
         ping: { enabled: true, intervalMs: 3000 },
-        client: { reconnectAfterInactivityMs: 5000 }
-      }
+        client: { reconnectAfterInactivityMs: 5000 },
+      },
     })
 
   const router = t.router
@@ -31,8 +40,8 @@ export function getTrpc<
     return await next({
       ctx: {
         ...ctx,
-        extended: await extendContext(ctx)
-      }
+        extended: await extendContext(ctx),
+      },
     })
   })
 
@@ -52,7 +61,7 @@ export function getTrpc<
         : undefined
 
     if (
-      ctx.user?.firebaseId ||
+      ctx.user?.userId ||
       ctx.user?.email ||
       tokenPurpose === 'INTERNAL_SERVICE'
     ) {
@@ -61,7 +70,7 @@ export function getTrpc<
 
     const extra = ctx.user
       ? (extendAuthenticatedContext(
-          ctx.user?.decodedToken
+          ctx.user?.decodedToken,
         ) as ExtendedAuthenticatedContext)
       : undefined
 
@@ -70,8 +79,8 @@ export function getTrpc<
         ...ctx,
         isLoggedIn,
         user: ctx.user ? ctx.user : undefined,
-        authenticated: extra
-      }
+        authenticated: extra,
+      },
     })
   })
 
@@ -82,18 +91,18 @@ export function getTrpc<
         : undefined
 
     if (
-      (!ctx.user?.firebaseId || !ctx.user.email) &&
+      (!ctx.user?.userId || !ctx.user.email) &&
       tokenPurpose !== 'INTERNAL_SERVICE'
     ) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message:
-          "No user in the request. Make sure to include Google's JWT token"
+          'No user in the request. Make sure to include a valid auth token.',
       })
     }
 
     const extra = extendAuthenticatedContext(
-      ctx.user!.decodedToken
+      ctx.user!.decodedToken,
     ) as ExtendedAuthenticatedContext
 
     // Explicitly type the new context as TrpcContext & T
@@ -101,8 +110,8 @@ export function getTrpc<
       ctx: {
         ...ctx,
         user: ctx.user!,
-        authenticated: extra
-      }
+        authenticated: extra,
+      },
     })
   })
 
@@ -118,6 +127,6 @@ export function getTrpc<
     maybeAuthenticatedEnpoint,
     publicEndpoint,
     router,
-    t
+    t,
   }
 }

@@ -7,7 +7,7 @@ import type {
   ErrorData,
   ErrorObject,
   HttpErrorData,
-  HttpErrorResponse
+  HttpErrorResponse,
 } from './error.model'
 
 /**
@@ -21,7 +21,7 @@ import type {
 export function anyToError<ErrorType extends Error = Error>(
   o: any,
   errorClass: Class<ErrorType> = Error as any,
-  opt?: StringifyAnyOptions
+  opt?: StringifyAnyOptions,
 ): ErrorType {
   if (o instanceof errorClass) {
     return o
@@ -41,7 +41,7 @@ export function anyToError<ErrorType extends Error = Error>(
  */
 export function anyToErrorObject<DataType extends ErrorData = ErrorData>(
   o: any,
-  opt?: StringifyAnyOptions
+  opt?: StringifyAnyOptions,
 ): ErrorObject<DataType> {
   if (o instanceof Error) {
     return errorToErrorObject<DataType>(o, opt?.includeErrorStack ?? true)
@@ -64,24 +64,24 @@ export function anyToErrorObject<DataType extends ErrorData = ErrorData>(
 
   const message = _stringifyAny(parsed, {
     includeErrorData: true, // cause we're returning an ErrorObject, not a stringified error (yet)
-    ...opt
+    ...opt,
   })
 
   return {
     name: 'Error',
     message,
-    data: {} as DataType // empty
+    data: {} as DataType, // empty
   }
 }
 
 export function errorToErrorObject<DataType extends ErrorData = ErrorData>(
   e: AppError<DataType> | Error,
-  includeErrorStack = true
+  includeErrorStack = true,
 ): ErrorObject<DataType> {
   const obj: ErrorObject<DataType> = {
     name: e.name,
     message: e.message,
-    data: { ...(e as any).data } // empty by default
+    data: { ...(e as any).data }, // empty by default
   }
 
   if (includeErrorStack) {
@@ -92,17 +92,17 @@ export function errorToErrorObject<DataType extends ErrorData = ErrorData>(
 }
 
 export function errorObjectToAppError<DataType extends ErrorData>(
-  o: ErrorObject<DataType>
+  o: ErrorObject<DataType>,
 ): AppError<DataType> {
   return errorObjectToError(o, AppError)
 }
 
 export function errorObjectToError<
   DataType extends ErrorData,
-  ErrorType extends Error
+  ErrorType extends Error,
 >(
   o: ErrorObject<DataType>,
-  errorClass: Class<ErrorType> = Error as any
+  errorClass: Class<ErrorType> = Error as any,
 ): ErrorType {
   if (o instanceof errorClass) {
     return o
@@ -114,19 +114,19 @@ export function errorObjectToError<
 
   Object.defineProperty(err, 'name', {
     value: o.name,
-    configurable: true
+    configurable: true,
   })
 
   Object.defineProperty(err, 'data', {
     value: o.data,
     writable: true,
     configurable: true,
-    enumerable: false
+    enumerable: false,
   })
 
   if (o.stack) {
     Object.defineProperty(err, 'stack', {
-      value: o.stack
+      value: o.stack,
     })
   }
 
@@ -173,6 +173,6 @@ export function isErrorObject(o: any): o is ErrorObject {
 export function errorDataAppend(err: any, data: ErrorData): void {
   err.data = {
     ...err.data,
-    ...data
+    ...data,
   }
 }

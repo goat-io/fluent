@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/node-backend",
-  "version": "1.1.7",
+  "version": "1.6.0",
   "description": "Common tools to work with Node.js backend applications.",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -44,7 +44,9 @@
   "dependencies": {
     "@goatlab/js-utils": "workspace:*",
     "@goatlab/node-utils": "workspace:*",
-    "@google-cloud/logging-winston": "^6.0.1",
+    "winston": "^3.19.0",
+    "winston-transport": "^4.9.0",
+    "ioredis": "^5.6.1",
     "@keyv/redis": "^3.0.1",
     "@sentry/node": "^9.42.0",
     "@sentry/profiling-node": "^9.42.0",

@@ -8,7 +8,7 @@ export const mysql2PromiseImplementations = {
   filteredSelect: async (pool: Pool) => {
     const [_rows] = await pool.execute(
       'SELECT * FROM users WHERE status = ? AND age > ?',
-      ['active', 25]
+      ['active', 25],
     )
   },
 
@@ -23,7 +23,7 @@ export const mysql2PromiseImplementations = {
       GROUP BY u.id
       LIMIT 30
     `,
-      ['active']
+      ['active'],
     )
   },
 
@@ -39,7 +39,7 @@ export const mysql2PromiseImplementations = {
       GROUP BY p.id
       LIMIT 25
     `,
-      [true]
+      [true],
     )
   },
 
@@ -53,8 +53,8 @@ export const mysql2PromiseImplementations = {
         'User',
         'active',
         30,
-        'US'
-      ]
+        'US',
+      ],
     )
-  }
+  },
 }

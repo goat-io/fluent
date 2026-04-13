@@ -5,7 +5,7 @@ import type { JobDescription } from '../types/job'
 import type {
   MessageBroker,
   MessageProducer,
-  MessageSubscriber
+  MessageSubscriber,
 } from '../types/message'
 
 export class RabbitMQBroker implements MessageBroker {
@@ -112,25 +112,25 @@ export class RabbitMQBroker implements MessageBroker {
   async publish({
     queueName,
     data,
-    topic = 'topic'
+    topic = 'topic',
   }: MessageProducer): Promise<boolean> {
     if (!this.publisherChannel) {
       throw new Error(
-        'RabbitMQ is not connected. Did you call the connect() method?'
+        'RabbitMQ is not connected. Did you call the connect() method?',
       )
     }
 
     const msg = JSON.stringify(data)
 
     await this.publisherChannel.assertExchange(queueName, 'topic', {
-      durable: true
+      durable: true,
     })
 
     const messageSent = this.publisherChannel.publish(
       queueName,
       topic,
       Buffer.from(msg),
-      { messageId: randomUUID() }
+      { messageId: randomUUID() },
     )
 
     return messageSent
@@ -145,21 +145,21 @@ export class RabbitMQBroker implements MessageBroker {
     queueName,
     handle,
     topics = ['default'],
-    exclusiveQueues
+    exclusiveQueues,
   }: MessageSubscriber): Promise<void> {
     if (!this.consumerChannel) {
       throw new Error(
-        'RabbitMQ is not connected. Did you call the connect() method?'
+        'RabbitMQ is not connected. Did you call the connect() method?',
       )
     }
 
     await this.consumerChannel.assertExchange(queueName, 'topic', {
-      durable: true
+      durable: true,
     })
 
     const q = await this.consumerChannel.assertQueue(
       exclusiveQueues ? '' : queueName,
-      { exclusive: !!exclusiveQueues }
+      { exclusive: !!exclusiveQueues },
     )
 
     for (const topic of topics) {
@@ -180,7 +180,7 @@ export class RabbitMQBroker implements MessageBroker {
           data,
           id: msg.properties.messageId,
           instance: msg,
-          name: topic
+          name: topic,
         }
 
         const [error] = await Promises.try(handle(jobDescription))
@@ -190,7 +190,7 @@ export class RabbitMQBroker implements MessageBroker {
           this.consumerChannel.ack(msg)
         }
       },
-      { noAck: false }
+      { noAck: false },
     )
   }
 

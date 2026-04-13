@@ -1,12 +1,65 @@
-export { ShouldQueue } from './ShouldQueue'
-
+// Dispatch - Provider-agnostic multi-tenant dispatch system
+export {
+  calculateDispatchPriority,
+  createHintRegistry,
+  type DispatchConfig,
+  type DispatchHint,
+  type DispatchHintPayload,
+  DispatchHintTask,
+  type DispatchListener,
+  type DispatchStatus,
+  type HintRegistry,
+  type TenantPriority,
+} from './dispatch'
+// Registry - Typed task registry API
+export {
+  type ExtractTaskInput,
+  type ExtractTaskName,
+  type ExtractTaskResult,
+  type ListenHandle,
+  type ListenInput,
+  type ListenTaskConfig,
+  type SnakeToCamelCase,
+  snakeToCamelCase,
+  type TaskQueueInput,
+  type TaskQueueMap,
+  type TaskQueueResult,
+  TaskRegistry,
+  type TaskRegistryConfig,
+  type TaskRegistryOptions,
+  type ToInstances,
+} from './registry'
+export { ShouldQueue, type ShouldQueueOptions } from './ShouldQueue'
 export type {
   InputType,
   JsonObject,
   JsonValue,
   OutputType,
+  TaskClass,
   TaskConnector,
   TaskStatus,
   TaskStatusName,
-  UnknownInputType
+  TenantConfig,
+  TenantCredentials,
+  UnknownInputType,
 } from './ShouldQueue.types'
+// TaskTracker - Queue-agnostic status tracking
+export {
+  type CreateTrackedTaskOptions,
+  DEFAULT_TRACKER_CONFIG,
+  IngestBuffer,
+  type IngestBufferConfig,
+  InMemoryTaskTrackerConnector,
+  type ProgressOptions,
+  type RedisClient,
+  type RedisPipeline,
+  type RedisTaskTrackerConfig,
+  RedisTaskTrackerConnector,
+  type TaskStateCallback,
+  TaskTracker,
+  type TaskTrackerConfig,
+  type TaskTrackerConnector,
+  type TrackedTaskState,
+  type TrackedTaskStatus,
+  type Unsubscribe,
+} from './tracker'

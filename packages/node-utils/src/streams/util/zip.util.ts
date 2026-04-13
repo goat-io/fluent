@@ -14,14 +14,14 @@ const zGunzip = promisify(gunzip)
  */
 export async function deflateBuffer(
   buf: Buffer,
-  options: ZlibOptions = {}
+  options: ZlibOptions = {},
 ): Promise<Buffer> {
   return await zDeflate(buf, options)
 }
 
 export async function inflateBuffer(
   buf: Buffer,
-  options: ZlibOptions = {}
+  options: ZlibOptions = {},
 ): Promise<Buffer> {
   return await zInflate(buf, options)
 }
@@ -32,14 +32,14 @@ export async function inflateBuffer(
  */
 export async function deflateString(
   s: string,
-  options?: ZlibOptions
+  options?: ZlibOptions,
 ): Promise<Buffer> {
   return await deflateBuffer(Buffer.from(s), options)
 }
 
 export async function inflateToString(
   buf: Buffer,
-  options?: ZlibOptions
+  options?: ZlibOptions,
 ): Promise<string> {
   return (await inflateBuffer(buf, options)).toString()
 }
@@ -50,14 +50,14 @@ export async function inflateToString(
  */
 export async function gzipBuffer(
   buf: Buffer,
-  options: ZlibOptions = {}
+  options: ZlibOptions = {},
 ): Promise<Buffer> {
   return await zGzip(buf, options)
 }
 
 export async function gunzipBuffer(
   buf: Buffer,
-  options: ZlibOptions = {}
+  options: ZlibOptions = {},
 ): Promise<Buffer> {
   return await zGunzip(buf, options)
 }
@@ -68,14 +68,14 @@ export async function gunzipBuffer(
  */
 export async function gzipString(
   s: string,
-  options?: ZlibOptions
+  options?: ZlibOptions,
 ): Promise<Buffer> {
   return await gzipBuffer(Buffer.from(s), options)
 }
 
 export async function gunzipToString(
   buf: Buffer,
-  options?: ZlibOptions
+  options?: ZlibOptions,
 ): Promise<string> {
   return (await gunzipBuffer(buf, options)).toString()
 }

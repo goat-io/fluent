@@ -1,7 +1,7 @@
 import {
   AnyRootTypes,
   RouterCaller,
-  RouterRecord
+  RouterRecord,
 } from '@trpc/server/unstable-core-do-not-import'
 import { requestContext } from '../context/request.context'
 import { mockedRegisteredAccountRequest } from './express.mock'
@@ -10,10 +10,10 @@ import { BasicAccount } from './mock.model'
 
 export const mockedAuthenticatedTrpcRouter = async <
   TRoot extends AnyRootTypes,
-  TRecord extends RouterRecord
+  TRecord extends RouterRecord,
 >({
   mockedAccount,
-  createCaller
+  createCaller,
 }: {
   mockedAccount?: Partial<BasicAccount>
   createCaller: RouterCaller<TRoot, TRecord>

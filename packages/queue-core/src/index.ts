@@ -8,5 +8,5 @@ export type {
   RepeatEvery,
   Scheduler,
   Schedulers,
-  TimeZones
+  TimeZones,
 } from './types/job'

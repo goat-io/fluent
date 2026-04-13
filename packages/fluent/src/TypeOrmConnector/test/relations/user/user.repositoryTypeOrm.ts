@@ -8,7 +8,7 @@ import {
   UsersDtoIn,
   UsersDtoOut,
   userInputSchema,
-  userOutputSchema
+  userOutputSchema,
 } from './user.schema'
 
 export class UserRepository extends TypeOrmConnector<
@@ -21,19 +21,19 @@ export class UserRepository extends TypeOrmConnector<
       entity: UsersEntity,
       dataSource: MemoryDataSource,
       inputSchema: userInputSchema,
-      outputSchema: userOutputSchema
+      outputSchema: userOutputSchema,
     })
   }
 
   public cars = () => {
     return this.hasMany({
-      repository: CarsRepository
+      repository: CarsRepository,
     })
   }
 
   public roles = () =>
     this.belongsToMany({
       repository: RoleRepository,
-      pivot: RoleUsersRepository
+      pivot: RoleUsersRepository,
     })
 }

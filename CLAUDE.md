@@ -32,34 +32,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm act` - Run GitHub Actions locally using act
 - Individual package tests: `cd packages/<package-name> && pnpm test`
 
-### Delphi Package Commands
-
-**Build & Fix Issues:**
-- `cd packages/delphi && pnpm build` - Build TypeScript (should pass without errors)
-- `cd packages/delphi && npx tsc --noEmit` - Check types without building
-- `cd packages/delphi && npx biome check --write --unsafe .` - Auto-fix lint issues
-- `cd packages/delphi && npx biome check src/` - Check specific directory
-
-**Agreement System Testing:**
-- `cd packages/delphi && npx vitest run tests/agreement.spec.ts` - Run agreement tests (⚠️ 8 failing)
-- `cd packages/delphi && npx vitest run tests/blackboard-cleanup.spec.ts` - Test session cleanup
-- `cd packages/delphi && npx vitest run tests/sqlite-concurrency.spec.ts` - Test SQLite concurrency
-- `cd packages/delphi && npx vitest run tests/circuit-breaker.spec.ts` - Test circuit breaker
-- `cd packages/delphi && npx vitest run --reporter=verbose` - Run all tests with details
-
-**Run Agreement Examples:**
-- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts review --goal "Review PR"` - Code review
-- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts architecture` - Architecture decision
-- `cd packages/delphi && npx tsx examples/agreement-pipeline.ts refactor` - Refactoring discussion
-- `cd packages/delphi && npx tsx examples/model-configuration.ts simple` - Model config example
-- `cd packages/delphi && npx tsx examples/model-configuration.ts custom` - Custom model config
-- `cd packages/delphi && npx tsx examples/model-configuration.ts cost` - Cost-optimized config
-- `cd packages/delphi && npx tsx examples/agreement-with-cleanup.ts` - Session cleanup example
-
-**Debug & Development:**
-- `LOG_LEVEL=debug npx tsx <script>` - Enable debug logging
-- `DEBUG=delphi:* npx tsx <script>` - Enable detailed traces
-- `OTEL_ENABLED=true npx tsx <script>` - Enable OpenTelemetry tracing
 
 ## Architecture Overview
 
@@ -96,6 +68,32 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - **fluent-pouchdb** - PouchDB connector
 - **fluent-formio** - Form.io API connector
 
+### Agent Workflow System
+
+- **agents-core** - Distributed workflow engine (Kysely/Postgres 18, BullMQ 4-queue, DAG+nextStep loops, HITL, ExternalAction exactly-once, event ingestion, integrations, skills, worker nodes, COPY FROM bulk inserts)
+- **agents-ai** - Multi-provider LLM adapter (OpenAI/Anthropic/Google/Ollama) + multi-agent consensus + AI tool-call loop with skills
+- **agents-langgraph** - LangGraph StateGraph executor with Postgres checkpointing
+- **agents-sandbox** - Docker sandboxed execution (NetworkMode:none default, allowedDomains iptables, DinD)
+- **agents-ui** - Vite+React+ReactFlow workflow dashboard (SSE, visual editor, metrics, worker monitoring)
+
+#### Agent Package Commands
+
+- `cd packages/agents-core && pnpm test` - Run engine tests (277 tests, needs Docker for testcontainers)
+- `cd packages/agents-core && npx vitest run --exclude="**/load-test*"` - Skip load test (can timeout)
+- `cd packages/agents-ai && pnpm test` - Run AI layer tests (63 tests, no containers needed)
+- `cd packages/agents-sandbox && pnpm test:unit` - Run sandbox unit tests (no Docker)
+- `cd packages/agents-sandbox && pnpm test:integration` - Run Docker integration tests (needs Docker daemon)
+- `cd packages/agents-ui && pnpm dev` - Start dashboard dev server
+- `cd packages/agents-ui && npx tsx example/start.ts` - Start full example (Postgres+Redis+BullMQ+API+3 demo workflows+worker registration)
+- `cd packages/agents-ui && npx playwright test e2e/workflow-editor.spec.ts` - Run visual editor E2E tests (12 tests)
+- `k6 run packages/agents-core/loadtest/k6-workflow.js` - Run k6 load tests (requires test server running)
+
+#### Important: agents-core uses Kysely (not TypeORM)
+- Schema defined in `packages/agents-core/src/entities/Database.ts` as plain TS interfaces
+- No decorators, no reflection, no `reflect-metadata` needed
+- JSON fields stored as TEXT with `toJson()`/`fromJson()` helpers
+- Always rebuild (`npx tsc`) before running tests in downstream packages
+
 ### Additional Packages
 
 - **formio-utils** - Form.io form parsing and validation
@@ -121,44 +119,6 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 
 Uses changesets for versioning. Release dependency chain: js-utils → node-utils → fluent (other packages depend on these core packages).
 
-## Delphi Agreement System Patterns
-
-### Model Configuration
-Models are configured directly in agent definitions for clarity:
-```typescript
-.withProposer({ 
-  id: 'architect',
-  model: 'claude-opus-4.1',  // Simple preset
-  expertise: ['system-design'],
-  weight: 1.0
-})
-.withReviewer({
-  id: 'expert',
-  model: { provider: 'openai', model: 'gpt-4o', temperature: 0.7 },  // Custom config
-  expertise: ['security']
-})
-```
-
-### Session Cleanup
-Always configure cleanup for production deployments:
-```typescript
-const orchestrator = new AgreementOrchestrator(config, agents, {
-  sessionCleanupConfig: {
-    enabled: true,
-    retentionDays: 7,
-    autoCleanupInterval: 3600000  // 1 hour
-  }
-})
-```
-
-### Strategy Usage
-Use predefined strategies for common scenarios:
-```typescript
-new DiscussionBuilder()
-  .useStrategy('code-review')  // Applies optimized model mapping
-  .withProposer({ id: 'author', expertise: ['implementation'] })
-```
-
 ## Common TypeScript/Build Fixes
 
 ### ES Module Import Issues
@@ -181,49 +141,3 @@ z.record(z.unknown())
 z.record(z.string(), z.unknown())
 ```
 
-### Pino Logger Import
-Use default import for pino:
-```typescript
-// ❌ Wrong
-import { pino } from 'pino'
-
-// ✅ Correct
-import pino from 'pino'
-const logger = (pino as any)({ /* config */ })
-```
-
-### SqliteSaver Constructor
-Use database instance, not path:
-```typescript
-// ❌ Wrong
-super({ dbPath: '/path/to/db' })
-
-// ✅ Correct
-const db = new Database(dbPath)
-super({ db } as any)
-```
-
-### OpenTelemetry Type Issues
-Temporary workaround for version conflicts:
-```typescript
-// Add type assertions until versions are aligned
-new BatchSpanProcessor(exporter) as any
-```
-
-### Known Type Assertion Hacks
-These locations use `as any` and need proper typing:
-- `src/checkpoint/sqlite.ts:34` - SqliteSaver constructor
-- `src/graph.ts:470` - checkpointer.getTuple() call
-- `src/utils/tracing.ts:59,70` - OpenTelemetry processors
-- `src/agreement/resource-manager.ts:21` - pino function call
-
-### Quick Type Check
-```bash
-# Check types without building
-cd packages/delphi && npx tsc --noEmit
-
-# If build fails, check for:
-# 1. Missing .js extensions in imports
-# 2. z.record() missing second parameter
-# 3. Duplicate exports in the same file
-```

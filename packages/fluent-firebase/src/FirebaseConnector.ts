@@ -11,7 +11,7 @@ import {
   loadRelations,
   modelGeneratorDataSource,
   PaginatedData,
-  QueryOutput
+  QueryOutput,
 } from '@goatlab/fluent'
 import { Ids, Memo, Objects } from '@goatlab/js-utils'
 import { UpdateData } from '@google-cloud/firestore'
@@ -30,7 +30,7 @@ export interface FirebaseConnectorParams<Input, Output> {
 export class FirebaseConnector<
     ModelDTO extends admin.firestore.DocumentData = AnyObject,
     InputDTO = ModelDTO,
-    OutputDTO = InputDTO
+    OutputDTO = InputDTO,
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
@@ -46,7 +46,7 @@ export class FirebaseConnector<
   constructor({
     entity,
     inputSchema,
-    outputSchema
+    outputSchema,
   }: FirebaseConnectorParams<InputDTO, OutputDTO>) {
     super()
     this.inputSchema = inputSchema
@@ -67,19 +67,19 @@ export class FirebaseConnector<
     // Check if modelGeneratorDataSource is initialized before using it
     if (!modelGeneratorDataSource.isInitialized) {
       throw new Error(
-        'modelGeneratorDataSource is not initialized. Please call Fluent.initialize() before using Firebase connectors.'
+        'modelGeneratorDataSource is not initialized. Please call Fluent.initialize() before using Firebase connectors.',
       )
     }
 
     const relationShipBuilder = modelGeneratorDataSource.getRepository(
-      this.entity
+      this.entity,
     )
 
     const name = relationShipBuilder.metadata.givenTableName
 
     if (!name) {
       throw new Error(
-        `Could not find table by name. Did you include @f.entity in your model?`
+        `Could not find table by name. Did you include @f.entity in your model?`,
       )
     }
 
@@ -117,14 +117,14 @@ export class FirebaseConnector<
     const id: string = (data as any).id || Ids.uuid()
     const item = {
       id,
-      ...validatedData
+      ...validatedData,
     } as unknown as ModelDTO
 
     await this.collection.doc(id).set(item)
 
     // Validate Output
     return this.outputSchema.parse(
-      Objects.clearEmpties(Objects.deleteNulls(item))
+      Objects.clearEmpties(Objects.deleteNulls(item)),
     )
   }
 
@@ -165,7 +165,7 @@ export class FirebaseConnector<
   // READ
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     this.initDB()
     const [andQuery, orQueries] = this.getGeneratedQueries(query)
@@ -263,7 +263,7 @@ export class FirebaseConnector<
         prevPage: page === 1 ? null : page - 1,
         from: (page - 1) * perPage + 1,
         to: perPage * page,
-        data: found as unknown as QueryOutput<T, ModelDTO>[]
+        data: found as unknown as QueryOutput<T, ModelDTO>[],
       }
 
       return paginationInfo as unknown as Promise<QueryOutput<T, ModelDTO>[]>
@@ -291,7 +291,7 @@ export class FirebaseConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          updated: new Date()
+          updated: new Date(),
         }
       : data
 
@@ -299,7 +299,7 @@ export class FirebaseConnector<
 
     await this.collection.doc(id).update({
       ...validatedData,
-      id
+      id,
     } as unknown as UpdateData<ModelDTO>)
 
     const dbResult = await this.findById(id)
@@ -310,7 +310,7 @@ export class FirebaseConnector<
 
     // Validate Output
     return this.outputSchema?.parse(
-      Objects.clearEmpties(Objects.deleteNulls(dbResult))
+      Objects.clearEmpties(Objects.deleteNulls(dbResult)),
     )
   }
 
@@ -356,7 +356,7 @@ export class FirebaseConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          updated: new Date()
+          updated: new Date(),
         }
       : data
 
@@ -370,7 +370,7 @@ export class FirebaseConnector<
     const val = await this.requireById(id)
 
     return this.outputSchema.parse(
-      Objects.clearEmpties(Objects.deleteNulls(val))
+      Objects.clearEmpties(Objects.deleteNulls(val)),
     )
   }
 
@@ -403,8 +403,8 @@ export class FirebaseConnector<
       repository: this,
       query: {
         ...query,
-        limit: 1
-      }
+        limit: 1,
+      },
     })
 
     return newInstance as LoadedResult<this>
@@ -420,9 +420,9 @@ export class FirebaseConnector<
       repository: this,
       query: {
         where: {
-          id
-        }
-      } as unknown as FluentQuery<ModelDTO>
+          id,
+        },
+      } as unknown as FluentQuery<ModelDTO>,
     })
 
     return newInstance as LoadedResult<this>
@@ -450,7 +450,7 @@ export class FirebaseConnector<
     query: FirebaseFirestore.Query,
     batchSize: number,
     resolve: (value?: unknown) => void,
-    reject: (reason?: any) => void
+    reject: (reason?: any) => void,
   ) {
     this.initDB()
     try {
@@ -492,7 +492,7 @@ export class FirebaseConnector<
     return new (<any>this.constructor)({
       entity: this.entity,
       inputSchema: this.inputSchema,
-      outputSchema: this.outputSchema
+      outputSchema: this.outputSchema,
     })
   }
   //////////////////////////////////////////////////////////////
@@ -501,7 +501,7 @@ export class FirebaseConnector<
 
   protected async loadRelatedData(
     data: any[],
-    loadedKeys: AnyObject
+    loadedKeys: AnyObject,
   ): Promise<admin.firestore.DocumentData[]> {
     const result = await loadRelations({
       data,
@@ -509,7 +509,7 @@ export class FirebaseConnector<
       modelRelations: this.modelRelations,
       provider: 'firebase',
       self: this,
-      returnPivot: false
+      returnPivot: false,
     })
 
     return result as unknown as admin.firestore.DocumentData[]
@@ -519,7 +519,7 @@ export class FirebaseConnector<
    *
    */
   private getGeneratedQueries(
-    query?: FluentQuery<ModelDTO>
+    query?: FluentQuery<ModelDTO>,
   ): [FirebaseFirestore.Query | undefined, FirebaseFirestore.Query[]] {
     const { andWhere, orWhere } = this.getFirebaseWhereQuery(query?.where)
 
@@ -565,7 +565,9 @@ export class FirebaseConnector<
               if (attribute) {
                 currentQuery = currentQuery.orderBy(
                   attribute,
-                  flattenObject[attribute] as FirebaseFirestore.OrderByDirection
+                  flattenObject[
+                    attribute
+                  ] as FirebaseFirestore.OrderByDirection,
                 )
               }
             }
@@ -614,12 +616,12 @@ export class FirebaseConnector<
       [LogicOperator.LessOrEqualThan, '<='],
       [LogicOperator.In, 'in'],
       [LogicOperator.ArrayContains, 'array-contains'],
-      [LogicOperator.NotIn, 'not-in']
+      [LogicOperator.NotIn, 'not-in'],
     ])
 
     const applyCondition = (
       query: FirebaseFirestore.Query,
-      condition: any
+      condition: any,
     ): FirebaseFirestore.Query => {
       const { element, operator, value } = condition
 
@@ -676,7 +678,7 @@ export class FirebaseConnector<
 
     return {
       andWhere: andWhereCondition,
-      orWhere: orWhereQueries
+      orWhere: orWhereQueries,
     }
   }
 }

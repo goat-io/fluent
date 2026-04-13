@@ -6,7 +6,7 @@ class TemplateUtil {
   renderString(
     tmpl: string,
     params: AnyObject = {},
-    opt: PupaOptions = {}
+    opt: PupaOptions = {},
   ): string {
     return Strings.pupa(tmpl, params, opt)
   }

@@ -7,14 +7,14 @@ import { ExpressTrpcAppConfig, getDefaultConfig } from '../ExpressTrpcAppConfig'
 // Create a simple TRPC router for testing
 const t = initTRPC.create()
 const testRouter = t.router({
-  hello: t.procedure.query(() => 'world')
+  hello: t.procedure.query(() => 'world'),
 })
 
 describe('getExpressTrpcApp configuration', () => {
   describe('getDefaultConfig', () => {
     it('should work with minimal configuration (just trpcRouter)', () => {
       const minimalConfig: Partial<ExpressTrpcAppConfig> = {
-        trpcRouter: testRouter
+        trpcRouter: testRouter,
       }
 
       const result = getDefaultConfig(minimalConfig as ExpressTrpcAppConfig)
@@ -36,7 +36,7 @@ describe('getExpressTrpcApp configuration', () => {
       expect(result.security?.cors?.maxAge).toBe(86400)
       expect(result.security?.cors?.allowedOrigins).toEqual([
         'http://localhost:3000',
-        'http://localhost:3001'
+        'http://localhost:3001',
       ])
 
       expect(result.security?.rateLimit?.global?.windowMs).toBe(15 * 60 * 1000)
@@ -48,9 +48,9 @@ describe('getExpressTrpcApp configuration', () => {
         trpcRouter: testRouter,
         security: {
           cors: {
-            maxAge: 7200 // Only override maxAge
-          }
-        }
+            maxAge: 7200, // Only override maxAge
+          },
+        },
       }
 
       const result = getDefaultConfig(partialConfig as ExpressTrpcAppConfig)
@@ -62,7 +62,7 @@ describe('getExpressTrpcApp configuration', () => {
       expect(result.security?.cors?.credentials).toBe(true)
       expect(result.security?.cors?.allowedOrigins).toEqual([
         'http://localhost:3000',
-        'http://localhost:3001'
+        'http://localhost:3001',
       ])
 
       // Check that other security defaults are preserved
@@ -75,9 +75,9 @@ describe('getExpressTrpcApp configuration', () => {
         trpcRouter: testRouter,
         security: {
           cors: {
-            allowedOrigins: ['https://example.com', 'https://app.example.com']
-          }
-        }
+            allowedOrigins: ['https://example.com', 'https://app.example.com'],
+          },
+        },
       }
 
       const result = getDefaultConfig(configWithArrays as ExpressTrpcAppConfig)
@@ -85,17 +85,17 @@ describe('getExpressTrpcApp configuration', () => {
       // Check that the array is replaced, not merged
       expect(result.security?.cors?.allowedOrigins).toEqual([
         'https://example.com',
-        'https://app.example.com'
+        'https://app.example.com',
       ])
       expect(result.security?.cors?.allowedOrigins).not.toContain(
-        'http://localhost:3000'
+        'http://localhost:3000',
       )
     })
 
     it('should apply production defaults when environment is prod', () => {
       const prodConfig: Partial<ExpressTrpcAppConfig> = {
         trpcRouter: testRouter,
-        environment: 'prod'
+        environment: 'prod',
       }
 
       const result = getDefaultConfig(prodConfig as ExpressTrpcAppConfig)
@@ -105,7 +105,7 @@ describe('getExpressTrpcApp configuration', () => {
       expect(result.security?.helmet?.contentSecurityPolicy).toBe(true)
       expect(result.security?.helmet?.crossOriginEmbedderPolicy).toBe(true)
       expect(
-        result.performance?.memoryMonitoring?.enableGarbageCollection
+        result.performance?.memoryMonitoring?.enableGarbageCollection,
       ).toBe(true)
       expect(result.performance?.memoryMonitoring?.addHeaders).toBe(false)
     })
@@ -115,12 +115,12 @@ describe('getExpressTrpcApp configuration', () => {
         trpcRouter: testRouter,
         performance: {
           compression: {
-            level: 9 // Override just the level
+            level: 9, // Override just the level
           },
           memoryMonitoring: {
-            warningThreshold: 85 // Override just the warning threshold
-          }
-        }
+            warningThreshold: 85, // Override just the warning threshold
+          },
+        },
       }
 
       const result = getDefaultConfig(deepConfig as ExpressTrpcAppConfig)
@@ -143,7 +143,7 @@ describe('getExpressTrpcApp configuration', () => {
     it('should calculate baseUrl from port if not provided', () => {
       const configWithPort: Partial<ExpressTrpcAppConfig> = {
         trpcRouter: testRouter,
-        port: 8080
+        port: 8080,
       }
 
       const result = getDefaultConfig(configWithPort as ExpressTrpcAppConfig)
@@ -155,7 +155,7 @@ describe('getExpressTrpcApp configuration', () => {
       const configWithBaseUrl: Partial<ExpressTrpcAppConfig> = {
         trpcRouter: testRouter,
         port: 8080,
-        baseUrl: 'https://api.example.com'
+        baseUrl: 'https://api.example.com',
       }
 
       const result = getDefaultConfig(configWithBaseUrl as ExpressTrpcAppConfig)

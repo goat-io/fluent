@@ -7,7 +7,7 @@ export class MetabaseApiError extends Error {
     public status?: number,
     public statusText?: string,
     public responseBody?: string,
-    public endpoint?: string
+    public endpoint?: string,
   ) {
     super(message)
     this.name = 'MetabaseApiError'
@@ -42,12 +42,12 @@ export async function metabaseFetch({
   method = 'GET',
   body,
   headers = {},
-  timeout = 30000
+  timeout = 30000,
 }: MetabaseFetchOptions): Promise<Response> {
   // Build authentication headers
   const authHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...headers
+    ...headers,
   }
 
   // Prefer API key over session token for better reliability
@@ -66,7 +66,7 @@ export async function metabaseFetch({
       method,
       headers: authHeaders,
       body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal
+      signal: controller.signal,
     })
 
     clearTimeout(timeoutId)
@@ -89,7 +89,7 @@ export async function metabaseFetch({
       response.status,
       response.statusText,
       responseBody,
-      endpoint
+      endpoint,
     )
   } catch (error) {
     clearTimeout(timeoutId)
@@ -101,7 +101,7 @@ export async function metabaseFetch({
         undefined,
         undefined,
         undefined,
-        endpoint
+        endpoint,
       )
     }
 
@@ -116,7 +116,7 @@ export async function metabaseFetch({
       undefined,
       undefined,
       undefined,
-      endpoint
+      endpoint,
     )
   }
 }

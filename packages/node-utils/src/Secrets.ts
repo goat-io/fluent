@@ -29,7 +29,7 @@ class SecretsClass {
     console.log(
       `${
         Object.keys(secrets).length
-      } secret(s) loaded from process.env: ${Object.keys(secrets).join(', ')}`
+      } secret(s) loaded from process.env: ${Object.keys(secrets).join(', ')}`,
     )
   }
 
@@ -52,11 +52,11 @@ class SecretsClass {
    */
   loadSecretsFromEncryptedJsonFile(
     filePath: string,
-    secretEncryptionKey?: string
+    secretEncryptionKey?: string,
   ): void {
     if (!fs.existsSync(filePath)) {
       throw new Error(
-        `loadSecretsFromEncryptedJsonFile() cannot load from path: ${filePath}`
+        `loadSecretsFromEncryptedJsonFile() cannot load from path: ${filePath}`,
       )
     }
 
@@ -66,7 +66,7 @@ class SecretsClass {
       const buf = fs.readFileSync(filePath)
       const plain = Security.decryptRandomIVBuffer(
         buf,
-        secretEncryptionKey
+        secretEncryptionKey,
       ).toString('utf8')
 
       secrets = JSON.parse(plain)
@@ -84,7 +84,7 @@ class SecretsClass {
         Object.keys(secrets).length
       } secret(s) loaded from ${filePath}: ${Object.keys(secrets)
         .map(s => s.toUpperCase())
-        .join(', ')}`
+        .join(', ')}`,
     )
   }
 
@@ -94,11 +94,11 @@ class SecretsClass {
    */
   loadSecretsFromEncryptedJsonFileValues(
     filePath: string,
-    secretEncryptionKey?: string
+    secretEncryptionKey?: string,
   ): void {
     if (!fs.existsSync(filePath)) {
       throw new Error(
-        `loadSecretsFromEncryptedJsonFileValues() cannot load from path: ${filePath}`
+        `loadSecretsFromEncryptedJsonFileValues() cannot load from path: ${filePath}`,
       )
     }
 
@@ -118,14 +118,14 @@ class SecretsClass {
         Object.keys(secrets).length
       } secret(s) loaded from ${filePath}: ${Object.keys(secrets)
         .map(s => s.toUpperCase())
-        .join(', ')}`
+        .join(', ')}`,
     )
   }
 
   requireLoaded(): void {
     if (!loaded) {
       throw new Error(
-        `Secrets were not loaded! Call loadSecrets() before accessing secrets.`
+        `Secrets were not loaded! Call loadSecrets() before accessing secrets.`,
       )
     }
   }
@@ -161,7 +161,7 @@ class SecretsClass {
         Object.keys(secretMap).length
       } secret(s): ${Object.keys(map)
         .map(s => s.toUpperCase())
-        .join(', ')}`
+        .join(', ')}`,
     )
   }
 }

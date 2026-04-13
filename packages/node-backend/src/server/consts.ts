@@ -41,5 +41,5 @@ export const config = {
   playStoreTestEmail,
   frontendTestUser,
   testEmailRegex,
-  defaultTimeZone
+  defaultTimeZone,
 }

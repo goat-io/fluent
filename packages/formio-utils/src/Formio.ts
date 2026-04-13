@@ -53,6 +53,6 @@ export const Formio = (() => {
     setter,
     tableViewComponents,
     tableViewLabels,
-    parse
+    parse,
   })
 })()

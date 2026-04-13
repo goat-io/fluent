@@ -6,7 +6,7 @@ import { gzipBuffer } from './util/zip.util'
 export class SizeStack extends NumberStack {
   constructor(
     public name: string,
-    size: number
+    size: number,
   ) {
     super(size)
   }
@@ -30,7 +30,7 @@ export class SizeStack extends NumberStack {
       // 'p90',
       // yellow(_hb(pcs[90])),
       'total',
-      yellow(Units.humanByteSize(this.total))
+      yellow(Units.humanByteSize(this.total)),
     ].join(' ')
   }
 
@@ -38,7 +38,7 @@ export class SizeStack extends NumberStack {
     item: any,
     logger: CommonLogger,
     sizes?: SizeStack,
-    sizesZipped?: SizeStack
+    sizesZipped?: SizeStack,
   ): Promise<void> {
     if (!sizes) {
       return
@@ -57,7 +57,7 @@ export class SizeStack extends NumberStack {
       logger.log(
         `transformLogProgress failed to JSON.stringify the chunk: ${
           (err as Error).message
-        }`
+        }`,
       )
     }
   }

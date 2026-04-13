@@ -4,13 +4,13 @@ import { createTenantQualifiedName } from '../../utils/tenant'
 
 export async function deletePreset(
   ctx: TypesenseContext,
-  presetName: string
+  presetName: string,
 ): Promise<TypesensePresetResponse> {
   // Apply tenant prefix to preset name
   const qualifiedName = createTenantQualifiedName(ctx.tenantId, presetName)
 
   return await ctx.httpClient.request<TypesensePresetResponse>(
     `/presets/${qualifiedName}`,
-    { method: 'DELETE' }
+    { method: 'DELETE' },
   )
 }

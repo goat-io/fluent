@@ -10,5 +10,5 @@ export const MYSQLDataSource = new DataSource({
   port: 3306,
   entities: dbEntities,
   synchronize: true,
-  logging: false
+  logging: false,
 })

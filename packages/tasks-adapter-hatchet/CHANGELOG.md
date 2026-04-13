@@ -1,5 +1,120 @@
 # 0.5.20
 
+## 0.4.11
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.15.0
+
+## 0.4.10
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.14.10
+
+## 0.4.9
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.14.9
+  - @goatlab/js-utils@0.10.3
+  - @goatlab/node-utils@0.11.2
+
+## 0.4.8
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.14.8
+
+## 0.4.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.14.7
+
+## 0.4.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.14.6
+
+## 0.4.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.6.1
+
+## 0.4.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.6.0
+
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.5.0
+
+## 0.4.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.3
+  - @goatlab/node-utils@0.11.1
+  - @goatlab/tasks-core@0.4.1
+
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.11.0
+
+## 0.4.0
+
+### Minor Changes
+
+- Add multi-tenant support to all task adapters
+
+  - Added `tenantId` property to TaskConnector interface
+  - Added `forTenant(tenantId, credentials?)` method for creating tenant-scoped connectors
+  - Added `TenantCredentials` type for optional per-tenant authentication
+  - Added shared multi-tenant test suite in `@goatlab/tasks-core/test-suite`
+  - Added `testPostUrl` option to multi-tenant test suite for HTTP callback adapters
+
+  **BullMQ Adapter:**
+
+  - Tenant isolation via Redis key prefix (`tenantId:queueName:*`)
+  - Compatible with Redis ACL patterns (`~tenantId:*`)
+  - Prefix applied to both Queue and Worker instances
+
+  **Hatchet Adapter:**
+
+  - Tenant isolation via Hatchet namespace feature
+  - Shares same token across tenants (no separate auth required)
+
+  **GCP Cloud Tasks Adapter:**
+
+  - Tenant isolation via task name prefix (`tenantId-taskName`)
+  - Avoids queue creation overhead (all tenants share same queue)
+  - Added `enablePayloadCache` option for testing (GCP removes completed tasks immediately)
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tasks-core@0.4.0
+
 ## 0.3.4
 
 ### Patch Changes

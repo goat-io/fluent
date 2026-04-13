@@ -17,10 +17,10 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
       nestedTest: {
         a: ['6', '5', '4'],
         b: { c: true, d: ['2', '1', '0'] },
-        c: 4
+        c: 4,
       },
       order: 1,
-      test: true
+      test: true,
     })
 
     await Repository.insert({
@@ -28,10 +28,10 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
       nestedTest: {
         a: ['3', '2', '1'],
         b: { c: true, d: ['1', '1', '0'] },
-        c: 3
+        c: 3,
       },
       order: 2,
-      test: false
+      test: false,
     })
 
     await Repository.insert({
@@ -39,10 +39,10 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
       nestedTest: {
         a: ['0', '-1', '-2'],
         b: { c: true, d: ['0', '1', '0'] },
-        c: 2
+        c: 2,
       },
       order: 3,
-      test: false
+      test: false,
     })
   }
 
@@ -55,16 +55,16 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
         test: true,
         nestedTest: {
           c: true,
-          a: true
-        }
+          a: true,
+        },
       },
       where: {
         nestedTest: {
           c: {
-            greaterOrEqualThan: 3
-          }
-        }
-      }
+            greaterOrEqualThan: 3,
+          },
+        },
+      },
     })
 
     expect(!Array.isArray(form)).toBe(true)
@@ -93,13 +93,13 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
         test: true,
         nestedTest: {
           c: true,
-          a: true
+          a: true,
         },
         created: true,
-        order: true
+        order: true,
       },
       limit: 2,
-      orderBy: [{ created: 'asc' }]
+      orderBy: [{ created: 'asc' }],
     })
 
     expect(forms.length > 0).toBe(true)
@@ -114,11 +114,11 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
         test: true,
         nestedTest: {
           c: true,
-          a: true
-        }
+          a: true,
+        },
       },
       offset: 1,
-      limit: 1
+      limit: 1,
     })
 
     expect(forms.length).toBe(1)
@@ -131,10 +131,10 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
       where: {
         nestedTest: {
           c: {
-            greaterOrEqualThan: 3
-          }
-        }
-      }
+            greaterOrEqualThan: 3,
+          },
+        },
+      },
     })
 
     expect(forms.length > 0).toBe(true)
@@ -153,16 +153,16 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
           {
             nestedTest: {
               c: {
-                greaterOrEqualThan: 3
-              }
-            }
+                greaterOrEqualThan: 3,
+              },
+            },
           },
           {
-            order: 2
-          }
-        ]
+            order: 2,
+          },
+        ],
       },
-      limit: 1
+      limit: 1,
     })
 
     expect(forms.length).toBe(1)
@@ -179,16 +179,16 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
           {
             nestedTest: {
               c: {
-                greaterOrEqualThan: 5
-              }
-            }
+                greaterOrEqualThan: 5,
+              },
+            },
           },
           {
-            order: 2
-          }
-        ]
+            order: 2,
+          },
+        ],
       },
-      limit: 1
+      limit: 1,
     })
 
     expect(forms.length).toBe(1)
@@ -207,15 +207,15 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
           a: true,
           b: {
             c: true,
-            d: true
-          }
-        }
+            d: true,
+          },
+        },
       },
       orderBy: [
         {
-          order: 'desc'
-        }
-      ]
+          order: 'desc',
+        },
+      ],
     })
 
     expect(forms[0].order).toBe(3)
@@ -234,15 +234,15 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
           a: true,
           b: {
             c: true,
-            d: true
-          }
-        }
+            d: true,
+          },
+        },
       },
       orderBy: [
         {
-          order: 'asc'
-        }
-      ]
+          order: 'asc',
+        },
+      ],
     })
 
     expect(forms[0].order).toBe(1)
@@ -260,15 +260,15 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
           a: true,
           b: {
             c: true,
-            d: true
-          }
-        }
+            d: true,
+          },
+        },
       },
       orderBy: [
         {
-          created: 'asc'
-        }
-      ]
+          created: 'asc',
+        },
+      ],
     })
 
     expect(forms[0].order).toBe(3)
@@ -279,9 +279,9 @@ const advancedTestSuite = (Repository: FormioAdvancedRepository) => {
     const forms = await Repository.findMany({
       orderBy: [
         {
-          created: 'asc'
-        }
-      ]
+          created: 'asc',
+        },
+      ],
     })
 
     expect(forms[0].order).toBe(3)

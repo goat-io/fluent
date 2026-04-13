@@ -1,5 +1,20 @@
 # @goatlab/metabase
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/tsconfig@0.2.0
+  - @goatlab/js-utils@0.10.3
+
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.3
+
 ## 0.1.3
 
 ### Patch Changes

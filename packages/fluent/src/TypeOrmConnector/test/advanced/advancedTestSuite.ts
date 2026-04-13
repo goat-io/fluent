@@ -3,7 +3,7 @@ import { beforeAll, expect, it } from 'vitest'
 import { TypeOrmRepositoryFactory } from '../repository.factory'
 
 export const advancedTestSuite = (
-  dataSourceOrRepoClass?: DataSource | any | (() => DataSource)
+  dataSourceOrRepoClass?: DataSource | any | (() => DataSource),
 ) => {
   let Model: any
   let dbType: string = 'unknown'
@@ -53,31 +53,31 @@ export const advancedTestSuite = (
         nestedTest: {
           a: ['0', '-1', '-2'],
           b: { c: true, d: ['0', '1', '0'] },
-          c: 2
+          c: 2,
         },
         order: 3,
-        test: false
+        test: false,
       },
       {
         created: new Date('2017-12-03'),
         nestedTest: {
           a: ['3', '2', '1'],
           b: { c: true, d: ['1', '1', '0'] },
-          c: 3
+          c: 3,
         },
         order: 2,
-        test: false
+        test: false,
       },
       {
         created: new Date('2018-12-03'),
         nestedTest: {
           a: ['6', '5', '4'],
           b: { c: true, d: ['2', '1', '0'] },
-          c: 4
+          c: 4,
         },
         order: 1,
-        test: true
-      }
+        test: true,
+      },
     ]
 
     for (const item of data) {
@@ -98,16 +98,16 @@ export const advancedTestSuite = (
         test: true,
         nestedTest: {
           c: true,
-          a: true
-        }
+          a: true,
+        },
       },
       where: {
         nestedTest: {
           c: {
-            greaterOrEqualThan: 3
-          }
-        }
-      }
+            greaterOrEqualThan: 3,
+          },
+        },
+      },
     })
 
     expect(form).not.toBe(null)
@@ -137,13 +137,13 @@ export const advancedTestSuite = (
         test: true,
         nestedTest: {
           c: true,
-          a: true
+          a: true,
         },
         created: true,
-        order: true
+        order: true,
       },
       limit: 2,
-      orderBy: [{ created: 'asc' }]
+      orderBy: [{ created: 'asc' }],
     })
 
     expect(forms.length > 0).toBe(true)
@@ -159,11 +159,11 @@ export const advancedTestSuite = (
         test: true,
         nestedTest: {
           c: true,
-          a: true
-        }
+          a: true,
+        },
       },
       offset: 1,
-      limit: 1
+      limit: 1,
     })
 
     expect(forms.length).toBe(1)
@@ -176,10 +176,10 @@ export const advancedTestSuite = (
       where: {
         nestedTest: {
           c: {
-            greaterOrEqualThan: 3
-          }
-        }
-      }
+            greaterOrEqualThan: 3,
+          },
+        },
+      },
     })
 
     expect(forms.length > 0).toBe(true)
@@ -196,16 +196,16 @@ export const advancedTestSuite = (
           {
             nestedTest: {
               c: {
-                greaterOrEqualThan: 3
-              }
-            }
+                greaterOrEqualThan: 3,
+              },
+            },
           },
           {
-            order: 2
-          }
-        ]
+            order: 2,
+          },
+        ],
       },
-      limit: 1
+      limit: 1,
     })
 
     expect(forms.length).toBe(1)
@@ -220,17 +220,17 @@ export const advancedTestSuite = (
           {
             nestedTest: {
               c: {
-                greaterOrEqualThan: 5
-              }
-            }
+                greaterOrEqualThan: 5,
+              },
+            },
           },
 
           {
-            order: 2
-          }
-        ]
+            order: 2,
+          },
+        ],
       },
-      limit: 1
+      limit: 1,
     })
 
     expect(forms.length).toBe(1)
@@ -249,15 +249,15 @@ export const advancedTestSuite = (
           a: true,
           b: {
             c: true,
-            d: true
-          }
-        }
+            d: true,
+          },
+        },
       },
       orderBy: [
         {
-          order: 'desc'
-        }
-      ]
+          order: 'desc',
+        },
+      ],
     })
 
     expect(forms[0].order).toBe(3)
@@ -276,15 +276,15 @@ export const advancedTestSuite = (
           a: true,
           b: {
             c: true,
-            d: true
-          }
-        }
+            d: true,
+          },
+        },
       },
       orderBy: [
         {
-          order: 'asc'
-        }
-      ]
+          order: 'asc',
+        },
+      ],
     })
 
     expect(forms[0].order).toBe(1)
@@ -303,15 +303,15 @@ export const advancedTestSuite = (
           a: true,
           b: {
             c: true,
-            d: true
-          }
-        }
+            d: true,
+          },
+        },
       },
       orderBy: [
         {
-          created: 'asc'
-        }
-      ]
+          created: 'asc',
+        },
+      ],
     })
 
     // For MongoDB, CreateDateColumn sets current timestamp, so check by insertion order
@@ -328,9 +328,9 @@ export const advancedTestSuite = (
     const forms = await Model.findMany({
       orderBy: [
         {
-          created: 'asc'
-        }
-      ]
+          created: 'asc',
+        },
+      ],
     })
 
     // For MongoDB, CreateDateColumn sets current timestamp, so check by insertion order

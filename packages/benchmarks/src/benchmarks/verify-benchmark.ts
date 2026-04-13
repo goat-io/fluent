@@ -73,16 +73,16 @@ async function main() {
     port,
     user: 'benchmark_user',
     password: 'benchmark_pass',
-    database: 'benchmark_db'
+    database: 'benchmark_db',
   })
 
   const prismaClient = new PrismaClient({
     datasources: {
       db: {
-        url: `mysql://benchmark_user:benchmark_pass@${host}:${port}/benchmark_db`
-      }
+        url: `mysql://benchmark_user:benchmark_pass@${host}:${port}/benchmark_db`,
+      },
     },
-    log: ['query']
+    log: ['query'],
   })
 
   const pool = createPool({
@@ -90,11 +90,11 @@ async function main() {
     port,
     user: 'benchmark_user',
     password: 'benchmark_pass',
-    database: 'benchmark_db'
+    database: 'benchmark_db',
   })
 
   const kyselyDb = new Kysely<Database>({
-    dialect: new MysqlDialect({ pool })
+    dialect: new MysqlDialect({ pool }),
   })
 
   const drizzleDb = drizzle(pool, { schema, mode: 'default' })
@@ -127,14 +127,14 @@ async function main() {
       `LastName${i}`,
       i % 3 === 0 ? 'active' : i % 3 === 1 ? 'inactive' : 'suspended',
       Math.floor(Math.random() * 50) + 20,
-      'US'
+      'US',
     ])
   }
 
   const placeholders = users.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
   await mysql2Connection.execute(
     `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
-    users.flat()
+    users.flat(),
   )
 
   console.log(chalk.green('✅ Setup complete\n'))
@@ -145,7 +145,7 @@ async function main() {
 
   // MySQL2
   const [mysql2Simple] = await mysql2Connection.execute(
-    'SELECT * FROM users LIMIT 50'
+    'SELECT * FROM users LIMIT 50',
   )
   console.log(`MySQL2: Retrieved ${(mysql2Simple as any[]).length} records`)
 
@@ -168,29 +168,29 @@ async function main() {
   // Test 2: Filtered SELECT
   console.log(
     chalk.cyan.bold(
-      '\nTest 2: Filtered SELECT (status = "active" AND age > 25)'
-    )
+      '\nTest 2: Filtered SELECT (status = "active" AND age > 25)',
+    ),
   )
 
   // Count expected results
   const [expectedCount] = await mysql2Connection.execute(
     'SELECT COUNT(*) as count FROM users WHERE status = ? AND age > ?',
-    ['active', 25]
+    ['active', 25],
   )
   console.log(
-    chalk.grey(`Expected: ${(expectedCount as any)[0].count} records\n`)
+    chalk.grey(`Expected: ${(expectedCount as any)[0].count} records\n`),
   )
 
   // MySQL2
   const [mysql2Filtered] = await mysql2Connection.execute(
     'SELECT * FROM users WHERE status = ? AND age > ?',
-    ['active', 25]
+    ['active', 25],
   )
   console.log(`MySQL2: Retrieved ${(mysql2Filtered as any[]).length} records`)
 
   // Prisma
   const prismaFiltered = await prismaClient.user.findMany({
-    where: { status: 'active', age: { gt: 25 } }
+    where: { status: 'active', age: { gt: 25 } },
   })
   console.log(`Prisma: Retrieved ${prismaFiltered.length} records`)
 
@@ -212,7 +212,7 @@ async function main() {
 
   // Test 3: Performance measurement verification
   console.log(
-    chalk.cyan.bold('\nTest 3: Performance Measurement (10 iterations each)')
+    chalk.cyan.bold('\nTest 3: Performance Measurement (10 iterations each)'),
   )
 
   const iterations = 10
@@ -221,7 +221,7 @@ async function main() {
     MySQL2: [],
     Prisma: [],
     Kysely: [],
-    Drizzle: []
+    Drizzle: [],
   }
 
   for (let i = 0; i < iterations; i++) {
@@ -252,7 +252,7 @@ async function main() {
     const min = Math.min(...times[driver])
     const max = Math.max(...times[driver])
     console.log(
-      `${driver.padEnd(8)}: avg=${avg.toFixed(2)}ms, min=${min}ms, max=${max}ms`
+      `${driver.padEnd(8)}: avg=${avg.toFixed(2)}ms, min=${min}ms, max=${max}ms`,
     )
   }
 

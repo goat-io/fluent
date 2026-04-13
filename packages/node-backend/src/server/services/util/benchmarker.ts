@@ -19,7 +19,7 @@ export function analyzeBenchmarkResults(results: BenchmarkResult[]) {
     latencyMed: parseValue(r['Latency med (ns)']),
     throughputAvg: parseValue(r['Throughput avg (ops/s)']),
     throughputMed: parseValue(r['Throughput med (ops/s)']),
-    samples: r.Samples
+    samples: r.Samples,
   }))
 
   console.log({ parsedResults })
@@ -33,12 +33,12 @@ export function analyzeBenchmarkResults(results: BenchmarkResult[]) {
     name: r.name,
     latencyImprovement: ((bestLatency - r.latencyAvg) / bestLatency) * 100, // Lower is better
     throughputImprovement:
-      ((r.throughputAvg - bestThroughput) / bestThroughput) * 100 // Higher is better
+      ((r.throughputAvg - bestThroughput) / bestThroughput) * 100, // Higher is better
   }))
 
   // Sort results from best to worst (by latency)
   const sortedAnalysis = analysis.sort(
-    (a, b) => b.latencyImprovement - a.latencyImprovement
+    (a, b) => b.latencyImprovement - a.latencyImprovement,
   )
 
   console.table(
@@ -46,9 +46,9 @@ export function analyzeBenchmarkResults(results: BenchmarkResult[]) {
       ({ name, latencyImprovement, throughputImprovement }) => ({
         'Task Name': name,
         'Latency Improvement (%)': latencyImprovement.toFixed(2),
-        'Throughput Improvement (%)': throughputImprovement.toFixed(2)
-      })
-    )
+        'Throughput Improvement (%)': throughputImprovement.toFixed(2),
+      }),
+    ),
   )
 
   return sortedAnalysis

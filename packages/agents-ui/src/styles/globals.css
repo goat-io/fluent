@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  /* Status colors */
+  --color-status-running: #3b82f6;
+  --color-status-completed: #22c55e;
+  --color-status-failed: #ef4444;
+  --color-status-pending: #6b7280;
+  --color-status-queued: #f59e0b;
+  --color-status-waiting: #a855f7;
+  --color-status-skipped: #9ca3af;
+  --color-status-cancelled: #78716c;
+
+  /* Executor type colors */
+  --color-executor-function: #06b6d4;
+  --color-executor-sandbox: #f97316;
+  --color-executor-ai: #8b5cf6;
+  --color-executor-langgraph: #10b981;
+  --color-executor-agreement: #ec4899;
+}

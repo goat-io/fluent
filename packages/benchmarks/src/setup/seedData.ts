@@ -12,7 +12,7 @@ export class SeedData {
     console.log(`🌱 Seeding database with ${recordCount} records...`)
 
     const _mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
     const _prisma = await DatabaseConnections.getPrismaClient()
 
@@ -44,7 +44,7 @@ export class SeedData {
 
   private async clearData(): Promise<void> {
     const mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
 
     // Disable foreign key checks
@@ -57,7 +57,7 @@ export class SeedData {
       'orders',
       'products',
       'users',
-      'categories'
+      'categories',
     ]
 
     for (const table of tables) {
@@ -71,7 +71,7 @@ export class SeedData {
 
   private async seedCategories(): Promise<void> {
     const mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
 
     const categories = [
@@ -82,20 +82,20 @@ export class SeedData {
       { name: 'Sports', description: 'Sports and fitness equipment' },
       { name: 'Toys', description: 'Toys and games' },
       { name: 'Automotive', description: 'Car parts and accessories' },
-      { name: 'Health & Beauty', description: 'Health and beauty products' }
+      { name: 'Health & Beauty', description: 'Health and beauty products' },
     ]
 
     for (const category of categories) {
       await mysql2Conn.execute(
         'INSERT INTO categories (name, description) VALUES (?, ?)',
-        [category.name, category.description]
+        [category.name, category.description],
       )
     }
   }
 
   private async seedUsers(count: number): Promise<void> {
     const mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
 
     const countries = [
@@ -108,7 +108,7 @@ export class SeedData {
       'AU',
       'BR',
       'IN',
-      'MX'
+      'MX',
     ]
     const statuses = ['active', 'inactive', 'suspended']
 
@@ -127,7 +127,7 @@ export class SeedData {
           `LastName${userId}`,
           statuses[Math.floor(Math.random() * statuses.length)],
           Math.floor(Math.random() * 60) + 18, // Age between 18-77
-          countries[Math.floor(Math.random() * countries.length)]
+          countries[Math.floor(Math.random() * countries.length)],
         ])
       }
 
@@ -136,14 +136,14 @@ export class SeedData {
 
       await mysql2Conn.execute(
         `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
-        values
+        values,
       )
     }
   }
 
   private async seedProducts(count: number): Promise<void> {
     const mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
 
     const batchSize = 1000
@@ -160,7 +160,7 @@ export class SeedData {
           (Math.random() * 1000).toFixed(2), // Price between 0-1000
           Math.floor(Math.random() * 8) + 1, // Category ID 1-8
           Math.floor(Math.random() * 100), // Stock quantity 0-99
-          Math.random() > 0.1 // 90% active
+          Math.random() > 0.1, // 90% active
         ])
       }
 
@@ -169,14 +169,14 @@ export class SeedData {
 
       await mysql2Conn.execute(
         `INSERT INTO products (name, description, price, category_id, stock_quantity, is_active) VALUES ${placeholders}`,
-        values
+        values,
       )
     }
   }
 
   private async seedOrders(count: number): Promise<void> {
     const mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
 
     const statuses = [
@@ -184,7 +184,7 @@ export class SeedData {
       'processing',
       'shipped',
       'delivered',
-      'cancelled'
+      'cancelled',
     ]
     const batchSize = 1000
 
@@ -197,7 +197,7 @@ export class SeedData {
           Math.floor(Math.random() * 10000) + 1, // Random user ID
           statuses[Math.floor(Math.random() * statuses.length)],
           (Math.random() * 500).toFixed(2), // Total amount 0-500
-          `Address ${i + j + 1}, City, Country`
+          `Address ${i + j + 1}, City, Country`,
         ])
       }
 
@@ -206,14 +206,14 @@ export class SeedData {
 
       await mysql2Conn.execute(
         `INSERT INTO orders (user_id, status, total_amount, shipping_address) VALUES ${placeholders}`,
-        values
+        values,
       )
     }
   }
 
   private async seedReviews(count: number): Promise<void> {
     const mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
 
     const batchSize = 1000
@@ -227,7 +227,7 @@ export class SeedData {
           Math.floor(Math.random() * 10000) + 1, // Random user ID
           Math.floor(Math.random() * 10000) + 1, // Random product ID
           Math.floor(Math.random() * 5) + 1, // Rating 1-5
-          `This is a review comment ${i + j + 1}`
+          `This is a review comment ${i + j + 1}`,
         ])
       }
 
@@ -237,7 +237,7 @@ export class SeedData {
       try {
         await mysql2Conn.execute(
           `INSERT IGNORE INTO reviews (user_id, product_id, rating, comment) VALUES ${placeholders}`,
-          values
+          values,
         )
       } catch (_error) {
         // Ignore duplicate key errors

@@ -2,7 +2,7 @@
 export async function getEmbeddingSecretKey({
   baseUrl,
   sessionToken,
-  apiKey
+  apiKey,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -13,8 +13,8 @@ export async function getEmbeddingSecretKey({
     headers: {
       'Content-Type': 'application/json',
       'X-Metabase-Session': sessionToken || '',
-      'X-Api-Key': apiKey || ''
-    }
+      'X-Api-Key': apiKey || '',
+    },
   })
 
   if (response.ok) {

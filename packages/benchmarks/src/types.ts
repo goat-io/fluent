@@ -45,7 +45,7 @@ export interface DatabaseConfig {
 export interface BenchmarkRunner {
   run(
     fn: () => Promise<void>,
-    options: BenchmarkOptions
+    options: BenchmarkOptions,
   ): Promise<BenchmarkResult>
   runSuite(
     name: string,
@@ -53,7 +53,7 @@ export interface BenchmarkRunner {
       name: string
       fn: () => Promise<void>
       options?: Partial<BenchmarkOptions>
-    }>
+    }>,
   ): Promise<BenchmarkSuite>
 }
 

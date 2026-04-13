@@ -3,6 +3,7 @@ import Keyv from 'keyv'
 import { afterEach, beforeEach, describe, expect, it, test } from 'vitest'
 import { Cache } from './Cache'
 import { KeyvLru } from './cache/KeyvLrus'
+import { RedisConnectionPool } from './cache/RedisConnectionPool'
 import { getGlobalData } from './test/const'
 
 const connection = getGlobalData().redisUrl || 'redis://localhost:6379'
@@ -31,7 +32,7 @@ describe('Cache (Memory)', () => {
   it('should initialize with LRU store when connection is not provided', () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'lru-ns' }
+      opts: { namespace: 'lru-ns' },
     })
     expect(cache).toBeInstanceOf(Cache)
     // @ts-expect-error accessing private property for test
@@ -47,7 +48,7 @@ describe('Cache (Memory)', () => {
   it('should set usesLRUMemory to true if provided in opts', () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { usesLRUMemory: true, namespace: 'lru-ns' }
+      opts: { usesLRUMemory: true, namespace: 'lru-ns' },
     })
     // @ts-expect-error accessing private property for test
     expect(cache.usesLRUMemory).toBe(true)
@@ -70,7 +71,7 @@ describe('Cache (Memory)', () => {
   it('should set and get values correctly', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'data-ns' }
+      opts: { namespace: 'data-ns' },
     })
     await cache.set('foo', 'bar')
     const value = await cache.get('foo')
@@ -80,7 +81,7 @@ describe('Cache (Memory)', () => {
   it('should delete values correctly', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'del-ns' }
+      opts: { namespace: 'del-ns' },
     })
     await cache.set('foo', 'bar')
     const deleted = await cache.delete('foo')
@@ -92,7 +93,7 @@ describe('Cache (Memory)', () => {
   it('should return true for has when value exists', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'has-ns' }
+      opts: { namespace: 'has-ns' },
     })
     await cache.set('foo', 'bar')
     const exists = await cache.has('foo')
@@ -102,7 +103,7 @@ describe('Cache (Memory)', () => {
   it('should return false for has when value does not exist', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'has-ns' }
+      opts: { namespace: 'has-ns' },
     })
     const exists = await cache.has('not-exist')
     expect(exists).toBe(false)
@@ -111,7 +112,7 @@ describe('Cache (Memory)', () => {
   it('should remember and cache value for given ms', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'remember-ns' }
+      opts: { namespace: 'remember-ns' },
     })
     let called = 0
     const result = await cache.remember('foo', 1000, async () => {
@@ -130,7 +131,7 @@ describe('Cache (Memory)', () => {
   it('should rememberForever and cache value', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'forever-ns' }
+      opts: { namespace: 'forever-ns' },
     })
     let called = 0
     const result = await cache.rememberForever('foo', async () => {
@@ -149,7 +150,7 @@ describe('Cache (Memory)', () => {
   it('should pull value and delete it', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'pull-ns' }
+      opts: { namespace: 'pull-ns' },
     })
     await cache.set('foo', 'bar')
     const value = await cache.pull('foo')
@@ -161,7 +162,7 @@ describe('Cache (Memory)', () => {
   it('should forget value', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'forget-ns' }
+      opts: { namespace: 'forget-ns' },
     })
     await cache.set('foo', 'bar')
     const result = await cache.forget('foo')
@@ -173,7 +174,7 @@ describe('Cache (Memory)', () => {
   it('should flush all values in namespace', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'flush-ns' }
+      opts: { namespace: 'flush-ns' },
     })
     await cache.set('foo', 'bar')
     await cache.set('baz', 'qux')
@@ -187,7 +188,7 @@ describe('Cache (Memory)', () => {
   it('should delete keys where key starts with value', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'starts-ns' }
+      opts: { namespace: 'starts-ns' },
     })
     await cache.set('start:1', 'a')
     await cache.set('start:2', 'b')
@@ -204,12 +205,13 @@ describe('Cache (Memory)', () => {
   it('should use LRU memory cache when usesLRUMemory is true', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'lru-mem', usesLRUMemory: true }
+      opts: { namespace: 'lru-mem', usesLRUMemory: true },
     })
     await cache.set('foo', 'bar')
     // manually set in memoryCache to test get from LRU
+    // memoryCache already has namespace configured, so use key directly
     // @ts-expect-error
-    await cache.memoryCache.set('lru-mem:foo', 'baz')
+    await cache.memoryCache.set('foo', 'baz')
     const value = await cache.get('foo')
     expect(value).toBe('baz')
   })
@@ -221,7 +223,7 @@ describe('Cache (Redis)', () => {
   beforeEach(async () => {
     cache = new Cache({
       connection,
-      opts: { namespace: `redis-ns-${Ids.nanoId(5)}` }
+      opts: { namespace: `redis-ns-${Ids.nanoId(5)}` },
     })
     await cache.flush()
   })
@@ -311,6 +313,47 @@ describe('Cache (Redis)', () => {
     expect(baz).toBeUndefined()
   })
 
+  it('should flush keys even when not tracked in Redis Sets (orphaned keys)', async () => {
+    // This test simulates "orphaned" keys that exist in Redis but aren't tracked
+    // in KeyvRedis's Redis Set (e.g., keys created before namespace fix was deployed).
+    // KeyvRedis.clear() only deletes keys it tracks in its Redis Set.
+    // Our flush() should delete ALL keys matching the namespace via iterator/SCAN.
+
+    const namespace = `orphan-test-${Ids.uuid()}`
+    const testCache = new Cache({
+      connection,
+      opts: { namespace },
+    })
+
+    // Trigger connection
+    await testCache.get('__trigger__')
+
+    // Get underlying Redis client to insert "orphaned" keys directly
+    // @ts-expect-error accessing private property
+    const lazyStore = testCache.lazyStore
+    // @ts-expect-error accessing private property
+    const keyvRedis = lazyStore._store
+    const redis = keyvRedis.redis
+
+    // Insert keys directly into Redis (bypassing KeyvRedis Set tracking)
+    // These simulate keys that exist but aren't in the tracking Set
+    const orphanKey1 = `${namespace}:orphan1`
+    const orphanKey2 = `${namespace}:orphan2`
+    await redis.set(orphanKey1, JSON.stringify({ value: 'orphan-value-1' }))
+    await redis.set(orphanKey2, JSON.stringify({ value: 'orphan-value-2' }))
+
+    // Verify keys exist via Redis SCAN
+    const keysBefore = await redis.keys(`${namespace}:*`)
+    expect(keysBefore.length).toBeGreaterThanOrEqual(2)
+
+    // Flush should clear ALL keys, even orphaned ones
+    await testCache.flush()
+
+    // Verify keys are gone
+    const keysAfter = await redis.keys(`${namespace}:*`)
+    expect(keysAfter.length).toBe(0)
+  })
+
   it('should delete keys where key starts with value (Redis)', async () => {
     await cache.set('start:1', 'a')
     await cache.set('start:2', 'b')
@@ -353,11 +396,11 @@ describe('Cache (Memory) - Namespace Isolation', () => {
   it('should isolate keys between different namespaces', async () => {
     const cacheA = new Cache({
       connection: undefined,
-      opts: { namespace: 'nsA' }
+      opts: { namespace: 'nsA' },
     })
     const cacheB = new Cache({
       connection: undefined,
-      opts: { namespace: 'nsB' }
+      opts: { namespace: 'nsB' },
     })
 
     await cacheA.set('foo', 'barA')
@@ -377,11 +420,11 @@ describe('Cache (Memory) - Namespace Isolation', () => {
   it('should not affect other namespaces when using remember and rememberForever', async () => {
     const cacheA = new Cache({
       connection: undefined,
-      opts: { namespace: 'nsA2' }
+      opts: { namespace: 'nsA2' },
     })
     const cacheB = new Cache({
       connection: undefined,
-      opts: { namespace: 'nsB2' }
+      opts: { namespace: 'nsB2' },
     })
 
     let _calledA = 0
@@ -410,11 +453,11 @@ describe('Cache (Memory) - Namespace Isolation', () => {
   it('should isolate deleteWhereStartsWith between namespaces', async () => {
     const cacheA = new Cache({
       connection: undefined,
-      opts: { namespace: 'nsA3' }
+      opts: { namespace: 'nsA3' },
     })
     const cacheB = new Cache({
       connection: undefined,
-      opts: { namespace: 'nsB3' }
+      opts: { namespace: 'nsB3' },
     })
 
     await cacheA.set('start:1', 'a')
@@ -437,11 +480,11 @@ describe('Cache (Redis) - Namespace Isolation', () => {
   beforeEach(async () => {
     cacheA = new Cache({
       connection,
-      opts: { namespace: `redis-nsA-${Ids.nanoId(5)}` }
+      opts: { namespace: `redis-nsA-${Ids.nanoId(5)}` },
     })
     cacheB = new Cache({
       connection,
-      opts: { namespace: `redis-nsB-${Ids.nanoId(5)}` }
+      opts: { namespace: `redis-nsB-${Ids.nanoId(5)}` },
     })
     await cacheA.flush()
     await cacheB.flush()
@@ -528,20 +571,21 @@ describe('Cache (Memory) - LRU Memory with Namespaces', () => {
   it('should isolate LRU memory cache between namespaces', async () => {
     const cacheA = new Cache({
       connection: undefined,
-      opts: { namespace: 'lruA', usesLRUMemory: true }
+      opts: { namespace: 'lruA', usesLRUMemory: true },
     })
     const cacheB = new Cache({
       connection: undefined,
-      opts: { namespace: 'lruB', usesLRUMemory: true }
+      opts: { namespace: 'lruB', usesLRUMemory: true },
     })
 
     await cacheA.set('foo', 'barA')
     await cacheB.set('foo', 'barB')
 
+    // memoryCache already has namespace configured, so use key directly
     // @ts-expect-error
-    await cacheA.memoryCache.set('lruA:foo', 'bazA')
+    await cacheA.memoryCache.set('foo', 'bazA')
     // @ts-expect-error
-    await cacheB.memoryCache.set('lruB:foo', 'bazB')
+    await cacheB.memoryCache.set('foo', 'bazB')
 
     expect(await cacheA.get('foo')).toBe('bazA')
     expect(await cacheB.get('foo')).toBe('bazB')
@@ -573,7 +617,7 @@ describe('CACHE - Keyv', () => {
     const givenValue = 123
     const returnedValue = await cache.rememberForever(
       id,
-      async () => givenValue
+      async () => givenValue,
     )
 
     expect(returnedValue).toBe(givenValue)
@@ -596,7 +640,7 @@ describe('CACHE - Keyv', () => {
     const namespace = Ids.uuid()
     const isolatedCache = new Cache({
       opts: { namespace },
-      connection: undefined
+      connection: undefined,
     })
     const id1 = Ids.uuid()
     const id2 = Ids.uuid()
@@ -616,7 +660,7 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
   it('should return values for keys starting with a prefix (Memory)', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'gvwksw-ns' }
+      opts: { namespace: 'gvwksw-ns' },
     })
     await cache.set('foo:1', 'a')
     await cache.set('foo:2', 'b')
@@ -632,7 +676,7 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
   it('should return an empty array if no keys match (Memory)', async () => {
     const cache = new Cache({
       connection: undefined,
-      opts: { namespace: 'gvwksw-empty' }
+      opts: { namespace: 'gvwksw-empty' },
     })
     await cache.set('foo:1', 'a')
     const values = await cache.getValueWhereKeyStartsWith('bar')
@@ -643,11 +687,11 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
   it('should isolate values between namespaces (Memory)', async () => {
     const cacheA = new Cache({
       connection: undefined,
-      opts: { namespace: 'gvwksw-nsA' }
+      opts: { namespace: 'gvwksw-nsA' },
     })
     const cacheB = new Cache({
       connection: undefined,
-      opts: { namespace: 'gvwksw-nsB' }
+      opts: { namespace: 'gvwksw-nsB' },
     })
     await cacheA.set('foo:1', 'a')
     await cacheB.set('foo:1', 'b')
@@ -665,7 +709,7 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
     beforeEach(async () => {
       cache = new Cache({
         connection,
-        opts: { namespace: `gvwksw-redis-${Ids.nanoId(5)}` }
+        opts: { namespace: `gvwksw-redis-${Ids.nanoId(5)}` },
       })
       await cache.flush()
     })
@@ -696,11 +740,11 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
     it('should isolate values between namespaces (Redis)', async () => {
       const cacheA = new Cache({
         connection,
-        opts: { namespace: `gvwksw-redisA-${Ids.nanoId(5)}` }
+        opts: { namespace: `gvwksw-redisA-${Ids.nanoId(5)}` },
       })
       const cacheB = new Cache({
         connection,
-        opts: { namespace: `gvwksw-redisB-${Ids.nanoId(5)}` }
+        opts: { namespace: `gvwksw-redisB-${Ids.nanoId(5)}` },
       })
       await cacheA.set('foo:1', 'a')
       await cacheB.set('foo:1', 'b')
@@ -718,7 +762,7 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
     it('should return complex objects for keys starting with a prefix (Memory)', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'gvwksw-complex' }
+        opts: { namespace: 'gvwksw-complex' },
       })
       const obj1 = { a: 1, b: [1, 2, 3], c: { d: 'test' } }
       const obj2 = { x: 42, y: { z: [4, 5] } }
@@ -737,7 +781,7 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
     it('should return an empty array if no complex objects match (Memory)', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'gvwksw-complex-empty' }
+        opts: { namespace: 'gvwksw-complex-empty' },
       })
       await cache.set('foo:1', { a: 1 })
       const values = await cache.getValueWhereKeyStartsWith('bar')
@@ -748,11 +792,11 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
     it('should isolate complex objects between namespaces (Memory)', async () => {
       const cacheA = new Cache({
         connection: undefined,
-        opts: { namespace: 'gvwksw-complexA' }
+        opts: { namespace: 'gvwksw-complexA' },
       })
       const cacheB = new Cache({
         connection: undefined,
-        opts: { namespace: 'gvwksw-complexB' }
+        opts: { namespace: 'gvwksw-complexB' },
       })
       const objA = { foo: 'A', arr: [1, 2] }
       const objB = { foo: 'B', arr: [3, 4] }
@@ -772,7 +816,7 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
       beforeEach(async () => {
         cache = new Cache({
           connection,
-          opts: { namespace: `gvwksw-redis-complex-${Ids.nanoId(5)}` }
+          opts: { namespace: `gvwksw-redis-complex-${Ids.nanoId(5)}` },
         })
         await cache.flush()
       })
@@ -804,11 +848,11 @@ describe('Cache#getValueWhereKeyStartsWith', () => {
       it('should isolate complex objects between namespaces (Redis)', async () => {
         const cacheA = new Cache({
           connection,
-          opts: { namespace: `gvwksw-redis-complexA-${Ids.nanoId(5)}` }
+          opts: { namespace: `gvwksw-redis-complexA-${Ids.nanoId(5)}` },
         })
         const cacheB = new Cache({
           connection,
-          opts: { namespace: `gvwksw-redis-complexB-${Ids.nanoId(5)}` }
+          opts: { namespace: `gvwksw-redis-complexB-${Ids.nanoId(5)}` },
         })
         const objA = { foo: 'A', arr: [1, 2] }
         const objB = { foo: 'B', arr: [3, 4] }
@@ -829,7 +873,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should initialize with tenantId', () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'ns1' }
+        opts: { tenantId: 'tenant1', namespace: 'ns1' },
       })
       expect(cache).toBeInstanceOf(Cache)
       expect(cache.tenantId).toBe('tenant1')
@@ -840,7 +884,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should initialize with tenantId but no namespace', () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1' }
+        opts: { tenantId: 'tenant1' },
       })
       expect(cache.tenantId).toBe('tenant1')
       // @ts-expect-error accessing private property for test
@@ -850,7 +894,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should work without tenantId (backward compatibility)', () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'ns1' }
+        opts: { namespace: 'ns1' },
       })
       expect(cache.tenantId).toBeUndefined()
       // @ts-expect-error accessing private property for test
@@ -862,11 +906,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate data between different tenants with same namespace', async () => {
       const cacheTenant1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'shared' }
+        opts: { tenantId: 'tenant1', namespace: 'shared' },
       })
       const cacheTenant2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'shared' }
+        opts: { tenantId: 'tenant2', namespace: 'shared' },
       })
 
       await cacheTenant1.set('key', 'value1')
@@ -879,11 +923,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate data between different tenants without namespace', async () => {
       const cacheTenant1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1' }
+        opts: { tenantId: 'tenant1' },
       })
       const cacheTenant2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2' }
+        opts: { tenantId: 'tenant2' },
       })
 
       await cacheTenant1.set('key', 'value1')
@@ -896,7 +940,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should support all cache operations with tenantId', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'ops' }
+        opts: { tenantId: 'tenant1', namespace: 'ops' },
       })
 
       // Test set/get
@@ -919,7 +963,7 @@ describe('Cache - Multi-tenancy Support', () => {
       // Test rememberForever
       const forever = await cache.rememberForever(
         'forever',
-        async () => 'forever-value'
+        async () => 'forever-value',
       )
       expect(forever).toBe('forever-value')
 
@@ -954,11 +998,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate flush operations between tenants', async () => {
       const cacheTenant1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'flush-test' }
+        opts: { tenantId: 'tenant1', namespace: 'flush-test' },
       })
       const cacheTenant2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'flush-test' }
+        opts: { tenantId: 'tenant2', namespace: 'flush-test' },
       })
 
       await cacheTenant1.set('key', 'value1')
@@ -973,11 +1017,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate deleteWhereStartsWith between tenants', async () => {
       const cacheTenant1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'prefix-test' }
+        opts: { tenantId: 'tenant1', namespace: 'prefix-test' },
       })
       const cacheTenant2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'prefix-test' }
+        opts: { tenantId: 'tenant2', namespace: 'prefix-test' },
       })
 
       await cacheTenant1.set('prefix:1', 'tenant1-a')
@@ -996,11 +1040,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate getValueWhereKeyStartsWith between tenants', async () => {
       const cacheTenant1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'values-test' }
+        opts: { tenantId: 'tenant1', namespace: 'values-test' },
       })
       const cacheTenant2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'values-test' }
+        opts: { tenantId: 'tenant2', namespace: 'values-test' },
       })
 
       await cacheTenant1.set('prefix:1', 'tenant1-a')
@@ -1027,20 +1071,21 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate LRU memory cache between tenants', async () => {
       const cacheTenant1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'lru', usesLRUMemory: true }
+        opts: { tenantId: 'tenant1', namespace: 'lru', usesLRUMemory: true },
       })
       const cacheTenant2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'lru', usesLRUMemory: true }
+        opts: { tenantId: 'tenant2', namespace: 'lru', usesLRUMemory: true },
       })
 
       await cacheTenant1.set('key', 'value1')
       await cacheTenant2.set('key', 'value2')
 
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property for test
-      await cacheTenant1.memoryCache.set('tenant1:lru:key', 'memory1')
+      await cacheTenant1.memoryCache.set('key', 'memory1')
       // @ts-expect-error accessing private property for test
-      await cacheTenant2.memoryCache.set('tenant2:lru:key', 'memory2')
+      await cacheTenant2.memoryCache.set('key', 'memory2')
 
       expect(await cacheTenant1.get('key')).toBe('memory1')
       expect(await cacheTenant2.get('key')).toBe('memory2')
@@ -1053,11 +1098,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate data between different tenants with same namespace', async () => {
       const cacheTenant1 = new Cache({
         connection,
-        opts: { tenantId: 'redis-tenant1', namespace: 'shared' }
+        opts: { tenantId: 'redis-tenant1', namespace: 'shared' },
       })
       const cacheTenant2 = new Cache({
         connection,
-        opts: { tenantId: 'redis-tenant2', namespace: 'shared' }
+        opts: { tenantId: 'redis-tenant2', namespace: 'shared' },
       })
 
       await cacheTenant1.set('key', 'value1')
@@ -1073,7 +1118,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should support all operations with tenantId in Redis', async () => {
       const cache = new Cache({
         connection,
-        opts: { tenantId: 'redis-tenant-ops', namespace: 'ops' }
+        opts: { tenantId: 'redis-tenant-ops', namespace: 'ops' },
       })
 
       // Test basic operations
@@ -1103,11 +1148,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should isolate complex operations between tenants in Redis', async () => {
       const cacheTenant1 = new Cache({
         connection,
-        opts: { tenantId: 'redis-complex-tenant1', namespace: 'complex' }
+        opts: { tenantId: 'redis-complex-tenant1', namespace: 'complex' },
       })
       const cacheTenant2 = new Cache({
         connection,
-        opts: { tenantId: 'redis-complex-tenant2', namespace: 'complex' }
+        opts: { tenantId: 'redis-complex-tenant2', namespace: 'complex' },
       })
 
       const obj1 = { tenant: 1, data: [1, 2, 3] }
@@ -1128,7 +1173,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle empty tenantId gracefully', () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: '', namespace: 'ns' }
+        opts: { tenantId: '', namespace: 'ns' },
       })
       // @ts-expect-error accessing private property for test
       expect(cache.ns).toBe('ns')
@@ -1138,7 +1183,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle tenantId with special characters', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant:with:colons', namespace: 'ns' }
+        opts: { tenantId: 'tenant:with:colons', namespace: 'ns' },
       })
       await cache.set('key', 'value')
       expect(await cache.get('key')).toBe('value')
@@ -1147,21 +1192,21 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should maintain isolation with complex tenantId and namespace combinations', async () => {
       const cache1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'org1', namespace: 'app:module' }
+        opts: { tenantId: 'org1', namespace: 'app:module' },
       })
       const cache2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'org2', namespace: 'app:module' }
+        opts: { tenantId: 'org2', namespace: 'app:module' },
       })
 
       await cache1.set('config:setting', { value: 'org1-setting' })
       await cache2.set('config:setting', { value: 'org2-setting' })
 
       expect(await cache1.get('config:setting')).toEqual({
-        value: 'org1-setting'
+        value: 'org1-setting',
       })
       expect(await cache2.get('config:setting')).toEqual({
-        value: 'org2-setting'
+        value: 'org2-setting',
       })
     })
 
@@ -1171,7 +1216,7 @@ describe('Cache - Multi-tenancy Support', () => {
       for (const char of specialChars) {
         const cache = new Cache({
           connection: undefined,
-          opts: { tenantId: `tenant${char}123`, namespace: 'test' }
+          opts: { tenantId: `tenant${char}123`, namespace: 'test' },
         })
 
         await cache.set('key', `value-${char}`)
@@ -1184,7 +1229,7 @@ describe('Cache - Multi-tenancy Support', () => {
       const longTenantId = `tenant_${'x'.repeat(100)}`
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: longTenantId, namespace: 'test' }
+        opts: { tenantId: longTenantId, namespace: 'test' },
       })
 
       await cache.set('key', 'value')
@@ -1194,11 +1239,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle Unicode characters in tenantId', async () => {
       const cache1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant_😀_こんにちは', namespace: 'test' }
+        opts: { tenantId: 'tenant_😀_こんにちは', namespace: 'test' },
       })
       const cache2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant_🎉_مرحبا', namespace: 'test' }
+        opts: { tenantId: 'tenant_🎉_مرحبا', namespace: 'test' },
       })
 
       await cache1.set('key', 'emoji-japanese')
@@ -1213,11 +1258,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle has() with arrays across tenants', async () => {
       const cache1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'array-test' }
+        opts: { tenantId: 'tenant1', namespace: 'array-test' },
       })
       const cache2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'array-test' }
+        opts: { tenantId: 'tenant2', namespace: 'array-test' },
       })
 
       await cache1.set('key1', 'value1')
@@ -1234,11 +1279,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle TTL correctly with multi-tenancy', async () => {
       const cache1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'ttl-test' }
+        opts: { tenantId: 'tenant1', namespace: 'ttl-test' },
       })
       const cache2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'ttl-test' }
+        opts: { tenantId: 'tenant2', namespace: 'ttl-test' },
       })
 
       await cache1.set('ttl-key', 'value1', 100) // 100ms TTL
@@ -1261,7 +1306,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle circular references gracefully', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'circular' }
+        opts: { tenantId: 'tenant1', namespace: 'circular' },
       })
 
       const obj: any = { a: 1 }
@@ -1283,7 +1328,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should not cache invalid values with multi-tenancy', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'validation' }
+        opts: { tenantId: 'tenant1', namespace: 'validation' },
       })
 
       // Test various invalid values that shouldn't be cached
@@ -1294,7 +1339,7 @@ describe('Cache - Multi-tenancy Support', () => {
         '   ', // whitespace only
         [],
         {},
-        { a: null, b: null } // object with all null values
+        { a: null, b: null }, // object with all null values
       ]
 
       for (const [index, value] of invalidValues.entries()) {
@@ -1312,11 +1357,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle concurrent operations on same keys across tenants', async () => {
       const cache1 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1', namespace: 'concurrent' }
+        opts: { tenantId: 'tenant1', namespace: 'concurrent' },
       })
       const cache2 = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant2', namespace: 'concurrent' }
+        opts: { tenantId: 'tenant2', namespace: 'concurrent' },
       })
 
       // Simulate concurrent operations
@@ -1339,7 +1384,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle namespace-only operations correctly with tenantId', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { tenantId: 'tenant1' }
+        opts: { tenantId: 'tenant1' },
       })
 
       await cache.set('simple', 'value')
@@ -1359,7 +1404,7 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle special characters in tenantId with Redis', async () => {
       const cache = new Cache({
         connection,
-        opts: { tenantId: 'tenant@#$%', namespace: 'special' }
+        opts: { tenantId: 'tenant@#$%', namespace: 'special' },
       })
 
       await cache.set('key', 'special-value')
@@ -1371,11 +1416,11 @@ describe('Cache - Multi-tenancy Support', () => {
     it('should handle array operations with multi-tenancy in Redis', async () => {
       const cache1 = new Cache({
         connection,
-        opts: { tenantId: 'redis-tenant1', namespace: 'array' }
+        opts: { tenantId: 'redis-tenant1', namespace: 'array' },
       })
       const cache2 = new Cache({
         connection,
-        opts: { tenantId: 'redis-tenant2', namespace: 'array' }
+        opts: { tenantId: 'redis-tenant2', namespace: 'array' },
       })
 
       await cache1.set('k1', 'v1')
@@ -1400,15 +1445,16 @@ describe('Missing Test Coverage', () => {
     it('should write to memoryCache after cache miss and backing store fetch', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'lru-write', usesLRUMemory: true }
+        opts: { namespace: 'lru-write', usesLRUMemory: true },
       })
 
       // Set directly in backing store, not in memory cache
       await cache.set('key', 'value')
 
       // Clear memory cache to simulate a miss
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      await cache.memoryCache.delete('lru-write:key')
+      await cache.memoryCache.delete('key')
 
       // Get should fetch from backing store and write to memory cache
       const value = await cache.get('key')
@@ -1416,14 +1462,14 @@ describe('Missing Test Coverage', () => {
 
       // Verify it's now in memory cache
       // @ts-expect-error accessing private property
-      const memValue = await cache.memoryCache.get('lru-write:key')
+      const memValue = await cache.memoryCache.get('key')
       expect(memValue).toBe('value')
     })
 
     it('should evict from memoryCache on delete when usesLRUMemory is true', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'lru-delete', usesLRUMemory: true }
+        opts: { namespace: 'lru-delete', usesLRUMemory: true },
       })
 
       await cache.set('key', 'value')
@@ -1432,8 +1478,9 @@ describe('Missing Test Coverage', () => {
       await cache.get('key')
 
       // Verify it's in memory cache
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      let memValue = await cache.memoryCache.get('lru-delete:key')
+      let memValue = await cache.memoryCache.get('key')
       expect(memValue).toBe('value')
 
       // Delete should evict from both stores
@@ -1441,7 +1488,7 @@ describe('Missing Test Coverage', () => {
 
       // Verify it's gone from memory cache
       // @ts-expect-error accessing private property
-      memValue = await cache.memoryCache.get('lru-delete:key')
+      memValue = await cache.memoryCache.get('key')
       expect(memValue).toBeUndefined()
     })
   })
@@ -1450,7 +1497,7 @@ describe('Missing Test Coverage', () => {
     it('should return array of booleans for has() when cached value is an array', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'array-has' }
+        opts: { namespace: 'array-has' },
       })
 
       const arrayValue = ['item1', '', null, 'item4']
@@ -1464,7 +1511,7 @@ describe('Missing Test Coverage', () => {
     it('should return true for has() when object has some null properties', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'obj-has' }
+        opts: { namespace: 'obj-has' },
       })
 
       const objWithNulls = { a: 1, b: null, c: 'value', d: null }
@@ -1479,7 +1526,7 @@ describe('Missing Test Coverage', () => {
     it('should get array of values for array of keys (memory store)', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'batch-get' }
+        opts: { namespace: 'batch-get' },
       })
 
       await cache.set('k1', 'v1')
@@ -1492,7 +1539,7 @@ describe('Missing Test Coverage', () => {
     it('should return array of booleans for has() with array of keys (memory store)', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'batch-has' }
+        opts: { namespace: 'batch-has' },
       })
 
       await cache.set('k1', 'v1')
@@ -1507,7 +1554,7 @@ describe('Missing Test Coverage', () => {
     it('should return undefined for pull() on missing key', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'pull-missing' }
+        opts: { namespace: 'pull-missing' },
       })
 
       const value = await cache.pull('missing')
@@ -1517,7 +1564,7 @@ describe('Missing Test Coverage', () => {
     it('should return false for forget() on missing key', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'forget-missing' }
+        opts: { namespace: 'forget-missing' },
       })
 
       const result = await cache.forget('missing')
@@ -1529,7 +1576,7 @@ describe('Missing Test Coverage', () => {
     it('should expire key after TTL in memory store', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'ttl-expire' }
+        opts: { namespace: 'ttl-expire' },
       })
 
       await cache.set('ttl-key', 'value', 50) // 50ms TTL
@@ -1545,7 +1592,7 @@ describe('Missing Test Coverage', () => {
     it('should expire key after TTL with LRU memory', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'ttl-lru', usesLRUMemory: true }
+        opts: { namespace: 'ttl-lru', usesLRUMemory: true },
       })
 
       await cache.set('ttl-key', 'value', 50) // 50ms TTL
@@ -1557,8 +1604,9 @@ describe('Missing Test Coverage', () => {
       await new Promise(resolve => setTimeout(resolve, 100))
 
       // Clear memory cache to force fetch from backing store
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      await cache.memoryCache.delete('ttl-lru:ttl-key')
+      await cache.memoryCache.delete('ttl-key')
 
       expect(await cache.get('ttl-key')).toBeUndefined()
     })
@@ -1568,7 +1616,7 @@ describe('Missing Test Coverage', () => {
     it('should demonstrate race conditions in concurrent remember() calls', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'concurrent-remember' }
+        opts: { namespace: 'concurrent-remember' },
       })
 
       let callCount = 0
@@ -1581,7 +1629,7 @@ describe('Missing Test Coverage', () => {
       // Launch two concurrent remember calls
       const [result1, result2] = await Promise.all([
         cache.remember('same-key', 1000, slowFetch),
-        cache.remember('same-key', 1000, slowFetch)
+        cache.remember('same-key', 1000, slowFetch),
       ])
 
       // Without concurrency protection, both may execute
@@ -1603,7 +1651,7 @@ describe('Missing Test Coverage', () => {
     it('should handle deleteWhereStartsWith with compound namespace (Memory)', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'tenant:sub:module' }
+        opts: { namespace: 'tenant:sub:module' },
       })
 
       await cache.set('prefix:1', 'a')
@@ -1620,7 +1668,7 @@ describe('Missing Test Coverage', () => {
     it('should handle getValueWhereKeyStartsWith with compound namespace (Memory)', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'org:app:module' }
+        opts: { namespace: 'org:app:module' },
       })
 
       await cache.set('config:1', 'value1')
@@ -1637,7 +1685,7 @@ describe('Missing Test Coverage', () => {
       const connection = getGlobalData().redisUrl || 'redis://localhost:6379'
       const cache = new Cache({
         connection,
-        opts: { namespace: 'company:product:feature' }
+        opts: { namespace: 'company:product:feature' },
       })
 
       await cache.set('setting:1', 'val1')
@@ -1662,7 +1710,7 @@ describe('Missing Test Coverage', () => {
     it('should not cache empty arrays in remember()', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'invalid-array' }
+        opts: { namespace: 'invalid-array' },
       })
 
       let callCount = 0
@@ -1687,7 +1735,7 @@ describe('Missing Test Coverage', () => {
     it('should not cache objects with all null properties in rememberForever()', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'invalid-obj' }
+        opts: { namespace: 'invalid-obj' },
       })
 
       let callCount = 0
@@ -1714,7 +1762,7 @@ describe('Missing Test Coverage', () => {
     it('should expire TTL on Redis', async () => {
       const cache = new Cache({
         connection,
-        opts: { namespace: `ttl-redis-${Ids.nanoId(5)}` }
+        opts: { namespace: `ttl-redis-${Ids.nanoId(5)}` },
       })
 
       await cache.set('ttl-key', 'value', 50) // 50ms TTL
@@ -1732,15 +1780,16 @@ describe('Missing Test Coverage', () => {
     it('should verify set() does not populate memoryCache with usesLRUMemory', async () => {
       const cache = new Cache({
         connection: undefined,
-        opts: { namespace: 'lru-set-test', usesLRUMemory: true }
+        opts: { namespace: 'lru-set-test', usesLRUMemory: true },
       })
 
       // Set a value
       await cache.set('key', 'value')
 
       // Memory cache should NOT have the value yet
+      // memoryCache already has namespace configured, so use key directly
       // @ts-expect-error accessing private property
-      const memValue = await cache.memoryCache.get('lru-set-test:key')
+      const memValue = await cache.memoryCache.get('key')
       expect(memValue).toBeUndefined()
 
       // After get(), memory cache should be populated
@@ -1749,8 +1798,261 @@ describe('Missing Test Coverage', () => {
 
       // Now memory cache should have it
       // @ts-expect-error accessing private property
-      const memValueAfterGet = await cache.memoryCache.get('lru-set-test:key')
+      const memValueAfterGet = await cache.memoryCache.get('key')
       expect(memValueAfterGet).toBe('value')
+    })
+  })
+})
+
+describe('Cache - Connection Pooling', () => {
+  let pool: RedisConnectionPool
+
+  beforeEach(() => {
+    pool = RedisConnectionPool.getInstance()
+  })
+
+  afterEach(async () => {
+    // Clean up connections created in this test
+  })
+
+  describe('Connection Sharing with Redis', () => {
+    // With lazy mode (default), connections are made on first use
+    // Multiple Cache instances share the same pooled connection via LazyRedisStore
+
+    it('should not connect until first operation (lazy mode)', async () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: 'cache1' },
+      })
+
+      // Before any operation, ref count should be unchanged
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+
+      // Trigger connection with first operation
+      await cache1.set('key', 'value')
+
+      // Now connection should be established
+      expect(pool.getRefCount(connection)).toBeGreaterThan(startingRefCount)
+
+      // Cleanup
+      await cache1.flush()
+    })
+
+    it('should share pooled connection for multiple Cache instances', async () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: 'cache1' },
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: 'cache2' },
+      })
+      const cache3 = new Cache({
+        connection,
+        opts: { namespace: 'cache3' },
+      })
+
+      // Before operations, no connections made
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+
+      // Trigger connections
+      await Promise.all([
+        cache1.set('key', 'value1'),
+        cache2.set('key', 'value2'),
+        cache3.set('key', 'value3'),
+      ])
+
+      // All share the same pooled connection
+      expect(pool.getRefCount(connection)).toBeGreaterThan(startingRefCount)
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+      await cache3.flush()
+    })
+
+    it('should handle different Redis connections separately', async () => {
+      const conn1 = connection
+      const conn2 = `${connection}/1`
+
+      const startingRefCount1 = pool.getRefCount(conn1)
+      const startingRefCount2 = pool.getRefCount(conn2)
+
+      const cache1 = new Cache({
+        connection: conn1,
+        opts: { namespace: 'cache1' },
+      })
+
+      const cache2 = new Cache({
+        connection: conn2,
+        opts: { namespace: 'cache2' },
+      })
+
+      // Trigger connections
+      await cache1.set('key', 'value1')
+      await cache2.set('key', 'value2')
+
+      // Each connection should be established separately
+      expect(pool.getRefCount(conn1)).toBeGreaterThan(startingRefCount1)
+      expect(pool.getRefCount(conn2)).toBeGreaterThan(startingRefCount2)
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+    })
+
+    it('should isolate data between cache instances with shared connection', async () => {
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: `isolated1-${Ids.nanoId(5)}` },
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: `isolated2-${Ids.nanoId(5)}` },
+      })
+
+      // Set data in each cache
+      await cache1.set('key', 'value1')
+      await cache2.set('key', 'value2')
+
+      // Verify isolation
+      expect(await cache1.get('key')).toBe('value1')
+      expect(await cache2.get('key')).toBe('value2')
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+    })
+
+    it('should work with multi-tenant caches sharing connection', async () => {
+      const cacheTenant1 = new Cache({
+        connection,
+        opts: { tenantId: `tenant1-${Ids.nanoId(5)}`, namespace: 'shared' },
+      })
+      const cacheTenant2 = new Cache({
+        connection,
+        opts: { tenantId: `tenant2-${Ids.nanoId(5)}`, namespace: 'shared' },
+      })
+
+      // Set data in each tenant cache
+      await cacheTenant1.set('key', 'tenant1-value')
+      await cacheTenant2.set('key', 'tenant2-value')
+
+      // Verify isolation
+      expect(await cacheTenant1.get('key')).toBe('tenant1-value')
+      expect(await cacheTenant2.get('key')).toBe('tenant2-value')
+
+      // Cleanup
+      await cacheTenant1.flush()
+      await cacheTenant2.flush()
+    })
+  })
+
+  describe('Connection Pooling with Real Operations', () => {
+    it('should perform operations correctly with shared connections', async () => {
+      const startingRefCount = pool.getRefCount(connection)
+
+      // With lazy mode (default), connection happens on first use
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: `ops1-${Ids.nanoId(5)}` },
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: `ops2-${Ids.nanoId(5)}` },
+      })
+      const cache3 = new Cache({
+        connection,
+        opts: { namespace: `ops3-${Ids.nanoId(5)}` },
+      })
+
+      // Before any operations, ref count should be unchanged (lazy mode)
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+
+      // Perform operations in parallel - this triggers lazy connections
+      await Promise.all([
+        cache1.set('key1', 'value1'),
+        cache2.set('key2', 'value2'),
+        cache3.set('key3', 'value3'),
+      ])
+
+      // After operations, all caches share ONE connection via LazyRedisStore
+      // LazyRedisStore uses the pool internally, so ref count increases by 1 (not 3)
+      // because all LazyRedisStore instances share the same pooled connection
+      expect(pool.getRefCount(connection)).toBeGreaterThanOrEqual(
+        startingRefCount + 1,
+      )
+
+      // Verify data
+      expect(await cache1.get('key1')).toBe('value1')
+      expect(await cache2.get('key2')).toBe('value2')
+      expect(await cache3.get('key3')).toBe('value3')
+
+      // Verify isolation
+      expect(await cache1.get('key2')).toBeUndefined()
+      expect(await cache2.get('key3')).toBeUndefined()
+      expect(await cache3.get('key1')).toBeUndefined()
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+      await cache3.flush()
+      cache1.dispose()
+      cache2.dispose()
+      cache3.dispose()
+
+      expect(pool.getRefCount(connection)).toBe(startingRefCount)
+    })
+
+    it('should handle remember() with shared connections', async () => {
+      const cache1 = new Cache({
+        connection,
+        opts: { namespace: `rem1-${Ids.nanoId(5)}` },
+      })
+      const cache2 = new Cache({
+        connection,
+        opts: { namespace: `rem2-${Ids.nanoId(5)}` },
+      })
+
+      let calls1 = 0
+      let calls2 = 0
+
+      const val1 = await cache1.remember('key', 1000, async () => {
+        calls1++
+        return 'value1'
+      })
+      const val2 = await cache2.remember('key', 1000, async () => {
+        calls2++
+        return 'value2'
+      })
+
+      expect(val1).toBe('value1')
+      expect(val2).toBe('value2')
+      expect(calls1).toBe(1)
+      expect(calls2).toBe(1)
+
+      // Should use cached values
+      await cache1.remember('key', 1000, async () => {
+        calls1++
+        return 'different'
+      })
+      await cache2.remember('key', 1000, async () => {
+        calls2++
+        return 'different'
+      })
+
+      expect(calls1).toBe(1) // Should not be called again
+      expect(calls2).toBe(1) // Should not be called again
+
+      // Cleanup
+      await cache1.flush()
+      await cache2.flush()
+      cache1.dispose()
+      cache2.dispose()
     })
   })
 })

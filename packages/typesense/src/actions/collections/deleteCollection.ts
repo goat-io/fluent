@@ -3,15 +3,15 @@ import type { TypesenseCollectionOutput } from '../../typesense.model'
 
 export async function deleteCollection(
   ctx: TypesenseContext,
-  collectionName?: string
+  collectionName?: string,
 ): Promise<TypesenseCollectionOutput> {
   const collection = collectionName || ctx.fqcn()
 
   const result = await ctx.httpClient.request<TypesenseCollectionOutput>(
     `/collections/${collection}`,
     {
-      method: 'DELETE'
-    }
+      method: 'DELETE',
+    },
   )
 
   // Remove from cache

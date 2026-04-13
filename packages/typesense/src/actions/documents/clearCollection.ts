@@ -3,7 +3,7 @@ import type { TypesenseCollectionOptions } from '../../typesense.model'
 
 export async function clearCollection(
   ctx: TypesenseContext,
-  options?: TypesenseCollectionOptions
+  options?: TypesenseCollectionOptions,
 ): Promise<{ num_deleted: number }> {
   const collectionName = options?.collection || ctx.fqcn()
 
@@ -11,7 +11,7 @@ export async function clearCollection(
     `/collections/${collectionName}/documents`,
     {
       method: 'DELETE',
-      searchParams: { filter_by: '*' }
-    }
+      searchParams: { filter_by: '*' },
+    },
   )
 }

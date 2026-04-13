@@ -8,7 +8,7 @@ import { metabaseFetch } from '../../common/fetch-wrapper'
 export async function listGroups({
   baseUrl,
   sessionToken,
-  apiKey
+  apiKey,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -21,7 +21,7 @@ export async function listGroups({
     sessionToken,
     apiKey,
     endpoint: '/api/permissions/group',
-    method: 'GET'
+    method: 'GET',
   })
 
   if (!response.ok) {

@@ -15,7 +15,7 @@ export class ContainerizedConnections {
         user: config.user,
         password: config.password,
         database: config.database,
-        namedPlaceholders: true
+        namedPlaceholders: true,
       })
     }
     return ContainerizedConnections.mysql2Connection
@@ -27,7 +27,7 @@ export class ContainerizedConnections {
       process.env.DATABASE_URL = getDatabaseUrl()
 
       ContainerizedConnections.prismaClient = new PrismaClient({
-        log: ['error'] // Minimal logging for benchmarks
+        log: ['error'], // Minimal logging for benchmarks
       })
       await ContainerizedConnections.prismaClient.$connect()
     }
@@ -178,7 +178,7 @@ export class ContainerizedConnections {
         `LastName${i}`,
         'active',
         Math.floor(Math.random() * 50) + 20,
-        'US'
+        'US',
       ])
     }
 
@@ -188,7 +188,7 @@ export class ContainerizedConnections {
       INSERT IGNORE INTO users (email, first_name, last_name, status, age, country) 
       VALUES ${userPlaceholders}
     `,
-      users.flat()
+      users.flat(),
     )
 
     // Add some products
@@ -200,7 +200,7 @@ export class ContainerizedConnections {
         (Math.random() * 100).toFixed(2),
         Math.floor(Math.random() * 3) + 1,
         Math.floor(Math.random() * 100),
-        true
+        true,
       ])
     }
 
@@ -212,7 +212,7 @@ export class ContainerizedConnections {
       INSERT IGNORE INTO products (name, description, price, category_id, stock_quantity, is_active) 
       VALUES ${productPlaceholders}
     `,
-      products.flat()
+      products.flat(),
     )
 
     // Add some orders
@@ -222,7 +222,7 @@ export class ContainerizedConnections {
         Math.floor(Math.random() * 1000) + 1,
         'pending',
         (Math.random() * 200).toFixed(2),
-        `Address ${i}, City, Country`
+        `Address ${i}, City, Country`,
       ])
     }
 
@@ -232,7 +232,7 @@ export class ContainerizedConnections {
       INSERT IGNORE INTO orders (user_id, status, total_amount, shipping_address) 
       VALUES ${orderPlaceholders}
     `,
-      orders.flat()
+      orders.flat(),
     )
   }
 }

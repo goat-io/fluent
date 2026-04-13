@@ -56,25 +56,25 @@ test('Should validate minimum and maximum number', async () => {
   let submission: any
   const wrongSubmissionMIN = { data: { number: 4 } }
   ;[error, submission] = await Promises.try<FormioValidationError, AnyObject>(
-    Validate.submission(ComplexNumberForm, wrongSubmissionMIN)
+    Validate.submission(ComplexNumberForm, wrongSubmissionMIN),
   )
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe(
-    '"number" must be larger than or equal to 10'
+    '"number" must be larger than or equal to 10',
   )
 
   const wrongSubmissionMAX = { data: { number: 100 } }
   ;[error, submission] = await Promises.try<FormioValidationError, AnyObject>(
-    Validate.submission(ComplexNumberForm, wrongSubmissionMAX)
+    Validate.submission(ComplexNumberForm, wrongSubmissionMAX),
   )
   expect(error.name).toBe('ValidationError')
   expect(error.details[0].message).toBe(
-    '"number" must be less than or equal to 20'
+    '"number" must be less than or equal to 20',
   )
 
   const rightSubmission = { data: { number: 15 } }
   ;[error, submission] = await Promises.try<FormioValidationError, AnyObject>(
-    Validate.submission(ComplexNumberForm, rightSubmission)
+    Validate.submission(ComplexNumberForm, rightSubmission),
   )
   expect(error).toBe(null)
   expect(submission.number).toBe(15)

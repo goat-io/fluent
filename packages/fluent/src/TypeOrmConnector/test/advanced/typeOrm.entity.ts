@@ -42,13 +42,13 @@ export class TypeORMDataModel {
 
 export const FurtherNestedSchema = z.object({
   c: z.boolean(),
-  d: z.string().array()
+  d: z.string().array(),
 })
 
 export const NestedSchema = z.object({
   a: z.string().array(),
   c: z.number(),
-  b: FurtherNestedSchema.optional()
+  b: FurtherNestedSchema.optional(),
 })
 
 export const TypeORMDataModelSchema = z.object({
@@ -68,7 +68,7 @@ export const TypeORMDataModelSchema = z.object({
     }),
   order: z.number().optional(),
   nestedTest: NestedSchema.optional(),
-  test: z.boolean()
+  test: z.boolean(),
 })
 
 export type TypeORMDataModelInputSchema = z.output<

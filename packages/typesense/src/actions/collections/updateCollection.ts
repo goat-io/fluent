@@ -2,13 +2,13 @@ import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollection,
   TypesenseCollectionOptions,
-  TypesenseCollectionOutput
+  TypesenseCollectionOutput,
 } from '../../typesense.model'
 
 export async function updateCollection(
   ctx: TypesenseContext,
   collection: Partial<TypesenseCollection>,
-  options?: TypesenseCollectionOptions
+  options?: TypesenseCollectionOptions,
 ): Promise<TypesenseCollectionOutput> {
   const collectionName = options?.collection || collection.name || ctx.fqcn()
 
@@ -16,8 +16,8 @@ export async function updateCollection(
     `/collections/${collectionName}`,
     {
       method: 'PATCH',
-      body: collection
-    }
+      body: collection,
+    },
   )
 
   // Update cache

@@ -4,7 +4,7 @@ import { PropertyMetadata } from '../metadata'
 
 export function applyFieldDecorators(
   targetClass: Function,
-  item: PropertyMetadata
+  item: PropertyMetadata,
 ) {
   if (item.extensions) {
     Extensions(item.extensions)(targetClass.prototype, item.name)

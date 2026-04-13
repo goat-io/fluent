@@ -7,6 +7,6 @@ test('Should parse a single FormioForm', async () => {
   expect(result[0].model.id).toBe('5cf99eb190d44a00189ab94f')
   expect(result[0].model.folderPath).toBe('countries')
   expect(result[0].modules.file).toBe(
-    'export const modules = [\n  "core",\n  "countries" \n];'
+    'export const modules = [\n  "core",\n  "countries" \n];',
   )
 })

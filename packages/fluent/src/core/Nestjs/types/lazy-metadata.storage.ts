@@ -14,12 +14,12 @@ export class LazyMetadataStorageHost {
   store(
     target: Type<unknown>,
     func: (...args: any[]) => any,
-    options?: { isField: boolean }
+    options?: { isField: boolean },
   ): void
   store(
     targetOrFn: Type<unknown> | ((...args: any[]) => any),
     func?: (...args: any[]) => any,
-    options?: { isField: boolean }
+    options?: { isField: boolean },
   ) {
     if (func && options?.isField) {
       this.updateStorage(FIELD_LAZY_METADATA, func)
@@ -29,7 +29,7 @@ export class LazyMetadataStorageHost {
     } else {
       this.updateStorage(
         NO_TARGET_METADATA,
-        targetOrFn as (...args: any[]) => any
+        targetOrFn as (...args: any[]) => any,
       )
     }
   }
@@ -39,33 +39,33 @@ export class LazyMetadataStorageHost {
     options: {
       skipFieldLazyMetadata?: boolean
     } = {
-      skipFieldLazyMetadata: false
-    }
+      skipFieldLazyMetadata: false,
+    },
   ) {
     types = this.concatPrototypes(types)
 
     let loadersToExecute = flatten(
       types
         .map(target =>
-          this.lazyMetadataByTarget.get(target as unknown as Type<unknown>)
+          this.lazyMetadataByTarget.get(target as unknown as Type<unknown>),
         )
-        .filter(metadata => metadata)
+        .filter(metadata => metadata),
     )
 
     loadersToExecute = loadersToExecute?.concat(
-      ...(this.lazyMetadataByTarget.get(NO_TARGET_METADATA) || [])
+      ...(this.lazyMetadataByTarget.get(NO_TARGET_METADATA) || []),
     )
 
     if (!options.skipFieldLazyMetadata) {
       loadersToExecute = loadersToExecute?.concat(
-        ...(this.lazyMetadataByTarget.get(FIELD_LAZY_METADATA) || [])
+        ...(this.lazyMetadataByTarget.get(FIELD_LAZY_METADATA) || []),
       )
     }
     loadersToExecute?.forEach(func => func())
   }
 
   private concatPrototypes(
-    types: ((...args: any[]) => any)[]
+    types: ((...args: any[]) => any)[],
   ): ((...args: any[]) => any)[] {
     const typesWithPrototypes = types
       .filter(type => type?.prototype)
@@ -89,7 +89,7 @@ export class LazyMetadataStorageHost {
 
   private updateStorage(
     key: symbol | Type<unknown>,
-    func: (...args: any[]) => any
+    func: (...args: any[]) => any,
   ) {
     const existingArray = this.lazyMetadataByTarget.get(key)
     if (existingArray) {

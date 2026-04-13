@@ -38,13 +38,13 @@ export const AdvancedSchema = z.object({
       a: z.array(z.string()),
       b: z.object({
         c: z.boolean(),
-        d: z.array(z.string())
+        d: z.array(z.string()),
       }),
-      c: z.number().int()
+      c: z.number().int(),
     })
     .optional(),
   order: z.number().int().optional(),
-  test: z.boolean()
+  test: z.boolean(),
 })
 
 export type AdvancedInputSchema = z.input<typeof AdvancedSchema>

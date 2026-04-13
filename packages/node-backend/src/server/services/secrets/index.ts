@@ -2,5 +2,5 @@ export {
   SecretProvider,
   SecretService,
   SecretServiceConfig,
-  VaultConfig
+  VaultConfig,
 } from './secret.service'

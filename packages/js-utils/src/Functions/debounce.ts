@@ -37,7 +37,7 @@ export interface DebounceOptions {
 export function debounce<T extends AnyFunction>(
   func: T,
   wait: Milliseconds,
-  opt: DebounceOptions = {}
+  opt: DebounceOptions = {},
 ): T & Cancelable {
   let lastArgs: any
   let lastThis: any
@@ -174,12 +174,12 @@ export function debounce<T extends AnyFunction>(
 export function throttle<T extends AnyFunction>(
   func: T,
   wait: Milliseconds,
-  opt: ThrottleOptions = {}
+  opt: ThrottleOptions = {},
 ): T & Cancelable {
   return debounce(func, wait, {
     leading: true,
     trailing: true,
     ...opt,
-    maxWait: wait
+    maxWait: wait,
   })
 }

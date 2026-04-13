@@ -2,7 +2,7 @@
 
 import type { CommonLogger } from '@goatlab/js-utils'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { runScript } from './runScript'
+import { formatDuration, runScript } from './runScript'
 
 describe('runScript', () => {
   let mockLogger: CommonLogger
@@ -17,7 +17,7 @@ describe('runScript', () => {
       error: vi.fn(),
       warn: vi.fn(),
       info: vi.fn(),
-      debug: vi.fn()
+      debug: vi.fn(),
     }
 
     // Mock process.exit
@@ -39,7 +39,7 @@ describe('runScript', () => {
         }
         processListeners.get(eventKey)!.push(listener)
         return originalOn(event, listener) as any
-      }
+      },
     )
 
     vi.spyOn(process, 'once').mockImplementation(
@@ -50,7 +50,7 @@ describe('runScript', () => {
         }
         processListeners.get(eventKey)!.push(listener)
         return originalOnce(event, listener) as any
-      }
+      },
     )
 
     vi.spyOn(process, 'removeAllListeners').mockImplementation(
@@ -61,7 +61,7 @@ describe('runScript', () => {
           processListeners.clear()
         }
         return originalRemoveAllListeners(event) as any
-      }
+      },
     )
   })
 
@@ -139,7 +139,7 @@ describe('runScript', () => {
 
       // This will throw synchronously, so we need to catch it
       expect(() => runScript(fn as any, { logger: mockLogger })).toThrow(
-        'Sync error'
+        'Sync error',
       )
     })
   })
@@ -164,7 +164,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       // Wait for setup
@@ -179,7 +179,7 @@ describe('runScript', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'uncaughtException:',
-        testError
+        testError,
       )
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
@@ -189,7 +189,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       // Wait for setup
@@ -205,7 +205,7 @@ describe('runScript', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'unhandledRejection:',
-        testError
+        testError,
       )
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
@@ -218,7 +218,7 @@ describe('runScript', () => {
         async () => {
           throw error
         },
-        { logger: mockLogger, onError }
+        { logger: mockLogger, onError },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -234,7 +234,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger, onError }
+        { logger: mockLogger, onError },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -253,7 +253,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -264,7 +264,7 @@ describe('runScript', () => {
       sigintListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGINT, shutting down…'
+        'Received SIGINT, shutting down…',
       )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
@@ -274,7 +274,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -283,7 +283,7 @@ describe('runScript', () => {
       sigtermListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGTERM, shutting down…'
+        'Received SIGTERM, shutting down…',
       )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
@@ -293,7 +293,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -302,7 +302,7 @@ describe('runScript', () => {
       sighupListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGHUP, shutting down…'
+        'Received SIGHUP, shutting down…',
       )
       expect(exitSpy).toHaveBeenCalledWith(0)
     })
@@ -312,7 +312,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger, noExit: true }
+        { logger: mockLogger, noExit: true },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -321,7 +321,7 @@ describe('runScript', () => {
       sigintListeners[0]()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Received SIGINT, shutting down…'
+        'Received SIGINT, shutting down…',
       )
       expect(exitSpy).not.toHaveBeenCalled()
     })
@@ -333,7 +333,7 @@ describe('runScript', () => {
         async () => {
           // Quick completion
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -347,7 +347,7 @@ describe('runScript', () => {
         async () => {
           throw new Error('Test error')
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -361,7 +361,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 10))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -387,7 +387,7 @@ describe('runScript', () => {
         async () => {
           return 'done'
         },
-        { logger: mockLogger, onExit }
+        { logger: mockLogger, onExit },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -403,7 +403,7 @@ describe('runScript', () => {
         async () => {
           throw new Error('Failed')
         },
-        { logger: mockLogger, onExit }
+        { logger: mockLogger, onExit },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -419,7 +419,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger, onExit }
+        { logger: mockLogger, onExit },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -470,7 +470,7 @@ describe('runScript', () => {
         async () => {
           await new Promise(resolve => setTimeout(resolve, 1000))
         },
-        { logger: mockLogger }
+        { logger: mockLogger },
       )
 
       await new Promise(resolve => setImmediate(resolve))
@@ -480,5 +480,99 @@ describe('runScript', () => {
       expect(process.once).toHaveBeenCalledWith('SIGTERM', expect.any(Function))
       expect(process.once).toHaveBeenCalledWith('SIGHUP', expect.any(Function))
     })
+  })
+
+  describe('execution duration logging', () => {
+    test('should log duration on successful completion', async () => {
+      runScript(
+        async () => {
+          return 'done'
+        },
+        { logger: mockLogger },
+      )
+
+      await new Promise(resolve => setImmediate(resolve))
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringMatching(/^Script completed in \d+ms$/),
+      )
+    })
+
+    test('should log duration on error', async () => {
+      runScript(
+        async () => {
+          throw new Error('Failed')
+        },
+        { logger: mockLogger },
+      )
+
+      await new Promise(resolve => setImmediate(resolve))
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringMatching(/^Script failed in \d+ms$/),
+      )
+    })
+
+    test('should log duration on signal', async () => {
+      runScript(
+        async () => {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        },
+        { logger: mockLogger },
+      )
+
+      await new Promise(resolve => setImmediate(resolve))
+
+      const sigintListeners = processListeners.get('SIGINT') || []
+      sigintListeners[0]()
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringMatching(/^Script completed in \d+ms$/),
+      )
+    })
+  })
+})
+
+describe('formatDuration', () => {
+  test('should format milliseconds only', () => {
+    expect(formatDuration(0)).toBe('0ms')
+    expect(formatDuration(1)).toBe('1ms')
+    expect(formatDuration(500)).toBe('500ms')
+    expect(formatDuration(999)).toBe('999ms')
+  })
+
+  test('should format seconds and milliseconds', () => {
+    expect(formatDuration(1000)).toBe('1s')
+    expect(formatDuration(1001)).toBe('1s 1ms')
+    expect(formatDuration(1500)).toBe('1s 500ms')
+    expect(formatDuration(59999)).toBe('59s 999ms')
+  })
+
+  test('should format minutes, seconds, and milliseconds', () => {
+    expect(formatDuration(60000)).toBe('1m 0s')
+    expect(formatDuration(60001)).toBe('1m 0s 1ms')
+    expect(formatDuration(61000)).toBe('1m 1s')
+    expect(formatDuration(61500)).toBe('1m 1s 500ms')
+    expect(formatDuration(3599999)).toBe('59m 59s 999ms')
+  })
+
+  test('should format hours, minutes, seconds, and milliseconds', () => {
+    expect(formatDuration(3600000)).toBe('1h 0m 0s')
+    expect(formatDuration(3600001)).toBe('1h 0m 0s 1ms')
+    expect(formatDuration(3661000)).toBe('1h 1m 1s')
+    expect(formatDuration(3661500)).toBe('1h 1m 1s 500ms')
+    expect(formatDuration(7323300)).toBe('2h 2m 3s 300ms')
+  })
+
+  test('should handle exact boundaries', () => {
+    expect(formatDuration(1000)).toBe('1s')
+    expect(formatDuration(60000)).toBe('1m 0s')
+    expect(formatDuration(3600000)).toBe('1h 0m 0s')
+  })
+
+  test('should handle large durations', () => {
+    // 25 hours, 30 minutes, 45 seconds, 123ms
+    const duration = 25 * 3600000 + 30 * 60000 + 45 * 1000 + 123
+    expect(formatDuration(duration)).toBe('25h 30m 45s 123ms')
   })
 })

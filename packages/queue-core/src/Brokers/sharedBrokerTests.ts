@@ -16,7 +16,7 @@ export function runMessageBrokerTestSuite(broker: MessageBroker) {
   it('should connect and publish a message', async () => {
     const messageSent = await broker.publish({
       queueName,
-      data: { myData: 'hello' }
+      data: { myData: 'hello' },
     })
 
     expect(messageSent).toBe(true)
@@ -35,13 +35,13 @@ export function runMessageBrokerTestSuite(broker: MessageBroker) {
     await broker.subscribe({
       queueName,
       handle,
-      topics: ['topic']
+      topics: ['topic'],
     })
 
     await broker.publish({
       queueName,
       data: { myData: 'consume-test' },
-      topic: 'topic'
+      topic: 'topic',
     })
 
     await messageHandled
@@ -67,13 +67,13 @@ export function runMessageBrokerTestSuite(broker: MessageBroker) {
       await broker.subscribe({
         queueName: exchangeName,
         handle,
-        topics: ['topic.a', 'topic.b']
+        topics: ['topic.a', 'topic.b'],
       })
 
       await broker.publish({
         queueName: exchangeName,
         data: { myData: 'topic-a' },
-        topic: 'topic.a'
+        topic: 'topic.a',
       })
 
       await messageHandled
@@ -82,7 +82,7 @@ export function runMessageBrokerTestSuite(broker: MessageBroker) {
       const job = (handle.mock.calls.at(0) as any)[0]
       expect(job?.name).toBe('topic.a')
     },
-    { timeout: 10_000 }
+    { timeout: 10_000 },
   )
 
   it('should support exclusive queue simulation', async () => {
@@ -100,13 +100,13 @@ export function runMessageBrokerTestSuite(broker: MessageBroker) {
       queueName,
       handle,
       topics: ['exclusive.test'],
-      exclusiveQueues: true
+      exclusiveQueues: true,
     })
 
     await broker.publish({
       queueName,
       data: { myData: 'exclusive-queue' },
-      topic: 'exclusive.test'
+      topic: 'exclusive.test',
     })
 
     await messageHandled

@@ -7,7 +7,7 @@ const DETECT_JSON = /^\s*[{["\-\d]/
  */
 export function jsonParseIfPossible(
   obj: any,
-  reviver?: (this: any, key: string, value: any) => any
+  reviver?: (this: any, key: string, value: any) => any,
 ): any {
   // Optimization: only try to parse if it looks like JSON: starts with a json possible character
   if (typeof obj === 'string' && obj && DETECT_JSON.test(obj)) {

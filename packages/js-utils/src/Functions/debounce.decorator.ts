@@ -5,7 +5,7 @@ import { debounce, throttle } from './debounce'
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export function Debounce(
   wait: Milliseconds,
-  opt: DebounceOptions = {}
+  opt: DebounceOptions = {},
 ): MethodDecorator {
   return (_target, _key, descriptor) => {
     const originalFn = descriptor.value
@@ -17,7 +17,7 @@ export function Debounce(
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export function Throttle(
   wait: Milliseconds,
-  opt: ThrottleOptions = {}
+  opt: ThrottleOptions = {},
 ): MethodDecorator {
   return (_target, _key, descriptor) => {
     const originalFn = descriptor.value

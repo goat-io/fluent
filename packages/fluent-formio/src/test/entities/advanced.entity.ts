@@ -28,14 +28,14 @@ export const AdvancedSchema = {
           type: 'object',
           properties: {
             c: { type: 'boolean' },
-            d: { type: 'array', items: { type: 'string' } }
-          }
+            d: { type: 'array', items: { type: 'string' } },
+          },
         },
-        c: { type: 'number' }
-      }
+        c: { type: 'number' },
+      },
     },
     order: { type: 'number' },
-    test: { type: 'boolean' }
+    test: { type: 'boolean' },
   },
-  required: ['nestedTest', 'order', 'test']
+  required: ['nestedTest', 'order', 'test'],
 }

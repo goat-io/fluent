@@ -9,7 +9,7 @@ Improvements:
 export type Promisable<T> = T | PromiseLike<T>
 export type AbortableAsyncMapper<IN = any, OUT = any> = (
   input: IN,
-  i: number
+  i: number,
 ) => Promisable<OUT | typeof SKIP | typeof END>
 
 export const END = Symbol('END')
@@ -65,7 +65,7 @@ export interface PMapOptions {
 export async function pMap<IN, OUT>(
   iterable: Iterable<IN>,
   mapper: AbortableAsyncMapper<IN, OUT>,
-  opt: PMapOptions = {}
+  opt: PMapOptions = {},
 ): Promise<OUT[]> {
   const ret: (OUT | typeof SKIP)[] = []
   // const iterator = iterable[Symbol.iterator]()
@@ -191,7 +191,7 @@ export async function pMap<IN, OUT>(
               resolvingCount--
               next()
             }
-          }
+          },
         )
     }
 

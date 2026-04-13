@@ -14,7 +14,7 @@ export const getOutputKeys = (repository: Repository<any>) => {
   const flatKeys = Objects.flatten(keys, true)
 
   const outputKeys = Object.keys(flatKeys).filter(
-    e => !excludedCols.includes(e)
+    e => !excludedCols.includes(e),
   )
   return outputKeys
 }

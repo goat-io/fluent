@@ -1,7 +1,7 @@
 import { RolesUser } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles_user.entity'
 import {
   RolesUserInputSchema,
-  RolesUserSchema
+  RolesUserSchema,
 } from '@goatlab/fluent/src/TypeOrmConnector/test/relations/roles/roles_user.schema'
 import { FirebaseConnector } from '../FirebaseConnector'
 
@@ -12,7 +12,7 @@ export class RoleUsersRepository extends FirebaseConnector<
   constructor() {
     super({
       entity: RolesUser,
-      inputSchema: RolesUserSchema
+      inputSchema: RolesUserSchema,
     })
   }
 }

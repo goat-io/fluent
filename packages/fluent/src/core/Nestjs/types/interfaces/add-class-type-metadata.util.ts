@@ -6,7 +6,7 @@ export const CLASS_TYPE_METADATA = 'graphql:class_type'
 export function addClassTypeMetadata(target: Function, classType: ClassType) {
   const decoratorFactory: ClassDecorator = SetMetadata(
     CLASS_TYPE_METADATA,
-    classType
+    classType,
   )
   decoratorFactory(target)
 }

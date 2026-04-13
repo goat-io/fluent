@@ -13,7 +13,7 @@ export function applyDecorators(
   return <TFunction extends (...args: any[]) => any, Y>(
     target: TFunction | object,
     propertyKey?: string | symbol,
-    descriptor?: TypedPropertyDescriptor<Y>
+    descriptor?: TypedPropertyDescriptor<Y>,
   ) => {
     for (const decorator of decorators) {
       if (target instanceof Function && !descriptor) {
@@ -23,7 +23,7 @@ export function applyDecorators(
       ;(decorator as MethodDecorator | PropertyDecorator)(
         target,
         propertyKey!,
-        descriptor!
+        descriptor!,
       )
     }
   }

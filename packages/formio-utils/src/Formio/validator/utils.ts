@@ -11,7 +11,7 @@ const Q = require('q')
 const debug = {
   idToBson: require('debug')('formio:util:idToBson'),
   getUrlParams: require('debug')('formio:util:getUrlParams'),
-  removeProtectedFields: require('debug')('formio:util:removeProtectedFields')
+  removeProtectedFields: require('debug')('formio:util:removeProtectedFields'),
 }
 
 const Utils = {
@@ -90,7 +90,7 @@ const Utils = {
     }
     return {
       alias,
-      additional
+      additional,
     }
   },
 
@@ -126,7 +126,7 @@ const Utils = {
       status: (status: any) => {
         subResponse.statusCode = status
         return subResponse
-      }
+      },
     }
     return subResponse
   },
@@ -486,7 +486,7 @@ const Utils = {
         changed =
           value.reduce(
             (subchanged: any, row: any) => Utils.ensureIds(row) || subchanged,
-            false
+            false,
           ) || changed
       } else if (_.isObject(value)) {
         changed = Utils.ensureIds(value) || changed
@@ -521,7 +521,7 @@ const Utils = {
         if (component.protected) {
           debug.removeProtectedFields(
             'Removing protected field:',
-            component.key
+            component.key,
           )
           modifyFields.push(deleteProp(path))
         } else if (component.type === 'signature' && action === 'index') {
@@ -531,12 +531,12 @@ const Utils = {
           })
         }
       },
-      true
+      true,
     )
 
     // Iterate through each submission once.
     submissions.forEach((submission: any) =>
-      modifyFields.forEach((modifyField: any) => modifyField(submission))
+      modifyFields.forEach((modifyField: any) => modifyField(submission)),
     )
   },
 
@@ -564,7 +564,7 @@ const Utils = {
      */
     decode(encoded: any) {
       return new Buffer(encoded.toString()).toString('ascii')
-    }
+    },
   },
 
   /**
@@ -579,7 +579,7 @@ const Utils = {
   uniqueMachineName(document: any, model: any, next: any) {
     const query: any = {
       machineName: { $regex: `^${document.machineName}[0-9]*$` },
-      deleted: { $eq: null }
+      deleted: { $eq: null },
     }
     if (document.id) {
       query.id = { $ne: document.id }
@@ -613,7 +613,7 @@ const Utils = {
   /**
    * Application error codes.
    */
-  errorCodes
+  errorCodes,
 }
 
 export default Utils

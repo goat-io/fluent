@@ -15,7 +15,7 @@ const ZodManyToOne = ({
   manySchema,
   oneSchema,
   manyKey,
-  oneKey
+  oneKey,
 }: ZodManyToOneProps) => {
   return manySchema
     .extend({
@@ -32,23 +32,23 @@ const ZodManyToOne = ({
                           .extend({
                             [oneKey]: oneSchema
                               .extend({
-                                [manyKey]: manySchema.optional().array()
+                                [manyKey]: manySchema.optional().array(),
                               })
-                              .optional()
+                              .optional(),
                           })
                           .optional()
-                          .array()
-                      })
+                          .array(),
+                      }),
                     })
                     .array()
-                    .optional()
+                    .optional(),
                 })
-                .optional()
+                .optional(),
             })
             .optional()
-            .array()
+            .array(),
         })
-        .optional()
+        .optional(),
     })
     .array()
     .optional()
@@ -56,24 +56,24 @@ const ZodManyToOne = ({
 
 export const BreedSchema = z.object({
   family: z.string().optional(),
-  members: z.number().optional()
+  members: z.number().optional(),
 })
 
 export const userInputSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
   age: z.number().optional(),
-  breed: BreedSchema.optional()
+  breed: BreedSchema.optional(),
 })
 
 // We need to add 1 by 1 the relations so we can
 export const rolesWithPivot = RoleInputSchema.extend({
-  pivot: RolesUserSchema.optional()
+  pivot: RolesUserSchema.optional(),
 })
 
 export const userWithRoles = userInputSchema.extend({
   id: z.string(),
-  roles: rolesWithPivot.array().optional()
+  roles: rolesWithPivot.array().optional(),
 })
 
 // The final Output for the user
@@ -82,8 +82,8 @@ export const userOutputSchema = userWithRoles.extend({
     manySchema: carInputSchema,
     oneSchema: userWithRoles,
     manyKey: 'cars',
-    oneKey: 'user'
-  })
+    oneKey: 'user',
+  }),
 })
 
 export type UsersDtoIn = z.infer<typeof userInputSchema>

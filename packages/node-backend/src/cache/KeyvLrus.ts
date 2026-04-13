@@ -32,7 +32,7 @@ export class KeyvLru<T> implements MapInterface {
     // Expose opts to match test expectations
     this.opts = {
       deserialize: options.deserialize,
-      serialize: options.serialize
+      serialize: options.serialize,
     }
   }
 

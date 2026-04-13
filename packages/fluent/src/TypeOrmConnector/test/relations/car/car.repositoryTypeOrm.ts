@@ -15,17 +15,17 @@ export class CarsRepository extends TypeOrmConnector<
       entity: CarsEntity,
       dataSource: MemoryDataSource,
       inputSchema: carInputSchema,
-      outputSchema: carOutputSchema
+      outputSchema: carOutputSchema,
     })
   }
 
   public user = () =>
     this.belongsTo({
-      repository: UserRepository
+      repository: UserRepository,
     })
 
   public anotherRelation = () =>
     this.belongsTo({
-      repository: UserRepository
+      repository: UserRepository,
     })
 }

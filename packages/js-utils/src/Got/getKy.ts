@@ -5,15 +5,9 @@ import type {
   BeforeRequestHook,
   BeforeRetryHook,
   KyInstance,
-  NormalizedOptions
 } from './ky'
 import Ky from './ky'
 import type { GetKyOptions, KyRequestContext } from './ky.model'
-
-// Extend NormalizedOptions to include context property
-interface ExtendedNormalizedOptions extends NormalizedOptions {
-  context?: KyRequestContext
-}
 
 /**
  * Returns instance of Ky with "reasonable defaults":
@@ -35,24 +29,24 @@ export function getKy(opt: GetKyOptions = {}): KyInstance {
       beforeError: [
         ...(opt.hooks?.beforeError || []),
         // User hooks go BEFORE
-        gotErrorHook(opt)
+        gotErrorHook(opt),
       ],
       beforeRequest: [
         gotBeforeRequestHook(opt),
         // User hooks go AFTER
-        ...(opt.hooks?.beforeRequest || [])
+        ...(opt.hooks?.beforeRequest || []),
       ],
       beforeRetry: [
         gotBeforeRetryHook(opt),
         // User hooks go AFTER
-        ...(opt.hooks?.beforeRetry || [])
+        ...(opt.hooks?.beforeRetry || []),
       ],
       afterResponse: [
-        ...(opt.hooks?.afterResponse || [])
+        ...(opt.hooks?.afterResponse || []),
         // User hooks go BEFORE
         //keyAfterResponseHook(opt)
-      ]
-    }
+      ],
+    },
   })
 }
 
@@ -77,28 +71,21 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
       shortUrl = getShortUrl(
         opt,
         url instanceof URL ? url : new URL(url),
-        (prefixUrl as any) instanceof URL ? prefixUrl.toString() : prefixUrl
+        (prefixUrl as any) instanceof URL ? prefixUrl.toString() : prefixUrl,
       )
     } catch (_e) {
       logger.error('Invalid URL:', url)
       shortUrl = url
     }
 
-    const extendedOptions = err.options as ExtendedNormalizedOptions
-    const context = extendedOptions.context || { started: Date.now() }
-    const { started, retryCount } = context as KyRequestContext
-
-    if (!context) {
-      logger.error(
-        'Context is not defined in the request options:',
-        err.options
-      )
-      return err
-    }
+    const context = (err.options.context || {
+      started: Date.now(),
+    }) as KyRequestContext
+    const { started, retryCount } = context
 
     const body = err.response?.body
       ? inspectAny(err.response.body, {
-          maxLen: maxResponseLength
+          maxLen: maxResponseLength,
         })
       : err.message
 
@@ -111,17 +98,17 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
         shortUrl,
         retryCount && `(retry ${retryCount})`,
         'error',
-        started && `in ${Time.since(started)}`
+        started && `in ${Time.since(started)}`,
       ]
         .filter(Boolean)
-        .join(' ')
+        .join(' '),
     )
 
     // timings are not part of err.message to allow automatic error grouping in Sentry
     // Colors are not used, because there's high chance that this Error will be propagated all the way to the Frontend
     err.message = [
       [statusCode, method, shortUrl].filter(Boolean).join(' '),
-      body
+      body,
     ]
       .filter(Boolean)
       .join('\n')
@@ -131,7 +118,7 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
     if (stack) {
       const originalStack = err.stack.split('\n')
       let originalStackIndex = originalStack.findIndex(line =>
-        line.includes(' at ')
+        line.includes(' at '),
       )
       if (originalStackIndex === -1) {
         originalStackIndex = originalStack.length - 1
@@ -141,7 +128,7 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
       // Skipping second line as it's known to be from e.g at got_1.default.extend.handlers
       const syntheticStack = stack.split('\n').slice(2)
       let firstNonNodeModulesIndex = syntheticStack.findIndex(
-        line => !line.includes('node_modules')
+        line => !line.includes('node_modules'),
       )
       if (firstNonNodeModulesIndex === -1) {
         firstNonNodeModulesIndex = 0
@@ -151,7 +138,7 @@ function gotErrorHook(opt: GetKyOptions = {}): BeforeErrorHook {
         // First lines of original error
         ...originalStack.slice(0, originalStackIndex),
         // Other lines from "Synthetic error"
-        ...syntheticStack.slice(firstNonNodeModulesIndex)
+        ...syntheticStack.slice(firstNonNodeModulesIndex),
       ].join('\n')
       // err.stack += '\n    --' + stack.replace('Error: RequestError', '')
     }
@@ -164,22 +151,12 @@ function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
   const { logger = console } = opt
 
   return (request, options) => {
-    const extendedOptions = options as ExtendedNormalizedOptions
-
-    if (!extendedOptions.context) {
-      extendedOptions.context = {
-        started: Date.now()
-      }
-    }
-
-    // If options or options.context are not defined, log an error and exit early.
-    if (!extendedOptions || !extendedOptions.context) {
-      logger.error('Unexpected options:', options)
-      return undefined
+    if (!options.context.started) {
+      options.context.started = Date.now()
     }
 
     if (opt.logStart) {
-      const { retryCount } = extendedOptions.context as KyRequestContext
+      const { retryCount } = options.context as KyRequestContext
 
       let shortUrl: string
 
@@ -192,7 +169,7 @@ function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
             : new URL(request.url),
           (options.prefixUrl as any) instanceof URL
             ? options.prefixUrl.toString()
-            : options.prefixUrl
+            : options.prefixUrl,
         )
       } catch (_e) {
         logger.error('Invalid URL:', request.url)
@@ -202,7 +179,7 @@ function gotBeforeRequestHook(opt: GetKyOptions): BeforeRequestHook {
       logger.log(
         [' >>', options.method, shortUrl, retryCount && `(retry ${retryCount})`]
           .filter(Boolean)
-          .join(' ')
+          .join(' '),
       )
     }
 
@@ -243,24 +220,20 @@ function gotBeforeRetryHook(opt: GetKyOptions): BeforeRetryHook {
       shortUrl = url
     }
 
-    const extendedOptions = options as ExtendedNormalizedOptions
-
-    // Ensure context exists
-    if (!extendedOptions.context) {
-      extendedOptions.context = {
-        started: Date.now()
-      }
+    // Ensure started exists in context
+    if (!options.context.started) {
+      options.context.started = Date.now()
     }
 
-    const { started } = extendedOptions.context as KyRequestContext
+    const { started } = options.context as KyRequestContext
 
     // Update context with retry count
-    extendedOptions.context = { ...extendedOptions.context, retryCount }
+    options.context.retryCount = retryCount
 
     // Construct body message
     const body = error.message
       ? inspectAny(error, {
-          maxLen: maxResponseLength
+          maxLen: maxResponseLength,
         })
       : error.message
 
@@ -274,7 +247,7 @@ function gotBeforeRetryHook(opt: GetKyOptions): BeforeRetryHook {
         : '(first try)',
       'error',
       started && `in ${Time.since(started)}`,
-      body
+      body,
     ]
     const message = messageParts.filter(Boolean).join(' ')
 
@@ -351,7 +324,7 @@ function gotBeforeRetryHook(opt: GetKyOptions): BeforeRetryHook {
 export function getShortUrl(
   opt: GetKyOptions,
   url: URL,
-  prefixUrl?: string
+  prefixUrl?: string,
 ): string {
   // Copy the URL and redact password if it exists
   let urlToUse = url

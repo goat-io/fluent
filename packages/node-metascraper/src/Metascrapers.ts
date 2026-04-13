@@ -41,7 +41,7 @@ export class MetaScrapers {
 
     const previewData = {
       ...meta,
-      assetMeta
+      assetMeta,
     } as LinkPreviewResult
 
     return previewData

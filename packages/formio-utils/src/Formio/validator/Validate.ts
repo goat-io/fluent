@@ -19,7 +19,7 @@ export interface FormioValidationError {
 export const Validate = (() => {
   const validate = (
     form: FormioForm,
-    submissions: AnyObject[]
+    submissions: AnyObject[],
   ): Promise<AnyObject[]> => {
     const Submissions: AnyObject[] = JSON.parse(JSON.stringify(submissions))
 
@@ -37,7 +37,7 @@ export const Validate = (() => {
                 }
                 return res(su)
               })
-            })
+            }),
           )
         })
 
@@ -46,7 +46,7 @@ export const Validate = (() => {
           .catch(e => {
             const errors: FormioValidationError = {
               name: e.name,
-              details: e.details
+              details: e.details,
             }
             return reject(errors)
           })
@@ -59,16 +59,16 @@ export const Validate = (() => {
 
   const submission = async (
     form: FormioForm,
-    submission: AnyObject
+    submission: AnyObject,
   ): Promise<AnyObject> => {
     const Submissions = [submission]
     const [error, subs] = await Promises.try<AnyObject, any>(
-      validate(form, Submissions)
+      validate(form, Submissions),
     )
     if (error) {
       const errors: FormioValidationError = {
         name: error.name,
-        details: error.details
+        details: error.details,
       }
       return Promise.reject(errors)
     }
@@ -81,8 +81,8 @@ export const Validate = (() => {
   const form = (forms: FormioForm): Promise<FormioForm> => {
     const Forms = JSON.parse(
       JSON.stringify(forms, (_key, value) =>
-        value === null ? undefined : value
-      )
+        value === null ? undefined : value,
+      ),
     )
 
     return new Promise((resolve, reject) => {
@@ -114,7 +114,7 @@ export const Validate = (() => {
               }
               res(f)
             })
-          })
+          }),
         )
       })
 
@@ -131,6 +131,6 @@ export const Validate = (() => {
   return Object.freeze({
     submission,
     submissions,
-    form
+    form,
   })
 })()

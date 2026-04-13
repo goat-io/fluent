@@ -8,7 +8,7 @@ export class FormioGoatRepository extends FormioConnector<
 > {
   constructor() {
     super({
-      baseEndPoint: 'http://localhost:3001/goats'
+      baseEndPoint: 'http://localhost:3001/goats',
     })
   }
 }
@@ -19,7 +19,7 @@ export class FormioAdvancedRepository extends FormioConnector<
 > {
   constructor() {
     super({
-      baseEndPoint: 'http://localhost:3001/advanced'
+      baseEndPoint: 'http://localhost:3001/advanced',
     })
   }
 }

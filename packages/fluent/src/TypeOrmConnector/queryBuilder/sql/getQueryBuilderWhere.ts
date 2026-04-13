@@ -4,7 +4,7 @@ import { AnyObject, FluentQuery, LogicOperator } from '../../../types'
 import { extractConditions } from '../../util/extractConditions'
 
 const queryId = Ids.customId(
-  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
 )
 
 export interface GetQueryBuilderWhereParams {
@@ -20,7 +20,7 @@ export interface GetQueryBuilderWhereParams {
 export const getQueryBuilderWhere = ({
   where,
   queryAlias,
-  queryBuilder
+  queryBuilder,
 }: GetQueryBuilderWhereParams): SelectQueryBuilder<any> => {
   if (!where || Object.keys(where).length === 0) {
     return queryBuilder
@@ -52,64 +52,64 @@ export const getQueryBuilderWhere = ({
             qbAnd.andWhere(
               `${queryAlias}.${element} = :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.IsNot:
             qbAnd.andWhere(
               `${queryAlias}.${element} != :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.GreaterThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} > :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.GreaterOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} >= :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.LessThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} < :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.LessOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} <= :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.In:
             qbAnd.andWhere(
               `${queryAlias}.${element} IN :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.NotIn:
             qbAnd.andWhere(
               `${queryAlias}.${element} NOT IN :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.Exists:
@@ -122,8 +122,8 @@ export const getQueryBuilderWhere = ({
             qbAnd.andWhere(
               `${queryAlias}.${element} LIKE :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
         }
@@ -138,64 +138,64 @@ export const getQueryBuilderWhere = ({
             qbAnd.andWhere(
               `${queryAlias}.${element} = :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.IsNot:
             qbAnd.andWhere(
               `${queryAlias}.${element} != :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.GreaterThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} > :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.GreaterOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} >= :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.LessThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} < :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.LessOrEqualThan:
             qbAnd.andWhere(
               `${queryAlias}.${element} <= :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.In:
             qbAnd.andWhere(
               `${queryAlias}.${element} IN :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.NotIn:
             qbAnd.andWhere(
               `${queryAlias}.${element} NOT IN :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
           case LogicOperator.Exists:
@@ -208,8 +208,8 @@ export const getQueryBuilderWhere = ({
             qbAnd.andWhere(
               `${queryAlias}.${element} LIKE :${element}_${customId}`,
               {
-                [`${element}_${customId}`]: value
-              }
+                [`${element}_${customId}`]: value,
+              },
             )
             break
         }
@@ -226,64 +226,64 @@ export const getQueryBuilderWhere = ({
                 qbOr.andWhere(
                   `${queryAlias}.${element} = :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.IsNot:
                 qbOr.andWhere(
                   `${queryAlias}.${element} != :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.GreaterThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} > :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.GreaterOrEqualThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} >= :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.LessThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} < :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.LessOrEqualThan:
                 qbOr.andWhere(
                   `${queryAlias}.${element} <= :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.In:
                 qbOr.andWhere(
                   `${queryAlias}.${element} IN :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.NotIn:
                 qbOr.andWhere(
                   `${queryAlias}.${element} NOT IN :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
               case LogicOperator.Exists:
@@ -296,15 +296,15 @@ export const getQueryBuilderWhere = ({
                 qbOr.andWhere(
                   `${queryAlias}.${element} LIKE :${element}_${customId}`,
                   {
-                    [`${element}_${customId}`]: value
-                  }
+                    [`${element}_${customId}`]: value,
+                  },
                 )
                 break
             }
           }
-        })
+        }),
       )
-    })
+    }),
   )
 
   return queryBuilder

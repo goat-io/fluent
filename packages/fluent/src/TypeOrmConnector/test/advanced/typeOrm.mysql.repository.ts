@@ -3,7 +3,7 @@ import { MYSQLDataSource } from '../mysql/mysqlDataSource'
 import {
   TypeORMDataModel,
   TypeORMDataModelInputSchema,
-  TypeORMDataModelSchema
+  TypeORMDataModelSchema,
 } from './typeOrm.entity'
 
 export class TypeOrmRepository extends TypeOrmConnector<
@@ -15,7 +15,7 @@ export class TypeOrmRepository extends TypeOrmConnector<
       entity: TypeORMDataModel,
       dataSource: MYSQLDataSource,
       inputSchema: TypeORMDataModelSchema,
-      outputSchema: TypeORMDataModelSchema
+      outputSchema: TypeORMDataModelSchema,
     })
   }
 }

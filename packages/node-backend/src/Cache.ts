@@ -1,10 +1,38 @@
 import { type Milliseconds, Promises } from '@goatlab/js-utils'
-import KeyvRedis from '@keyv/redis'
+import type { ClusterOptions } from 'ioredis'
 import type { Options } from 'keyv'
 
 const Keyv = require('keyv')
 
 import { KeyvLru } from './cache/KeyvLrus'
+import { LazyRedisStore } from './cache/LazyRedisStore'
+import { RedisConnectionPool } from './cache/RedisConnectionPool'
+
+export interface CacheClusterConfig {
+  nodes: Array<{ host: string; port: number }>
+  options?: ClusterOptions
+}
+
+export interface CacheOptions<T> extends Options<T> {
+  usesLRUMemory?: boolean
+  tenantId?: string
+  /**
+   * When true (default), Redis connection is deferred until first use.
+   * This prevents connection exhaustion during Cloud Run/serverless deployments
+   * where old and new containers may briefly run simultaneously.
+   *
+   * Set to false for eager connection (fail-fast behavior).
+   *
+   * @default true
+   */
+  lazy?: boolean
+  /**
+   * Redis Cluster configuration.
+   * When provided, the cache connects to a Redis Cluster instead of standalone Redis.
+   * Takes precedence over the `connection` string for store creation.
+   */
+  cluster?: CacheClusterConfig
+}
 
 export class Cache<T extends object = any> extends Keyv<T> {
   private ns: string
@@ -12,43 +40,87 @@ export class Cache<T extends object = any> extends Keyv<T> {
   private usesLRUMemory?: boolean
   private keyvLru: KeyvLru<T>
   private memoryCache: typeof Keyv
+  private connectionString?: string
+  private connectionPool: RedisConnectionPool
+  private lazyStore?: LazyRedisStore
 
   constructor({
     connection,
-    opts
+    opts,
   }: {
     connection: string | undefined
-    opts?: Options<T> & { usesLRUMemory?: boolean; tenantId?: string }
+    opts?: CacheOptions<T>
   }) {
     const tenantId = opts?.tenantId
     const namespace = opts?.namespace || ''
-
-    const tenantNs = tenantId ? `tenant:${tenantId}` : ''
+    const lazy = opts?.lazy !== false // Default to true
+    const clusterConfig = opts?.cluster
 
     // Build the full namespace including tenant ID if provided
-    const fullNamespace = namespace ? `${tenantNs}:${namespace}` : tenantNs
+    // Format: "tenantId:namespace" or "tenantId" or "namespace" or ""
+    const fullNamespace =
+      tenantId && namespace
+        ? `${tenantId}:${namespace}`
+        : tenantId || namespace || ''
+
+    // Get connection pool instance
+    const pool = RedisConnectionPool.getInstance()
+
+    // Determine which store to use
+    let store: any
+    let lazyStore: LazyRedisStore | undefined
+
+    if (clusterConfig) {
+      // Cluster mode: always lazy, use cluster config
+      lazyStore = new LazyRedisStore(connection || 'cluster', {
+        nodes: clusterConfig.nodes,
+        options: clusterConfig.options,
+      })
+      store = lazyStore
+    } else if (connection) {
+      if (lazy) {
+        // Lazy mode: use LazyRedisStore that defers connection
+        lazyStore = new LazyRedisStore(connection)
+        store = lazyStore
+      } else {
+        // Eager mode: connect immediately via pool
+        store = pool.getConnection(connection)
+      }
+    } else {
+      // No connection string: use in-memory LRU
+      store = new KeyvLru<T>({
+        max: 1000,
+        resetTtl: false,
+        ttl: 0,
+      })
+    }
 
     super({
-      store: connection
-        ? new KeyvRedis(connection)
-        : new KeyvLru<T>({
-            max: 1000,
-            resetTtl: false,
-            ttl: 0
-          }),
+      store,
       ...opts,
-      namespace: fullNamespace
+      namespace: fullNamespace,
     })
+
+    // Manually set up iterator for LazyRedisStore as a fallback.
+    // With opts.dialect='redis', Keyv should detect it automatically, but this ensures
+    // deleteWhereStartsWith and getValueWhereKeyStartsWith work even if detection fails.
+    if (lazyStore && typeof lazyStore.iterator === 'function') {
+      this.iterator = lazyStore.iterator.bind(lazyStore)
+    }
+
+    this.connectionString = connection
+    this.connectionPool = pool
+    this.lazyStore = lazyStore
 
     this.keyvLru = new KeyvLru<T>({
       max: 1000,
       resetTtl: false,
-      ttl: 0
+      ttl: 0,
     })
 
     this.memoryCache = new Keyv({
       store: this.keyvLru,
-      namespace: fullNamespace
+      namespace: fullNamespace,
     })
 
     this.ns = fullNamespace
@@ -58,6 +130,24 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
   public get tenantId(): string | undefined {
     return this._tenantId
+  }
+
+  /**
+   * Check if the cache is using lazy initialization
+   */
+  public isLazy(): boolean {
+    return this.lazyStore !== undefined
+  }
+
+  /**
+   * Check if the Redis connection is established (for lazy mode)
+   */
+  public isConnected(): boolean {
+    if (this.lazyStore) {
+      return this.lazyStore.isConnected()
+    }
+    // For eager mode or in-memory, always "connected"
+    return true
   }
 
   private isValidResult(result: any): boolean {
@@ -86,7 +176,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return true
     }
     const nonNullValues = Object.values(value).filter(
-      objValue => objValue !== null
+      objValue => objValue !== null,
     )
     return nonNullValues.length !== 0
   }
@@ -96,7 +186,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
     // It will greatly improve performance
     // for "frequent" uses
     if (this.usesLRUMemory) {
-      const memoryVal = await this.memoryCache.get(`${this.ns}:${key}`)
+      const memoryVal = await this.memoryCache.get(key)
 
       if (memoryVal) {
         return memoryVal
@@ -107,7 +197,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
     if (this.usesLRUMemory && result) {
       // We could also just overwrite the set method as well
-      await this.memoryCache.set(`${this.ns}:${key}`, result)
+      await this.memoryCache.set(key, result)
     }
 
     return result
@@ -115,7 +205,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
 
   public async delete(key: string): Promise<boolean> {
     if (this.usesLRUMemory) {
-      await this.memoryCache.delete(`${this.ns}:${key}`)
+      await this.memoryCache.delete(key)
     }
     return await super.delete(key)
   }
@@ -142,7 +232,7 @@ export class Cache<T extends object = any> extends Keyv<T> {
   public async remember(
     key: string,
     ms: Milliseconds,
-    fx: () => Promise<T>
+    fx: () => Promise<T>,
   ): Promise<T> {
     const value = await this.get(key)
 
@@ -207,12 +297,107 @@ export class Cache<T extends object = any> extends Keyv<T> {
   }
 
   /**
-   * Remove all items from the cache in the current namespace
+   * Remove all items from the cache in the current namespace.
    *
-   * @return bool
+   * Note: We use iterator-based deletion instead of KeyvRedis's clear() because
+   * clear() relies on Redis Sets to track keys. Keys created before proper namespace
+   * setup or with useRedisSets:false won't be in those sets and won't be deleted.
+   * The iterator uses Redis SCAN which finds ALL keys matching the namespace pattern.
+   *
+   * @return void
    */
   public async flush(): Promise<void> {
-    await this.clear()
+    // For in-memory stores without iterator, use clear() directly
+    if (!this.iterator) {
+      await this.clear()
+      return
+    }
+
+    // Try to get direct Redis access for batch deletion (much faster)
+    const redis = await this.getRedisClient()
+    if (redis) {
+      const pattern = this.ns ? `${this.ns}:*` : '*'
+
+      if (typeof redis.nodes === 'function') {
+        // Redis Cluster: SCAN each master node individually
+        // redis.keys() fails on cluster because it only hits one slot
+        const masterNodes: any[] = redis.nodes('master')
+        for (const node of masterNodes) {
+          await this.scanAndUnlink(node, pattern)
+        }
+      } else {
+        // Standalone: Use Redis SCAN + UNLINK for fast bulk deletion
+        const keys = await redis.keys(pattern)
+        if (keys.length > 0) {
+          await redis.unlink(keys)
+        }
+      }
+    } else {
+      // Fallback: iterator-based deletion (slower but works for any store)
+      const namespacePrefix = this.ns ? `${this.ns}:` : ''
+      const keysToDelete: string[] = []
+
+      for await (const [key] of this.iterator(this.ns)) {
+        let keyWithoutNamespace = key
+        if (namespacePrefix && key.startsWith(namespacePrefix)) {
+          keyWithoutNamespace = key.substring(namespacePrefix.length)
+        }
+        keysToDelete.push(keyWithoutNamespace)
+      }
+
+      // Delete in parallel batches for better performance
+      const BATCH_SIZE = 100
+      for (let i = 0; i < keysToDelete.length; i += BATCH_SIZE) {
+        const batch = keysToDelete.slice(i, i + BATCH_SIZE)
+        await Promise.all(batch.map(key => this.delete(key)))
+      }
+    }
+
+    // Also clear memory cache if using LRU memory
+    if (this.usesLRUMemory) {
+      await this.memoryCache.clear()
+    }
+  }
+
+  /**
+   * SCAN a single Redis node for keys matching a pattern and UNLINK them.
+   * Used for cluster-safe flush operations where `keys()` is not viable.
+   */
+  private async scanAndUnlink(node: any, pattern: string): Promise<void> {
+    let cursor = '0'
+    do {
+      const [nextCursor, keys]: [string, string[]] = await node.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        200,
+      )
+      cursor = nextCursor
+      if (keys.length > 0) {
+        await node.unlink(...keys)
+      }
+    } while (cursor !== '0')
+  }
+
+  /**
+   * Get the underlying Redis client if available.
+   * Ensures lazy connection is established first.
+   * Returns undefined for non-Redis stores.
+   */
+  private async getRedisClient(): Promise<any> {
+    try {
+      if (this.lazyStore) {
+        // Ensure connection is established first and get the store
+        const store = await this.lazyStore.getStore()
+        return (store as any)?.redis
+      }
+      // For eager mode, check if store has redis property
+      const store = this.opts?.store as any
+      return store?.redis
+    } catch {
+      return undefined
+    }
   }
 
   public async deleteWhereStartsWith(value: string): Promise<void> {
@@ -225,36 +410,26 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return
     }
 
-    // When using iterator with compound namespaces (e.g., tenant:namespace),
-    // keyv may not strip the full namespace correctly. We need to handle this.
-    const namespaceParts = this.ns.split(':')
-    const hasCompoundNamespace = namespaceParts.length > 1
+    // The Redis iterator returns keys with full namespace prefix (e.g., "namespace:foo:1")
+    // We need to strip the namespace to get the actual key
+    const namespacePrefix = this.ns ? `${this.ns}:` : ''
 
     for await (const [key] of this.iterator(this.ns)) {
+      // Strip namespace prefix from key
       let keyToCheck = key
-
-      // If we have a compound namespace and the key still contains part of it,
-      // we need to strip the remaining namespace parts
-      if (hasCompoundNamespace && key.includes(':')) {
-        // Check if the key starts with any remaining namespace parts
-        for (let i = 1; i < namespaceParts.length; i++) {
-          const remainingNamespace = namespaceParts.slice(i).join(':')
-          if (key.startsWith(`${remainingNamespace}:`)) {
-            keyToCheck = key.substring(remainingNamespace.length + 1)
-            break
-          }
-        }
+      if (namespacePrefix && key.startsWith(namespacePrefix)) {
+        keyToCheck = key.substring(namespacePrefix.length)
       }
 
       if (keyToCheck.startsWith(value)) {
-        // Use the processed key (without namespace parts) for deletion
+        // Delete using the key without namespace (Keyv handles namespace internally)
         await this.delete(keyToCheck)
       }
     }
   }
 
   public async getValueWhereKeyStartsWith<T>(value: string): Promise<T[]> {
-    const result = []
+    const result: T[] = []
     if (!this.iterator) {
       await Promises.map(Object.keys(this.opts.store.cache.items), async k => {
         if (k.startsWith(`${this.ns}:${value}`)) {
@@ -265,32 +440,58 @@ export class Cache<T extends object = any> extends Keyv<T> {
       return result
     }
 
-    // When using iterator with compound namespaces (e.g., tenant:namespace),
-    // keyv may not strip the full namespace correctly. We need to handle this.
-    const namespaceParts = this.ns.split(':')
-    const hasCompoundNamespace = namespaceParts.length > 1
+    // The Redis iterator returns keys with full namespace prefix (e.g., "namespace:foo:1")
+    // and values as JSON strings (e.g., '{"value":"a","expires":null}')
+    // We need to strip the namespace and parse the values
+    const namespacePrefix = this.ns ? `${this.ns}:` : ''
 
     for await (const [key, val] of this.iterator(this.ns)) {
+      // Strip namespace prefix from key
       let keyToCheck = key
-
-      // If we have a compound namespace and the key still contains part of it,
-      // we need to strip the remaining namespace parts
-      if (hasCompoundNamespace && key.includes(':')) {
-        // Check if the key starts with any remaining namespace parts
-        for (let i = 1; i < namespaceParts.length; i++) {
-          const remainingNamespace = namespaceParts.slice(i).join(':')
-          if (key.startsWith(`${remainingNamespace}:`)) {
-            keyToCheck = key.substring(remainingNamespace.length + 1)
-            break
-          }
-        }
+      if (namespacePrefix && key.startsWith(namespacePrefix)) {
+        keyToCheck = key.substring(namespacePrefix.length)
       }
 
       if (keyToCheck.startsWith(value)) {
-        result.push(val)
+        // Parse JSON value if it's a string (Redis returns raw JSON)
+        let parsedValue = val
+        if (typeof val === 'string') {
+          try {
+            const parsed = JSON.parse(val)
+            parsedValue = parsed.value !== undefined ? parsed.value : parsed
+          } catch {
+            // If parsing fails, use the raw value
+            parsedValue = val
+          }
+        }
+        result.push(parsedValue)
       }
     }
 
     return result
+  }
+
+  /**
+   * Dispose of this cache instance and release the Redis connection.
+   * After calling this, the cache instance should not be used.
+   * The connection will remain in the pool for reuse by other instances.
+   */
+  public dispose(): void {
+    if (this.connectionString) {
+      this.connectionPool.releaseConnection(this.connectionString)
+    }
+  }
+
+  /**
+   * Disconnect the Redis connection for this cache instance.
+   * This removes the connection from the pool entirely.
+   * Use this when you're certain no other instances need this connection.
+   */
+  public async disconnect(): Promise<void> {
+    if (this.lazyStore) {
+      await this.lazyStore.disconnect()
+    } else if (this.connectionString) {
+      await this.connectionPool.disconnect(this.connectionString)
+    }
   }
 }

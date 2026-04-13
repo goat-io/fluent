@@ -15,7 +15,7 @@ export function getMethodSignature(ctx: any, keyStr: string): string {
  */
 export function getTargetMethodSignature(
   target: AnyObject,
-  keyStr: string
+  keyStr: string,
 ): string {
   return `${target.constructor.name}.${keyStr}`
 }

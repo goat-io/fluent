@@ -5,7 +5,7 @@ import {
   UsersDtoIn,
   UsersDtoOut,
   userInputSchema,
-  userOutputSchema
+  userOutputSchema,
 } from '../relations/user/user.schema'
 import { CarsRepository } from './car.mysql.repository'
 import { MYSQLDataSource } from './mysqlDataSource'
@@ -22,7 +22,7 @@ export class UserRepository extends TypeOrmConnector<
       entity: UsersEntity,
       dataSource: MYSQLDataSource,
       inputSchema: userInputSchema,
-      outputSchema: userOutputSchema
+      outputSchema: userOutputSchema,
     })
   }
 
@@ -30,13 +30,13 @@ export class UserRepository extends TypeOrmConnector<
     return this.hasMany({
       repository: CarsRepository,
       model: CarsEntity,
-      relationKey: { user: true }
+      relationKey: { user: true },
     })
   }
 
   public roles = () =>
     this.belongsToMany({
       repository: RoleRepository,
-      pivot: RoleUsersRepository
+      pivot: RoleUsersRepository,
     })
 }

@@ -17,7 +17,7 @@ export async function updateGroupPermissions({
   apiKey,
   groupId,
   databaseId,
-  permissions
+  permissions,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -27,7 +27,7 @@ export async function updateGroupPermissions({
   permissions: DatabasePermissions
 }): Promise<void> {
   console.log(
-    `🔐 Updating permissions for group ${groupId} on database ${databaseId}...`
+    `🔐 Updating permissions for group ${groupId} on database ${databaseId}...`,
   )
 
   try {
@@ -37,7 +37,7 @@ export async function updateGroupPermissions({
       sessionToken,
       apiKey,
       endpoint: '/api/permissions/graph',
-      method: 'GET'
+      method: 'GET',
     })
 
     if (!permissionsResponse.ok) {
@@ -60,7 +60,7 @@ export async function updateGroupPermissions({
 
     // Update permissions for the specific database
     updatedGraph.groups[groupId][databaseId] = {
-      data: permissions
+      data: permissions,
     }
 
     // Update the permissions graph
@@ -70,7 +70,7 @@ export async function updateGroupPermissions({
       apiKey,
       endpoint: '/api/permissions/graph',
       method: 'PUT',
-      body: updatedGraph
+      body: updatedGraph,
     })
 
     if (!updateResponse.ok) {
@@ -79,7 +79,7 @@ export async function updateGroupPermissions({
     }
 
     console.log(
-      `✅ Successfully updated permissions for group ${groupId} on database ${databaseId}`
+      `✅ Successfully updated permissions for group ${groupId} on database ${databaseId}`,
     )
   } catch (error) {
     console.error(`❌ Error updating permissions:`, error)

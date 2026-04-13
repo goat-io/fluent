@@ -11,7 +11,7 @@ import {
   HasManyDefinition,
   HasOneDefinition,
   RelationMetadata,
-  RelationType
+  RelationType,
 } from './relation.types'
 import { Type } from './type'
 import { TypeResolver } from './type-resolver'
@@ -155,7 +155,7 @@ export class ModelDefinition {
    */
   addProperty(
     name: string,
-    definitionOrType: PropertyDefinition | PropertyType
+    definitionOrType: PropertyDefinition | PropertyType,
   ): this {
     const definition = (definitionOrType as PropertyDefinition).type
       ? (definitionOrType as PropertyDefinition)
@@ -200,13 +200,13 @@ export class ModelDefinition {
    */
   belongsTo(
     name: string,
-    definition: Omit<BelongsToDefinition, 'name' | 'type' | 'targetsMany'>
+    definition: Omit<BelongsToDefinition, 'name' | 'type' | 'targetsMany'>,
   ): this {
     const meta: BelongsToDefinition = {
       ...definition,
       name,
       type: RelationType.belongsTo,
-      targetsMany: false
+      targetsMany: false,
     }
     return this.addRelation(meta)
   }
@@ -218,13 +218,13 @@ export class ModelDefinition {
    */
   hasOne(
     name: string,
-    definition: Omit<HasOneDefinition, 'name' | 'type' | 'targetsMany'>
+    definition: Omit<HasOneDefinition, 'name' | 'type' | 'targetsMany'>,
   ): this {
     const meta: HasOneDefinition = {
       ...definition,
       name,
       type: RelationType.hasOne,
-      targetsMany: false
+      targetsMany: false,
     }
     return this.addRelation(meta)
   }
@@ -236,13 +236,13 @@ export class ModelDefinition {
    */
   hasMany(
     name: string,
-    definition: Omit<HasManyDefinition, 'name' | 'type' | 'targetsMany'>
+    definition: Omit<HasManyDefinition, 'name' | 'type' | 'targetsMany'>,
   ): this {
     const meta: HasManyDefinition = {
       ...definition,
       name,
       type: RelationType.hasMany,
-      targetsMany: true
+      targetsMany: true,
     }
     return this.addRelation(meta)
   }
@@ -274,7 +274,7 @@ export class ModelDefinition {
       return this.settings.id
     }
     const idProps = Object.keys(this.properties).filter(
-      prop => this.properties[prop]?.id
+      prop => this.properties[prop]?.id,
     )
     return idProps
   }
@@ -402,7 +402,7 @@ export class Model {
         if (relName in this) {
           obj[relName] = asObject((this as AnyObject)[relName], {
             ...options,
-            ignoreUnknownProperties: false
+            ignoreUnknownProperties: false,
           })
         }
       }
@@ -487,7 +487,7 @@ export class Entity extends Model implements Persistable {
     if (!idProps.length) {
       throw new Error(
         `Invalid Entity ${this.constructor.name}:` +
-          'missing primary key (id) property'
+          'missing primary key (id) property',
       )
     }
     return this.getIdObject()
@@ -551,7 +551,7 @@ export type EntityResolver<T extends Entity> = TypeResolver<T, typeof Entity>
  */
 export function rejectNavigationalPropertiesInData<M extends typeof Entity>(
   modelClass: M,
-  data: DataObject<PrototypeOf<M>>
+  data: DataObject<PrototypeOf<M>>,
 ) {
   const def = modelClass.definition
   const props = def.properties

@@ -7,7 +7,7 @@ import {
   errorToErrorObject,
   isErrorObject,
   isHttpErrorObject,
-  isHttpErrorResponse
+  isHttpErrorResponse,
 } from './Errors/error.util'
 
 class ErrorsClass {

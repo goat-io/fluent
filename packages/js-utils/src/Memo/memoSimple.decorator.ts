@@ -54,7 +54,7 @@ export const memoSimple =
       if (cache.has(cacheKey)) {
         if (logHit) {
           logger.log(
-            `${methodSignature}(${getArgsSignature(args, logArgs)}) @memo hit`
+            `${methodSignature}(${getArgsSignature(args, logArgs)}) @memo hit`,
           )
         }
         return cache.get(cacheKey)
@@ -68,7 +68,7 @@ export const memoSimple =
         logger.log(
           `${methodSignature}(${getArgsSignature(args, logArgs)}) @memo miss (${
             Date.now() - d
-          } ms)`
+          } ms)`,
         )
       }
 

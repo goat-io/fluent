@@ -12,7 +12,7 @@ export class RoleEntity {
     entity: () => UsersEntity,
     joinTableName: 'roles_users',
     foreignKey: 'roleId',
-    inverseForeignKey: 'userId'
+    inverseForeignKey: 'userId',
   })
   users?: UsersEntity[]
 }

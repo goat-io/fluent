@@ -11,7 +11,7 @@ import { OmitType as NEstJSOmitType } from './Nestjs/types/omit-type'
 
 export function LBgetModelSchemaRef<T extends object>(
   modelCtor: Function & { prototype: T },
-  options?: JsonSchemaOptions<T>
+  options?: JsonSchemaOptions<T>,
 ): SchemaRef {
   const jsonSchema = getJsonSchemaRef(modelCtor, options)
   return jsonToSchemaObject(jsonSchema) as SchemaRef

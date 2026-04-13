@@ -16,7 +16,7 @@ export class TypesenseError extends Error {
     message: string,
     status: number,
     response?: any,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
   ) {
     super(message)
     this.name = 'TypesenseError'
@@ -113,7 +113,7 @@ export type TypesenseCollectionOutput = TypesenseCollection & {
 }
 
 export type TypesenseDocument<
-  T extends Record<string, any> = Record<string, any>
+  T extends Record<string, any> = Record<string, any>,
 > = {
   id: string | number
 } & T
@@ -365,7 +365,7 @@ export function isValidDocumentId(id: any): id is string | number {
  */
 export function validateTextMatches(
   textMatches: number,
-  perPage: number
+  perPage: number,
 ): boolean {
   return textMatches <= perPage
 }
@@ -383,7 +383,7 @@ export function validateVectorQuery(query: TypesenseQuery): {
     // Vector queries cannot use pagination
     if (query.page !== undefined || query.per_page !== undefined) {
       errors.push(
-        'vector_query cannot be used with page or per_page parameters'
+        'vector_query cannot be used with page or per_page parameters',
       )
     }
 
@@ -399,7 +399,7 @@ export function validateVectorQuery(query: TypesenseQuery): {
 
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   }
 }
 

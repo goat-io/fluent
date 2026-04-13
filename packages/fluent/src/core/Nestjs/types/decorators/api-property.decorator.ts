@@ -2,7 +2,7 @@ import { SchemaObjectMetadata } from '../interfaces/schema-object-metadata.inter
 import { getEnumType, getEnumValues } from '../utils/enum.utils'
 import {
   createPropertyDecorator,
-  getTypeIsArrayTuple
+  getTypeIsArrayTuple,
 } from './create-property.decorator'
 
 export const DECORATORS_PREFIX = 'swagger'
@@ -20,7 +20,7 @@ export const DECORATORS = {
   API_EXCLUDE_ENDPOINT: `${DECORATORS_PREFIX}/apiExcludeEndpoint`,
   API_EXCLUDE_CONTROLLER: `${DECORATORS_PREFIX}/apiExcludeController`,
   API_EXTRA_MODELS: `${DECORATORS_PREFIX}/apiExtraModels`,
-  API_EXTENSION: `${DECORATORS_PREFIX}/apiExtension`
+  API_EXTENSION: `${DECORATORS_PREFIX}/apiExtension`,
 }
 
 export interface ApiPropertyOptions
@@ -34,20 +34,20 @@ const isEnumArray = (obj: ApiPropertyOptions): boolean =>
   obj.isArray! && !!obj.enum
 
 export function ApiProperty(
-  options: ApiPropertyOptions = {}
+  options: ApiPropertyOptions = {},
 ): PropertyDecorator {
   return createApiPropertyDecorator(options)
 }
 
 export function createApiPropertyDecorator(
   options: ApiPropertyOptions = {},
-  overrideExisting = true
+  overrideExisting = true,
 ): PropertyDecorator {
   const [type, isArray] = getTypeIsArrayTuple(options.type, options.isArray!)
   options = {
     ...options,
     type,
-    isArray
+    isArray,
   }
 
   if (isEnumArray(options)) {
@@ -56,7 +56,7 @@ export function createApiPropertyDecorator(
     const enumValues = getEnumValues(options.enum!)
     options.items = {
       type: getEnumType(enumValues),
-      enum: enumValues
+      enum: enumValues,
     }
     options.enum = undefined
   } else if (options.enum) {
@@ -69,16 +69,16 @@ export function createApiPropertyDecorator(
   return createPropertyDecorator(
     DECORATORS.API_MODEL_PROPERTIES,
     options,
-    overrideExisting
+    overrideExisting,
   )
 }
 
 export function ApiPropertyOptional(
-  options: ApiPropertyOptions = {}
+  options: ApiPropertyOptions = {},
 ): PropertyDecorator {
   return ApiProperty({
     ...options,
-    required: false
+    required: false,
   })
 }
 
@@ -86,10 +86,10 @@ export function ApiResponseProperty(
   options: Pick<
     ApiPropertyOptions,
     'type' | 'example' | 'format' | 'enum' | 'deprecated'
-  > = {}
+  > = {},
 ): PropertyDecorator {
   return ApiProperty({
     readOnly: true,
-    ...options
+    ...options,
   })
 }

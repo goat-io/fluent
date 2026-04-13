@@ -12,7 +12,7 @@ import {
   modelGeneratorDataSource,
   PaginatedData,
   Primitives,
-  QueryOutput
+  QueryOutput,
 } from '@goatlab/fluent'
 import { Ids, Objects } from '@goatlab/js-utils'
 import LokiJS, { Collection } from 'lokijs'
@@ -34,7 +34,7 @@ export interface TypeOrmConnectorParams<Input, Output> {
 export class LokiConnector<
     ModelDTO extends AnyObject = AnyObject,
     InputDTO extends AnyObject = ModelDTO,
-    OutputDTO extends AnyObject = ModelDTO
+    OutputDTO extends AnyObject = ModelDTO,
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
@@ -53,7 +53,7 @@ export class LokiConnector<
     entity,
     dataSource,
     inputSchema,
-    outputSchema
+    outputSchema,
   }: LokiConnectorParams<InputDTO, OutputDTO>) {
     super()
     this.dataSource = dataSource
@@ -105,14 +105,14 @@ export class LokiConnector<
       created: now,
       createdAt: now,
       updatedAt: now,
-      ...validatedData
+      ...validatedData,
     } as unknown as OutputDTO
 
     await this.collection.insert(inserted)
 
     // Validate Output
     return this.outputSchema.parse(
-      Objects.clearEmpties(Objects.deleteNulls(inserted))
+      Objects.clearEmpties(Objects.deleteNulls(inserted)),
     )
   }
 
@@ -131,7 +131,7 @@ export class LokiConnector<
         id,
         created: now,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
       } as unknown as OutputDTO
     }
 
@@ -140,7 +140,7 @@ export class LokiConnector<
     const cleanedResults = new Array(dataLength)
     for (let i = 0; i < dataLength; i++) {
       cleanedResults[i] = Objects.clearEmpties(
-        Objects.deleteNulls(insertedElements[i])
+        Objects.deleteNulls(insertedElements[i]),
       )
     }
 
@@ -160,7 +160,7 @@ export class LokiConnector<
   }
 
   public async findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     const where = this.getLokiWhere(query?.where)
 
@@ -227,7 +227,7 @@ export class LokiConnector<
             query.paginated.page === 1 ? null : query.paginated.page - 1,
           from: (query.paginated.page - 1) * query.paginated.perPage + 1,
           to: query.paginated.perPage * query.paginated.page,
-          data: found as unknown as Promise<QueryOutput<T, ModelDTO>[]>[]
+          data: found as unknown as Promise<QueryOutput<T, ModelDTO>[]>[],
         }
 
       return paginationInfo as unknown as Promise<QueryOutput<T, ModelDTO>[]>
@@ -278,7 +278,7 @@ export class LokiConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          ...{ updated: new Date() }
+          ...{ updated: new Date() },
         }
       : data
 
@@ -291,7 +291,7 @@ export class LokiConnector<
     const mod = {
       ...local,
       ...validatedData,
-      modified: Dates.currentIsoString()
+      modified: Dates.currentIsoString(),
     }
 
     const dbResult = await this.collection.update(mod)
@@ -299,7 +299,7 @@ export class LokiConnector<
 
     // Validate Output
     return this.outputSchema?.parse(
-      Objects.clearEmpties(Objects.deleteNulls(dbResult))
+      Objects.clearEmpties(Objects.deleteNulls(dbResult)),
     )
   }
 
@@ -340,7 +340,7 @@ export class LokiConnector<
     const dataToInsert = this.outputKeys.includes('updated')
       ? {
           ...data,
-          updated: new Date()
+          updated: new Date(),
         }
       : data
 
@@ -351,7 +351,7 @@ export class LokiConnector<
     // Keep LokiJS metadata when updating
     const updatedValue = {
       ...value, // Keep all LokiJS metadata
-      ...validatedData
+      ...validatedData,
     }
 
     // Remove all fields except LokiJS metadata and validated fields
@@ -361,7 +361,7 @@ export class LokiConnector<
       ...lokiMetaFields,
       'id',
       'created',
-      ...validatedKeys
+      ...validatedKeys,
     ])
 
     const updatedKeys = Object.keys(updatedValue)
@@ -380,7 +380,7 @@ export class LokiConnector<
     // For replace operations, use partial output schema since we only have the replaced fields
     const partialOutputSchema = (this.outputSchema as any).partial()
     return partialOutputSchema.parse(
-      Objects.clearEmpties(Objects.deleteNulls(val))
+      Objects.clearEmpties(Objects.deleteNulls(val)),
     ) as OutputDTO
   }
 
@@ -390,7 +390,7 @@ export class LokiConnector<
     }
 
     const Filters: { where: { $or: any[] } } = {
-      where: { $or: [{ $and: [] }] }
+      where: { $or: [{ $and: [] }] },
     }
 
     // Avoid cloning overhead - use destructuring
@@ -412,7 +412,7 @@ export class LokiConnector<
       [LogicOperator.In, '$in'],
       [LogicOperator.Exists, '$exists'],
       [LogicOperator.NotExists, '$exists'],
-      [LogicOperator.Regexp, '$regex']
+      [LogicOperator.Regexp, '$regex'],
     ])
 
     // Helper function to process conditions
@@ -622,8 +622,8 @@ export class LokiConnector<
       repository: this,
       query: {
         ...query,
-        limit: 1
-      }
+        limit: 1,
+      },
     })
 
     return detachedClass as LoadedResult<this>
@@ -634,7 +634,7 @@ export class LokiConnector<
       entity: this.entity,
       dataSource: this.dataSource,
       inputSchema: this.inputSchema,
-      outputSchema: this.outputSchema
+      outputSchema: this.outputSchema,
     })
   }
 
@@ -647,9 +647,9 @@ export class LokiConnector<
       repository: this,
       query: {
         where: {
-          id
-        }
-      } as unknown as FluentQuery<ModelDTO>
+          id,
+        },
+      } as unknown as FluentQuery<ModelDTO>,
     })
 
     return newInstance as LoadedResult<this>
@@ -665,7 +665,7 @@ export class LokiConnector<
    */
   public async pluck(
     path: any,
-    query?: FluentQuery<ModelDTO>
+    query?: FluentQuery<ModelDTO>,
   ): Promise<Primitives[]> {
     const data = await this.findMany(query)
 
@@ -680,7 +680,7 @@ export class LokiConnector<
       const extracted = Objects.getFromPath(
         dataArray[i],
         String(pathKey),
-        undefined
+        undefined,
       )
       if (typeof extracted.value !== 'undefined') {
         result.push(extracted.value)

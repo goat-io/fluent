@@ -19,6 +19,6 @@ export const Ids = (() => {
   return Object.freeze({
     uuid,
     nanoId,
-    customId
+    customId,
   })
 })()

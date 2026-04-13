@@ -33,20 +33,20 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'text'
-        }
+          search: 'text',
+        },
       },
       {
         autofocus: false,
@@ -73,20 +73,20 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'fuzzy'
-        }
+          search: 'fuzzy',
+        },
       },
       {
         autofocus: false,
@@ -113,19 +113,19 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -161,12 +161,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -174,7 +174,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -201,12 +201,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -214,7 +214,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -241,12 +241,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -254,7 +254,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -281,12 +281,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -294,7 +294,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -321,12 +321,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -334,7 +334,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -361,12 +361,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -374,8 +374,8 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             multiple: false,
             tableView: false,
@@ -389,7 +389,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
               header:
                 '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ component.label }} \n    </div> \n  {% }) %} \n</div>',
               row: '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ getView(component, row[component.key]) }} \n    </div> \n  {% }) %} \n  <div class="col-sm-2"> \n    <div class="btn-group pull-right"> \n      <div class="btn btn-default editRow">Edit</div> \n      <div class="btn btn-danger removeRow">Delete</div> \n    </div> \n  </div> \n</div>',
-              footer: ''
+              footer: '',
             },
             type: 'editgrid',
             inDataGrid: true,
@@ -397,11 +397,11 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
             conditional: {
               show: '',
               when: null,
-              eq: ''
+              eq: '',
             },
             properties: {},
-            lockKey: true
-          }
+            lockKey: true,
+          },
         ],
         tableView: false,
         label: 'History',
@@ -416,11 +416,11 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
         lockKey: true,
-        source: '5cf9bbef90d44a00189ab958'
+        source: '5cf9bbef90d44a00189ab958',
       },
       {
         autofocus: false,
@@ -435,43 +435,43 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     display: 'form',
     submissionAccess: [
       {
         roles: [],
-        type: 'create_all'
+        type: 'create_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b', '5cf99e0490d44a00189ab93c'],
-        type: 'read_all'
+        type: 'read_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'update_all'
+        type: 'update_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'delete_all'
+        type: 'delete_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93c', '5cf99e0490d44a00189ab93b'],
-        type: 'create_own'
+        type: 'create_own',
       },
       {
         roles: [],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: [],
-        type: 'update_own'
+        type: 'update_own',
       },
       {
         roles: [],
-        type: 'delete_own'
-      }
+        type: 'delete_own',
+      },
     ],
     title: 'Countries',
     name: 'countries',
@@ -481,14 +481,14 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5cf99e0490d44a00189ab93b',
           '5cf99e0490d44a00189ab93c',
-          '5cf99e0490d44a00189ab93d'
+          '5cf99e0490d44a00189ab93d',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     created: '2019-06-06T23:16:01.080+0000',
     modified: '2019-06-24T21:45:50.979+0000',
-    machineName: 'countries'
+    machineName: 'countries',
   },
   {
     id: '5cf9bbef90d44a00189ab958',
@@ -508,13 +508,13 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
-            }
+              label: '',
+            },
           ],
           json: '',
           url: '',
           resource: '5cf99eb190d44a00189ab94f',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -530,7 +530,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -538,11 +538,11 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
         searchField: 'id__regex',
-        reference: true
+        reference: true,
       },
       {
         autofocus: false,
@@ -569,19 +569,19 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -608,20 +608,20 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'fuzzy'
-        }
+          search: 'fuzzy',
+        },
       },
       {
         autofocus: false,
@@ -648,20 +648,20 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'fuzzy'
-        }
+          search: 'fuzzy',
+        },
       },
       {
         autofocus: false,
@@ -697,12 +697,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -710,7 +710,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -737,12 +737,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -750,7 +750,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -777,12 +777,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -790,7 +790,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -817,12 +817,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -830,7 +830,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -857,12 +857,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -870,7 +870,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -897,12 +897,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -910,8 +910,8 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             multiple: false,
             tableView: false,
@@ -925,7 +925,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
               header:
                 '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ component.label }} \n    </div> \n  {% }) %} \n</div>',
               row: '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ getView(component, row[component.key]) }} \n    </div> \n  {% }) %} \n  <div class="col-sm-2"> \n    <div class="btn-group pull-right"> \n      <div class="btn btn-default editRow">Edit</div> \n      <div class="btn btn-danger removeRow">Delete</div> \n    </div> \n  </div> \n</div>',
-              footer: ''
+              footer: '',
             },
             type: 'editgrid',
             inDataGrid: true,
@@ -933,11 +933,11 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
             conditional: {
               show: '',
               when: null,
-              eq: ''
+              eq: '',
             },
             properties: {},
-            lockKey: true
-          }
+            lockKey: true,
+          },
         ],
         tableView: false,
         label: 'History',
@@ -952,10 +952,10 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -980,7 +980,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           minLength: '',
           maxLength: '',
           pattern: '',
-          custom: ''
+          custom: '',
         },
         type: 'textarea',
         labelPosition: 'top',
@@ -989,10 +989,10 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1007,43 +1007,43 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     display: 'form',
     submissionAccess: [
       {
         roles: [],
-        type: 'create_all'
+        type: 'create_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b', '5cf99e0490d44a00189ab93c'],
-        type: 'read_all'
+        type: 'read_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'update_all'
+        type: 'update_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'delete_all'
+        type: 'delete_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b', '5cf99e0490d44a00189ab93c'],
-        type: 'create_own'
+        type: 'create_own',
       },
       {
         roles: [],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: [],
-        type: 'update_own'
+        type: 'update_own',
       },
       {
         roles: [],
-        type: 'delete_own'
-      }
+        type: 'delete_own',
+      },
     ],
     title: 'Providers',
     name: 'providers',
@@ -1053,14 +1053,14 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5cf99e0490d44a00189ab93b',
           '5cf99e0490d44a00189ab93c',
-          '5cf99e0490d44a00189ab93d'
+          '5cf99e0490d44a00189ab93d',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     created: '2019-06-07T01:20:47.481+0000',
     modified: '2019-06-24T22:25:32.316+0000',
-    machineName: 'providers'
+    machineName: 'providers',
   },
   {
     id: '5cf9bc6790d44a00189ab95a',
@@ -1080,13 +1080,13 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
-            }
+              label: '',
+            },
           ],
           json: '',
           url: '',
           resource: '5cf99eb190d44a00189ab94f',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1104,7 +1104,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -1112,10 +1112,10 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        searchField: 'where={"$text": { "search": {{input}} }}'
+        searchField: 'where={"$text": { "search": {{input}} }}',
       },
       {
         autofocus: false,
@@ -1142,19 +1142,19 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1181,20 +1181,20 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'fuzzy'
-        }
+          search: 'fuzzy',
+        },
       },
       {
         autofocus: false,
@@ -1221,21 +1221,21 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'fuzzy'
+          search: 'fuzzy',
         },
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1262,20 +1262,20 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'fuzzy'
-        }
+          search: 'fuzzy',
+        },
       },
       {
         autofocus: false,
@@ -1302,20 +1302,20 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
         inputFormat: 'plain',
         tags: [],
         properties: {
-          search: 'fuzzy'
-        }
+          search: 'fuzzy',
+        },
       },
       {
         autofocus: false,
@@ -1340,7 +1340,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           minLength: '',
           maxLength: '',
           pattern: '',
-          custom: ''
+          custom: '',
         },
         type: 'textarea',
         labelPosition: 'top',
@@ -1349,10 +1349,10 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -1365,21 +1365,21 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: 'national',
-              label: 'National'
+              label: 'National',
             },
             {
               value: 'imported',
-              label: 'Imported'
+              label: 'Imported',
             },
             {
               value: 'both',
-              label: 'Both'
-            }
+              label: 'Both',
+            },
           ],
           json: '',
           url: '',
           resource: '',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'values',
         valueProperty: '',
@@ -1395,7 +1395,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -1403,9 +1403,9 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
-        properties: {}
+        properties: {},
       },
       {
         autofocus: false,
@@ -1441,12 +1441,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -1454,7 +1454,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -1481,12 +1481,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -1494,7 +1494,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -1521,12 +1521,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -1534,7 +1534,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -1561,12 +1561,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -1574,7 +1574,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -1601,12 +1601,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -1614,7 +1614,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
+                lockKey: true,
               },
               {
                 autofocus: false,
@@ -1641,12 +1641,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                   maxLength: '',
                   pattern: '',
                   custom: '',
-                  customPrivate: false
+                  customPrivate: false,
                 },
                 conditional: {
                   show: '',
                   when: null,
-                  eq: ''
+                  eq: '',
                 },
                 type: 'textfield',
                 inDataGrid: true,
@@ -1654,8 +1654,8 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
                 inputFormat: 'plain',
                 tags: [],
                 properties: {},
-                lockKey: true
-              }
+                lockKey: true,
+              },
             ],
             multiple: false,
             tableView: false,
@@ -1669,7 +1669,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
               header:
                 '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ component.label }} \n    </div> \n  {% }) %} \n</div>',
               row: '<div class="row"> \n  {%util.eachComponent(components, function(component) { %} \n    <div class="col-sm-2"> \n      {{ getView(component, row[component.key]) }} \n    </div> \n  {% }) %} \n  <div class="col-sm-2"> \n    <div class="btn-group pull-right"> \n      <div class="btn btn-default editRow">Edit</div> \n      <div class="btn btn-danger removeRow">Delete</div> \n    </div> \n  </div> \n</div>',
-              footer: ''
+              footer: '',
             },
             type: 'editgrid',
             inDataGrid: true,
@@ -1677,11 +1677,11 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
             conditional: {
               show: '',
               when: null,
-              eq: ''
+              eq: '',
             },
             properties: {},
-            lockKey: true
-          }
+            lockKey: true,
+          },
         ],
         tableView: false,
         label: 'History',
@@ -1696,11 +1696,11 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
         lockKey: true,
-        source: '5cf9bbef90d44a00189ab958'
+        source: '5cf9bbef90d44a00189ab958',
       },
       {
         autofocus: false,
@@ -1715,43 +1715,43 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         action: 'submit',
         disableOnInvalid: false,
         theme: 'primary',
-        type: 'button'
-      }
+        type: 'button',
+      },
     ],
     display: 'form',
     submissionAccess: [
       {
         roles: [],
-        type: 'create_all'
+        type: 'create_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b', '5cf99e0490d44a00189ab93c'],
-        type: 'read_all'
+        type: 'read_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'update_all'
+        type: 'update_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'delete_all'
+        type: 'delete_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b', '5cf99e0490d44a00189ab93c'],
-        type: 'create_own'
+        type: 'create_own',
       },
       {
         roles: [],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: [],
-        type: 'update_own'
+        type: 'update_own',
       },
       {
         roles: [],
-        type: 'delete_own'
-      }
+        type: 'delete_own',
+      },
     ],
     title: 'Products',
     name: 'products',
@@ -1761,14 +1761,14 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5cf99e0490d44a00189ab93b',
           '5cf99e0490d44a00189ab93c',
-          '5cf99e0490d44a00189ab93d'
+          '5cf99e0490d44a00189ab93d',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     created: '2019-06-07T01:22:47.762+0000',
     modified: '2019-06-24T22:25:56.072+0000',
-    machineName: 'products'
+    machineName: 'products',
   },
   {
     id: '5cf9c3bd90d44a00189ab960',
@@ -1802,12 +1802,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           maxLength: '',
           pattern: '',
           custom: '',
-          customPrivate: false
+          customPrivate: false,
         },
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         type: 'textfield',
         labelPosition: 'top',
@@ -1819,7 +1819,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           // biome-ignore lint/suspicious/noTemplateCurlyInString: <formio does it like that>
           'value = `${data.country}_${data.provider}_${data.product}`;',
         mask: false,
-        tabindex: 'admin@example.com'
+        tabindex: 'admin@example.com',
       },
       {
         autofocus: false,
@@ -1832,8 +1832,8 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
-            }
+              label: '',
+            },
           ],
           json: '',
           url: '',
@@ -1842,9 +1842,9 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           headers: [
             {
               value: '',
-              key: ''
-            }
-          ]
+              key: '',
+            },
+          ],
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1862,7 +1862,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -1870,13 +1870,13 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
         searchField: 'where={"$text": { "search": {{input}} }}',
         reference: true,
         lockKey: true,
-        limit: '20'
+        limit: '20',
       },
       {
         autofocus: false,
@@ -1889,13 +1889,13 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
-            }
+              label: '',
+            },
           ],
           json: '',
           url: '',
           resource: '5cf9bbef90d44a00189ab958',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1913,7 +1913,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -1921,13 +1921,13 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
         searchField: 'where={"$text": { "search": {{input}} }}',
         limit: '99',
         lockKey: true,
-        reference: true
+        reference: true,
       },
       {
         autofocus: false,
@@ -1940,13 +1940,13 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
-            }
+              label: '',
+            },
           ],
           json: '',
           url: '',
           resource: '5cf9bc6790d44a00189ab95a',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'resource',
         valueProperty: 'id',
@@ -1964,7 +1964,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -1972,12 +1972,12 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
         searchField: 'where={"$text": { "search": {{input}} }}',
         reference: true,
-        limit: '99'
+        limit: '99',
       },
       {
         autofocus: false,
@@ -1990,29 +1990,29 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
+              label: '',
             },
             {
               value: 'complete',
-              label: 'A (Complete)'
+              label: 'A (Complete)',
             },
             {
               value: 'incomplete',
-              label: 'B (Incomplete)'
+              label: 'B (Incomplete)',
             },
             {
               value: 'limited',
-              label: 'C (Limited)'
+              label: 'C (Limited)',
             },
             {
               value: 'technicalInformation',
-              label: 'Technical Information'
-            }
+              label: 'Technical Information',
+            },
           ],
           json: '',
           url: '',
           resource: '',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'values',
         valueProperty: '',
@@ -2028,7 +2028,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -2036,10 +2036,10 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -2052,25 +2052,25 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
+              label: '',
             },
             {
               value: 'technical',
-              label: '1. Technical Spec'
+              label: '1. Technical Spec',
             },
             {
               value: 'standard',
-              label: '2. Standard Spec'
+              label: '2. Standard Spec',
             },
             {
               value: 'technicalInformation',
-              label: '3. Technical Information'
-            }
+              label: '3. Technical Information',
+            },
           ],
           json: '',
           url: '',
           resource: '',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'values',
         valueProperty: '',
@@ -2086,7 +2086,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -2094,10 +2094,10 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -2110,25 +2110,25 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           values: [
             {
               value: '',
-              label: ''
+              label: '',
             },
             {
               value: 'approved',
-              label: 'Approved'
+              label: 'Approved',
             },
             {
               value: 'readButNotApproves',
-              label: 'Read, but not approves'
+              label: 'Read, but not approves',
             },
             {
               value: 'noInformation',
-              label: 'No Information'
-            }
+              label: 'No Information',
+            },
           ],
           json: '',
           url: '',
           resource: '',
-          custom: ''
+          custom: '',
         },
         dataSrc: 'values',
         valueProperty: '',
@@ -2144,7 +2144,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         hidden: false,
         clearOnHide: true,
         validate: {
-          required: false
+          required: false,
         },
         type: 'select',
         labelPosition: 'top',
@@ -2152,10 +2152,10 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        lockKey: true
+        lockKey: true,
       },
       {
         autofocus: false,
@@ -2180,7 +2180,7 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
           minLength: '',
           maxLength: '',
           pattern: '',
-          custom: ''
+          custom: '',
         },
         type: 'textarea',
         labelPosition: 'top',
@@ -2189,46 +2189,46 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         conditional: {
           show: '',
           when: null,
-          eq: ''
+          eq: '',
         },
         properties: {},
-        lockKey: true
-      }
+        lockKey: true,
+      },
     ],
     display: 'form',
     submissionAccess: [
       {
         roles: [],
-        type: 'create_all'
+        type: 'create_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b', '5cf99e0490d44a00189ab93c'],
-        type: 'read_all'
+        type: 'read_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'update_all'
+        type: 'update_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93b'],
-        type: 'delete_all'
+        type: 'delete_all',
       },
       {
         roles: ['5cf99e0490d44a00189ab93c', '5cf99e0490d44a00189ab93b'],
-        type: 'create_own'
+        type: 'create_own',
       },
       {
         roles: [],
-        type: 'read_own'
+        type: 'read_own',
       },
       {
         roles: [],
-        type: 'update_own'
+        type: 'update_own',
       },
       {
         roles: [],
-        type: 'delete_own'
-      }
+        type: 'delete_own',
+      },
     ],
     title: 'Specifications',
     name: 'specifications',
@@ -2238,13 +2238,13 @@ export const BasicForms: FormioForm[] = ((): FormioForm[] => [
         roles: [
           '5cf99e0490d44a00189ab93b',
           '5cf99e0490d44a00189ab93c',
-          '5cf99e0490d44a00189ab93d'
+          '5cf99e0490d44a00189ab93d',
         ],
-        type: 'read_all'
-      }
+        type: 'read_all',
+      },
     ],
     created: '2019-06-07T01:54:05.505+0000',
     modified: '2019-06-25T02:06:29.123+0000',
-    machineName: 'specifications'
-  }
+    machineName: 'specifications',
+  },
 ])()

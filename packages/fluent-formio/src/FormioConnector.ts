@@ -24,7 +24,7 @@ abstract class BaseConnector<ModelDTO, _InputDTO, _OutputDTO> {
   public isMongoDB: boolean = false
 
   async findFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null> {
     const data = await this.findMany({ ...query, limit: 1 })
     return data[0] || null
@@ -32,12 +32,12 @@ abstract class BaseConnector<ModelDTO, _InputDTO, _OutputDTO> {
 
   async requireById(
     id: string,
-    q?: FindByIdFilter<ModelDTO>
+    q?: FindByIdFilter<ModelDTO>,
   ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>> {
     const found = await this.findByIds([id], {
       select: q?.select,
       include: q?.include,
-      limit: 1
+      limit: 1,
     })
 
     if (!found[0]) {
@@ -51,7 +51,7 @@ abstract class BaseConnector<ModelDTO, _InputDTO, _OutputDTO> {
   }
 
   async requireFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>> {
     const found = await this.findMany({ ...query, limit: 1 })
 
@@ -80,18 +80,18 @@ abstract class BaseConnector<ModelDTO, _InputDTO, _OutputDTO> {
           }
         }
         return sum / dataLength
-      }
+      },
     }
   }
 
   // Abstract methods that need to be implemented
   abstract findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
 
   abstract findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
 }
 
@@ -100,24 +100,24 @@ interface FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO> {
   insertMany(data: InputDTO[]): Promise<OutputDTO[]>
   findById<T extends FindByIdFilter<ModelDTO>>(
     id: string,
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null>
   findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
   findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]>
   findFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null>
   requireById(
     id: string,
-    q?: FindByIdFilter<ModelDTO>
+    q?: FindByIdFilter<ModelDTO>,
   ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>>
   requireFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>>
   updateById(id: string, data: InputDTO): Promise<OutputDTO>
   replaceById(id: string, data: InputDTO): Promise<OutputDTO>
@@ -143,7 +143,7 @@ class FormioMockStorage<T extends { id?: string }> {
     const record = {
       created: new Date().toISOString(),
       ...data,
-      id
+      id,
     }
     this.storage.set(id, record)
     return record
@@ -344,7 +344,7 @@ class FormioMockStorage<T extends { id?: string }> {
         sortFields[i] = {
           key: keys[0],
           direction: order[keys[0]],
-          descMultiplier: order[keys[0]] === 'desc' ? -1 : 1
+          descMultiplier: order[keys[0]] === 'desc' ? -1 : 1,
         }
       }
     }
@@ -374,7 +374,7 @@ class FormioMockStorage<T extends { id?: string }> {
 export class FormioConnector<
     ModelDTO = any,
     InputDTO = ModelDTO,
-    OutputDTO = ModelDTO
+    OutputDTO = ModelDTO,
   >
   extends BaseConnector<ModelDTO, InputDTO, OutputDTO>
   implements FluentConnectorInterface<ModelDTO, InputDTO, OutputDTO>
@@ -383,7 +383,7 @@ export class FormioConnector<
 
   constructor({
     baseEndPoint: _baseEndPoint = 'http://localhost:3001',
-    token: _token
+    token: _token,
   }: IFormioConnector = {}) {
     super()
     this.storage = new FormioMockStorage()
@@ -401,7 +401,7 @@ export class FormioConnector<
   }
 
   async findMany<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     const results = this.storage.findMany(query)
     return this.applySelect(results, query?.select) as QueryOutput<
@@ -412,7 +412,7 @@ export class FormioConnector<
 
   async findById<T extends FindByIdFilter<ModelDTO>>(
     id: string,
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null> {
     const result = this.storage.findById(id)
     if (!result) {
@@ -425,7 +425,7 @@ export class FormioConnector<
 
   async findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     const results = this.storage.findByIds(ids)
     return this.applySelect(results, q?.select) as QueryOutput<T, ModelDTO>[]

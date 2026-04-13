@@ -27,7 +27,7 @@ const scraper = metascraper([
   metascraperClearBit(),
   metascraperPublisher(),
   metascraperFeed(),
-  metascraperLang()
+  metascraperLang(),
 ])
 
 const getDomainFromUrl = (url: string): string => {
@@ -60,7 +60,7 @@ const fixMalformedUrl = (url: string): string => {
 export const getHtmlFromUrl = async ({
   url,
   forcePuppeteer,
-  puppeteerBrowserServiceUrl
+  puppeteerBrowserServiceUrl,
 }: {
   url: string
   forcePuppeteer?: boolean
@@ -78,9 +78,9 @@ export const getHtmlFromUrl = async ({
           'Accept-Encoding': 'gzip, deflate, br',
           DNT: '1',
           Connection: 'keep-alive',
-          'Upgrade-Insecure-Requests': '1'
-        }
-      }).then(res => res.text())
+          'Upgrade-Insecure-Requests': '1',
+        },
+      }).then(res => res.text()),
     )
 
     if (!error && response) {
@@ -93,7 +93,7 @@ export const getHtmlFromUrl = async ({
   }
 
   const { browser, page } = await new PuppeteerService(
-    puppeteerBrowserServiceUrl
+    puppeteerBrowserServiceUrl,
   ).getPuppeteerPage()
 
   await page.goto(url, { waitUntil: 'networkidle2' })
@@ -117,7 +117,7 @@ export function extractRSSLinks(html: string, url: string): string | null {
         if (title && href?.includes(url)) {
           rssLinks.push({ title, href })
         }
-      }
+      },
     )
 
     const h1Tags: string[] = []
@@ -139,7 +139,7 @@ export function extractRSSLinks(html: string, url: string): string | null {
 
 export async function metaScraper(
   url: string,
-  puppeteerBrowserServiceUrl?: string
+  puppeteerBrowserServiceUrl?: string,
 ) {
   try {
     const html = await getHtmlFromUrl({ url, puppeteerBrowserServiceUrl })
@@ -176,7 +176,7 @@ export async function metaScraper(
       publisher: metadata.publisher || '',
       domain: getDomainFromUrl(parsedUrl),
       lang: metadata.lang || '',
-      feed: metadata.feed || ''
+      feed: metadata.feed || '',
     }
   } catch (err) {
     console.error('Error fetching link preview:', err)

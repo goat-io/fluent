@@ -18,7 +18,7 @@ export function getFieldsAndDecoratorForType<T>(objType: Type<T>) {
   }
 
   LazyMetadataStorage.load([objType as unknown as (...args: any[]) => any], {
-    skipFieldLazyMetadata: true
+    skipFieldLazyMetadata: true,
   })
 
   const [classMetadata, decoratorFactory] =
@@ -35,7 +35,7 @@ export function getFieldsAndDecoratorForType<T>(objType: Type<T>) {
 
   return {
     fields,
-    decoratorFactory
+    decoratorFactory,
   }
 }
 
@@ -48,35 +48,35 @@ type MetadataAndFactoryTuple = [ClassMetadata | undefined, ClassDecorator]
 
 function getClassMetadataAndFactoryByTargetAndType(
   classType: ClassType,
-  objType: Type<unknown>
+  objType: Type<unknown>,
 ): MetadataAndFactoryTuple {
   switch (classType) {
     case ClassType.Args:
       return [
         TypeMetadataStorage.getArgumentsMetadataByTarget(objType),
-        ArgsType
+        ArgsType,
       ]
     case ClassType.Object:
       return [
         TypeMetadataStorage.getObjectTypeMetadataByTarget(objType),
-        ObjectType
+        ObjectType,
       ]
     case ClassType.Input:
       return [
         TypeMetadataStorage.getInputTypeMetadataByTarget(objType),
-        InputType
+        InputType,
       ]
     case ClassType.Interface:
       return [
         TypeMetadataStorage.getInterfaceMetadataByTarget(objType),
-        InterfaceType
+        InterfaceType,
       ]
   }
 }
 
 function inheritClassFields(
   objType: Type<unknown>,
-  fields: PropertyMetadata[]
+  fields: PropertyMetadata[],
 ) {
   try {
     const parentClass = Object.getPrototypeOf(objType)
@@ -84,7 +84,7 @@ function inheritClassFields(
       return fields
     }
     const { fields: parentFields } = getFieldsAndDecoratorForType(
-      parentClass as Type<unknown>
+      parentClass as Type<unknown>,
     )
     return inheritClassFields(parentClass, [...parentFields, ...fields])
   } catch (_err) {

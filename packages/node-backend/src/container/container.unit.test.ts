@@ -59,9 +59,9 @@ vi.mock('./LruCache', () => {
           accessOrder.clear()
           getCount = 0
           setCount = 0
-        }
+        },
       }
-    })
+    }),
   }
 })
 
@@ -79,16 +79,16 @@ describe('Container basic tests', () => {
   const factories: Factories = {
     serviceA: (x: number) => ({ value: x }),
     nested: {
-      serviceB: (y: string) => ({ text: y })
-    }
+      serviceB: (y: string) => ({ text: y }),
+    },
   }
 
   const initializer = async (preload: any, meta: TenantMeta): Promise<any> => {
     return {
       serviceA: preload.serviceA(meta.tenantId, 42),
       nested: {
-        serviceB: preload.nested.serviceB(meta.tenantId, 'hello')
-      }
+        serviceB: preload.nested.serviceB(meta.tenantId, 'hello'),
+      },
     }
   }
 
@@ -127,15 +127,13 @@ describe('Container basic tests', () => {
     expect(() => container.context).toThrow('No tenant context')
   })
 
-  test('should throw if context proxy is missing a service', async () => {
+  test('should return undefined for missing service (no proxy)', async () => {
     const meta = { tenantId: 'tenantY' }
     await container.bootstrap(meta, async () => {
       // Remove a service from context to simulate missing
       const store = (container as any).als.getStore()
       delete store.instances.serviceA
-      expect(() => container.context.serviceA).toThrow(
-        "Service 'serviceA' not initialized"
-      )
+      expect(container.context.serviceA).toBeUndefined()
     })
   })
 
@@ -214,9 +212,9 @@ describe('Container Caching and Performance Tests', () => {
     nested: {
       serviceC: (z: boolean) => ({ flag: z, created: new Date() }),
       deepNested: {
-        serviceD: () => ({ id: 'service-d', created: new Date() })
-      }
-    }
+        serviceD: () => ({ id: 'service-d', created: new Date() }),
+      },
+    },
   }
 
   const initializer = async (preload: any, meta: TenantMeta): Promise<any> => {
@@ -226,9 +224,9 @@ describe('Container Caching and Performance Tests', () => {
       nested: {
         serviceC: preload.nested.serviceC(meta.tenantId, true),
         deepNested: {
-          serviceD: preload.nested.deepNested.serviceD(meta.tenantId)
-        }
-      }
+          serviceD: preload.nested.deepNested.serviceD(meta.tenantId),
+        },
+      },
     }
   }
 
@@ -305,7 +303,7 @@ describe('Container Caching and Performance Tests', () => {
           const key = 'serviceB'
           factoryCallCount.set(key, (factoryCallCount.get(key) || 0) + 1)
           return { text: y, created: new Date() }
-        }
+        },
       }
 
       const trackingContainer = new Container(
@@ -313,8 +311,8 @@ describe('Container Caching and Performance Tests', () => {
         async (preload: any, meta: TenantMeta) =>
           ({
             serviceA: preload.serviceA(meta.tenantId, 42),
-            serviceB: preload.serviceB(meta.tenantId, 'hello')
-          }) as any
+            serviceB: preload.serviceB(meta.tenantId, 'hello'),
+          }) as any,
       )
 
       // Multiple calls with same tenant ID should only call factory once
@@ -383,7 +381,7 @@ describe('Container Caching and Performance Tests', () => {
       // Create multiple concurrent preload calls
       for (let i = 0; i < 20; i++) {
         promises.push(
-          Promise.resolve().then(() => container.preload.serviceA(tenantId, i))
+          Promise.resolve().then(() => container.preload.serviceA(tenantId, i)),
         )
       }
 
@@ -401,11 +399,11 @@ describe('Container Caching and Performance Tests', () => {
 
       const instance1 = (container.preload as any).serviceA(
         'shared-tenant',
-        100
+        100,
       )
       const instance2 = (container2.preload as any).serviceA(
         'shared-tenant',
-        200
+        200,
       )
 
       // Different containers should have separate caches
@@ -418,21 +416,21 @@ describe('Container Caching and Performance Tests', () => {
       const smallCacheContainer = new Container(
         factories as any,
         initializer as any,
-        { cacheSize: 2 }
+        { cacheSize: 2 },
       ) // Small cache
 
       // Fill cache beyond capacity
       const instance1 = (smallCacheContainer.preload as any).serviceA(
         'tenant1',
-        1
+        1,
       )
       const instance2 = (smallCacheContainer.preload as any).serviceA(
         'tenant2',
-        2
+        2,
       )
       const instance3 = (smallCacheContainer.preload as any).serviceA(
         'tenant3',
-        3
+        3,
       )
 
       // All should be valid instances
@@ -457,19 +455,19 @@ describe('Container Caching and Performance Tests', () => {
         { unreliableService: unreliableFactory } as any,
         async (preload: any, meta: TenantMeta) =>
           ({
-            unreliableService: preload.unreliableService(meta.tenantId, 42)
-          }) as any
+            unreliableService: preload.unreliableService(meta.tenantId, 42),
+          }) as any,
       )
 
       // First call should fail
       expect(() =>
-        (unreliableContainer.preload as any).unreliableService('tenant1', 100)
+        (unreliableContainer.preload as any).unreliableService('tenant1', 100),
       ).toThrow('First call fails')
 
       // Second call should succeed and create new instance
       const instance = (unreliableContainer.preload as any).unreliableService(
         'tenant1',
-        100
+        100,
       )
       expect(instance.value).toBe(100)
       expect(callCount).toBe(2)
@@ -485,12 +483,12 @@ describe('Container Caching and Performance Tests', () => {
       const mixedContainer = new Container(
         {
           classFactory: TestClass,
-          functionFactory: testFunction
+          functionFactory: testFunction,
         },
         async (preload: any, meta: TenantMeta) => ({
           classFactory: preload.classFactory(meta.tenantId, 42),
-          functionFactory: preload.functionFactory(meta.tenantId, 42)
-        })
+          functionFactory: preload.functionFactory(meta.tenantId, 42),
+        }),
       )
 
       // Both should be cached consistently
@@ -537,7 +535,7 @@ describe('Container Caching and Performance Tests', () => {
             expect(container.context.serviceA.value).toBe(42)
             expect(container.context.serviceB.text).toBe('hello')
             expect(container.context.nested.serviceC.flag).toBe(true)
-          })
+          }),
         )
       }
 
@@ -571,12 +569,12 @@ describe('Container Caching and Performance Tests', () => {
             level3: {
               level4: {
                 level5: {
-                  deepService: (x: number) => ({ value: x })
-                }
-              }
-            }
-          }
-        }
+                  deepService: (x: number) => ({ value: x }),
+                },
+              },
+            },
+          },
+        },
       }
 
       const deepContainer = new Container(
@@ -590,14 +588,14 @@ describe('Container Caching and Performance Tests', () => {
                     deepService:
                       preload.level1.level2.level3.level4.level5.deepService(
                         meta.tenantId,
-                        42
-                      )
-                  }
-                }
-              }
-            }
-          }
-        })
+                        42,
+                      ),
+                  },
+                },
+              },
+            },
+          },
+        }),
       )
 
       const startTime = Date.now()
@@ -607,7 +605,7 @@ describe('Container Caching and Performance Tests', () => {
         const instance =
           deepContainer.preload.level1.level2.level3.level4.level5.deepService(
             'tenant1',
-            i
+            i,
           )
         expect(instance.value).toBe(i === 0 ? i : 0) // Should cache first value
       }
@@ -617,7 +615,7 @@ describe('Container Caching and Performance Tests', () => {
 
       // Should handle deep nesting efficiently
       console.log(
-        `Deep dependency chain test: ${duration}ms for 100 deep calls`
+        `Deep dependency chain test: ${duration}ms for 100 deep calls`,
       )
       // expect(duration).toBeLessThan(100) // Removed: fails on different environments
     })
@@ -650,7 +648,7 @@ describe('Container Caching and Performance Tests', () => {
           container.bootstrap(meta, async () => {
             // Quick access to context
             expect(container.context.serviceA.value).toBe(42)
-          })
+          }),
         )
       }
 
@@ -670,12 +668,12 @@ describe('Container Edge Cases and Robustness', () => {
     const edgeCaseContainer = new Container(
       {
         nullService: nullFactory,
-        undefinedService: undefinedFactory
+        undefinedService: undefinedFactory,
       },
       async (preload: any, meta: any) => ({
         nullService: preload.nullService(meta.tenantId),
-        undefinedService: preload.undefinedService(meta.tenantId)
-      })
+        undefinedService: preload.undefinedService(meta.tenantId),
+      }),
     )
 
     const nullResult = edgeCaseContainer.preload.nullService('tenant1')
@@ -688,7 +686,7 @@ describe('Container Edge Cases and Robustness', () => {
     // Should cache null and undefined values too
     expect(edgeCaseContainer.preload.nullService('tenant1')).toBe(nullResult)
     expect(edgeCaseContainer.preload.undefinedService('tenant1')).toBe(
-      undefinedResult
+      undefinedResult,
     )
   })
 
@@ -697,26 +695,26 @@ describe('Container Edge Cases and Robustness', () => {
     const longServiceName = 'b'.repeat(500)
 
     const longNameFactories = {
-      [longServiceName]: (x: number) => ({ value: x })
+      [longServiceName]: (x: number) => ({ value: x }),
     }
 
     const longNameContainer = new Container(
       longNameFactories,
       async (preload: any, meta: any) => ({
-        [longServiceName]: preload[longServiceName](meta.tenantId, 42)
-      })
+        [longServiceName]: preload[longServiceName](meta.tenantId, 42),
+      }),
     )
 
     const instance = longNameContainer.preload[longServiceName](
       longTenantId,
-      100
+      100,
     )
     expect(instance.value).toBe(100)
 
     // Should cache with long names
     const instance2 = longNameContainer.preload[longServiceName](
       longTenantId,
-      200
+      200,
     )
     expect(instance2).toBe(instance)
   })
@@ -756,14 +754,14 @@ describe('Container Edge Cases and Robustness', () => {
       'tenant-with-中文',
       'tenant-with-العربية',
       'tenant-with-हिंदी',
-      'tenant-with-👨‍💻-emoji'
+      'tenant-with-👨‍💻-emoji',
     ]
 
     const container = new Container(
       { service: (x: number) => ({ value: x }) },
       async (preload: any, meta: any) => ({
-        service: preload.service(meta.tenantId, 42)
-      })
+        service: preload.service(meta.tenantId, 42),
+      }),
     )
 
     specialTenantIds.forEach(tenantId => {
@@ -795,9 +793,9 @@ describe('Container - Additional Tests', () => {
     nested: {
       serviceB: (y: string) => ({ text: y }),
       deepNested: {
-        serviceC: () => ({ id: 'service-c' })
-      }
-    }
+        serviceC: () => ({ id: 'service-c' }),
+      },
+    },
   }
 
   const initializer = async (preload: any, meta: TenantMeta): Promise<any> => {
@@ -806,9 +804,9 @@ describe('Container - Additional Tests', () => {
       nested: {
         serviceB: preload.nested.serviceB(meta.tenantId, 'hello'),
         deepNested: {
-          serviceC: preload.nested.deepNested.serviceC(meta.tenantId)
-        }
-      }
+          serviceC: preload.nested.deepNested.serviceC(meta.tenantId),
+        },
+      },
     }
   }
 
@@ -826,14 +824,14 @@ describe('Container - Additional Tests', () => {
     }
 
     const constructorFactories = {
-      testService: TestService
+      testService: TestService,
     }
 
     const constructorContainer = new Container(
       constructorFactories,
       async (preload: any, meta: TenantMeta) => ({
-        testService: preload.testService(meta.tenantId, 123)
-      })
+        testService: preload.testService(meta.tenantId, 123),
+      }),
     )
 
     const instance = constructorContainer.preload.testService('t1', 456)
@@ -844,7 +842,7 @@ describe('Container - Additional Tests', () => {
   // Test custom cache size
   test('should accept custom cache size', () => {
     const customContainer = new Container(factories, initializer, {
-      cacheSize: 50
+      cacheSize: 50,
     })
     expect(customContainer).toBeDefined()
     // Cache size is passed to createServiceCache, which is mocked
@@ -878,7 +876,7 @@ describe('Container - Additional Tests', () => {
     const meta = { tenantId: 'error' }
 
     await expect(errorContainer.bootstrap(meta)).rejects.toThrow(
-      'Initializer failed'
+      'Initializer failed',
     )
   })
 
@@ -889,18 +887,18 @@ describe('Container - Additional Tests', () => {
     await expect(
       container.bootstrap(meta, async () => {
         throw new Error('Callback failed')
-      })
+      }),
     ).rejects.toThrow('Callback failed')
   })
 
   // Test accessing nested service that doesn't exist
-  test('should throw for nested service not initialized', async () => {
+  test('should return undefined for nested service not initialized (no proxy)', async () => {
     const incompleteInitializer = async (preload: any, meta: TenantMeta) => {
       return {
         serviceA: preload.serviceA(meta.tenantId, 42),
         nested: {
           // Missing serviceB
-        }
+        },
       }
     }
 
@@ -909,14 +907,11 @@ describe('Container - Additional Tests', () => {
     const meta = { tenantId: 'incomplete' }
 
     await incompleteContainer.bootstrap(meta, async () => {
-      expect(() => incompleteContainer.context.nested.serviceB).toThrow(
-        "Service 'nested.serviceB' not initialized"
-      )
+      expect(incompleteContainer.context.nested.serviceB).toBeUndefined()
     })
   })
 
-  // Test accessing deeply nested service that doesn't exist
-  test('should throw for deeply nested service not initialized', async () => {
+  test('should return undefined for deeply nested service not initialized (no proxy)', async () => {
     const incompleteInitializer = async (preload: any, meta: TenantMeta) => {
       return {
         serviceA: preload.serviceA(meta.tenantId, 42),
@@ -924,8 +919,8 @@ describe('Container - Additional Tests', () => {
           serviceB: preload.nested.serviceB(meta.tenantId, 'hello'),
           deepNested: {
             // Missing serviceC
-          }
-        }
+          },
+        },
       }
     }
     // @ts-expect-error Testing incomplete initializer
@@ -934,8 +929,8 @@ describe('Container - Additional Tests', () => {
 
     await incompleteContainer.bootstrap(meta, async () => {
       expect(
-        () => incompleteContainer.context.nested.deepNested.serviceC
-      ).toThrow("Service 'nested.deepNested.serviceC' not initialized")
+        incompleteContainer.context.nested.deepNested.serviceC,
+      ).toBeUndefined()
     })
   })
 
@@ -947,7 +942,7 @@ describe('Container - Additional Tests', () => {
       multipleParamsFactory: (
         a: string,
         b: number,
-        c: boolean
+        c: boolean,
       ) => { combined: string }
     }
 
@@ -955,8 +950,8 @@ describe('Container - Additional Tests', () => {
       stringFactory: (a: string, b: number) => ({ result: `${a}-${b}` }),
       noParamsFactory: () => ({ empty: true }),
       multipleParamsFactory: (a: string, b: number, c: boolean) => ({
-        combined: `${a}-${b}-${c}`
-      })
+        combined: `${a}-${b}-${c}`,
+      }),
     }
 
     const complexContainer = new Container(
@@ -968,9 +963,9 @@ describe('Container - Additional Tests', () => {
           meta.tenantId,
           'multi',
           456,
-          true
-        )
-      })
+          true,
+        ),
+      }),
     )
 
     const result1 = complexContainer.preload.stringFactory('t1', 'hello', 42)
@@ -983,7 +978,7 @@ describe('Container - Additional Tests', () => {
       't1',
       'test',
       100,
-      false
+      false,
     )
     expect(result3.combined).toBe('test-100-false')
   })
@@ -993,7 +988,7 @@ describe('Container - Additional Tests', () => {
     const arrayInitializer = async (preload: any, meta: TenantMeta) => {
       return {
         serviceA: preload.serviceA(meta.tenantId, 42),
-        arrayService: [1, 2, 3] // Array should not be proxied
+        arrayService: [1, 2, 3], // Array should not be proxied
       }
     }
     // @ts-expect-error Testing incomplete initializer
@@ -1012,14 +1007,14 @@ describe('Container - Additional Tests', () => {
     const factoriesWithNulls = {
       serviceA: (x: number) => ({ value: x }),
       nullService: null,
-      undefinedService: undefined
+      undefinedService: undefined,
     }
 
     const nullContainer = new Container(
       factoriesWithNulls,
       async (preload: any, meta: TenantMeta) => ({
-        serviceA: preload.serviceA(meta.tenantId, 42)
-      })
+        serviceA: preload.serviceA(meta.tenantId, 42),
+      }),
     )
 
     // Should work fine - null/undefined are ignored in factory path resolution
@@ -1046,7 +1041,7 @@ describe('Container - Additional Tests', () => {
         context2 = container.context
         await new Promise(resolve => setTimeout(resolve, 10))
         return container.context.serviceA.value
-      })
+      }),
     ])
 
     expect(result1.instances.serviceA?.value).toBe(42)
@@ -1062,18 +1057,18 @@ describe('Container - Additional Tests', () => {
     }
 
     const throwingFactories = {
-      throwingService: throwingFactory
+      throwingService: throwingFactory,
     }
 
     const throwingContainer = new Container(
       throwingFactories,
       async (preload: any, meta: TenantMeta) => ({
-        throwingService: preload.throwingService(meta.tenantId)
-      })
+        throwingService: preload.throwingService(meta.tenantId),
+      }),
     )
 
     expect(() => throwingContainer.preload.throwingService('t1')).toThrow(
-      'Factory failed'
+      'Factory failed',
     )
   })
 
@@ -1124,10 +1119,10 @@ describe('Container - Additional Tests', () => {
 
   test('should throw when accessing tenant metadata outside of context', () => {
     expect(() => container.getCurrentTenantMetadata()).toThrow(
-      'No tenant context available'
+      'No tenant context available',
     )
     expect(() => container.getCurrentTenantId()).toThrow(
-      'No tenant context available'
+      'No tenant context available',
     )
   })
 })
@@ -1144,13 +1139,13 @@ describe('Container Overflow Protection Tests', () => {
 
   const factories: TestFactories = {
     serviceA: (x: number) => ({ value: x }),
-    serviceB: (y: string) => ({ text: y })
+    serviceB: (y: string) => ({ text: y }),
   }
 
   const initializer = async (preload: any, meta: TenantMeta): Promise<any> => {
     return {
       serviceA: preload.serviceA(meta.tenantId, 42),
-      serviceB: preload.serviceB(meta.tenantId, 'hello')
+      serviceB: preload.serviceB(meta.tenantId, 'hello'),
     }
   }
 
@@ -1159,7 +1154,7 @@ describe('Container Overflow Protection Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     container = new Container(factories as any, initializer as any, {
-      enableMetrics: true
+      enableMetrics: true,
     })
   })
 
@@ -1208,7 +1203,7 @@ describe('Container Overflow Protection Tests', () => {
       const diagnosticContainer = new Container(
         factories as any,
         initializer as any,
-        { enableMetrics: true, enableDiagnostics: true }
+        { enableMetrics: true, enableDiagnostics: true },
       )
 
       // Mock small MAX_METRIC_VALUE
@@ -1222,8 +1217,8 @@ describe('Container Overflow Protection Tests', () => {
       // Should have logged warning about metric reset
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          'Container metrics reset due to overflow protection'
-        )
+          'Container metrics reset due to overflow protection',
+        ),
       )
 
       consoleSpy.mockRestore()
@@ -1236,7 +1231,7 @@ describe('Container Overflow Protection Tests', () => {
       const nonDiagnosticContainer = new Container(
         factories as any,
         initializer as any,
-        { enableMetrics: true, enableDiagnostics: false }
+        { enableMetrics: true, enableDiagnostics: false },
       )
 
       // Mock small MAX_METRIC_VALUE
@@ -1275,7 +1270,7 @@ describe('Container Overflow Protection Tests', () => {
       const noMetricsContainer = new Container(
         factories as any,
         initializer as any,
-        { enableMetrics: false }
+        { enableMetrics: false },
       )
 
       // Perform operations that would normally increment metrics
@@ -1383,8 +1378,8 @@ describe('Container Overflow Protection Tests', () => {
       for (let i = 0; i < 50; i++) {
         promises.push(
           Promise.resolve().then(() =>
-            container.preload.serviceA(`concurrent-${i}`, i)
-          )
+            container.preload.serviceA(`concurrent-${i}`, i),
+          ),
         )
       }
 
@@ -1500,8 +1495,8 @@ describe('Container Distributed Cache Invalidation Tests', () => {
     serviceA: (x: number) => ({ value: x, created: new Date() }),
     serviceB: (y: string) => ({ text: y, created: new Date() }),
     nested: {
-      serviceC: (z: boolean) => ({ flag: z, created: new Date() })
-    }
+      serviceC: (z: boolean) => ({ flag: z, created: new Date() }),
+    },
   }
 
   const initializer = async (preload: any, meta: TenantMeta): Promise<any> => {
@@ -1509,8 +1504,8 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       serviceA: preload.serviceA(meta.tenantId, 42),
       serviceB: preload.serviceB(meta.tenantId, 'hello'),
       nested: {
-        serviceC: preload.nested.serviceC(meta.tenantId, true)
-      }
+        serviceC: preload.nested.serviceC(meta.tenantId, true),
+      },
     }
   }
 
@@ -1538,7 +1533,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         tenantId,
         reason: reason || 'Tenant credentials changed',
         timestamp: Date.now(),
-        instanceId: 'mock-instance-id'
+        instanceId: 'mock-instance-id',
       })
       // Simulate Redis pub/sub by emitting to other containers
       this.emit('invalidate-tenant', tenantId, reason)
@@ -1550,7 +1545,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         serviceType,
         reason: reason || 'Service configuration changed',
         timestamp: Date.now(),
-        instanceId: 'mock-instance-id'
+        instanceId: 'mock-instance-id',
       })
       this.emit('invalidate-service', serviceType, reason)
     }
@@ -1560,7 +1555,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         type: 'INVALIDATE_ALL',
         reason: reason || 'Global cache refresh',
         timestamp: Date.now(),
-        instanceId: 'mock-instance-id'
+        instanceId: 'mock-instance-id',
       })
       this.emit('invalidate-all', reason)
     }
@@ -1580,7 +1575,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       enableMetrics: true,
       enableDiagnostics: true,
       enableDistributedInvalidation: true,
-      distributedInvalidator: mockInvalidator as any
+      distributedInvalidator: mockInvalidator as any,
     })
   })
 
@@ -1605,13 +1600,13 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Verify caching works
       expect(container.preload.serviceA('tenant1', 999)).toBe(tenant1ServiceA)
       expect(container.preload.serviceB('tenant1', 'world')).toBe(
-        tenant1ServiceB
+        tenant1ServiceB,
       )
 
       // Call private method via any cast for testing
       ;(container as any).invalidateTenantLocally(
         'tenant1',
-        'Test invalidation'
+        'Test invalidation',
       )
 
       // tenant1 cache should be cleared, tenant2 should remain
@@ -1636,7 +1631,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Invalidate only serviceA
       ;(container as any).invalidateServiceLocally(
         'serviceA',
-        'Test invalidation'
+        'Test invalidation',
       )
 
       // serviceA cache should be cleared, serviceB should remain
@@ -1667,7 +1662,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       const newServiceB = container.preload.serviceB('tenant1', 'world')
       const newNestedService = container.preload.nested.serviceC(
         'tenant1',
-        false
+        false,
       )
 
       expect(newServiceA).not.toBe(serviceA)
@@ -1713,7 +1708,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Invalidate tenant distributedly
       await container.invalidateTenantDistributed(
         'tenant1',
-        'Credentials changed'
+        'Credentials changed',
       )
 
       // Should have published invalidation message
@@ -1721,7 +1716,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       expect(mockInvalidator.publishedMessages[0]).toMatchObject({
         type: 'INVALIDATE_TENANT',
         tenantId: 'tenant1',
-        reason: 'Credentials changed'
+        reason: 'Credentials changed',
       })
     })
 
@@ -1739,7 +1734,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       expect(mockInvalidator.publishedMessages[0]).toMatchObject({
         type: 'INVALIDATE_SERVICE',
         serviceType: 'serviceA',
-        reason: 'Config changed'
+        reason: 'Config changed',
       })
     })
 
@@ -1756,7 +1751,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       expect(mockInvalidator.publishedMessages).toHaveLength(1)
       expect(mockInvalidator.publishedMessages[0]).toMatchObject({
         type: 'INVALIDATE_ALL',
-        reason: 'Emergency clear'
+        reason: 'Emergency clear',
       })
     })
 
@@ -1772,7 +1767,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       mockInvalidator.emit(
         'invalidate-tenant',
         'tenant1',
-        'Remote invalidation'
+        'Remote invalidation',
       )
 
       // Cache should be cleared
@@ -1794,7 +1789,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       mockInvalidator.emit(
         'invalidate-service',
         'serviceA',
-        'Remote invalidation'
+        'Remote invalidation',
       )
 
       // Only serviceA cache should be cleared
@@ -1831,8 +1826,8 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         factories,
         initializer,
         {
-          enableDistributedInvalidation: false
-        }
+          enableDistributedInvalidation: false,
+        },
       )
 
       // Create cached instance
@@ -1860,7 +1855,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Should log warning when diagnostics enabled
       expect(consoleSpy).toHaveBeenCalledWith(
         'Distributed cache invalidation Redis error:',
-        expect.any(Error)
+        expect.any(Error),
       )
 
       consoleSpy.mockRestore()
@@ -1872,11 +1867,11 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Bootstrap to populate initializer cache
       const meta1 = {
         tenantId: 'integration-tenant-1',
-        id: 'integration-tenant-1'
+        id: 'integration-tenant-1',
       }
       const meta2 = {
         tenantId: 'integration-tenant-2',
-        id: 'integration-tenant-2'
+        id: 'integration-tenant-2',
       }
 
       await container.bootstrap(meta1, async () => {
@@ -1915,7 +1910,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       mockInvalidator.emit(
         'invalidate-tenant',
         'tenant1',
-        'Selective invalidation'
+        'Selective invalidation',
       )
 
       // Only tenant1 should be affected
@@ -1944,7 +1939,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       await Promise.all([
         container.invalidateTenantDistributed('tenant1', 'Reason 1'),
         container.invalidateTenantDistributed('tenant1', 'Reason 2'),
-        container.invalidateServiceDistributed('serviceA', 'Reason 3')
+        container.invalidateServiceDistributed('serviceA', 'Reason 3'),
       ])
 
       // Should have published all messages
@@ -1966,9 +1961,9 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Should not throw and should log invalidation
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          'Invalidating tenant cache locally: non-existent-tenant'
+          'Invalidating tenant cache locally: non-existent-tenant',
         ),
-        expect.stringContaining('(Test)')
+        expect.stringContaining('(Test)'),
       )
 
       consoleSpy.mockRestore()
@@ -1980,15 +1975,15 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Invalidate a service that doesn't exist
       await container.invalidateServiceDistributed(
         'non-existent-service',
-        'Test'
+        'Test',
       )
 
       // Should not throw and should log invalidation
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          'Invalidating service cache locally: non-existent-service'
+          'Invalidating service cache locally: non-existent-service',
         ),
-        expect.stringContaining('(Test)')
+        expect.stringContaining('(Test)'),
       )
 
       consoleSpy.mockRestore()
@@ -1996,10 +1991,10 @@ describe('Container Distributed Cache Invalidation Tests', () => {
 
     test('should handle empty tenant ID gracefully', async () => {
       await expect(
-        container.invalidateTenantDistributed('', 'Test')
+        container.invalidateTenantDistributed('', 'Test'),
       ).resolves.not.toThrow()
       await expect(
-        container.invalidateTenantDistributed('   ', 'Test')
+        container.invalidateTenantDistributed('   ', 'Test'),
       ).resolves.not.toThrow()
     })
 
@@ -2011,7 +2006,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         'tenant@with@symbols',
         'tenant with spaces',
         'tenant123',
-        'UPPERCASE-TENANT'
+        'UPPERCASE-TENANT',
       ]
 
       for (const tenantId of specialTenantIds) {
@@ -2022,7 +2017,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         // eslint-disable-next-line no-await-in-loop
         await container.invalidateTenantDistributed(
           tenantId,
-          'Special char test'
+          'Special char test',
         )
 
         // Verify new instance is created
@@ -2048,12 +2043,12 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         if (index % 2 === 0) {
           return container.invalidateTenantDistributed(
             tenant,
-            `Concurrent test ${index}`
+            `Concurrent test ${index}`,
           )
         }
         return container.invalidateServiceDistributed(
           'serviceA',
-          `Concurrent test ${index}`
+          `Concurrent test ${index}`,
         )
       })
 
@@ -2084,7 +2079,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       const sameServiceB = container.preload.serviceB('tenant1', 'world')
       const sameNestedServiceC = container.preload.nested.serviceC(
         'tenant1',
-        false
+        false,
       )
       expect(newServiceA).not.toBe(serviceA) // Invalidated
       expect(sameServiceB).toBe(serviceB) // Still cached
@@ -2131,7 +2126,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       const finalStats = container.getPerformanceStats()
       expect(finalStats.cacheMisses).toBeGreaterThan(initialStats.cacheMisses)
       expect(finalStats.instanceCreations).toBeGreaterThan(
-        initialStats.instanceCreations
+        initialStats.instanceCreations,
       )
     })
 
@@ -2204,7 +2199,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Invalidate while bootstrap is running
       await container.invalidateTenantDistributed(
         'bootstrap-test',
-        'During bootstrap'
+        'During bootstrap',
       )
 
       // Wait for bootstrap to complete
@@ -2220,7 +2215,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
 
       await container.invalidateTenantDistributed(
         'test-tenant',
-        'Validation test'
+        'Validation test',
       )
 
       const message = mockInvalidator.publishedMessages[0]
@@ -2229,7 +2224,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         tenantId: 'test-tenant',
         reason: 'Validation test',
         timestamp: expect.any(Number),
-        instanceId: expect.any(String)
+        instanceId: expect.any(String),
       })
 
       // Verify timestamp is recent
@@ -2276,7 +2271,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         invalidateService: vi
           .fn()
           .mockRejectedValue(new Error('Redis failure')),
-        invalidateAll: vi.fn().mockRejectedValue(new Error('Redis failure'))
+        invalidateAll: vi.fn().mockRejectedValue(new Error('Redis failure')),
       }
 
       const containerWithFailingInvalidator = new Container<
@@ -2285,24 +2280,24 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       >(factories, initializer, {
         enableDistributedInvalidation: true,
         distributedInvalidator: failingInvalidator as any,
-        enableDiagnostics: false // Suppress error logs during test
+        enableDiagnostics: false, // Suppress error logs during test
       })
 
       // Create cached instance
       const service = containerWithFailingInvalidator.preload.serviceA(
         'tenant1',
-        100
+        100,
       )
 
       // These should still work locally even if distributed fails
       await expect(
-        containerWithFailingInvalidator.invalidateTenantDistributed('tenant1')
+        containerWithFailingInvalidator.invalidateTenantDistributed('tenant1'),
       ).rejects.toThrow('Redis failure')
 
       // But local invalidation should still have happened
       const newService = containerWithFailingInvalidator.preload.serviceA(
         'tenant1',
-        200
+        200,
       )
       expect(newService).not.toBe(service)
       expect(newService.value).toBe(200)
@@ -2314,13 +2309,13 @@ describe('Container Distributed Cache Invalidation Tests', () => {
         TenantMeta
       >(factories, initializer, {
         enableDistributedInvalidation: true,
-        distributedInvalidator: undefined // Missing invalidator
+        distributedInvalidator: undefined, // Missing invalidator
       })
 
       // Create cached instance
       const service = containerWithoutInvalidator.preload.serviceA(
         'tenant1',
-        100
+        100,
       )
 
       // Should work without throwing
@@ -2331,7 +2326,7 @@ describe('Container Distributed Cache Invalidation Tests', () => {
       // Local invalidation should still work
       const newService = containerWithoutInvalidator.preload.serviceA(
         'tenant1',
-        200
+        200,
       )
       expect(newService).not.toBe(service)
     })
@@ -2356,7 +2351,7 @@ describe('Container Critical Gap Tests', () => {
           dispose() {
             this.disposed = true
             disposeCount++
-          }
+          },
         }),
         asyncDispose: () => ({
           disposed: false,
@@ -2364,16 +2359,16 @@ describe('Container Critical Gap Tests', () => {
             await new Promise(resolve => setTimeout(resolve, 10))
             this.disposed = true
             asyncDisposeCount++
-          }
-        })
+          },
+        }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
           disposableService: preload.disposableService(meta.tenantId),
-          asyncDispose: preload.asyncDispose(meta.tenantId)
-        })
+          asyncDispose: preload.asyncDispose(meta.tenantId),
+        }),
       )
 
       // Create instances
@@ -2414,18 +2409,18 @@ describe('Container Critical Gap Tests', () => {
         throwingDispose: () => ({
           dispose() {
             throw new Error('Disposal failed!')
-          }
+          },
         }),
-        normalService: () => ({ value: 42 })
+        normalService: () => ({ value: 42 }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
           throwingDispose: preload.throwingDispose(meta.tenantId),
-          normalService: preload.normalService(meta.tenantId)
+          normalService: preload.normalService(meta.tenantId),
         }),
-        { enableDiagnostics: true }
+        { enableDiagnostics: true },
       )
 
       // Create instances
@@ -2438,7 +2433,7 @@ describe('Container Critical Gap Tests', () => {
       // Should log the error
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Disposal error:',
-        expect.any(Error)
+        expect.any(Error),
       )
 
       // Other services should still work
@@ -2453,15 +2448,15 @@ describe('Container Critical Gap Tests', () => {
   describe('LRU Eviction Order', () => {
     test('should evict least recently used entries when cache is full', () => {
       const factories = {
-        service: (n: number) => ({ value: n })
+        service: (n: number) => ({ value: n }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          service: preload.service(meta.tenantId, 100)
+          service: preload.service(meta.tenantId, 100),
         }),
-        { cacheSize: 3 }
+        { cacheSize: 3 },
       )
 
       // Fill cache with A, B, C
@@ -2491,15 +2486,15 @@ describe('Container Critical Gap Tests', () => {
 
     test('should maintain accurate cache stats after manual eviction', async () => {
       const factories = {
-        service: (n: number) => ({ value: n })
+        service: (n: number) => ({ value: n }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          service: preload.service(meta.tenantId, 100)
+          service: preload.service(meta.tenantId, 100),
         }),
-        { cacheSize: 2 }
+        { cacheSize: 2 },
       )
 
       // Add services to fill cache
@@ -2530,14 +2525,14 @@ describe('Container Critical Gap Tests', () => {
       })
 
       const factories = {
-        service: () => ({ initialized: true })
+        service: () => ({ initialized: true }),
       }
 
       const initializer = async (preload: any, meta: TenantMeta) => {
         initializerCallCount++
         await initPromise
         return {
-          service: preload.service(meta.tenantId)
+          service: preload.service(meta.tenantId),
         }
       }
 
@@ -2576,14 +2571,14 @@ describe('Container Critical Gap Tests', () => {
   describe('Context Cleanliness on Sync Path', () => {
     test('should restore previous context after sync execution', () => {
       const factories = {
-        service: () => ({ value: 'test' })
+        service: () => ({ value: 'test' }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          service: preload.service(meta.tenantId)
-        })
+          service: preload.service(meta.tenantId),
+        }),
       )
 
       const instances1 = { service: { value: 'context1' } }
@@ -2611,14 +2606,14 @@ describe('Container Critical Gap Tests', () => {
 
     test('should restore context even if sync function throws', () => {
       const factories = {
-        service: () => ({ value: 'test' })
+        service: () => ({ value: 'test' }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          service: preload.service(meta.tenantId)
-        })
+          service: preload.service(meta.tenantId),
+        }),
       )
 
       const instances = { service: { value: 'original' } }
@@ -2638,14 +2633,14 @@ describe('Container Critical Gap Tests', () => {
 
     test('should restore context even if async function throws', async () => {
       const factories = {
-        service: () => ({ value: 'test' })
+        service: () => ({ value: 'test' }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          service: preload.service(meta.tenantId)
-        })
+          service: preload.service(meta.tenantId),
+        }),
       )
 
       const instances = { service: { value: 'original' } }
@@ -2655,7 +2650,7 @@ describe('Container Critical Gap Tests', () => {
         await expect(
           container.runWithContext(instances, meta, async () => {
             throw new Error('Async error')
-          })
+          }),
         ).rejects.toThrow('Async error')
 
         // Context should still be restored
@@ -2671,14 +2666,14 @@ describe('Container Critical Gap Tests', () => {
   describe('ALS disable() Compatibility', () => {
     test('should handle missing disable method gracefully', () => {
       const factories = {
-        service: () => ({ value: 'test' })
+        service: () => ({ value: 'test' }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          service: preload.service(meta.tenantId)
-        })
+          service: preload.service(meta.tenantId),
+        }),
       )
 
       // Mock ALS without disable method
@@ -2686,7 +2681,7 @@ describe('Container Critical Gap Tests', () => {
       const mockAls = {
         run: originalAls.run.bind(originalAls),
         getStore: originalAls.getStore.bind(originalAls),
-        enterWith: originalAls.enterWith.bind(originalAls)
+        enterWith: originalAls.enterWith.bind(originalAls),
         // Note: no disable() method
       }
       ;(container as any).als = mockAls
@@ -2716,16 +2711,16 @@ describe('Container Critical Gap Tests', () => {
           disposed: false,
           dispose() {
             this.disposed = true
-          }
-        })
+          },
+        }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          service: preload.service(meta.tenantId)
+          service: preload.service(meta.tenantId),
         }),
-        { enableMetrics: true }
+        { enableMetrics: true },
       )
 
       // Create some instances to generate metrics
@@ -2759,15 +2754,15 @@ describe('Container Critical Gap Tests', () => {
         symbolService: () => ({
           [testSymbol]: 'symbol-value',
           value: 42,
-          regularProp: 'regular'
-        })
+          regularProp: 'regular',
+        }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          symbolService: preload.symbolService(meta.tenantId)
-        })
+          symbolService: preload.symbolService(meta.tenantId),
+        }),
       )
 
       await container.bootstrap({ tenantId: 'test' }, async () => {
@@ -2802,15 +2797,15 @@ describe('Container Critical Gap Tests', () => {
     test('should not wrap Promise-returning factories', async () => {
       const factories = {
         promiseFactory: () => Promise.resolve({ data: 'async-data' }),
-        normalFactory: () => ({ value: 'sync-data' })
+        normalFactory: () => ({ value: 'sync-data' }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
           promiseFactory: await preload.promiseFactory(meta.tenantId),
-          normalFactory: preload.normalFactory(meta.tenantId)
-        })
+          normalFactory: preload.normalFactory(meta.tenantId),
+        }),
       )
 
       const result = await container.bootstrap(
@@ -2818,14 +2813,14 @@ describe('Container Critical Gap Tests', () => {
         async () => {
           // The initializer awaits the promise, so context should have resolved value
           expect(container.context.promiseFactory).toEqual({
-            data: 'async-data'
+            data: 'async-data',
           })
           expect(container.context.normalFactory).toEqual({
-            value: 'sync-data'
+            value: 'sync-data',
           })
 
           return 'done'
-        }
+        },
       )
 
       expect(result.result).toBe('done')
@@ -2837,14 +2832,14 @@ describe('Container Critical Gap Tests', () => {
         promiseFactory: () => {
           callCount++
           return Promise.resolve({ data: `call-${callCount}` })
-        }
+        },
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          promiseFactory: await preload.promiseFactory(meta.tenantId)
-        })
+          promiseFactory: await preload.promiseFactory(meta.tenantId),
+        }),
       )
 
       // First call
@@ -2866,14 +2861,14 @@ describe('Container Critical Gap Tests', () => {
 
     test('mutation test - should return same reference after modification', () => {
       const factories = {
-        mutableService: () => ({ value: 42, mutated: false })
+        mutableService: () => ({ value: 42, mutated: false }),
       }
 
       const container = new Container(
         factories,
         async (preload, meta: TenantMeta) => ({
-          mutableService: preload.mutableService(meta.tenantId)
-        })
+          mutableService: preload.mutableService(meta.tenantId),
+        }),
       )
 
       // Get initial service instance
@@ -2900,19 +2895,19 @@ describe('Container Edge Case Tests - Hash Collisions', () => {
     // Testing the hash collision handling in createTenantCacheKey
     const meta1 = {
       complexData: `a${'b'.repeat(100)}c`,
-      id: 'tenant1'
+      id: 'tenant1',
     }
     const meta2 = {
       complexData: `x${'y'.repeat(100)}z`,
-      id: 'tenant2'
+      id: 'tenant2',
     }
 
     const factories = {
-      service: () => ({ created: Date.now() })
+      service: () => ({ created: Date.now() }),
     }
 
     const container = new Container(factories, async (preload, meta: any) => ({
-      service: preload.service(meta.id || 'unknown')
+      service: preload.service(meta.id || 'unknown'),
     }))
 
     // Use bootstrap to exercise the djb2 hash collision logic

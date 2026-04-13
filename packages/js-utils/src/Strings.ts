@@ -187,7 +187,7 @@ class StringsClass {
         ['ý', 'y'],
         ['ž', 'z'],
         ['ź', 'z'],
-        ['ż', 'z']
+        ['ż', 'z'],
       ])
     }
 
@@ -214,7 +214,7 @@ class StringsClass {
     if (!regexPair) {
       regexPair = [
         new RegExp(`\\${separator}{2,}`, 'g'),
-        new RegExp(`^\\${separator}+|\\${separator}+$`, 'g')
+        new RegExp(`^\\${separator}+|\\${separator}+$`, 'g'),
       ]
       StringsClass.slugRegexCache.set(separator, regexPair)
     }
@@ -226,7 +226,7 @@ class StringsClass {
       .replace(/\s+/g, separator)
       .replace(
         /[àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;]/g,
-        c => charMap.get(c) || separator
+        c => charMap.get(c) || separator,
       )
       .replace(/&/g, `${separator}and${separator}`)
       .replace(/[^\w-]+/g, '')
@@ -255,7 +255,7 @@ class StringsClass {
   }
 
   private hasUnicodeWord = RegExp.prototype.test.bind(
-    /[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/
+    /[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/,
   )
 
   asciiWords(s: string): RegExpMatchArray | null {
@@ -313,7 +313,7 @@ class StringsClass {
    */
   jsonParseIfPossible(
     obj: any,
-    reviver?: (this: any, key: string, value: any) => any
+    reviver?: (this: any, key: string, value: any) => any,
   ): any {
     // Optimization: only try to parse if it looks like JSON: starts with a json possible character
     if (typeof obj === 'string' && obj && DETECT_JSON.test(obj)) {
@@ -336,7 +336,7 @@ class StringsClass {
     const parts = str.split(separator)
     return [
       ...parts.slice(0, limit - 1),
-      parts.slice(limit - 1).join(separator)
+      parts.slice(limit - 1).join(separator),
     ]
   }
 
@@ -394,11 +394,11 @@ class StringsClass {
   substringBetweenLast(
     s: string,
     leftDelimiter: string,
-    rightDelimiter: string
+    rightDelimiter: string,
   ): string {
     return this.substringBefore(
       this.substringAfterLast(s, leftDelimiter),
-      rightDelimiter
+      rightDelimiter,
     )
   }
 
@@ -510,7 +510,7 @@ class StringsClass {
         const k = pair.substring(0, eqIndex)
         if (k) {
           qs[decodeURIComponent(k)] = decodeURIComponent(
-            pair.substring(eqIndex + 1) || ''
+            pair.substring(eqIndex + 1) || '',
           )
         }
       }

@@ -4,7 +4,7 @@ import type { AnyObject } from '../types'
 import {
   getArgsSignature,
   getMethodSignature,
-  getTargetMethodSignature
+  getTargetMethodSignature,
 } from './decorator.util'
 import type { MemoCache } from './memo.util'
 import { jsonMemoSerializer, MapMemoCache } from './memo.util'
@@ -97,7 +97,7 @@ export const Memo =
       logger = console,
       cacheFactory = () => new MapMemoCache(),
       cacheKeyFn = jsonMemoSerializer,
-      cacheErrors = true
+      cacheErrors = true,
     } = opt
 
     const keyStr = String(key)
@@ -115,8 +115,8 @@ export const Memo =
         logger.log(
           `${getMethodSignature(instance, keyStr)}(${getArgsSignature(
             args,
-            logArgs
-          )}) @Memo hit`
+            logArgs,
+          )}) @Memo hit`,
         )
       }
     }
@@ -124,14 +124,14 @@ export const Memo =
     const logCacheMiss = (
       instance: typeof target,
       args: any[],
-      started: number
+      started: number,
     ) => {
       if (logMiss) {
         logger.log(
           `${getMethodSignature(instance, keyStr)}(${getArgsSignature(
             args,
-            logArgs
-          )}) @Memo miss (${Time.since(started)})`
+            logArgs,
+          )}) @Memo miss (${Time.since(started)})`,
         )
       }
     }
@@ -139,7 +139,7 @@ export const Memo =
     const setCacheValue = (
       instance: typeof target,
       key: string,
-      value: any
+      value: any,
     ) => {
       try {
         getOrCreateCache(instance).set(key, value)

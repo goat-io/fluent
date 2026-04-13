@@ -31,7 +31,7 @@ export interface Options {
   detached?: boolean
   enableDebugInstructions?: string
   testConnection?: (
-    opts: NormalizedOptions & { testPortConnection: () => Promise<boolean> }
+    opts: NormalizedOptions & { testPortConnection: () => Promise<boolean> },
   ) => Promise<boolean>
 }
 
@@ -42,14 +42,14 @@ export interface NormalizedOptions
 }
 
 export async function imageExists(
-  options: NormalizedOptions | Options
+  options: NormalizedOptions | Options,
 ): Promise<boolean> {
   const stdout = await spawnBuffered(
     'docker',
     ['images', '--format', '{{json .}}'],
     {
-      debug: options.debug
-    }
+      debug: options.debug,
+    },
   ).getResult('utf8')
   const existingImages = stdout
     .trim()
@@ -65,7 +65,7 @@ export async function imageExists(
     .filter(n => n != null)
   const [Repository, Tag] = options.image.split(':')
   return existingImages.some(
-    i => i.Repository === Repository && (!Tag || i.Tag === Tag)
+    i => i.Repository === Repository && (!Tag || i.Tag === Tag),
   )
 }
 export async function pullDockerImage(options: NormalizedOptions | Options) {
@@ -76,13 +76,13 @@ export async function pullDockerImage(options: NormalizedOptions | Options) {
   ) {
     console.log(
       options.image +
-        ' already pulled (use mysql-test start --refresh or ops.refreshImage to refresh)'
+        ' already pulled (use mysql-test start --refresh or ops.refreshImage to refresh)',
     )
     return
   }
   console.log(`Pulling Docker Image ${options.image}`)
   await spawnBuffered('docker', ['pull', options.image], {
-    debug: options.debug
+    debug: options.debug,
   }).getResult()
 }
 
@@ -107,11 +107,11 @@ export function startDockerContainer(options: NormalizedOptions) {
       ...(options.detached ? ['--detach'] : []),
       // set enviornment variables
       ...envArgs,
-      options.image
+      options.image,
     ],
     {
-      stdio: options.debug ? 'inherit' : 'ignore'
-    }
+      stdio: options.debug ? 'inherit' : 'ignore',
+    },
   )
 }
 
@@ -128,18 +128,18 @@ export async function waitForDatabaseToStart(options: NormalizedOptions) {
             options.enableDebugInstructions
               ? ` ${options.enableDebugInstructions}`
               : ``
-          }`
-        )
+          }`,
+        ),
       )
     }, options.connectTimeoutSeconds * 1000)
     function test() {
       console.log(
-        `Waiting for ${options.containerName} on port ${options.externalPort}...`
+        `Waiting for ${options.containerName} on port ${options.externalPort}...`,
       )
       ;(options.testConnection
         ? options.testConnection({
             ...options,
-            testPortConnection: async () => await testConnection(options)
+            testPortConnection: async () => await testConnection(options),
           })
         : testConnection(options)
       ).then(
@@ -157,7 +157,7 @@ export async function waitForDatabaseToStart(options: NormalizedOptions) {
         },
         err => {
           reject(err)
-        }
+        },
       )
     }
     test()
@@ -177,13 +177,13 @@ async function testConnection(options: NormalizedOptions): Promise<boolean> {
 }
 
 export async function killOldContainers(
-  options: Pick<NormalizedOptions, 'debug' | 'containerName'>
+  options: Pick<NormalizedOptions, 'debug' | 'containerName'>,
 ) {
   await spawnBuffered('docker', ['kill', options.containerName], {
-    debug: options.debug
+    debug: options.debug,
   }) // do not check exit code as there may not be a container to kill
   await spawnBuffered('docker', ['rm', options.containerName], {
-    debug: options.debug
+    debug: options.debug,
   }) // do not check exit code as there may not be a container to remove
 }
 
@@ -203,7 +203,7 @@ export default async function startContainer(options: Options) {
   const opts: NormalizedOptions = {
     detached: false,
     ...rawOptions,
-    externalPort
+    externalPort,
   }
 
   console.log(`Starting Docker Container ${opts.containerName}`)
@@ -216,6 +216,6 @@ export default async function startContainer(options: Options) {
     externalPort,
     kill: async () => {
       return await killOldContainers(options)
-    }
+    },
   }
 }

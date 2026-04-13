@@ -34,7 +34,7 @@ const createOrAdd = ({ labels, label }) => {
           text: label.text,
           template: label.template,
           type: l.type,
-          picture: l.picture
+          picture: l.picture,
         })
       })
     } else {
@@ -45,20 +45,20 @@ const createOrAdd = ({ labels, label }) => {
     newObject[label.text] = {
       location: [],
       template: label.template,
-      translations: {}
+      translations: {},
     }
     label.location.forEach(l => {
       newObject[label.text].location.push({
         text: label.text,
         template: label.template,
         type: l.type,
-        picture: l.picture
+        picture: l.picture,
       })
     })
   } else {
     newObject[label.text] = {
       location: [label],
-      translations: {}
+      translations: {},
     }
   }
   return newObject
@@ -87,14 +87,14 @@ const formioLabelsPositions = [
   'title',
   'label',
   'placeholder',
-  'errorLabel'
+  'errorLabel',
 ]
 
 // Process common translated items
 const processCommonLabels = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   let labels = componentLabels
 
@@ -107,8 +107,8 @@ const processCommonLabels = (
           type: position,
           component: component.key,
           form: formPath,
-          picture: null
-        }
+          picture: null,
+        },
       })
     }
   })
@@ -120,7 +120,7 @@ const processCommonLabels = (
 const processTooltips = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   if (!component.tooltip) {
     return componentLabels
@@ -141,8 +141,8 @@ const processTooltips = (
         type: 'tooltip',
         component: component.key,
         form: formPath,
-        picture: null
-      }
+        picture: null,
+      },
     })
   })
 
@@ -153,7 +153,7 @@ const processTooltips = (
 const processComponentValues = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   if (!component.values) {
     return componentLabels
@@ -170,8 +170,8 @@ const processComponentValues = (
           type: 'value',
           component: component.key,
           form: formPath,
-          picture: null
-        }
+          picture: null,
+        },
       })
     }
   })
@@ -183,7 +183,7 @@ const processComponentValues = (
 const processHtmlContent = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   if (component.type !== 'htmlelement' && component.type !== 'content') {
     return componentLabels
@@ -209,8 +209,8 @@ const processHtmlContent = (
             type: 'html',
             component: component.key,
             form: formPath,
-            picture: null
-          }
+            picture: null,
+          },
         })
       }
     })
@@ -223,7 +223,7 @@ const processHtmlContent = (
 const processSelectComponent = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   if (component.type !== 'select' || !component.data?.values) {
     return componentLabels
@@ -240,8 +240,8 @@ const processSelectComponent = (
           type: 'selectValue',
           component: component.key,
           form: formPath,
-          picture: null
-        }
+          picture: null,
+        },
       })
     }
   })
@@ -253,7 +253,7 @@ const processSelectComponent = (
 const processSurveyComponent = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   if (component.type !== 'survey' || !component.questions) {
     return componentLabels
@@ -270,8 +270,8 @@ const processSurveyComponent = (
         type: 'surveyLabel',
         component: component.key,
         form: formPath,
-        picture: null
-      }
+        picture: null,
+      },
     })
   })
 
@@ -285,8 +285,8 @@ const processSurveyComponent = (
           type: 'surveyValues',
           component: component.key,
           form: formPath,
-          picture: null
-        }
+          picture: null,
+        },
       })
     })
   }
@@ -298,7 +298,7 @@ const processSurveyComponent = (
 const processEditGridComponent = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   if (component.type !== 'editgrid' || !component.templates) {
     return componentLabels
@@ -319,8 +319,8 @@ const processEditGridComponent = (
           type: 'editgrid',
           component: component.key,
           form: formPath,
-          picture: null
-        }
+          picture: null,
+        },
       })
     }
   })
@@ -332,7 +332,7 @@ const processEditGridComponent = (
 const processComponent = (
   component: FormioComponent,
   componentLabels: ILabels,
-  formPath: string
+  formPath: string,
 ): ILabels => {
   let labels = componentLabels
 
@@ -360,8 +360,8 @@ export const labels = (Forms: FormioForm[]): ILabels => {
         type: 'formTitle',
         component: form.path,
         form: form.path,
-        picture: null
-      }
+        picture: null,
+      },
     })
 
     // Go across every component
@@ -371,10 +371,10 @@ export const labels = (Forms: FormioForm[]): ILabels => {
         componentLabels = processComponent(
           component,
           componentLabels,
-          form.path
+          form.path,
         )
       },
-      true
+      true,
     )
   })
 

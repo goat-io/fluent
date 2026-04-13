@@ -1,5 +1,117 @@
 # 0.5.20
 
+## 0.15.0
+
+### Minor Changes
+
+- Add `forTenant()` to RedisTaskTrackerConnector for O(1) Redis connections.
+
+  - `forTenant(tenantId)` creates a tenant-scoped connector that shares the parent's Redis clients. 5 tenants = 2 connections instead of 10.
+  - `shared` flag on close() prevents child connectors from closing the parent's connections.
+  - Tenant isolation via key/channel prefixes (`tenant:{id}:task:*`), not separate connections.
+  - Export `RedisTaskTrackerSharedClients` type for callers managing shared clients.
+
+## 0.14.10
+
+### Patch Changes
+
+- chore(tasks-core): patch release
+
+## 0.14.9
+
+### Patch Changes
+
+- chore(tasks-core): cleanup temporary data
+  - @goatlab/js-utils@0.10.3
+
+## 0.14.8
+
+### Patch Changes
+
+- Re-publish with resolved workspace dependencies
+
+## 0.14.7
+
+### Patch Changes
+
+- Relax InputType constraint to Record<string, unknown> so concrete payload interfaces (e.g. { tenantId: string }) satisfy the generic without needing an explicit index signature
+
+## 0.14.6
+
+### Patch Changes
+
+- Fix Redis owner index key to use configured keyPrefix for ACL compliance. Owner keys now follow the same tenant-scoped prefix as task keys (e.g., `tenant:agrosocial:task:owner:...` instead of `owner:agrosocial:...`), ensuring they pass Redis ACL rules that restrict key access by tenant prefix.
+
+## 0.6.1
+
+### Patch Changes
+
+- Add getOwnerId() method to ShouldQueue for owner-based task tracking
+
+## 0.6.0
+
+### Minor Changes
+
+- Add owner-based task querying to TaskTracker
+
+  - Add `ownerId` field to `TrackedTaskState` for tracking task ownership
+  - Add `ownerId` option to `CreateTrackedTaskOptions` for setting owner on creation
+  - Add `ListByOwnerOptions` interface for filtering tasks by status and limit
+  - Add `listByOwner()` method to `TaskTrackerConnector` interface
+  - Implement `listByOwner()` in `RedisTaskTrackerConnector` with owner index
+  - Implement `listByOwner()` in `InMemoryTaskTrackerConnector` with owner index
+  - Add `listByOwner()` helper method to `TaskTracker` class
+  - Export `ListByOwnerOptions` type from the package
+
+## 0.5.0
+
+### Minor Changes
+
+- Add TaskTracker for real-time task status tracking
+
+  - Implement TaskTracker service with high-throughput buffered writes
+  - Add IngestBuffer with Fibonacci-based dynamic sizing for adaptive batching
+  - Add RedisTaskTrackerConnector for production use with Pub/Sub support
+  - Add InMemoryTaskTrackerConnector for testing
+  - Integrate TaskTracker with ShouldQueue for automatic lifecycle tracking
+  - Add comprehensive test suite (150 unit and integration tests)
+
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.3
+
+## 0.4.0
+
+### Minor Changes
+
+- Add multi-tenant support to all task adapters
+
+  - Added `tenantId` property to TaskConnector interface
+  - Added `forTenant(tenantId, credentials?)` method for creating tenant-scoped connectors
+  - Added `TenantCredentials` type for optional per-tenant authentication
+  - Added shared multi-tenant test suite in `@goatlab/tasks-core/test-suite`
+  - Added `testPostUrl` option to multi-tenant test suite for HTTP callback adapters
+
+  **BullMQ Adapter:**
+
+  - Tenant isolation via Redis key prefix (`tenantId:queueName:*`)
+  - Compatible with Redis ACL patterns (`~tenantId:*`)
+  - Prefix applied to both Queue and Worker instances
+
+  **Hatchet Adapter:**
+
+  - Tenant isolation via Hatchet namespace feature
+  - Shares same token across tenants (no separate auth required)
+
+  **GCP Cloud Tasks Adapter:**
+
+  - Tenant isolation via task name prefix (`tenantId-taskName`)
+  - Avoids queue creation overhead (all tenants share same queue)
+  - Added `enablePayloadCache` option for testing (GCP removes completed tasks immediately)
+
 ## 0.3.2
 
 ### Patch Changes

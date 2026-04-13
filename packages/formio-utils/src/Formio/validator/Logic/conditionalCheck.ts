@@ -14,7 +14,7 @@ export const checkConditional = (
   component: any,
   row: any,
   data: any,
-  recurse = false
+  recurse = false,
 ): any => {
   let isVisible = true
 
@@ -27,13 +27,13 @@ export const checkConditional = (
     // Create the sandbox.
     const sandbox = vm.createContext({
       data,
-      row
+      row,
     })
 
     // Execute the script.
     const script = new vm.Script(component.customConditional)
     script.runInContext(sandbox, {
-      timeout: 250
+      timeout: 250,
     })
 
     if (util.isBoolean(sandbox.show)) {

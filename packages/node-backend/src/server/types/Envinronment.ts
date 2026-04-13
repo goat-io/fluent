@@ -1,1 +1,1 @@
-export type Environment = 'test' | 'local' | 'dev' | 'prod'
+export type Environment = 'test' | 'e2e' | 'local' | 'dev' | 'prod'

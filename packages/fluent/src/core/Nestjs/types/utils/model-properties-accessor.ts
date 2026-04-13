@@ -2,7 +2,7 @@ import { isFunction, isString, Type } from '../common'
 import 'reflect-metadata'
 import {
   createApiPropertyDecorator,
-  DECORATORS
+  DECORATORS,
 } from '../decorators/api-property.decorator'
 import { METADATA_FACTORY_NAME } from '../type-metadata.storage'
 
@@ -15,7 +15,7 @@ export class ModelPropertiesAccessor {
     return properties
       .filter(isString)
       .filter(
-        (key: string) => key.charAt(0) === ':' && !isFunction(prototype[key])
+        (key: string) => key.charAt(0) === ':' && !isFunction(prototype[key]),
       )
       .map((key: string) => key.slice(1))
   }

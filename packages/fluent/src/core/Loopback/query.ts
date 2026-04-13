@@ -240,7 +240,7 @@ export type FilterExcludingWhere<MT extends object = AnyObject> = Omit<
  * @param candidate
  */
 export function isFilter<MT extends object>(
-  candidate: any
+  candidate: any,
 ): candidate is Filter<MT> {
   if (typeof candidate !== 'object') {
     return false
@@ -690,7 +690,7 @@ export class FilterBuilder<MT extends object = AnyObject> {
         for (const key of Object.keys(constraint)) {
           if (nonWhereFields.includes(key)) {
             throw new Error(
-              'merging strategy for selection, pagination, and sorting not implemented'
+              'merging strategy for selection, pagination, and sorting not implemented',
             )
           }
         }

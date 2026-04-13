@@ -43,7 +43,7 @@ export const knexImplementations = {
       last_name: 'User',
       status: 'active',
       age: 30,
-      country: 'US'
+      country: 'US',
     })
-  }
+  },
 }

@@ -11,7 +11,7 @@ export interface TransformBufferOptions extends TransformOptions {
  * @default batchSize is 10
  */
 export function transformBuffer<TInput = any>(
-  opt: TransformBufferOptions
+  opt: TransformBufferOptions,
 ): TransformTyped<TInput, TInput[]> {
   const { batchSize } = opt
 
@@ -42,6 +42,6 @@ export function transformBuffer<TInput = any>(
       // Clear references to help GC
       buf = null as any
       cb()
-    }
+    },
   })
 }

@@ -7,7 +7,7 @@ import {
   gzipBuffer,
   gzipString,
   inflateBuffer,
-  inflateToString
+  inflateToString,
 } from './zip.util'
 
 test('deflate/inflate', async () => {

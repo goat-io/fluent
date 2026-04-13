@@ -2,7 +2,7 @@ import {
   CommonLogger,
   CommonLogLevel,
   Errors,
-  Inspect
+  Inspect,
   // Memo,
 } from '@goatlab/js-utils'
 import type * as SentryLib from '@sentry/node'
@@ -18,7 +18,7 @@ const sentrySeverityMap: Record<SeverityLevel, CommonLogLevel> = {
   log: 'log',
   warning: 'warn',
   error: 'error',
-  fatal: 'error'
+  fatal: 'error',
 }
 
 export class SentryService {
@@ -37,7 +37,7 @@ export class SentryService {
 
     sentry.init({
       maxValueLength: 2000, // Default is 250 characters
-      ...this.config
+      ...this.config,
     })
 
     return sentry
@@ -52,7 +52,7 @@ export class SentryService {
    */
   setUserId(id: string): void {
     this.sentry().getCurrentScope().setUser({
-      id
+      id,
     })
   }
 
@@ -78,15 +78,15 @@ export class SentryService {
     this.sentry().addBreadcrumb({
       message: Inspect.any(error, {
         includeErrorData: true,
-        colors: false
-      })
+        colors: false,
+      }),
       // Data: (err as AppError).data, // included in message
     })
 
     return this.sentry().captureException(
       Errors.anyToError(error, Error, {
-        stringifyFn: Inspect.anyStringifyFn
-      })
+        stringifyFn: Inspect.anyStringifyFn,
+      }),
     )
   }
 
@@ -96,7 +96,7 @@ export class SentryService {
   captureMessage(message: string, level?: SeverityLevel): string {
     this.config.logger?.[sentrySeverityMap[level || 'error'] || 'log'](
       'captureMessage:',
-      message
+      message,
     )
     return this.sentry().captureMessage(message, level)
   }
@@ -121,21 +121,21 @@ export class SentryService {
           .map(arg =>
             Inspect.any(arg, {
               includeErrorData: true,
-              colors: false
-            })
+              colors: false,
+            }),
           )
           .join(' ')
 
         this.sentry().addBreadcrumb({
-          message
+          message,
         })
 
         this.sentry().captureException(
           Errors.anyToError(args.length === 1 ? args[0] : args, Error, {
-            stringifyFn: Inspect.anyStringifyFn
-          })
+            stringifyFn: Inspect.anyStringifyFn,
+          }),
         )
-      }
+      },
     }
   }
 }

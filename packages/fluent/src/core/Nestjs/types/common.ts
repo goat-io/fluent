@@ -4,7 +4,7 @@ export enum ClassType {
   Args = 'args',
   Object = 'objectType',
   Input = 'inputType',
-  Interface = 'interface'
+  Interface = 'interface',
 }
 
 export interface Type<T = any> extends globalThis.Function {
@@ -12,7 +12,7 @@ export interface Type<T = any> extends globalThis.Function {
 }
 
 export function flatten<T extends unknown[] = any>(
-  arr: T
+  arr: T,
 ): T extends Array<infer R> ? R : never {
   const flat = [].concat(...(arr as any))
   return (flat.some(Array.isArray)
@@ -28,7 +28,7 @@ export const isFunction = (fn: any): boolean => typeof fn === 'function'
 export type TargetHost = Record<'target', globalThis.Function>
 export function isTargetEqual<T extends TargetHost, U extends TargetHost>(
   a: T,
-  b: U
+  b: U,
 ) {
   return a.target === b.target
 }

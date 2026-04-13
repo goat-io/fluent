@@ -8,5 +8,5 @@ export const metaProperties = [
   'enum',
   'dgPath',
   'isDatagrid',
-  'path'
+  'path',
 ]

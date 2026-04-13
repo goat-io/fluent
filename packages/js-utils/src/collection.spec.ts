@@ -14,7 +14,7 @@ interface Goat {
 
 const goats = [
   { name: 'Johnny', age: 20, breed: { family: 'The Goat`s', members: 60 } },
-  { name: 'Michael', age: 40, breed: { family: 'The Goatee`s', members: 30 } }
+  { name: 'Michael', age: 40, breed: { family: 'The Goatee`s', members: 30 } },
 ]
 
 const Goats = Collection.collect<Goat>(goats)
@@ -51,7 +51,7 @@ it('Chunk - Should devide in smaller arrays', () => {
 it('Collapse - Should deChunk a chunked array', () => {
   const collapsed = Collection.collect([
     [1, 2, 3, 4],
-    [5, 6, 7]
+    [5, 6, 7],
   ])
     .collapse()
     .get()
@@ -63,8 +63,8 @@ it('Concat - Should return both arrays', () => {
     {
       name: 'Michael Jr',
       age: 40,
-      breed: { family: 'The Goatee`s', members: 30 }
-    }
+      breed: { family: 'The Goatee`s', members: 30 },
+    },
   ]).get()
 
   expect(concatenated[2].name).toBe('Michael Jr')
@@ -74,35 +74,35 @@ it('Contains - Should verify presence of', () => {
   expect(Goats.contains({ value: 'Johnny', path: k => k.name })).toBe(true)
   expect(Goats.contains({ value: 'Johnny 2', path: k => k.name })).toBe(false)
   expect(
-    Goats.contains({ value: 'The Goatee`s', path: k => k.breed.family })
+    Goats.contains({ value: 'The Goatee`s', path: k => k.breed.family }),
   ).toBe(true)
 
   expect(
     Goats.contains({
-      Fx: goat => goat.age === 30
-    })
+      Fx: goat => goat.age === 30,
+    }),
   ).toBe(false)
 
   expect(Collection.collect([1, 10, 11]).contains({ value: 12 })).toBe(false)
   expect(Collection.collect([1, 10, 11]).contains({ value: 10 })).toBe(true)
 
   expect(Collection.collect(['A', 'B', 'C']).contains({ value: 'C' })).toBe(
-    true
+    true,
   )
   expect(Collection.collect(['A', 'B', 'C']).contains({ value: 'E' })).toBe(
-    false
+    false,
   )
 
   expect(
     Collection.collect(['A', 'B', 'C']).contains({
-      Fx: element => element === 'D'
-    })
+      Fx: element => element === 'D',
+    }),
   ).toBe(false)
 
   expect(
     Collection.collect(['A', 'B', 'C']).contains({
-      Fx: element => element === 'A'
-    })
+      Fx: element => element === 'A',
+    }),
   ).toBe(true)
 })
 
@@ -183,7 +183,7 @@ describe('Combine', () => {
     const combined = collection.combine(values)
 
     expect(combined.get()).toEqual([
-      { user1: { name: 'John' }, user2: { name: 'Jane' } }
+      { user1: { name: 'John' }, user2: { name: 'Jane' } },
     ])
   })
 
@@ -192,14 +192,14 @@ describe('Combine', () => {
     const keys = ['numbers', 'letters']
     const values = [
       [1, 2, 3],
-      ['a', 'b', 'c']
+      ['a', 'b', 'c'],
     ]
 
     const collection = new Collection(keys)
     const combined = collection.combine(values)
 
     expect(combined.get()).toEqual([
-      { numbers: [1, 2, 3], letters: ['a', 'b', 'c'] }
+      { numbers: [1, 2, 3], letters: ['a', 'b', 'c'] },
     ])
   })
 
@@ -228,8 +228,8 @@ describe('Combine', () => {
         null: null,
         undefined: undefined,
         boolean: true,
-        number: 42
-      }
+        number: 42,
+      },
     ])
   })
 
@@ -290,7 +290,7 @@ describe('Collection.concat', () => {
 
     expect(concatenated.get()).toEqual([
       [1, 2],
-      [3, 4]
+      [3, 4],
     ])
   })
 
@@ -314,7 +314,7 @@ describe('Collection.concat', () => {
 
     expect(concatenated.get()).toEqual([
       { name: 'John Doe' },
-      { name: 'Jane Doe' }
+      { name: 'Jane Doe' },
     ])
   })
 
@@ -326,7 +326,7 @@ describe('Collection.concat', () => {
       'John Doe',
       42,
       true,
-      { name: 'Jane Doe' }
+      { name: 'Jane Doe' },
     ])
   })
 })
@@ -342,7 +342,7 @@ describe('Collection.countBy', () => {
     const collection = new Collection([
       'alice@gmail.com',
       'bob@yahoo.com',
-      'carlos@gmail.com'
+      'carlos@gmail.com',
     ])
     const counted = collection.countBy(email => email.split('@')[1])
     expect(counted.get()).toEqual([{ 'gmail.com': 2, 'yahoo.com': 1 }])
@@ -352,7 +352,7 @@ describe('Collection.countBy', () => {
     const collection = new Collection([
       { type: 'apple' },
       { type: 'orange' },
-      { type: 'apple' }
+      { type: 'apple' },
     ])
     const counted = collection.countBy(item => item.type)
     expect(counted.get()).toEqual([{ apple: 2, orange: 1 }])
@@ -374,7 +374,7 @@ describe('Collection.crossJoin', () => {
       [1, 'a'],
       [1, 'b'],
       [2, 'a'],
-      [2, 'b']
+      [2, 'b'],
     ])
   })
 
@@ -390,7 +390,7 @@ describe('Collection.crossJoin', () => {
       [2, 'a', 'I'],
       [2, 'a', 'II'],
       [2, 'b', 'I'],
-      [2, 'b', 'II']
+      [2, 'b', 'II'],
     ])
   })
 

@@ -5,7 +5,7 @@ import { getOrCreateDashboard } from './actions/dashboards/getOrCreateDashboard'
 import { createGroup } from './actions/groups/createGroup'
 import {
   disableAllDatabaseAccess,
-  disableAllUsersGroupDatabaseAccess
+  disableAllUsersGroupDatabaseAccess,
 } from './actions/groups/disableAllDatabaseAccess'
 import { getOrCreateGroup } from './actions/groups/getOrCreateGroup'
 import { grantDatabaseAccessByPrefix } from './actions/groups/grantDatabaseAccessByPrefix'
@@ -71,7 +71,7 @@ export class MetabaseApi {
   constructor({
     sessionToken,
     apiKey,
-    baseUrl
+    baseUrl,
   }: {
     sessionToken?: string
     apiKey?: string
@@ -106,7 +106,7 @@ export class MetabaseApi {
       enableActionsInDatasource: this.withCtx(enableActionsInDatasource),
       createApiKey: this.withCtx(createApiKey),
       getEmbeddingSecretKey: this.withCtx(getEmbeddingSecretKey),
-      disableTracking: this.withCtx(disableTracking)
+      disableTracking: this.withCtx(disableTracking),
     }
   }
 
@@ -117,7 +117,7 @@ export class MetabaseApi {
     return {
       getOrCreate: this.withCtx(getOrCreateCollection),
       delete: this.withCtx(deleteCollection),
-      deleteAll: this.withCtx(deleteAllCollections)
+      deleteAll: this.withCtx(deleteAllCollections),
     }
   }
 
@@ -127,7 +127,7 @@ export class MetabaseApi {
   get questions() {
     return {
       getOrCreate: this.withCtx(getOrCreateQuestion),
-      getOrCreateAccounts: this.withCtx(getOrCreateAccountsQuestion)
+      getOrCreateAccounts: this.withCtx(getOrCreateAccountsQuestion),
     }
   }
 
@@ -136,7 +136,7 @@ export class MetabaseApi {
    */
   get dashboards() {
     return {
-      getOrCreate: this.withCtx(getOrCreateDashboard)
+      getOrCreate: this.withCtx(getOrCreateDashboard),
     }
   }
 
@@ -150,13 +150,13 @@ export class MetabaseApi {
       list: this.withCtx(listGroups),
       disableAllDatabaseAccess: this.withCtx(disableAllDatabaseAccess),
       disableAllUsersGroupDatabaseAccess: this.withCtx(
-        disableAllUsersGroupDatabaseAccess
+        disableAllUsersGroupDatabaseAccess,
       ),
       grantDatabaseAccessByPrefix: this.withCtx(grantDatabaseAccessByPrefix),
       setDatabasePermissionsForGroup: this.withCtx(
-        setDatabasePermissionsForGroup
+        setDatabasePermissionsForGroup,
       ),
-      updatePermissions: this.withCtx(updateGroupPermissions)
+      updatePermissions: this.withCtx(updateGroupPermissions),
     }
   }
 }

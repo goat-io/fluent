@@ -26,7 +26,7 @@ export interface PipelineOptions {
 
 export async function _pipeline(
   streams: AnyStream[],
-  opt: PipelineOptions = {}
+  opt: PipelineOptions = {},
 ): Promise<void> {
   // Early return for empty streams to avoid unnecessary processing
   if (!streams.length) {
@@ -112,7 +112,7 @@ export async function _pipeline(
 
 export async function _pipelineToArray<T>(
   streams: AnyStream[],
-  opt: PipelineOptions = {}
+  opt: PipelineOptions = {},
 ): Promise<T[]> {
   // Pre-allocate array with reasonable initial capacity to reduce reallocations
   const a: T[] = []

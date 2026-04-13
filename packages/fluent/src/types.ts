@@ -6,7 +6,7 @@ import {
   Paginator,
   Primitives,
   PrimitivesArray,
-  Unpacked
+  Unpacked,
 } from '@goatlab/js-utils'
 
 export {
@@ -17,7 +17,7 @@ export {
   Unpacked,
   PaginatedData,
   ExpandRecursively,
-  Paginator
+  Paginator,
 }
 
 export type QueryFieldSelector<T> = Partial<{
@@ -146,7 +146,7 @@ export type GetSelectedFromObject<T extends FluentQuery<Model>, Model> = {
 
 export type QueryOutput<
   T extends FluentQuery<Model>,
-  Model
+  Model,
 > = ExpandRecursively<
   T extends {
     select: T['select']
@@ -180,7 +180,7 @@ export enum LogicOperator {
   Contains = 'contains',
   ArrayContains = 'arrayContains',
   Exists = 'exists',
-  NotExists = 'notExists'
+  NotExists = 'notExists',
 }
 
 export type FluentHasManyRelatedAttribute<T> = Partial<{

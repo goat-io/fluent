@@ -1,457 +1,585 @@
-# Agent Handover Document
-
-## Goal & Current Progress
-
-### Primary Goal
-Implement a robust agent agreement system for Delphi that ensures reliable multi-agent consensus through structured protocols, bounded loops, and comprehensive safety mechanisms.
-
-### Session Summary (January 8, 2025)
-Successfully completed major refactoring to integrate model selection directly into agent builder methods and fixed all TypeScript compilation errors.
-
-### Current Progress (as of January 2025)
-✅ **Core Agreement System**
-- Implemented full agreement protocol with Zod validation
-- Created finite state machine (propose → critique → converge → commit)
-- Built SQLite-based blackboard for immutable fact storage
-- Added comprehensive risk guards and circuit breakers
-
-✅ **Production Improvements**
-- Fixed all type safety issues with proper generics
-- Implemented resource management with singleton pattern
-- Added structured logging with Pino
-- Created CLI with Commander.js
-- Implemented timeout protection at multiple levels
-
-✅ **Testing & Documentation**
-- Created comprehensive test suite (agreement.spec.ts)
-- Added 6 new test files for critical components
-- Written complete usage guide (AGREEMENT_USAGE.md)
-- Created presets for common scenarios
-
-✅ **Session Cleanup Implementation** (January 2025)
-- Resolved memory leak issue with configurable session cleanup
-- Added automatic and manual cleanup methods
-- Implemented retention policies and active session monitoring
-- Created test suite and documentation for cleanup features
-
-✅ **Flexible Model-to-Role Mapping System** (January 2025)
-- Created comprehensive model configuration system (model-config.ts)
-- Added support for 15+ AI models across 6 providers (OpenAI, Anthropic, Google, etc.)
-- **Integrated model selection directly into agent builder methods** - cleaner API
-- Model configuration now part of withProposer/withReviewer/withArbiter methods
-- Added predefined strategies for common scenarios (code-review, architecture-decision, etc.)
-- Created model-configuration.ts example demonstrating all patterns
-- Cleaned up old examples and simplified API surface
-
-## Recent Work Completed (Current Session - January 8, 2025)
-
-### 1. Model Integration Refactoring ✅
-- **What**: Integrated model selection directly into `withProposer()`, `withReviewer()`, `withArbiter()` methods
-- **Why**: Previous API required separate method calls for model configuration, making it verbose and confusing
-- **Result**: Cleaner API where all agent properties (role, model, expertise) are defined in one place
-- **Files Changed**: 
-  - `src/agreement/discussion-builder.ts` - Main refactoring
-  - `src/agreement/model-config.ts` - Model configuration system
-  - All examples updated to use new pattern
-
-### 2. TypeScript Build Fixes ✅
-- **What**: Fixed all 33 TypeScript compilation errors
-- **Issues Fixed**:
-  - Import paths missing `.js` extensions for ES modules
-  - `z.record()` calls missing second type parameter
-  - SqliteSaver vs SqliteCheckpointer class mismatch
-  - Type mismatches in LLM adapter and orchestrator
-  - OpenTelemetry version conflicts
-- **Result**: Project now builds successfully with `pnpm build`
-
-### 3. Module Reorganization ✅
-- **What**: Moved memory functions to checkpoint/sqlite.ts
-- **Why**: The memory.ts file was deleted but imports remained
-- **Files Updated**:
-  - `src/index.ts` - Updated exports
-  - `src/checkpoint/sqlite.ts` - Added missing functions
-  - All test files updated to new import paths
-
-### 4. Codebase Cleanup ✅
-- Removed duplicate files and examples
-- Consolidated documentation
-- Fixed lint errors with biome
-- Updated all import statements for consistency
-
-## Key Decisions & Assumptions
-
-### Architectural Decisions
-1. **SQLite for Blackboard**: Chose SQLite over Redis for simplicity and embedded deployment
-   - Assumption: Single-node deployment is sufficient
-   - Trade-off: Less scalable but simpler to deploy
-   - **HACK**: Using better-sqlite3 with synchronous operations - may block event loop
-
-2. **Zod for Validation**: Used Zod throughout for runtime type safety
-   - Reason: Better DX and runtime guarantees
-   - **SHORTCUT**: Using `z.record(z.string(), z.unknown())` instead of proper schemas in some places
-   - Alternative considered: io-ts (more functional but steeper learning curve)
-
-3. **Event-Driven State Machine**: Used EventEmitter for state transitions
-   - Benefit: Easy monitoring and debugging
-   - Trade-off: Some memory overhead from event listeners
-   - **ASSUMPTION**: All state transitions are synchronous
-
-4. **Model Configuration Integration**:
-   - **DECISION**: Embed model config in agent builder methods rather than separate methods
-   - **ASSUMPTION**: Users want to specify model when defining agent, not separately
-   - **TRADE-OFF**: Less flexibility for dynamic model switching, but cleaner API
-
-### Hacks & Shortcuts
-1. **Type Assertions Everywhere**: Used `as any` in multiple places to bypass TypeScript issues
-   - `src/checkpoint/sqlite.ts:34` - SqliteSaver constructor
-   - `src/graph.ts:470` - checkpointer.getTuple() call
-   - `src/utils/tracing.ts:59,70` - OpenTelemetry type mismatches
-   - `src/agreement/resource-manager.ts:21` - pino function call
-   - **TODO**: Properly type these once library types are fixed
-
-2. **Mock Functions in Tests**: Incomplete mock implementations
-   - `src/__tests__/integration/opencode.test.ts:265` - Hacky mock setup
-   - Using type casts to bypass vitest type checking
-   - **TODO**: Create proper mock factories
-
-3. **Placeholder Functions**: Added stub functions for backward compatibility
-   - `src/checkpoint/sqlite.ts:81-96` - cleanupOldCheckpoints, cleanupDatabase, performMaintenance
-   - These don't actually do anything, just prevent import errors
-   - **TODO**: Implement actual functionality or remove dependencies
-
-4. **Hardcoded Token Limits**: Using fixed 2000 tokens per turn
-   - Should be: Dynamic based on model capabilities
-   - Workaround: Can override via configuration
-
-5. **Simple Jaccard Similarity**: Basic text similarity for cycle detection
-   - Location: `risk-guard.ts:calculateJaccardSimilarity()`
-   - Better approach: Semantic similarity with embeddings
-
-## Open Issues & TODOs
-
-### 🔴 Critical Issues
-
-### ✅ RESOLVED - Issue 1: Memory Leak in Long-Running Sessions
-**5 Why Analysis:**
-1. Why? Blackboard accumulates facts without cleanup
-2. Why? No automatic pruning of old sessions
-3. Why? Design assumption was short-lived processes
-4. Why? Initial requirements didn't specify long-running deployments
-5. Why? Focused on correctness over resource management
-
-**Solution Implemented**: 
-- Added `SessionCleanupConfig` interface with retention settings
-- Implemented `cleanupOldSessions()` method with configurable retention days
-- Added automatic cleanup interval support
-- Created `cleanupSession()` for targeted cleanup
-- Added `getActiveSessions()` to monitor session activity
-- Updated orchestrator to accept cleanup configuration
-- Created comprehensive test suite for cleanup functionality
-- Added example showing cleanup usage (agreement-with-cleanup.ts)
-
-### Issue 1: Test Failures in Agreement System
-**5 Why Analysis:**
-1. Why are tests failing? RiskGuard.checkTimeouts gets undefined config
-2. Why is config undefined? AgreementContext not properly initialized in tests
-3. Why not initialized? Test setup doesn't match production usage
-4. Why different? Tests were written before API changes
-5. Why not updated? Focused on fixing build errors first
-
-**Solution**: Update test fixtures to properly initialize AgreementContext with config
-**File**: `tests/agreement.spec.ts:312`
-
-### Issue 2: OpenTelemetry Type Conflicts
-**5 Why Analysis:**
-1. Why type conflicts? Multiple versions of OpenTelemetry packages
-2. Why multiple versions? Different packages depend on different versions
-3. Why not aligned? Package.json doesn't pin exact versions
-4. Why not pinned? Following semver for flexibility
-5. Why problematic? OpenTelemetry has breaking changes between minor versions
-
-**Solution**: Pin all OpenTelemetry packages to exact same version
-**Current Workaround**: Using `as any` type assertions
-**Files**: `src/utils/tracing.ts:59,70`
-
-### Issue 3: No Distributed Consensus Support
-**5 Why Analysis:**
-1. Why? Using local SQLite for storage
-2. Why? Simplified initial implementation
-3. Why? No requirement for distributed deployment
-4. Why? Assumed single-node Delphi instances
-5. Why? Prioritized rapid development over scalability
-
-**Solution**: Add Redis adapter option for distributed deployments
-**Blocker**: Need to abstract Blackboard interface first
-
-### Issue 4: Limited LLM Provider Support
-**5 Why Analysis:**
-1. Why? Only supports Vercel AI SDK providers
-2. Why? Fastest integration path
-3. Why? Vercel AI SDK has good abstractions
-4. Why? Time constraints on implementation
-5. Why? Focused on core agreement logic first
-
-**Solution**: Add direct provider integrations (e.g., direct OpenAI client)
-
-### Issue 5: No Partial Consensus Handling
-**5 Why Analysis:**
-1. Why? Binary approve/reject voting only
-2. Why? Simplified consensus calculation
-3. Why? Easier to reason about outcomes
-4. Why? MVP requirements were binary decisions
-5. Why? Complex consensus algorithms add significant complexity
-
-**Solution**: Implement weighted multi-criteria decision making
-
-### Issue 6: Incomplete Memory Module Migration
-**5 Why Analysis:**
-1. Why incomplete? memory.ts was deleted but functions still referenced
-2. Why deleted? Functionality moved to checkpoint/sqlite.ts
-3. Why still referenced? Import statements not updated everywhere
-4. Why not caught? TypeScript build was already failing
-5. Why not systematic? No migration plan documented
-
-**Solution**: Either implement the stub functions or remove all references
-**Files with stubs**: `src/checkpoint/sqlite.ts:81-96`
-
-## Relevant Files & Code Sections
-
-### Core Implementation
-- `/src/agreement/protocol.ts` - Message schemas and types
-- `/src/agreement/state-machine.ts` - FSM implementation
-- `/src/agreement/blackboard.ts` - Fact storage with session cleanup
-- `/src/agreement/orchestrator.ts` - Main coordinator
-- `/src/agreement/risk-guard.ts` - Safety mechanisms
-- `/src/agreement/model-config.ts` - Model configuration and mapping system
-- `/src/agreement/discussion-builder.ts` - Enhanced with model configuration
-
-### Key Integration Points
-- `/src/agreement/index.ts:85-130` - LangGraph integration
-- `/src/agreement/discussion-builder.ts:152-191` - New integrated model configuration in agent builders
-- `/src/agreement/discussion-builder.ts:302-307` - Model type conversion for session config
-- `/src/agreement/discussion-builder.ts:425-427` - Hack for detecting small models
-- `/src/agreement/resource-manager.ts:21` - Pino logger initialization with type cast
-- `/src/checkpoint/sqlite.ts:30-34` - SqliteSaver initialization hack
-- `/src/graph.ts:470` - Checkpointer getTuple() method access
-
-### Tests & Examples
-- `/tests/agreement.spec.ts` - Comprehensive test suite
-- `/tests/blackboard-cleanup.spec.ts` - Session cleanup test suite
-- `/examples/agreement-pipeline.ts` - Production pipeline with LangGraph integration
-- `/examples/agreement-with-cleanup.ts` - Session cleanup example
-- `/examples/model-configuration.ts` - Model configuration patterns
-- `/docs/AGREEMENT_USAGE.md` - Complete usage guide
-
-### Configuration
-- Default timeout: 90 seconds (configurable)
-- Default consensus threshold: 66% (2/3 majority)
-- Token budget: 2000 per turn
-- Max turns: 5 (hard limit: 10)
-
-## Current State Summary
-
-### What's Working Well ✅
-1. **Build System** - TypeScript compilation now succeeds without errors
-2. **Model Configuration** - Clean, integrated API for multi-model discussions
-3. **Agreement Protocol** - Robust FSM with safety mechanisms
-4. **Import Structure** - All ES module imports properly use .js extensions
-5. **Examples** - Updated to use new integrated API patterns
-
-### What Needs Attention ⚠️
-1. **Test Suite** - Several tests failing due to API changes
-2. **Type Safety** - Multiple `as any` casts that should be properly typed
-3. **Stub Functions** - Placeholder implementations that do nothing
-4. **Distributed Consensus** - Still single-node only (Redis adapter needed)
-5. **Direct Provider Integration** - Currently depends on Vercel AI SDK
-6. **Library Version Conflicts** - OpenTelemetry and other dependencies have version mismatches
-
-## Possible Next Focus Points
-
-### Immediate Priorities (Fix Breaking Issues)
-
-1. **Fix Failing Tests**:
-   - Update test fixtures in `tests/agreement.spec.ts`
-   - Fix RiskGuard context initialization
-   - Update mocks to match new API
-   - Expected effort: 2-3 hours
-
-2. **Remove Type Assertions**:
-   - Properly type OpenTelemetry integrations
-   - Fix pino import types
-   - Create proper TypeScript declarations
-   - Expected effort: 3-4 hours
-
-3. **Implement Stub Functions**:
-   - Either implement cleanupOldCheckpoints, cleanupDatabase, performMaintenance
-   - Or remove all references and update documentation
-   - Expected effort: 2 hours
-
-### Next Phase (Enhancement)
-1. **Performance Optimization**:
-   - Implement streaming for large discussions
-- Add result caching for repeated queries
-- Optimize SQLite queries with better indices
-- Profile and reduce memory usage
-
-2. **Enhanced Monitoring**
-- Add Prometheus metrics export
-- Implement distributed tracing with Jaeger
-- Create Grafana dashboards
-- Add health check endpoints
-
-3. **Advanced Consensus**
-- Implement Byzantine fault tolerance
-- Add multi-criteria decision analysis
-- Support partial agreement with minority reports
-- Implement consensus explanation generation
-
-4. **Scalability**
-- Add Redis blackboard adapter
-- Implement distributed state machine
-- Support horizontal scaling
-- Add message queue integration
-
-5. **Developer Experience**
-- Create VSCode extension for discussion debugging
-- Add playground UI for testing discussions
-- Implement discussion replay from blackboard
-- Create discussion templates marketplace
-
-## Time-Saving Tips for Next Agent
-
-### Known Working States
-- `pnpm build` - Now works without errors
-- `pnpm lint` - Use biome for formatting
-- Most examples run successfully
-- Integration with LangGraph works
-
-### Quick Commands
-```bash
-# Run all agreement tests
-npx vitest run tests/agreement.spec.ts
-
-# Run cleanup tests
-npx vitest run tests/blackboard-cleanup.spec.ts
-
-# Test production pipeline
-npx tsx examples/agreement-pipeline.ts review
-
-# Test cleanup example
-npx tsx examples/agreement-with-cleanup.ts
-
-# Test model configuration examples
-npx tsx examples/model-configuration.ts simple    # Simple string-based
-npx tsx examples/model-configuration.ts custom    # Custom configurations
-npx tsx examples/model-configuration.ts mixed     # Mixed approach
-npx tsx examples/model-configuration.ts cost      # Cost-optimized
-npx tsx examples/model-configuration.ts highstakes # High-stakes config
-
-# Quick code review discussion
-npx tsx examples/agreement-pipeline.ts review --goal "Review PR #123"
-
-# Check for type errors
-npx tsc --noEmit
-
-# Run with debug logging
-LOG_LEVEL=debug npx tsx examples/agreement-integration-fixed.ts
+# Agent Handover — Goat Agents SDLC Workflow Platform
+
+## Goal
+
+Build a distributed, event-driven, multi-agent workflow execution system ("Temporal-lite for AI agents") with:
+- Visual workflow editing (UI + JSON round-trip)
+- Iterative execution (nextStep loops without DAG cycles)
+- Typed integrations (GitHub/Linear/Slack) + reusable AI skills
+- Distributed worker nodes with zero-config onboarding
+- External event ingestion (webhooks, triggers, async human input)
+- Exactly-once side effects, snapshot-based execution, COPY FROM bulk inserts
+
+## Current Progress — ALL GREEN
+
+Branch: `worktree-delegated-growing-puppy` | Last commit: `1efe4df`
+
+| Package | Tests | Status |
+|---------|-------|--------|
+| agents-core | **277** vitest (22 files) | ✅ All pass |
+| agents-ai | **63** vitest (5 files) | ✅ All pass |
+| agents-langgraph | **15** | ✅ All pass |
+| agents-sandbox | **30+** | ✅ All pass |
+| agents-ui | **12** Playwright | ✅ All pass + type-checks clean |
+
+**Total: 397+ tests + k6 load tests**
+
+### Performance (single CPU, testcontainer Postgres 18)
+- COPY FROM batch: **2,500-6,500 wf/sec** (100/batch)
+- Batch INSERT: **~1,800 wf/sec** (50/batch)
+- Single INSERT: **~1,000 wf/sec**
+- 0% error rate on isolated scenarios
+
+## Architecture Summary
+
+### Engine (`agents-core/src/engine/`)
+- **WorkflowEngine.ts** — Core orchestrator. DAG execution, step chaining via `onStepCompleted()`, nextStep runtime loops, 4-queue dispatch (light/heavy/ai/sandbox), per-workflow concurrency fairness.
+- **ExternalActionExecutor.ts** — Exactly-once side effects. Two-phase commit (pending→completing→completed). Idempotency key includes sha256(payload). Pluggable RateLimiterBackend (InMemory or Redis with Lua scripts).
+- **WorkflowMetrics.ts** — Step/action latency, p50/p95/p99, cost aggregation.
+- **StepCostTracker.ts** — Interceptor extracting `_usage` from step output → persists tokensUsed/costUsd/modelUsed.
+- **ExternalActionEnforcer.ts** — Interceptor warning/throwing when steps bypass ExternalAction.
+- **RateLimiterBackend.ts** — InMemory + Redis (atomic Lua scripts for sliding window).
+
+### Events (`agents-core/src/events/`)
+- **EventIngestion.ts** — Idempotent event storage, dead letter queue, replay. Auto-processes triggers. Bridges `human.response` events to `submitHumanInput()`. Event ordering via entityKey+sequenceNumber (last-write-wins).
+- **WebhookVerifier.ts** — HMAC-SHA256 verification (GitHub format support).
+
+### Integrations (`agents-core/src/integrations/`)
+- **IntegrationRegistry** + **createIntegrationAction()** factory wrapping ExternalAction.
+- Typed: GitHub (create_pr, create_issue, add_comment, merge_pr), Linear (create_issue, update_issue, add_comment), Slack (send_message, update_message).
+
+### Skills (`agents-core/src/skills/`)
+- **SkillRegistry** with `toToolDefinitions()` (OpenAI-compatible format).
+- Built-in: webSearchSkill, codeExecutionSkill.
+- AIStepExecutor has tool-call loop: LLM → tool_call → skill.execute → iterate (maxTurns + maxTokenBudget).
+
+### Workers (`agents-core/src/worker/`)
+- **WorkerNode.ts** — detectResources(), getQueueSubscriptions(), start()/stop(), heartbeat, queue-depth-aware scaling.
+- **cli.ts** — `node worker/cli.js start` with env-based config.
+- **WorkerProvisioner.ts** — Interface + LocalWorkerProvisioner.
+- **Worker onboarding UI** — "Add Worker" button generates token + copyable command (like GitHub Actions runner).
+
+### UI (`agents-ui/src/`)
+- **Dashboard** — Status cards, workflow list, MetricsPanel (percentiles + bar charts).
+- **WorkflowRun** — React Flow DAG visualization, StepDetailPanel with I/O/logs/retries/container tabs.
+- **WorkflowDesigner** — Visual editor: StepPalette (drag-drop), StepConfigPanel, EditorToolbar (validate/export/import JSON), dagre auto-layout.
+- **Workers** — Monitoring page with capabilities, heartbeat, queue pills, "Add Worker" modal.
+
+### Database (9 tables, Kysely/Postgres 18)
+workflow_runs, workflow_steps, workflow_step_logs, workflow_signals, external_actions, workflow_events, workflow_event_subscriptions, worker_nodes, workflow_definitions
+
+### Performance Optimizations
+- **COPY FROM** for bulk inserts (startBatchCopy, flushLogs) — 6x faster than INSERT
+- **Fast-path initial dispatch** — root steps inserted as QUEUED, skip dispatchReadySteps SELECT
+- **Log buffering** — 50ms/50 items flush (Hatchet pattern)
+- **Connection pool ~20** (Hatchet recommendation — fewer = less lock contention)
+- Postgres tuning: synchronous_commit=off, fsync=off, shared_buffers=256MB (test only)
+
+## Key Decisions
+
+1. **Kysely over TypeORM** — 5-8x faster, plain TS interfaces, no reflection
+2. **4-queue BullMQ** — light/heavy/ai/sandbox via StepWeight, different concurrency per queue
+3. **ExternalAction two-phase commit** — pending→completing→completed prevents duplicate side effects on crash
+4. **Idempotency key = hash(payload)** — prevents collision when same step calls same actionType with different payloads
+5. **COPY FROM for bulk writes** — Hatchet-inspired, bypasses SQL planner, single lock acquisition
+6. **Event ordering = last-write-wins** — entityKey+sequenceNumber, stale events marked skipped_stale
+7. **nextStep = runtime loop** — No DAG cycles, iterationCount+maxIterations enforced at engine level
+8. **Skills as pure functions** — SkillRegistry.toToolDefinitions() → OpenAI format, AIStepExecutor runs tool-call loop
+9. **Worker onboarding via token** — generateWorkerToken() → copyable command, like GitHub Actions
+
+## Open Issues / TODOs
+
+### 1. Warm Sandbox Pools (Performance)
+**Problem:** Each sandbox step creates a new Docker container — cold start overhead.
+- **Why slow?** Container creation + image pull + setup commands run every time
+- **Why no pool?** Initial design assumed ephemeral containers
+- **Why ephemeral?** Security isolation per execution
+- **Why per-execution?** Prevents state leakage between steps
+- **Why important now?** Production workloads need <1s sandbox start
+- **Fix:** Pre-warm container pool with ready-to-use containers, recycle after cleanup
+
+### 2. COPY FROM Column Fragility (Technical Debt)
+**Problem:** The COPY FROM implementation in startBatchCopy() hardcodes column order as tab-delimited strings. Any schema change breaks it silently.
+- **Why hardcoded?** pg-copy-streams requires exact column list matching data order
+- **Why not dynamic?** COPY FROM doesn't support parameterized queries
+- **Why risky?** Adding a column to workflow_steps requires updating 3 places (interface, CREATE_TABLES_SQL, COPY string)
+- **Why not caught?** No compile-time check on COPY column order
+- **Why important?** Schema will evolve — migrations will break COPY silently
+- **Fix:** Generate COPY column list from TypeScript interface keys, or add integration test that validates column order matches schema
+
+### 3. CLI Worker Needs Real Postgres Connection (Deployment)
+**Problem:** `src/worker/cli.ts` requires AGENTS_POSTGRES_URL to create a WorkflowEngine locally. Workers need DB access to mark steps running/completed.
+- **Why needs DB?** WorkflowStepTask.handle() calls engine.markStepRunning() and engine.onStepCompleted()
+- **Why not HTTP?** Engine callbacks are synchronous within the step handler
+- **Why problematic?** Every worker machine needs Postgres credentials — security concern
+- **Why matters?** Zero-config onboarding promise broken if worker needs DB URL
+- **Why not fixed?** Would need engine-server architecture where workers call back via HTTP
+- **Fix:** Add HTTP callback mode where worker POSTs step results to engine API instead of writing DB directly
+
+### 4. Event Auto-Processing Performance (Scale)
+**Problem:** Every `ingest()` call auto-runs `processEvent()` which does 3-4 DB queries (SELECT event, SELECT subscriptions, scan triggers, UPDATE status).
+- **Why auto-process?** Ensures triggers fire immediately on event arrival
+- **Why slow?** Each event = 5+ DB queries total (insert + process)
+- **Why not batched?** Events arrive individually via webhooks
+- **Why matters?** At 10k events/sec, processEvent becomes the bottleneck
+- **Why not deferred?** Would add latency to trigger-based workflow starts
+- **Fix:** `skipAutoProcess: true` config exists. Add background processor that batch-processes pending events.
+
+### 5. Playwright E2E Tests Need Test Server (CI)
+**Problem:** Playwright tests require testcontainers (Postgres + Redis) which need Docker in CI.
+- **Why Docker?** Testcontainers spin up real Postgres/Redis for integration testing
+- **Why not mock?** Tests validate real DB queries and BullMQ behavior
+- **Why CI issue?** GitHub Actions needs Docker-in-Docker or service containers
+- **Why not already configured?** No CI pipeline set up for agents packages yet
+- **Fix:** Add GitHub Actions workflow with `services: postgres, redis` or Docker-in-Docker
+
+## Key Files
+
+```
+packages/agents-core/
+  src/engine/WorkflowEngine.ts              ← Core orchestrator (nextStep, COPY FROM, 4-queue)
+  src/engine/ExternalActionExecutor.ts      ← Exactly-once (two-phase, hash idempotency)
+  src/engine/RateLimiterBackend.ts          ← InMemory + Redis Lua
+  src/engine/WorkflowMetrics.ts             ← Latency + cost observability
+  src/engine/StepCostTracker.ts             ← Token/cost interceptor
+  src/engine/ExternalActionEnforcer.ts      ← Bypass detection interceptor
+  src/entities/Database.ts                  ← 9 tables + CREATE_TABLES_SQL
+  src/events/EventIngestion.ts              ← Events + triggers + human bridge + ordering
+  src/events/WebhookVerifier.ts             ← HMAC-SHA256
+  src/integrations/                         ← GitHub/Linear/Slack typed wrappers
+  src/skills/                               ← SkillRegistry + builtins
+  src/worker/WorkerNode.ts                  ← Resource detection + queue subscription
+  src/worker/cli.ts                         ← CLI entry point
+  src/api/WorkflowHandlers.ts              ← 20+ API handlers
+  loadtest/k6-workflow.js                   ← k6 load test script
+
+packages/agents-ai/
+  src/executors/AIStepExecutor.ts           ← Tool-call loop (maxTurns + maxTokenBudget)
+
+packages/agents-sandbox/
+  src/container/ContainerManager.ts         ← NetworkMode:none + allowedDomains iptables
+
+packages/agents-ui/
+  src/components/workflow-editor/           ← Visual editor (7 files)
+  src/components/metrics/                   ← MetricsPanel + StepMetricsTab
+  src/pages/Workers.tsx                     ← Worker monitoring + "Add Worker" modal
+  src/pages/WorkflowDesigner.tsx            ← Designer page
+  example/start.ts                          ← Full runnable example (3 workflows + worker)
+  test-server/server.ts                     ← E2E test backend
+  e2e/workflow-editor.spec.ts              ← 12 Playwright tests
 ```
 
-### Common Gotchas
-1. **Import Paths**: All relative imports must use `.js` extension for ES modules
-2. **Zod Records**: Must use `z.record(z.string(), z.unknown())` not `z.record(z.unknown())`
-3. **SqliteSaver**: Use `{ db: database }` not `{ dbPath: path }` in constructor
-4. **Type Assertions**: When you see `as any`, it's a hack that needs proper typing
-5. **Test Mocks**: Vitest mocks need careful type casting
-6. **Pino Import**: Use default import `import pino from 'pino'` not named import
-7. **Timeout Issues**: Increase `maxDurationMs` if agents are slow
-8. **Token Limits**: Some models return usage=undefined, add fallback
-9. **SQLite Locks**: Use WAL mode (already configured) for concurrency
-10. **Memory Leaks**: Configure session cleanup with `sessionCleanupConfig` for long-running processes
+## Tips for Next Agent
 
-### Performance Tips
-1. Cache LLM adapters using ResourceManager
-2. Reuse agents across discussions
-3. Use smaller models for simple decisions
-4. Batch related discussions
-5. Enable parallel agent execution
+- **Run tests:** `cd packages/agents-core && pnpm test` (NOT from root — avoids Mongo/MySQL containers)
+- **Exclude load test:** `npx vitest run --exclude="**/load-test*"` (load test can timeout)
+- **Build before test server:** `cd packages/agents-core && npx tsc` (test server imports from dist/)
+- **Start example:** `cd packages/agents-ui && npx tsx example/start.ts` then `VITE_API_URL=http://localhost:4444 npx vite --port 5173`
+- **Workers listen on 4 queues:** workflow_step_light, workflow_step_heavy, workflow_step_ai, workflow_step_sandbox
+- **disableLogBuffering: true** in tests (async flush breaks log assertions)
+- **fileParallelism: false** — tests share Postgres
+- **Cost tracking:** step output `_usage: { tokens, costUsd?, model? }` → persisted by StepCostTracker
+- **COPY FROM requires pgPool:** pass raw pg.Pool in engine config for bulk insert performance
+- **Connection pool ~20** — Hatchet says more = lock contention
+- **Postgres 18** in all testcontainers
+- **pg 8.20.0** npm client
+- **k6 uses ES5** — no optional chaining, no numeric separators, no `catch {}` without param
 
-### Model Configuration Tips
-1. **Integrated approach**: Specify model directly in agent definition:
-   ```typescript
-   .withProposer({ id: 'architect', model: 'claude-opus-4.1', expertise: [...] })
-   ```
-2. **Use strategies**: Pre-configured for common scenarios (`useStrategy('code-review')`)
-3. **Mix models**: Different models for different roles in same discussion
-4. **Custom parameters**: Pass full config object for fine control:
-   ```typescript
-   .withReviewer({ 
-     id: 'expert',
-     model: { provider: 'openai', model: 'gpt-4o', temperature: 0.7 }
-   })
-   ```
-5. **Cost optimization**: Use cheaper models for simple tasks (haiku, gpt-3.5-turbo, gemini-flash)
+---
 
-### Debugging Tips
-1. Enable Pino pretty printing for development
-2. Use `DEBUG=delphi:*` for detailed traces
-3. Query blackboard directly for session history
-4. Monitor circuit breaker states in risk guard
-5. Check `orchestrator.getMetrics()` for performance data
-6. If build fails, check for missing `.js` extensions first
-7. For type errors, try adding `as any` temporarily to isolate issue
-8. Use `npx tsc --noEmit` to check types without building
+## Incremental Architecture Addendum — Tasks + Scheduler + Trace
 
-### Testing Tips
-1. Use mock agents for unit tests
-2. Set short timeouts (1-2s) for fast tests
-3. Use in-memory SQLite for test blackboard
-4. Stub LLM responses for deterministic tests
-5. Test edge cases: timeouts, cycles, split votes
+### Context
 
-## Critical Warnings
+The platform needs 7 new primitives to unlock autonomous parallel execution:
+task system (fan-out), scheduler (cron), trace propagation (lineage), aggregation (reduce),
+task-aware executor, shared state, and budget guardrails. All built on existing patterns —
+no redesign of current components.
 
-⚠️ **Type Safety Compromised**: Multiple `as any` casts throughout codebase
-⚠️ **Stub Functions**: Some exported functions do nothing (cleanupOldCheckpoints, etc.)
-⚠️ **Test Suite Broken**: Agreement tests have failures that need fixing
-⚠️ **Version Conflicts**: OpenTelemetry packages have incompatible versions
-⚠️ **Resource Cleanup**: Always close orchestrators and blackboards
-⚠️ **Token Costs**: Monitor usage, especially with GPT-4
-⚠️ **Database Growth**: Cleanup is now implemented but must be configured
-⚠️ **Memory Usage**: Long discussions can consume significant RAM
-⚠️ **Concurrent Modifications**: Blackboard is append-only by design
+### Phase Dependency Graph
 
-## Immediate Next Steps for Next Agent
+```
+Phase 1 (Tasks table + CRUD) ─────────────────────────────────┐
+Phase 2 (Task fetching with locking) ──────────────────────────┤
+Phase 3 (task_runner executor) ── depends on 1+2 ──────────────┤
+Phase 4 (Aggregation + shared state) ── depends on 1 ──────────┤
+Phase 5 (Scheduler/cron) ── independent ───────────────────────┤
+Phase 6 (Trace propagation) ── independent ────────────────────┤
+Phase 7 (Budget guardrails) ── depends on 3 ───────────────────┘
+```
 
-### Priority 0: Fix Breaking Issues
-1. **Fix failing tests** in `tests/agreement.spec.ts`
-   - Initialize AgreementContext properly with config
-   - Update test fixtures to match new API
-2. **Remove or implement stub functions** in `src/checkpoint/sqlite.ts`
-3. **Fix OpenTelemetry types** instead of using `as any`
+Phases 1-2 are sequential. Phases 3-4 depend on 1-2. Phases 5-6 are independent.
+Phase 7 depends on 3. Maximum parallelism: phases 3+4+5+6 can run together.
 
-### Priority 1: Redis Adapter for Distributed Consensus
-- Create Redis-based blackboard implementation
-- Implement distributed state synchronization
-- Add leader election for orchestrator
-- Test multi-node deployment scenarios
+---
 
-### Priority 2: Direct Provider Integration
-- Add direct OpenAI client support
-- Add direct Anthropic client support
-- Remove dependency on Vercel AI SDK for core functionality
-- Keep Vercel AI SDK as optional adapter
+### Phase 1: Task Table + CRUD
 
-### Priority 3: Weighted Multi-Criteria Decision Making
-- Extend voting system beyond binary approve/reject
-- Implement weighted criteria evaluation
-- Add support for partial consensus with minority reports
-- Create decision explanation generation
+**Goal:** Add `workflow_tasks` as first-class dynamic execution units.
 
-### Quick Wins
-1. Fix the 8 failing tests in agreement.spec.ts
-2. Remove all `as any` type assertions
-3. Pin OpenTelemetry versions to resolve conflicts
-4. Add GitHub Actions for automated testing
-5. Create Docker compose for development environment
-6. Add performance benchmarks for model configurations
-7. Document all the hacks and workarounds properly
+**Files to modify:**
+- `src/entities/Database.ts` — Add WorkflowTaskTable interface + CREATE TABLE SQL
+- `src/engine/TaskManager.ts` — NEW: createTasks(), getTasks(), getTask()
+- `src/index.ts` — Export TaskManager + types
+- `src/__tests__/engine/shared.ts` — Add workflow_tasks to truncateAll
+
+**Database schema:**
+```sql
+CREATE TABLE IF NOT EXISTS workflow_tasks (
+  id VARCHAR(36) PRIMARY KEY,
+  "workflowRunId" VARCHAR(36) NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+  "stepName" VARCHAR(255) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  payload TEXT,
+  result TEXT,
+  error TEXT,
+  attempt INTEGER NOT NULL DEFAULT 0,
+  "maxRetries" INTEGER NOT NULL DEFAULT 3,
+  priority INTEGER,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_tasks_run_step ON workflow_tasks("workflowRunId", "stepName", status);
+CREATE INDEX IF NOT EXISTS idx_tasks_status_priority ON workflow_tasks(status, priority DESC NULLS LAST);
+```
+
+**TaskManager API:**
+```typescript
+class TaskManager {
+  constructor(db: Kysely<Database>)
+  createTasks(runId: string, stepName: string, tasks: Array<{ payload: JsonObject; priority?: number; maxRetries?: number }>): Promise<string[]>
+  getTasks(runId: string, stepName: string): Promise<WorkflowTask[]>
+  getTask(taskId: string): Promise<WorkflowTask | null>
+  getTaskStats(runId: string, stepName: string): Promise<{ total: number; pending: number; running: number; completed: number; failed: number }>
+}
+```
+
+**Tests:** `src/__tests__/engine/tasks.spec.ts`
+- createTasks inserts N rows with correct status
+- getTasks returns all tasks for run+step
+- getTaskStats returns accurate counts
+
+---
+
+### Phase 2: Task Fetching with Locking
+
+**Goal:** Concurrency-safe task assignment — no double assignment under concurrent workers.
+
+**Files to modify:**
+- `src/engine/TaskManager.ts` — Add fetchNextTask(), markTaskRunning/Completed/Failed, retryTask()
+
+**Key method — `fetchNextTask()`:**
+```sql
+SELECT id, payload FROM workflow_tasks
+WHERE "workflowRunId" = $1 AND "stepName" = $2 AND status = 'pending'
+ORDER BY priority DESC NULLS LAST, "createdAt" ASC
+LIMIT 1
+FOR UPDATE SKIP LOCKED
+```
+Uses Postgres `FOR UPDATE SKIP LOCKED` — concurrent workers skip locked rows instead of blocking.
+This is the same pattern BullMQ uses internally.
+
+**Lifecycle methods:**
+```typescript
+fetchNextTask(runId: string, stepName: string): Promise<WorkflowTask | null>
+markTaskRunning(taskId: string): Promise<void>
+markTaskCompleted(taskId: string, result: JsonObject): Promise<void>
+markTaskFailed(taskId: string, error: string): Promise<void>
+retryTask(taskId: string): Promise<void>  // increments attempt, resets to pending
+```
+
+**Concurrency enforcement:**
+```typescript
+async checkTaskConcurrency(runId: string, maxConcurrent: number): Promise<boolean> {
+  // COUNT running tasks for this run — if >= max, return false
+}
+```
+
+**Tests:** Add to `tasks.spec.ts`
+- fetchNextTask returns highest priority pending task
+- fetchNextTask returns null when no pending tasks
+- Two concurrent fetches get different tasks (FOR UPDATE SKIP LOCKED)
+- markTaskCompleted stores result
+- markTaskFailed increments attempt
+- retryTask resets to pending (if attempt < maxRetries)
+- retryTask fails when maxRetries exceeded
+
+---
+
+### Phase 3: task_runner Executor
+
+**Goal:** New executor type that pulls and executes tasks in a loop.
+
+**Files to create:**
+- `src/steps/TaskRunnerExecutor.ts` — NEW
+
+**Files to modify:**
+- `src/workflow/WorkflowBuilder.types.ts` — Add 'task_runner' to executor types docs
+- `src/engine/WorkflowEngine.ts` — Wire TaskManager into engine, pass to StepExecutionContext
+- `src/workflow/WorkflowBuilder.types.ts` — Add `taskManager?: TaskManager` to StepExecutionContext
+- `src/index.ts` — Export TaskRunnerExecutor
+
+**TaskRunnerExecutor behavior:**
+```typescript
+class TaskRunnerExecutor implements StepExecutor {
+  readonly type = 'task_runner'
+  
+  async execute(payload: StepPayload, context?: StepExecutionContext): Promise<StepResult> {
+    const { taskManager } = context!
+    const maxConcurrent = payload.executorConfig.maxConcurrentTasks ?? 5
+    const innerExecutorType = payload.executorConfig.executor ?? 'function'
+    const innerExecutor = engine.getExecutor(innerExecutorType)
+    
+    while (true) {
+      // Check budget guardrails (Phase 7)
+      
+      // Fetch next task (concurrency-safe)
+      const task = await taskManager.fetchNextTask(payload.workflowRunId, payload.stepName)
+      if (!task) break  // No more tasks
+      
+      await taskManager.markTaskRunning(task.id)
+      
+      try {
+        const result = await innerExecutor.execute({
+          ...payload,
+          input: task.payload,
+        }, context)
+        
+        await taskManager.markTaskCompleted(task.id, result.output)
+      } catch (err) {
+        await taskManager.markTaskFailed(task.id, err.message)
+        if (task.attempt < task.maxRetries) {
+          await taskManager.retryTask(task.id)
+        }
+      }
+    }
+    
+    // Return summary
+    const stats = await taskManager.getTaskStats(payload.workflowRunId, payload.stepName)
+    return { output: { taskStats: stats } }
+  }
+}
+```
+
+**Config:**
+```typescript
+executorConfig: {
+  executor: 'function' | 'ai' | 'sandbox',  // inner executor
+  handler: 'my_handler',                      // passed to inner executor
+  maxConcurrentTasks: 5,
+}
+```
+
+**Tests:** `src/__tests__/engine/task-runner.spec.ts`
+- Executes all pending tasks for a step
+- Respects maxConcurrentTasks
+- Retries failed tasks up to maxRetries
+- Returns task stats summary
+- E2E: planner step creates tasks → task_runner processes them
+
+---
+
+### Phase 4: Aggregation + Shared State
+
+**Goal:** Allow steps to access all task results for a step (reduce phase).
+
+**Files to modify:**
+- `src/engine/TaskManager.ts` — Add getTaskResults()
+- `src/workflow/WorkflowBuilder.types.ts` — Extend StepContext with task access
+- `src/engine/WorkflowEngine.ts` — Populate task results in step context
+
+**Aggregation pattern:**
+```typescript
+// In StepContext (already exists for mapInput):
+interface StepContext {
+  workflowRunId: string
+  tenantId: string
+  completedOutputs: Record<string, JsonObject>
+  triggerInput: JsonObject
+  tasks?: Record<string, WorkflowTask[]>  // NEW: stepName → tasks with results
+}
+```
+
+**TaskManager.getTaskResults():**
+```typescript
+async getTaskResults(runId: string, stepName: string): Promise<Array<{ id: string; payload: JsonObject; result: JsonObject | null; status: string }>>
+```
+
+**Engine integration:**
+In `buildStepContext()`, populate `ctx.tasks` by querying completed tasks for upstream steps.
+
+**Tests:** Add to `tasks.spec.ts`
+- Aggregation step receives all task results from prior step
+- Results accessible via `upstreamOutputs.__tasks.stepName`
+
+---
+
+### Phase 5: Scheduler (Cron → Events)
+
+**Goal:** Durable, idempotent recurring triggers via cron expressions.
+
+**Files to create:**
+- `src/scheduler/SchedulerService.ts` — NEW
+- `src/scheduler/SchedulerService.types.ts` — NEW
+
+**Files to modify:**
+- `src/entities/Database.ts` — Add workflow_schedules table
+- `src/api/WorkflowHandlers.ts` — Add createSchedule, listSchedules, deleteSchedule handlers
+- `src/index.ts` — Export SchedulerService
+
+**Database schema:**
+```sql
+CREATE TABLE IF NOT EXISTS workflow_schedules (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  "workflowName" VARCHAR(255) NOT NULL,
+  "cronExpression" VARCHAR(100) NOT NULL,
+  "nextRunAt" TIMESTAMP NOT NULL,
+  "lastRunAt" TIMESTAMP,
+  active BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_schedules_next ON workflow_schedules(active, "nextRunAt");
+```
+
+**SchedulerService:**
+```typescript
+class SchedulerService {
+  constructor(config: { db, eventIngestion, pollIntervalMs?: number })
+  
+  start(): void  // starts polling timer
+  stop(): void
+  
+  async tick(): Promise<number>  // single poll cycle, returns count of triggers emitted
+  
+  async createSchedule(tenantId, workflowName, cronExpression): Promise<string>
+  async deleteSchedule(scheduleId): Promise<void>
+  async listSchedules(tenantId): Promise<WorkflowSchedule[]>
+}
+```
+
+**Execution model:**
+- Scheduler does NOT start workflows directly
+- Emits event: `eventType: 'cron.trigger'`, `payload: { workflowName, scheduledAt }`
+- Idempotency key: `cron:{workflowName}:{scheduledAt_ISO}`
+- Uses existing EventIngestionService → existing trigger matching → workflow starts
+- Cron parsing: use `cron-parser` npm package (lightweight, no deps)
+
+**tick() logic:**
+```sql
+SELECT * FROM workflow_schedules WHERE active = true AND "nextRunAt" <= NOW()
+FOR UPDATE SKIP LOCKED
+```
+For each due schedule:
+1. Emit cron.trigger event with idempotency key
+2. Calculate next run from cron expression
+3. UPDATE nextRunAt and lastRunAt
+
+**Tests:** `src/__tests__/engine/scheduler.spec.ts`
+- createSchedule computes correct nextRunAt
+- tick() emits event for due schedules
+- tick() does not re-trigger (idempotency key)
+- tick() updates nextRunAt after trigger
+- Inactive schedules skipped
+- deleteSchedule sets active=false
+
+---
+
+### Phase 6: Trace Propagation
+
+**Goal:** Cross-workflow lineage via traceId.
+
+**Files to modify:**
+- `src/entities/Database.ts` — Add traceId/parentRunId/originEventId to workflow_runs, traceId to workflow_events and external_actions
+- `src/engine/WorkflowEngine.ts` — In start(): generate traceId if not provided, inherit from parent/event
+- `src/events/EventIngestion.ts` — Pass traceId through trigger chain
+- `src/workflow/WorkflowBuilder.types.ts` — Add traceId to WorkflowTriggerInput
+
+**New columns:**
+```sql
+-- workflow_runs: add
+"traceId" VARCHAR(36),
+"parentRunId" VARCHAR(36),
+"originEventId" VARCHAR(36)
+
+-- workflow_events: add  
+"traceId" VARCHAR(36)
+
+-- external_actions: add
+"traceId" VARCHAR(36)
+```
+
+**Trace inheritance rules:**
+1. Manual start with no traceId → generate new traceId (nanoId)
+2. Manual start with traceId → use provided traceId
+3. Event-triggered start → inherit event's traceId, set originEventId
+4. Child workflow (future) → inherit parent's traceId, set parentRunId
+5. ExternalAction → copy traceId from workflow run
+
+**API:**
+- `getTrace(traceId)` → returns all runs, events, actions for a trace
+- Add traceId to getStatus() response
+
+**Tests:** `src/__tests__/engine/trace.spec.ts`
+- New workflow gets auto-generated traceId
+- Event-triggered workflow inherits event traceId
+- Provided traceId is used as-is
+- getTrace returns full lineage
+
+---
+
+### Phase 7: Budget Guardrails
+
+**Goal:** Prevent runaway execution and uncontrolled cost.
+
+**Files to modify:**
+- `src/engine/WorkflowEngine.types.ts` — Add budget config to WorkflowEngineConfig
+- `src/engine/WorkflowEngine.ts` — Check budgets in dispatchReadySteps and onStepCompleted
+- `src/steps/TaskRunnerExecutor.ts` — Check budgets in task loop
+- `agents-ai/src/executors/AIStepExecutor.ts` — Already has maxTokenBudget, extend with global check
+
+**Budget config (per workflow run):**
+```typescript
+interface WorkflowBudget {
+  maxTokens?: number
+  maxCostUsd?: number
+  maxSteps?: number          // max step completions per run
+  maxTaskExecutions?: number // max task executions per run
+}
+```
+
+**Enforcement points:**
+1. `WorkflowEngine.onStepCompleted()` — increment step counter, check maxSteps
+2. `TaskRunnerExecutor` loop — increment task counter, check maxTaskExecutions
+3. `AIStepExecutor` loop — already checks maxTokenBudget, add global token/cost check
+4. On budget exceeded: mark step FAILED with `budgetExceeded: true`, reason string
+
+**Storage:** Add `budgetUsed` JSON field to workflow_runs:
+```typescript
+budgetUsed: { tokens: number; costUsd: number; steps: number; taskExecutions: number }
+```
+
+**Tests:** `src/__tests__/engine/guardrails.spec.ts`
+- maxSteps exceeded fails workflow with reason
+- maxTaskExecutions exceeded stops task_runner
+- maxTokens exceeded stops AI executor
+- Budget persisted in workflow_runs.budgetUsed
+
+---
+
+### Integration Points with Existing Architecture
+
+| New Component | Existing Component | Integration |
+|---|---|---|
+| TaskManager | WorkflowEngine | Engine creates TaskManager, passes via StepExecutionContext |
+| TaskRunnerExecutor | StepExecutor interface | Implements same interface, registered like FunctionStepExecutor |
+| SchedulerService | EventIngestionService | Scheduler emits events → existing trigger pipeline |
+| Trace propagation | WorkflowEngine.start() | traceId added to start() input, propagated through |
+| Budget guardrails | StepCostTracker | Reads accumulated cost, enforces limits |
+| Task aggregation | StepContext.mapInput | Tasks accessible in mapInput via ctx.tasks |
+
+### Verification (after each phase)
+1. `cd packages/agents-core && pnpm test` — all 277+ tests pass
+2. New tests for each phase (testcontainers, real Postgres)
+3. `cd packages/agents-ui && npx tsc --noEmit` — type-checks clean
+4. AGENT_HANDOVER.md updated with phase status

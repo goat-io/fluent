@@ -4,7 +4,7 @@ import type { NextFunction, Request, Response } from 'express'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createMemoryMonitorMiddleware,
-  memoryMonitorMiddleware
+  memoryMonitorMiddleware,
 } from './memoryMonitor.middleware'
 
 describe('Memory Monitor Middleware', () => {
@@ -16,13 +16,13 @@ describe('Memory Monitor Middleware', () => {
   beforeEach(() => {
     mockReq = {}
     mockRes = {
-      setHeader: vi.fn()
+      setHeader: vi.fn(),
     }
     mockNext = vi.fn()
     mockLogger = {
       log: vi.fn(),
       warn: vi.fn(),
-      error: vi.fn()
+      error: vi.fn(),
     }
 
     // Clear all timers
@@ -48,7 +48,7 @@ describe('Memory Monitor Middleware', () => {
       createMemoryMonitorMiddleware({ logger: mockLogger })
 
       expect(mockLogger.log).toHaveBeenCalledWith(
-        expect.stringContaining('Memory monitoring started')
+        expect.stringContaining('Memory monitoring started'),
       )
     })
 
@@ -71,33 +71,33 @@ describe('Memory Monitor Middleware', () => {
     it('should add memory headers when addHeaders is true', () => {
       const middleware = memoryMonitorMiddleware({
         logger: mockLogger,
-        addHeaders: true
+        addHeaders: true,
       })
 
       middleware(mockReq as Request, mockRes as Response, mockNext)
 
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'X-Memory-Heap-Used-MB',
-        expect.any(String)
+        expect.any(String),
       )
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'X-Memory-Heap-Total-MB',
-        expect.any(String)
+        expect.any(String),
       )
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'X-Memory-Heap-Used-Percent',
-        expect.any(String)
+        expect.any(String),
       )
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'X-Memory-RSS-MB',
-        expect.any(String)
+        expect.any(String),
       )
     })
 
     it('should not add headers when addHeaders is false', () => {
       const middleware = memoryMonitorMiddleware({
         logger: mockLogger,
-        addHeaders: false
+        addHeaders: false,
       })
 
       middleware(mockReq as Request, mockRes as Response, mockNext)
@@ -110,7 +110,7 @@ describe('Memory Monitor Middleware', () => {
     it('should check memory at specified intervals', () => {
       createMemoryMonitorMiddleware({
         logger: mockLogger,
-        monitorInterval: 1000
+        monitorInterval: 1000,
       })
 
       // Fast forward time
@@ -130,18 +130,18 @@ describe('Memory Monitor Middleware', () => {
         heapTotal: 1000 * 1024 * 1024, // 1000MB (90% used)
         rss: 1200 * 1024 * 1024,
         external: 50 * 1024 * 1024,
-        arrayBuffers: 10 * 1024 * 1024
+        arrayBuffers: 10 * 1024 * 1024,
       })
 
       const middleware = memoryMonitorMiddleware({
         logger: mockLogger,
-        warningThreshold: 85
+        warningThreshold: 85,
       })
 
       middleware(mockReq as Request, mockRes as Response, mockNext)
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('WARNING: Memory usage at 90.0%')
+        expect.stringContaining('WARNING: Memory usage at 90.0%'),
       )
 
       process.memoryUsage = originalMemoryUsage
@@ -155,18 +155,18 @@ describe('Memory Monitor Middleware', () => {
         heapTotal: 1000 * 1024 * 1024, // 1000MB (96% used)
         rss: 1200 * 1024 * 1024,
         external: 50 * 1024 * 1024,
-        arrayBuffers: 10 * 1024 * 1024
+        arrayBuffers: 10 * 1024 * 1024,
       })
 
       const middleware = memoryMonitorMiddleware({
         logger: mockLogger,
-        criticalThreshold: 95
+        criticalThreshold: 95,
       })
 
       middleware(mockReq as Request, mockRes as Response, mockNext)
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('CRITICAL: Memory usage at 96.0%')
+        expect.stringContaining('CRITICAL: Memory usage at 96.0%'),
       )
 
       process.memoryUsage = originalMemoryUsage
@@ -180,11 +180,11 @@ describe('Memory Monitor Middleware', () => {
 
       createMemoryMonitorMiddleware({
         logger: mockLogger,
-        enableGarbageCollection: true
+        enableGarbageCollection: true,
       })
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Garbage collection is not available')
+        expect.stringContaining('Garbage collection is not available'),
       )
 
       global.gc = originalGc
@@ -202,20 +202,20 @@ describe('Memory Monitor Middleware', () => {
         heapTotal: 1000 * 1024 * 1024, // 1000MB (96% used)
         rss: 1200 * 1024 * 1024,
         external: 50 * 1024 * 1024,
-        arrayBuffers: 10 * 1024 * 1024
+        arrayBuffers: 10 * 1024 * 1024,
       })
 
       const middleware = memoryMonitorMiddleware({
         logger: mockLogger,
         criticalThreshold: 95,
-        enableGarbageCollection: true
+        enableGarbageCollection: true,
       })
 
       middleware(mockReq as Request, mockRes as Response, mockNext)
 
       expect(mockGc).toHaveBeenCalled()
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Triggering garbage collection')
+        expect.stringContaining('Triggering garbage collection'),
       )
 
       process.memoryUsage = originalMemoryUsage
@@ -248,7 +248,7 @@ describe('Memory Monitor Middleware', () => {
 
     it('should return last metrics', () => {
       const { monitor, middleware } = createMemoryMonitorMiddleware({
-        logger: mockLogger
+        logger: mockLogger,
       })
 
       // Initially undefined

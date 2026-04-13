@@ -1,5 +1,191 @@
 # 0.5.20
 
+## 1.6.0
+
+### Minor Changes
+
+- feat(node-backend): remove context proxy, add TContext generic parameter, fix sendgrid email guard, add SSE auth support in tRPC context, export additional logger utilities
+  fix(uploads): fix multer import for esModuleInterop compatibility
+  feat(tsconfig): enable esModuleInterop
+
+### Patch Changes
+
+- @goatlab/js-utils@0.10.3
+- @goatlab/node-utils@0.11.2
+
+## 1.5.0
+
+### Minor Changes
+
+- Structured Cloud Run logging and request log improvements
+
+  - **Structured JSON logging**: Replace `@google-cloud/logging-winston` with a built-in `CloudRunJsonTransport` that writes structured JSON to stdout. Cloud Run automatically parses this into `jsonPayload` with proper severity, labels, and trace correlation. Removes the `@google-cloud/logging-winston` dependency.
+  - **Fix production log level**: Change from `'error'` to `'info'` so request logs and warnings are visible in production (previously silently dropped).
+  - **Fix request log levels**: 2xx responses now log at `info` level instead of `warn`.
+  - **Structured metadata**: Request logs include structured fields (`tenantId`, `httpMethod`, `httpStatus`, `durationMs`, `url`, `trpcPath`) for Cloud Logging filtering.
+  - **Suppressed paths**: New `logging.suppressedPaths` config option to skip noisy health check paths (`/livez`, `/readyz`, `/health`, `/ready` by default).
+  - **Trace correlation**: New `logging.getTraceContext` callback to extract Cloud Trace headers for request-scoped log grouping.
+  - **Memory monitor debounce**: Only logs on state transitions (normal→warning→critical) instead of every interval, dramatically reducing log noise.
+  - **Strip ANSI codes**: Memory monitor no longer wraps messages in kleur color codes that produce escape characters in structured logs.
+
+## 1.4.1
+
+### Patch Changes
+
+- Fix TLS validation for Redis connections: pass per-connection `tls: { rejectUnauthorized: false }` for `rediss://` URLs instead of requiring the process-wide `NODE_TLS_REJECT_UNAUTHORIZED=0` env var
+
+## 1.4.0
+
+### Minor Changes
+
+- Add Redis Cluster support for GCP Memorystore Valkey compatibility
+
+  - node-backend: RedisConnectionPool.getClusterConnection() pools ioredis.Cluster instances with useRedisSets:false (MULTI/EXEC breaks on cluster)
+  - node-backend: LazyRedisStore accepts optional ClusterConfig for deferred cluster connections
+  - node-backend: Cache accepts cluster option and flush() uses per-node SCAN instead of keys() on cluster
+  - node-backend: Export ClusterNode, ClusterOptions, CacheClusterConfig types
+  - tasks-adapter-bullmq: BullMQConnectorConfig accepts redisInstance (pre-built ioredis Redis or Cluster)
+  - tasks-adapter-bullmq: forTenant() propagates redisInstance for shared cluster connections
+
+## 1.3.0
+
+### Minor Changes
+
+- Add optional `requestLogPrefix` config to `getExpressTrpcApp` for prefixing request log lines with contextual info (e.g., tenant ID in multi-tenant apps)
+
+## 1.2.1
+
+### Patch Changes
+
+- Add errorFormatter support to getTrpc function
+
+  - Add `errorFormatter` parameter to `getTrpc()` for custom error formatting
+  - Allows apps to customize tRPC error responses
+
+## 1.2.0
+
+### Minor Changes
+
+- Replace Firebase auth with Better Auth support
+
+  - Add `auth.validateToken` callback to `ExpressTrpcAppConfig` for Better Auth token validation
+  - Add `createContextFactory` to create tRPC/Express context with auth configuration
+  - Add `ValidatedAuthUser`, `AuthConfig`, and `AuthValidationResult` types
+  - Add `req.betterAuthUser` support for pre-validated users from middleware
+  - Rename `firebaseId` to `userId` in request context
+  - Update user schema to be Better Auth compatible
+  - Remove Firebase-specific dependencies from context creation
+
+## 1.1.24
+
+### Patch Changes
+
+- Fix typo in request.context.ts: xTenandId -> xTenantId
+
+## 1.1.22
+
+### Patch Changes
+
+- Add 'e2e' to Environment type for E2E testing scenarios
+
+  The `@goatlab/node-backend` library intentionally skips starting the HTTP server when `environment === 'test'` to support unit testing. However, E2E tests require the server to start so Playwright can interact with it.
+
+  This change adds `'e2e'` to the Environment type (`'test' | 'e2e' | 'local' | 'dev' | 'prod'`), allowing E2E test runners to use `APP_ENV='e2e'` which:
+
+  - Starts the HTTP server normally (unlike 'test')
+  - Clearly indicates a test context (unlike 'local' or 'dev')
+  - Works with TestContainers and ephemeral databases
+
+## 1.1.21
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/js-utils@0.10.3
+  - @goatlab/node-utils@0.11.1
+
+## 1.1.20
+
+### Patch Changes
+
+- Updated dependencies
+  - @goatlab/node-utils@0.11.0
+
+## 1.1.19
+
+### Patch Changes
+
+- fix(cache): optimize flush() performance with direct Redis access
+
+  - Use redis.keys() + redis.unlink() for fast bulk deletion instead of slow iterator-based individual deletes
+  - Make LazyRedisStore.getStore() public to allow proper connection establishment before accessing Redis client
+  - Add performance tests to verify flush completes in milliseconds, not seconds
+  - Fixes 15-second flush times that occurred when getRedisClient() failed to establish lazy connection
+
+## 1.1.16
+
+### Patch Changes
+
+- fix(cache): use iterator-based deletion in flush() for Redis namespace compatibility
+
+  The previous `flush()` implementation used `clear()` which relies on Redis Sets to track keys.
+  Keys created before proper namespace setup or with `useRedisSets:false` wouldn't be tracked in
+  those sets and wouldn't be deleted. This fix uses the iterator (Redis SCAN) to find ALL keys
+  matching the namespace pattern, ensuring complete cache clearing regardless of key tracking state.
+
+## 1.1.15
+
+### Patch Changes
+
+- Fix LazyRedisStore namespace handling for Keyv compatibility (v2)
+
+  - Add `opts` property with `dialect: 'redis'` for Keyv iterator detection
+  - Add `namespace` getter/setter to forward namespace to underlying KeyvRedis store
+  - Forward namespace when connection is established (critical for clear() operations)
+  - Simplify Cache namespace prefix stripping logic
+  - Fix test expectations for delete and getMany operations
+
+## 1.1.14
+
+### Patch Changes
+
+- Fix LazyRedisStore namespace handling for Keyv compatibility
+
+  - Add `opts` property with `dialect: 'redis'` for Keyv iterator detection
+  - Add `namespace` getter/setter to forward namespace to underlying KeyvRedis store
+  - Forward namespace when connection is established (critical for clear() operations)
+  - Simplify Cache namespace prefix stripping logic in deleteWhereStartsWith and getValueWhereKeyStartsWith
+  - Parse JSON values correctly when iterating Redis keys
+
+## 1.1.13
+
+### Patch Changes
+
+- Build and publish latest changes
+
+## 1.1.12
+
+### Patch Changes
+
+- Fix LazyRedisStore iterator type assertion for TypeScript compatibility
+
+## 1.1.11
+
+### Patch Changes
+
+- Add LazyRedisStore for lazy Redis connections
+
+  - Defers Redis connection until first operation
+  - Prevents connection exhaustion during Cloud Run/serverless deployments
+  - New `lazy` option in CacheOptions (default: true)
+  - Export LazyRedisStore and RedisConnectionPool from package index
+
+## 1.1.10
+
+### Patch Changes
+
+- Redis connection pools
+
 ## 1.1.7
 
 ### Patch Changes

@@ -12,12 +12,12 @@ export async function waitForMetabase(
     maxRetries?: number
     retryDelayMs?: number
     timeoutMs?: number
-  } = {}
+  } = {},
 ) {
   const {
     maxRetries = 60, // 5 minutes with default retry delay
     retryDelayMs = 5000,
-    timeoutMs = maxRetries * retryDelayMs
+    timeoutMs = maxRetries * retryDelayMs,
   } = options
 
   const startTime = Date.now()
@@ -31,7 +31,7 @@ export async function waitForMetabase(
 
       const res = await fetch(`${baseUrl}/api/session/properties`, {
         method: 'GET',
-        signal: controller.signal
+        signal: controller.signal,
       })
 
       global.clearTimeout(requestTimeout)
@@ -48,7 +48,7 @@ export async function waitForMetabase(
     // Check if we've exceeded the timeout
     if (Date.now() - startTime > timeoutMs) {
       throw new Error(
-        `Metabase failed to start within ${timeoutMs / 1000} seconds at ${baseUrl}`
+        `Metabase failed to start within ${timeoutMs / 1000} seconds at ${baseUrl}`,
       )
     }
 

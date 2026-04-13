@@ -13,7 +13,7 @@ export async function disableAllDatabaseAccess({
   baseUrl,
   sessionToken,
   apiKey,
-  groupId
+  groupId,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -27,7 +27,7 @@ export async function disableAllDatabaseAccess({
       sessionToken,
       apiKey,
       endpoint: '/api/database',
-      method: 'GET'
+      method: 'GET',
     })
 
     if (!databasesResponse.ok) {
@@ -45,7 +45,7 @@ export async function disableAllDatabaseAccess({
       sessionToken,
       apiKey,
       endpoint: '/api/permissions/graph',
-      method: 'GET'
+      method: 'GET',
     })
 
     if (!permissionsResponse.ok) {
@@ -76,8 +76,8 @@ export async function disableAllDatabaseAccess({
         'create-queries': 'no',
         'view-data': 'unrestricted',
         download: {
-          schemas: 'full'
-        }
+          schemas: 'full',
+        },
       }
     })
 
@@ -92,8 +92,8 @@ export async function disableAllDatabaseAccess({
             'create-queries': 'no',
             'view-data': 'unrestricted',
             download: {
-              schemas: 'full'
-            }
+              schemas: 'full',
+            },
           }
         }
       })
@@ -102,7 +102,7 @@ export async function disableAllDatabaseAccess({
     // Include revision if it exists
     const payload = {
       groups: updatedGraph.groups,
-      revision: updatedGraph.revision || 0
+      revision: updatedGraph.revision || 0,
     }
 
     // Update the permissions
@@ -112,7 +112,7 @@ export async function disableAllDatabaseAccess({
       apiKey,
       endpoint: '/api/permissions/graph',
       method: 'PUT',
-      body: payload
+      body: payload,
     })
 
     if (!updateResponse.ok) {
@@ -132,7 +132,7 @@ export async function disableAllDatabaseAccess({
 export async function disableAllUsersGroupDatabaseAccess({
   baseUrl,
   sessionToken,
-  apiKey
+  apiKey,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -144,6 +144,6 @@ export async function disableAllUsersGroupDatabaseAccess({
     baseUrl,
     sessionToken,
     apiKey,
-    groupId: ALL_USERS_GROUP_ID
+    groupId: ALL_USERS_GROUP_ID,
   })
 }

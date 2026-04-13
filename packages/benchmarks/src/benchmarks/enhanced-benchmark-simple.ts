@@ -8,7 +8,7 @@ import { DATA_DISTRIBUTIONS, OLTP_WORKLOAD } from './transaction-types'
 async function runSimpleEnhancedBenchmark() {
   console.log(chalk.blue.bold('🚀 Running Simple Enhanced Benchmark Test'))
   console.log(
-    chalk.gray('Testing transaction mix and think time patterns...\n')
+    chalk.gray('Testing transaction mix and think time patterns...\n'),
   )
 
   // Start MySQL container
@@ -18,7 +18,7 @@ async function runSimpleEnhancedBenchmark() {
       MYSQL_ROOT_PASSWORD: 'root',
       MYSQL_DATABASE: 'test',
       MYSQL_USER: 'test',
-      MYSQL_PASSWORD: 'test'
+      MYSQL_PASSWORD: 'test',
     })
     .withExposedPorts(3306)
     .withStartupTimeout(60000)
@@ -35,7 +35,7 @@ async function runSimpleEnhancedBenchmark() {
       password: 'test',
       database: 'test',
       waitForConnections: true,
-      connectionLimit: 10
+      connectionLimit: 10,
     })
 
     // Wait for MySQL to be ready
@@ -66,7 +66,7 @@ async function runSimpleEnhancedBenchmark() {
         `Last${i}`,
         i % 10 === 0 ? 'inactive' : 'active',
         20 + (i % 50),
-        'US'
+        'US',
       ])
     }
 
@@ -75,7 +75,7 @@ async function runSimpleEnhancedBenchmark() {
       .promise()
       .execute(
         `INSERT INTO users (email, first_name, last_name, status, age, country) VALUES ${placeholders}`,
-        seedData.flat()
+        seedData.flat(),
       )
 
     console.log(chalk.green('✅ Schema and data ready'))
@@ -92,7 +92,7 @@ async function runSimpleEnhancedBenchmark() {
           .promise()
           .execute(
             'SELECT * FROM users WHERE status = ? AND age > ? LIMIT 50',
-            ['active', age]
+            ['active', age],
           )
       },
       joinQuery: async () => {
@@ -125,9 +125,9 @@ async function runSimpleEnhancedBenchmark() {
           .promise()
           .execute(
             'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-            [`test${id}@example.com`, 'Test', 'User', 'active', 30, 'US']
+            [`test${id}@example.com`, 'Test', 'User', 'active', 30, 'US'],
           )
-      }
+      },
     }
 
     // Run enhanced benchmark
@@ -135,7 +135,7 @@ async function runSimpleEnhancedBenchmark() {
 
     console.log(chalk.blue.bold('\n📊 Running Enhanced Benchmark'))
     console.log(
-      chalk.gray('Testing OLTP workload with realistic patterns...\n')
+      chalk.gray('Testing OLTP workload with realistic patterns...\n'),
     )
 
     const result = await runner.runBenchmark(
@@ -154,8 +154,8 @@ async function runSimpleEnhancedBenchmark() {
         measurementDuration: 5000,
         cooldownDuration: 1000,
         virtualUsers: 5,
-        dataDistribution: DATA_DISTRIBUTIONS.uniform
-      }
+        dataDistribution: DATA_DISTRIBUTIONS.uniform,
+      },
     )
 
     // Print results
@@ -163,16 +163,16 @@ async function runSimpleEnhancedBenchmark() {
 
     console.log(chalk.cyan('Overall Performance:'))
     console.log(
-      `  Throughput: ${chalk.bold(result.overall.throughput.toFixed(0))} ops/sec`
+      `  Throughput: ${chalk.bold(result.overall.throughput.toFixed(0))} ops/sec`,
     )
     console.log(
-      `  Avg Response Time: ${chalk.bold(result.overall.avgResponseTime.toFixed(2))}ms`
+      `  Avg Response Time: ${chalk.bold(result.overall.avgResponseTime.toFixed(2))}ms`,
     )
     console.log(
-      `  Total Operations: ${chalk.bold(result.overall.totalOperations)}`
+      `  Total Operations: ${chalk.bold(result.overall.totalOperations)}`,
     )
     console.log(
-      `  Error Rate: ${chalk.bold(result.overall.errorRate.toFixed(2))}%`
+      `  Error Rate: ${chalk.bold(result.overall.errorRate.toFixed(2))}%`,
     )
 
     console.log(chalk.cyan('\nTransaction Breakdown:'))
@@ -182,7 +182,7 @@ async function runSimpleEnhancedBenchmark() {
         console.log(`\n  ${chalk.bold(tx.name)} (${tx.count} operations):`)
         console.log(`    Throughput: ${tx.throughput.toFixed(0)} ops/sec`)
         console.log(
-          `    Latency - p50: ${tx.latency.p50.toFixed(1)}ms, p95: ${tx.latency.p95.toFixed(1)}ms, p99: ${tx.latency.p99.toFixed(1)}ms`
+          `    Latency - p50: ${tx.latency.p50.toFixed(1)}ms, p95: ${tx.latency.p95.toFixed(1)}ms, p99: ${tx.latency.p99.toFixed(1)}ms`,
         )
         if (tx.errors > 0) {
           console.log(chalk.red(`    Errors: ${tx.errors}`))
@@ -193,7 +193,7 @@ async function runSimpleEnhancedBenchmark() {
     console.log('  ✓ Transaction mix follows OLTP pattern distribution')
     console.log('  ✓ Think time and pacing simulate realistic user behavior')
     console.log(
-      '  ✓ Percentile latencies show tail performance characteristics'
+      '  ✓ Percentile latencies show tail performance characteristics',
     )
     console.log('  ✓ Warmup/rampup phases ensure stable measurements')
 

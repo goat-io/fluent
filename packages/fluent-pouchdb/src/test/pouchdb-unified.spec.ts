@@ -3,14 +3,14 @@ import { createUnifiedTests } from '@goatlab/fluent'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   PouchDBGoatRepositoryFactory,
-  PouchDBTypeOrmRepositoryFactory
+  PouchDBTypeOrmRepositoryFactory,
 } from './pouchdb.repository.factory'
 
 describe('PouchDB Connector - Unified Tests', () => {
   const unifiedTests = createUnifiedTests({
     createGoatConnector: () => new PouchDBGoatRepositoryFactory(),
     createTypeOrmConnector: () => new PouchDBTypeOrmRepositoryFactory(),
-    dbType: 'pouchdb'
+    dbType: 'pouchdb',
   })
 
   describe('Basic Tests', () => {

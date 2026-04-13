@@ -8,7 +8,7 @@ import {
   createFQCN,
   filterCollectionsByTenant,
   parseFQCN,
-  sanitizeTenantId
+  sanitizeTenantId,
 } from '../utils/tenant'
 
 // Example 1: Creating separate API instances for different tenants
@@ -18,7 +18,7 @@ async function _example1() {
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
     tenantId: 'acme',
-    collectionName: 'products'
+    collectionName: 'products',
   })
 
   // API instance for tenant "globex"
@@ -26,7 +26,7 @@ async function _example1() {
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
     tenantId: 'globex',
-    collectionName: 'products'
+    collectionName: 'products',
   })
 
   // Define schema
@@ -35,8 +35,8 @@ async function _example1() {
     fields: [
       { name: 'name', type: 'string' },
       { name: 'price', type: 'float' },
-      { name: 'category', type: 'string', facet: true }
-    ]
+      { name: 'category', type: 'string', facet: true },
+    ],
   }
 
   // Create collections - each tenant gets their own prefixed collection
@@ -51,26 +51,26 @@ async function _example1() {
     id: '1',
     name: 'Acme Widget',
     price: 19.99,
-    category: 'widgets'
+    category: 'widgets',
   })
 
   await globexApi.documents.insert({
     id: '1', // Same ID is fine - different collection
     name: 'Globex Gadget',
     price: 29.99,
-    category: 'gadgets'
+    category: 'gadgets',
   })
 
   // Search - each tenant only sees their own data
   const acmeResults = await acmeApi.search.text({
     q: '*',
-    query_by: 'name'
+    query_by: 'name',
   })
   console.log('Acme products:', acmeResults.hits) // Only Acme Widget
 
   const globexResults = await globexApi.search.text({
     q: '*',
-    query_by: 'name'
+    query_by: 'name',
   })
   console.log('Globex products:', globexResults.hits) // Only Globex Gadget
 }
@@ -80,7 +80,7 @@ async function _example2() {
   const adminApi = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
-    tenantId: 'acme'
+    tenantId: 'acme',
   })
 
   // List all collections for the tenant
@@ -106,7 +106,7 @@ async function _example3() {
   const api = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
-    tenantId: 'acme'
+    tenantId: 'acme',
   })
 
   // Create multiple collections for the tenant
@@ -114,8 +114,8 @@ async function _example3() {
     name: 'users',
     fields: [
       { name: 'email', type: 'string' },
-      { name: 'name', type: 'string' }
-    ]
+      { name: 'name', type: 'string' },
+    ],
   })
 
   await api.collections.create({
@@ -123,8 +123,8 @@ async function _example3() {
     fields: [
       { name: 'order_id', type: 'string' },
       { name: 'user_email', type: 'string' },
-      { name: 'total', type: 'float' }
-    ]
+      { name: 'total', type: 'float' },
+    ],
   })
 
   // Work with different collections by changing the context
@@ -132,28 +132,28 @@ async function _example3() {
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
     tenantId: 'acme',
-    collectionName: 'users'
+    collectionName: 'users',
   })
 
   const orderApi = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
     tenantId: 'acme',
-    collectionName: 'orders'
+    collectionName: 'orders',
   })
 
   // Insert data into different collections
   await userApi.documents.insert({
     id: 'user-1',
     email: 'john@acme.com',
-    name: 'John Doe'
+    name: 'John Doe',
   })
 
   await orderApi.documents.insert({
     id: 'ORD-001',
     order_id: 'ORD-001',
     user_email: 'john@acme.com',
-    total: 99.99
+    total: 99.99,
   })
 }
 
@@ -163,7 +163,7 @@ async function _example4() {
   const legacyApi = new TypesenseApi({
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
-    collectionName: 'products'
+    collectionName: 'products',
   })
 
   // API with tenant
@@ -171,7 +171,7 @@ async function _example4() {
     prefixUrl: 'http://localhost:8108',
     token: 'xyz',
     tenantId: 'legacy',
-    collectionName: 'products'
+    collectionName: 'products',
   })
 
   // Export from legacy collection
@@ -208,7 +208,7 @@ async function _example5() {
     'acme__products',
     'acme__users',
     'globex__products',
-    'legacy_collection'
+    'legacy_collection',
   ]
   const acmeCollections = filterCollectionsByTenant(allCollections, 'acme')
   console.log('Acme collections:', acmeCollections) // ['acme__products', 'acme__users']

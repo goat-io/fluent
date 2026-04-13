@@ -26,7 +26,7 @@ import { Class } from './common-types'
  */
 export type TypeResolver<
   Type extends Object,
-  StaticMembers = Function
+  StaticMembers = Function,
 > = () => Class<Type> & StaticMembers
 
 /**
@@ -35,7 +35,7 @@ export type TypeResolver<
  */
 export function isTypeResolver<T extends object>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fn: any
+  fn: any,
 ): fn is TypeResolver<T> {
   // 1. A type provider must be a function
   if (typeof fn !== 'function') {
@@ -93,7 +93,7 @@ export function isBuiltinType(fn: Function): boolean {
  * @returns The resolved type.
  */
 export function resolveType<T extends object>(
-  fn: TypeResolver<T> | Class<T>
+  fn: TypeResolver<T> | Class<T>,
 ): Class<T>
 
 // An overload to handle the case when `fn` is not a class nor a resolver.

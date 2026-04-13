@@ -8,7 +8,7 @@ export class GoatRepository extends FirebaseConnector<
   constructor() {
     super({
       entity: GoatEntity,
-      inputSchema: GoatSchema
+      inputSchema: GoatSchema,
     })
   }
 }

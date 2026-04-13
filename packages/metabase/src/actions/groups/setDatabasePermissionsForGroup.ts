@@ -14,7 +14,7 @@ export async function setDatabasePermissionsForGroup({
   apiKey,
   groupId,
   databaseId,
-  allowAccess = true
+  allowAccess = true,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -30,7 +30,7 @@ export async function setDatabasePermissionsForGroup({
       sessionToken,
       apiKey,
       endpoint: '/api/permissions/graph',
-      method: 'GET'
+      method: 'GET',
     })
 
     if (!permissionsResponse.ok) {
@@ -68,12 +68,12 @@ export async function setDatabasePermissionsForGroup({
           'view-data': 'unrestricted',
           'create-queries': 'query-builder-and-native',
           download: {
-            schemas: 'full'
+            schemas: 'full',
           },
           'data-model': {
-            schemas: 'all'
+            schemas: 'all',
           },
-          details: 'yes'
+          details: 'yes',
         }
       } else if (groupIdNum === 1) {
         // For "All Users" group (ID: 1), restrict access
@@ -81,8 +81,8 @@ export async function setDatabasePermissionsForGroup({
           'create-queries': 'no',
           'view-data': 'unrestricted',
           download: {
-            schemas: 'full'
-          }
+            schemas: 'full',
+          },
         }
       } else {
         // For ALL other groups (not admin, not the specified group, not all users)
@@ -91,8 +91,8 @@ export async function setDatabasePermissionsForGroup({
           'create-queries': 'no',
           'view-data': 'unrestricted',
           download: {
-            schemas: 'full'
-          }
+            schemas: 'full',
+          },
         }
       }
     })
@@ -100,7 +100,7 @@ export async function setDatabasePermissionsForGroup({
     // Include revision if it exists
     const payload = {
       groups: updatedGraph.groups,
-      revision: updatedGraph.revision || 0
+      revision: updatedGraph.revision || 0,
     }
 
     // Update the permissions
@@ -110,7 +110,7 @@ export async function setDatabasePermissionsForGroup({
       apiKey,
       endpoint: '/api/permissions/graph',
       method: 'PUT',
-      body: payload
+      body: payload,
     })
 
     if (!updateResponse.ok) {

@@ -75,7 +75,7 @@ const generateType = (Model: any) => {
 
   return {
     file: result,
-    path: filePath
+    path: filePath,
   }
 }
 

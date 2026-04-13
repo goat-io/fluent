@@ -1,65 +1,119 @@
-// npx vitest test ./src/hatchet.spec.ts
+// npx vitest run ./src/hatchet.spec.ts
 
-import { Ids } from '@goatlab/js-utils'
-import { ShouldQueue, UnknownInputType } from '@goatlab/tasks-core'
-import { beforeAll, describe, expect, it } from 'vitest'
-import { HatchetConnector } from './HatchetConnector'
-import { getGlobalData } from './test/const'
+import type { ShouldQueue } from '@goatlab/tasks-core'
+import {
+  multiTenantTestSuite,
+  taskConnectorTestSuite,
+} from '@goatlab/tasks-core/test-suite'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest'
+import { HatchetConnector } from './HatchetConnector.js'
+import { getGlobalData } from './test/const.js'
 
-class TestTask extends ShouldQueue<{ text: string }> {
-  postUrl = `http://localhost/task/this/url`
-  taskName = 'this_is_the_task_name'
-
-  protected getUniqueTaskName(_: { text: string }): string {
-    return `test_task_${Ids.uuid()}`
-  }
-
-  public async handle(taskBody: UnknownInputType): Promise<undefined> {
-    console.log('Running task with body:', taskBody)
-    return undefined
-  }
-}
-
+// Create connector instance
+const globalData = getGlobalData()
 const hatchetConnector = new HatchetConnector({
   logLevel: 'DEBUG',
-  token: getGlobalData().token || process.env.HATCHET_JWT_TOKEN || '',
-  hostAndPort: getGlobalData().hostAndPort,
-  apiUrl: getGlobalData().apiUrl
+  token: globalData.token || process.env.HATCHET_JWT_TOKEN || '',
+  hostAndPort: globalData.hostAndPort,
+  apiUrl: globalData.apiUrl,
 })
 
-const task = new TestTask({
-  connector: hatchetConnector
-})
+// Run the standardized test suite
+// Hatchet requires all workflows to be registered before any queue() calls
+taskConnectorTestSuite(
+  { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach },
+  () => hatchetConnector,
+  {
+    taskCompletionTimeout: 20000,
+    statusCheckInterval: 1000,
+    workerStartupDelay: 25000,
+    startWorker: async (tasks: ShouldQueue[]) => {
+      await hatchetConnector.startWorker({
+        workerName: 'test-suite-worker',
+        tasks,
+        slots: 100,
+      })
+      return async () => {}
+    },
+  },
+)
 
-describe('HatcherConnector', () => {
-  beforeAll(async () => {
-    await hatchetConnector.startWorker({
-      workerName: 'backend-worker',
-      tasks: [task],
-      slots: 100
+// Hatchet-specific tests
+describe('HatchetConnector Specific Tests', () => {
+  it('should expose tenantId when set', () => {
+    const tenantConnector = new HatchetConnector({
+      token: globalData.token || process.env.HATCHET_JWT_TOKEN || '',
+      hostAndPort: globalData.hostAndPort,
+      apiUrl: globalData.apiUrl,
+      logLevel: 'OFF',
+      tenantId: 'test-tenant',
     })
-    // Wait for the hatchet worker to be ready to accept connections/messages
-    await new Promise(resolve => setTimeout(resolve, 20_000))
-  }, 40_000)
 
-  it('should create a task and run it', async () => {
-    const status = await task.queue({ text: 'Hello, World!' })
+    expect(tenantConnector.tenantId).toBe('test-tenant')
+    expect(tenantConnector.namespace).toBe('test-tenant')
+  })
 
-    expect(status).toHaveProperty('id')
-    expect(status).toHaveProperty('name')
-    expect(status).toHaveProperty('status', 'QUEUED')
-    expect(status).toHaveProperty('attempts', 0)
-    expect(status.name).toContain('this_is_the_task_name')
-    expect(status).not.toHaveProperty('payload')
+  it('should have undefined tenantId when not set', () => {
+    expect(hatchetConnector.tenantId).toBeUndefined()
+    expect(hatchetConnector.namespace).toBe('')
+  })
 
-    await new Promise(resolve => setTimeout(resolve, 2_000))
+  it('forTenant() should create a new connector with tenant namespace', () => {
+    const tenantConnector = hatchetConnector.forTenant('acme-corp')
 
-    const getStatus = await task.getStatus(status.id)
-
-    expect(getStatus).toHaveProperty('id', status.id)
-    expect(getStatus).toHaveProperty('name', status.name)
-    expect(getStatus).toHaveProperty('status', 'COMPLETED')
-    expect(getStatus).toHaveProperty('payload')
-    expect(getStatus.payload.text).toBe('Hello, World!')
+    expect(tenantConnector.tenantId).toBe('acme-corp')
+    expect(tenantConnector.namespace).toBe('acme-corp')
+    // Original connector should be unchanged
+    expect(hatchetConnector.tenantId).toBeUndefined()
   })
 })
+
+// Multi-tenant isolation tests using Hatchet namespaces
+// These verify that different tenants using the same Hatchet instance are properly isolated
+const baseConnector = new HatchetConnector({
+  token: globalData.token || process.env.HATCHET_JWT_TOKEN || '',
+  hostAndPort: globalData.hostAndPort,
+  apiUrl: globalData.apiUrl,
+  logLevel: 'DEBUG',
+})
+
+// Store tenant connectors for cleanup
+const tenantConnectors: Map<string, HatchetConnector> = new Map()
+
+multiTenantTestSuite(
+  { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach },
+  {
+    createTenantConnector: tenantId => {
+      const tenantConnector = baseConnector.forTenant(tenantId)
+      tenantConnectors.set(tenantId, tenantConnector)
+      return tenantConnector
+    },
+    startTenantWorker: async (tenantId, tasks: ShouldQueue[]) => {
+      const tenantConnector = tenantConnectors.get(tenantId)
+      if (!tenantConnector) {
+        throw new Error(`Tenant connector not found for ${tenantId}`)
+      }
+      await tenantConnector.startWorker({
+        workerName: `tenant-${tenantId}-worker`,
+        tasks,
+        slots: 100,
+      })
+      return async () => {
+        // Hatchet workers don't have a close method
+      }
+    },
+    taskCompletionTimeout: 20000,
+    statusCheckInterval: 1000,
+    workerStartupDelay: 25000,
+    supportsForTenant: true,
+    runIsolationTests: true,
+  },
+)

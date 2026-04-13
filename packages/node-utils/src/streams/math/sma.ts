@@ -4,7 +4,7 @@
 export class SimpleMovingAverage {
   constructor(
     public readonly size: number,
-    public readonly data: number[] = []
+    public readonly data: number[] = [],
   ) {}
 
   /**

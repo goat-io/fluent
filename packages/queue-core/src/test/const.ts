@@ -3,7 +3,6 @@ import { join, resolve } from 'node:path'
 
 export type GlobalTempData = {
   rabbitMQUrl?: string
-  kafkaUrl?: string
 }
 const tempDataFilePath = resolve(join(__dirname, '../../'), 'tempData.json')
 

@@ -15,11 +15,15 @@ export type JsonValue =
 
 export type JsonObject = { [x: string]: JsonValue }
 
-export type InputType = {
-  [x: string]: JsonValue
-} & {
-  [x: string]: JsonValue
-}
+/**
+ * Constraint for task payloads. Uses `object` so that concrete
+ * interfaces like `{ tenantId: string }` satisfy the generic
+ * without needing an explicit index signature (TypeScript interfaces
+ * don't have implicit index signatures, so Record<string, unknown>
+ * doesn't work).
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export type InputType = object
 
 export type OutputType = undefined | JsonObject
 export type UnknownInputType = {}
@@ -36,7 +40,53 @@ export interface TaskStatus<T extends InputType = UnknownInputType> {
   payload: T
 }
 
+/**
+ * Credentials for tenant-specific connections.
+ * Used when stronger isolation is needed (e.g., Redis ACL users).
+ */
+export interface TenantCredentials {
+  username?: string
+  password?: string
+}
+
+/**
+ * Configuration for tenant isolation.
+ */
+export interface TenantConfig {
+  /**
+   * The tenant identifier used for isolation.
+   * This will be used as a prefix for keys/queues to ensure tenant data separation.
+   */
+  tenantId: string
+
+  /**
+   * Optional credentials for tenant-specific connections.
+   * When provided, enables stronger isolation through separate authentication.
+   * For Redis (BullMQ): Creates connection with tenant-specific ACL user.
+   * For Hatchet: Uses tenant-specific API credentials.
+   * For GCP: Uses tenant-specific service account.
+   */
+  credentials?: TenantCredentials
+}
+
+/**
+ * A task class constructor.
+ * Accepts optional ShouldQueueOptions (connector injected after construction).
+ */
+export type TaskClass = new (
+  opts?: any,
+) => import('./ShouldQueue').ShouldQueue<any, any, any>
+
 export interface TaskConnector<TInput> {
+  /**
+   * The tenant ID this connector is scoped to.
+   * When set, all operations are isolated to this tenant's namespace.
+   */
+  readonly tenantId?: string
+
+  /**
+   * Queue a task for execution.
+   */
   queue(params: {
     uniqueTaskName: string
     taskName: string
@@ -44,5 +94,86 @@ export interface TaskConnector<TInput> {
     taskBody: TInput
     handle: () => Promise<any>
   }): Promise<Omit<TaskStatus, 'payload'>>
+
+  /**
+   * Get the status of a task by its ID.
+   */
   getStatus(id: string): Promise<TaskStatus>
+
+  /**
+   * Create a new connector instance scoped to a specific tenant.
+   * This enables multi-tenant isolation where different tenants
+   * share the same underlying infrastructure but have isolated data.
+   *
+   * Implementation varies by adapter:
+   * - BullMQ: Uses tenant ID as Redis key prefix (e.g., "tenantId:bull:queue:*")
+   * - Hatchet: Uses tenant ID in Hatchet's built-in tenant system
+   * - GCP Cloud Tasks: Uses tenant ID as queue name prefix
+   *
+   * @param tenantId - The tenant identifier for isolation
+   * @param credentials - Optional credentials for stronger isolation (e.g., Redis ACL user)
+   * @returns A new connector instance scoped to the tenant
+   */
+  forTenant?(
+    tenantId: string,
+    credentials?: TenantCredentials,
+  ): TaskConnector<TInput>
+
+  /**
+   * Optional hook called after a job is enqueued to the tenant queue.
+   * Used by the dispatch system to write a hint to the global dispatch queue.
+   * Active when dispatch is configured.
+   *
+   * @param params - Job metadata for dispatch hint creation
+   */
+  onAfterQueue?(params: {
+    tenantId: string
+    queueName: string
+    jobId: string
+    priority?: number
+  }): Promise<void>
+
+  /**
+   * Process incoming dispatch work for this tenant's queues.
+   * Called by the HTTP dispatch endpoint after tenant container is bootstrapped.
+   *
+   * Each adapter handles this differently:
+   * - BullMQ: Creates temp Workers, fetches jobs from tenant queues, executes handler
+   * - GCP: Executes task from hint.data (already included in HTTP push)
+   * - Hatchet: Similar to BullMQ
+   */
+  processIncomingDispatch?(params: {
+    /** Callback to execute a task by queue name and payload */
+    handleTask: (queueName: string, data: unknown) => Promise<unknown>
+    /** Time budget in ms (default 25_000). Processing stops when exceeded. */
+    timeBudgetMs?: number
+    /** Valid queue names to process. If provided, unknown queues are skipped. */
+    validQueueNames?: Set<string>
+    /** Hint from the dispatch notification (optional — may contain data for push-based adapters) */
+    hint?: {
+      tenantId?: string
+      queueName?: string
+      jobId?: string
+      data?: unknown
+    }
+  }): Promise<{ processed: number; failed: number }>
+
+  /**
+   * Start persistent workers that consume jobs from queues.
+   *
+   * Each adapter handles this differently:
+   * - BullMQ: Creates persistent Workers per task queue
+   * - GCP: Could set up Cloud Tasks push receivers
+   * - Hatchet: Registers workflow listeners
+   *
+   * @returns Handle to stop the workers and check running status
+   */
+  listen?(params: {
+    tasks: Array<{
+      taskName: string
+      handle: (data: unknown) => Promise<unknown>
+      concurrency?: number
+    }>
+    defaultConcurrency?: number
+  }): Promise<{ stop: () => Promise<void>; isRunning: () => boolean }>
 }

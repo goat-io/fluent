@@ -39,14 +39,14 @@ export function InterfaceType(options?: InterfaceTypeOptions): ClassDecorator
  */
 export function InterfaceType(
   name: string,
-  options?: InterfaceTypeOptions
+  options?: InterfaceTypeOptions,
 ): ClassDecorator
 /**
  * Decorator that marks a class as a GraphQL interface type.
  */
 export function InterfaceType(
   nameOrOptions?: string | InterfaceTypeOptions,
-  interfaceOptions?: InterfaceTypeOptions
+  interfaceOptions?: InterfaceTypeOptions,
 ): ClassDecorator {
   const [name, options = {}] = isString(nameOrOptions)
     ? [nameOrOptions, interfaceOptions]
@@ -58,7 +58,7 @@ export function InterfaceType(
         name: name || target.name,
         target: target as unknown as new (...args: any[]) => any,
         ...options,
-        interfaces: options.implements
+        interfaces: options.implements,
       }
       TypeMetadataStorage.addInterfaceMetadata(metadata)
     }

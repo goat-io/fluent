@@ -20,6 +20,7 @@
     "target": "es2022",
     "sourceMap": true,
     "incremental": true,
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "suppressImplicitAnyIndexErrors": false,

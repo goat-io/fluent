@@ -50,7 +50,7 @@ const factories: ServiceFactories = {
     },
     dispose: async () => {
       console.log('Database connection closed')
-    }
+    },
   }),
   cache: (_redisUrl: string) => ({
     get: async (key: string) => {
@@ -59,7 +59,7 @@ const factories: ServiceFactories = {
     },
     set: async (key: string, value: any) => {
       console.log(`Cache SET: ${key} = ${JSON.stringify(value)}`)
-    }
+    },
   }),
   api: {
     users: (db: Database, cache: Cache) => ({
@@ -82,9 +82,9 @@ const factories: ServiceFactories = {
         const [user] = await db.query(`SELECT * FROM users WHERE id = ${id}`)
         await cache.set(`users:${id}`, user)
         return user
-      }
-    })
-  }
+      },
+    }),
+  },
 }
 
 // Create container with initializer
@@ -103,14 +103,14 @@ const container = new Container<ServiceFactories, TenantMetadata>(
       database: db,
       cache: cache,
       api: {
-        users: preload.api.users(meta.id, db, cache)
-      }
+        users: preload.api.users(meta.id, db, cache),
+      },
     } as any // Type assertion needed due to complex nested structure
   },
   {
     enableMetrics: true,
-    enableDiagnostics: true
-  }
+    enableDiagnostics: true,
+  },
 )
 
 // Example tenants to process
@@ -120,36 +120,36 @@ const tenants: TenantMetadata[] = [
     name: 'Acme Corp',
     connectionString: 'postgres://acme:pass@db/acme',
     redisUrl: 'redis://cache:6379/1',
-    tier: 'enterprise'
+    tier: 'enterprise',
   },
   {
     id: 'tenant-2',
     name: 'Globex Inc',
     connectionString: 'postgres://globex:pass@db/globex',
     redisUrl: 'redis://cache:6379/2',
-    tier: 'pro'
+    tier: 'pro',
   },
   {
     id: 'tenant-3',
     name: 'Initech LLC',
     connectionString: 'postgres://initech:pass@db/initech',
     redisUrl: 'redis://cache:6379/3',
-    tier: 'free'
+    tier: 'free',
   },
   {
     id: 'tenant-4',
     name: 'Umbrella Corp',
     connectionString: 'postgres://umbrella:pass@db/umbrella',
     redisUrl: 'redis://cache:6379/4',
-    tier: 'enterprise'
+    tier: 'enterprise',
   },
   {
     id: 'tenant-5',
     name: 'Wayne Enterprises',
     connectionString: 'postgres://wayne:pass@db/wayne',
     redisUrl: 'redis://cache:6379/5',
-    tier: 'enterprise'
-  }
+    tier: 'enterprise',
+  },
 ]
 
 async function demonstrateBatchOperations() {
@@ -168,15 +168,15 @@ async function demonstrateBatchOperations() {
         const users = (await api?.users.getAll()) || []
         console.log(`  ✓ Processed tenant ${metadata.name}`)
         return { tenantId: metadata.id, userCount: users.length }
-      }
+      },
     })),
     {
       concurrency: 3, // Process 3 tenants at a time
       continueOnError: true,
       onProgress: (completed, total, _current) => {
         console.log(`Progress: ${completed}/${total} tenants processed`)
-      }
-    }
+      },
+    },
   )
 
   const duration = Date.now() - startTime
@@ -187,11 +187,11 @@ async function demonstrateBatchOperations() {
   results.forEach(result => {
     if (result.status === 'success') {
       console.log(
-        `  ✓ ${result.metadata.name}: Success (${result.metrics?.duration}ms)`
+        `  ✓ ${result.metadata.name}: Success (${result.metrics?.duration}ms)`,
       )
     } else {
       console.log(
-        `  ✗ ${result.metadata.name}: Failed - ${result.error?.message}`
+        `  ✗ ${result.metadata.name}: Failed - ${result.error?.message}`,
       )
     }
   })
@@ -202,11 +202,11 @@ async function demonstrateBatchOperations() {
   const tenantsToInvalidate = ['tenant-1', 'tenant-3', 'tenant-5']
   const invalidationResult = await container.invalidateTenantBatch(
     tenantsToInvalidate,
-    'Scheduled maintenance'
+    'Scheduled maintenance',
   )
 
   console.log(
-    `Invalidated ${invalidationResult.succeeded} out of ${invalidationResult.total} tenant caches`
+    `Invalidated ${invalidationResult.succeeded} out of ${invalidationResult.total} tenant caches`,
   )
 
   // Example 3: Bootstrap with timeout
@@ -219,11 +219,11 @@ async function demonstrateBatchOperations() {
         // Simulate slow operation
         await new Promise(resolve => setTimeout(resolve, 100))
         return { processed: true }
-      }
+      },
     })),
     {
-      timeout: 200 // 200ms timeout
-    }
+      timeout: 200, // 200ms timeout
+    },
   )
 
   console.log(`Timeout test result: ${timeoutResults[0].status}`)

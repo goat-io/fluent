@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { flock } from '../flock'
 import {
   GoatRepositoryFactory,
-  TypeOrmRepositoryFactory
+  TypeOrmRepositoryFactory,
 } from '../repository.factory'
 
 export interface UnifiedTestOptions {
@@ -68,7 +68,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       const a = await GoatRepo.insert({
         id: customId,
         name: 'myGoat',
-        age: 13
+        age: 13,
       })
       expect(typeof a.id).toBe('string')
       expect(a.id).toBe(customId)
@@ -101,8 +101,8 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       const goat = await GoatRepo.findById(goats[0].id!, {
         select: {
           id: false,
-          age: true
-        }
+          age: true,
+        },
       })
 
       expect(goat).not.toHaveProperty('name')
@@ -118,10 +118,10 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       expect(selectedGoats.length).toBe(2)
 
       expect(selectedGoats.find(goat => goat.id === goats[0].id!)?.name).toBe(
-        goats[0].name
+        goats[0].name,
       )
       expect(selectedGoats.find(goat => goat.id === goats[1].id!)?.name).toBe(
-        goats[1].name
+        goats[1].name,
       )
     })
 
@@ -133,17 +133,17 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         select: {
           id: true,
           name: false,
-          age: true
-        }
+          age: true,
+        },
       })
 
       expect(selectedGoats.length).toBe(2)
 
       expect(
-        selectedGoats.find(goat => goat.id === goats[0].id!)
+        selectedGoats.find(goat => goat.id === goats[0].id!),
       ).not.toHaveProperty('name')
       expect(selectedGoats.find(goat => goat.id === goats[0].id!)?.age).toBe(
-        goats[0].age
+        goats[0].age,
       )
     })
 
@@ -158,8 +158,8 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
 
       const data = await GoatRepo.findMany({
         where: {
-          name: goats[1].name
-        }
+          name: goats[1].name,
+        },
       })
 
       expect(data.length).toBeGreaterThanOrEqual(1)
@@ -171,8 +171,8 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
     it('findMany - Should FILTER not existing data', async () => {
       const data = await GoatRepo.findMany({
         where: {
-          name: 'No Goat Has this Name'
-        }
+          name: 'No Goat Has this Name',
+        },
       })
 
       expect(data.length).toBe(0)
@@ -183,11 +183,11 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
 
       const data = await GoatRepo.findMany({
         select: {
-          name: true
+          name: true,
         },
         where: {
-          name: goats[0].name
-        }
+          name: goats[0].name,
+        },
       })
 
       expect(data[0]).not.toHaveProperty('age')
@@ -198,8 +198,8 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
 
       const goat = await GoatRepo.findFirst({
         where: {
-          name: goats[1].name
-        }
+          name: goats[1].name,
+        },
       })
 
       expect(!Array.isArray(goat)).toBe(true)
@@ -211,11 +211,11 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
 
       const goat = await GoatRepo.findFirst({
         select: {
-          name: true
+          name: true,
         },
         where: {
-          name: goats[2].name
-        }
+          name: goats[2].name,
+        },
       })
 
       expect(!Array.isArray(goat)).toBe(true)
@@ -227,9 +227,9 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       await expect(
         GoatRepo.requireFirst({
           where: {
-            name: 'NO GOAT WITH THIS NAME'
-          }
-        })
+            name: 'NO GOAT WITH THIS NAME',
+          },
+        }),
       ).rejects.toThrow()
     })
 
@@ -237,8 +237,8 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       const goats = await GoatRepo.insertMany(flock)
       const found = await GoatRepo.requireFirst({
         where: {
-          name: goats[0].name
-        }
+          name: goats[0].name,
+        },
       })
       expect(found.name).toBe(goats[0].name)
     })
@@ -247,7 +247,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       const goats = await GoatRepo.insertMany(flock)
       const toUpdate = await GoatRepo.updateById(goats[0].id!, {
         name: 'UPDATED',
-        age: goats[0].age
+        age: goats[0].age,
       })
       expect(toUpdate.name).toBe('UPDATED')
     })
@@ -256,7 +256,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       const goats = await GoatRepo.insertMany(flock)
       const toUpdate = await GoatRepo.replaceById(goats[0].id!, {
         name: 'REPLACED',
-        age: 999
+        age: 999,
       })
       expect(toUpdate.name).toBe('REPLACED')
       expect(toUpdate.age).toBe(999)
@@ -285,10 +285,10 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         nestedTest: {
           a: ['6', '5', '4'],
           b: { c: true, d: ['2', '1', '0'] },
-          c: 4
+          c: 4,
         },
         order: 1,
-        test: true
+        test: true,
       })
 
       // Add delay for MongoDB to ensure different timestamps
@@ -301,10 +301,10 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         nestedTest: {
           a: ['3', '2', '1'],
           b: { c: true, d: ['1', '1', '0'] },
-          c: 3
+          c: 3,
         },
         order: 2,
-        test: false
+        test: false,
       })
 
       // Add delay for MongoDB to ensure different timestamps
@@ -317,10 +317,10 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         nestedTest: {
           a: ['0', '-1', '-2'],
           b: { c: true, d: ['0', '1', '0'] },
-          c: 2
+          c: 2,
         },
         order: 3,
-        test: false
+        test: false,
       })
     }
 
@@ -335,16 +335,16 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
             test: true,
             nestedTest: {
               c: true,
-              a: true
-            }
+              a: true,
+            },
           },
           where: {
             nestedTest: {
               c: {
-                greaterOrEqualThan: 3
-              }
-            }
-          }
+                greaterOrEqualThan: 3,
+              },
+            },
+          },
         })
         expect(!Array.isArray(form)).toBe(true)
         expect(typeof form.nestedTest.c).toBe('number')
@@ -357,10 +357,10 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
           where: {
             nestedTest: {
               c: {
-                greaterOrEqualThan: 3
-              }
-            }
-          }
+                greaterOrEqualThan: 3,
+              },
+            },
+          },
         })
 
         expect(forms.length > 0).toBe(true)
@@ -378,16 +378,16 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
               {
                 nestedTest: {
                   c: {
-                    greaterOrEqualThan: 3
-                  }
-                }
+                    greaterOrEqualThan: 3,
+                  },
+                },
               },
               {
-                order: 2
-              }
-            ]
+                order: 2,
+              },
+            ],
           },
-          limit: 1
+          limit: 1,
         })
 
         expect(forms.length).toBe(1)
@@ -415,10 +415,10 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         select: {
           id: true,
           nestedTest: {
-            c: true
-          }
+            c: true,
+          },
         },
-        limit: 1
+        limit: 1,
       })
 
       expect(forms.length).toBe(1)
@@ -431,11 +431,11 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         select: {
           id: true,
           nestedTest: {
-            c: true
-          }
+            c: true,
+          },
         },
         limit: 1,
-        offset: 1
+        offset: 1,
       })
 
       expect(forms.length).toBe(1)
@@ -448,14 +448,14 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         where: {
           OR: [
             {
-              order: 1
+              order: 1,
             },
             {
-              order: 2
-            }
-          ]
+              order: 2,
+            },
+          ],
         },
-        limit: 2
+        limit: 2,
       })
 
       expect(forms.length).toBe(2)
@@ -468,15 +468,15 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
           id: true,
           nestedTest: {
             b: {
-              c: true
-            }
+              c: true,
+            },
           },
           created: true,
-          order: true
+          order: true,
         },
         orderBy: {
-          created: 'DESC'
-        }
+          created: 'DESC',
+        },
       })
 
       expect(forms[0].nestedTest.b.c).toBe(true)
@@ -497,15 +497,15 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
           id: true,
           nestedTest: {
             b: {
-              c: true
-            }
+              c: true,
+            },
           },
           created: true,
-          order: true
+          order: true,
         },
         orderBy: {
-          created: 'ASC'
-        }
+          created: 'ASC',
+        },
       })
 
       expect(forms[0].nestedTest.b.c).toBe(true)
@@ -525,15 +525,15 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
           id: true,
           nestedTest: {
             b: {
-              c: true
-            }
+              c: true,
+            },
           },
           created: true,
-          order: true
+          order: true,
         },
         orderBy: {
-          created: 'ASC'
-        }
+          created: 'ASC',
+        },
       })
 
       expect(forms[0].nestedTest.b.c).toBe(true)
@@ -543,7 +543,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         expect(forms[forms.length - 1].order).toBe(3) // Last in list should be order: 3 (last inserted)
       } else {
         expect(
-          compareDates(forms[forms.length - 1].created, '2018-12-03')
+          compareDates(forms[forms.length - 1].created, '2018-12-03'),
         ).toBe(true)
       }
     })
@@ -552,8 +552,8 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
       await insertTestData()
       const forms = await TypeOrmRepo.findMany({
         orderBy: {
-          created: 'ASC'
-        }
+          created: 'ASC',
+        },
       })
 
       // MongoDB CreateDateColumn ignores provided dates and uses current timestamp
@@ -564,7 +564,7 @@ export const unifiedTestSuite = (options: UnifiedTestOptions) => {
         expect(forms[forms.length - 1].order).toBe(3)
       } else {
         expect(
-          compareDates(forms[forms.length - 1].created, '2018-12-03')
+          compareDates(forms[forms.length - 1].created, '2018-12-03'),
         ).toBe(true)
       }
     })

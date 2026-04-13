@@ -1,96 +1,149 @@
-// import { tokenService } from '@src/services/token.service'
-import { TRPCError } from '@trpc/server'
+import type { CommonLogger } from '@goatlab/js-utils'
 import type * as trpcExpress from '@trpc/server/adapters/express'
-import * as admin from 'firebase-admin'
+import type { Request } from 'express'
 import { ExtractJwt } from 'passport-jwt'
-import { firebaseDecodedTokenSchema } from '../schemas/user.schema'
+import type {
+  AuthConfig,
+  AuthValidationResult,
+  ValidatedAuthUser,
+} from '../bootstraps/ExpressTrpcAppConfig'
 import { requestContext } from './request.context'
 
 declare global {
   namespace Express {
     interface Request {
       context: ReturnType<typeof requestContext>
+      /** Pre-validated Better Auth user (set by middleware) */
+      betterAuthUser?: ValidatedAuthUser
     }
   }
 }
 
 /**
- * Validate Firebase Token
+ * Options for creating the context factory
  */
-const validateFirebaseToken = async (
-  idToken: string
-): Promise<admin.auth.DecodedIdToken | null> => {
-  try {
-    return await admin.auth().verifyIdToken(idToken)
-  } catch {
-    // Not a valid Firebase token
-    return null
-  }
+export interface ContextFactoryOptions {
+  /** Token validation callback from auth config */
+  validateToken?: AuthConfig['validateToken']
+  /** Logger instance */
+  logger?: CommonLogger
 }
 
 /**
- * Validate Internal Token
+ * Create a context factory with the given auth configuration.
+ * This allows injecting the auth validation logic at app startup.
+ *
+ * @param options - Configuration options including auth validator
+ * @returns A createContext function for tRPC/Express
  */
-const validateInternalToken = async (
-  _token: string
-): Promise<{
-  ownerId?: string | null
-  purpose?: 'API_ACCESS' | 'INTERNAL_SERVICE'
-} | null> => {
-  // const isValid = await tokenService.validateToken({
-  //   providedToken: token,
-  //   purpose: 'INTERNAL_SERVICE', // Adjust if needed
-  // })
+export function createContextFactory(options: ContextFactoryOptions = {}) {
+  const { validateToken, logger = console } = options
 
-  // if (isValid) {
-  //   // Optionally fetch more details about the token if needed
-  //   const tokenDetails = await tokenService.getTokenDetails(token)
-  //   return {
-  //     ownerId: tokenDetails?.ownerId,
-  //     purpose: tokenDetails?.purpose,
-  //   }
-  // }
+  /**
+   * Validate a token using the configured validator
+   */
+  async function validateAuthToken(
+    token: string,
+    req: Request,
+  ): Promise<AuthValidationResult> {
+    // If no validator configured, return invalid
+    if (!validateToken) {
+      return {
+        valid: false,
+        error: 'No auth validator configured',
+      }
+    }
 
-  return null
-}
-
-export const createContext = async ({
-  req
-}: trpcExpress.CreateExpressContextOptions): Promise<
-  ReturnType<typeof requestContext>
-> => {
-  const idToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req)
-
-  if (idToken) {
     try {
-      // Check if it's a Firebase Token
-      const firebaseUser = await validateFirebaseToken(idToken)
+      return await validateToken(token, req)
+    } catch (error) {
+      logger.error?.('[Auth] Token validation error:', error)
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'Validation failed',
+      }
+    }
+  }
 
-      const email = firebaseUser?.email
-      // const emailVerified = firebaseUser?.email_verified ?? false
+  /**
+   * Create the tRPC/Express context for a request.
+   * Accepts optional `info` with `connectionParams` for SSE/subscription
+   * connections where the browser's EventSource API cannot send custom headers.
+   * The tRPC client passes the auth token via connectionParams instead.
+   */
+  async function createContext({
+    req,
+    info,
+  }: trpcExpress.CreateExpressContextOptions & {
+    info?: { connectionParams?: Record<string, unknown> | null }
+  }): Promise<ReturnType<typeof requestContext>> {
+    // Check if user was already validated by middleware (e.g., multi-tenant middleware)
+    if (req.betterAuthUser) {
+      return requestContext(req, {
+        uid: req.betterAuthUser.id,
+        email: req.betterAuthUser.email,
+        email_verified: req.betterAuthUser.emailVerified ?? false,
+        name: req.betterAuthUser.name,
+        iss: 'better-auth',
+        aud: 'app',
+        auth_time: Math.floor(Date.now() / 1000),
+        sub: req.betterAuthUser.id,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      })
+    }
 
-      if (firebaseUser && email) {
-        //sentryService.setUserId(firebaseUser.uid)
-        return requestContext(
-          req,
-          firebaseDecodedTokenSchema.parse(firebaseUser)
+    // Extract token from Authorization header first, then fall back to
+    // connectionParams (SSE/EventSource connections cannot send custom headers,
+    // so the tRPC client passes the auth token via connectionParams instead)
+    let token = ExtractJwt.fromAuthHeaderAsBearerToken()(req)
+    if (!token && info?.connectionParams) {
+      const cpAuth = info.connectionParams.authorization
+      if (typeof cpAuth === 'string' && cpAuth.startsWith('Bearer ')) {
+        token = cpAuth.slice(7)
+      }
+    }
+
+    if (token) {
+      // Validate using configured auth validator (Better Auth)
+      const result = await validateAuthToken(token, req)
+
+      if (result.valid && result.user) {
+        return requestContext(req, {
+          uid: result.user.id,
+          email: result.user.email,
+          email_verified: result.user.emailVerified ?? false,
+          name: result.user.name,
+          iss: 'better-auth',
+          aud: 'app',
+          auth_time: Math.floor(Date.now() / 1000),
+          sub: result.user.id,
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        })
+      }
+
+      // Token provided but validation failed
+      // Don't throw immediately - let protected procedures handle it
+      // This allows for anonymous access to public endpoints
+      if (result.error) {
+        logger.warn?.(
+          `[Auth] Token validation failed: ${result.error}. Proceeding without user context.`,
         )
       }
-
-      // Check if it's an internally generated token
-      const internalToken = await validateInternalToken(idToken)
-      if (internalToken) {
-        // sentryService.setUserId(internalToken.ownerId || 'INTERNAL')
-        return requestContext(req, { tokenPurpose: internalToken.purpose })
-      }
-
-      throw new Error('Invalid token format')
-    } catch (err: any) {
-      throw new TRPCError({ code: 'UNAUTHORIZED', message: err.message })
     }
+
+    // No token or validation failed - return anonymous context
+    return requestContext(req)
   }
 
-  return requestContext(req)
+  return createContext
 }
+
+/**
+ * Default context creator (no auth validation)
+ * Use createContextFactory for production with auth
+ */
+export const createContext = createContextFactory()
 
 export type TrpcContext = Awaited<ReturnType<typeof createContext>>

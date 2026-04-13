@@ -4,20 +4,20 @@ import { initTRPC } from '@trpc/server'
 import { describe, expect, it } from 'vitest'
 import {
   ExpressTrpcAppConfigInput,
-  getDefaultConfig
+  getDefaultConfig,
 } from '../ExpressTrpcAppConfig'
 
 // Create a simple TRPC router for testing
 const t = initTRPC.create()
 const testRouter = t.router({
-  hello: t.procedure.query(() => 'world')
+  hello: t.procedure.query(() => 'world'),
 })
 
 describe('getDefaultConfig edge cases', () => {
   it('should handle null values correctly', () => {
     const configWithNull: ExpressTrpcAppConfigInput = {
       trpcRouter: testRouter,
-      logger: null as any // Explicitly setting null
+      logger: null as any, // Explicitly setting null
     }
 
     const result = getDefaultConfig(configWithNull)
@@ -32,9 +32,9 @@ describe('getDefaultConfig edge cases', () => {
       appName: undefined, // Explicitly undefined
       security: {
         cors: {
-          credentials: undefined // Nested undefined
-        }
-      }
+          credentials: undefined, // Nested undefined
+        },
+      },
     }
 
     const result = getDefaultConfig(configWithUndefined)
@@ -49,8 +49,8 @@ describe('getDefaultConfig edge cases', () => {
       trpcRouter: testRouter,
       features: {}, // Empty object should preserve defaults
       security: {
-        cors: {} // Empty nested object
-      }
+        cors: {}, // Empty nested object
+      },
     }
 
     const result = getDefaultConfig(configWithEmptyObjects)
@@ -67,16 +67,16 @@ describe('getDefaultConfig edge cases', () => {
       trpcRouter: testRouter,
       features: {
         trustProxy: false, // Explicitly false
-        openApiDocs: false
+        openApiDocs: false,
       },
       performance: {
         compression: {
-          enabled: false // Disable compression
+          enabled: false, // Disable compression
         },
         memoryMonitoring: {
-          enabled: false // Disable memory monitoring
-        }
-      }
+          enabled: false, // Disable memory monitoring
+        },
+      },
     }
 
     const result = getDefaultConfig(configWithFalse)
@@ -94,11 +94,11 @@ describe('getDefaultConfig edge cases', () => {
       security: {
         rateLimit: {
           global: {
-            max: 200 // Override only max, not windowMs
-          }
+            max: 200, // Override only max, not windowMs
+          },
           // auth and api should retain their defaults
-        }
-      }
+        },
+      },
     }
 
     const result = getDefaultConfig(complexConfig)
@@ -123,9 +123,9 @@ describe('getDefaultConfig edge cases', () => {
       expressResources: [1, 2, 3] as any, // Replace default empty array
       bodyParsing: {
         json: {
-          type: ['application/custom'] // Replace default type array
-        }
-      }
+          type: ['application/custom'], // Replace default type array
+        },
+      },
     }
 
     const result = getDefaultConfig(configWithArrays)
@@ -140,7 +140,7 @@ describe('getDefaultConfig edge cases', () => {
     // Test development environment
     const devConfig: ExpressTrpcAppConfigInput = {
       trpcRouter: testRouter,
-      environment: 'dev'
+      environment: 'dev',
     }
 
     const devResult = getDefaultConfig(devConfig)
@@ -151,14 +151,14 @@ describe('getDefaultConfig edge cases', () => {
     // Test staging environment
     const stagingConfig: ExpressTrpcAppConfigInput = {
       trpcRouter: testRouter,
-      environment: 'staging'
+      environment: 'staging',
     }
 
     const stagingResult = getDefaultConfig(stagingConfig)
     expect(stagingResult.features.sentry).toBe(false)
     expect(stagingResult.security.helmet.crossOriginEmbedderPolicy).toBe(true)
     expect(
-      stagingResult.performance.memoryMonitoring.enableGarbageCollection
+      stagingResult.performance.memoryMonitoring.enableGarbageCollection,
     ).toBe(false)
   })
 
@@ -170,16 +170,16 @@ describe('getDefaultConfig edge cases', () => {
     const configWithHandlers: ExpressTrpcAppConfigInput = {
       trpcRouter: testRouter,
       healthCheck: {
-        customChecks: customHandler
+        customChecks: customHandler,
       },
       processManagement: {
         gracefulShutdown: {
-          onShutdown: shutdownHandler
+          onShutdown: shutdownHandler,
         },
         uncaughtException: {
-          handler: errorHandler
-        }
-      }
+          handler: errorHandler,
+        },
+      },
     }
 
     const result = getDefaultConfig(configWithHandlers)
@@ -187,10 +187,10 @@ describe('getDefaultConfig edge cases', () => {
     // Functions should be preserved
     expect(result.healthCheck.customChecks).toBe(customHandler)
     expect(result.processManagement.gracefulShutdown.onShutdown).toBe(
-      shutdownHandler
+      shutdownHandler,
     )
     expect(result.processManagement.uncaughtException?.handler).toBe(
-      errorHandler
+      errorHandler,
     )
 
     // Other defaults should still be present
@@ -203,17 +203,17 @@ describe('getDefaultConfig edge cases', () => {
     const customCSP = {
       directives: {
         defaultSrc: ["'self'", 'https://trusted.com'],
-        scriptSrc: ["'self'", "'unsafe-inline'", 'https://scripts.com']
-      }
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://scripts.com'],
+      },
     }
 
     const configWithObjectValues: ExpressTrpcAppConfigInput = {
       trpcRouter: testRouter,
       security: {
         helmet: {
-          contentSecurityPolicy: customCSP // Object value instead of boolean
-        }
-      }
+          contentSecurityPolicy: customCSP, // Object value instead of boolean
+        },
+      },
     }
 
     const result = getDefaultConfig(configWithObjectValues)

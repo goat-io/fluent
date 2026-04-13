@@ -32,7 +32,7 @@ describe('TranslationService Optimization Integration Test', () => {
 
       const duration = performance.now() - start
       console.log(
-        `Template caching test: ${iterations} iterations in ${duration.toFixed(2)}ms`
+        `Template caching test: ${iterations} iterations in ${duration.toFixed(2)}ms`,
       )
 
       // Performance varies by environment, so we just log it
@@ -44,7 +44,7 @@ describe('TranslationService Optimization Integration Test', () => {
       const args = {
         user: '<script>alert("xss")</script>',
         count: 5,
-        type: 'urgent'
+        type: 'urgent',
       }
 
       const result = service.formatResult('complex.key', template, args)
@@ -68,7 +68,7 @@ describe('TranslationService Optimization Integration Test', () => {
 
       const duration = performance.now() - start
       console.log(
-        `Static text test: ${iterations} iterations in ${duration.toFixed(2)}ms`
+        `Static text test: ${iterations} iterations in ${duration.toFixed(2)}ms`,
       )
 
       // Performance varies by environment, so we just log it
@@ -129,7 +129,7 @@ describe('TranslationService Optimization Integration Test', () => {
         'es_us',
         null,
         'en_gb',
-        'es_cl'
+        'es_cl',
       ]
       const keys = ['key1', 'key2', 'key3', 'key4', 'key5']
       const templates = [
@@ -137,7 +137,7 @@ describe('TranslationService Optimization Integration Test', () => {
         'Hello {name}',
         'Welcome {{user}}!',
         '{count} items in {category}',
-        'Complex {{html}} with {multiple} {params}'
+        'Complex {{html}} with {multiple} {params}',
       ]
 
       const iterations = 5000
@@ -157,7 +157,7 @@ describe('TranslationService Optimization Integration Test', () => {
             category: 'test',
             html: '<b>bold</b>',
             multiple: 'many',
-            params: 'values'
+            params: 'values',
           })
         } else if (i % 3 === 1) {
           service.getLocale(lang as LANG)
@@ -170,7 +170,7 @@ describe('TranslationService Optimization Integration Test', () => {
       const avgTime = duration / iterations
 
       console.log(
-        `Mixed operations: ${iterations} iterations in ${duration.toFixed(2)}ms`
+        `Mixed operations: ${iterations} iterations in ${duration.toFixed(2)}ms`,
       )
       console.log(`Average time per operation: ${avgTime.toFixed(3)}ms`)
 

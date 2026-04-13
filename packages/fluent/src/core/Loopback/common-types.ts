@@ -66,7 +66,7 @@ export type Options = AnyObject
  */
 export type Callback<T> = (
   err: Error | string | null | undefined,
-  result?: T
+  result?: T,
 ) => void
 
 /**
@@ -104,9 +104,9 @@ export const CountSchema /* :SchemaObject */ = {
   'x-typescript-type': '@loopback/repository#Count',
   properties: {
     count: {
-      type: 'number' as const // Force to be `number` type instead of `string`
-    }
-  }
+      type: 'number' as const, // Force to be `number` type instead of `string`
+    },
+  },
 }
 
 /**

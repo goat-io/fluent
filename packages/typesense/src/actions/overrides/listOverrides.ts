@@ -1,12 +1,12 @@
 import type { TypesenseContext } from '../../types'
 import type {
   TypesenseCollectionOptions,
-  TypesenseOverrideResponse
+  TypesenseOverrideResponse,
 } from '../../typesense.model'
 
 export async function listOverrides(
   ctx: TypesenseContext,
-  options?: TypesenseCollectionOptions
+  options?: TypesenseCollectionOptions,
 ): Promise<{ overrides: TypesenseOverrideResponse[] }> {
   const collectionName = options?.collection || ctx.fqcn()
 

@@ -4,7 +4,7 @@ import {
   BenchmarkOptions,
   BenchmarkResult,
   BenchmarkRunner,
-  BenchmarkSuite
+  BenchmarkSuite,
 } from '../types'
 
 export class DefaultBenchmarkRunner implements BenchmarkRunner {
@@ -12,12 +12,12 @@ export class DefaultBenchmarkRunner implements BenchmarkRunner {
     name: 'Benchmark',
     iterations: 1000,
     warmupRuns: 100,
-    concurrency: 1
+    concurrency: 1,
   }
 
   async run(
     fn: () => Promise<void>,
-    options: BenchmarkOptions
+    options: BenchmarkOptions,
   ): Promise<BenchmarkResult> {
     const opts = { ...this.defaultOptions, ...options }
 
@@ -56,7 +56,7 @@ export class DefaultBenchmarkRunner implements BenchmarkRunner {
       heapTotal: endMemory.heapTotal - startMemory.heapTotal,
       heapUsed: endMemory.heapUsed - startMemory.heapUsed,
       external: endMemory.external - startMemory.external,
-      arrayBuffers: endMemory.arrayBuffers - startMemory.arrayBuffers
+      arrayBuffers: endMemory.arrayBuffers - startMemory.arrayBuffers,
     }
 
     const totalTime = times.reduce((sum, time) => sum + time, 0)
@@ -75,7 +75,7 @@ export class DefaultBenchmarkRunner implements BenchmarkRunner {
       iterations: opts.iterations,
       operationsPerSecond,
       memoryUsage: memoryDiff,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
   }
 
@@ -85,7 +85,7 @@ export class DefaultBenchmarkRunner implements BenchmarkRunner {
       name: string
       fn: () => Promise<void>
       options?: Partial<BenchmarkOptions>
-    }>
+    }>,
   ): Promise<BenchmarkSuite> {
     const results: BenchmarkResult[] = []
 
@@ -93,7 +93,7 @@ export class DefaultBenchmarkRunner implements BenchmarkRunner {
       const options = {
         ...this.defaultOptions,
         ...benchmark.options,
-        name: benchmark.name
+        name: benchmark.name,
       }
       const result = await this.run(benchmark.fn, options)
       results.push(result)
@@ -108,8 +108,8 @@ export class DefaultBenchmarkRunner implements BenchmarkRunner {
         platform: os.platform(),
         arch: os.arch(),
         cpus: os.cpus().length,
-        memory: os.totalmem()
-      }
+        memory: os.totalmem(),
+      },
     }
   }
 }

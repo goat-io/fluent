@@ -7,7 +7,7 @@ export class DatabaseConnections {
   private static prismaClient: PrismaClient | null = null
 
   static async getMysql2Connection(
-    config: DatabaseConfig
+    config: DatabaseConfig,
   ): Promise<mysql.Connection> {
     if (!DatabaseConnections.mysql2Connection) {
       DatabaseConnections.mysql2Connection = await mysql.createConnection({
@@ -16,7 +16,7 @@ export class DatabaseConnections {
         user: config.user,
         password: config.password,
         database: config.database,
-        namedPlaceholders: true
+        namedPlaceholders: true,
       })
     }
     return DatabaseConnections.mysql2Connection
@@ -25,7 +25,7 @@ export class DatabaseConnections {
   static async getPrismaClient(): Promise<PrismaClient> {
     if (!DatabaseConnections.prismaClient) {
       DatabaseConnections.prismaClient = new PrismaClient({
-        log: ['error'] // Minimal logging for benchmarks
+        log: ['error'], // Minimal logging for benchmarks
       })
       await DatabaseConnections.prismaClient.$connect()
     }

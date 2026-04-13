@@ -6,5 +6,5 @@ export const MemoryDataSource = new DataSource({
   database: ':memory:',
   entities: dbEntities,
   logging: false,
-  synchronize: true
+  synchronize: true,
 })

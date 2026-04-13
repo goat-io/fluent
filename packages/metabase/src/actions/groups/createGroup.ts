@@ -9,7 +9,7 @@ export async function createGroup({
   baseUrl,
   sessionToken,
   apiKey,
-  groupName
+  groupName,
 }: {
   baseUrl: string
   sessionToken?: string
@@ -24,7 +24,7 @@ export async function createGroup({
     apiKey,
     endpoint: '/api/permissions/group',
     method: 'POST',
-    body: { name: groupName }
+    body: { name: groupName },
   })
 
   if (!response.ok) {

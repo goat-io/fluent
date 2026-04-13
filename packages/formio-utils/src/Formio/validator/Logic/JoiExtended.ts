@@ -10,9 +10,9 @@ export const JoiX = Joi.extend([
       json: '{{message}}',
       hidden: '{{message}}',
       select: '{{message}}',
-      distinct: '{{message}}'
+      distinct: '{{message}}',
     },
-    rules: getRules('any')
+    rules: getRules('any'),
   },
   {
     name: 'string',
@@ -24,9 +24,9 @@ export const JoiX = Joi.extend([
       json: '{{message}}',
       hidden: '{{message}}',
       select: '{{message}}',
-      distinct: '{{message}}'
+      distinct: '{{message}}',
     },
-    rules: getRules('string')
+    rules: getRules('string'),
   },
   {
     name: 'array',
@@ -36,9 +36,9 @@ export const JoiX = Joi.extend([
       json: '{{message}}',
       hidden: '{{message}}',
       select: '{{message}}',
-      distinct: '{{message}}'
+      distinct: '{{message}}',
     },
-    rules: getRules('array')
+    rules: getRules('array'),
   },
   {
     name: 'object',
@@ -48,9 +48,9 @@ export const JoiX = Joi.extend([
       json: '{{message}}',
       hidden: '{{message}}',
       select: '{{message}}',
-      distinct: '{{message}}'
+      distinct: '{{message}}',
     },
-    rules: getRules('object')
+    rules: getRules('object'),
   },
   {
     name: 'number',
@@ -60,9 +60,9 @@ export const JoiX = Joi.extend([
       json: '{{message}}',
       hidden: '{{message}}',
       select: '{{message}}',
-      distinct: '{{message}}'
+      distinct: '{{message}}',
     },
-    rules: getRules('number')
+    rules: getRules('number'),
   },
   {
     name: 'boolean',
@@ -72,9 +72,9 @@ export const JoiX = Joi.extend([
       json: '{{message}}',
       hidden: '{{message}}',
       select: '{{message}}',
-      distinct: '{{message}}'
+      distinct: '{{message}}',
     },
-    rules: getRules('boolean')
+    rules: getRules('boolean'),
   },
   {
     name: 'date',
@@ -84,8 +84,8 @@ export const JoiX = Joi.extend([
       json: '{{message}}',
       hidden: '{{message}}',
       select: '{{message}}',
-      distinct: '{{message}}'
+      distinct: '{{message}}',
     },
-    rules: getRules('date')
-  }
+    rules: getRules('date'),
+  },
 ])

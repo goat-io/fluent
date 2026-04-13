@@ -15,7 +15,7 @@ export interface MemoizedFunction {
  */
 export function memoFn<T extends (...args: any[]) => any>(
   fn: T,
-  opt: MemoOptions = {}
+  opt: MemoOptions = {},
 ): T & MemoizedFunction {
   const {
     logHit = false,
@@ -24,7 +24,7 @@ export function memoFn<T extends (...args: any[]) => any>(
     logger = console,
     cacheErrors = true,
     cacheFactory = () => new MapMemoCache(),
-    cacheKeyFn = jsonMemoSerializer
+    cacheKeyFn = jsonMemoSerializer,
   } = opt
 
   const cache = cacheFactory()
@@ -73,7 +73,7 @@ export function memoFn<T extends (...args: any[]) => any>(
     } finally {
       if (logMiss) {
         logger.log(
-          `${fnName}(${getArgsSignature(args, logArgs)}) memoFn miss (${Time.since(started)})`
+          `${fnName}(${getArgsSignature(args, logArgs)}) memoFn miss (${Time.since(started)})`,
         )
       }
     }

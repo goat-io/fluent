@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/tasks-adapter-hatchet",
-  "version": "0.3.4",
+  "version": "0.4.11",
   "description": "Hatchet Tasks adapter for Goatlab tasks",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
@@ -45,7 +45,7 @@
     "@goatlab/js-utils": "workspace:*",
     "@goatlab/node-utils": "workspace:*",
     "@goatlab/tasks-core": "workspace:*",
-    "@hatchet-dev/typescript-sdk": "^1.9.3"
+    "@hatchet-dev/typescript-sdk": "^1.10.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.3",

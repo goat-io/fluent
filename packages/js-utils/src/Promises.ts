@@ -10,7 +10,7 @@ import { pRetry, pRetryFn } from './Promises/pRetry'
  */
 class PromisesClass {
   async try<ERR = Error, RETURN = void>(
-    promise: Promise<RETURN>
+    promise: Promise<RETURN>,
   ): Promise<[err: ERR | null, value: Awaited<RETURN>]> {
     try {
       return [null, await promise]
@@ -30,7 +30,7 @@ class PromisesClass {
   }> {
     const keys = Object.keys(input)
     return Object.fromEntries(
-      (await Promise.all(Object.values(input))).map((v, i) => [keys[i], v])
+      (await Promise.all(Object.values(input))).map((v, i) => [keys[i], v]),
     ) as any
   }
 

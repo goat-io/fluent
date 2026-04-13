@@ -10,7 +10,7 @@ const decodedJWT = {
   id: '5c741eab765055001832aef1',
   name: 'SomeName',
   email: 'SomeEmail',
-  roles: ['role1', 'role2']
+  roles: ['role1', 'role2'],
 }
 
 test('Should verify a malformed token', async () => {
@@ -35,7 +35,7 @@ test('Should verify DATE on valid JWT HS256', async () => {
 test('Should encode a payload JWT HS256', async () => {
   const token = await Jwt.generate(decodedJWT, {
     secret: validSecret,
-    expiresIn: '2 days'
+    expiresIn: '2 days',
   })
 
   expect(typeof token).toBe('string')
@@ -45,11 +45,11 @@ test('Should encode a payload JWT HS256', async () => {
 test('Should verify a valid JWT token HS256', async () => {
   const SignedPayload = await Jwt.generate(decodedJWT, {
     secret: validSecret,
-    expiresIn: '1 year'
+    expiresIn: '1 year',
   })
 
   const [error, decoded] = await Promises.try(
-    Jwt.verify(SignedPayload, validSecret)
+    Jwt.verify(SignedPayload, validSecret),
   )
   expect(error).toBe(null)
   expect(decoded.id).toBe('5c741eab765055001832aef1')

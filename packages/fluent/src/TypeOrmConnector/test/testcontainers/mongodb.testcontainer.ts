@@ -1,6 +1,6 @@
 import {
   MongoDBContainer,
-  StartedMongoDBContainer
+  StartedMongoDBContainer,
 } from '@testcontainers/mongodb'
 import { DataSource } from 'typeorm'
 import { dbEntities } from '../dbEntities'
@@ -26,7 +26,7 @@ export class MongoDBTestContainer {
       entities: dbEntities,
       synchronize: false, // MongoDB has issues with synchronize and indexes
       logging: false,
-      directConnection: true
+      directConnection: true,
     })
 
     await this.dataSource.initialize()

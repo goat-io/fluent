@@ -36,13 +36,13 @@ export class MySQL2VsPrismaBenchmark {
         name: 'Simple Select',
         description: 'SELECT * FROM users LIMIT 100',
         query: 'SELECT * FROM users LIMIT 100',
-        expectedResults: 100
+        expectedResults: 100,
       },
       {
         name: 'Filtered Select',
         description: 'SELECT * FROM users WHERE status = ? AND age > ?',
         query: 'SELECT * FROM users WHERE status = ? AND age > ?',
-        params: ['active', 25]
+        params: ['active', 25],
       },
       {
         name: 'Join Query',
@@ -56,7 +56,7 @@ export class MySQL2VsPrismaBenchmark {
           GROUP BY u.id
           LIMIT 50
         `,
-        params: []
+        params: [],
       },
       {
         name: 'Complex Join',
@@ -72,21 +72,21 @@ export class MySQL2VsPrismaBenchmark {
           ORDER BY avg_rating DESC
           LIMIT 100
         `,
-        params: []
+        params: [],
       },
       {
         name: 'Insert Operation',
         description: 'INSERT INTO users',
         query:
           'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-        params: ['test@example.com', 'Test', 'User', 'active', 30, 'US']
+        params: ['test@example.com', 'Test', 'User', 'active', 30, 'US'],
       },
       {
         name: 'Update Operation',
         description: 'UPDATE users SET age = ? WHERE id = ?',
         query: 'UPDATE users SET age = ? WHERE id = ?',
-        params: [35, 1]
-      }
+        params: [35, 1],
+      },
     ]
 
     // Run benchmarks for each query
@@ -101,10 +101,10 @@ export class MySQL2VsPrismaBenchmark {
   }
 
   private async runQueryBenchmark(
-    queryBenchmark: QueryBenchmark
+    queryBenchmark: QueryBenchmark,
   ): Promise<void> {
     const mysql2Conn = await DatabaseConnections.getMysql2Connection(
-      this.config
+      this.config,
     )
     const prisma = await DatabaseConnections.getPrismaClient()
 
@@ -116,7 +116,7 @@ export class MySQL2VsPrismaBenchmark {
         } else if (queryBenchmark.name === 'Filtered Select') {
           await mysql2Conn.execute(
             'SELECT * FROM users WHERE status = ? AND age > ?',
-            ['active', 25]
+            ['active', 25],
           )
         } else if (queryBenchmark.name === 'Join Query') {
           await mysql2Conn.execute(`
@@ -144,13 +144,13 @@ export class MySQL2VsPrismaBenchmark {
           const randomId = Math.floor(Math.random() * 1000000)
           await mysql2Conn.execute(
             'INSERT INTO users (email, first_name, last_name, status, age, country) VALUES (?, ?, ?, ?, ?, ?)',
-            [`test${randomId}@example.com`, 'Test', 'User', 'active', 30, 'US']
+            [`test${randomId}@example.com`, 'Test', 'User', 'active', 30, 'US'],
           )
         } else if (queryBenchmark.name === 'Update Operation') {
           const randomId = Math.floor(Math.random() * 1000) + 1
           await mysql2Conn.execute('UPDATE users SET age = ? WHERE id = ?', [
             Math.floor(Math.random() * 50) + 18,
-            randomId
+            randomId,
           ])
         }
       },
@@ -159,8 +159,8 @@ export class MySQL2VsPrismaBenchmark {
         description: queryBenchmark.description,
         iterations: 1000,
         warmupRuns: 100,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Prisma benchmark
@@ -168,14 +168,14 @@ export class MySQL2VsPrismaBenchmark {
       async () => {
         if (queryBenchmark.name === 'Simple Select') {
           await prisma.user.findMany({
-            take: 100
+            take: 100,
           })
         } else if (queryBenchmark.name === 'Filtered Select') {
           await prisma.user.findMany({
             where: {
               status: 'active',
-              age: { gt: 25 }
-            }
+              age: { gt: 25 },
+            },
           })
         } else if (queryBenchmark.name === 'Join Query') {
           await prisma.user.findMany({
@@ -184,26 +184,26 @@ export class MySQL2VsPrismaBenchmark {
               orders: {
                 select: {
                   id: true,
-                  totalAmount: true
-                }
-              }
+                  totalAmount: true,
+                },
+              },
             },
-            take: 50
+            take: 50,
           })
         } else if (queryBenchmark.name === 'Complex Join') {
           await prisma.product.findMany({
             where: { isActive: true },
             include: {
               category: {
-                select: { name: true }
+                select: { name: true },
               },
               reviews: {
                 select: {
-                  rating: true
-                }
-              }
+                  rating: true,
+                },
+              },
             },
-            take: 100
+            take: 100,
           })
         } else if (queryBenchmark.name === 'Insert Operation') {
           const randomId = Math.floor(Math.random() * 1000000)
@@ -214,14 +214,14 @@ export class MySQL2VsPrismaBenchmark {
               lastName: 'User',
               status: 'active',
               age: 30,
-              country: 'US'
-            }
+              country: 'US',
+            },
           })
         } else if (queryBenchmark.name === 'Update Operation') {
           const randomId = Math.floor(Math.random() * 1000) + 1
           await prisma.user.update({
             where: { id: randomId },
-            data: { age: Math.floor(Math.random() * 50) + 18 }
+            data: { age: Math.floor(Math.random() * 50) + 18 },
           })
         }
       },
@@ -230,8 +230,8 @@ export class MySQL2VsPrismaBenchmark {
         description: queryBenchmark.description,
         iterations: 1000,
         warmupRuns: 100,
-        concurrency: 1
-      }
+        concurrency: 1,
+      },
     )
 
     // Display results
@@ -246,7 +246,7 @@ async function main() {
     port: Number.parseInt(process.env.DB_PORT || '3306'),
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'benchmark_db'
+    database: process.env.DB_NAME || 'benchmark_db',
   }
 
   const benchmark = new MySQL2VsPrismaBenchmark(config)

@@ -9,7 +9,7 @@ import {
   FluentQuery,
   Primitives,
   QueryFieldSelector,
-  QueryOutput
+  QueryOutput,
 } from './types'
 
 export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
@@ -64,7 +64,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @param query
    */
   public async findMany<T extends FluentQuery<ModelDTO>>(
-    _query?: T
+    _query?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     throw new Error('findMany() method not implemented')
   }
@@ -76,7 +76,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @return {Object} First result
    */
   public async findFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null> {
     const data = await this.findMany({ ...query, limit: 1 })
 
@@ -89,12 +89,12 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
   public async requireById(
     id: string,
-    q?: FindByIdFilter<ModelDTO>
+    q?: FindByIdFilter<ModelDTO>,
   ): Promise<QueryOutput<FindByIdFilter<ModelDTO>, ModelDTO>> {
     const found = await this.findByIds([id], {
       select: q?.select,
       include: q?.include,
-      limit: 1
+      limit: 1,
     })
 
     for (let i = 0; i < found.length; i++) {
@@ -123,7 +123,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
   }
 
   public async requireFirst<T extends FluentQuery<ModelDTO>>(
-    query?: T
+    query?: T,
   ): Promise<QueryOutput<T, ModelDTO>> {
     const found = await this.findMany({ ...query, limit: 1 })
 
@@ -151,17 +151,17 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
   public async findByIds<T extends FindByIdFilter<ModelDTO>>(
     ids: string[],
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO>[]> {
     const query: FluentQuery<ModelDTO> = {
       where: {
         id: {
-          in: ids
-        }
+          in: ids,
+        },
       } as any,
       limit: q?.limit,
       select: q?.select as any,
-      include: q?.include as any
+      include: q?.include as any,
     }
     const data = await this.findMany(query)
 
@@ -171,7 +171,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
   public async findById<T extends FindByIdFilter<ModelDTO>>(
     id: string,
-    q?: T
+    q?: T,
   ): Promise<QueryOutput<T, ModelDTO> | null> {
     const result = await this.findByIds([id], { ...q, limit: 1 })
 
@@ -189,7 +189,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * @returns {Collection} Fluent Collection
    */
   public async collect(
-    query: FluentQuery<ModelDTO>
+    query: FluentQuery<ModelDTO>,
   ): Promise<Collection<OutputDTO>> {
     const data = await this.findMany(query)
 
@@ -207,7 +207,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   public async pluck(
     path: QueryFieldSelector<ModelDTO>,
-    query?: FluentQuery<ModelDTO>
+    query?: FluentQuery<ModelDTO>,
   ): Promise<Primitives[]> {
     const data = await this.findMany(query)
     const paths = Object.keys(Objects.flatten(path))
@@ -219,7 +219,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
       const extracted = Objects.getFromPath(
         (data as any)[i],
         pathStr,
-        undefined
+        undefined,
       )
       if (typeof extracted.value !== 'undefined') {
         result.push(extracted.value)
@@ -255,7 +255,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const parentData = await this.relatedQuery.repository.findMany({
       ...this.relatedQuery.query,
       // We just need the IDs to make the relations
-      select: { id: true }
+      select: { id: true },
     } as unknown as FluentQuery<ModelDTO>)
 
     // "Many" side of relation foreignKey
@@ -265,13 +265,13 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     if (!foreignKeyName) {
       throw new Error(
-        'The relationship was not properly defined. Please check that your Repository and Model relations have the same keys'
+        'The relationship was not properly defined. Please check that your Repository and Model relations have the same keys',
       )
     }
 
     const relatedData = parentData.map(r => ({
       [foreignKeyName]: r.id,
-      ...data
+      ...data,
     }))
 
     const existingIds = clearEmpties(relatedData.map(r => r.id))
@@ -294,8 +294,8 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
         updateQueries.push(
           this.updateById(exists.id, {
             ...exists,
-            [foreignKeyName]: related[foreignKeyName]
-          } as unknown as InputDTO)
+            [foreignKeyName]: related[foreignKeyName],
+          } as unknown as InputDTO),
         )
       } else {
         insertQueries.push(related)
@@ -321,7 +321,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const parentData = await this.relatedQuery.repository.findMany({
       ...this.relatedQuery.query,
       // We just need the IDs to make the relations
-      select: { id: true }
+      select: { id: true },
     } as unknown as FluentQuery<ModelDTO>[])
 
     const foreignKeyName =
@@ -334,7 +334,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     if (!foreignKeyName || !inverseKeyName) {
       throw new Error(
-        `The relationship was not properly defined. Please check that your Repository and Model relations have the same keys: Searching for: ${this.relatedQuery.key}`
+        `The relationship was not properly defined. Please check that your Repository and Model relations have the same keys: Searching for: ${this.relatedQuery.key}`,
       )
     }
 
@@ -342,7 +342,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     const relatedData = parentData.map(d => ({
       [foreignKeyName]: d.id,
       [inverseKeyName]: id,
-      ...pivot
+      ...pivot,
     }))
 
     return this.relatedQuery.pivot.insertMany(relatedData)
@@ -353,7 +353,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * To be used in the "parent" entity (One)
    */
   protected hasMany<T extends FluentHasManyParams<T>>(
-    r: T
+    r: T,
   ): InstanceType<T['repository']> {
     // Handle both constructor and factory function patterns
     const newRepo =
@@ -373,7 +373,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
     if (this.relatedQuery) {
       newRepo.setRelatedQuery({
         ...this.relatedQuery,
-        key: calleeName
+        key: calleeName,
       })
     }
 
@@ -385,7 +385,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * To be used in the "children" entity (Many)
    */
   protected belongsTo<T extends FluentBelongsToParams<T>>(
-    r: T
+    r: T,
   ): InstanceType<T['repository']> {
     return this.hasMany(r)
   }
@@ -403,7 +403,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    * To be used in both of the Related models (excluding pivot)
    */
   protected belongsToMany<T extends FluentBelongsToManyParams<T>>(
-    r: T
+    r: T,
   ): InstanceType<T['repository']> {
     // Handle both constructor and factory function patterns
     const newRepo =
@@ -431,19 +431,19 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
 
     pivot.setRelatedQuery({
       ...this.relatedQuery,
-      key: relationName
+      key: relationName,
     })
 
     if (this.relatedQuery) {
       newRepo.setRelatedQuery({
         ...this.relatedQuery,
         key: relationName,
-        pivot
+        pivot,
       })
     } else {
       newRepo.setRelatedQuery({
         key: relationName,
-        pivot
+        pivot,
       })
     }
 
@@ -468,7 +468,7 @@ export abstract class BaseConnector<ModelDTO, InputDTO, OutputDTO> {
    */
   protected jsApplySelect(
     select: FluentQuery<ModelDTO>['select'],
-    data: ModelDTO[]
+    data: ModelDTO[],
   ): ModelDTO[] {
     const Data = Array.isArray(data) ? [...data] : [data]
 

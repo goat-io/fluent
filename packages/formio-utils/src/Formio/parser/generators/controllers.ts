@@ -9,16 +9,16 @@ import { template as nestControllerExtended } from './templates/Nestjs/controlle
 
 const FrameworkTemplatesBaseController = {
   Loopback4: lbController,
-  Nestjs: nestController
+  Nestjs: nestController,
 }
 const FrameworkTemplatesControllerExtended = {
   Loopback4: lbControllerExtended,
-  Nestjs: nestControllerExtended
+  Nestjs: nestControllerExtended,
 }
 
 export const generateControllers = (
   Model: FluentModel,
-  framework: SupportedFrameworks
+  framework: SupportedFrameworks,
 ) => {
   const source = FrameworkTemplatesBaseController[framework]
 
@@ -34,18 +34,18 @@ export const generateControllers = (
   const templateExtended = compile(sourceExtended)
   const resultExtended = templateExtended(Model.properties)
   const filePathExtended = join(
-    `${Model.folderPath}/${Model.name}.controller.ts`
+    `${Model.folderPath}/${Model.name}.controller.ts`,
   )
   // writeFileSync(filePathExtended, resultExtended)
 
   return {
     controller: {
       file: result,
-      path: filePath
+      path: filePath,
     },
     extendedController: {
       file: resultExtended,
-      path: filePathExtended
-    }
+      path: filePathExtended,
+    },
   }
 }

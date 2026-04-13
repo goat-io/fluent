@@ -28,7 +28,7 @@
   "scripts": {
     "build": "pnpm lint && turbo run build",
     "dev": "turbo run dev --parallel",
-    "test": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase",
+    "test": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase --filter=!@goatlab/tasks-adapter-gcp",
     "test-ci": "turbo run test --filter=!@goatlab/benchmarks --filter=!@goatlab/fluent --filter=!@goatlab/fluent-firebase --filter=!@goatlab/tasks-adapter-gcp",
     "lint": "turbo run lint",
     "cs": "changeset",

@@ -35,7 +35,7 @@ export interface TryCatchOptions {
  */
 export function tryCatch<T extends AnyFunction>(
   fn: T,
-  opt: TryCatchOptions = {}
+  opt: TryCatchOptions = {},
 ): T {
   const { onError, logError = true, logSuccess = false, logger = console } = opt
 
@@ -56,10 +56,10 @@ export function tryCatch<T extends AnyFunction>(
       if (logError) {
         logger.warn(
           `tryCatch.${fname} error in ${Time.since(
-            started
+            started,
           )}:\n${Strings.stringifyAny(err, {
-            includeErrorData: true
-          })}`
+            includeErrorData: true,
+          })}`,
         )
       }
 
