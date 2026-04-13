@@ -19,94 +19,99 @@ export function Trace() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--color-surface-0)]">
         <NavHeader title="Trace" />
-        <div className="flex items-center justify-center py-24 text-gray-400">Loading...</div>
+        <div className="flex items-center justify-center py-24 text-[var(--color-text-muted)]">Loading...</div>
       </div>
     )
   }
 
   if (!trace) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--color-surface-0)]">
         <NavHeader title="Trace" />
-        <div className="flex items-center justify-center py-24 text-gray-400">Trace not found</div>
+        <div className="flex items-center justify-center py-24 text-[var(--color-text-muted)]">Trace not found</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--color-surface-0)]">
       <NavHeader title="Trace Lineage" />
 
       <main className="max-w-5xl mx-auto px-6 py-8">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Trace <span className="font-mono text-gray-500">{traceId}</span>
+        {/* Header */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+            Trace <span className="font-mono text-[var(--color-text-muted)]">{traceId}</span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-[var(--color-text-secondary)] mt-1">
             {trace.runs.length} workflow run{trace.runs.length !== 1 ? 's' : ''} | {trace.events.length} event{trace.events.length !== 1 ? 's' : ''} | {trace.actions.length} action{trace.actions.length !== 1 ? 's' : ''}
           </p>
         </div>
 
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="glass rounded-2xl p-5">
+            <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2">Workflow Runs</div>
+            <div className="text-3xl font-bold text-[var(--color-text-primary)] tabular-nums">{trace.runs.length}</div>
+          </div>
+          <div className="glass rounded-2xl p-5">
+            <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2">Events</div>
+            <div className="text-3xl font-bold text-[var(--color-text-primary)] tabular-nums">{trace.events.length}</div>
+          </div>
+          <div className="glass rounded-2xl p-5">
+            <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2">External Actions</div>
+            <div className="text-3xl font-bold text-[var(--color-text-primary)] tabular-nums">{trace.actions.length}</div>
+          </div>
+        </div>
+
         {/* Workflow Runs */}
         <section className="mb-8">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Workflow Runs</h3>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Run ID</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Workflow</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Started</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {trace.runs.map((run) => (
-                  <tr key={run.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <Link to={`/workflows/${run.id}`} className="text-blue-600 hover:text-blue-800 font-mono text-xs">
-                        {run.id.slice(0, 12)}...
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {run.workflowName} <span className="text-xs text-gray-400">v{run.workflowVersion}</span>
-                    </td>
-                    <td className="px-4 py-3"><StatusBadge status={run.status as WorkflowStatus} /></td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {run.startedAt ? <RelativeTime date={run.startedAt} /> : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <h3 className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">Workflow Runs</h3>
+          <div className="space-y-3">
+            {trace.runs.map((run) => (
+              <Link
+                key={run.id}
+                to={`/workflows/${run.id}`}
+                className="block glass glass-hover rounded-2xl p-5 transition-all"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">{run.workflowName}</h4>
+                      <span className="text-xs text-[var(--color-text-muted)]">v{run.workflowVersion}</span>
+                      <StatusBadge status={run.status as WorkflowStatus} />
+                    </div>
+                    <p className="text-xs text-[var(--color-accent)] font-mono mt-0.5">{run.id.slice(0, 12)}...</p>
+                  </div>
+                  <div className="text-xs text-[var(--color-text-muted)]">
+                    {run.startedAt ? <RelativeTime date={run.startedAt} /> : '-'}
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
 
         {/* Events */}
         {trace.events.length > 0 && (
           <section className="mb-8">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Events</h3>
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Type</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Source</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Time</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {trace.events.map((event) => (
-                    <tr key={event.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{event.eventType}</td>
-                      <td className="px-4 py-3 text-gray-600">{event.source}</td>
-                      <td className="px-4 py-3 text-gray-600"><RelativeTime date={event.createdAt} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <h3 className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">Events</h3>
+            <div className="space-y-3">
+              {trace.events.map((event) => (
+                <div key={event.id} className="glass glass-hover rounded-2xl p-5 transition-all">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">{event.eventType}</h4>
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{event.source}</p>
+                    </div>
+                    <div className="text-xs text-[var(--color-text-muted)]">
+                      <RelativeTime date={event.createdAt} />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}
@@ -114,36 +119,30 @@ export function Trace() {
         {/* External Actions */}
         {trace.actions.length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">External Actions</h3>
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Provider</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Action</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Time</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {trace.actions.map((action) => (
-                    <tr key={action.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{action.provider}</td>
-                      <td className="px-4 py-3 text-gray-600">{action.actionType}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          action.status === 'completed' ? 'bg-green-100 text-green-700' :
-                          action.status === 'failed' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-600'
+            <h3 className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">External Actions</h3>
+            <div className="space-y-3">
+              {trace.actions.map((action) => (
+                <div key={action.id} className="glass glass-hover rounded-2xl p-5 transition-all">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">{action.provider}</h4>
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                          action.status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                          action.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                          'bg-gray-500/10 text-[var(--color-text-muted)] border-[var(--color-border)]'
                         }`}>
                           {action.status}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600"><RelativeTime date={action.createdAt} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{action.actionType}</p>
+                    </div>
+                    <div className="text-xs text-[var(--color-text-muted)]">
+                      <RelativeTime date={action.createdAt} />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}

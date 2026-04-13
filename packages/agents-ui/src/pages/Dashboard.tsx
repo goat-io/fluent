@@ -48,42 +48,42 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--color-surface-0)]">
       <NavHeader
         title="Goat Agents Dashboard"
         actions={
-          <a href="/designer" className="ml-2 bg-blue-600 text-white rounded-md px-4 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors">
+          <a href="/designer" className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors">
             + Create Workflow
           </a>
         }
       />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        {/* Bento Stats Grid */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
           {(Object.entries(counts) as [WorkflowStatus, number][]).map(([status, count]) => (
-            <div key={status} className="rounded-lg border border-gray-200 bg-white p-4">
+            <div key={status} className="glass rounded-2xl p-5">
               <div className="flex items-center justify-between">
                 <StatusBadge status={status} />
-                <span className="text-2xl font-bold text-gray-900 tabular-nums">{count}</span>
+                <span className="text-3xl font-bold text-[var(--color-text-primary)] tabular-nums">{count}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div className="glass rounded-2xl p-5 mb-8">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Status:</span>
+              <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Status:</span>
               {ALL_STATUSES.map((status) => (
                 <button
                   key={status}
                   onClick={() => toggleStatus(status)}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                     statusFilter.includes(status)
-                      ? 'bg-blue-50 border-blue-300 text-blue-700'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                      ? 'bg-[var(--color-accent)]/10 border-[var(--color-accent)]/30 text-[var(--color-accent-hover)]'
+                      : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-hover)]'
                   }`}
                 >
                   {status.replace('_', ' ')}
@@ -91,27 +91,27 @@ export function Dashboard() {
               ))}
             </div>
 
-            <div className="h-5 w-px bg-gray-200" />
+            <div className="h-5 w-px bg-[var(--color-border)]" />
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Name:</span>
+              <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Name:</span>
               <input
                 type="text"
                 value={nameFilter}
                 onChange={(e) => setNameFilter(e.target.value)}
                 placeholder="Filter by workflow name..."
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="bg-[var(--color-surface-3)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] placeholder:text-[var(--color-text-muted)]"
               />
             </div>
 
-            <div className="h-5 w-px bg-gray-200" />
+            <div className="h-5 w-px bg-[var(--color-border)]" />
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Limit:</span>
+              <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Limit:</span>
               <select
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-[var(--color-surface-3)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
               >
                 <option value={25}>25</option>
                 <option value={50}>50</option>
@@ -123,7 +123,7 @@ export function Dashboard() {
             {(statusFilter.length > 0 || nameFilter) && (
               <button
                 onClick={() => { setStatusFilter([]); setNameFilter('') }}
-                className="text-xs text-red-500 hover:text-red-700"
+                className="text-xs text-red-400 hover:text-red-300"
               >
                 Clear filters
               </button>
@@ -132,9 +132,9 @@ export function Dashboard() {
         </div>
 
         {/* Workflow List */}
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Runs</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">Recent Runs</h2>
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
+          <div className="text-center py-20 text-[var(--color-text-muted)]">Loading...</div>
         ) : (
           <WorkflowList
             workflows={workflows}
