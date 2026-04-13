@@ -54,6 +54,15 @@ export interface WorkflowStepTable {
   humanResponse: string | null
   humanRespondedBy: string | null
   humanRespondedAt: Date | string | null
+  /** nextStep loop iteration tracking */
+  iterationCount: number | null
+  maxIterations: number | null
+  /** Cost tracking: total tokens used by this step */
+  tokensUsed: number | null
+  /** Cost tracking: estimated cost in USD (e.g., 0.0023) */
+  costUsd: string | null
+  /** Cost tracking: model used (e.g., 'gpt-4o', 'claude-sonnet-4-20250514') */
+  modelUsed: string | null
   createdAt: Generated<Date | string>
   updatedAt: Generated<Date | string>
 }
@@ -109,7 +118,7 @@ export type NewWorkflowSignal = Insertable<WorkflowSignalTable>
 // MUST go through this table. This guarantees exactly-once execution
 // even across retries and worker crashes.
 
-export type ExternalActionStatus = 'pending' | 'completed' | 'failed'
+export type ExternalActionStatus = 'pending' | 'completing' | 'completed' | 'failed'
 
 export interface ExternalActionTable {
   id: string
@@ -137,6 +146,79 @@ export type ExternalAction = Selectable<ExternalActionTable>
 export type NewExternalAction = Insertable<ExternalActionTable>
 export type ExternalActionUpdate = Updateable<ExternalActionTable>
 
+// ── Workflow Events ───────────────────────────────────────────────
+
+export interface WorkflowEventTable {
+  id: string
+  tenantId: string
+  eventType: string
+  source: string
+  payload: string | null
+  idempotencyKey: string | null
+  /** Entity key for ordering (e.g. 'github:pr:123') */
+  entityKey: string | null
+  /** Sequence number within entity — higher = newer */
+  sequenceNumber: number | null
+  status: string // 'pending' | 'processed' | 'failed' | 'dead_letter' | 'skipped_stale'
+  error: string | null
+  processedAt: Date | string | null
+  createdAt: Generated<Date | string>
+}
+
+export type WorkflowEvent = Selectable<WorkflowEventTable>
+export type NewWorkflowEvent = Insertable<WorkflowEventTable>
+export type WorkflowEventUpdate = Updateable<WorkflowEventTable>
+
+// ── Workflow Event Subscriptions ──────────────────────────────────
+
+export interface WorkflowEventSubscriptionTable {
+  id: string
+  tenantId: string
+  eventType: string
+  workflowName: string
+  filterExpression: string | null
+  active: boolean
+  createdAt: Generated<Date | string>
+}
+
+export type WorkflowEventSubscription = Selectable<WorkflowEventSubscriptionTable>
+export type NewWorkflowEventSubscription = Insertable<WorkflowEventSubscriptionTable>
+
+// ── Worker Nodes ──────────────────────────────────────────────────
+
+export interface WorkerNodeTable {
+  id: string
+  tenantId: string
+  name: string
+  hostname: string | null
+  capabilities: string | null
+  status: string
+  lastHeartbeatAt: Date | string | null
+  registeredAt: Generated<Date | string>
+  createdAt: Generated<Date | string>
+}
+
+export type WorkerNodeRow = Selectable<WorkerNodeTable>
+export type NewWorkerNode = Insertable<WorkerNodeTable>
+export type WorkerNodeUpdate = Updateable<WorkerNodeTable>
+
+// ── Workflow Definitions ──────────────────────────────────────────
+
+export interface WorkflowDefinitionTable {
+  id: string
+  tenantId: string
+  name: string
+  version: string
+  definition: string
+  createdBy: string | null
+  createdAt: Generated<Date | string>
+  updatedAt: Generated<Date | string>
+}
+
+export type WorkflowDefinitionRow = Selectable<WorkflowDefinitionTable>
+export type NewWorkflowDefinition = Insertable<WorkflowDefinitionTable>
+export type WorkflowDefinitionUpdate = Updateable<WorkflowDefinitionTable>
+
 // ── Database Schema ────────────────────────────────────────────────
 
 export interface Database {
@@ -145,6 +227,10 @@ export interface Database {
   workflow_step_logs: WorkflowStepLogTable
   workflow_signals: WorkflowSignalTable
   external_actions: ExternalActionTable
+  workflow_events: WorkflowEventTable
+  workflow_event_subscriptions: WorkflowEventSubscriptionTable
+  worker_nodes: WorkerNodeTable
+  workflow_definitions: WorkflowDefinitionTable
 }
 
 // ── JSON Helpers ───────────────────────────────────────────────────
@@ -207,6 +293,11 @@ CREATE TABLE IF NOT EXISTS workflow_steps (
   "humanResponse" TEXT,
   "humanRespondedBy" VARCHAR(255),
   "humanRespondedAt" TIMESTAMP,
+  "iterationCount" INTEGER DEFAULT 0,
+  "maxIterations" INTEGER,
+  "tokensUsed" INTEGER,
+  "costUsd" VARCHAR(20),
+  "modelUsed" VARCHAR(100),
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE("workflowRunId", "stepName")
@@ -257,4 +348,58 @@ CREATE INDEX IF NOT EXISTS idx_logs_tenant_step ON workflow_step_logs("tenantId"
 CREATE INDEX IF NOT EXISTS idx_signals_run_signal ON workflow_signals("workflowRunId", "signalName", "processedAt");
 CREATE INDEX IF NOT EXISTS idx_external_actions_key ON external_actions("idempotencyKey");
 CREATE INDEX IF NOT EXISTS idx_external_actions_step ON external_actions("workflowRunId", "stepName", attempt);
+
+CREATE TABLE IF NOT EXISTS workflow_events (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  "eventType" VARCHAR(255) NOT NULL,
+  source VARCHAR(255) NOT NULL,
+  payload TEXT,
+  "idempotencyKey" VARCHAR(500),
+  "entityKey" VARCHAR(500),
+  "sequenceNumber" INTEGER,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  error TEXT,
+  "processedAt" TIMESTAMP,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE("idempotencyKey")
+);
+CREATE INDEX IF NOT EXISTS idx_events_tenant_type ON workflow_events("tenantId", "eventType", status);
+CREATE INDEX IF NOT EXISTS idx_events_entity ON workflow_events("entityKey", "sequenceNumber");
+
+CREATE TABLE IF NOT EXISTS workflow_event_subscriptions (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  "eventType" VARCHAR(255) NOT NULL,
+  "workflowName" VARCHAR(255) NOT NULL,
+  "filterExpression" TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_event_subs_tenant_type ON workflow_event_subscriptions("tenantId", "eventType", active);
+
+CREATE TABLE IF NOT EXISTS worker_nodes (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  hostname VARCHAR(255),
+  capabilities TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  "lastHeartbeatAt" TIMESTAMP,
+  "registeredAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_workers_tenant_status ON worker_nodes("tenantId", status);
+
+CREATE TABLE IF NOT EXISTS workflow_definitions (
+  id VARCHAR(36) PRIMARY KEY,
+  "tenantId" VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  version VARCHAR(50) NOT NULL,
+  definition TEXT NOT NULL,
+  "createdBy" VARCHAR(255),
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_definitions_tenant_name ON workflow_definitions("tenantId", name);
 `

@@ -77,8 +77,9 @@ export class ContainerManager {
 
     // Security: when dockerAccess is enabled, we need broader capabilities
     // since the agent needs to talk to the Docker daemon
+    const needsNetAdmin = config.dockerAccess || (config.networkMode === 'bridge' && config.allowedDomains?.length)
     const capDrop = config.dockerAccess ? [] : ['ALL']
-    const capAdd = config.dockerAccess ? ['NET_RAW', 'NET_ADMIN'] : []
+    const capAdd = needsNetAdmin ? ['NET_RAW', 'NET_ADMIN'] : []
     const securityOpt = config.dockerAccess ? [] : ['no-new-privileges']
 
     const container = await this.docker.createContainer({
@@ -105,8 +106,8 @@ export class ContainerManager {
         CapAdd: capAdd,
         SecurityOpt: securityOpt,
 
-        // Network
-        NetworkMode: config.networkMode ?? 'bridge',
+        // Network (default: 'none' for complete isolation)
+        NetworkMode: config.networkMode ?? 'none',
 
         // Volumes (includes Docker socket when dockerAccess enabled)
         Binds: binds.length > 0 ? binds : undefined,
@@ -123,6 +124,11 @@ export class ContainerManager {
     // Ensure workspace directory exists
     const handle = new ContainerHandle(container, workdir)
     await handle.exec(`mkdir -p ${workdir}`, { cwd: '/' })
+
+    // Apply domain allowlist (iptables) when using 'bridge' mode with restrictions
+    if ((config.networkMode === 'bridge') && config.allowedDomains?.length) {
+      await this.applyDomainAllowlist(handle, config.allowedDomains)
+    }
 
     this.logger!.debug?.(`Container ${container.id.substring(0, 12)} started (image: ${image})`)
 
@@ -203,6 +209,43 @@ export class ContainerManager {
    */
   getDocker(): Dockerode {
     return this.docker
+  }
+
+  /**
+   * Apply iptables rules inside the container to restrict outbound traffic
+   * to only the specified domains. Requires CAP_NET_ADMIN capability.
+   */
+  private async applyDomainAllowlist(handle: ContainerHandle, domains: string[]): Promise<void> {
+    // Resolve domains to IPs and add iptables rules
+    const commands = [
+      // Allow loopback
+      'iptables -A OUTPUT -o lo -j ACCEPT',
+      // Allow established connections
+      'iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT',
+      // Allow DNS (needed to resolve allowed domains)
+      'iptables -A OUTPUT -p udp --dport 53 -j ACCEPT',
+      'iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT',
+    ]
+
+    // Resolve each domain and allow its IPs
+    for (const domain of domains) {
+      commands.push(
+        `for ip in $(getent hosts ${domain} 2>/dev/null | awk '{print $1}'); do iptables -A OUTPUT -d $ip -j ACCEPT; done`,
+      )
+    }
+
+    // Drop everything else
+    commands.push('iptables -A OUTPUT -j DROP')
+
+    const script = commands.join(' && ')
+    try {
+      await handle.exec(`sh -c '${script}'`, { cwd: '/', timeout: 10_000 })
+      this.logger!.debug?.(`Applied domain allowlist: ${domains.join(', ')}`)
+    } catch (err: any) {
+      this.logger!.warn?.(
+        `Failed to apply domain allowlist (iptables may not be available): ${err.message}`,
+      )
+    }
   }
 
   private detectDockerSocket(): string | undefined {

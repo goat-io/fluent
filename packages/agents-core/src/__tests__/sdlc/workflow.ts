@@ -1,7 +1,7 @@
 // SDLC Multi-Agent Workflow Definition for Testing
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import type { StepExecutionContext, StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
 import {
   MockLinearAdapter,
   MockGitHubAdapter,
@@ -131,22 +131,38 @@ export function createSDLCExecutor(ctx: SDLCContext): FunctionStepExecutor {
     }
   })
 
-  // Step 4: Create tasks in Linear
-  executor.register('create_tasks', async (payload: StepPayload): Promise<StepResult> => {
+  // Step 4: Create tasks in Linear (via ExternalAction for exactly-once)
+  executor.register('create_tasks', async (payload: StepPayload, context?: StepExecutionContext): Promise<StepResult> => {
     if (shouldFail('create_tasks')) throw new Error('Agent timeout: create_tasks')
 
     const input = payload.input as { tasks: Array<{ title: string; description: string }> }
     ctx.tracker.record('linear', 'create_tasks', input, payload.stepName)
 
     const issueIds: string[] = []
-    for (const task of input.tasks) {
-      const issue = await ctx.linear.createIssue({
-        title: task.title,
-        description: task.description,
-        labels: ['auto-generated'],
-        externalId: `${payload.workflowRunId}-${task.title}`,
-      })
-      issueIds.push(issue.id)
+    for (let i = 0; i < input.tasks.length; i++) {
+      const task = input.tasks[i]
+      const result = await context!.externalActions.execute(
+        {
+          workflowRunId: payload.workflowRunId,
+          stepName: payload.stepName,
+          attempt: payload.attempt,
+          tenantId: payload.tenantId,
+          provider: 'linear',
+          actionType: 'create_issue',
+          idempotencyKey: `${payload.workflowRunId}:${payload.stepName}:create_issue:${i}`,
+          request: { title: task.title, description: task.description },
+        },
+        async () => {
+          const issue = await ctx.linear.createIssue({
+            title: task.title,
+            description: task.description,
+            labels: ['auto-generated'],
+            externalId: `${payload.workflowRunId}-${task.title}`,
+          })
+          return { externalId: issue.id, data: { id: issue.id } }
+        },
+      )
+      issueIds.push(result.externalId!)
     }
 
     return {
@@ -157,8 +173,8 @@ export function createSDLCExecutor(ctx: SDLCContext): FunctionStepExecutor {
     }
   })
 
-  // Step 5: Implement code
-  executor.register('implement_code', async (payload: StepPayload): Promise<StepResult> => {
+  // Step 5: Implement code (via ExternalAction for exactly-once)
+  executor.register('implement_code', async (payload: StepPayload, context?: StepExecutionContext): Promise<StepResult> => {
     if (shouldFail('implement_code')) throw new Error('Agent timeout: implement_code')
 
     const input = payload.input as { tasks: any[]; issueIds: string[] }
@@ -170,33 +186,63 @@ export function createSDLCExecutor(ctx: SDLCContext): FunctionStepExecutor {
       { path: 'src/api.ts', content: '// Generated API\nexport function handler() {}' },
     ]
 
-    const pr = await ctx.github.createPR({
-      title: `Auto: ${payload.workflowRunId.substring(0, 8)}`,
-      body: 'Auto-generated implementation',
-      branch,
-      files,
-    })
+    const result = await context!.externalActions.execute(
+      {
+        workflowRunId: payload.workflowRunId,
+        stepName: payload.stepName,
+        attempt: payload.attempt,
+        tenantId: payload.tenantId,
+        provider: 'github',
+        actionType: 'create_pr',
+        idempotencyKey: `${payload.workflowRunId}:${payload.stepName}:create_pr`,
+        request: { title: `Auto: ${payload.workflowRunId.substring(0, 8)}`, branch },
+      },
+      async () => {
+        const pr = await ctx.github.createPR({
+          title: `Auto: ${payload.workflowRunId.substring(0, 8)}`,
+          body: 'Auto-generated implementation',
+          branch,
+          files,
+        })
+        return { externalId: pr.id, data: { id: pr.id } }
+      },
+    )
 
     return {
       output: {
-        prId: pr.id,
+        prId: result.externalId!,
         branch,
         files: files.map(f => f.path),
       },
     }
   })
 
-  // Step 6: Review code
-  executor.register('review_code', async (payload: StepPayload): Promise<StepResult> => {
+  // Step 6: Review code (via ExternalAction for exactly-once)
+  executor.register('review_code', async (payload: StepPayload, context?: StepExecutionContext): Promise<StepResult> => {
     if (shouldFail('review_code')) throw new Error('Agent timeout: review_code')
 
     const input = payload.input as { prId: string }
     ctx.tracker.record('github', 'review_code', input, payload.stepName)
 
-    await ctx.github.addReview(input.prId, {
-      approved: true,
-      comment: 'LGTM — auto-reviewed by agent',
-    })
+    await context!.externalActions.execute(
+      {
+        workflowRunId: payload.workflowRunId,
+        stepName: payload.stepName,
+        attempt: payload.attempt,
+        tenantId: payload.tenantId,
+        provider: 'github',
+        actionType: 'add_review',
+        idempotencyKey: `${payload.workflowRunId}:${payload.stepName}:add_review:${input.prId}`,
+        request: { prId: input.prId, approved: true },
+      },
+      async () => {
+        await ctx.github.addReview(input.prId, {
+          approved: true,
+          comment: 'LGTM — auto-reviewed by agent',
+        })
+        return { externalId: input.prId, data: { approved: true } }
+      },
+    )
 
     return {
       output: {
@@ -207,22 +253,37 @@ export function createSDLCExecutor(ctx: SDLCContext): FunctionStepExecutor {
     }
   })
 
-  // Step 7: Generate UI
-  executor.register('generate_ui', async (payload: StepPayload): Promise<StepResult> => {
+  // Step 7: Generate UI (via ExternalAction for exactly-once)
+  executor.register('generate_ui', async (payload: StepPayload, context?: StepExecutionContext): Promise<StepResult> => {
     if (shouldFail('generate_ui')) throw new Error('Agent timeout: generate_ui')
 
     const input = payload.input as { requirements?: any[] }
     ctx.tracker.record('ui', 'generate_ui', input, payload.stepName)
 
-    const artifact = await ctx.uiGenerator.generate({
-      name: 'FeatureForm',
-      type: 'component',
-      spec: 'Auto-generated from requirements',
-    })
+    const result = await context!.externalActions.execute(
+      {
+        workflowRunId: payload.workflowRunId,
+        stepName: payload.stepName,
+        attempt: payload.attempt,
+        tenantId: payload.tenantId,
+        provider: 'ui-generator',
+        actionType: 'generate',
+        idempotencyKey: `${payload.workflowRunId}:${payload.stepName}:generate`,
+        request: { name: 'FeatureForm', type: 'component' },
+      },
+      async () => {
+        const artifact = await ctx.uiGenerator.generate({
+          name: 'FeatureForm',
+          type: 'component',
+          spec: 'Auto-generated from requirements',
+        })
+        return { externalId: artifact.id, data: { id: artifact.id, name: artifact.name, type: artifact.type } }
+      },
+    )
 
     return {
       output: {
-        artifacts: [{ id: artifact.id, name: artifact.name, type: artifact.type }],
+        artifacts: [result.data],
       },
     }
   })

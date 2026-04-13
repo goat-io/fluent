@@ -15,6 +15,8 @@ import { Ids } from '@goatlab/js-utils'
 import type { Kysely } from 'kysely'
 import type { Database, ExternalAction } from '../entities/Database.js'
 import { fromJson, toJson } from '../entities/Database.js'
+import { InMemoryRateLimiter } from './RateLimiterBackend.js'
+import type { RateLimiterBackend } from './RateLimiterBackend.js'
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -78,6 +80,13 @@ export interface RateLimitConfig {
   maxConcurrentPerWorkflow?: number
 }
 
+// ── Helpers ───────────────────────────────────────────────────────
+
+function hashPayload(payload: Record<string, unknown>): string {
+  const { createHash } = require('node:crypto')
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex').substring(0, 12)
+}
+
 // ── Executor ───────────────────────────────────────────────────────
 
 export interface ExternalActionExecutorConfig {
@@ -86,6 +95,11 @@ export interface ExternalActionExecutorConfig {
   rateLimits?: Record<string, RateLimitConfig>
   /** Max concurrent external calls per workflow (default: 5) */
   maxConcurrentPerWorkflow?: number
+  /**
+   * Pluggable rate limiter backend. Defaults to InMemoryRateLimiter.
+   * Use RedisRateLimiter for multi-worker deployments.
+   */
+  rateLimiterBackend?: RateLimiterBackend
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void
@@ -120,17 +134,14 @@ export class ExternalActionExecutor {
   private rateLimits: Record<string, RateLimitConfig>
   private maxConcurrentPerWorkflow: number
   private logger: ExternalActionExecutorConfig['logger']
-
-  // In-memory rate limit tracking (per provider)
-  private rateBuckets = new Map<string, { timestamps: number[] }>()
-  // In-memory concurrency tracking (per workflow)
-  private workflowConcurrency = new Map<string, number>()
+  private rateLimiter: RateLimiterBackend
 
   constructor(config: ExternalActionExecutorConfig) {
     this.db = config.db
     this.rateLimits = config.rateLimits ?? {}
     this.maxConcurrentPerWorkflow = config.maxConcurrentPerWorkflow ?? 5
     this.logger = config.logger
+    this.rateLimiter = config.rateLimiterBackend ?? new InMemoryRateLimiter()
   }
 
   /**
@@ -149,7 +160,7 @@ export class ExternalActionExecutor {
     fn: ExternalActionFn<T>,
   ): Promise<ExternalActionResult<T>> {
     const idempotencyKey = req.idempotencyKey
-      ?? `${req.workflowRunId}:${req.stepName}:${req.actionType}`
+      ?? `${req.workflowRunId}:${req.stepName}:${req.actionType}:${hashPayload(req.request)}`
 
     // ── Step 1: Check for existing completed action ──────
     const existing = await this.db
@@ -166,6 +177,19 @@ export class ExternalActionExecutor {
         cached: true,
         externalId: existing.externalId ?? '',
         data: fromJson(existing.response) as T,
+        actionId: existing.id,
+      }
+    }
+
+    // ── Step 1b: Crash recovery — API succeeded but full response wasn't stored ──
+    if (existing?.status === 'completing' && existing.externalId) {
+      this.logger?.debug?.(
+        `[ExternalAction] Crash recovery (completing): ${req.provider}/${req.actionType} (key=${idempotencyKey})`,
+      )
+      return {
+        cached: true,
+        externalId: existing.externalId,
+        data: fromJson(existing.response) ?? {} as T,
         actionId: existing.id,
       }
     }
@@ -189,10 +213,14 @@ export class ExternalActionExecutor {
         .where('id', '=', existing.id)
         .execute()
     }
+    // Don't delete completing actions — they have valid externalIds
 
     // ── Step 3: Rate limiting ────────────────────────────
-    await this.checkRateLimit(req.provider)
-    await this.checkWorkflowConcurrency(req.workflowRunId)
+    const providerLimit = this.rateLimits[req.provider]
+    if (providerLimit) {
+      await this.rateLimiter.checkRateLimit(req.provider, providerLimit.maxRequests, providerLimit.windowMs)
+    }
+    await this.rateLimiter.checkConcurrency(req.workflowRunId, this.maxConcurrentPerWorkflow)
 
     // ── Step 4: Insert pending action ────────────────────
     const actionId = Ids.nanoId(21)
@@ -233,7 +261,7 @@ export class ExternalActionExecutor {
     }
 
     // ── Step 5: Execute ──────────────────────────────────
-    this.incrementConcurrency(req.workflowRunId)
+    await this.rateLimiter.incrementConcurrency(req.workflowRunId)
 
     try {
       this.logger?.info?.(
@@ -242,19 +270,29 @@ export class ExternalActionExecutor {
 
       const result = await fn(req.request)
 
-      // ── Step 6: Mark completed ───────────────────────
+      // ── Step 6a: Immediately persist externalId (crash consistency) ──
+      // If process crashes after this, we know the API call succeeded
+      await this.db
+        .updateTable('external_actions')
+        .set({
+          externalId: result.externalId,
+          status: 'completing',
+        })
+        .where('id', '=', actionId)
+        .execute()
+
+      // ── Step 6b: Store full response ───────────────────────
       await this.db
         .updateTable('external_actions')
         .set({
           status: 'completed',
-          externalId: result.externalId,
           response: toJson(result.data),
           completedAt: new Date(),
         })
         .where('id', '=', actionId)
         .execute()
 
-      this.recordRateLimit(req.provider)
+      await this.rateLimiter.recordRequest(req.provider)
 
       return {
         cached: false,
@@ -279,7 +317,7 @@ export class ExternalActionExecutor {
       )
       throw error
     } finally {
-      this.decrementConcurrency(req.workflowRunId)
+      await this.rateLimiter.decrementConcurrency(req.workflowRunId)
     }
   }
 
@@ -310,59 +348,6 @@ export class ExternalActionExecutor {
       .execute()
   }
 
-  // ── Rate Limiting (in-memory token bucket) ─────────────────────
-
-  private async checkRateLimit(provider: string): Promise<void> {
-    const config = this.rateLimits[provider]
-    if (!config) return
-
-    const bucket = this.rateBuckets.get(provider) ?? { timestamps: [] }
-    this.rateBuckets.set(provider, bucket)
-
-    // Remove timestamps outside the window
-    const windowStart = Date.now() - config.windowMs
-    bucket.timestamps = bucket.timestamps.filter(t => t >= windowStart)
-
-    if (bucket.timestamps.length >= config.maxRequests) {
-      // Wait until the oldest request falls out of the window
-      const waitMs = bucket.timestamps[0] - windowStart + 100
-      this.logger?.warn?.(
-        `[RateLimit] ${provider}: limit reached (${config.maxRequests}/${config.windowMs}ms), waiting ${waitMs}ms`,
-      )
-      await new Promise(resolve => setTimeout(resolve, waitMs))
-      // Re-check after waiting
-      bucket.timestamps = bucket.timestamps.filter(t => t >= Date.now() - config.windowMs)
-    }
-  }
-
-  private recordRateLimit(provider: string): void {
-    const bucket = this.rateBuckets.get(provider)
-    if (bucket) bucket.timestamps.push(Date.now())
-  }
-
-  // ── Per-Workflow Concurrency ───────────────────────────────────
-
-  private async checkWorkflowConcurrency(workflowRunId: string): Promise<void> {
-    const current = this.workflowConcurrency.get(workflowRunId) ?? 0
-    if (current >= this.maxConcurrentPerWorkflow) {
-      // Wait and retry
-      this.logger?.warn?.(
-        `[Concurrency] Workflow ${workflowRunId}: ${current}/${this.maxConcurrentPerWorkflow} concurrent, waiting`,
-      )
-      await new Promise(resolve => setTimeout(resolve, 500))
-      return this.checkWorkflowConcurrency(workflowRunId)
-    }
-  }
-
-  private incrementConcurrency(workflowRunId: string): void {
-    const current = this.workflowConcurrency.get(workflowRunId) ?? 0
-    this.workflowConcurrency.set(workflowRunId, current + 1)
-  }
-
-  private decrementConcurrency(workflowRunId: string): void {
-    const current = this.workflowConcurrency.get(workflowRunId) ?? 1
-    this.workflowConcurrency.set(workflowRunId, Math.max(0, current - 1))
-  }
 }
 
 // ── Errors ─────────────────────────────────────────────────────────

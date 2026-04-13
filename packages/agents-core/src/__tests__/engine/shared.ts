@@ -63,5 +63,5 @@ export async function releaseSharedDb(): Promise<void> {
 }
 
 export async function truncateAll(db: Kysely<Database>): Promise<void> {
-  await sql`TRUNCATE TABLE workflow_step_logs, workflow_signals, workflow_steps, workflow_runs CASCADE`.execute(db)
+  await sql`TRUNCATE TABLE workflow_event_subscriptions, workflow_events, workflow_step_logs, workflow_signals, workflow_steps, workflow_runs CASCADE`.execute(db)
 }

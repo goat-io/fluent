@@ -64,7 +64,18 @@ export interface SandboxExecutorConfig {
   extract?: SandboxExtraction
   resources?: SandboxResources
   secrets?: Record<string, string>
+  /**
+   * Container network mode. Defaults to 'none' (complete isolation).
+   * Use 'bridge' for containers that need network access, or
+   * 'host' for containers that need full host network access.
+   */
   networkMode?: 'bridge' | 'none' | 'host'
+  /**
+   * Allowed domains when networkMode is 'bridge'.
+   * When set, iptables rules restrict outbound traffic to only these domains.
+   * Has no effect when networkMode is 'none' (all traffic blocked) or 'host'.
+   */
+  allowedDomains?: string[]
   workdir?: string
   volumes?: SandboxVolumeMount[]
   /**

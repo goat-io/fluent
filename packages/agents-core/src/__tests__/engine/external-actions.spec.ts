@@ -162,7 +162,7 @@ describe('ExternalActionExecutor', () => {
 
   describe('stale pending recovery', () => {
     it('recovers from stale pending action (>5 min old)', async () => {
-      // Manually insert a stale pending action
+      // Manually insert a stale pending action with explicit idempotency key
       const staleTime = new Date(Date.now() - 6 * 60 * 1000) // 6 min ago
       await db.insertInto('external_actions').values({
         id: 'stale-1',
@@ -172,24 +172,27 @@ describe('ExternalActionExecutor', () => {
         tenantId: 'test',
         provider: 'linear',
         actionType: 'create_issue',
-        idempotencyKey: 'wf-1:create_tasks:create_issue',
+        idempotencyKey: 'stale-test-key',
         status: 'pending',
         request: '{}',
         createdAt: staleTime,
       }).execute()
 
       // Should clean up stale and execute fresh
-      const result = await executor.execute(baseReq, async () => ({
-        externalId: 'LIN-RECOVERED',
-        data: { recovered: true },
-      }))
+      const result = await executor.execute(
+        { ...baseReq, idempotencyKey: 'stale-test-key' },
+        async () => ({
+          externalId: 'LIN-RECOVERED',
+          data: { recovered: true },
+        }),
+      )
 
       expect(result.cached).toBe(false)
       expect(result.externalId).toBe('LIN-RECOVERED')
     })
 
     it('blocks on recent pending action (<5 min old)', async () => {
-      // Insert a recent pending action
+      // Insert a recent pending action with explicit idempotency key
       await db.insertInto('external_actions').values({
         id: 'recent-1',
         workflowRunId: 'wf-1',
@@ -198,14 +201,17 @@ describe('ExternalActionExecutor', () => {
         tenantId: 'test',
         provider: 'linear',
         actionType: 'create_issue',
-        idempotencyKey: 'wf-1:create_tasks:create_issue',
+        idempotencyKey: 'recent-test-key',
         status: 'pending',
         request: '{}',
         createdAt: new Date(), // Just now
       }).execute()
 
       await expect(
-        executor.execute(baseReq, async () => ({ externalId: 'X', data: {} })),
+        executor.execute(
+          { ...baseReq, idempotencyKey: 'recent-test-key' },
+          async () => ({ externalId: 'X', data: {} }),
+        ),
       ).rejects.toThrow(ExternalActionPendingError)
     })
   })
@@ -268,6 +274,62 @@ describe('ExternalActionExecutor', () => {
     })
   })
 
+  // ── Payload-aware idempotency key ───────────────────────────
+
+  describe('payload-aware default idempotency key', () => {
+    it('same actionType + different payloads → both execute', async () => {
+      let callCount = 0
+      const fn = async () => { callCount++; return { externalId: `EA-${callCount}`, data: {} } }
+
+      await executor.execute(
+        { ...baseReq, request: { title: 'Issue A' } },
+        fn,
+      )
+      await executor.execute(
+        { ...baseReq, request: { title: 'Issue B' } },
+        fn,
+      )
+
+      // Different payloads produce different default keys → both should execute
+      expect(callCount).toBe(2)
+    })
+
+    it('same actionType + same payload → second is deduplicated', async () => {
+      let callCount = 0
+      const fn = async () => { callCount++; return { externalId: `EA-${callCount}`, data: {} } }
+
+      await executor.execute(
+        { ...baseReq, request: { title: 'Same Issue' } },
+        fn,
+      )
+      const second = await executor.execute(
+        { ...baseReq, request: { title: 'Same Issue' } },
+        fn,
+      )
+
+      expect(callCount).toBe(1)
+      expect(second.cached).toBe(true)
+    })
+
+    it('explicit idempotencyKey still overrides default', async () => {
+      let callCount = 0
+      const fn = async () => { callCount++; return { externalId: `EA-${callCount}`, data: {} } }
+
+      await executor.execute(
+        { ...baseReq, idempotencyKey: 'my-key', request: { title: 'A' } },
+        fn,
+      )
+      const second = await executor.execute(
+        { ...baseReq, idempotencyKey: 'my-key', request: { title: 'B' } },
+        fn,
+      )
+
+      // Same explicit key → deduplicated regardless of payload
+      expect(callCount).toBe(1)
+      expect(second.cached).toBe(true)
+    })
+  })
+
   // ── Query methods ───────────────────────────────────────────
 
   describe('query methods', () => {
@@ -297,6 +359,65 @@ describe('ExternalActionExecutor', () => {
 
       const actions = await executor.getActionsForWorkflow('wf-1')
       expect(actions).toHaveLength(2)
+    })
+  })
+
+  // ── Crash consistency (completing status) ────────────────
+
+  describe('crash consistency — completing status', () => {
+    it('action in completing status with externalId returns cached result', async () => {
+      // Simulate a crash after API succeeded but before full response stored
+      await db.insertInto('external_actions').values({
+        id: 'completing-1',
+        workflowRunId: 'wf-1',
+        stepName: 'create_tasks',
+        attempt: 1,
+        tenantId: 'test',
+        provider: 'linear',
+        actionType: 'create_issue',
+        idempotencyKey: 'completing-test-key',
+        status: 'completing',
+        externalId: 'LIN-CRASH',
+        request: '{"title":"Test"}',
+        response: '{"partial":true}',
+        createdAt: new Date(),
+      }).execute()
+
+      const result = await executor.execute(
+        { ...baseReq, idempotencyKey: 'completing-test-key' },
+        async () => ({ externalId: 'LIN-NEW', data: { shouldNotRun: true } }),
+      )
+
+      expect(result.cached).toBe(true)
+      expect(result.externalId).toBe('LIN-CRASH')
+      expect(result.data).toEqual({ partial: true })
+    })
+
+    it('crash recovery — completing action with no response returns empty data', async () => {
+      await db.insertInto('external_actions').values({
+        id: 'completing-2',
+        workflowRunId: 'wf-1',
+        stepName: 'create_tasks',
+        attempt: 1,
+        tenantId: 'test',
+        provider: 'linear',
+        actionType: 'create_issue',
+        idempotencyKey: 'completing-no-response',
+        status: 'completing',
+        externalId: 'LIN-CRASH-2',
+        request: '{}',
+        response: null,
+        createdAt: new Date(),
+      }).execute()
+
+      const result = await executor.execute(
+        { ...baseReq, idempotencyKey: 'completing-no-response' },
+        async () => ({ externalId: 'SHOULD-NOT-RUN', data: {} }),
+      )
+
+      expect(result.cached).toBe(true)
+      expect(result.externalId).toBe('LIN-CRASH-2')
+      expect(result.data).toEqual({})
     })
   })
 

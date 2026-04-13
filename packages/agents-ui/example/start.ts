@@ -205,7 +205,7 @@ async function main() {
 
   // Start containers
   console.log('📦 Starting Postgres...')
-  const pgContainer = await new PostgreSqlContainer('postgres:16-alpine')
+  const pgContainer = await new PostgreSqlContainer('postgres:18-alpine')
     .withDatabase('agents_example')
     .start()
 
@@ -255,17 +255,50 @@ async function main() {
     disableLogBuffering: true,
   })
 
-  // Worker
+  // Worker (all 4 queue types)
   const stepTask = new WorkflowStepTask(engine)
   stepTask.setConnector(connector)
   const workerHandle = await connector.listen({
-    tasks: [{
-      taskName: stepTask.taskName,
-      handle: (data: unknown) => stepTask.handle(data as StepPayload),
-    }],
-    defaultConcurrency: 5,
+    tasks: [
+      { taskName: 'workflow_step_light', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 10 },
+      { taskName: 'workflow_step_heavy', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 3 },
+      { taskName: 'workflow_step_ai', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 5 },
+      { taskName: 'workflow_step_sandbox', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 2 },
+    ],
   })
-  console.log('⚡ BullMQ worker running\n')
+  console.log('⚡ BullMQ workers running (light:10, heavy:3, ai:5, sandbox:2)\n')
+
+  // Register the local worker so it shows up in the Workers UI
+  const os = await import('node:os')
+  const { randomUUID } = await import('node:crypto')
+  const workerId = randomUUID()
+  await db.insertInto('worker_nodes' as any).values({
+    id: workerId,
+    tenantId: TENANT,
+    name: `local-worker-${os.hostname().substring(0, 8)}`,
+    hostname: os.hostname(),
+    capabilities: JSON.stringify({
+      cpuCount: os.cpus().length,
+      memoryMB: Math.floor(os.totalmem() / (1024 * 1024)),
+      dockerAvailable: true,
+      gpuAvailable: false,
+      queues: ['workflow_step_light', 'workflow_step_heavy', 'workflow_step_ai', 'workflow_step_sandbox'],
+    }),
+    status: 'active',
+    lastHeartbeatAt: new Date(),
+    registeredAt: new Date(),
+  } as any).execute()
+
+  // Heartbeat every 15s
+  const heartbeatTimer = setInterval(async () => {
+    try {
+      await db.updateTable('worker_nodes' as any)
+        .set({ lastHeartbeatAt: new Date() } as any)
+        .where('id' as any, '=', workerId)
+        .execute()
+    } catch {}
+  }, 15_000)
+  console.log(`🤖 Worker registered: ${workerId}\n`)
 
   // API handlers
   const handlers = createWorkflowHandlers(engine)
@@ -373,6 +406,21 @@ async function main() {
         result = await handlers.signal({ ...body, tenantId: TENANT })
       } else if (url.pathname === '/workflows/query') {
         result = await handlers.query({ ...body, tenantId: TENANT })
+      } else if (url.pathname === '/workflows/metrics') {
+        result = await handlers.getRunMetrics(body)
+      } else if (url.pathname === '/workflows/aggregate-metrics') {
+        result = await handlers.getAggregateMetrics({ ...body, tenantId: TENANT })
+      } else if (url.pathname === '/workflows/validate') {
+        result = await handlers.validateDefinition(body)
+      } else if (url.pathname === '/workflows/ingest-event') {
+        result = await handlers.ingestEvent({ ...body, tenantId: TENANT })
+      } else if (url.pathname === '/workflows/start-batch') {
+        const wfs = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
+        result = await handlers.startBatch({ workflows: wfs })
+      } else if (url.pathname === '/workers/list') {
+        result = await handlers.listWorkers({ tenantId: TENANT })
+      } else if (url.pathname === '/workers/generate-token') {
+        result = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://localhost:${PORT}` })
       } else if (url.pathname === '/health') {
         result = { ok: true }
       } else {
@@ -428,6 +476,7 @@ async function main() {
   // Shutdown
   const shutdown = async () => {
     console.log('\n🛑 Shutting down...')
+    clearInterval(heartbeatTimer)
     clearInterval(ssePoller)
     server.close()
     await workerHandle.stop()

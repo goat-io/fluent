@@ -107,10 +107,24 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
     stepTask.setConnector(connector)
 
     const handle = await connector.listen({
-      tasks: [{
-        taskName: stepTask.taskName,
-        handle: (data: unknown) => stepTask.handle(data as StepPayload),
-      }],
+      tasks: [
+        {
+          taskName: 'workflow_step_light',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+        {
+          taskName: 'workflow_step_heavy',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+        {
+          taskName: 'workflow_step_ai',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+        {
+          taskName: 'workflow_step_sandbox',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+      ],
       defaultConcurrency: 5,
     })
     stopWorker = handle.stop

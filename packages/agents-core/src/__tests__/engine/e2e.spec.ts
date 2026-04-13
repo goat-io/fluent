@@ -9,8 +9,10 @@ import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import { StepCostTracker } from '../../engine/StepCostTracker.js'
+import { ExternalActionEnforcer } from '../../engine/ExternalActionEnforcer.js'
 import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import type { StepPayload, StepResult, StepExecutionContext } from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -80,6 +82,7 @@ describe('E2E: Full BullMQ Worker Flow', () => {
 
   async function setupE2E(
     workflows: ReturnType<typeof WorkflowBuilder.prototype.build>[],
+    extraConfig?: { interceptors?: any[] },
   ) {
     // Stop previous worker if running
     if (stopWorker) {
@@ -102,18 +105,33 @@ describe('E2E: Full BullMQ Worker Flow', () => {
       workflows: workflowMap,
       tenantId: 'e2e-tenant',
       disableLogBuffering: true,
+      interceptors: extraConfig?.interceptors,
     })
 
     // Create the step task and wire it to the engine
     const stepTask = new WorkflowStepTask(engine)
     stepTask.setConnector(connector)
 
-    // Start a REAL BullMQ worker via connector.listen() directly
+    // Start REAL BullMQ workers for both light and heavy queues
     const listenHandle = await connector.listen({
-      tasks: [{
-        taskName: stepTask.taskName,
-        handle: (data: unknown) => stepTask.handle(data as StepPayload),
-      }],
+      tasks: [
+        {
+          taskName: 'workflow_step_light',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+        {
+          taskName: 'workflow_step_heavy',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+        {
+          taskName: 'workflow_step_ai',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+        {
+          taskName: 'workflow_step_sandbox',
+          handle: (data: unknown) => stepTask.handle(data as StepPayload),
+        },
+      ],
       defaultConcurrency: 5,
     })
     stopWorker = listenHandle.stop
@@ -302,5 +320,82 @@ describe('E2E: Full BullMQ Worker Flow', () => {
       engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
+  })
+
+  it('StepCostTracker interceptor persists cost data through full workflow', async () => {
+    executor.register('aiStep', async (): Promise<StepResult> => ({
+      output: {
+        response: 'The answer is 42.',
+        _usage: { tokens: 250, costUsd: 0.005, model: 'gpt-4o' },
+      },
+    }))
+
+    const wf = WorkflowBuilder.create('e2e_cost')
+      .step('ai', { executorType: 'function', executorConfig: { handler: 'aiStep' } })
+      .build()
+
+    const { engine } = await setupE2E([wf], {
+      interceptors: [new StepCostTracker({ db })],
+    })
+
+    const { runId } = await engine.start({
+      workflowName: 'e2e_cost',
+      tenantId: 'e2e-tenant',
+      input: {},
+    })
+
+    const finalStatus = await waitForWorkflowStatus(
+      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+    )
+    expect(finalStatus).toBe('COMPLETED')
+
+    // Verify cost data persisted in DB
+    const step = await db.selectFrom('workflow_steps').selectAll()
+      .where('workflowRunId', '=', runId)
+      .where('stepName', '=', 'ai')
+      .executeTakeFirst()
+
+    expect(step!.tokensUsed).toBe(250)
+    expect(step!.costUsd).toBe('0.005')
+    expect(step!.modelUsed).toBe('gpt-4o')
+  })
+
+  it('ExternalActionEnforcer interceptor warns when no ExternalAction records', async () => {
+    const warnings: string[] = []
+
+    executor.register('directCall', async (): Promise<StepResult> => ({
+      output: { result: 'called API directly' },
+    }))
+
+    const wf = WorkflowBuilder.create('e2e_enforce')
+      .step('direct', {
+        executorType: 'function',
+        executorConfig: { handler: 'directCall' },
+      })
+      .build()
+
+    const { engine } = await setupE2E([wf], {
+      interceptors: [new ExternalActionEnforcer({
+        db,
+        strict: false,
+        enforcedExecutorTypes: ['function'], // Enforce on function for test
+        logger: { warn: (msg: any) => warnings.push(String(msg)), error: () => {} },
+      })],
+    })
+
+    const { runId } = await engine.start({
+      workflowName: 'e2e_enforce',
+      tenantId: 'e2e-tenant',
+      input: {},
+    })
+
+    const finalStatus = await waitForWorkflowStatus(
+      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+    )
+    expect(finalStatus).toBe('COMPLETED')
+
+    // Enforcer should have logged a warning (non-strict mode)
+    expect(warnings.length).toBeGreaterThanOrEqual(1)
+    expect(warnings[0]).toContain('ExternalActionEnforcer')
   })
 })

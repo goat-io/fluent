@@ -4,6 +4,9 @@ import type {
   StepLog,
   WorkflowFilters,
   QueueStats,
+  WorkflowRunMetrics,
+  AggregateMetrics,
+  WorkerNodeInfo,
 } from './types'
 
 export class AgentsClient {
@@ -100,10 +103,34 @@ export class AgentsClient {
     })
   }
 
+  // ── Metrics ────────────────────────────────────────
+
+  async getRunMetrics(runId: string): Promise<WorkflowRunMetrics | null> {
+    return this.post('/workflows/metrics', { runId })
+  }
+
+  async getAggregateMetrics(opts?: {
+    since?: string
+    workflowName?: string
+  }): Promise<AggregateMetrics> {
+    return this.post('/workflows/aggregate-metrics', {
+      tenantId: this.tenantId,
+      ...opts,
+    })
+  }
+
   // ── Workers & Queues ───────────────────────────────
 
   async getQueueStats(): Promise<QueueStats[]> {
     return this.get('/queues')
+  }
+
+  async listWorkers(): Promise<WorkerNodeInfo[]> {
+    return this.post('/workers/list', { tenantId: this.tenantId })
+  }
+
+  async generateWorkerToken(): Promise<{ token: string; installCommand: string; startCommand: string }> {
+    return this.post('/workers/generate-token', { tenantId: this.tenantId })
   }
 
   // ── Real-time ──────────────────────────────────────

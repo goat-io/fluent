@@ -10,6 +10,19 @@ export { DurationDisplay } from './components/common/DurationDisplay'
 export { RelativeTime } from './components/common/RelativeTime'
 export { JsonViewer } from './components/common/JsonViewer'
 
+export { MetricsPanel } from './components/metrics/MetricsPanel'
+export { StepMetricsTab } from './components/metrics/StepMetricsTab'
+
+// Workflow Editor
+export { WorkflowEditor } from './components/workflow-editor/WorkflowEditor'
+export { StepPalette } from './components/workflow-editor/StepPalette'
+export { StepConfigPanel } from './components/workflow-editor/StepConfigPanel'
+export { EditorToolbar } from './components/workflow-editor/EditorToolbar'
+export { useWorkflowEditor } from './components/workflow-editor/useWorkflowEditor'
+
+// Pages
+export { WorkflowDesigner } from './pages/WorkflowDesigner'
+
 // Providers
 export { AgentsProvider, useAgents } from './providers/AgentsProvider'
 

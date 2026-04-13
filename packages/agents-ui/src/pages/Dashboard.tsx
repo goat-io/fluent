@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAgents } from '@/providers/AgentsProvider'
 import { WorkflowList } from '@/components/workflow-list/WorkflowList'
 import { StatusBadge } from '@/components/common/StatusBadge'
+import { MetricsPanel } from '@/components/metrics/MetricsPanel'
 import type { WorkflowRunSummary, WorkflowStatus } from '@/api/types'
 
 export function Dashboard() {
@@ -31,9 +32,16 @@ export function Dashboard() {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">Goat Agents Dashboard</h1>
-          <nav className="flex gap-4 text-sm">
+          <nav className="flex items-center gap-4 text-sm">
             <a href="/" className="text-gray-900 font-medium">Dashboard</a>
             <a href="/workers" className="text-gray-500 hover:text-gray-700">Workers</a>
+            <a href="/designer" className="text-gray-500 hover:text-gray-700">Designer</a>
+            <a
+              href="/designer"
+              className="ml-2 bg-blue-600 text-white rounded-md px-4 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              + Create Workflow
+            </a>
           </nav>
         </div>
       </header>
