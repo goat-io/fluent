@@ -71,38 +71,69 @@ async function executeJob(job) {
       if (!prompt) prompt = JSON.stringify(payload.input || {});
 
       console.log('[agent] Running claude -p for step:', payload.stepName);
-      const args = ['-p', prompt];
-      if (config.appendSystemPrompt) args.push('--append-system-prompt', config.appendSystemPrompt);
-      if (config.systemPrompt) args.push('--system-prompt', config.systemPrompt);
-      if (config.model) args.push('--model', config.model);
-      if (config.effort) args.push('--effort', config.effort);
-      if (config.maxTurns) args.push('--max-turns', String(config.maxTurns));
-      if (config.maxBudgetUsd) args.push('--max-budget-usd', String(config.maxBudgetUsd));
-      if (config.permissionMode) args.push('--permission-mode', config.permissionMode);
-      if (config.outputFormat === 'json') args.push('--output-format', 'json');
-      if (config.allowedTools && config.allowedTools.length) args.push('--allowedTools', config.allowedTools.join(' '));
-      if (config.cwd) args.push('--add-dir', config.cwd);
+      const cliArgs = ['-p', prompt];
+      if (config.appendSystemPrompt) cliArgs.push('--append-system-prompt', config.appendSystemPrompt);
+      if (config.systemPrompt) cliArgs.push('--system-prompt', config.systemPrompt);
+      if (config.model) cliArgs.push('--model', config.model);
+      if (config.effort) cliArgs.push('--effort', config.effort);
+      if (config.maxTurns) cliArgs.push('--max-turns', String(config.maxTurns));
+      if (config.maxBudgetUsd) cliArgs.push('--max-budget-usd', String(config.maxBudgetUsd));
+      if (config.permissionMode) cliArgs.push('--permission-mode', config.permissionMode);
+      if (config.outputFormat === 'json') cliArgs.push('--output-format', 'json');
+      if (config.allowedTools && config.allowedTools.length) cliArgs.push('--allowedTools', config.allowedTools.join(' '));
+      if (config.addDirs && config.addDirs.length) {
+        for (const dir of config.addDirs) cliArgs.push('--add-dir', dir);
+      }
+      if (config.cwd) cliArgs.push('--add-dir', config.cwd);
 
-      const cmd = 'claude ' + args.map(a => "'" + a.replace(/'/g, "'\\\\''") + "'").join(' ');
-      const result = execSync(cmd, { encoding: 'utf-8', timeout: config.timeoutMs || 300000, maxBuffer: 50 * 1024 * 1024 });
+      // Use spawnSync with args array — avoids shell escaping issues
+      const { spawnSync } = require('node:child_process');
+      const proc = spawnSync('claude', cliArgs, {
+        encoding: 'utf-8',
+        timeout: config.timeoutMs || 300000,
+        maxBuffer: 50 * 1024 * 1024,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      if (proc.error) throw proc.error;
+      if (proc.status !== 0 && !proc.stdout) {
+        throw new Error(proc.stderr || 'Claude exited with code ' + proc.status);
+      }
+      const result = proc.stdout || '';
 
       if (config.outputFormat === 'json') {
         try { output = { result: JSON.parse(result) }; } catch { output = { result: result.trim() }; }
       } else {
         output = { result: result.trim() };
       }
-      console.log('[agent] Claude response:', (output.result || '').substring(0, 100) + '...');
+      console.log('[agent] Claude response:', (output.result || '').substring(0, 200) + '...');
     } else {
       // Generic executor
       output = { executed: true, step: payload.stepName, type: payload.executorType, input: payload.input };
     }
 
     if (controller.signal.aborted) return;
-    await post('/agents/step-result', { agentId, secret, jobId: job.id, result: { output } });
-    console.log('[agent] Job', job.id, 'completed');
+    // Retry result submission up to 3 times (handles transient fetch failures)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await post('/agents/step-result', { agentId, secret, jobId: job.id, result: { output } });
+        console.log('[agent] Job', job.id, 'completed');
+        break;
+      } catch (postErr) {
+        if (attempt < 2) {
+          console.log('[agent] Result POST failed, retrying in 2s...', postErr.message);
+          await new Promise(r => setTimeout(r, 2000));
+        } else {
+          throw postErr;
+        }
+      }
+    }
   } catch (err) {
     if (controller.signal.aborted) return;
-    try { await post('/agents/step-failed', { agentId, secret, jobId: job.id, error: err.message }); } catch {}
+    // Retry failure report too
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { await post('/agents/step-failed', { agentId, secret, jobId: job.id, error: err.message }); break; } catch { if (attempt < 2) await new Promise(r => setTimeout(r, 1000)); }
+    }
     console.error('[agent] Job', job.id, 'failed:', err.message);
   } finally {
     activeJobs.delete(job.id);

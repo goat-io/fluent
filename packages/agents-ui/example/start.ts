@@ -272,6 +272,24 @@ const claudeResearch = WorkflowBuilder.create('claude_research')
   })
   .build()
 
+// Claude codebase analyzer — reads a repo and answers questions about it
+const codeReview = WorkflowBuilder.create('code_review')
+  .version('1.0.0')
+  .step('review', {
+    executorType: 'claude_code',
+    executorConfig: {
+      prompt: 'The codebase is at {{input.repo_path}}. Question: {{input.question}}',
+      appendSystemPrompt: 'You are a senior engineer analyzing a codebase. Use Read, Glob, Grep, and Bash tools to explore the code and answer thoroughly. Be specific with file names and line numbers.',
+      model: 'sonnet',
+      effort: 'high',
+      maxTurns: 15,
+      allowedTools: ['Read', 'Glob', 'Grep', 'Bash'],
+      outputFormat: 'text',
+      timeoutMs: 180_000,
+    },
+  })
+  .build()
+
 // ── Main ─────────────────────────────────────────────────────────
 
 async function main() {
@@ -323,6 +341,7 @@ async function main() {
     ['flaky_pipeline', flakyPipeline],
     ['claude_analyzer', claudeAnalyzer],
     ['claude_research', claudeResearch],
+    ['code_review', codeReview],
   ])
 
   const engine = new WorkflowEngine({
