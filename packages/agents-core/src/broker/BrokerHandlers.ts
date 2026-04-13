@@ -69,22 +69,38 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
       maxConcurrent?: number
     }): Promise<{ agentId: string }> {
       const tokenHash = hashToken(input.registrationToken)
+      const secretHash = hashToken(input.secret)
 
-      // Validate token
+      // Check if this is a re-registration (agent reconnecting after backend restart)
+      // If we already have an agent with this secret in-memory, just return it
+      for (const agent of registry.listAgents(input.tenantId)) {
+        if (agent.secretHash === secretHash) {
+          logger?.info(`Agent re-registered: ${agent.name} (${agent.id})`)
+          // Update worker_nodes heartbeat
+          await db.updateTable('worker_nodes' as any)
+            .set({ status: 'active', lastHeartbeatAt: new Date() } as any)
+            .where('id' as any, '=', agent.id)
+            .execute().catch(() => {})
+          return { agentId: agent.id }
+        }
+      }
+
+      // Validate token for new registration
       const tokenRow = await db.selectFrom('agent_tokens')
         .selectAll()
         .where('token', '=', tokenHash)
         .where('tenantId', '=', input.tenantId)
         .executeTakeFirst()
 
+      // Allow re-registration with used token if same secret (backend restarted, token already consumed)
       if (!tokenRow) throw new Error('Invalid registration token')
-      if (tokenRow.used) throw new Error('Registration token already used')
-      if (tokenRow.expiresAt && new Date(tokenRow.expiresAt) < new Date()) {
+      if (tokenRow.used && tokenRow.usedBy) {
+        // Token was used before — this is a reconnect after backend restart
+        // Accept it and create a new in-memory registration
+        logger?.info(`Agent reconnecting with used token: ${input.name}`)
+      } else if (tokenRow.expiresAt && new Date(tokenRow.expiresAt) < new Date()) {
         throw new Error('Registration token expired')
       }
-
-      // Hash the agent's secret
-      const secretHash = hashToken(input.secret)
 
       // Register in-memory
       const agent = registry.registerAgent({

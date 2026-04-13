@@ -125,6 +125,11 @@ async function pollLoop() {
       pollAbort = null;
       if (!running) break;
       if (err.name === 'AbortError') break;
+      // Re-register if backend restarted and forgot us
+      if (err.message && (err.message.includes('Unknown agent') || err.message.includes('Invalid agent'))) {
+        console.log('[agent] Lost registration — re-registering...');
+        try { await register(); console.log('[agent] Re-registered. Resuming...'); backoff = 1000; continue; } catch {}
+      }
       console.error('[agent] Poll error:', err.message, '- retrying in', backoff + 'ms');
       await new Promise(r => setTimeout(r, backoff));
       backoff = Math.min(backoff * 2, 30000);
@@ -146,10 +151,16 @@ async function heartbeatLoop() {
       }
       if (res.queues) {
         console.log('[agent] Queue update from platform:', res.queues.map(q => q.replace('workflow_step_', '')).join(', '));
-        // Update capabilities for future registrations (dynamic queue change)
       }
       if (res.status === 'draining') { console.log('[agent] Drain requested'); running = false; }
-    } catch {}
+    } catch (err) {
+      // Re-register if backend restarted
+      if (err.message && (err.message.includes('Unknown agent') || err.message.includes('Invalid agent'))) {
+        console.log('[agent] Heartbeat lost registration — re-registering...');
+        try { await register(); console.log('[agent] Re-registered via heartbeat.'); } catch {}
+      }
+      // Silently retry on network errors
+    }
   }
 }
 
@@ -180,8 +191,20 @@ async function shutdown() {
   process.exit(0);
 }
 
+let caps;
+
+async function register() {
+  caps = caps || detectCapabilities();
+  const res = await post('/agents/register', {
+    tenantId: TENANT, name: os.hostname(), hostname: os.hostname(),
+    capabilities: caps, registrationToken: TOKEN, secret, maxConcurrent: 5,
+  });
+  agentId = res.agentId;
+  console.log('[agent] Registered as', agentId);
+}
+
 async function main() {
-  const caps = detectCapabilities();
+  caps = detectCapabilities();
   console.log('');
   console.log('  Goat Agent — Remote Worker');
   console.log('  Platform:', BROKER);
@@ -192,20 +215,27 @@ async function main() {
   console.log('  Queues:  ', caps.queues.join(', '));
   console.log('');
 
-  const res = await post('/agents/register', {
-    tenantId: TENANT, name: os.hostname(), hostname: os.hostname(),
-    capabilities: caps, registrationToken: TOKEN, secret, maxConcurrent: 5,
-  });
-  agentId = res.agentId;
-  console.log('  Registered as', agentId);
-  console.log('  Waiting for jobs... (Ctrl+C to stop)\\n');
+  // Connect with retry — handles backend being down at startup
+  let backoff = 1000;
+  while (running) {
+    try {
+      await register();
+      break;
+    } catch (err) {
+      console.error('[agent] Registration failed:', err.message, '- retrying in', backoff + 'ms');
+      await new Promise(r => setTimeout(r, backoff));
+      backoff = Math.min(backoff * 2, 30000);
+    }
+  }
+  if (!running) return;
 
+  console.log('  Waiting for jobs... (Ctrl+C to stop)\\n');
   heartbeatLoop();
   await pollLoop();
 }
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
-main().catch(e => { console.error('Failed:', e.message); process.exit(1); });
+main().catch(e => { console.error('Fatal:', e.message); process.exit(1); });
 `.trim()
 }
