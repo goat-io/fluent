@@ -311,14 +311,25 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
 
     async listWorkers(input: { tenantId: string }) {
       const rows = await (engine as any).db.selectFrom('worker_nodes').selectAll()
-        .where('tenantId', '=', input.tenantId)
-        .where('status', '!=', 'offline').execute()
-      return rows.map((r: any) => ({
-        id: r.id, name: r.name, hostname: r.hostname,
-        capabilities: fromJson(r.capabilities),
-        status: r.status, lastHeartbeatAt: r.lastHeartbeatAt ? String(r.lastHeartbeatAt) : null,
-        registeredAt: String(r.registeredAt),
-      }))
+        .where('tenantId', '=', input.tenantId).execute()
+
+      const STALE_THRESHOLD_MS = 45_000 // 1.5 missed heartbeats (30s each)
+      const now = Date.now()
+
+      return rows.map((r: any) => {
+        // Derive real status: if heartbeat is stale, worker is effectively offline
+        let status = r.status
+        if (status === 'active' && r.lastHeartbeatAt) {
+          const lastBeat = new Date(r.lastHeartbeatAt).getTime()
+          if (now - lastBeat > STALE_THRESHOLD_MS) status = 'offline'
+        }
+        return {
+          id: r.id, name: r.name, hostname: r.hostname,
+          capabilities: fromJson(r.capabilities),
+          status, lastHeartbeatAt: r.lastHeartbeatAt ? String(r.lastHeartbeatAt) : null,
+          registeredAt: String(r.registeredAt),
+        }
+      }).filter((w: any) => w.status !== 'offline')
     },
 
     /**
@@ -332,6 +343,7 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       token: string
       installCommand: string
       startCommand: string
+      engineUrl: string
     }> {
       const { randomBytes, createHash } = await import('node:crypto')
       const { Ids } = await import('@goatlab/js-utils')
@@ -354,7 +366,7 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       // Single command — fetches self-contained agent script from the platform and pipes to node
       const startCommand = `curl -fsSL '${input.engineUrl}/agent/run?token=${token}' | node`
 
-      return { token, installCommand, startCommand }
+      return { token, installCommand, startCommand, engineUrl: input.engineUrl }
     },
 
     async deregisterWorker(input: { workerId: string }): Promise<{ success: true }> {

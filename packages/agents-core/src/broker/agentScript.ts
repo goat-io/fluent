@@ -18,12 +18,14 @@ let agentId = null;
 const secret = crypto.randomBytes(32).toString('hex');
 let running = true;
 const activeJobs = new Map();
+let pollAbort = null; // AbortController for current long-poll
 
-async function post(path, body) {
+async function post(path, body, signal) {
   const res = await fetch(BROKER + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal,
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -49,7 +51,6 @@ async function executeJob(job) {
   activeJobs.set(job.id, controller);
   try {
     await post('/agents/step-started', { agentId, secret, jobId: job.id });
-    // Generic executor: eval the handler if provided, otherwise echo
     const payload = job.payload;
     const output = { executed: true, step: payload.stepName, type: payload.executorType, input: payload.input };
     if (controller.signal.aborted) return;
@@ -69,12 +70,17 @@ async function pollLoop() {
   while (running) {
     if (activeJobs.size >= 5) { await new Promise(r => setTimeout(r, 100)); continue; }
     try {
-      const res = await post('/agents/next-job', { agentId, secret, timeoutMs: 30000 });
+      pollAbort = new AbortController();
+      const res = await post('/agents/next-job', { agentId, secret, timeoutMs: 30000 }, pollAbort.signal);
+      pollAbort = null;
       if (res.job) {
         backoff = 1000;
         executeJob(res.job).catch(e => console.error('[agent] exec error:', e.message));
       }
     } catch (err) {
+      pollAbort = null;
+      if (!running) break;
+      if (err.name === 'AbortError') break;
       console.error('[agent] Poll error:', err.message, '- retrying in', backoff + 'ms');
       await new Promise(r => setTimeout(r, backoff));
       backoff = Math.min(backoff * 2, 30000);
@@ -99,6 +105,21 @@ async function heartbeatLoop() {
   }
 }
 
+async function shutdown() {
+  if (!running) return;
+  running = false;
+  // Abort the long-poll immediately
+  if (pollAbort) { pollAbort.abort(); pollAbort = null; }
+  // Abort active jobs
+  for (const [, c] of activeJobs) c.abort();
+  // Deregister
+  if (agentId) {
+    try { await post('/agents/deregister', { agentId, secret }); } catch {}
+  }
+  console.log('Bye!');
+  process.exit(0);
+}
+
 async function main() {
   const caps = detectCapabilities();
   console.log('');
@@ -117,14 +138,14 @@ async function main() {
   });
   agentId = res.agentId;
   console.log('  Registered as', agentId);
-  console.log('  Waiting for jobs...\\n');
+  console.log('  Waiting for jobs... (Ctrl+C to stop)\\n');
 
   heartbeatLoop();
   await pollLoop();
 }
 
-process.on('SIGINT', () => { console.log('\\nShutting down...'); running = false; });
-process.on('SIGTERM', () => { console.log('\\nShutting down...'); running = false; });
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 main().catch(e => { console.error('Failed:', e.message); process.exit(1); });
 `.trim()
 }

@@ -64,8 +64,20 @@ export function Workers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [tokenData, setTokenData] = useState<{ token: string; installCommand: string; startCommand: string } | null>(null)
+  const [tokenData, setTokenData] = useState<{ token: string; installCommand: string; startCommand: string; lanCommand?: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [networkTab, setNetworkTab] = useState<'tailscale' | 'lan'>('tailscale')
+  const [waitingForWorker, setWaitingForWorker] = useState(false)
+  const [workerCountAtOpen, setWorkerCountAtOpen] = useState(0)
+
+  // Auto-close modal when new worker connects
+  useEffect(() => {
+    if (waitingForWorker && showAddModal && workers.length > workerCountAtOpen) {
+      setShowAddModal(false)
+      setWaitingForWorker(false)
+      setTokenData(null)
+    }
+  }, [workers.length, waitingForWorker, showAddModal, workerCountAtOpen])
 
   useEffect(() => {
     // Initial fetch
@@ -110,6 +122,8 @@ export function Workers() {
               setTokenData(data)
               setShowAddModal(true)
               setCopied(false)
+              setWaitingForWorker(true)
+              setWorkerCountAtOpen(workers.length)
             }}
             className="ml-2 bg-blue-600 text-white rounded-md px-4 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
           >
@@ -236,18 +250,41 @@ export function Workers() {
 
             <p className="text-sm text-gray-600 mb-4">
               Run this command on any machine to connect it as a worker.
-              Works from anywhere — even behind NAT or firewalls. Only needs outbound HTTPS.
+              Only needs Node.js 18+ and outbound HTTPS access.
             </p>
+
+            {/* Network tabs */}
+            {tokenData.lanCommand && (
+              <div className="flex gap-1 mb-3 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => { setNetworkTab('tailscale'); setCopied(false) }}
+                  className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
+                    networkTab === 'tailscale' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  Tailscale (anywhere)
+                </button>
+                <button
+                  onClick={() => { setNetworkTab('lan'); setCopied(false) }}
+                  className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
+                    networkTab === 'lan' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  Local Network
+                </button>
+              </div>
+            )}
 
             <div className="mb-4">
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Run this command</label>
               <div className="relative">
                 <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-sm overflow-x-auto whitespace-pre-wrap break-all font-mono">
-                  {tokenData.startCommand}
+                  {networkTab === 'lan' && tokenData.lanCommand ? tokenData.lanCommand : tokenData.startCommand}
                 </pre>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(tokenData.startCommand)
+                    const cmd = networkTab === 'lan' && tokenData.lanCommand ? tokenData.lanCommand : tokenData.startCommand
+                    navigator.clipboard.writeText(cmd)
                     setCopied(true)
                     setTimeout(() => setCopied(false), 2000)
                   }}
@@ -258,11 +295,20 @@ export function Workers() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-              <strong>Requirements:</strong> Node.js 18+ and outbound HTTPS access.
-              The worker auto-detects CPU, memory, Docker, and GPU capabilities.
-              Token is single-use and expires in 24 hours.
-            </div>
+            {copied && waitingForWorker ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800 flex items-center gap-3">
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
+                </span>
+                <span>Waiting for worker to connect... This dialog will close automatically.</span>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                <strong>Requirements:</strong> Node.js 18+ and {networkTab === 'tailscale' ? 'Tailscale connected' : 'same network'}.
+                Token is <strong>single-use</strong> and expires in 24 hours.
+              </div>
+            )}
           </div>
         </div>
       )}

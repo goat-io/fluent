@@ -39,11 +39,24 @@ const TENANT = 'demo'
 
 import os from 'node:os'
 
+import { execSync } from 'node:child_process'
+
 function getNetworkIp(): string {
+  // Prefer Tailscale IP (reachable from anywhere on tailnet)
+  try {
+    const tsIp = execSync('tailscale ip -4', { timeout: 3000, stdio: ['pipe', 'pipe', 'ignore'] }).toString().trim()
+    if (tsIp) return tsIp
+  } catch {}
+
+  // Fallback to LAN IP
+  return getLanIp()
+}
+
+function getLanIp(): string {
   const interfaces = os.networkInterfaces()
   for (const iface of Object.values(interfaces) as any[]) {
     for (const cfg of iface ?? []) {
-      if (cfg.family === 'IPv4' && !cfg.internal) return cfg.address
+      if (cfg.family === 'IPv4' && !cfg.internal && !cfg.address.startsWith('100.')) return cfg.address
     }
   }
   return 'localhost'
@@ -450,9 +463,15 @@ async function main() {
       } else if (url.pathname === '/workers/list') {
         result = await handlers.listWorkers({ tenantId: TENANT })
       } else if (url.pathname === '/workers/generate-token') {
-        // Use network IP so remote machines can connect
-        const networkIp = getNetworkIp()
-        result = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://${networkIp}:${PORT}` })
+        // Generate token with primary IP, then add LAN IP as alternative
+        const primaryIp = getNetworkIp()
+        const lanIp = getLanIp()
+        const tokenResult = await handlers.generateWorkerToken({ tenantId: TENANT, engineUrl: `http://${primaryIp}:${PORT}` })
+        // Add LAN command if primary is Tailscale
+        if (primaryIp !== lanIp) {
+          ;(tokenResult as any).lanCommand = `curl -fsSL 'http://${lanIp}:${PORT}/agent/run?token=${tokenResult.token}' | node`
+        }
+        result = tokenResult
       } else if (url.pathname === '/health') {
         result = { ok: true }
 

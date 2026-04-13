@@ -133,6 +133,7 @@ export class AgentsClient {
     token: string
     installCommand: string
     startCommand: string
+    lanCommand?: string
   }> {
     return this.post('/workers/generate-token', { tenantId: this.tenantId })
   }
