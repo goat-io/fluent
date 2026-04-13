@@ -58,7 +58,45 @@ async function executeJob(job) {
   try {
     await post('/agents/step-started', { agentId, secret, jobId: job.id });
     const payload = job.payload;
-    const output = { executed: true, step: payload.stepName, type: payload.executorType, input: payload.input };
+    let output;
+
+    if (payload.executorType === 'claude_code') {
+      // Run via claude -p CLI
+      const config = payload.executorConfig || {};
+      let prompt = config.prompt || '';
+      if (!prompt && payload.input && payload.input.prompt) prompt = payload.input.prompt;
+      if (prompt && payload.input) {
+        prompt = prompt.replace(/\\{\\{input\\.(\\w+)\\}\\}/g, (_, field) => payload.input[field] !== undefined ? String(payload.input[field]) : '');
+      }
+      if (!prompt) prompt = JSON.stringify(payload.input || {});
+
+      console.log('[agent] Running claude -p for step:', payload.stepName);
+      const args = ['-p', prompt];
+      if (config.appendSystemPrompt) args.push('--append-system-prompt', config.appendSystemPrompt);
+      if (config.systemPrompt) args.push('--system-prompt', config.systemPrompt);
+      if (config.model) args.push('--model', config.model);
+      if (config.effort) args.push('--effort', config.effort);
+      if (config.maxTurns) args.push('--max-turns', String(config.maxTurns));
+      if (config.maxBudgetUsd) args.push('--max-budget-usd', String(config.maxBudgetUsd));
+      if (config.permissionMode) args.push('--permission-mode', config.permissionMode);
+      if (config.outputFormat === 'json') args.push('--output-format', 'json');
+      if (config.allowedTools && config.allowedTools.length) args.push('--allowedTools', config.allowedTools.join(' '));
+      if (config.cwd) args.push('--add-dir', config.cwd);
+
+      const cmd = 'claude ' + args.map(a => "'" + a.replace(/'/g, "'\\\\''") + "'").join(' ');
+      const result = execSync(cmd, { encoding: 'utf-8', timeout: config.timeoutMs || 300000, maxBuffer: 50 * 1024 * 1024 });
+
+      if (config.outputFormat === 'json') {
+        try { output = { result: JSON.parse(result) }; } catch { output = { result: result.trim() }; }
+      } else {
+        output = { result: result.trim() };
+      }
+      console.log('[agent] Claude response:', (output.result || '').substring(0, 100) + '...');
+    } else {
+      // Generic executor
+      output = { executed: true, step: payload.stepName, type: payload.executorType, input: payload.input };
+    }
+
     if (controller.signal.aborted) return;
     await post('/agents/step-result', { agentId, secret, jobId: job.id, result: { output } });
     console.log('[agent] Job', job.id, 'completed');

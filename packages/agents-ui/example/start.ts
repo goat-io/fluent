@@ -25,6 +25,7 @@ import {
   WorkflowBuilder,
   WorkflowStepTask,
   FunctionStepExecutor,
+  ClaudeCodeExecutor,
   createWorkflowHandlers,
   createBrokerHandlers,
   AgentRegistry,
@@ -224,6 +225,53 @@ const flakyPipeline = WorkflowBuilder.create('flaky_pipeline')
   })
   .build()
 
+// Claude Code workflow — asks Claude to do real work via the CLI
+const claudeAnalyzer = WorkflowBuilder.create('claude_analyzer')
+  .version('1.0.0')
+  .step('analyze', {
+    executorType: 'claude_code',
+    executorConfig: {
+      prompt: '{{input.task}}',
+      appendSystemPrompt: 'Be concise. Respond in 2-3 sentences max.',
+      model: 'sonnet',
+      effort: 'low',
+      maxTurns: 1,
+      outputFormat: 'text',
+      timeoutMs: 60_000,
+    },
+  })
+  .build()
+
+// Multi-step Claude workflow — research then summarize
+const claudeResearch = WorkflowBuilder.create('claude_research')
+  .version('1.0.0')
+  .step('research', {
+    executorType: 'claude_code',
+    executorConfig: {
+      prompt: '{{input.topic}} — research this topic thoroughly. Use web search if needed.',
+      model: 'sonnet',
+      effort: 'high',
+      maxTurns: 5,
+      allowedTools: ['Bash', 'Read', 'WebSearch', 'WebFetch'],
+      outputFormat: 'text',
+      timeoutMs: 120_000,
+    },
+  })
+  .step('summarize', {
+    dependsOn: ['research'],
+    executorType: 'claude_code',
+    executorConfig: {
+      prompt: 'Summarize the following research into 3 bullet points:\n\n{{input.result}}',
+      model: 'haiku',
+      effort: 'low',
+      maxTurns: 1,
+      outputFormat: 'text',
+      timeoutMs: 30_000,
+    },
+    mapInput: (upstream) => ({ result: (upstream.research as any)?.result ?? '' }),
+  })
+  .build()
+
 // ── Main ─────────────────────────────────────────────────────────
 
 async function main() {
@@ -268,26 +316,23 @@ async function main() {
 
   // Engine
   const executor = createDemoExecutor()
+  const claudeExecutor = new ClaudeCodeExecutor()
   const workflows = new Map([
     ['sdlc_pipeline', sdlcPipeline],
     ['quick_task', quickTask],
     ['flaky_pipeline', flakyPipeline],
+    ['claude_analyzer', claudeAnalyzer],
+    ['claude_research', claudeResearch],
   ])
 
   const engine = new WorkflowEngine({
     db,
     connector,
-    executors: new Map([['function', executor]]),
+    executors: new Map<string, any>([['function', executor], ['claude_code', claudeExecutor]]),
     workflows,
     tenantId: TENANT,
     disableLogBuffering: true,
   })
-
-  // Worker disabled — use `npx @goatlab/agents-core start --url http://localhost:4444 --token <TOKEN>` to connect a worker
-  // const stepTask = new WorkflowStepTask(engine)
-  // stepTask.setConnector(connector)
-  // const workerHandle = await connector.listen({ ... })
-  console.log('⚠️  No embedded worker — use "+ Add Worker" in the UI to connect one\n')
 
   // API handlers
   const handlers = createWorkflowHandlers(engine)
@@ -301,6 +346,12 @@ async function main() {
   })
   agentRegistry.startSweep()
   const brokerHandlers = createBrokerHandlers({ db, registry: agentRegistry })
+
+  // WorkerBroker: consumes from BullMQ and dispatches to remote agents via HTTP
+  const { WorkerBroker } = await import('@goatlab/agents-core')
+  const broker = new WorkerBroker({ engine, registry: agentRegistry })
+  await broker.start(connector)
+  console.log('⚡ WorkerBroker running — jobs route from BullMQ to remote agents\n')
 
   // ── SSE: track connected clients per workflow run ──────────
   const sseClients = new Map<string, Set<http.ServerResponse>>()
@@ -556,6 +607,7 @@ async function main() {
     clearInterval(sseWorkerPoller)
     agentRegistry.stopSweep()
     server.close()
+    await broker.stop()
     await connector.close()
     await engine.shutdown()
     await db.destroy()
