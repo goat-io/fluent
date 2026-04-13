@@ -116,6 +116,12 @@ export function WorkflowRun() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to={`/designer?workflow=${encodeURIComponent(workflow.workflowName)}`}
+              className="text-xs bg-[var(--color-accent)] text-white rounded-lg px-3 py-1.5 hover:bg-[var(--color-accent-hover)] transition-colors"
+            >
+              Edit Definition
+            </Link>
             <button
               onClick={() => setShowSignals(!showSignals)}
               className="text-xs bg-[var(--color-surface-3)] text-[var(--color-text-secondary)] rounded-lg px-3 py-1.5 hover:bg-[var(--color-surface-4)] border border-[var(--color-border)] transition-colors"

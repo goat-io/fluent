@@ -5,7 +5,7 @@ import { WorkflowList } from '@/components/workflow-list/WorkflowList'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { MetricsPanel } from '@/components/metrics/MetricsPanel'
 import { NavHeader } from '@/components/common/NavHeader'
-import type { WorkflowRunSummary, WorkflowStatus, WorkflowFilters } from '@/api/types'
+import type { WorkflowRunSummary, WorkflowStatus, WorkflowFilters, WorkerNodeInfo } from '@/api/types'
 
 const ALL_STATUSES: WorkflowStatus[] = ['RUNNING', 'COMPLETED', 'FAILED', 'WAITING_HUMAN', 'CANCELLED']
 
@@ -13,6 +13,7 @@ export function Dashboard() {
   const { client } = useAgents()
   const navigate = useNavigate()
   const [workflows, setWorkflows] = useState<WorkflowRunSummary[]>([])
+  const [workers, setWorkers] = useState<WorkerNodeInfo[]>([])
   const [loading, setLoading] = useState(true)
 
   // Filters
@@ -29,10 +30,14 @@ export function Dashboard() {
 
   useEffect(() => {
     fetchWorkflows()
+    client.listWorkers().then(setWorkers).catch(() => {})
     setLoading(false)
-    const interval = setInterval(fetchWorkflows, 5000)
+    const interval = setInterval(() => {
+      fetchWorkflows()
+      client.listWorkers().then(setWorkers).catch(() => {})
+    }, 5000)
     return () => clearInterval(interval)
-  }, [fetchWorkflows])
+  }, [fetchWorkflows, client])
 
   const toggleStatus = (status: WorkflowStatus) => {
     setStatusFilter(prev =>
@@ -60,7 +65,7 @@ export function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Bento Stats Grid */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-5 gap-4 mb-8">
           {(Object.entries(counts) as [WorkflowStatus, number][]).map(([status, count]) => (
             <div key={status} className="glass rounded-2xl p-5">
               <div className="flex items-center justify-between">
@@ -69,6 +74,17 @@ export function Dashboard() {
               </div>
             </div>
           ))}
+          <a href="/workers" className="glass glass-hover rounded-2xl p-5 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Workers</span>
+              <span className="text-3xl font-bold text-[var(--color-text-primary)] tabular-nums">{workers.length}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+              <span>{workers.reduce((s, w) => s + (w.capabilities?.cpuCount ?? 0), 0)} cores</span>
+              <span className="text-[var(--color-text-muted)]">|</span>
+              <span>{workers.length > 0 ? `${Math.round(workers.reduce((s, w) => s + (w.capabilities?.memoryMB ?? 0), 0) / 1024)}GB` : '0GB'}</span>
+            </div>
+          </a>
         </div>
 
         {/* Filters */}
