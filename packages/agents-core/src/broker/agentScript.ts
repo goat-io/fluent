@@ -108,10 +108,22 @@ async function heartbeatLoop() {
 async function shutdown() {
   if (!running) return;
   running = false;
-  // Abort the long-poll immediately
+  // Abort the long-poll immediately (stop accepting new work)
   if (pollAbort) { pollAbort.abort(); pollAbort = null; }
-  // Abort active jobs
-  for (const [, c] of activeJobs) c.abort();
+
+  if (activeJobs.size > 0) {
+    console.log('[agent] Draining', activeJobs.size, 'active job(s)... (Ctrl+C again to force quit)');
+    // Second Ctrl+C = force quit
+    const forceQuit = () => { console.log('[agent] Force quit'); process.exit(1); };
+    process.on('SIGINT', forceQuit);
+    process.on('SIGTERM', forceQuit);
+    // Wait indefinitely for active jobs to finish — user can force quit anytime
+    while (activeJobs.size > 0) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+    console.log('[agent] All jobs completed');
+  }
+
   // Deregister
   if (agentId) {
     try { await post('/agents/deregister', { agentId, secret }); } catch {}
