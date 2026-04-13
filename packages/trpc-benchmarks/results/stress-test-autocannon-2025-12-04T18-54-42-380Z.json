@@ -1,0 +1,66 @@
+[
+  {
+    "config": {
+      "name": "Express Native + Node",
+      "runtime": "node",
+      "framework": "express-native",
+      "port": 3007,
+      "command": [
+        "npx",
+        "tsx",
+        "src/servers/express-native-server.ts"
+      ]
+    },
+    "metrics": {
+      "requestsPerSecond": 1362.84,
+      "avgLatencyMs": 145.97,
+      "p99LatencyMs": 159,
+      "totalRequests": 40885,
+      "errors": 0,
+      "duration": 30.06
+    }
+  },
+  {
+    "config": {
+      "name": "Express + tRPC + Bun",
+      "runtime": "bun",
+      "framework": "express-trpc",
+      "port": 3008,
+      "command": [
+        "bun",
+        "run",
+        "src/servers/express-trpc-bun-server.ts"
+      ],
+      "isTrpc": true
+    },
+    "metrics": {
+      "requestsPerSecond": 708.54,
+      "avgLatencyMs": 280.41,
+      "p99LatencyMs": 416,
+      "totalRequests": 21256,
+      "errors": 0,
+      "duration": 30.06
+    }
+  },
+  {
+    "config": {
+      "name": "Hono Native + Bun",
+      "runtime": "bun",
+      "framework": "hono-native",
+      "port": 3005,
+      "command": [
+        "bun",
+        "run",
+        "src/servers/hono-native-server.ts"
+      ]
+    },
+    "metrics": {
+      "requestsPerSecond": 2208.54,
+      "avgLatencyMs": 89.94,
+      "p99LatencyMs": 109,
+      "totalRequests": 66250,
+      "errors": 0,
+      "duration": 30.06
+    }
+  }
+]
