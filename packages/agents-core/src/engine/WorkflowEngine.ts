@@ -4,8 +4,20 @@ import { Ids } from '@goatlab/js-utils'
 /** Escape a value for COPY FROM tab-delimited format */
 function esc(v: string | null | undefined): string {
   if (v === null || v === undefined) return '\\N'
+  // Fast path: skip the four regex replaces when nothing needs escaping
+  if (!ESC_NEEDED.test(v)) return v
   return v.replace(/\\/g, '\\\\').replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\r/g, '\\r')
 }
+/**
+ * Specialized escape for values that came from JSON.stringify.
+ * JSON output never contains raw tab/newline/CR (those are already escaped to
+ * `\\n` etc. by JSON.stringify), so we only need to double up backslashes.
+ * One regex replace instead of four — ~4x faster for this common case.
+ */
+function escJson(v: string): string {
+  return v.includes('\\') ? v.replace(/\\/g, '\\\\') : v
+}
+const ESC_NEEDED = /[\\\t\n\r]/
 import type { JsonObject } from '@goatlab/tasks-core'
 import { sql, type Kysely } from 'kysely'
 import type {
@@ -86,6 +98,12 @@ export class WorkflowEngine {
     // Per-step cached escapes for COPY lines (executorConfig, dependsOn)
     stepEscapes: Map<string, { executorConfigEsc: string; dependsOnEsc: string }>
   }> = new Map()
+
+  // Per-engine constants used on every batch row — cache the escaped form once.
+  // These depend only on engine config (defaultBudget), so they are stable
+  // across all triggers. Lazy-initialized on first COPY FROM.
+  private cachedBudgetEsc: string | null = null
+  private cachedBudgetUsedEsc: string | null = null
 
   constructor(config: WorkflowEngineConfig) {
     this.config = config
@@ -337,6 +355,15 @@ export class WorkflowEngine {
     const runLines: string[] = []
     const stepLines: string[] = []
 
+    // Lazy-init per-engine constants — same on every row, no reason to
+    // re-stringify+escape for each trigger.
+    if (this.cachedBudgetEsc === null) {
+      this.cachedBudgetEsc = esc(toJson(this.config.defaultBudget ?? null))
+      this.cachedBudgetUsedEsc = esc(toJson({ tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }))
+    }
+    const budgetEsc = this.cachedBudgetEsc
+    const budgetUsedEsc = this.cachedBudgetUsedEsc!
+
     for (const trigger of triggers) {
       const definition = this.config.workflows.get(trigger.workflowName)
       if (!definition) throw new WorkflowNotFoundError(trigger.workflowName)
@@ -380,13 +407,11 @@ export class WorkflowEngine {
       // Columns: id, tenantId, workflowName, workflowVersion, status, definitionSnapshot,
       //   triggerInput, idempotencyKey, traceId, parentRunId, originEventId, budget, budgetUsed, startedAt, completedAt, createdAt, updatedAt
       const traceId = trigger.traceId ?? Ids.nanoId(21)
-      const budgetJson = esc(toJson(this.config.defaultBudget ?? null))
-      const budgetUsedJson = esc(toJson({ tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }))
       runLines.push([
         runId, trigger.tenantId, trigger.workflowName, definition.version,
-        'RUNNING', snapshotEsc, esc(triggerInput), idempKey,
+        'RUNNING', snapshotEsc, escJson(triggerInput), idempKey,
         traceId, trigger.parentRunId ?? '\\N', trigger.originEventId ?? '\\N',
-        budgetJson, budgetUsedJson,
+        budgetEsc, budgetUsedEsc,
         now, '\\N', now, now,
       ].join('\t'))
 
@@ -420,7 +445,7 @@ export class WorkflowEngine {
           stepId, runId, trigger.tenantId, stepDef.name,
           isRoot ? 'QUEUED' : 'PENDING', stepDef.executorType,
           stepEsc.executorConfigEsc, stepEsc.dependsOnEsc,
-          isRoot ? esc(toJson(input)) : '\\N',  // input
+          isRoot ? escJson(toJson(input)) : '\\N',  // input
           '\\N',                                 // output
           '\\N',                                 // error
           0,                                     // attempt
@@ -442,33 +467,46 @@ export class WorkflowEngine {
       results.push({ runId, stepRows: localStepRows, definition, trigger })
     }
 
-    // Execute COPY FROM for both tables
+    // Execute COPY FROM for both tables in one atomic transaction.
+    // Sequential on the same client — a Postgres session can only hold one
+    // COPY stream at a time. FK from workflow_steps → workflow_runs requires
+    // atomic commit of both tables, so splitting is not safe.
     const client = await this.config.pgPool.connect()
+    const tBegin = performance.now()
     try {
-      await client.query('BEGIN')
-      // Per-transaction async commit — WAL flushed async by walwriter
-      // (~45% TPS gain). Scope is LOCAL: reverts on COMMIT/ROLLBACK so other
-      // transactions on this pooled connection remain unaffected.
-      await client.query('SET LOCAL synchronous_commit = OFF')
+      // Combine BEGIN + SET LOCAL into one roundtrip (saves ~15-40ms per flush
+      // under the Docker VM and ~2-5ms on native PG)
+      await client.query('BEGIN; SET LOCAL synchronous_commit = OFF;')
+      const tAfterBegin = performance.now()
 
-      // COPY workflow_runs
       const { from: copyFrom } = await import('pg-copy-streams')
       const runStream = client.query(copyFrom(
         'COPY workflow_runs (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "startedAt", "completedAt", "createdAt", "updatedAt") FROM STDIN',
       ))
       runStream.write(runLines.join('\n') + '\n')
       runStream.end()
-      await new Promise((resolve, reject) => { runStream.on('finish', resolve); runStream.on('error', reject) })
+      await new Promise<void>((resolve, reject) => { runStream.on('finish', () => resolve()); runStream.on('error', reject) })
+      const tAfterRuns = performance.now()
 
-      // COPY workflow_steps
       const stepStream = client.query(copyFrom(
         'COPY workflow_steps (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "createdAt", "updatedAt") FROM STDIN',
       ))
       stepStream.write(stepLines.join('\n') + '\n')
       stepStream.end()
-      await new Promise((resolve, reject) => { stepStream.on('finish', resolve); stepStream.on('error', reject) })
+      await new Promise<void>((resolve, reject) => { stepStream.on('finish', () => resolve()); stepStream.on('error', reject) })
+      const tAfterSteps = performance.now()
 
       await client.query('COMMIT')
+      const tAfterCommit = performance.now()
+
+      if (process.env.INGEST_TIMING && triggers.length >= 50) {
+        console.log(
+          `[COPY] ${triggers.length}r begin=${(tAfterBegin - tBegin).toFixed(0)}ms ` +
+          `runs=${(tAfterRuns - tAfterBegin).toFixed(0)}ms ` +
+          `steps=${(tAfterSteps - tAfterRuns).toFixed(0)}ms ` +
+          `commit=${(tAfterCommit - tAfterSteps).toFixed(0)}ms`,
+        )
+      }
     } catch (err) {
       await client.query('ROLLBACK')
       throw err

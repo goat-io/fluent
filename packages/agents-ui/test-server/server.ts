@@ -225,7 +225,11 @@ async function main() {
   const ingestWorker = new IngestWorker({
     engine,
     flushThreshold: 200,
-    flushIntervalMs: 20,
+    // Longer interval so batches actually fill to threshold. Per-batch
+    // overhead (BEGIN/COMMIT roundtrips) is fixed ~30-60ms, so smaller
+    // batches waste that overhead. 100ms × 2500 triggers/s/worker → threshold
+    // hits first under load; idle workers just wait a bit longer.
+    flushIntervalMs: 100,
     // Cap below pool size to leave headroom for status reads / log flushes
     maxConcurrentFlushes: Math.max(2, Math.floor(PG_POOL_SIZE / 2)),
     logger: console,
@@ -240,7 +244,10 @@ async function main() {
 
   const workerHandle = await connector.listen({
     tasks: [
-      { taskName: 'workflow_ingest', handle: (data: unknown) => ingestWorker.handleJob(data as any), concurrency: WORKER_CONCURRENCY },
+      // Ingest concurrency must be ≥ IngestWorker flushThreshold, otherwise
+      // batches can never reach their configured size (BullMQ won't deliver
+      // more than `concurrency` in-flight jobs per worker).
+      { taskName: 'workflow_ingest', handle: (data: unknown) => ingestWorker.handleJob(data as any), concurrency: 300 },
       { taskName: 'workflow_step_light', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: WORKER_CONCURRENCY },
       { taskName: 'workflow_step_heavy', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: Math.max(5, WORKER_CONCURRENCY / 4) },
       { taskName: 'workflow_step_ai', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: Math.max(10, WORKER_CONCURRENCY / 2) },
