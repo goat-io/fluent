@@ -938,7 +938,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `078bd33` | perf: dispatch v2 — parallel batched processIncomingDispatch (Phase 0 ✅) |
 | `d8355a0` | feat: engine onEngineEvent hook + EngineEvent types (Phase 2 partial ✅) |
 | `4aec7b5` | fix: SchedulerService multi-pod safety — transaction-wrapped FOR UPDATE + tenantId filter |
-| **(next)** | **fix: retention-cleanup.ts schema-aware via RETENTION_SCHEMA env** |
+| `b486f9a` | fix: retention-cleanup.ts schema-aware via RETENTION_SCHEMA env |
+| **(next)** | **test: engine-via-dispatch integration (proves sodium-shape consumer works end-to-end)** |
 
 ## 3.2 File index — where everything lives
 
