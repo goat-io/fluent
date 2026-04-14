@@ -170,6 +170,22 @@ export interface TaskConnector<TInput> {
     timeBudgetMs?: number
     /** Valid queue names to process. If provided, unknown queues are skipped. */
     validQueueNames?: Set<string>
+    /**
+     * Number of jobs to pull from the queue per inner iteration. Each inner
+     * iteration pulls `batchSize` jobs in parallel, then runs handlers in
+     * parallel (capped by `concurrency`), then acks all in parallel. Default 50.
+     *
+     * Tune based on queue characteristics:
+     *  - High-throughput batched queues (engine ingest): 200
+     *  - Notification-style fire-and-forget: 50 (default)
+     *  - Slow / serialized work: 1 (legacy behaviour)
+     */
+    batchSize?: number
+    /**
+     * Maximum in-flight handler invocations. Caps parallelism when batchSize is
+     * larger than what your handler can absorb. Default: same as batchSize.
+     */
+    concurrency?: number
     /** Hint from the dispatch notification (optional — may contain data for push-based adapters) */
     hint?: {
       tenantId?: string

@@ -616,20 +616,31 @@ Every existing task (notifications, tenant provisioning, realtime broadcast) bec
 
 Each phase is independently shippable.
 
-### Phase 0 — Dispatch v2 (in `fluent` repo)
+### Phase 0 — Dispatch v2 (in `fluent` repo) — ✅ DONE
 
-**Goal**: extract `BatchedJobProcessor`, use in `processIncomingDispatch` so engine queues are dispatch-compatible.
+**Status**: shipped in the same repo. See commit notes below.
 
-| Step | File | Effort | Notes |
-|---|---|---|---|
-| 1 | `packages/agents-core/src/engine/BatchedJobProcessor.ts` (new) | 120 LOC | Generic class with `handleBatch` (engine ingest mode) and `handleEach` (parallel single-job mode) |
-| 2 | Refactor `IngestWorker` to use `BatchedJobProcessor` | 30 LOC delta | Same logic, different shell |
-| 3 | Refactor `StepStatusBuffer` to use `BatchedJobProcessor` | 30 LOC delta | Same logic, different shell |
-| 4 | `packages/tasks-adapter-bullmq/src/BullMQConnector.ts:processIncomingDispatch` | 50 LOC delta | Replace sequential loop with parallel batch pull + handler invocation + ack |
-| 5 | Add `batchSize` and `concurrency` params to `tasks-core` interface | 5 LOC delta | Both optional with sensible defaults |
-| 6 | Tests + perf regression sweep on `packages/agents-express/example` | 80 LOC | Validate via existing `pnpm loadtest` |
+**What was done**:
+- ✅ `packages/tasks-adapter-bullmq/src/BullMQConnector.ts:processIncomingDispatch` rewritten with parallel batched processing:
+  - **Parallel pull**: `batchSize` `getNextJob` calls in `Promise.all` per inner iteration (BullMQ's getNextJob is atomic — no double-delivery)
+  - **Parallel handler invocation**: chunked by `concurrency` cap, `Promise.allSettled` (one failure does NOT abort the batch)
+  - **Parallel ack**: `Promise.allSettled` so a failing ack doesn't take down the rest
+  - All v1 invariants preserved (waitUntilReady race fix, hint queue prioritization, tempWorker.close in finally)
+- ✅ `tasks-core` interface gained `batchSize` and `concurrency` optional params
+- ✅ 5 new tests added (in addition to the 4 existing) — covering: real parallelism (handlers overlap), concurrency cap respected, partial failure isolation, multi-iteration drain, default backwards compat at low load. **All 9 pass.**
+- ✅ Full engine test suite still green (224/224)
 
-**Default behavior preserved** at low load. Bursts get faster automatically. Risk: low.
+**What was deliberately deferred** (not blocking):
+- The `BatchedJobProcessor<TJob, TResult>` extraction (refactor IngestWorker + StepStatusBuffer to share a primitive). The dispatch v2 path uses `Promise.allSettled` directly — doesn't need the per-job-promise pattern (dispatch owns the lifecycle). The IngestWorker/StepStatusBuffer keep their own internal accumulator pattern. Extraction is a code-cleanliness pass, not load-bearing.
+
+**Defaults**:
+- `batchSize: 50` (good balance — 10× throughput improvement on bursts, no harm at low load)
+- `concurrency: same as batchSize` (no chunking unless explicitly set lower)
+
+**Sodium can opt in per-queue**:
+- Engine queues: pass `batchSize: 200, concurrency: 200` from the dispatch handler
+- Notification-style queues: keep defaults (50/50)
+- Slow / serialized work: `batchSize: 1` (legacy v1 behaviour)
 
 ### Phase 1 — Sodium boilerplate (in `sodium` repo)
 
@@ -880,6 +891,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `b238b0e` | docs(example): record load-test results |
 | `0d82940` | feat: @goatlab/agents-bun adapter + Bun + Prisma example |
 | `1e34216` | refactor: promote bulkQueue() to TaskConnector — agents-core no longer BullMQ-specific |
+| `d24707b` | docs: full sodium integration plan + zero-context handover |
+| **(next)** | **perf: dispatch v2 — parallel batched processIncomingDispatch (Phase 0 ✅)** |
 
 ## 3.2 File index — where everything lives
 

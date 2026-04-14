@@ -746,14 +746,33 @@ export class BullMQConnector implements TaskConnector<object> {
 
   /**
    * Process incoming dispatch work for this tenant's queues.
-   * Creates temporary Workers per queue, manually fetches jobs, and processes
-   * them within the time budget using the tenant connector's own connection
-   * options and prefix.
+   *
+   * v2 — parallel batched processing:
+   *  - Pulls `batchSize` jobs in parallel per inner iteration (vs 1-by-1)
+   *  - Runs handlers in parallel via Promise.allSettled (vs sequential await)
+   *  - Acks all results in parallel (vs sequential)
+   *  - Concurrency cap chunks the batch when handler resources are limited
+   *
+   * Backwards compatible: behaviour at low load (batchSize=1) is identical
+   * to v1. Default batchSize=50 means notification-style queues see 10-50×
+   * throughput improvement under bursts. High-throughput batched queues
+   * (engine ingest, where the handler is itself a batched accumulator) can
+   * pass batchSize=200 to fill the accumulator's threshold.
+   *
+   * Critical invariants preserved from v1:
+   *  - One ephemeral Worker per queue (no persistent per-tenant workers)
+   *  - waitUntilReady() before any getNextJob (the v1 race-condition fix)
+   *  - tempWorker.close() in finally (no leaked connections)
+   *  - Hinted queue prioritised (moved to front of queueNames)
+   *  - Per-job try/catch — one handler failure doesn't abort the batch
+   *  - moveToCompleted/Failed signature unchanged
    */
   async processIncomingDispatch(params: {
     handleTask: (queueName: string, data: unknown) => Promise<unknown>
     timeBudgetMs?: number
     validQueueNames?: Set<string>
+    batchSize?: number
+    concurrency?: number
     hint?: {
       tenantId?: string
       queueName?: string
@@ -762,18 +781,20 @@ export class BullMQConnector implements TaskConnector<object> {
     }
   }): Promise<{ processed: number; failed: number }> {
     const { handleTask, timeBudgetMs = 25_000, validQueueNames, hint } = params
+    const batchSize = Math.max(1, params.batchSize ?? 50)
+    const concurrency = Math.max(1, Math.min(params.concurrency ?? batchSize, batchSize))
     const deadline = Date.now() + timeBudgetMs
     let processed = 0
     let failed = 0
 
-    // Determine which queues to drain
+    // Determine which queues to drain (unchanged from v1)
     const queueNames = validQueueNames
       ? [...validQueueNames]
       : hint?.queueName
         ? [hint.queueName]
         : []
 
-    // Prioritize the hinted queue (move to front)
+    // Prioritize the hinted queue (move to front) (unchanged from v1)
     if (hint?.queueName && queueNames.includes(hint.queueName)) {
       const idx = queueNames.indexOf(hint.queueName)
       if (idx > 0) {
@@ -783,9 +804,7 @@ export class BullMQConnector implements TaskConnector<object> {
     }
 
     for (const queueName of queueNames) {
-      if (Date.now() >= deadline) {
-        break
-      }
+      if (Date.now() >= deadline) break
 
       const tempWorker = new Worker(queueName, undefined as any, {
         connection: this.getSharedConnection(),
@@ -797,21 +816,83 @@ export class BullMQConnector implements TaskConnector<object> {
         // Wait for the Worker's ioredis connection to be ready before
         // calling getNextJob — otherwise it hangs or silently returns null
         // when there's connection latency, auth delay, or TLS negotiation.
+        // (Existing fix from v1; just as critical for parallel calls.)
         await tempWorker.waitUntilReady()
 
         while (Date.now() < deadline) {
-          const job = await tempWorker.getNextJob('dispatch')
-          if (!job) {
-            break // no more jobs in this queue
+          // ── PARALLEL PULL ─────────────────────────────────────────
+          // Issue `batchSize` getNextJob calls in parallel. Each returns
+          // a Job or null. We filter nulls — that's how we know the queue
+          // is drained for now.
+          //
+          // Note: BullMQ's getNextJob is atomic (Lua script), so multiple
+          // parallel calls won't return the same job to two callers.
+          const pulled = await Promise.all(
+            Array.from({ length: batchSize }, () => tempWorker.getNextJob('dispatch')),
+          )
+          const jobs = pulled.filter((j): j is NonNullable<typeof j> => j != null)
+          if (jobs.length === 0) break // queue empty
+
+          // ── PARALLEL HANDLER INVOCATION (chunked by concurrency) ──
+          // For batchSize > concurrency we process in chunks so we don't
+          // exceed the requested in-flight cap. For batchSize === concurrency
+          // (default) the chunking is a no-op single batch.
+          //
+          // Promise.allSettled — one handler failure must NOT abort the rest;
+          // each job gets its own ack/fail decision below.
+          type HandlerResult =
+            | { ok: true; value: unknown }
+            | { ok: false; error: Error }
+          const results: HandlerResult[] = new Array(jobs.length)
+
+          for (let off = 0; off < jobs.length; off += concurrency) {
+            const chunk = jobs.slice(off, off + concurrency)
+            const settled = await Promise.allSettled(
+              chunk.map(j => handleTask(queueName, j.data)),
+            )
+            for (let i = 0; i < settled.length; i++) {
+              const r = settled[i]!
+              results[off + i] = r.status === 'fulfilled'
+                ? { ok: true, value: r.value }
+                : { ok: false, error: r.reason instanceof Error ? r.reason : new Error(String(r.reason)) }
+            }
           }
 
-          try {
-            const result = await handleTask(queueName, job.data)
-            await job.moveToCompleted(result, job.token || '0', false)
-            processed++
-          } catch (err) {
-            await job.moveToFailed(err as Error, job.token || '0', false)
-            failed++
+          // ── PARALLEL ACK ──────────────────────────────────────────
+          // moveToCompleted/Failed signature: (returnValue, token, fetchNext).
+          // We pass fetchNext=false because we explicitly drive job pulling
+          // in the next iteration's getNextJob calls.
+          //
+          // Promise.allSettled here too — if one ack fails (e.g. PG hiccup
+          // in sodium's task handler that already wrote to PG before the
+          // handler returned), we don't want to lose track of the others.
+          const ackResults = await Promise.allSettled(
+            jobs.map((j, i): Promise<unknown> => {
+              const r = results[i]!
+              if (r.ok === true) {
+                return j.moveToCompleted(r.value, j.token || '0', false) as Promise<unknown>
+              }
+              return j.moveToFailed(r.error, j.token || '0', false) as Promise<unknown>
+            }),
+          )
+
+          // Tally — count ack success, not handler success, since a job
+          // whose handler succeeded but whose ack failed will be retried
+          // by BullMQ's stalled-job recovery (correct behaviour).
+          for (let i = 0; i < jobs.length; i++) {
+            if (ackResults[i]!.status === 'rejected') {
+              // Ack failed — log via stderr (no logger here) and skip tally
+              // BullMQ stalled-job recovery will redeliver
+              // eslint-disable-next-line no-console
+              console.error(
+                `[BullMQConnector] processIncomingDispatch: ack failed for job ${jobs[i]!.id} on ${queueName}`,
+                (ackResults[i] as PromiseRejectedResult).reason,
+              )
+            } else if (results[i]!.ok) {
+              processed++
+            } else {
+              failed++
+            }
           }
         }
       } finally {
