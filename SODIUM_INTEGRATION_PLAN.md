@@ -943,7 +943,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `a7bb1fc` | feat: @goatlab/realtime-broker — pooled per-tenant pub/sub (Phase 2 ✅) |
 | `ac441b6` | feat: @goatlab/agents-trpc — typed tRPC adapter (sodium-friendly) |
 | `8fa1aab` | example(express): wire realtime-broker + onEngineEvent → SSE endpoint |
-| **(next)** | **test: full-stack composition (engine + dispatch v2 + event hook + broker)** |
+| `118a282` | test: full-stack composition (engine + dispatch v2 + event hook + broker) |
+| **(next)** | **refactor: extract BatchedJobProcessor primitive — IngestWorker + StepStatusBuffer share it** |
 
 ## 3.2 File index — where everything lives
 

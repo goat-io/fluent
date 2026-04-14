@@ -17,6 +17,7 @@
 // npx vitest run src/__tests__/engine/step-status-buffer.spec.ts
 
 import type { Pool } from 'pg'
+import { BatchedJobProcessor } from './BatchedJobProcessor.js'
 
 export interface StepStatusUpdate {
   stepId: string
@@ -32,11 +33,6 @@ export interface StepStatusUpdate {
   completedAt?: Date | null
   /** humanPrompt column (JSON-stringified) — only used for WAITING_HUMAN transitions */
   humanPrompt?: string | null
-}
-
-interface PendingUpdate extends StepStatusUpdate {
-  resolve: () => void
-  reject: (err: unknown) => void
 }
 
 export interface StepStatusBufferConfig {
@@ -56,25 +52,26 @@ export interface StepStatusBufferConfig {
 }
 
 export class StepStatusBuffer {
-  private pending: PendingUpdate[] = []
-  private timer: ReturnType<typeof setTimeout> | null = null
-  private inFlight = 0
-  private shuttingDown = false
-
   private readonly pgPool: Pool
-  private readonly flushThreshold: number
-  private readonly flushIntervalMs: number
-  private readonly maxConcurrentFlushes: number
   private readonly tableName: string
-  private readonly logger?: StepStatusBufferConfig['logger']
+  private readonly processor: BatchedJobProcessor<StepStatusUpdate, void>
 
   constructor(config: StepStatusBufferConfig) {
     this.pgPool = config.pgPool
-    this.flushThreshold = config.flushThreshold ?? 100
-    this.flushIntervalMs = config.flushIntervalMs ?? 20
-    this.maxConcurrentFlushes = config.maxConcurrentFlushes ?? 4
     this.tableName = config.schema ? `${config.schema}.workflow_steps` : 'workflow_steps'
-    this.logger = config.logger
+    this.processor = new BatchedJobProcessor<StepStatusUpdate, void>({
+      name: 'StepStatusBuffer',
+      flushThreshold: config.flushThreshold ?? 100,
+      flushIntervalMs: config.flushIntervalMs ?? 20,
+      maxConcurrentFlushes: config.maxConcurrentFlushes ?? 4,
+      logger: config.logger,
+      flushBatch: async (batch) => {
+        await this.commitBatch(batch)
+        // void result for each item — promise resolves when the batched
+        // UPDATE commits, callers don't need a per-item value
+        return new Array(batch.length).fill(undefined as void)
+      },
+    })
   }
 
   /**
@@ -83,59 +80,14 @@ export class StepStatusBuffer {
    * (caller should fail the BullMQ job).
    */
   enqueue(update: StepStatusUpdate): Promise<void> {
-    if (this.shuttingDown) {
-      return Promise.reject(new Error('StepStatusBuffer is shutting down'))
-    }
-    return new Promise<void>((resolve, reject) => {
-      this.pending.push({ ...update, resolve, reject })
-      if (this.pending.length >= this.flushThreshold && this.inFlight < this.maxConcurrentFlushes) {
-        this.triggerFlush()
-      } else if (!this.timer) {
-        this.timer = setTimeout(() => this.triggerFlush(), this.flushIntervalMs)
-        if (this.timer.unref) this.timer.unref()
-      }
-    })
+    return this.processor.enqueue(update)
   }
 
-  async shutdown(): Promise<void> {
-    this.shuttingDown = true
-    if (this.timer) { clearTimeout(this.timer); this.timer = null }
-    while (this.pending.length > 0 || this.inFlight > 0) {
-      await this.flush()
-      if (this.inFlight > 0) await new Promise(r => setTimeout(r, 10))
-    }
-  }
+  async shutdown(): Promise<void> { await this.processor.shutdown() }
 
-  currentDepth(): number { return this.pending.length }
+  currentDepth(): number { return this.processor.pendingCount() }
 
-  private triggerFlush(): void {
-    if (this.timer) { clearTimeout(this.timer); this.timer = null }
-    void this.flush()
-  }
-
-  private async flush(): Promise<void> {
-    if (this.pending.length === 0) return
-    if (this.inFlight >= this.maxConcurrentFlushes) return
-    this.inFlight++
-
-    const batch = this.pending
-    this.pending = []
-
-    try {
-      await this.commitBatch(batch)
-      for (const p of batch) p.resolve()
-    } catch (err) {
-      this.logger?.error?.('StepStatusBuffer flush failed; rejecting batch', err)
-      for (const p of batch) p.reject(err)
-    } finally {
-      this.inFlight--
-      if (this.pending.length >= this.flushThreshold && this.inFlight < this.maxConcurrentFlushes) {
-        void this.flush()
-      }
-    }
-  }
-
-  private async commitBatch(batch: PendingUpdate[]): Promise<void> {
+  private async commitBatch(batch: StepStatusUpdate[]): Promise<void> {
     // Build six parallel arrays for unnest. PG arrays accept NULL elements.
     const ids: string[] = new Array(batch.length)
     const statuses: string[] = new Array(batch.length)
