@@ -59,7 +59,7 @@ services:
       PG_PASSWORD: agents
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      CLUSTER_MODE: 2          # match the 2-vCPU benchmark (auto would give cores-1=1)
+      CLUSTER_MODE: auto       # forks N-1 workers based on container CPU
       PG_POOL_SIZE: 20         # per-worker; total = workers × this
       WORKER_CONCURRENCY: 50
     ports:
@@ -69,5 +69,5 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 2g
+          cpus: '4'
+          memory: 4g
