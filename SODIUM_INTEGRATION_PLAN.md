@@ -657,16 +657,58 @@ Each phase is independently shippable.
 
 **Result**: any sodium endpoint can do `engine.start({...})`. Engine queues consumed via existing dispatch infrastructure. Zero impact on existing tasks.
 
-### Phase 2 — Realtime broker extraction (in `fluent` repo)
+### Phase 2 — Realtime broker extraction (in `fluent` repo) — partial ✅
 
-| Step | File | What |
-|---|---|---|
-| 1 | `packages/realtime-broker/` (new) | Lift `TenantSubscriberPool` from sodium. ~250 LOC. Tests against ioredis-mock. |
-| 2 | `packages/agents-core/src/engine/WorkflowEngine.ts` | Add `onEngineEvent?: (evt: EngineEvent) => void` config hook. Fires synchronously after PG commit at every state transition. |
-| 3 | `packages/agents-core/src/engine/EngineEvent.types.ts` (new) | Typed event union: `run.started`, `step.running`, `step.completed`, `step.failed`, `run.completed`, `run.failed`, `human.requested` |
-| 4 | Sodium's `apps/backend/src/api/realtime/shared-subscriber.ts` | Replace internals with thin wrapper around `@goatlab/realtime-broker` |
-| 5 | Sodium's `agents.factory.ts` | Wire `onEngineEvent` to `broker.publish(...)` |
-| 6 | Sodium's `realtime.controller.ts` | Add `engine:*` channel subscription |
+| Step | File | What | Status |
+|---|---|---|---|
+| 1 | `packages/realtime-broker/` (new) | Lift `TenantSubscriberPool` from sodium. ~250 LOC. Tests against ioredis-mock. | TODO |
+| 2 | `packages/agents-core/src/engine/WorkflowEngine.ts` | Add `onEngineEvent?: (evt: EngineEvent) => void` config hook. Fires synchronously after PG commit at every state transition. | ✅ DONE |
+| 3 | `packages/agents-core/src/engine/EngineEvent.types.ts` (new) | Typed event union: `run.started`, `step.running`, `step.completed`, `step.failed`, `run.completed`, `step.human_requested` | ✅ DONE |
+| 4 | Sodium's `apps/backend/src/api/realtime/shared-subscriber.ts` | Replace internals with thin wrapper around `@goatlab/realtime-broker` | TODO (sodium-side) |
+| 5 | Sodium's `agents.factory.ts` | Wire `onEngineEvent` to `broker.publish(...)` | TODO (sodium-side) |
+| 6 | Sodium's `realtime.controller.ts` | Add `engine:*` channel subscription | TODO (sodium-side) |
+
+**What's done in `fluent`** (commit `<next>`):
+
+`packages/agents-core/src/engine/EngineEvent.types.ts` defines a 6-variant typed union:
+- `run.started` (workflowName, workflowVersion)
+- `run.completed` (status: COMPLETED|FAILED|CANCELLED, output?, error?)
+- `step.running` (stepName, attempt)
+- `step.completed` (stepName, output)
+- `step.failed` (stepName, error, attempt, terminal)
+- `step.human_requested` (stepName, prompt, schema?)
+
+Every event carries `tenantId`, `runId`, `traceId`, `emittedAt`. `traceId` resolution is cached in-memory (Map<runId, traceId>, soft-capped at 5000 entries, evicted on run completion).
+
+Engine emits at 5 critical sites — all positioned **AFTER** the corresponding PG write commits:
+- `start()` after the 2 INSERTs commit → `run.started`
+- `startBatch()` / `startBatchCopy()` after the COPY transaction commits → `run.started` × N
+- `markStepRunning` after the buffered UPDATE commits → `step.running`
+- `onStepCompleted` after the buffered UPDATE commits → `step.completed` (or `step.human_requested` for HITL)
+- `onStepFailed` (terminal branch) after the buffered UPDATE commits → `step.failed`
+- `advanceWorkflow` after the run UPDATE commits → `run.completed` (status COMPLETED or FAILED)
+
+**Hook semantics tested in `engine-events.spec.ts`** (6 tests all pass):
+- Happy path emits the right sequence (`run.started → step.running → step.completed → run.completed`)
+- **CRITICAL no-race test**: when an event fires, an immediate PG SELECT sees the post-commit state (verified for both step.completed and run.completed)
+- Failed-step path emits `step.failed (terminal=true)` then `run.completed (status='FAILED', error)`
+- HITL path emits `step.human_requested`, no `run.completed` until input submitted
+- Hook throwing does NOT crash the workflow (caught + logged)
+- Engine works normally when `onEngineEvent` is unset (zero overhead)
+
+**Subscriber pattern for sodium** (when wiring up):
+```ts
+new WorkflowEngine({
+  ...,
+  onEngineEvent: (evt) => {
+    // Cheap fan-out — push to in-memory queue, drain on a separate flush
+    eventBuffer.push(evt)
+  },
+})
+// Separate broker drains via batched Redis publish
+```
+
+**Remaining work** (broker extraction): sodium's `TenantSubscriberPool` lifts cleanly into a new `@goatlab/realtime-broker` package. ~250 LOC. Engine integration is a 5-line wire-up: `onEngineEvent: evt => broker.publish(evt.tenantId, channel, evt)`.
 
 ### Phase 3 — Migrate easy tasks (in `sodium` repo, ongoing)
 
@@ -892,7 +934,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `0d82940` | feat: @goatlab/agents-bun adapter + Bun + Prisma example |
 | `1e34216` | refactor: promote bulkQueue() to TaskConnector — agents-core no longer BullMQ-specific |
 | `d24707b` | docs: full sodium integration plan + zero-context handover |
-| **(next)** | **perf: dispatch v2 — parallel batched processIncomingDispatch (Phase 0 ✅)** |
+| `078bd33` | perf: dispatch v2 — parallel batched processIncomingDispatch (Phase 0 ✅) |
+| **(next)** | **feat: engine onEngineEvent hook + EngineEvent types (Phase 2 partial ✅)** |
 
 ## 3.2 File index — where everything lives
 

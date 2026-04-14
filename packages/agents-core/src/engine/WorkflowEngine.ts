@@ -61,6 +61,11 @@ import type { WorkflowEngineConfig, BudgetUsed, WorkflowBudget } from './Workflo
 import { TaskManager } from './TaskManager.js'
 import { WriteBuffer } from './WriteBuffer.js'
 import { StepStatusBuffer } from './StepStatusBuffer.js'
+import type { EngineEvent } from './EngineEvent.types.js'
+
+/** Distributive Omit — preserves discriminated union after removing `emittedAt`. */
+type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never
+type EmittableEvent = DistributiveOmit<EngineEvent, 'emittedAt'>
 
 export class WorkflowEngine {
   private config: WorkflowEngineConfig
@@ -125,6 +130,30 @@ export class WorkflowEngine {
   /** `agents.workflow_runs` if schema set; otherwise just `workflow_runs`. */
   private q(table: string): string {
     return this.schema ? `${this.schema}.${table}` : table
+  }
+
+  /**
+   * Fire an engine event AFTER its corresponding PG write has committed.
+   * Synchronous from the engine's POV — never await this. Errors thrown by
+   * the user's hook are caught and logged so a buggy subscriber cannot crash
+   * a workflow.
+   *
+   * Design note: every call to this method is preceded by an `await` on the
+   * appropriate buffer/SQL write. That's the contract — don't add an emit
+   * call without verifying the PG write has committed first.
+   */
+  /**
+   * Type-level distributive Omit — preserves discriminated-union narrowing
+   * after stripping `emittedAt`. Without this, TS collapses the union and
+   * complains about variant-specific props (e.g. `status` on RunCompletedEvent).
+   */
+  private emitEvent(evt: EmittableEvent): void {
+    if (!this.config.onEngineEvent) return
+    try {
+      this.config.onEngineEvent({ ...evt, emittedAt: new Date() } as EngineEvent)
+    } catch (err) {
+      this.config.logger?.error?.('[Engine] onEngineEvent hook threw — swallowed', err)
+    }
   }
 
   constructor(config: WorkflowEngineConfig) {
@@ -278,6 +307,18 @@ export class WorkflowEngine {
       await this.db.insertInto('workflow_steps').values(stepRows).execute()
     }
 
+    // PG row exists. Cache traceId and emit run.started before dispatching.
+    if (this.config.onEngineEvent) {
+      this.traceIdCache.set(runId, runRow.traceId)
+      this.emitEvent({
+        type: 'run.started',
+        tenantId: trigger.tenantId, runId,
+        traceId: runRow.traceId,
+        workflowName: trigger.workflowName,
+        workflowVersion: definition.version,
+      })
+    }
+
     // Dispatch root steps to BullMQ (rows are in DB now)
     for (const stepDef of definition.steps) {
       if (!rootNames.has(stepDef.name)) continue
@@ -366,6 +407,20 @@ export class WorkflowEngine {
       await this.db.insertInto('workflow_steps').values(allStepRows).execute()
     }
 
+    // PG rows exist — emit run.started events before dispatching root steps
+    if (this.config.onEngineEvent) {
+      for (const { runId, runRow, definition, trigger } of results) {
+        this.traceIdCache.set(runId, runRow.traceId)
+        this.emitEvent({
+          type: 'run.started',
+          tenantId: trigger.tenantId, runId,
+          traceId: runRow.traceId,
+          workflowName: trigger.workflowName,
+          workflowVersion: definition.version,
+        })
+      }
+    }
+
     // Dispatch root steps in bulk (one addBulk per target queue)
     const dispatchItems: Array<{ runId: string; tenantId: string; step: WorkflowStep; definition: WorkflowDefinition }> = []
     for (const { runId, stepRows, definition, trigger } of results) {
@@ -392,7 +447,7 @@ export class WorkflowEngine {
       return this.startBatch(triggers)
     }
 
-    const results: Array<{ runId: string; stepRows: any[]; definition: WorkflowDefinition; trigger: WorkflowTriggerInput }> = []
+    const results: Array<{ runId: string; stepRows: any[]; definition: WorkflowDefinition; trigger: WorkflowTriggerInput; traceId: string }> = []
     const runLines: string[] = []
     const stepLines: string[] = []
 
@@ -505,7 +560,7 @@ export class WorkflowEngine {
         ].join('\t'))
       }
 
-      results.push({ runId, stepRows: localStepRows, definition, trigger })
+      results.push({ runId, stepRows: localStepRows, definition, trigger, traceId })
     }
 
     // Execute COPY FROM for both tables in one atomic transaction.
@@ -555,6 +610,19 @@ export class WorkflowEngine {
       client.release()
     }
 
+    // PG rows are committed. Emit run.started events before dispatching.
+    if (this.config.onEngineEvent) {
+      for (const { runId, definition, trigger, traceId } of results) {
+        this.traceIdCache.set(runId, traceId)
+        this.emitEvent({
+          type: 'run.started',
+          tenantId: trigger.tenantId, runId, traceId,
+          workflowName: trigger.workflowName,
+          workflowVersion: definition.version,
+        })
+      }
+    }
+
     // Dispatch root steps in bulk (one addBulk per target queue)
     const dispatchItems: Array<{ runId: string; tenantId: string; step: WorkflowStep; definition: WorkflowDefinition }> = []
     for (const { runId, stepRows, definition, trigger } of results) {
@@ -588,6 +656,42 @@ export class WorkflowEngine {
       await this.updateStepStatus(step.id, step.status, 'RUNNING')
     }
     await this.logStepEvent(step.id, tenantId, 'started')
+
+    // Event fires AFTER PG commit (await above). Subscribers can immediately
+    // SELECT this step and see status=RUNNING.
+    if (this.config.onEngineEvent) {
+      const traceId = await this.resolveTraceId(runId, tenantId)
+      this.emitEvent({
+        type: 'step.running',
+        tenantId, runId, traceId,
+        stepName, attempt: step.attempt,
+      })
+    }
+  }
+
+  /**
+   * In-memory cache of runId → traceId, populated on first lookup.
+   * Avoids re-SELECTing the run for every event when onEngineEvent is wired.
+   * Evicted on run completion (run.completed event firing).
+   */
+  private traceIdCache = new Map<string, string>()
+
+  private async resolveTraceId(runId: string, tenantId: string): Promise<string> {
+    let traceId = this.traceIdCache.get(runId)
+    if (traceId) return traceId
+    const row = await this.db.selectFrom('workflow_runs')
+      .select('traceId')
+      .where('id', '=', runId)
+      .where('tenantId', '=', tenantId)
+      .executeTakeFirst()
+    traceId = row?.traceId ?? ''
+    this.traceIdCache.set(runId, traceId)
+    // Soft cap — protect against unbounded growth in long-lived processes
+    if (this.traceIdCache.size > 5000) {
+      const firstKey = this.traceIdCache.keys().next().value
+      if (firstKey) this.traceIdCache.delete(firstKey)
+    }
+    return traceId
   }
 
   // ── Step Completion ────────────────────────────────────────────
@@ -618,6 +722,16 @@ export class WorkflowEngine {
       await this.logStepEvent(step.id, tenantId, 'human_requested', {
         prompt: result.waitForHuman.prompt,
       })
+      // PG row now has status=WAITING_HUMAN + output + humanPrompt
+      if (this.config.onEngineEvent) {
+        const traceId = await this.resolveTraceId(runId, tenantId)
+        this.emitEvent({
+          type: 'step.human_requested',
+          tenantId, runId, traceId, stepName,
+          prompt: result.waitForHuman.prompt,
+          schema: result.waitForHuman.schema,
+        })
+      }
     } else {
       // HOT PATH: single buffered UPDATE collapses status + output + completedAt
       // into one row of one batched statement.
@@ -639,6 +753,15 @@ export class WorkflowEngine {
       await this.logStepEvent(step.id, tenantId, 'completed', {
         outputKeys: Object.keys(result.output),
       })
+      // PG row now has status=COMPLETED + output + completedAt
+      if (this.config.onEngineEvent) {
+        const traceId = await this.resolveTraceId(runId, tenantId)
+        this.emitEvent({
+          type: 'step.completed',
+          tenantId, runId, traceId, stepName,
+          output: result.output,
+        })
+      }
     }
 
     // ── Budget enforcement: increment step counter ──────
@@ -766,6 +889,17 @@ export class WorkflowEngine {
       await this.logStepEvent(step.id, tenantId, 'failed', {
         attempt: step.attempt, error: error.message, nonRetryable: isNonRetryable,
       })
+      // PG row now has status=FAILED. Emit terminal step event.
+      if (this.config.onEngineEvent) {
+        const traceId = await this.resolveTraceId(runId, tenantId)
+        this.emitEvent({
+          type: 'step.failed',
+          tenantId, runId, traceId, stepName,
+          error: error.message,
+          attempt: step.attempt,
+          terminal: true,
+        })
+      }
     }
 
     await this.advanceWorkflow(runId, tenantId, definition)
@@ -999,26 +1133,46 @@ export class WorkflowEngine {
       await this.updateRunStatus(runId, newStatus)
 
       if (newStatus === 'COMPLETED') {
+        const mergedOutput = this.mergeStepOutputs(steps)
         await this.db.updateTable('workflow_runs').set({
           completedAt: new Date(),
-          output: toJson(this.mergeStepOutputs(steps)),
+          output: toJson(mergedOutput),
           updatedAt: new Date(),
         }).where('id', '=', runId).execute()
         if (definition.onComplete) {
           const ctx = this.buildStepContext(run, steps)
           await definition.onComplete(ctx)
         }
+        // PG row now has status=COMPLETED. Emit terminal event.
+        this.emitEvent({
+          type: 'run.completed',
+          tenantId, runId,
+          traceId: run.traceId ?? '',
+          status: 'COMPLETED',
+          output: mergedOutput,
+        })
+        this.traceIdCache.delete(runId) // free the cache entry
       } else if (newStatus === 'FAILED') {
         const failedStep = steps.find(s => s.status === 'FAILED')
+        const errorMsg = failedStep?.error ?? 'Unknown error'
         await this.db.updateTable('workflow_runs').set({
           completedAt: new Date(),
-          error: failedStep?.error ?? 'Unknown error',
+          error: errorMsg,
           updatedAt: new Date(),
         }).where('id', '=', runId).execute()
         if (definition.onFail) {
           const ctx = this.buildStepContext(run, steps)
-          await definition.onFail(ctx, new Error(failedStep?.error ?? 'Unknown error'))
+          await definition.onFail(ctx, new Error(errorMsg))
         }
+        // PG row now has status=FAILED. Emit terminal event.
+        this.emitEvent({
+          type: 'run.completed',  // shared event type for terminal states
+          tenantId, runId,
+          traceId: run.traceId ?? '',
+          status: 'FAILED',
+          error: errorMsg,
+        })
+        this.traceIdCache.delete(runId)
       }
     }
 

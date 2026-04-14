@@ -8,6 +8,7 @@ import type { RateLimitConfig } from './ExternalActionExecutor.js'
 import type { RateLimiterBackend } from './RateLimiterBackend.js'
 import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
 import type { EventIngestionService } from '../events/EventIngestion.js'
+import type { EngineEvent } from './EngineEvent.types.js'
 
 export interface WorkflowBudget {
   /** Max total tokens across all steps in a workflow run */
@@ -43,6 +44,26 @@ export interface WorkflowEngineConfig {
    * when pgPool is set). Useful for tests that need synchronous PG visibility.
    */
   disableStepStatusBuffering?: boolean
+  /**
+   * Optional hook invoked after every engine state transition COMMITS to PG.
+   *
+   * Critical contract: this hook fires AFTER the corresponding PG write has
+   * been committed. Subscribers can immediately query workflow_runs / steps
+   * and see the new state — no race window.
+   *
+   * Hook is fire-and-forget from the engine's POV (engine doesn't await it).
+   * If your hook throws, the engine catches and logs — never propagates.
+   * Keep the hook cheap; for I/O (Redis publish, etc.) push to an in-memory
+   * queue and drain on a separate flush.
+   *
+   * Use cases:
+   *   - SSE / WebSocket fan-out (publish via your realtime broker)
+   *   - Audit logging (push to log shipping pipeline)
+   *   - Metrics (counter increment per event type)
+   *   - Webhooks (push to a delivery queue; never call HTTP synchronously here)
+   */
+  onEngineEvent?: (evt: EngineEvent) => void
+
   /**
    * Postgres schema for engine tables. Default: `public` (no schema prefix).
    * Use this to isolate engine tables from your domain tables — e.g.
