@@ -382,13 +382,19 @@ cd packages/agents-ui && npx playwright test e2e/workflow-editor.spec.ts
 Tables grow forever without a cleanup job. The repo ships a one-shot script that drops terminal-state runs older than `RETENTION_DAYS` (active runs preserved regardless of age). Steps and logs are removed via `ON DELETE CASCADE`.
 
 ```bash
-# One-shot
+# One-shot (default 'public' schema)
 DATABASE_URL=postgres://agents:agents@localhost:5432/agents \
 RETENTION_DAYS=30 \
   npx tsx packages/agents-core/bin/retention-cleanup.ts
 
+# Engine deployed with schema='agents' — MUST set RETENTION_SCHEMA to match
+DATABASE_URL=$DATABASE_URL \
+RETENTION_SCHEMA=agents \
+RETENTION_DAYS=30 \
+  npx tsx packages/agents-core/bin/retention-cleanup.ts
+
 # Crontab — hourly
-0 * * * * cd /app && DATABASE_URL=$DATABASE_URL RETENTION_DAYS=30 \
+0 * * * * cd /app && DATABASE_URL=$DATABASE_URL RETENTION_SCHEMA=agents RETENTION_DAYS=30 \
   npx tsx packages/agents-core/bin/retention-cleanup.ts >> /var/log/retention.log 2>&1
 ```
 

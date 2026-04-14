@@ -732,7 +732,7 @@ Target: **one task per week**.
 | Item | Owner | Notes |
 |---|---|---|
 | PgBouncer in front of Cloud SQL | Ops | Required at >5 active agent-using tenants |
-| Retention cron | Ops | Run `bin/retention-cleanup.ts` hourly with `RETENTION_DAYS=30` |
+| Retention cron | Ops | Run `bin/retention-cleanup.ts` hourly with `RETENTION_DAYS=30` **and** `RETENTION_SCHEMA=agents` (must match `WorkflowEngine.schema`). Without the schema env, the script targets `public.workflow_runs` and silently no-ops or errors with "relation does not exist". |
 | PG autovacuum tuning | Ops | Apply production overrides from `docker-compose.yml` (commented block) |
 | Cloud Monitoring alerts | Ops | Ingest queue depth >10k for >30s; failed run delta >X/hour |
 | Dashboard for workflow_runs | Eng | Embed `@goatlab/agents-ui` or build custom Prisma view |
@@ -937,7 +937,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `d24707b` | docs: full sodium integration plan + zero-context handover |
 | `078bd33` | perf: dispatch v2 — parallel batched processIncomingDispatch (Phase 0 ✅) |
 | `d8355a0` | feat: engine onEngineEvent hook + EngineEvent types (Phase 2 partial ✅) |
-| **(next)** | **fix: SchedulerService multi-pod safety — transaction-wrapped FOR UPDATE + tenantId filter** |
+| `4aec7b5` | fix: SchedulerService multi-pod safety — transaction-wrapped FOR UPDATE + tenantId filter |
+| **(next)** | **fix: retention-cleanup.ts schema-aware via RETENTION_SCHEMA env** |
 
 ## 3.2 File index — where everything lives
 
