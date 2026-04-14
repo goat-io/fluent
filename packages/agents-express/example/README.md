@@ -96,6 +96,54 @@ The script sanity-checks: a smoke test (start one workflow, verify COMPLETED) ru
 | Per-workflow handlers via `FunctionStepExecutor.register()` | `src/agents.factory.ts` |
 | Graceful shutdown (drain buffer + close pool/Redis) | `shutdownAgents()` in `src/agents.factory.ts` |
 
+## Measured performance (this exact example)
+
+Validated end-to-end on a fresh stack: this Express + Prisma example, `CLUSTER_MODE=2`, host CPU limit ≈ 2 vCPU equivalent, Postgres + Redis as Docker containers on the same machine.
+
+### HTTP throughput sweep (`./scripts/loadtest.sh`)
+
+| Rate | p50 | p95 | p99 | Errors | Sustained |
+|---|---|---|---|---|---|
+| 2,000 req/s | 23ms | 62ms | 161ms | **0%** | 1,984/s ✓ |
+| 4,000 req/s | 48ms | 102ms | 192ms | **0%** | 3,908/s ✓ |
+| 5,000 req/s | 80ms | 171ms | 824ms | **0%** | 4,460/s (saturating) |
+
+### Durability check (post-load drain)
+- **316,929 workflows fired → 316,930 in `agents.workflow_runs` → 316,930 COMPLETED** (1 from smoke test)
+- **0 BullMQ failed jobs**
+- Sustained ~730 completions/sec — same as raw `node:http` test rig (Express overhead doesn't reach the engine)
+- Step queue fully drained ~3.5 min after load ended
+
+### Express overhead vs raw `node:http`
+| | Raw `node:http` benchmark | This Express example | Δ |
+|---|---|---|---|
+| 2k p95 | 24ms | 62ms | +160% |
+| 4k p95 | 85ms | 102ms | +20% |
+| 5k p95 | 145ms | 171ms | +18% |
+| 5k sustained | 5,000/s | 4,460/s | -11% |
+
+### What this means for production
+On a 2-vCPU Cloud Run instance:
+- **~4,000 req/s @ p95<100ms** is the comfortable sustained ceiling per instance
+- **~5,000 req/s** is achievable but tail latency widens
+- Drain rate (~730 completions/sec per instance) is workload-bound, not framework-bound — Express vs raw `node:http` doesn't matter once a job is on the queue
+- To exceed 5k req/s, scale horizontally: 2 Cloud Run instances ≈ 8k req/s, 4 ≈ 16k, etc.
+
+### Reproduce
+```bash
+# Default (2k → 4k → 5k × 30s, cluster=2)
+pnpm loadtest
+
+# Sustained single-rate
+SWEEP=4000 DUR=5m pnpm loadtest
+
+# Tweak cluster size
+CLUSTER_MODE=4 SWEEP="5000 8000" DUR=30s pnpm loadtest
+
+# Compare against single-process Express
+CLUSTER_MODE=off SWEEP="2000 3000" pnpm loadtest
+```
+
 ## Extending to multi-tenant
 
 Replace the singleton in `agents.factory.ts` with an LRU+TTL cache keyed by `tenantId`. Mirror the `better-auth.factory.ts` pattern from your own backend if you have one. The router then resolves per request:
