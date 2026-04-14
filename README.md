@@ -416,10 +416,38 @@ The engine uses the `WriteBuffer<T>` primitive (`packages/agents-core/src/engine
 
 **Planned next**: a `StepStatusBuffer` for `markStepRunning` / `onStepCompleted` UPDATEs (1.5–2× completion throughput per Hatchet's pattern). Designed but not yet implemented — requires changes to BullMQ ack semantics so the per-job promise only resolves after the batched UPDATE commits. See the design comment in `WorkflowEngine.ts` (search for `DESIGN: Step-status batching`).
 
+### Plug into your own backend (Express, Next.js, etc.)
+
+The engine is framework-agnostic. For Express, use [`@goatlab/agents-express`](packages/agents-express/README.md):
+
+```ts
+import { agentsRouter } from '@goatlab/agents-express'
+
+app.use('/api/workflows', agentsRouter({
+  resolveAgents: async (req) => {
+    const { engine, ingestBuffer } = await myFactory(req)   // your code, cached per tenant
+    return { engine, ingestBuffer, tenantId: req.user.tenantId }
+  },
+}))
+```
+
+That's it — every workflow endpoint (`start-async`, `status`, `signal`, etc.) is now mounted under `/api/workflows`. See the [agents-express README](packages/agents-express/README.md) for selective routes, custom error mapping, and a complete multi-tenant factory example.
+
+### Schema isolation + Prisma integration
+
+Two ways to keep engine tables organized in your existing schema:
+
+1. **Postgres schema isolation** — pass `schema: 'agents'` to `WorkflowEngine` and engine tables become `agents.workflow_runs` instead of `public.workflow_runs`. Pair with Prisma `previewFeatures = ["multiSchema"]` and `@@schema("agents")` directives.
+2. **Prisma `@@map` for client-side renaming** — your Prisma client sees `prisma.MyAgentRun` while the physical table stays `workflow_runs`. No engine change needed.
+
+Drop-in [`prisma.fragment`](packages/agents-core/prisma.fragment) ships all 12 engine models with proper indexes — copy into your `schema.prisma` and migrate via your existing tool (Prisma Migrate, pgroll, etc.). The engine **does not auto-bootstrap** when you provide your own schema — migration ownership stays with your tooling.
+
 ### Where to dig deeper
 - Architecture, queue-first ingestion, key exports → [`packages/agents-core/README.md`](packages/agents-core/README.md)
 - Dashboard + test server + endpoint reference → [`packages/agents-ui/README.md`](packages/agents-ui/README.md)
 - BullMQ adapter (single vs bulk enqueue, why `addBulk` matters) → [`packages/tasks-adapter-bullmq/README.md`](packages/tasks-adapter-bullmq/README.md)
+- Express adapter (router factory, multi-tenant pattern) → [`packages/agents-express/README.md`](packages/agents-express/README.md)
+- Prisma schema fragment for engine tables → [`packages/agents-core/prisma.fragment`](packages/agents-core/prisma.fragment)
 - LLM adapter, multi-agent consensus → [`packages/agents-ai/README.md`](packages/agents-ai/README.md)
 - LangGraph integration → [`packages/agents-langgraph/README.md`](packages/agents-langgraph/README.md)
 - Sandboxed step execution → [`packages/agents-sandbox/README.md`](packages/agents-sandbox/README.md)

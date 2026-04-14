@@ -156,6 +156,43 @@ importers:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.17)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.20.3)(yaml@2.8.0)
 
+  packages/agents-express:
+    dependencies:
+      '@goatlab/agents-core':
+        specifier: workspace:*
+        version: link:../agents-core
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.1.3
+        version: 2.1.3
+      '@goatlab/biome':
+        specifier: workspace:*
+        version: link:../biome
+      '@goatlab/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.23
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.17
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
+      rimraf:
+        specifier: ^6.0.0
+        version: 6.0.1
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.1
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.17)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.20.3)(yaml@2.8.0)
+
   packages/agents-langgraph:
     dependencies:
       '@goatlab/agents-core':
@@ -3419,14 +3456,6 @@ packages:
 
   '@ioredis/commands@1.4.0':
     resolution: {integrity: sha512-aFT2yemJJo+TZCmieA7qnYGQooOS7QfNmYrzGtsYd3g9j5iDP8AimYYAesf79ohjbLG12XxC4nG5DyEnC88AsQ==}
-
-  '@isaacs/balanced-match@4.0.1':
-    resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
-    engines: {node: 20 || >=22}
-
-  '@isaacs/brace-expansion@5.0.0':
-    resolution: {integrity: sha512-ZT55BDLV0yv0RBm2czMiZ+SqCGO7AvmOM3G/w2xhVPH+te0aKgFjmBvGlL1dH+ql2tgGO3MVrbb3jCKyvpgnxA==}
-    engines: {node: 20 || >=22}
 
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -9885,10 +9914,6 @@ packages:
     resolution: {integrity: sha512-e5ISH9xMYU0DzrT+jl8q2ze9D6eWBto+I8CNpe+VI+K2J/F/k3PdkdTdz4wvGVH4NTpo+NRYTVIuMQEMMcsLqg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  minimatch@10.0.3:
-    resolution: {integrity: sha512-IPZ167aShDZZUMdRk66cyQAW3qr0WzbHkPdMYa8bzZhlHhO3jALbKdxcaak7W9FfT2rZNpQuUu4Od7ILEpXSaw==}
-    engines: {node: 20 || >=22}
-
   minimatch@10.2.3:
     resolution: {integrity: sha512-Rwi3pnapEqirPSbWbrZaa6N3nmqq4Xer/2XooiOKyV3q12ML06f7MOuc5DVH8ONZIFhwIYQ3yzPH4nt7iWHaTg==}
     engines: {node: 18 || 20 || >=22}
@@ -15222,12 +15247,6 @@ snapshots:
 
   '@ioredis/commands@1.4.0': {}
 
-  '@isaacs/balanced-match@4.0.1': {}
-
-  '@isaacs/brace-expansion@5.0.0':
-    dependencies:
-      '@isaacs/balanced-match': 4.0.1
-
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
@@ -17303,7 +17322,7 @@ snapshots:
   '@types/amqplib@0.8.2':
     dependencies:
       '@types/bluebird': 3.5.42
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
 
   '@types/argparse@1.0.38': {}
 
@@ -17330,7 +17349,7 @@ snapshots:
 
   '@types/bcrypt@6.0.0':
     dependencies:
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
 
   '@types/benchmark@2.1.5': {}
 
@@ -17366,12 +17385,12 @@ snapshots:
 
   '@types/cli-progress@3.11.6':
     dependencies:
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
 
   '@types/compression@1.8.1':
     dependencies:
       '@types/express': 5.0.3
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
 
   '@types/connect-timeout@1.9.0':
     dependencies:
@@ -17385,7 +17404,7 @@ snapshots:
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
 
   '@types/d3-color@3.1.3': {}
 
@@ -17426,7 +17445,7 @@ snapshots:
   '@types/dockerode@3.3.42':
     dependencies:
       '@types/docker-modem': 3.0.6
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
       '@types/ssh2': 1.15.5
 
   '@types/ejs@3.1.5': {}
@@ -17746,7 +17765,7 @@ snapshots:
   '@types/response-time@2.3.9':
     dependencies:
       '@types/express': 5.0.3
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
 
   '@types/responselike@1.0.3':
     dependencies:
@@ -17816,7 +17835,7 @@ snapshots:
 
   '@types/through2-concurrent@2.0.4':
     dependencies:
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
       '@types/through2': 2.0.41
 
   '@types/through2@2.0.41':
@@ -20743,7 +20762,7 @@ snapshots:
       '@fastify/busboy': 1.2.1
       '@firebase/database-compat': 0.3.4
       '@firebase/database-types': 0.10.4
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
       jsonwebtoken: 9.0.2
       jwks-rsa: 3.2.0
       node-forge: 1.3.1
@@ -21159,7 +21178,7 @@ snapshots:
     dependencies:
       foreground-child: 3.3.1
       jackspeak: 4.1.1
-      minimatch: 10.0.3
+      minimatch: 10.2.3
       minipass: 7.1.2
       package-json-from-dist: 1.0.1
       path-scurry: 2.0.0
@@ -22417,7 +22436,7 @@ snapshots:
       '@jest/environment': 27.5.1
       '@jest/fake-timers': 27.5.1
       '@jest/types': 27.5.1
-      '@types/node': 18.19.120
+      '@types/node': 22.19.17
       jest-mock: 27.5.1
       jest-util: 27.5.1
 
@@ -23350,7 +23369,7 @@ snapshots:
       minipass-fetch: 1.4.1
       minipass-flush: 1.0.5
       minipass-pipeline: 1.2.4
-      negotiator: 0.6.3
+      negotiator: 0.6.4
       promise-retry: 2.0.1
       socks-proxy-agent: 6.2.1
       ssri: 8.0.1
@@ -23609,10 +23628,6 @@ snapshots:
   mimic-response@3.1.0: {}
 
   mimic-response@4.0.0: {}
-
-  minimatch@10.0.3:
-    dependencies:
-      '@isaacs/brace-expansion': 5.0.0
 
   minimatch@10.2.3:
     dependencies:

@@ -43,6 +43,18 @@ export interface WorkflowEngineConfig {
    * when pgPool is set). Useful for tests that need synchronous PG visibility.
    */
   disableStepStatusBuffering?: boolean
+  /**
+   * Postgres schema for engine tables. Default: `public` (no schema prefix).
+   * Use this to isolate engine tables from your domain tables — e.g.
+   * `agents.workflow_runs` instead of `public.workflow_runs`.
+   *
+   * In Prisma, set `@@schema("agents")` on each engine model and enable
+   * `previewFeatures = ["multiSchema"]`. Migrations apply normally.
+   *
+   * Use Postgres schemas instead of per-table prefixes — same isolation,
+   * far simpler implementation, and natural Prisma support.
+   */
+  schema?: string
   /** Rate limits for external action providers */
   rateLimits?: Record<string, RateLimitConfig>
   /** Max concurrent external calls per workflow run (default: 5) */

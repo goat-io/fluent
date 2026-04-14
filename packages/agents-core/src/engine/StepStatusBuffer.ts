@@ -47,6 +47,11 @@ export interface StepStatusBufferConfig {
   flushIntervalMs?: number
   /** Max in-flight UPDATE statements. Default 4 (each holds a PG client). */
   maxConcurrentFlushes?: number
+  /**
+   * Postgres schema for the workflow_steps table. When set, SQL becomes
+   * `UPDATE <schema>.workflow_steps`. Default: no schema prefix.
+   */
+  schema?: string
   logger?: { info?: (...a: unknown[]) => void; error?: (...a: unknown[]) => void }
 }
 
@@ -60,6 +65,7 @@ export class StepStatusBuffer {
   private readonly flushThreshold: number
   private readonly flushIntervalMs: number
   private readonly maxConcurrentFlushes: number
+  private readonly tableName: string
   private readonly logger?: StepStatusBufferConfig['logger']
 
   constructor(config: StepStatusBufferConfig) {
@@ -67,6 +73,7 @@ export class StepStatusBuffer {
     this.flushThreshold = config.flushThreshold ?? 100
     this.flushIntervalMs = config.flushIntervalMs ?? 20
     this.maxConcurrentFlushes = config.maxConcurrentFlushes ?? 4
+    this.tableName = config.schema ? `${config.schema}.workflow_steps` : 'workflow_steps'
     this.logger = config.logger
   }
 
@@ -154,7 +161,7 @@ export class StepStatusBuffer {
     // Single UPDATE … FROM unnest(...). For each column we keep the existing
     // value when the buffered patch passed null. Indexed by id (PK).
     const sql = `
-      UPDATE workflow_steps AS s
+      UPDATE ${this.tableName} AS s
       SET status        = v.status,
           output        = CASE WHEN v.output        IS NOT NULL THEN v.output        ELSE s.output        END,
           error         = CASE WHEN v.error         IS NOT NULL THEN v.error         ELSE s.error         END,

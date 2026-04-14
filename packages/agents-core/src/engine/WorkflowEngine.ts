@@ -114,14 +114,29 @@ export class WorkflowEngine {
    */
   private stepStatusBuffer: StepStatusBuffer | null = null
 
+  /**
+   * Optional Postgres schema prefix (e.g. 'agents'). When set, every Kysely
+   * call goes through `db.withSchema(schema)` and raw COPY/SELECT strings
+   * interpolate the prefix. Sub-services (TaskManager, ExternalActions, etc.)
+   * receive the already-scoped db so their own queries get the prefix for free.
+   */
+  private readonly schema?: string
+
+  /** `agents.workflow_runs` if schema set; otherwise just `workflow_runs`. */
+  private q(table: string): string {
+    return this.schema ? `${this.schema}.${table}` : table
+  }
+
   constructor(config: WorkflowEngineConfig) {
     this.config = config
-    this.db = config.db
+    this.schema = config.schema
+    // Wrap once at construction so all subsequent this.db.X calls inherit the schema scope
+    this.db = this.schema ? config.db.withSchema(this.schema) as Kysely<Database> : config.db
 
-    this.taskManager = new TaskManager(config.db)
+    this.taskManager = new TaskManager(this.db)
 
     this.externalActions = new ExternalActionExecutor({
-      db: config.db,
+      db: this.db,
       rateLimits: config.rateLimits,
       maxConcurrentPerWorkflow: config.maxConcurrentPerWorkflow,
       rateLimiterBackend: config.rateLimiterBackend,
@@ -144,6 +159,7 @@ export class WorkflowEngine {
         flushThreshold: 100,
         flushIntervalMs: 20,
         maxConcurrentFlushes: 4,
+        schema: this.schema,
         logger: config.logger,
       })
     }
@@ -506,7 +522,7 @@ export class WorkflowEngine {
 
       const { from: copyFrom } = await import('pg-copy-streams')
       const runStream = client.query(copyFrom(
-        'COPY workflow_runs (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "startedAt", "completedAt", "createdAt", "updatedAt") FROM STDIN',
+        `COPY ${this.q('workflow_runs')} (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "startedAt", "completedAt", "createdAt", "updatedAt") FROM STDIN`,
       ))
       runStream.write(runLines.join('\n') + '\n')
       runStream.end()
@@ -514,7 +530,7 @@ export class WorkflowEngine {
       const tAfterRuns = performance.now()
 
       const stepStream = client.query(copyFrom(
-        'COPY workflow_steps (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "createdAt", "updatedAt") FROM STDIN',
+        `COPY ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "createdAt", "updatedAt") FROM STDIN`,
       ))
       stepStream.write(stepLines.join('\n') + '\n')
       stepStream.end()
@@ -1235,7 +1251,7 @@ export class WorkflowEngine {
       try {
         const { from: copyFrom } = await import('pg-copy-streams')
         const stream = client.query(copyFrom(
-          'COPY workflow_step_logs (id, "stepId", "tenantId", event, data, "createdAt") FROM STDIN',
+          `COPY ${this.q('workflow_step_logs')} (id, "stepId", "tenantId", event, data, "createdAt") FROM STDIN`,
         ))
         stream.write(lines)
         stream.end()
