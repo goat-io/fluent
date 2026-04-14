@@ -59,6 +59,7 @@ import {
 } from './ExternalActionExecutor.js'
 import type { WorkflowEngineConfig, BudgetUsed, WorkflowBudget } from './WorkflowEngine.types.js'
 import { TaskManager } from './TaskManager.js'
+import { WriteBuffer } from './WriteBuffer.js'
 
 export class WorkflowEngine {
   private config: WorkflowEngineConfig
@@ -74,17 +75,16 @@ export class WorkflowEngine {
   /** Task manager for fan-out/fan-in task execution */
   readonly taskManager: TaskManager
 
-  // Buffered log writer (Hatchet pattern)
-  private logBuffer: Array<{
+  // Buffered log writer — uses the shared WriteBuffer abstraction so other
+  // write paths (step status, external action results, future buffers) can
+  // reuse the same flush/jitter/concurrency machinery.
+  private logBuffer: WriteBuffer<{
     id: string
     stepId: string
     tenantId: string
     event: string
     data?: Record<string, unknown>
-  }> = []
-  private logFlushTimer?: ReturnType<typeof setTimeout>
-  private readonly LOG_FLUSH_INTERVAL = 50
-  private readonly LOG_FLUSH_THRESHOLD = 50
+  }> | null = null
 
   // Note: Start buffering is handled via startBatch() for batch API.
   // Single starts use raw SQL single-round-trip optimization.
@@ -120,7 +120,13 @@ export class WorkflowEngine {
     })
 
     if (!config.disableLogBuffering) {
-      this.startLogFlushTimer()
+      this.logBuffer = new WriteBuffer({
+        name: 'step-logs',
+        flushThreshold: 50,
+        flushIntervalMs: 50,
+        flushFn: (batch) => this.writeLogBatch(batch),
+        logger: config.logger,
+      })
     }
 
     // Wire event ingestion to this engine for trigger-based workflow starts
@@ -135,8 +141,7 @@ export class WorkflowEngine {
   }
 
   async shutdown(): Promise<void> {
-    if (this.logFlushTimer) clearInterval(this.logFlushTimer)
-    await this.flushLogs()
+    if (this.logBuffer) await this.logBuffer.shutdown()
   }
 
   // ── Start Workflow ─────────────────────────────────────────────
@@ -1123,7 +1128,8 @@ export class WorkflowEngine {
   private async logStepEvent(stepId: string, tenantId: string, event: string, data?: Record<string, unknown>): Promise<void> {
     const entry = { id: Ids.nanoId(21), stepId, tenantId, event, data }
 
-    if (this.config.disableLogBuffering) {
+    // Synchronous path when buffering is disabled (debugging, low-volume use)
+    if (this.config.disableLogBuffering || !this.logBuffer) {
       await this.db.insertInto('workflow_step_logs').values({
         id: entry.id,
         stepId: entry.stepId,
@@ -1135,64 +1141,75 @@ export class WorkflowEngine {
       return
     }
 
-    this.logBuffer.push(entry)
-    if (this.logBuffer.length >= this.LOG_FLUSH_THRESHOLD) {
-      await this.flushLogs()
-    }
+    this.logBuffer.enqueue(entry)
   }
 
-  private startLogFlushTimer(): void {
-    this.logFlushTimer = setInterval(() => {
-      if (this.logBuffer.length > 0) this.flushLogs().catch(() => {})
-    }, this.LOG_FLUSH_INTERVAL)
-    if (this.logFlushTimer.unref) this.logFlushTimer.unref()
-  }
+  /**
+   * Batched log writer used by the WriteBuffer flushFn.
+   * COPY FROM if pgPool is available; falls back to a single batched INSERT
+   * otherwise. On failure WriteBuffer re-prepends the items for retry.
+   */
+  private async writeLogBatch(batch: Array<{
+    id: string
+    stepId: string
+    tenantId: string
+    event: string
+    data?: Record<string, unknown>
+  }>): Promise<void> {
+    if (batch.length === 0) return
+    const now = new Date().toISOString()
 
-  private async flushLogs(): Promise<void> {
-    if (this.logBuffer.length === 0) return
-    const batch = this.logBuffer
-    this.logBuffer = []
+    if (this.config.pgPool) {
+      const lines = batch.map(e =>
+        [e.id, e.stepId, e.tenantId, e.event, esc(toJson(e.data ?? null)), now].join('\t'),
+      ).join('\n') + '\n'
 
-    try {
-      const now = new Date().toISOString()
-
-      // COPY FROM path (fast) — if pgPool is available
-      if (this.config.pgPool) {
-        const lines = batch.map(e =>
-          [e.id, e.stepId, e.tenantId, e.event, esc(toJson(e.data ?? null)), now].join('\t'),
-        ).join('\n') + '\n'
-
-        const client = await this.config.pgPool.connect()
-        try {
-          const { from: copyFrom } = await import('pg-copy-streams')
-          const stream = client.query(copyFrom(
-            'COPY workflow_step_logs (id, "stepId", "tenantId", event, data, "createdAt") FROM STDIN',
-          ))
-          stream.write(lines)
-          stream.end()
-          await new Promise<void>((resolve, reject) => { stream.on('finish', resolve); stream.on('error', reject) })
-        } finally {
-          client.release()
-        }
-        return
+      const client = await this.config.pgPool.connect()
+      try {
+        const { from: copyFrom } = await import('pg-copy-streams')
+        const stream = client.query(copyFrom(
+          'COPY workflow_step_logs (id, "stepId", "tenantId", event, data, "createdAt") FROM STDIN',
+        ))
+        stream.write(lines)
+        stream.end()
+        await new Promise<void>((resolve, reject) => { stream.on('finish', () => resolve()); stream.on('error', reject) })
+      } finally {
+        client.release()
       }
-
-      // INSERT fallback (when pgPool not configured)
-      await this.db.insertInto('workflow_step_logs').values(
-        batch.map(e => ({
-          id: e.id,
-          stepId: e.stepId,
-          tenantId: e.tenantId,
-          event: e.event,
-          data: toJson(e.data ?? null),
-          createdAt: new Date(),
-        })),
-      ).execute()
-    } catch (err) {
-      this.logBuffer.unshift(...batch)
-      this.config.logger?.error?.('Failed to flush log batch:', err)
+      return
     }
+
+    await this.db.insertInto('workflow_step_logs').values(
+      batch.map(e => ({
+        id: e.id,
+        stepId: e.stepId,
+        tenantId: e.tenantId,
+        event: e.event,
+        data: toJson(e.data ?? null),
+        createdAt: new Date(),
+      })),
+    ).execute()
   }
+
+  /**
+   * DESIGN: Step-status batching is the next big win (~1.5–2× completion
+   * throughput per Hatchet's pattern), but it requires changes to BullMQ ack
+   * semantics: the per-job promise must wait for the buffered UPDATE to
+   * commit before resolving, otherwise crashes between ack and flush would
+   * silently lose COMPLETED state.
+   *
+   * Sketch:
+   *   - StepStatusBuffer: WriteBuffer<{stepId, status, output?, error?, completedAt}>
+   *   - flushFn issues a single `UPDATE workflow_steps SET status=v.status,
+   *       output=v.output, completed_at=v.ts FROM (VALUES ...) AS v WHERE id = v.id`
+   *   - WorkflowStepTask.handle awaits flushFn completion before returning
+   *     (so BullMQ only acks after PG commit)
+   *   - Same atomic-batch + re-prepend semantics as IngestWorker
+   *
+   * Tracked as a follow-up; not implemented in this commit because the
+   * change to ack semantics needs careful integration testing across all
+   * step paths (markRunning, onCompleted, onFailed, retry, HITL).
+   */
 
   private async getRun(runId: string, tenantId: string): Promise<WorkflowRun> {
     const run = await this.db.selectFrom('workflow_runs').selectAll()

@@ -20,9 +20,26 @@ services:
       - -c
       - max_wal_senders=0
       - -c
-      - fsync=off              # benchmark only — never in prod
+      - fsync=off              # benchmark only — REMOVE for production
       - -c
-      - full_page_writes=off
+      - full_page_writes=off   # benchmark only — REMOVE for production
+      # ── Production tuning (uncomment for >500GB or sustained high write rate) ──
+      # Per Hatchet's published benchmarks for installations with millions of
+      # workflow_runs. Without these, autovacuum falls behind and tables bloat.
+      # - -c
+      # - maintenance_work_mem=2GB           # vacuum/analyze headroom
+      # - -c
+      # - max_wal_size=15GB                   # fewer checkpoints under heavy write
+      # - -c
+      # - autovacuum_max_workers=10
+      # - -c
+      # - autovacuum_vacuum_scale_factor=0.1
+      # - -c
+      # - autovacuum_vacuum_threshold=25      # 2× more aggressive than default
+      # - -c
+      # - autovacuum_vacuum_cost_limit=1000   # 5× default — vacuum can do more work per cycle
+      # - -c
+      # - autovacuum_vacuum_cost_delay=10
     ports:
       - "5432:5432"
     healthcheck:

@@ -377,6 +377,45 @@ cd packages/agents-ui && npx playwright test e2e/workflow-editor.spec.ts
 | `PG_HOST`, `PG_PORT`, `PG_DB`, `PG_USER`, `PG_PASSWORD` | — | If set, app skips testcontainers and connects to external PG |
 | `REDIS_HOST`, `REDIS_PORT` | — | Same idea for Redis |
 
+### Retention (delete old runs)
+
+Tables grow forever without a cleanup job. The repo ships a one-shot script that drops terminal-state runs older than `RETENTION_DAYS` (active runs preserved regardless of age). Steps and logs are removed via `ON DELETE CASCADE`.
+
+```bash
+# One-shot
+DATABASE_URL=postgres://agents:agents@localhost:5432/agents \
+RETENTION_DAYS=30 \
+  npx tsx packages/agents-core/bin/retention-cleanup.ts
+
+# Crontab — hourly
+0 * * * * cd /app && DATABASE_URL=$DATABASE_URL RETENTION_DAYS=30 \
+  npx tsx packages/agents-core/bin/retention-cleanup.ts >> /var/log/retention.log 2>&1
+```
+
+A Kubernetes `CronJob` template is in the script's header comment. For installations >500GB, also enable the autovacuum overrides shown commented in `docker-compose.yml` — without aggressive vacuum, table bloat compounds even with retention enabled.
+
+### When the scheduler becomes the bottleneck
+
+`SchedulerService` (cron triggers + delayed runs) currently runs in-process inside every cluster worker. That's fine for hundreds of triggers/min. If you find scheduler tick latency or trigger-fire warnings dominating the engine logs (per Hatchet's note: "If you observe a large number of warnings, consider isolating the scheduler"), extract it:
+
+1. Disable scheduler in regular workers (env: `DISABLE_SCHEDULER=true`)
+2. Run a dedicated single-instance container with `RUN_SCHEDULER_ONLY=true`
+3. Same Postgres + Redis as the rest — coordination is via PG row locks
+
+This is an explicit follow-up; the env-var flags don't exist yet, but the `SchedulerService` is already a separate class — extracting requires only a CLI flag and is a ~1 hour change when needed.
+
+### Internal write buffers
+
+The engine uses the `WriteBuffer<T>` primitive (`packages/agents-core/src/engine/WriteBuffer.ts`) to batch writes Hatchet-style. Currently wired up:
+
+| Buffer | Threshold / Interval | Purpose |
+|---|---|---|
+| **IngestBuffer** (HTTP→Redis) | 200 / 50ms | accumulate `start-async` triggers, flush via `addBulk` |
+| **IngestWorker** (Redis→PG) | 200 / 20ms | accumulate BullMQ jobs, flush via `COPY FROM` |
+| **logBuffer** (step events→PG) | 50 / 50ms | batch `workflow_step_logs` writes via `COPY FROM` |
+
+**Planned next**: a `StepStatusBuffer` for `markStepRunning` / `onStepCompleted` UPDATEs (1.5–2× completion throughput per Hatchet's pattern). Designed but not yet implemented — requires changes to BullMQ ack semantics so the per-job promise only resolves after the batched UPDATE commits. See the design comment in `WorkflowEngine.ts` (search for `DESIGN: Step-status batching`).
+
 ### Where to dig deeper
 - Architecture, queue-first ingestion, key exports → [`packages/agents-core/README.md`](packages/agents-core/README.md)
 - Dashboard + test server + endpoint reference → [`packages/agents-ui/README.md`](packages/agents-ui/README.md)
