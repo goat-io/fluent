@@ -38,6 +38,11 @@ export interface WorkflowEngineConfig {
   tenantId: string
   interceptors?: StepInterceptor[]
   disableLogBuffering?: boolean
+  /**
+   * Disable batched step-status writes. Default: false (batching enabled
+   * when pgPool is set). Useful for tests that need synchronous PG visibility.
+   */
+  disableStepStatusBuffering?: boolean
   /** Rate limits for external action providers */
   rateLimits?: Record<string, RateLimitConfig>
   /** Max concurrent external calls per workflow run (default: 5) */

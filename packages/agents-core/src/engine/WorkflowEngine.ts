@@ -60,6 +60,7 @@ import {
 import type { WorkflowEngineConfig, BudgetUsed, WorkflowBudget } from './WorkflowEngine.types.js'
 import { TaskManager } from './TaskManager.js'
 import { WriteBuffer } from './WriteBuffer.js'
+import { StepStatusBuffer } from './StepStatusBuffer.js'
 
 export class WorkflowEngine {
   private config: WorkflowEngineConfig
@@ -105,6 +106,14 @@ export class WorkflowEngine {
   private cachedBudgetEsc: string | null = null
   private cachedBudgetUsedEsc: string | null = null
 
+  /**
+   * Batched step-status writer. UPDATE workflow_steps via a single
+   * UPDATE … FROM unnest(...) per ~100 step transitions. Per-step promise
+   * resolves only after the batch commits, preserving BullMQ ack semantics.
+   * null when pgPool is not configured (falls back to per-row UPDATEs).
+   */
+  private stepStatusBuffer: StepStatusBuffer | null = null
+
   constructor(config: WorkflowEngineConfig) {
     this.config = config
     this.db = config.db
@@ -129,6 +138,16 @@ export class WorkflowEngine {
       })
     }
 
+    if (config.pgPool && !config.disableStepStatusBuffering) {
+      this.stepStatusBuffer = new StepStatusBuffer({
+        pgPool: config.pgPool,
+        flushThreshold: 100,
+        flushIntervalMs: 20,
+        maxConcurrentFlushes: 4,
+        logger: config.logger,
+      })
+    }
+
     // Wire event ingestion to this engine for trigger-based workflow starts
     if (config.eventIngestion) {
       config.eventIngestion.setEngine(this)
@@ -142,6 +161,7 @@ export class WorkflowEngine {
 
   async shutdown(): Promise<void> {
     if (this.logBuffer) await this.logBuffer.shutdown()
+    if (this.stepStatusBuffer) await this.stepStatusBuffer.shutdown()
   }
 
   // ── Start Workflow ─────────────────────────────────────────────
@@ -537,7 +557,20 @@ export class WorkflowEngine {
 
   async markStepRunning(runId: string, stepName: string, tenantId: string): Promise<void> {
     const step = await this.getStep(runId, stepName, tenantId)
-    await this.updateStepStatus(step.id, step.status, 'RUNNING')
+    if (!canStepTransition(step.status as StepStatus, 'RUNNING')) return
+
+    // Hot-path batched UPDATE when the buffer is wired (pgPool present and
+    // batching not disabled). The returned promise resolves only after the
+    // batched UPDATE commits — preserving BullMQ ack semantics.
+    if (this.stepStatusBuffer) {
+      await this.stepStatusBuffer.enqueue({
+        stepId: step.id,
+        status: 'RUNNING',
+        startedAt: new Date(),
+      })
+    } else {
+      await this.updateStepStatus(step.id, step.status, 'RUNNING')
+    }
     await this.logStepEvent(step.id, tenantId, 'started')
   }
 
@@ -550,22 +583,43 @@ export class WorkflowEngine {
     const definition = await this.getDefinitionForRun(runId)
 
     if (result.waitForHuman) {
-      await this.updateStepStatus(step.id, step.status, 'WAITING_HUMAN')
-      await this.db.updateTable('workflow_steps').set({
-        output: toJson(result.output),
-        humanPrompt: toJson(result.waitForHuman),
-        updatedAt: new Date(),
-      }).where('id', '=', step.id).execute()
+      // HITL transition — single buffered UPDATE sets status + output + humanPrompt
+      if (this.stepStatusBuffer && canStepTransition(step.status as StepStatus, 'WAITING_HUMAN')) {
+        await this.stepStatusBuffer.enqueue({
+          stepId: step.id,
+          status: 'WAITING_HUMAN',
+          output: toJson(result.output),
+          humanPrompt: toJson(result.waitForHuman),
+        })
+      } else {
+        await this.updateStepStatus(step.id, step.status, 'WAITING_HUMAN')
+        await this.db.updateTable('workflow_steps').set({
+          output: toJson(result.output),
+          humanPrompt: toJson(result.waitForHuman),
+          updatedAt: new Date(),
+        }).where('id', '=', step.id).execute()
+      }
       await this.logStepEvent(step.id, tenantId, 'human_requested', {
         prompt: result.waitForHuman.prompt,
       })
     } else {
-      await this.updateStepStatus(step.id, step.status, 'COMPLETED')
-      await this.db.updateTable('workflow_steps').set({
-        output: toJson(result.output),
-        completedAt: new Date(),
-        updatedAt: new Date(),
-      }).where('id', '=', step.id).execute()
+      // HOT PATH: single buffered UPDATE collapses status + output + completedAt
+      // into one row of one batched statement.
+      if (this.stepStatusBuffer && canStepTransition(step.status as StepStatus, 'COMPLETED')) {
+        await this.stepStatusBuffer.enqueue({
+          stepId: step.id,
+          status: 'COMPLETED',
+          output: toJson(result.output),
+          completedAt: new Date(),
+        })
+      } else {
+        await this.updateStepStatus(step.id, step.status, 'COMPLETED')
+        await this.db.updateTable('workflow_steps').set({
+          output: toJson(result.output),
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        }).where('id', '=', step.id).execute()
+      }
       await this.logStepEvent(step.id, tenantId, 'completed', {
         outputKeys: Object.keys(result.output),
       })
@@ -661,6 +715,9 @@ export class WorkflowEngine {
     const canRetry = !isNonRetryable && step.attempt < step.maxRetries
 
     if (canRetry) {
+      // Retry path keeps multi-column UPDATE on the sync path: `attempt` and
+      // `startedAt=null` aren't carried by StepStatusBuffer's column set.
+      // (Retry rate is low under normal load — buffering this isn't load-bearing.)
       await this.updateStepStatus(step.id, step.status, 'QUEUED')
       await this.db.updateTable('workflow_steps').set({
         attempt: step.attempt + 1,
@@ -674,12 +731,22 @@ export class WorkflowEngine {
       })
       await this.dispatchStep(runId, tenantId, step, definition)
     } else {
-      await this.updateStepStatus(step.id, step.status, 'FAILED')
-      await this.db.updateTable('workflow_steps').set({
-        error: error.message,
-        completedAt: new Date(),
-        updatedAt: new Date(),
-      }).where('id', '=', step.id).execute()
+      // FAILED terminal — single buffered UPDATE for status + error + completedAt
+      if (this.stepStatusBuffer && canStepTransition(step.status as StepStatus, 'FAILED')) {
+        await this.stepStatusBuffer.enqueue({
+          stepId: step.id,
+          status: 'FAILED',
+          error: error.message,
+          completedAt: new Date(),
+        })
+      } else {
+        await this.updateStepStatus(step.id, step.status, 'FAILED')
+        await this.db.updateTable('workflow_steps').set({
+          error: error.message,
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        }).where('id', '=', step.id).execute()
+      }
       await this.logStepEvent(step.id, tenantId, 'failed', {
         attempt: step.attempt, error: error.message, nonRetryable: isNonRetryable,
       })

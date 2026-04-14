@@ -39,6 +39,8 @@ export { IngestWorker } from './engine/IngestWorker.js'
 export type { IngestWorkerConfig } from './engine/IngestWorker.js'
 export { WriteBuffer } from './engine/WriteBuffer.js'
 export type { WriteBufferConfig } from './engine/WriteBuffer.js'
+export { StepStatusBuffer } from './engine/StepStatusBuffer.js'
+export type { StepStatusBufferConfig, StepStatusUpdate } from './engine/StepStatusBuffer.js'
 export { FunctionStepExecutor } from './steps/FunctionStepExecutor.js'
 export { WorkflowStepTask } from './tasks/WorkflowStepTask.js'
 
