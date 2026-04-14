@@ -63,6 +63,45 @@ curl -s -X POST http://localhost:3000/api/workflows/status \
 pnpm infra:down
 ```
 
+## Live event stream (SSE)
+
+The example wires `@goatlab/realtime-broker` end-to-end. Engine state transitions fan out through Redis pub/sub to any SSE subscriber — no polling.
+
+```bash
+# Start a workflow
+RESP=$(curl -s -X POST http://localhost:3000/api/workflows/start-async \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"fast_chain","input":{"hi":"sse"}}')
+RUN_ID=$(echo "$RESP" | jq -r .runId)
+
+# Subscribe to its events (in another terminal — leave running)
+curl -N http://localhost:3000/api/workflows/events/$RUN_ID
+```
+
+You'll see events stream in real time:
+
+```
+: subscribed to engine:run:Mg2t7yf-jVPOk1jGKOfCi
+
+event: run.started
+data: {"type":"run.started","tenantId":"demo-tenant","runId":"Mg2t7yf...","traceId":"...","workflowName":"fast_chain","workflowVersion":"1.0.0","emittedAt":"2026-04-14T..."}
+
+event: step.running
+data: {"type":"step.running","stepName":"a", ...}
+
+event: step.completed
+data: {"type":"step.completed","stepName":"a","output":{...}, ...}
+
+... (b, c)
+
+event: run.completed
+data: {"type":"run.completed","status":"COMPLETED", ...}
+```
+
+Each event fires AFTER its corresponding PG write commits — querying the run by `runId` immediately after receiving an event is guaranteed to see the post-commit state.
+
+The broker uses **one Redis connection per tenant** regardless of how many SSE clients connect. 1000 concurrent SSE users on `demo-tenant` = 1 Redis connection. See [`packages/realtime-broker/README.md`](../../realtime-broker/README.md) for the pooling design.
+
 ## Load test variants
 
 ```bash

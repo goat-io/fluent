@@ -941,7 +941,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `b486f9a` | fix: retention-cleanup.ts schema-aware via RETENTION_SCHEMA env |
 | `0e5082d` | test: engine-via-dispatch integration (proves sodium-shape consumer works end-to-end) |
 | `a7bb1fc` | feat: @goatlab/realtime-broker — pooled per-tenant pub/sub (Phase 2 ✅) |
-| **(next)** | **feat: @goatlab/agents-trpc — typed tRPC adapter (sodium-friendly)** |
+| `ac441b6` | feat: @goatlab/agents-trpc — typed tRPC adapter (sodium-friendly) |
+| **(next)** | **example(express): wire realtime-broker + onEngineEvent → SSE endpoint** |
 
 ## 3.2 File index — where everything lives
 

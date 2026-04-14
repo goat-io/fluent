@@ -6,6 +6,7 @@
 import { Kysely, PostgresDialect } from 'kysely'
 import pg from 'pg'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
+import { RedisRealtimeBroker } from '@goatlab/realtime-broker'
 import {
   WorkflowEngine,
   WorkflowStepTask,
@@ -28,6 +29,7 @@ let cached: Promise<{
   ingestBuffer: IngestBuffer
   pool: pg.Pool
   connector: BullMQConnector
+  broker: RedisRealtimeBroker
 }> | null = null
 
 export async function getAgents() {
@@ -49,6 +51,17 @@ export async function getAgents() {
         maxRetriesPerRequest: null,
       },
       tenantId: TENANT_ID,
+    })
+
+    // Realtime broker — same Redis as BullMQ (separate connection due to
+    // pub/sub mode). Per-tenant subscriber pooling: 1 conn per tenant
+    // regardless of how many SSE clients connect.
+    const broker = new RedisRealtimeBroker({
+      redis: {
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+        maxRetriesPerRequest: null,
+      },
     })
 
     // Step handlers — register your business logic here
@@ -85,6 +98,15 @@ export async function getAgents() {
       tenantId: TENANT_ID,
       schema: 'agents',                          // engine tables live in the `agents` PG schema
       eventIngestion: new EventIngestionService({ db }),
+      // Engine event hook → broker: SSE subscribers see live workflow updates.
+      // Fires AFTER each PG state-transition write commits — subscribers can
+      // immediately query PG and see the new state.
+      onEngineEvent: (evt) => {
+        // Per-run channel for granular subscriptions
+        broker.publish(evt.tenantId, `engine:run:${evt.runId}`, evt).catch(() => {})
+        // Tenant-wide firehose for dashboards
+        broker.publish(evt.tenantId, `engine:tenant`, evt).catch(() => {})
+      },
     })
 
     const ingestWorker = new IngestWorker({
@@ -119,16 +141,17 @@ export async function getAgents() {
       ],
     })
 
-    return { engine, ingestBuffer, pool, connector }
+    return { engine, ingestBuffer, pool, connector, broker }
   })()
   return cached
 }
 
 export async function shutdownAgents() {
   if (!cached) return
-  const { engine, ingestBuffer, pool, connector } = await cached
+  const { engine, ingestBuffer, pool, connector, broker } = await cached
   await ingestBuffer.shutdown()
   await engine.shutdown()
+  await broker.close()
   await connector.close()
   await pool.end()
   cached = null

@@ -55,6 +55,41 @@ async function main() {
     }),
   )
 
+  // SSE endpoint — subscribes to engine events for a specific run. Demonstrates
+  // the realtime broker integration: engine.onEngineEvent → broker.publish →
+  // this subscriber → flushed to the SSE client. No polling needed; updates
+  // arrive within milliseconds of the PG commit.
+  //
+  // Test with:
+  //   curl -N http://localhost:3000/api/workflows/events/<runId>
+  app.get('/api/workflows/events/:runId', async (req, res) => {
+    const runId = req.params.runId
+    if (!runId) { res.status(400).end(); return }
+
+    const { broker } = await getAgents()
+
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    res.flushHeaders()
+    res.write(`: subscribed to engine:run:${runId}\n\n`)
+
+    const sub = await broker.subscribe(TENANT_ID, `engine:run:${runId}`, (evt) => {
+      // SSE event format: `event: <type>\ndata: <json>\n\n`
+      // biome-ignore lint/suspicious/noExplicitAny: untyped pubsub payload
+      const e = evt as any
+      res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`)
+    })
+
+    // Heartbeat to keep proxies from dropping the connection
+    const heartbeat = setInterval(() => res.write(':\n\n'), 15_000)
+
+    req.on('close', async () => {
+      clearInterval(heartbeat)
+      await sub.unsubscribe()
+    })
+  })
+
   // Graceful shutdown — drain in-flight buffer + engine before exit
   let shuttingDown = false
   const shutdown = async () => {

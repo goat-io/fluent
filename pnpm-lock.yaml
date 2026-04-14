@@ -269,6 +269,9 @@ importers:
       '@goatlab/agents-express':
         specifier: workspace:*
         version: link:..
+      '@goatlab/realtime-broker':
+        specifier: workspace:*
+        version: link:../../realtime-broker
       '@goatlab/tasks-adapter-bullmq':
         specifier: workspace:*
         version: link:../../tasks-adapter-bullmq
@@ -278,6 +281,9 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      ioredis:
+        specifier: ^5.4.1
+        version: 5.8.2
       kysely:
         specifier: ^0.27.6
         version: 0.27.6

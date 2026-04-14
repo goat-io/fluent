@@ -19,9 +19,11 @@
   "dependencies": {
     "@goatlab/agents-core": "workspace:*",
     "@goatlab/agents-express": "workspace:*",
+    "@goatlab/realtime-broker": "workspace:*",
     "@goatlab/tasks-adapter-bullmq": "workspace:*",
     "@prisma/client": "^6.1.0",
     "express": "^4.21.2",
+    "ioredis": "^5.4.1",
     "kysely": "^0.27.6",
     "pg": "^8.20.0"
   },
