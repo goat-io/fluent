@@ -661,7 +661,7 @@ Each phase is independently shippable.
 
 | Step | File | What | Status |
 |---|---|---|---|
-| 1 | `packages/realtime-broker/` (new) | Lift `TenantSubscriberPool` from sodium. ~250 LOC. Tests against ioredis-mock. | TODO |
+| 1 | `packages/realtime-broker/` (new) | Lift `TenantSubscriberPool` from sodium. ~250 LOC. Tests against ioredis-mock. | ✅ DONE |
 | 2 | `packages/agents-core/src/engine/WorkflowEngine.ts` | Add `onEngineEvent?: (evt: EngineEvent) => void` config hook. Fires synchronously after PG commit at every state transition. | ✅ DONE |
 | 3 | `packages/agents-core/src/engine/EngineEvent.types.ts` (new) | Typed event union: `run.started`, `step.running`, `step.completed`, `step.failed`, `run.completed`, `step.human_requested` | ✅ DONE |
 | 4 | Sodium's `apps/backend/src/api/realtime/shared-subscriber.ts` | Replace internals with thin wrapper around `@goatlab/realtime-broker` | TODO (sodium-side) |
@@ -939,7 +939,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `d8355a0` | feat: engine onEngineEvent hook + EngineEvent types (Phase 2 partial ✅) |
 | `4aec7b5` | fix: SchedulerService multi-pod safety — transaction-wrapped FOR UPDATE + tenantId filter |
 | `b486f9a` | fix: retention-cleanup.ts schema-aware via RETENTION_SCHEMA env |
-| **(next)** | **test: engine-via-dispatch integration (proves sodium-shape consumer works end-to-end)** |
+| `0e5082d` | test: engine-via-dispatch integration (proves sodium-shape consumer works end-to-end) |
+| **(next)** | **feat: @goatlab/realtime-broker — pooled per-tenant pub/sub (Phase 2 ✅)** |
 
 ## 3.2 File index — where everything lives
 
