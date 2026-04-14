@@ -37,7 +37,12 @@ cleanup() {
     exit $exit_code
   fi
   say "Cleaning up..."
-  if [ -n "${SERVER_PID:-}" ]; then kill "$SERVER_PID" 2>/dev/null || true; fi
+  # Kill the server tree (cluster primary + all workers)
+  if [ -n "${SERVER_PID:-}" ]; then
+    pkill -P "$SERVER_PID" 2>/dev/null || true
+    kill "$SERVER_PID" 2>/dev/null || true
+  fi
+  pkill -f "tsx src/server.ts" 2>/dev/null || true
   pnpm infra:down >/dev/null 2>&1 || true
   exit $exit_code
 }
@@ -52,7 +57,7 @@ ok "Infra up"
 say "Waiting for Postgres + Redis healthy..."
 for i in $(seq 1 30); do
   # Count "Health":"healthy" occurrences (works on both per-line and array json formats)
-  healthy_count=$(docker compose ps --format json 2>/dev/null | grep -o '"Health":"healthy"' | wc -l | tr -d ' ')
+  healthy_count=$(docker compose ps --format json 2>/dev/null | { grep -o '"Health":"healthy"' || true; } | wc -l | tr -d ' ')
   if [ "$healthy_count" = "2" ]; then
     ok "Infra healthy"; break
   fi
@@ -73,8 +78,9 @@ REDIS_HOST=localhost \
 REDIS_PORT=6379 \
 PORT="$PORT" \
 TENANT_ID=demo-tenant \
-PG_POOL_SIZE=20 \
-WORKER_CONCURRENCY=50 \
+PG_POOL_SIZE="${PG_POOL_SIZE:-20}" \
+WORKER_CONCURRENCY="${WORKER_CONCURRENCY:-50}" \
+CLUSTER_MODE="${CLUSTER_MODE:-2}" \
   pnpm start > /tmp/agents-example-server.log 2>&1 &
 SERVER_PID=$!
 

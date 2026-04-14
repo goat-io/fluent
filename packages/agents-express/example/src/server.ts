@@ -6,13 +6,28 @@
 //
 // Then load test:
 //   pnpm loadtest
+//
+// Cluster mode: set CLUSTER_MODE=auto (default — forks cores-1 workers),
+// CLUSTER_MODE=N (N workers), or CLUSTER_MODE=off (single process).
+// Cluster gives roughly Nx HTTP throughput per instance.
 
+import cluster from 'node:cluster'
+import os from 'node:os'
 import express from 'express'
 import { agentsRouter } from '@goatlab/agents-express'
 import { getAgents, shutdownAgents } from './agents.factory.js'
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10)
 const TENANT_ID = process.env.TENANT_ID ?? 'demo-tenant'
+
+function desiredWorkers(): number {
+  const mode = process.env.CLUSTER_MODE ?? 'auto'
+  const cores = (os as { availableParallelism?: () => number }).availableParallelism?.() ?? os.cpus().length
+  if (mode === 'off' || cores <= 1) return 1
+  if (mode === 'auto') return Math.max(1, cores - 1)
+  const n = parseInt(mode, 10)
+  return Number.isFinite(n) && n > 0 ? n : 1
+}
 
 async function main() {
   // Boot the engine + workers up-front so the first request doesn't pay a
@@ -64,7 +79,30 @@ async function main() {
   })
 }
 
-main().catch(err => {
-  console.error('Fatal:', err)
-  process.exit(1)
-})
+// ── Entrypoint: cluster primary vs worker ─────────────────────────────
+//
+// Node cluster shares the HTTP port across N worker processes (kernel does
+// round-robin), and each worker independently subscribes to the same BullMQ
+// queues (Redis BRPOP naturally distributes jobs). All workers share the
+// same Postgres + Redis — no in-process state needs to be coordinated.
+//
+// In production, prefer this over running multiple containers when a single
+// container has multiple vCPU. For Cloud Run instances with ≥2 vCPU, set
+// CLUSTER_MODE=auto and you'll fork cores-1 workers per instance.
+
+const N = desiredWorkers()
+if (cluster.isPrimary && N > 1) {
+  console.log(`🧠 Primary pid=${process.pid} — forking ${N} workers (CLUSTER_MODE=${process.env.CLUSTER_MODE ?? 'auto'})`)
+  for (let i = 0; i < N; i++) cluster.fork({ CLUSTER_WORKER_ID: String(i) })
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`  ⚠️  Worker ${worker.id} exited (code=${code} signal=${signal}); re-forking`)
+    if (!(worker as { exitedAfterDisconnect?: boolean }).exitedAfterDisconnect) cluster.fork()
+  })
+  process.on('SIGINT',  () => { for (const w of Object.values(cluster.workers ?? {})) w?.kill('SIGTERM'); setTimeout(() => process.exit(0), 3000) })
+  process.on('SIGTERM', () => { for (const w of Object.values(cluster.workers ?? {})) w?.kill('SIGTERM'); setTimeout(() => process.exit(0), 3000) })
+} else {
+  main().catch(err => {
+    console.error('Fatal:', err)
+    process.exit(1)
+  })
+}
