@@ -63,6 +63,49 @@ curl -s -X POST http://localhost:3000/api/workflows/status \
 pnpm infra:down
 ```
 
+## Horizontal scaling test (multi-instance)
+
+Spawns N example instances on different ports — each is a **separate Node process** simulating a Cloud Run pod. All share the same Postgres + Redis. k6 distributes load randomly across all instances.
+
+```bash
+# 4 instances, 5k req/s total (default)
+pnpm loadtest:horizontal
+
+# 8 instances, 10k req/s, 60s
+INSTANCES=8 RATE=10000 DUR=60s pnpm loadtest:horizontal
+
+# Each instance with cluster mode (4 instances × 2 cluster workers = 8 processes)
+INSTANCES=4 CLUSTER_MODE_PER_INSTANCE=2 RATE=10000 pnpm loadtest:horizontal
+```
+
+The script:
+1. Brings up shared infra (PG + Redis)
+2. Spawns N instances on ports 3000..3000+N
+3. Smoke test: fires one workflow per instance, verifies all complete
+4. Runs k6 with random per-request port distribution
+5. Polls drain until completion or 5min timeout
+6. Per-instance attribution check
+7. Final: exits 0 only if every fired workflow reached COMPLETED with 0 FAILED runs
+
+### What it proves
+- ✅ All N instances cooperate (BullMQ distributes step jobs across them via Redis BRPOP)
+- ✅ No double-execution (every workflow lands once in PG)
+- ✅ Zero data loss (counts match)
+- ✅ Drain rate scales with instance count (more instances = faster drain)
+
+### Sample result (3 instances × 3k req/s × 20s)
+```
+Workflows OK:    59,795 (2,987 wf/s)
+Error rate:      0.00%
+p95:             57ms
+59,798 fired → 59,798 in PG → 59,798 COMPLETED, 0 FAILED
+```
+
+### Caveats
+- Each instance defaults to `CLUSTER_MODE=off` (single Node process). Saturates around 2-3k req/s per instance. Set `CLUSTER_MODE_PER_INSTANCE=auto` for production-like cluster within each instance.
+- Random k6 port distribution simulates an LB; real LBs (nginx, GCP LB) do round-robin which is more uniform.
+- Smoke-test PG queries hit instance 0 only; production deployments would have all instances behind one LB.
+
 ## Live event stream (SSE)
 
 The example wires `@goatlab/realtime-broker` end-to-end. Engine state transitions fan out through Redis pub/sub to any SSE subscriber — no polling.
