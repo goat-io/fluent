@@ -504,6 +504,81 @@ export class BullMQConnector implements TaskConnector<object> {
   }
 
   /**
+   * TaskConnector.bulkQueue — group jobs by target queue and use BullMQ's
+   * native Queue.addBulk per queue (one Lua script roundtrip per queue,
+   * vs. N for a queue() loop).
+   *
+   * Returns TaskStatus objects in the same order as input. The backing
+   * BullMQ jobs use `uniqueTaskName` as their idempotency jobId.
+   *
+   * Note: BullMQ has a known performance edge above ~1000 jobs per addBulk
+   * call (issue #1670). Callers should chunk if they need to push more than
+   * 1000 at once.
+   */
+  async bulkQueue(jobs: Array<{
+    uniqueTaskName: string
+    taskName: string
+    taskBody: object
+    opts?: Record<string, unknown>
+  }>): Promise<Array<Omit<TaskStatus, 'payload'>>> {
+    if (jobs.length === 0) return []
+
+    // Group by target queue so each addBulk is one LUA roundtrip.
+    // We track the original index so we can reassemble results in order.
+    const byQueue = new Map<string, Array<{ idx: number; job: typeof jobs[number] }>>()
+    for (let i = 0; i < jobs.length; i++) {
+      const j = jobs[i]!
+      let bucket = byQueue.get(j.taskName)
+      if (!bucket) { bucket = []; byQueue.set(j.taskName, bucket) }
+      bucket.push({ idx: i, job: j })
+    }
+
+    const results: Array<Omit<TaskStatus, 'payload'>> = new Array(jobs.length)
+    const now = new Date().toISOString()
+
+    await Promise.all(
+      Array.from(byQueue.entries()).map(async ([queueName, bucket]) => {
+        const queue = this.getQueue(queueName)
+        const bulk = bucket.map(({ job }) => ({
+          name: queueName,
+          data: job.taskBody,
+          opts: { jobId: job.uniqueTaskName, ...this.defaultJobOptions, ...(job.opts ?? {}) },
+        }))
+        const enqueued = await queue.addBulk(bulk)
+
+        for (let i = 0; i < bucket.length; i++) {
+          const { idx } = bucket[i]!
+          const j = enqueued[i]!
+          results[idx] = {
+            id: `${queueName}:${j.id}`,
+            name: queueName,
+            output: '',
+            attempts: 0,
+            status: 'QUEUED',
+            created: now,
+            nextRun: null,
+            nextRunMinutes: null,
+          }
+        }
+
+        // Fire onAfterQueue per job so dispatch hints stay accurate
+        if (this.onAfterQueue && this._tenantId) {
+          for (let i = 0; i < bucket.length; i++) {
+            try {
+              await this.onAfterQueue({
+                tenantId: this._tenantId,
+                queueName,
+                jobId: results[bucket[i]!.idx]!.id,
+              })
+            } catch { /* non-fatal */ }
+          }
+        }
+      }),
+    )
+    return results
+  }
+
+  /**
    * Adds a job to a queue with custom options.
    * This is a convenience method for more advanced usage.
    */

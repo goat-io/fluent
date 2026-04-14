@@ -1112,18 +1112,15 @@ export class WorkflowEngine {
       sandbox: 'workflow_step_sandbox',
     }
 
-    // Connector-native bulk path (BullMQ exposes getQueue → Queue.addBulk).
-    // Fallback to single dispatchStep() loop for connectors that lack it.
-    const connector = this.config.connector as any
-    if (typeof connector?.getQueue !== 'function') {
-      for (const item of items) {
-        await this.dispatchStep(item.runId, item.tenantId, item.step, item.definition)
-      }
-      return
-    }
-
-    // Group by queue so each addBulk is one LUA roundtrip
-    const byQueue = new Map<string, Array<{ name: string; data: unknown; opts: Record<string, unknown> }>>()
+    // Build the bulk job list (TaskConnector.bulkQueue shape — backend-agnostic).
+    // Grouping by queue happens inside the adapter (BullMQ groups by taskName
+    // for one addBulk per queue; other backends can fan-out however they want).
+    const jobs: Array<{
+      uniqueTaskName: string
+      taskName: string
+      taskBody: object
+      opts?: Record<string, unknown>
+    }> = []
     for (const { runId, tenantId, step, definition } of items) {
       const stepDef = definition.steps.find(s => s.name === step.stepName)!
       const payload: StepPayload = {
@@ -1142,21 +1139,23 @@ export class WorkflowEngine {
       const jobId = `wf-${runId}-${step.stepName}-${step.attempt}-i${iterCount}`
       const queueName = QUEUE_MAP[stepDef.stepWeight ?? 'light'] ?? 'workflow_step_light'
 
-      if (!byQueue.has(queueName)) byQueue.set(queueName, [])
-      byQueue.get(queueName)!.push({
-        name: queueName,
-        data: payload as unknown,
-        opts: { jobId, removeOnComplete: true, removeOnFail: 100 },
+      jobs.push({
+        uniqueTaskName: jobId,
+        taskName: queueName,
+        taskBody: payload as object,
+        opts: { removeOnComplete: true, removeOnFail: 100 },
       })
     }
 
-    // One addBulk per queue, in parallel
-    await Promise.all(
-      Array.from(byQueue.entries()).map(([queueName, jobs]) => {
-        const q = connector.getQueue(queueName)
-        return q.addBulk(jobs)
-      }),
-    )
+    // Backend-agnostic: TaskConnector.bulkQueue (one Lua/HTTP roundtrip per
+    // target queue when the adapter implements it natively).
+    if (typeof this.config.connector.bulkQueue === 'function') {
+      await this.config.connector.bulkQueue(jobs)
+      return
+    }
+
+    // Fallback for connectors without bulkQueue — per-step queue() in parallel
+    await Promise.all(items.map(it => this.dispatchStep(it.runId, it.tenantId, it.step, it.definition)))
   }
 
   private async dispatchStep(runId: string, tenantId: string, step: WorkflowStep, definition: WorkflowDefinition): Promise<void> {

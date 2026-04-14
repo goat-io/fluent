@@ -90,7 +90,10 @@ export async function getAgents() {
       maxConcurrentFlushes: 8,
     })
     const ingestBuffer = new IngestBuffer({
-      queue: connector.getQueue('workflow_ingest'),
+      // Backend-agnostic: uses TaskConnector.bulkQueue (BullMQ adapter
+      // implements it via addBulk; other adapters fall back to a loop)
+      connector,
+      taskName: 'workflow_ingest',
       flushThreshold: 200,
       flushIntervalMs: 50,
       maxJitterMs: 20,

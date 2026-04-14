@@ -6,13 +6,33 @@
 // npx vitest run src/__tests__/engine/ingest-buffer.spec.ts
 
 import { Ids } from '@goatlab/js-utils'
+import type { TaskConnector } from '@goatlab/tasks-core'
 import type { WorkflowTriggerInput } from '../workflow/WorkflowBuilder.types.js'
 
+/**
+ * Minimal "raw bulk queue" shape — covers BullMQ's Queue.addBulk and any
+ * other backend that exposes a similar primitive. Caller can pass either:
+ *   - a TaskConnector (preferred, backend-agnostic — uses bulkQueue if
+ *     present, falls back to a queue() loop otherwise), or
+ *   - a raw object with addBulk for backwards compat with the legacy
+ *     `queue: connector.getQueue(...)` API.
+ */
+type RawBulkQueue = {
+  addBulk: (jobs: Array<{ name: string; data: unknown; opts?: Record<string, unknown> }>) => Promise<unknown>
+}
+
 export interface IngestBufferConfig {
-  /** BullMQ Queue instance (from connector.getQueue('workflow_ingest')) */
-  queue: {
-    addBulk: (jobs: Array<{ name: string; data: unknown; opts?: Record<string, unknown> }>) => Promise<unknown>
-  }
+  /**
+   * Either:
+   *  - `connector` + `taskName`: backend-agnostic path via TaskConnector.bulkQueue
+   *    (recommended — works with BullMQ, GCP Tasks, Hatchet, etc.)
+   *  - `queue`: legacy raw BullMQ Queue from `connector.getQueue('workflow_ingest')`
+   *    (kept for backwards compat — only works against BullMQ)
+   */
+  connector?: TaskConnector<object>
+  taskName?: string
+  queue?: RawBulkQueue
+
   /** Flush when buffer reaches this size. Default: 100 */
   flushThreshold?: number
   /** Flush at least every N ms, with up to maxJitterMs of random jitter. Default: 50ms */
@@ -43,11 +63,20 @@ export class IngestBuffer {
   private readonly flushIntervalMs: number
   private readonly maxJitterMs: number
   private readonly jobName: string
-  private readonly queue: IngestBufferConfig['queue']
+  /** Backend-agnostic path: connector + taskName, uses bulkQueue if available */
+  private readonly connector?: TaskConnector<object>
+  private readonly taskName: string
+  /** Legacy path: raw object with .addBulk (kept for backwards compat) */
+  private readonly rawQueue?: RawBulkQueue
   private readonly logger?: IngestBufferConfig['logger']
 
   constructor(config: IngestBufferConfig) {
-    this.queue = config.queue
+    if (!config.connector && !config.queue) {
+      throw new Error('IngestBuffer requires either { connector + taskName } or { queue }')
+    }
+    this.connector = config.connector
+    this.taskName = config.taskName ?? 'workflow_ingest'
+    this.rawQueue = config.queue
     this.flushThreshold = config.flushThreshold ?? 100
     this.flushIntervalMs = config.flushIntervalMs ?? 50
     this.maxJitterMs = config.maxJitterMs ?? 20
@@ -114,12 +143,42 @@ export class IngestBuffer {
     this.buffer = []
 
     try {
-      const jobs = batch.map(b => ({
-        name: this.jobName,
-        data: { runId: b.runId, trigger: b.trigger },
-        opts: { jobId: `ingest-${b.runId}`, removeOnComplete: true, removeOnFail: 100 },
-      }))
-      await this.queue.addBulk(jobs)
+      // Backend-agnostic path — TaskConnector.bulkQueue (BullMQ uses
+      // addBulk under the hood; other adapters fall back to a queue() loop)
+      if (this.connector) {
+        if (typeof this.connector.bulkQueue === 'function') {
+          await this.connector.bulkQueue(
+            batch.map(b => ({
+              uniqueTaskName: `ingest-${b.runId}`,
+              taskName: this.taskName,
+              taskBody: { runId: b.runId, trigger: b.trigger } as object,
+              opts: { removeOnComplete: true, removeOnFail: 100 },
+            })),
+          )
+        } else {
+          // Backend without bulkQueue — fall back to per-job queue() calls
+          await Promise.all(
+            batch.map(b =>
+              this.connector!.queue({
+                uniqueTaskName: `ingest-${b.runId}`,
+                taskName: this.taskName,
+                postUrl: '/noop',
+                taskBody: { runId: b.runId, trigger: b.trigger } as object,
+                handle: async () => {},
+              }),
+            ),
+          )
+        }
+      } else if (this.rawQueue) {
+        // Legacy path — raw BullMQ Queue.addBulk
+        await this.rawQueue.addBulk(
+          batch.map(b => ({
+            name: this.jobName,
+            data: { runId: b.runId, trigger: b.trigger },
+            opts: { jobId: `ingest-${b.runId}`, removeOnComplete: true, removeOnFail: 100 },
+          })),
+        )
+      }
     } catch (err) {
       // Re-prepend on failure so we don't drop requests (same pattern as log buffer)
       this.buffer.unshift(...batch)

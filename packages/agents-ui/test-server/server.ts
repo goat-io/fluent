@@ -235,7 +235,9 @@ async function main() {
     logger: console,
   })
   const ingestBuffer = new IngestBuffer({
-    queue: connector.getQueue('workflow_ingest'),
+    // Backend-agnostic via TaskConnector.bulkQueue (BullMQ uses addBulk)
+    connector,
+    taskName: 'workflow_ingest',
     flushThreshold: 200,
     flushIntervalMs: 50,
     maxJitterMs: 20,

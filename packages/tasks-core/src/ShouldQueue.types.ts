@@ -96,6 +96,27 @@ export interface TaskConnector<TInput> {
   }): Promise<Omit<TaskStatus, 'payload'>>
 
   /**
+   * Bulk-enqueue many tasks in one round-trip when the backend supports it.
+   *
+   * - **BullMQ**: implemented as `Queue.addBulk` per target queue (one Lua
+   *   script roundtrip per queue, vs. N RTTs for a queue() loop). Sweet spot
+   *   is ≤1000 jobs per call — see BullMQ issue #1670.
+   * - **GCP Cloud Tasks / Hatchet / others**: not yet implemented. Callers
+   *   that need backend-agnostic bulk enqueue should fall back to looping
+   *   `queue()` when this method is absent.
+   *
+   * Returns one TaskStatus per input job, in the same order. On partial
+   * failure the implementation throws — bulk semantics are all-or-nothing.
+   */
+  bulkQueue?(jobs: Array<{
+    uniqueTaskName: string
+    taskName: string
+    taskBody: TInput
+    /** Per-job options (e.g. priority, deduplication id). Adapter-specific. */
+    opts?: Record<string, unknown>
+  }>): Promise<Array<Omit<TaskStatus, 'payload'>>>
+
+  /**
    * Get the status of a task by its ID.
    */
   getStatus(id: string): Promise<TaskStatus>
