@@ -416,9 +416,18 @@ The engine uses the `WriteBuffer<T>` primitive (`packages/agents-core/src/engine
 
 **Planned next**: a `StepStatusBuffer` for `markStepRunning` / `onStepCompleted` UPDATEs (1.5–2× completion throughput per Hatchet's pattern). Designed but not yet implemented — requires changes to BullMQ ack semantics so the per-job promise only resolves after the batched UPDATE commits. See the design comment in `WorkflowEngine.ts` (search for `DESIGN: Step-status batching`).
 
-### Plug into your own backend (Express, Next.js, etc.)
+### Plug into your own backend (Express, Bun, Next.js, etc.)
 
-The engine is framework-agnostic. For Express, use [`@goatlab/agents-express`](packages/agents-express/README.md):
+The engine is framework-agnostic. Two adapters ship today:
+
+- [**`@goatlab/agents-express`**](packages/agents-express/README.md) — Express Router for Node backends. ~250 LOC. ~4.5k req/s sustained @ p95<200ms on 2 vCPU.
+- [**`@goatlab/agents-bun`**](packages/agents-bun/README.md) — `Bun.serve` fetch handler. Wins on HTTP latency (p50 6ms vs 23ms), loses on engine drain (Bun's Node compat on `pg`/`bullmq`).
+
+Both have working examples with one-command load tests:
+- [`packages/agents-express/example`](packages/agents-express/example) — Express + Prisma + Postgres + Redis
+- [`packages/agents-bun/example`](packages/agents-bun/example) — same stack, swapping Bun for Node
+
+For Express:
 
 ```ts
 import { agentsRouter } from '@goatlab/agents-express'
@@ -447,6 +456,7 @@ Drop-in [`prisma.fragment`](packages/agents-core/prisma.fragment) ships all 12 e
 - Dashboard + test server + endpoint reference → [`packages/agents-ui/README.md`](packages/agents-ui/README.md)
 - BullMQ adapter (single vs bulk enqueue, why `addBulk` matters) → [`packages/tasks-adapter-bullmq/README.md`](packages/tasks-adapter-bullmq/README.md)
 - Express adapter (router factory, multi-tenant pattern) → [`packages/agents-express/README.md`](packages/agents-express/README.md)
+- Bun adapter (fetch handler, reusePort cluster) → [`packages/agents-bun/README.md`](packages/agents-bun/README.md)
 - Prisma schema fragment for engine tables → [`packages/agents-core/prisma.fragment`](packages/agents-core/prisma.fragment)
 - LLM adapter, multi-agent consensus → [`packages/agents-ai/README.md`](packages/agents-ai/README.md)
 - LangGraph integration → [`packages/agents-langgraph/README.md`](packages/agents-langgraph/README.md)
