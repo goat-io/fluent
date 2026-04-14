@@ -125,11 +125,11 @@ describe('WorkflowEngine.onEngineEvent', () => {
     events.length = 0
   })
 
-  // Helper: poll until predicate is true or timeout
-  async function waitFor(predicate: () => boolean, timeoutMs = 5000) {
+  // Helper: poll until predicate is true or timeout (predicate may be async)
+  async function waitFor(predicate: () => boolean | Promise<boolean>, timeoutMs = 5000) {
     const start = Date.now()
     while (Date.now() - start < timeoutMs) {
-      if (predicate()) return
+      if (await predicate()) return
       await new Promise(r => setTimeout(r, 50))
     }
     throw new Error(`waitFor timed out after ${timeoutMs}ms`)
@@ -267,80 +267,64 @@ describe('WorkflowEngine.onEngineEvent', () => {
   }, 15_000)
 
   it('hook errors do NOT crash the workflow', async () => {
-    const buggyEngine = new WorkflowEngine({
-      db, pgPool, connector,
-      executors: new Map([
-        ['function', (() => {
-          const e = new FunctionStepExecutor()
-          e.register('quick', async (): Promise<StepResult> => ({ output: { ok: true } }))
-          return e
-        })()],
-      ]),
-      workflows: new Map([
-        ['wf_buggy', WorkflowBuilder.create('wf_buggy')
-          .version('1.0.0').defaultRetries(0)
-          .step('s', { executorType: 'function', executorConfig: { handler: 'quick' } })
-          .build()],
-      ]),
-      tenantId: 'test-tenant',
-      onEngineEvent: () => {
-        throw new Error('subscriber bug')
-      },
-    })
+    // Verifies the shared engine's emitEvent guards against subscriber errors.
+    // We can't use a separate engine instance here because step execution goes
+    // through the shared engine's stepTask (registered with the BullMQ worker);
+    // a hook on a different engine instance would never fire for those steps.
+    //
+    // Strategy: temporarily swap the shared engine's hook to one that throws,
+    // run a workflow, verify it still reaches COMPLETED.
+    const originalHook = (engine as any).config.onEngineEvent
+    let throwCount = 0
+    ;(engine as any).config.onEngineEvent = () => {
+      throwCount++
+      throw new Error('subscriber bug')
+    }
 
-    const { runId } = await buggyEngine.start({
-      workflowName: 'wf_buggy',
-      tenantId: 'test-tenant',
-      input: {},
-    })
+    try {
+      const { runId } = await engine.start({
+        workflowName: 'wf_echo',
+        tenantId: 'test-tenant',
+        input: {},
+      })
 
-    // Despite the hook throwing every time, the workflow must still progress
-    await waitFor(async () => {
-      const row = await db.selectFrom('workflow_runs')
-        .select('status')
-        .where('id', '=', runId)
-        .executeTakeFirst()
-      return row?.status === 'COMPLETED'
-    }, 15_000)
+      // Despite the hook throwing every time, the workflow must still progress
+      await waitFor(async () => {
+        const row = await db.selectFrom('workflow_runs')
+          .select('status').where('id', '=', runId).executeTakeFirst()
+        return row?.status === 'COMPLETED'
+      }, 5_000)
 
-    await buggyEngine.shutdown()
-  }, 20_000)
+      // Hook was invoked at least once (run.started), all throws were caught
+      expect(throwCount).toBeGreaterThan(0)
+    } finally {
+      ;(engine as any).config.onEngineEvent = originalHook
+    }
+  }, 10_000)
 
   it('does not emit when onEngineEvent is not set (zero overhead)', async () => {
-    const silentEngine = new WorkflowEngine({
-      db, pgPool, connector,
-      executors: new Map([
-        ['function', (() => {
-          const e = new FunctionStepExecutor()
-          e.register('quick', async (): Promise<StepResult> => ({ output: { ok: true } }))
-          return e
-        })()],
-      ]),
-      workflows: new Map([
-        ['wf_silent', WorkflowBuilder.create('wf_silent')
-          .version('1.0.0').defaultRetries(0)
-          .step('s', { executorType: 'function', executorConfig: { handler: 'quick' } })
-          .build()],
-      ]),
-      tenantId: 'test-tenant',
-      // no onEngineEvent
-    })
+    // Temporarily unset the shared hook to verify the engine works without it.
+    const originalHook = (engine as any).config.onEngineEvent
+    ;(engine as any).config.onEngineEvent = undefined
 
-    const { runId } = await silentEngine.start({
-      workflowName: 'wf_silent',
-      tenantId: 'test-tenant',
-      input: {},
-    })
+    try {
+      const { runId } = await engine.start({
+        workflowName: 'wf_echo',
+        tenantId: 'test-tenant',
+        input: {},
+      })
 
-    await waitFor(async () => {
-      const row = await db.selectFrom('workflow_runs')
-        .select('status')
-        .where('id', '=', runId)
-        .executeTakeFirst()
-      return row?.status === 'COMPLETED'
-    })
+      await waitFor(async () => {
+        const row = await db.selectFrom('workflow_runs')
+          .select('status').where('id', '=', runId).executeTakeFirst()
+        return row?.status === 'COMPLETED'
+      }, 5_000)
 
-    await silentEngine.shutdown()
-    // No assertion needed — just verify the engine works without the hook
-  }, 15_000)
+      // Sanity: events array should NOT have grown (hook was unset)
+      const eventsForRun = events.filter(e => e.runId === runId)
+      expect(eventsForRun).toHaveLength(0)
+    } finally {
+      ;(engine as any).config.onEngineEvent = originalHook
+    }
+  }, 10_000)
 })

@@ -177,6 +177,64 @@ describe('SchedulerService', () => {
       expect(events).toHaveLength(0)
     })
 
+    // ── Multi-pod safety ────────────────────────────────────────────────
+    it('CRITICAL: parallel ticks across pods do not double-fire — exactly one cron.trigger per due schedule', async () => {
+      // Simulates 4 sodium pods each running their own SchedulerService instance
+      // against the same DB. They all poll roughly at the same time. Without
+      // proper locking + idempotency, all 4 would fire the same workflow.
+      const id = await scheduler.createSchedule('test-tenant', 'multi-pod-wf', '*/5 * * * *')
+      await db.updateTable('workflow_schedules')
+        .set({ nextRunAt: new Date('2020-06-01T00:00:00Z') })
+        .where('id', '=', id)
+        .execute()
+
+      // Build 4 independent scheduler instances — each has its own DI but
+      // shares the same db + eventIngestion. Mirrors N pods on Cloud Run.
+      const pods = Array.from({ length: 4 }, () =>
+        new SchedulerService({ db, eventIngestion, tenantId: 'test-tenant' }),
+      )
+
+      // Fire all 4 ticks in parallel — worst-case race
+      const counts = await Promise.all(pods.map(p => p.tick()))
+
+      // EXACTLY ONE pod must report emitted=1; the rest report 0 (either
+      // their FOR UPDATE SKIP LOCKED skipped the row, or their idempotency
+      // ingest returned duplicate=true).
+      const totalEmitted = counts.reduce((a, b) => a + b, 0)
+      expect(totalEmitted).toBe(1)
+
+      // And exactly ONE row in workflow_events
+      const events = await db.selectFrom('workflow_events')
+        .selectAll()
+        .where('eventType', '=', 'cron.trigger')
+        .where('idempotencyKey', '=', 'cron:multi-pod-wf:2020-06-01T00:00:00.000Z')
+        .execute()
+      expect(events).toHaveLength(1)
+
+      // nextRunAt advanced exactly once (all UPDATEs converge to the same value)
+      const sched = await db.selectFrom('workflow_schedules')
+        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      expect(sched.lastRunAt).toEqual(new Date('2020-06-01T00:00:00Z'))
+    }, 15_000)
+
+    it('does not process other tenants schedules (per-tenant isolation)', async () => {
+      // Create a schedule for a different tenant
+      const otherTenantSchedulerId = await scheduler.createSchedule('OTHER-tenant', 'other-wf', '*/5 * * * *')
+      await db.updateTable('workflow_schedules')
+        .set({ nextRunAt: new Date('2020-01-01') })
+        .where('id', '=', otherTenantSchedulerId)
+        .execute()
+
+      // scheduler is scoped to 'test-tenant', should ignore OTHER-tenant's schedule
+      const emitted = await scheduler.tick()
+      expect(emitted).toBe(0)
+
+      // Confirm OTHER-tenant's schedule wasn't touched
+      const sched = await db.selectFrom('workflow_schedules')
+        .selectAll().where('id', '=', otherTenantSchedulerId).executeTakeFirstOrThrow()
+      expect(sched.lastRunAt).toBeNull()  // never fired
+    })
+
     it('processes multiple due schedules in a single tick', async () => {
       const id1 = await scheduler.createSchedule('test-tenant', 'wf-a', '*/5 * * * *')
       const id2 = await scheduler.createSchedule('test-tenant', 'wf-b', '0 * * * *')

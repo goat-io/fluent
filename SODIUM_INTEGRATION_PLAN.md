@@ -714,6 +714,7 @@ new WorkflowEngine({
 
 Migration order (easiest → hardest):
 1. **Cron-style**: `job_alert_check`, `job_expiration_sweep` → 1-step workflow + `SchedulerService` cron entry. **Drops `setInterval` from your codebase.** PG-backed scheduling means no duplicate firing across pods.
+   - ✅ **Verified multi-pod safe in `fluent`** (commit `<next>`): `SchedulerService.tick()` now wraps in a transaction so `FOR UPDATE SKIP LOCKED` actually holds; adds `WHERE tenantId = $1` filter for per-tenant isolation; defense-in-depth via `idempotencyKey: cron:<workflowName>:<scheduledAt>` UNIQUE constraint. New test proves 4 parallel pods → exactly 1 cron.trigger event per due schedule.
 2. **Tenant provisioning**: `provision_medusa_tenant`, `create_tenant`, `migrate_tenant` → multi-step DAG. Each step idempotent, retryable, observable.
 3. **Notifications**: `notify`, `notify.deferred-email`, `notify.digest-flush` → 1-step workflows with `idempotencyKey: notify-${userId}-${eventId}`.
 4. **Realtime broadcast**: `realtime.broadcast` → 1-step workflow with `idempotencyKey: broadcast-${tenantId}-${1secBucket}`.
@@ -935,7 +936,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `1e34216` | refactor: promote bulkQueue() to TaskConnector — agents-core no longer BullMQ-specific |
 | `d24707b` | docs: full sodium integration plan + zero-context handover |
 | `078bd33` | perf: dispatch v2 — parallel batched processIncomingDispatch (Phase 0 ✅) |
-| **(next)** | **feat: engine onEngineEvent hook + EngineEvent types (Phase 2 partial ✅)** |
+| `d8355a0` | feat: engine onEngineEvent hook + EngineEvent types (Phase 2 partial ✅) |
+| **(next)** | **fix: SchedulerService multi-pod safety — transaction-wrapped FOR UPDATE + tenantId filter** |
 
 ## 3.2 File index — where everything lives
 

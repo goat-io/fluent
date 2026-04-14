@@ -56,57 +56,84 @@ export class SchedulerService {
 
   /**
    * Single poll cycle. Returns the number of cron.trigger events emitted.
+   *
+   * Multi-pod safety story (TWO independent layers — defense in depth):
+   *
+   *   1. Row-level locking — the SELECT runs inside a transaction with
+   *      `FOR UPDATE SKIP LOCKED`, so concurrent scheduler instances on
+   *      the same DB cannot grab the same schedule row. The transaction
+   *      wrapper is critical: without it, `FOR UPDATE` releases the lock
+   *      immediately when the SELECT returns, defeating the protection.
+   *
+   *   2. Idempotent event ingestion — each cron.trigger uses
+   *      `idempotencyKey: "cron:<workflowName>:<scheduledAt>"`. The
+   *      UNIQUE constraint on workflow_events.idempotencyKey ensures
+   *      that even if both safeguards above fail, only one cron.trigger
+   *      event lands in PG → only one workflow run is started.
+   *
+   * Tenant scoping: the SELECT filters by `this.tenantId`. In a
+   * multi-tenant deployment (one scheduler per tenant per pod), each
+   * scheduler only processes its own tenant's schedules — avoids
+   * cross-tenant lock contention even when schedules share a DB.
    */
   async tick(): Promise<number> {
-    // Fetch due schedules with SKIP LOCKED to support multiple scheduler instances
-    const dueSchedules = await sql<WorkflowSchedule>`
-      SELECT * FROM workflow_schedules
-      WHERE active = true AND "nextRunAt" <= NOW()
-      FOR UPDATE SKIP LOCKED
-    `.execute(this.db)
-
     let emitted = 0
 
-    for (const schedule of dueSchedules.rows) {
-      const scheduledAt = new Date(schedule.nextRunAt).toISOString()
-      const idempotencyKey = `cron:${schedule.workflowName}:${scheduledAt}`
+    // Wrap in transaction so FOR UPDATE locks hold across the inner work.
+    // Without this, `FOR UPDATE` releases the lock immediately after the
+    // SELECT returns (auto-commit), letting parallel pods grab the same row.
+    await this.db.transaction().execute(async (tx) => {
+      const dueSchedules = await sql<WorkflowSchedule>`
+        SELECT * FROM workflow_schedules
+        WHERE active = true
+          AND "tenantId" = ${this.tenantId}
+          AND "nextRunAt" <= NOW()
+        FOR UPDATE SKIP LOCKED
+      `.execute(tx)
 
-      // Emit cron.trigger event (idempotent via idempotencyKey)
-      const result = await this.eventIngestion.ingest({
-        tenantId: schedule.tenantId,
-        eventType: 'cron.trigger',
-        source: 'scheduler',
-        payload: {
-          workflowName: schedule.workflowName,
-          scheduleId: schedule.id,
-          scheduledAt,
-          cronExpression: schedule.cronExpression,
-        },
-        idempotencyKey,
-      })
+      for (const schedule of dueSchedules.rows) {
+        const scheduledAt = new Date(schedule.nextRunAt).toISOString()
+        const idempotencyKey = `cron:${schedule.workflowName}:${scheduledAt}`
 
-      if (!result.duplicate) {
-        emitted++
-      }
-
-      // Calculate next run
-      const interval = CronExpressionParser.parse(schedule.cronExpression, {
-        currentDate: new Date(schedule.nextRunAt),
-      })
-      const nextRun = interval.next().toDate()
-
-      // Update schedule
-      await this.db
-        .updateTable('workflow_schedules')
-        .set({
-          nextRunAt: nextRun,
-          lastRunAt: new Date(schedule.nextRunAt),
+        // Emit cron.trigger event. Defense-in-depth via UNIQUE(idempotencyKey).
+        // Note: this goes through the engine's main db, NOT the locked tx,
+        // so even if a parallel pod somehow bypassed the row lock, the
+        // UNIQUE constraint would catch the duplicate.
+        const result = await this.eventIngestion.ingest({
+          tenantId: schedule.tenantId,
+          eventType: 'cron.trigger',
+          source: 'scheduler',
+          payload: {
+            workflowName: schedule.workflowName,
+            scheduleId: schedule.id,
+            scheduledAt,
+            cronExpression: schedule.cronExpression,
+          },
+          idempotencyKey,
         })
-        .where('id', '=', schedule.id)
-        .execute()
 
-      this.logger?.info(`Scheduler triggered ${schedule.workflowName} (next: ${nextRun.toISOString()})`)
-    }
+        if (!result.duplicate) {
+          emitted++
+        }
+
+        // Calculate next run + UPDATE (within the same tx — atomic w.r.t. SELECT lock)
+        const interval = CronExpressionParser.parse(schedule.cronExpression, {
+          currentDate: new Date(schedule.nextRunAt),
+        })
+        const nextRun = interval.next().toDate()
+
+        await tx
+          .updateTable('workflow_schedules')
+          .set({
+            nextRunAt: nextRun,
+            lastRunAt: new Date(schedule.nextRunAt),
+          })
+          .where('id', '=', schedule.id)
+          .execute()
+
+        this.logger?.info(`Scheduler triggered ${schedule.workflowName} (next: ${nextRun.toISOString()})`)
+      }
+    })
 
     return emitted
   }
