@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: agents
+      POSTGRES_USER: agents
+      POSTGRES_PASSWORD: agents
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - synchronous_commit=off
+      - -c
+      - wal_level=minimal
+      - -c
+      - max_wal_senders=0
+      - -c
+      - fsync=off              # benchmark only — never in prod
+      - -c
+      - full_page_writes=off
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agents -d agents"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 4445
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_DB: agents
+      PG_USER: agents
+      PG_PASSWORD: agents
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CLUSTER_MODE: 2          # match the 2-vCPU benchmark (auto would give cores-1=1)
+      PG_POOL_SIZE: 20         # per-worker; total = workers × this
+      WORKER_CONCURRENCY: 50
+    ports:
+      - "4445:4445"
+    # Constrain to 2 vCPU to match the Cloud Run starter shape we tested.
+    # Bump to 4-8 vCPU for higher throughput; cluster auto-detects.
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2g

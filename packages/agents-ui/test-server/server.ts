@@ -402,39 +402,65 @@ async function runPrimary() {
   console.log(`🧠 Primary pid=${process.pid} detected ${cores} CPU cores`)
   console.log(`   CLUSTER_MODE=${process.env.CLUSTER_MODE ?? 'auto'} → forking ${n} worker${n === 1 ? '' : 's'}`)
 
+  // External-services mode: when PG_HOST and REDIS_HOST are pre-set
+  // (Docker Compose, Cloud Run, k8s) we skip starting testcontainers.
+  // Required env: PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD, REDIS_HOST, REDIS_PORT.
+  const externalServices = !!(process.env.PG_HOST && process.env.REDIS_HOST)
+  if (externalServices) {
+    console.log(`   🌐 External services: PG ${process.env.PG_HOST}:${process.env.PG_PORT}, Redis ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`)
+  }
+
   if (n === 1) {
-    // Single-process mode: start containers here and run main() inline
-    const c = await startContainers()
-    process.env.PG_HOST = c.pgHost
-    process.env.PG_PORT = String(c.pgPort)
-    process.env.PG_DB = c.pgDb
-    process.env.PG_USER = c.pgUser
-    process.env.PG_PASSWORD = c.pgPass
-    process.env.REDIS_HOST = c.redisHost
-    process.env.REDIS_PORT = String(c.redisPort)
-    await main()
-    // Keep containers alive across SIGINT via child shutdown
-    const cleanup = async () => {
-      try { await c.redisContainer.stop(); await c.pgContainer.stop() } catch {}
-      process.exit(0)
+    // Single-process mode
+    if (!externalServices) {
+      const c = await startContainers()
+      process.env.PG_HOST = c.pgHost
+      process.env.PG_PORT = String(c.pgPort)
+      process.env.PG_DB = c.pgDb
+      process.env.PG_USER = c.pgUser
+      process.env.PG_PASSWORD = c.pgPass
+      process.env.REDIS_HOST = c.redisHost
+      process.env.REDIS_PORT = String(c.redisPort)
+      const cleanup = async () => {
+        try { await c.redisContainer.stop(); await c.pgContainer.stop() } catch {}
+        process.exit(0)
+      }
+      process.on('SIGINT', cleanup)
+      process.on('SIGTERM', cleanup)
     }
-    process.on('SIGINT', cleanup)
-    process.on('SIGTERM', cleanup)
+    await main()
     return
   }
 
-  // Start containers once in primary, pass URLs to workers via env
-  const c = await startContainers()
-  const containerEnv = {
-    PG_HOST: c.pgHost,
-    PG_PORT: String(c.pgPort),
-    PG_DB: c.pgDb,
-    PG_USER: c.pgUser,
-    PG_PASSWORD: c.pgPass,
-    REDIS_HOST: c.redisHost,
-    REDIS_PORT: String(c.redisPort),
+  // Multi-worker cluster: only start containers when running locally
+  let containerEnv: Record<string, string>
+  let cleanupContainers: (() => Promise<void>) | null = null
+  if (externalServices) {
+    containerEnv = {
+      PG_HOST: process.env.PG_HOST!,
+      PG_PORT: process.env.PG_PORT ?? '5432',
+      PG_DB: process.env.PG_DB ?? 'agents',
+      PG_USER: process.env.PG_USER ?? 'postgres',
+      PG_PASSWORD: process.env.PG_PASSWORD ?? '',
+      REDIS_HOST: process.env.REDIS_HOST!,
+      REDIS_PORT: process.env.REDIS_PORT ?? '6379',
+    }
+  } else {
+    const c = await startContainers()
+    containerEnv = {
+      PG_HOST: c.pgHost,
+      PG_PORT: String(c.pgPort),
+      PG_DB: c.pgDb,
+      PG_USER: c.pgUser,
+      PG_PASSWORD: c.pgPass,
+      REDIS_HOST: c.redisHost,
+      REDIS_PORT: String(c.redisPort),
+    }
+    cleanupContainers = async () => {
+      try { await c.redisContainer.stop(); await c.pgContainer.stop() } catch {}
+    }
+    console.log(`   📦 Containers ready: PG ${c.pgHost}:${c.pgPort}, Redis ${c.redisHost}:${c.redisPort}`)
   }
-  console.log(`   📦 Containers ready: PG ${c.pgHost}:${c.pgPort}, Redis ${c.redisHost}:${c.redisPort}`)
 
   for (let i = 0; i < n; i++) {
     cluster.fork({ ...containerEnv, CLUSTER_WORKER_ID: String(i) })
@@ -451,9 +477,8 @@ async function runPrimary() {
   const shutdownPrimary = async () => {
     console.log('\n🛑 Primary: shutting down cluster...')
     for (const w of Object.values(cluster.workers ?? {})) w?.kill('SIGTERM')
-    // Give workers time to drain
     await new Promise(r => setTimeout(r, 3000))
-    try { await c.redisContainer.stop(); await c.pgContainer.stop() } catch {}
+    if (cleanupContainers) await cleanupContainers()
     process.exit(0)
   }
   process.on('SIGINT', shutdownPrimary)
