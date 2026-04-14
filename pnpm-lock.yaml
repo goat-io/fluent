@@ -196,6 +196,9 @@ importers:
       '@goatlab/biome':
         specifier: workspace:*
         version: link:../biome
+      '@goatlab/realtime-broker':
+        specifier: workspace:*
+        version: link:../realtime-broker
       '@goatlab/tasks-adapter-bullmq':
         specifier: workspace:*
         version: link:../tasks-adapter-bullmq

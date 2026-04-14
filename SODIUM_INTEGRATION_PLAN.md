@@ -942,7 +942,8 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `0e5082d` | test: engine-via-dispatch integration (proves sodium-shape consumer works end-to-end) |
 | `a7bb1fc` | feat: @goatlab/realtime-broker — pooled per-tenant pub/sub (Phase 2 ✅) |
 | `ac441b6` | feat: @goatlab/agents-trpc — typed tRPC adapter (sodium-friendly) |
-| **(next)** | **example(express): wire realtime-broker + onEngineEvent → SSE endpoint** |
+| `8fa1aab` | example(express): wire realtime-broker + onEngineEvent → SSE endpoint |
+| **(next)** | **test: full-stack composition (engine + dispatch v2 + event hook + broker)** |
 
 ## 3.2 File index — where everything lives
 
