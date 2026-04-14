@@ -12,6 +12,8 @@
  *   DISABLE_LOG_BUFFER=false  Set to 'true' for synchronous log writes
  */
 import http from 'node:http'
+import cluster from 'node:cluster'
+import os from 'node:os'
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
 import { PostgreSqlContainer } from '@testcontainers/postgresql'
@@ -25,21 +27,38 @@ import {
   createWorkflowHandlers,
   CREATE_TABLES_SQL,
   EventIngestionService,
+  IngestBuffer,
+  IngestWorker,
 } from '@goatlab/agents-core'
 import type { Database } from '@goatlab/agents-core'
 import type { StepPayload, StepResult } from '@goatlab/agents-core'
 
-const PORT = 4444
+const PORT = parseInt(process.env.PORT ?? '4444', 10)
 const TENANT = 'e2e-ui-tenant'
 const PG_POOL_SIZE = parseInt(process.env.PG_POOL_SIZE ?? '20', 10) // Hatchet: ~20 optimal, too many = lock contention
 const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? '50', 10)
 const DISABLE_LOG_BUFFER = process.env.DISABLE_LOG_BUFFER === 'true'
 
-async function main() {
-  console.log('🚀 Starting E2E test backend...')
-  console.log(`   PG pool: ${PG_POOL_SIZE}, Worker concurrency: ${WORKER_CONCURRENCY}, Log buffer: ${!DISABLE_LOG_BUFFER}`)
+/**
+ * Cluster sizing:
+ *   CLUSTER_MODE=auto  (default) → forks (cores - 1), min 1
+ *   CLUSTER_MODE=off              → single process (no fork)
+ *   CLUSTER_MODE=<N>              → forks exactly N
+ *
+ * All children share Redis + PG; HTTP is kernel-round-robined across children,
+ * BullMQ distributes jobs naturally via BRPOP. No role coordination needed —
+ * each child runs both HTTP and BullMQ consumers.
+ */
+function desiredClusterWorkers(): number {
+  const mode = process.env.CLUSTER_MODE ?? 'auto'
+  const cores = (os as any).availableParallelism?.() ?? os.cpus().length
+  if (mode === 'off' || cores <= 1) return 1
+  if (mode === 'auto') return Math.max(1, cores - 1)  // leave 1 core for OS + primary
+  const n = parseInt(mode, 10)
+  return Number.isFinite(n) && n > 0 ? n : 1
+}
 
-  // ── Start containers ─────────────────────────────────
+async function startContainers() {
   console.log('  📦 Starting Postgres...')
   const pgContainer = await new PostgreSqlContainer('postgres:18-alpine')
     .withDatabase('agents_e2e_ui')
@@ -48,24 +67,41 @@ async function main() {
       '-c', 'max_connections=200',
       '-c', 'shared_buffers=256MB',
       '-c', 'work_mem=16MB',
-      '-c', 'synchronous_commit=off',       // Faster writes (acceptable for non-critical data)
+      '-c', 'synchronous_commit=off',
       '-c', 'wal_level=minimal',
       '-c', 'max_wal_senders=0',
-      '-c', 'fsync=off',                     // Faster for testing (not production!)
+      '-c', 'fsync=off',
       '-c', 'full_page_writes=off',
     ])
     .start()
-
   console.log('  📦 Starting Redis...')
   const redisContainer = await new RedisContainer('redis:7-alpine').start()
+  return {
+    pgHost: pgContainer.getHost(),
+    pgPort: pgContainer.getMappedPort(5432),
+    pgDb: 'agents_e2e_ui',
+    pgUser: pgContainer.getUsername(),
+    pgPass: pgContainer.getPassword(),
+    redisHost: redisContainer.getHost(),
+    redisPort: redisContainer.getMappedPort(6379),
+    pgContainer,
+    redisContainer,
+  }
+}
+
+async function main() {
+  const workerId = process.env.CLUSTER_WORKER_ID ?? '0'
+  const label = cluster.isPrimary ? 'single' : `w${workerId}`
+  console.log(`🚀 [${label}] Starting test backend on pid=${process.pid}`)
+  console.log(`   PG pool: ${PG_POOL_SIZE}, Worker concurrency: ${WORKER_CONCURRENCY}, Log buffer: ${!DISABLE_LOG_BUFFER}`)
 
   // ── Kysely DB ────────────────────────────────────────
   const pgPool = new pg.Pool({
-    host: pgContainer.getHost(),
-    port: pgContainer.getMappedPort(5432),
-    database: 'agents_e2e_ui',
-    user: pgContainer.getUsername(),
-    password: pgContainer.getPassword(),
+    host: process.env.PG_HOST!,
+    port: parseInt(process.env.PG_PORT!, 10),
+    database: process.env.PG_DB!,
+    user: process.env.PG_USER!,
+    password: process.env.PG_PASSWORD!,
     max: PG_POOL_SIZE,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
@@ -76,18 +112,25 @@ async function main() {
     }),
   })
 
-  // Create tables
-  const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(Boolean)
-  for (const stmt of statements) {
-    await sql.raw(stmt).execute(db)
+  // Only one worker initializes schema; others wait on an advisory lock.
+  // CREATE TYPE/INDEX are not concurrency-safe even with IF NOT EXISTS —
+  // PG raises duplicate_object when two transactions race.
+  await sql.raw(`SELECT pg_advisory_lock(4242)`).execute(db)
+  try {
+    const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(Boolean)
+    for (const stmt of statements) {
+      await sql.raw(stmt).execute(db)
+    }
+  } finally {
+    await sql.raw(`SELECT pg_advisory_unlock(4242)`).execute(db)
   }
-  console.log('  ✅ Database ready')
+  console.log(`  ✅ [${label}] Database ready`)
 
   // ── BullMQ ───────────────────────────────────────────
   const connector = new BullMQConnector({
     connection: {
-      host: redisContainer.getHost(),
-      port: redisContainer.getMappedPort(6379),
+      host: process.env.REDIS_HOST!,
+      port: parseInt(process.env.REDIS_PORT!, 10),
       maxRetriesPerRequest: null, // Required for BullMQ workers
     },
   })
@@ -177,15 +220,34 @@ async function main() {
   // ── BullMQ Workers (high concurrency) ────────────────
   const stepTask = new WorkflowStepTask(engine)
   stepTask.setConnector(connector)
+
+  // Queue-first ingestion: HTTP → IngestBuffer → BullMQ → IngestWorker → COPY FROM → PG
+  const ingestWorker = new IngestWorker({
+    engine,
+    flushThreshold: 200,
+    flushIntervalMs: 20,
+    // Cap below pool size to leave headroom for status reads / log flushes
+    maxConcurrentFlushes: Math.max(2, Math.floor(PG_POOL_SIZE / 2)),
+    logger: console,
+  })
+  const ingestBuffer = new IngestBuffer({
+    queue: connector.getQueue('workflow_ingest'),
+    flushThreshold: 200,
+    flushIntervalMs: 50,
+    maxJitterMs: 20,
+    logger: console,
+  })
+
   const workerHandle = await connector.listen({
     tasks: [
+      { taskName: 'workflow_ingest', handle: (data: unknown) => ingestWorker.handleJob(data as any), concurrency: WORKER_CONCURRENCY },
       { taskName: 'workflow_step_light', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: WORKER_CONCURRENCY },
       { taskName: 'workflow_step_heavy', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: Math.max(5, WORKER_CONCURRENCY / 4) },
       { taskName: 'workflow_step_ai', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: Math.max(10, WORKER_CONCURRENCY / 2) },
       { taskName: 'workflow_step_sandbox', handle: (data: unknown) => stepTask.handle(data as StepPayload), concurrency: 5 },
     ],
   })
-  console.log(`  ✅ BullMQ workers started (concurrency: ${WORKER_CONCURRENCY}/queue)`)
+  console.log(`  ✅ BullMQ workers started (concurrency: ${WORKER_CONCURRENCY}/queue, ingest + 4 step queues)`)
 
   // ── API Handlers ─────────────────────────────────────
   const handlers = createWorkflowHandlers(engine)
@@ -215,6 +277,13 @@ async function main() {
         result = await handlers.listWorkflows({ tenantId: TENANT })
       } else if (path === '/workflows/start') {
         result = await handlers.start({ ...body, tenantId: TENANT })
+      } else if (path === '/workflows/start-async') {
+        // Queue-first ingestion: buffer → addBulk → IngestWorker → COPY FROM.
+        // IngestBuffer assigns runId + traceId at the HTTP boundary and returns
+        // them synchronously so callers can correlate spans before PG commits.
+        const trigger = { ...body, tenantId: TENANT }
+        const { runId, traceId } = ingestBuffer.enqueue(trigger)
+        result = { runId, traceId, status: 'QUEUED' }
       } else if (path === '/workflows/start-batch') {
         const workflows = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
         result = await handlers.startBatch({ workflows })
@@ -222,7 +291,32 @@ async function main() {
         const workflows = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
         result = await handlers.startBatchCopy({ workflows })
       } else if (path === '/workflows/status') {
-        result = await handlers.getStatus({ ...body, tenantId: TENANT })
+        try {
+          result = await handlers.getStatus({ ...body, tenantId: TENANT })
+        } catch (err: any) {
+          // Queue-first ingest fallback: if PG misses, the run might still be in BullMQ
+          if (err.code === 'WORKFLOW_RUN_NOT_FOUND' && body.runId) {
+            const ingestQueue = connector.getQueue('workflow_ingest')
+            const job = await ingestQueue.getJob(`ingest-${body.runId}`)
+            if (job) {
+              const state = await job.getState() // 'waiting' | 'active' | 'completed' | 'failed' | ...
+              const data: any = job.data ?? {}
+              result = {
+                id: body.runId,
+                traceId: data.trigger?.traceId ?? null,
+                workflowName: data.trigger?.workflowName ?? null,
+                status: state === 'failed' ? 'INGEST_FAILED' : 'QUEUED',
+                ingestState: state,
+                steps: [],
+                createdAt: new Date(job.timestamp).toISOString(),
+              }
+            } else {
+              throw err
+            }
+          } else {
+            throw err
+          }
+        }
       } else if (path === '/workflows/cancel') {
         result = await handlers.cancel({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/human-input') {
@@ -242,7 +336,17 @@ async function main() {
       } else if (path === '/workflows/validate') {
         result = await handlers.validateDefinition(body)
       } else if (path === '/health') {
-        result = { ok: true }
+        // Verify ingest queue has an active worker — prevents silent accept-and-stall
+        const ingestQueue = connector.getQueue('workflow_ingest')
+        const workers = await ingestQueue.getWorkers()
+        const depth = ingestBuffer.currentDepth()
+        const workerOk = workers.length > 0
+        if (!workerOk) {
+          res.writeHead(503, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ ok: false, reason: 'no ingest worker registered', ingestBufferDepth: depth }))
+          return
+        }
+        result = { ok: true, ingestWorkers: workers.length, ingestBufferDepth: depth }
       } else {
         res.writeHead(404)
         res.end(JSON.stringify({ error: 'Not found' }))
@@ -252,7 +356,9 @@ async function main() {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(result))
     } catch (err: any) {
-      const status = err.code === 'IDEMPOTENCY_CONFLICT' ? 409 : 500
+      const status = err.code === 'IDEMPOTENCY_CONFLICT' ? 409
+        : err.code === 'WORKFLOW_RUN_NOT_FOUND' ? 404
+        : 500
       res.writeHead(status, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: err.message, code: err.code }))
     }
@@ -267,14 +373,14 @@ async function main() {
 
   // Graceful shutdown
   const shutdown = async () => {
-    console.log('\n🛑 Shutting down...')
+    console.log(`\n🛑 [${label}] Shutting down...`)
     server.close()
+    await ingestBuffer.shutdown()
+    await ingestWorker.drain()
     await workerHandle.stop()
     await connector.close()
     await engine.shutdown()
     await db.destroy()
-    await redisContainer.stop()
-    await pgContainer.stop()
     process.exit(0)
   }
 
@@ -282,7 +388,73 @@ async function main() {
   process.on('SIGTERM', shutdown)
 }
 
-main().catch(err => {
-  console.error('Fatal:', err)
-  process.exit(1)
-})
+// ── Entrypoint: cluster primary vs worker ─────────────────────────────
+async function runPrimary() {
+  const cores = (os as any).availableParallelism?.() ?? os.cpus().length
+  const n = desiredClusterWorkers()
+  console.log(`🧠 Primary pid=${process.pid} detected ${cores} CPU cores`)
+  console.log(`   CLUSTER_MODE=${process.env.CLUSTER_MODE ?? 'auto'} → forking ${n} worker${n === 1 ? '' : 's'}`)
+
+  if (n === 1) {
+    // Single-process mode: start containers here and run main() inline
+    const c = await startContainers()
+    process.env.PG_HOST = c.pgHost
+    process.env.PG_PORT = String(c.pgPort)
+    process.env.PG_DB = c.pgDb
+    process.env.PG_USER = c.pgUser
+    process.env.PG_PASSWORD = c.pgPass
+    process.env.REDIS_HOST = c.redisHost
+    process.env.REDIS_PORT = String(c.redisPort)
+    await main()
+    // Keep containers alive across SIGINT via child shutdown
+    const cleanup = async () => {
+      try { await c.redisContainer.stop(); await c.pgContainer.stop() } catch {}
+      process.exit(0)
+    }
+    process.on('SIGINT', cleanup)
+    process.on('SIGTERM', cleanup)
+    return
+  }
+
+  // Start containers once in primary, pass URLs to workers via env
+  const c = await startContainers()
+  const containerEnv = {
+    PG_HOST: c.pgHost,
+    PG_PORT: String(c.pgPort),
+    PG_DB: c.pgDb,
+    PG_USER: c.pgUser,
+    PG_PASSWORD: c.pgPass,
+    REDIS_HOST: c.redisHost,
+    REDIS_PORT: String(c.redisPort),
+  }
+  console.log(`   📦 Containers ready: PG ${c.pgHost}:${c.pgPort}, Redis ${c.redisHost}:${c.redisPort}`)
+
+  for (let i = 0; i < n; i++) {
+    cluster.fork({ ...containerEnv, CLUSTER_WORKER_ID: String(i) })
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`   ⚠️  Worker ${worker.id} (pid=${worker.process.pid}) exited code=${code} signal=${signal}`)
+    if (!(worker as any).exitedAfterDisconnect) {
+      const newWorker = cluster.fork(containerEnv)
+      console.log(`   🔁 Re-forked replacement worker pid=${newWorker.process.pid}`)
+    }
+  })
+
+  const shutdownPrimary = async () => {
+    console.log('\n🛑 Primary: shutting down cluster...')
+    for (const w of Object.values(cluster.workers ?? {})) w?.kill('SIGTERM')
+    // Give workers time to drain
+    await new Promise(r => setTimeout(r, 3000))
+    try { await c.redisContainer.stop(); await c.pgContainer.stop() } catch {}
+    process.exit(0)
+  }
+  process.on('SIGINT', shutdownPrimary)
+  process.on('SIGTERM', shutdownPrimary)
+}
+
+if (cluster.isPrimary) {
+  runPrimary().catch(err => { console.error('Primary fatal:', err); process.exit(1) })
+} else {
+  main().catch(err => { console.error('Worker fatal:', err); process.exit(1) })
+}

@@ -127,6 +127,8 @@ export interface WorkflowTriggerInput {
   parentRunId?: string
   /** Origin event ID that triggered this workflow */
   originEventId?: string
+  /** Pre-assigned run ID (for queue-first ingestion — caller owns the ID). Auto-generated if not provided. */
+  runId?: string
 }
 
 export interface StepPayload {
