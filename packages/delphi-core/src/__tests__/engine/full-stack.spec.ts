@@ -43,7 +43,8 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
   let pgPool: pg.Pool
   let db: Kysely<Database>
   let connector: BullMQConnector
-  let broker: RedisRealtimeBroker
+  // Re-exported as an ESM-friendly const — lives in the value namespace only.
+  let broker: InstanceType<typeof RedisRealtimeBroker>
   let engine: WorkflowEngine
   let ingestBuffer: IngestBuffer
   let ingestWorker: IngestWorker
