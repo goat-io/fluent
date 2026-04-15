@@ -7,7 +7,6 @@ import {
 import {
   AgentRole,
   type AgreementSessionConfig,
-  AgreementState,
 } from '../../agreement/AgreementProtocol.types.js'
 import { RiskGuard } from '../../agreement/RiskGuard.js'
 
@@ -20,7 +19,7 @@ function createMockAgent(
     id,
     role,
     weight: 1,
-    execute: vi.fn().mockImplementation(async (prompt, ctx) => ({
+    execute: vi.fn().mockImplementation(async (_prompt, ctx) => ({
       id: `${id}-msg-${Date.now()}`,
       timestamp: new Date().toISOString(),
       role,

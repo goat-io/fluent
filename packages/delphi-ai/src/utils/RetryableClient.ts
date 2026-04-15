@@ -35,10 +35,20 @@ export async function retryWithBackoff<T>(
 }
 
 export function isRetryableError(error: any): boolean {
-  if (error?.status === 429) return true // Rate limit
-  if (error?.status >= 500) return true // Server error
-  if (error?.code === 'ECONNREFUSED') return true
-  if (error?.code === 'ETIMEDOUT') return true
-  if (error?.code === 'ENOTFOUND') return true
+  if (error?.status === 429) {
+    return true // Rate limit
+  }
+  if (error?.status >= 500) {
+    return true // Server error
+  }
+  if (error?.code === 'ECONNREFUSED') {
+    return true
+  }
+  if (error?.code === 'ETIMEDOUT') {
+    return true
+  }
+  if (error?.code === 'ENOTFOUND') {
+    return true
+  }
   return false
 }

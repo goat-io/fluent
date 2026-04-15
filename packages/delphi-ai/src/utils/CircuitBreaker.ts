@@ -100,7 +100,9 @@ export class CircuitBreaker {
       return
     }
 
-    if (!this.config.shouldTrip(error)) return
+    if (!this.config.shouldTrip(error)) {
+      return
+    }
 
     const now = Date.now()
     this.failures.push(now)

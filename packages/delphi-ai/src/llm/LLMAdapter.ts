@@ -8,8 +8,6 @@ import type {
 import { MODEL_PRESETS } from './ModelConfig.js'
 
 export class LLMAdapter {
-  private providerCache = new Map<string, any>()
-
   /**
    * Send a chat completion request to any supported provider.
    */
@@ -78,7 +76,7 @@ export class LLMAdapter {
   }
 
   private resolveModel(options: ChatOptions): any {
-    const cacheKey = `${options.provider}:${options.apiKey ?? 'default'}:${options.baseUrl ?? 'default'}`
+    const _cacheKey = `${options.provider}:${options.apiKey ?? 'default'}:${options.baseUrl ?? 'default'}`
 
     switch (options.provider) {
       case 'openai': {

@@ -1,5 +1,5 @@
 // npx vitest run src/__tests__/utils/circuit-breaker.spec.ts
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { CircuitBreaker } from '../../utils/CircuitBreaker.js'
 
 describe('CircuitBreaker', () => {

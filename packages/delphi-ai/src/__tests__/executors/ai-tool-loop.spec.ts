@@ -280,7 +280,9 @@ describe('AIStepExecutor Tool-Calling Loop', () => {
     expect(result.output.turns).toBe(2)
     expect(result.output.budgetExceeded).toBe(true)
     expect(result.output.budgetLimit).toBe(100)
-    expect(result.output.usage.totalTokens).toBe(160)
+    expect((result.output.usage as { totalTokens: number }).totalTokens).toBe(
+      160,
+    )
   })
 
   it('returns budgetExceeded flag in output when budget exceeded', async () => {

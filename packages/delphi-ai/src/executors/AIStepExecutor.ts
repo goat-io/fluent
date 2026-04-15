@@ -1,6 +1,5 @@
 // npx vitest run src/__tests__/executors/ai-tool-loop.spec.ts
 import type {
-  Skill,
   StepExecutor,
   StepPayload,
   StepResult,
@@ -13,7 +12,6 @@ import type {
   ModelConfig,
   ToolDefinition,
 } from '../llm/LLMAdapter.types.js'
-import { MODEL_PRESETS } from '../llm/ModelConfig.js'
 import { modelSelector } from '../llm/ModelSelector.js'
 import { CircuitBreaker } from '../utils/CircuitBreaker.js'
 import { isRetryableError, retryWithBackoff } from '../utils/RetryableClient.js'

@@ -1,14 +1,8 @@
-// npx vitest run src/__tests__/agreement/orchestrator.spec.ts
-import { Ids } from '@goatlab/js-utils'
-import { LLMAdapter } from '../llm/LLMAdapter.js'
-import type { ChatResponse } from '../llm/LLMAdapter.types.js'
-import { modelSelector } from '../llm/ModelSelector.js'
 import {
   AgentRole,
   type AgreementMessage,
   type AgreementSessionConfig,
   AgreementState,
-  type CommitPayload,
   type ConsensusResult,
   type CritiquePayload,
   type VotePayload,
@@ -101,7 +95,9 @@ export class AgreementOrchestrator {
 
   private async handlePropose(proposal: string): Promise<void> {
     const proposer = this.getAgentByRole(AgentRole.PROPOSER)
-    if (!proposer) throw new Error('No proposer agent found')
+    if (!proposer) {
+      throw new Error('No proposer agent found')
+    }
 
     const message = await proposer.execute(proposal, {
       step: AgreementState.PROPOSE,
@@ -173,7 +169,9 @@ export class AgreementOrchestrator {
 
   private calculateConsensus(votes: VotePayload[]): number {
     const totalWeight = votes.reduce((sum, v) => sum + v.weight, 0)
-    if (totalWeight === 0) return 0
+    if (totalWeight === 0) {
+      return 0
+    }
     const approveWeight = votes
       .filter(v => v.vote === 'approve')
       .reduce((sum, v) => sum + v.weight, 0)

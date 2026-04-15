@@ -190,7 +190,7 @@ export class AgreementStepExecutor implements StepExecutor {
 
   private parseAgentResponse(
     content: string,
-    role: AgentRole,
+    _role: AgentRole,
     step: string,
   ): any {
     try {
