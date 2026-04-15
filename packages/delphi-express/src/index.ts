@@ -125,16 +125,23 @@ export function agentsRouter(config: AgentsRouterConfig): Router {
 	if (enabled("startAsync")) {
 		r.post(
 			"/start-async",
-			wrap(async ({ ingestBuffer, tenantId }, req) => {
+			wrap(async ({ engine, ingestBuffer, tenantId }, req) => {
 				if (!ingestBuffer) {
 					throw new Error(
 						"start-async requires resolveAgents to return an ingestBuffer",
 					);
 				}
-				const { runId, traceId } = ingestBuffer.enqueue({
-					...(req.body ?? {}),
-					tenantId,
-				});
+				const trigger = { ...(req.body ?? {}), tenantId };
+				// Durability dispatch: committed workflows block until PG COMMIT,
+				// buffered workflows return as soon as the trigger hits memory.
+				const def = engine
+					.getWorkflows()
+					.get((trigger as { workflowName?: string }).workflowName ?? "");
+				if (def?.durability === "committed") {
+					const { runId, traceId } = await ingestBuffer.enqueueCommitted(trigger);
+					return { runId, traceId, status: "COMMITTED" };
+				}
+				const { runId, traceId } = ingestBuffer.enqueue(trigger);
 				return { runId, traceId, status: "QUEUED" };
 			}),
 		);

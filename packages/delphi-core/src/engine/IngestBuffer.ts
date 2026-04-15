@@ -8,6 +8,8 @@
 import { Ids } from '@goatlab/js-utils'
 import type { TaskConnector } from '@goatlab/tasks-core'
 import type { WorkflowTriggerInput } from '../workflow/WorkflowBuilder.types.js'
+import { BatchedJobProcessor } from './BatchedJobProcessor.js'
+import type { WorkflowEngine } from './WorkflowEngine.js'
 
 /**
  * Minimal "raw bulk queue" shape — covers BullMQ's Queue.addBulk and any
@@ -42,6 +44,20 @@ export interface IngestBufferConfig {
   /** BullMQ job name (default: 'ingest') */
   jobName?: string
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void }
+
+  /**
+   * Optional engine reference. REQUIRED to use enqueueCommitted() — the
+   * committed path bypasses BullMQ and calls engine.startBatchCopy() directly
+   * from the HTTP process so the per-request promise can resolve only after
+   * PG COMMIT. Buffered path ignores this field.
+   */
+  engine?: WorkflowEngine
+  /** Committed-path flush threshold. Default: 100 */
+  committedFlushThreshold?: number
+  /** Committed-path flush interval. Default: 20ms (tighter than buffered — callers are blocked) */
+  committedFlushIntervalMs?: number
+  /** Max concurrent COPY FROM transactions from the HTTP process. Default: 4 */
+  committedMaxConcurrentFlushes?: number
 }
 
 /**
@@ -70,6 +86,16 @@ export class IngestBuffer {
   private readonly rawQueue?: RawBulkQueue
   private readonly logger?: IngestBufferConfig['logger']
 
+  /**
+   * Committed-durability processor. Present only when engine was provided.
+   * Flushes directly via engine.startBatchCopy (bypassing BullMQ) so the
+   * per-enqueue promise resolves only after PG COMMIT.
+   */
+  private readonly committedProcessor?: BatchedJobProcessor<
+    { trigger: WorkflowTriggerInput; traceId: string },
+    { runId: string; traceId: string }
+  >
+
   constructor(config: IngestBufferConfig) {
     if (!config.connector && !config.queue) {
       throw new Error('IngestBuffer requires either { connector + taskName } or { queue }')
@@ -82,6 +108,35 @@ export class IngestBuffer {
     this.maxJitterMs = config.maxJitterMs ?? 20
     this.jobName = config.jobName ?? 'ingest'
     this.logger = config.logger
+
+    if (config.engine) {
+      const engine = config.engine
+      this.committedProcessor = new BatchedJobProcessor({
+        name: 'IngestBuffer.committed',
+        flushThreshold: config.committedFlushThreshold ?? 100,
+        flushIntervalMs: config.committedFlushIntervalMs ?? 20,
+        maxConcurrentFlushes: config.committedMaxConcurrentFlushes ?? 4,
+        logger: config.logger
+          ? { info: config.logger.info, error: config.logger.error }
+          : undefined,
+        flushBatch: async (jobs) => {
+          const triggers = jobs.map(j => j.trigger)
+          // synchronousCommit: true — committed workflows MUST survive a
+          // power loss. COMMIT blocks until WAL fsync; BatchedJobProcessor
+          // amortizes that fsync across every concurrent caller in the batch.
+          //
+          // checkIdempotency: true — committed flows are typically payment-
+          // style (double-submit must NOT charge twice). One SELECT per tenant
+          // before the COPY; deduped triggers return the original runId.
+          const results = await engine.startBatchCopy(triggers, {
+            synchronousCommit: true,
+            checkIdempotency: true,
+          })
+          return results.map((r, i) => ({ runId: r.runId, traceId: jobs[i]!.traceId }))
+        },
+      })
+    }
+
     this.scheduleNext()
   }
 
@@ -107,9 +162,38 @@ export class IngestBuffer {
     return { runId, traceId }
   }
 
+  /**
+   * Accept a trigger with 'committed' durability. Returns a promise that
+   * resolves ONLY after the workflow_runs row has been COPY-FROM'd and
+   * COMMIT'd to Postgres. Throughput stays high because concurrent committed
+   * requests share a COPY transaction via BatchedJobProcessor — each caller
+   * just waits one flush window (~20ms) + COPY time (~10-30ms).
+   *
+   * Requires `engine` to have been passed in config. Throws otherwise.
+   */
+  async enqueueCommitted(
+    trigger: WorkflowTriggerInput,
+  ): Promise<{ runId: string; traceId: string }> {
+    if (this.shuttingDown) {
+      throw new Error('IngestBuffer is shutting down; not accepting new triggers')
+    }
+    if (!this.committedProcessor) {
+      throw new Error(
+        'enqueueCommitted requires IngestBuffer to be constructed with { engine }',
+      )
+    }
+    const runId = trigger.runId ?? Ids.nanoId(21)
+    const traceId = trigger.traceId ?? Ids.nanoId(21)
+    return this.committedProcessor.enqueue({
+      trigger: { ...trigger, runId, traceId },
+      traceId,
+    })
+  }
+
   /** Force a flush now (e.g. on graceful shutdown). */
   async flushNow(): Promise<void> {
     await this.flush()
+    if (this.committedProcessor) await this.committedProcessor.flushNow()
   }
 
   async shutdown(): Promise<void> {
@@ -119,6 +203,7 @@ export class IngestBuffer {
       this.timer = null
     }
     await this.flush()
+    if (this.committedProcessor) await this.committedProcessor.shutdown()
   }
 
   currentDepth(): number {

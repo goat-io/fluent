@@ -53,6 +53,52 @@ That's it. Your app now exposes:
 | `GET /api/workflows/` | List registered workflow definitions |
 | `GET /api/workflows/health` | Router health probe (always 200) |
 
+## Security model (read this before deploying)
+
+**This adapter ships with NO authentication.** Every endpoint delegates to your `resolveAgents(req)` callback — your job is to ensure `req` has already been authenticated by middleware mounted *upstream* of the router. Forgetting this exposes a multi-tenant workflow API to the world.
+
+The contract you must uphold:
+
+1. **Mount auth middleware before the router.** The router never inspects headers, never checks tokens, never enforces anything. If `req.user` isn't populated by the time `resolveAgents` runs, the request is unauthenticated by definition.
+
+2. **Derive `tenantId` from the auth context, NOT from the request body.** The router intentionally spreads `req.body` first and then sets `tenantId` last — so a malicious caller cannot override the auth-derived tenant by stuffing `{"tenantId": "victim"}` in the body. But this only works if YOU pull `tenantId` from the auth context inside `resolveAgents`. Reading it from `req.body.tenantId` would defeat the protection.
+
+3. **Don't expose admin-style endpoints unguarded.** This adapter currently mounts only user-facing endpoints (start, status, cancel, signal, etc.). If you add admin endpoints downstream (worker token issuance, definition mutation, run-replay), gate them with a separate stricter middleware — don't reuse the user resolver.
+
+A correct setup:
+
+```ts
+import express from 'express'
+import { agentsRouter } from '@goatlab/delphi-express'
+import { requireAuth } from './your-auth'   // your code — populates req.user
+
+const app = express()
+app.use(express.json())
+
+// 1. Auth middleware FIRST — fails fast if the request isn't authenticated.
+app.use('/api/workflows', requireAuth)
+
+// 2. Then mount the engine router.
+app.use('/api/workflows', agentsRouter({
+  resolveAgents: async (req) => {
+    // 3. tenantId from req.user (auth context), NOT from req.body.
+    const tenantId = req.user.tenantId
+    const { engine, ingestBuffer } = await myDelphiFactory(tenantId)
+    return { engine, ingestBuffer, tenantId }
+  },
+}))
+```
+
+What's still on you to add upstream:
+
+- **Rate limiting** (e.g., `express-rate-limit`) — `/start-async` accepts as fast as you can POST
+- **CORS** if browsers will call directly (`cors` middleware) — the router doesn't set headers
+- **Body size limits** — long workflow inputs can be abused
+- **Request logging / tracing** — the router emits no access logs
+- **Per-route scopes** — if your auth has scopes, gate `/cancel` and `/signal` more tightly than `/status`
+
+If you don't need a network boundary at all (single Node app calling its own engine), prefer **library mode** — see the [delphi-core README "Library vs service mode" section](../delphi-core/README.md#library-vs-service-mode). You'd skip this package entirely and call the engine in-process, inheriting all your existing auth and middleware for free.
+
 ## Selective routes
 
 Mount only the routes you want:
@@ -156,10 +202,9 @@ When you provide your own schema (via Prisma migrations, pgroll, etc.), **don't*
 
 ## What the adapter does NOT do
 
-- **Authentication**: wire your auth middleware before the router
-- **Tenant resolution**: that's `resolveAgents`'s job
-- **Rate limiting**: add `express-rate-limit` upstream if needed
-- **CORS**: add `cors` upstream if needed
+- **Authentication / authorization** — see "Security model" above
+- **Tenant resolution** — that's `resolveAgents`'s job
+- **Rate limiting / CORS / body limits** — add the matching Express middleware upstream
 
 This package is intentionally small (~200 LOC) — the heavy lifting lives in `@goatlab/delphi-core`.
 

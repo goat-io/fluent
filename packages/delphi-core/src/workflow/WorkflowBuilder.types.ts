@@ -87,6 +87,24 @@ export interface QueryHandler {
   handler: (ctx: StepContext) => JsonObject | Promise<JsonObject>
 }
 
+/**
+ * Durability guarantee for the `/start-async` ingest path.
+ *
+ * - 'buffered' (default): HTTP returns as soon as the trigger is in the
+ *   in-memory IngestBuffer. Flush to Redis (addBulk) and PG (COPY FROM)
+ *   happen asynchronously. Fastest — ~1-2ms responses, ~2k req/s/process —
+ *   but if the HTTP process crashes inside the flush window (<= ~70ms),
+ *   the request is lost.
+ *
+ * - 'committed': HTTP returns only after the workflow_runs row has been
+ *   COPY-FROM'd and COMMIT'd to Postgres. Still batched (amortized COPY
+ *   across concurrent committed requests via BatchedJobProcessor), so
+ *   throughput stays high — but each caller waits one flush window + COPY
+ *   time (~30-80ms typical). Use for critical flows where "accepted" must
+ *   mean "durable on disk" (payments, financial ops, anything irreversible).
+ */
+export type WorkflowDurability = 'buffered' | 'committed'
+
 export interface WorkflowDefinition {
   name: string
   version: string
@@ -99,6 +117,8 @@ export interface WorkflowDefinition {
   queries?: Record<string, QueryHandler>
   onComplete?: (ctx: StepContext) => Promise<void>
   onFail?: (ctx: StepContext, error: Error) => Promise<void>
+  /** Ingestion durability guarantee. Default: 'buffered'. */
+  durability?: WorkflowDurability
 }
 
 // ── Workflow Triggers ──────────────────────────────────────────────

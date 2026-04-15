@@ -1,6 +1,27 @@
 #!/usr/bin/env tsx
 /**
- * Test backend server for Playwright E2E tests and k6 load tests.
+ * ┌───────────────────────────────────────────────────────────────────────────┐
+ * │  ⚠  NOT FOR PRODUCTION — TEST HARNESS ONLY                                │
+ * ├───────────────────────────────────────────────────────────────────────────┤
+ * │  This file exists to drive Playwright E2E tests and k6 load tests against │
+ * │  a real engine + Postgres + Redis + BullMQ. It is INTENTIONALLY missing   │
+ * │  every safety control a real deployment needs:                            │
+ * │                                                                           │
+ * │    • NO authentication       (no bearer token, no API key, no session)    │
+ * │    • Hardcoded tenant        (TENANT='e2e-ui-tenant', no isolation)       │
+ * │    • Open CORS               (Access-Control-Allow-Origin: *)             │
+ * │    • Open admin endpoints    (/workers/generate-token mints worker        │
+ * │                               tokens for ANYONE who can hit the port)     │
+ * │    • No rate limiting        (a single client can saturate the engine)    │
+ * │    • No input validation     (req.body flows raw into engine handlers)    │
+ * │    • Test-friendly PG knobs  (full prod tuning lives in startContainers)  │
+ * │                                                                           │
+ * │  DO NOT copy this file into a production deployment. For the production   │
+ * │  shape, use library mode (call the engine in-process inside your already- │
+ * │  authenticated handlers — see packages/delphi-core/README.md "Library vs  │
+ * │  service mode") or @goatlab/delphi-express with auth middleware mounted   │
+ * │  in front (see that package's README "Security model" section).           │
+ * └───────────────────────────────────────────────────────────────────────────┘
  *
  * Starts: Postgres (testcontainer) + Redis (testcontainer) + HTTP API + BullMQ workers
  *
@@ -10,6 +31,7 @@
  *   PG_POOL_SIZE=50      Postgres connection pool size
  *   WORKER_CONCURRENCY=50  BullMQ worker concurrency per queue
  *   DISABLE_LOG_BUFFER=false  Set to 'true' for synchronous log writes
+ *   CLUSTER_MODE=auto|off|<N>  Number of cluster workers (default auto = cores-1)
  */
 import http from 'node:http'
 import cluster from 'node:cluster'
@@ -59,7 +81,13 @@ function desiredClusterWorkers(): number {
 }
 
 async function startContainers() {
-  console.log('  📦 Starting Postgres...')
+  console.log('  📦 Starting Postgres (production-like: fsync=on, synchronous_commit=on)...')
+  // Production-like PG config: fsync ON, synchronous_commit ON, full_page_writes ON.
+  // This makes the durability story honest — the 'committed' path actually waits
+  // for WAL fsync, and the buffered path's downstream IngestWorker COPY FROM does
+  // too. Buffered HTTP latency is unaffected (HTTP returns before the COPY runs)
+  // but ingest drain rate is. wal_level=minimal / max_wal_senders=0 kept — no
+  // replicas in this harness, and minimal WAL is valid for single-primary prod.
   const pgContainer = await new PostgreSqlContainer('postgres:18-alpine')
     .withDatabase('agents_e2e_ui')
     .withCommand([
@@ -67,11 +95,8 @@ async function startContainers() {
       '-c', 'max_connections=200',
       '-c', 'shared_buffers=256MB',
       '-c', 'work_mem=16MB',
-      '-c', 'synchronous_commit=off',
       '-c', 'wal_level=minimal',
       '-c', 'max_wal_senders=0',
-      '-c', 'fsync=off',
-      '-c', 'full_page_writes=off',
     ])
     .start()
   console.log('  📦 Starting Redis...')
@@ -178,6 +203,16 @@ async function main() {
     .step('work', { executorType: 'function', executorConfig: { handler: 'fast_echo' } })
     .build()
 
+  // Payment-critical: durability='committed' — HTTP blocks until PG COMMIT.
+  // Used by loadtest/k6-workflow-committed.js to measure sustainable throughput
+  // of the committed path vs the buffered fast_single path.
+  const paymentCritical = WorkflowBuilder.create('payment_critical')
+    .version('1.0.0')
+    .defaultRetries(0)
+    .durability('committed')
+    .step('charge', { executorType: 'function', executorConfig: { handler: 'fast_echo' } })
+    .build()
+
   // Fast 3-step chain (for pipeline throughput)
   const fastChain = WorkflowBuilder.create('fast_chain')
     .version('1.0.0')
@@ -211,6 +246,7 @@ async function main() {
       ['demo_pipeline', demoWorkflow],
       ['fast_single', fastWorkflow],
       ['fast_chain', fastChain],
+      ['payment_critical', paymentCritical],
     ]),
     tenantId: TENANT,
     disableLogBuffering: DISABLE_LOG_BUFFER,
@@ -242,6 +278,13 @@ async function main() {
     flushIntervalMs: 50,
     maxJitterMs: 20,
     logger: console,
+    // Engine reference enables the 'committed' durability path:
+    // enqueueCommitted() flushes directly via engine.startBatchCopy() from the
+    // HTTP process so the per-request promise resolves only after PG COMMIT.
+    engine,
+    committedFlushThreshold: 100,
+    committedFlushIntervalMs: 20,
+    committedMaxConcurrentFlushes: Math.max(2, Math.floor(PG_POOL_SIZE / 4)),
   })
 
   const workerHandle = await connector.listen({
@@ -287,12 +330,20 @@ async function main() {
       } else if (path === '/workflows/start') {
         result = await handlers.start({ ...body, tenantId: TENANT })
       } else if (path === '/workflows/start-async') {
-        // Queue-first ingestion: buffer → addBulk → IngestWorker → COPY FROM.
-        // IngestBuffer assigns runId + traceId at the HTTP boundary and returns
-        // them synchronously so callers can correlate spans before PG commits.
+        // Dispatch by workflow.durability:
+        //  - 'committed' (e.g. payment_critical) → block until PG COMMIT via
+        //    enqueueCommitted() — batched COPY FROM from the HTTP process.
+        //  - 'buffered' or unset → return as soon as the trigger hits memory
+        //    (fast path: ~1-2ms, PG write happens downstream in IngestWorker).
         const trigger = { ...body, tenantId: TENANT }
-        const { runId, traceId } = ingestBuffer.enqueue(trigger)
-        result = { runId, traceId, status: 'QUEUED' }
+        const def = engine.getWorkflows().get(trigger.workflowName)
+        if (def?.durability === 'committed') {
+          const { runId, traceId } = await ingestBuffer.enqueueCommitted(trigger)
+          result = { runId, traceId, status: 'COMMITTED' }
+        } else {
+          const { runId, traceId } = ingestBuffer.enqueue(trigger)
+          result = { runId, traceId, status: 'QUEUED' }
+        }
       } else if (path === '/workflows/start-batch') {
         const workflows = (body.workflows || []).map((w: any) => ({ ...w, tenantId: TENANT }))
         result = await handlers.startBatch({ workflows })
@@ -376,7 +427,7 @@ async function main() {
   server.listen(PORT, () => {
     console.log(`\n✅ Test backend ready on http://localhost:${PORT}`)
     console.log(`   Tenant: ${TENANT}`)
-    console.log(`   Workflows: demo_pipeline (5 steps), fast_single (1 step), fast_chain (3 steps)`)
+    console.log(`   Workflows: demo_pipeline (5 steps), fast_single (1 step), fast_chain (3 steps), payment_critical (1 step, committed)`)
     console.log(`   Review step pauses for human approval\n`)
   })
 

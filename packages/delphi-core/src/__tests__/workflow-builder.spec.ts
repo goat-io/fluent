@@ -169,6 +169,32 @@ describe('WorkflowBuilder', () => {
       expect(step.mapInput).toBe(mapInput)
     })
 
+    it('defaults durability to undefined (= buffered)', () => {
+      const wf = WorkflowBuilder.create('test')
+        .step('a', { executorType: 'function', executorConfig: {} })
+        .build()
+
+      expect(wf.durability).toBeUndefined()
+    })
+
+    it('sets durability to "committed"', () => {
+      const wf = WorkflowBuilder.create('payment')
+        .durability('committed')
+        .step('charge', { executorType: 'function', executorConfig: {} })
+        .build()
+
+      expect(wf.durability).toBe('committed')
+    })
+
+    it('sets durability to "buffered" explicitly', () => {
+      const wf = WorkflowBuilder.create('event')
+        .durability('buffered')
+        .step('process', { executorType: 'function', executorConfig: {} })
+        .build()
+
+      expect(wf.durability).toBe('buffered')
+    })
+
     it('returns immutable steps array', () => {
       const wf = WorkflowBuilder.create('test')
         .step('a', { executorType: 'function', executorConfig: {} })

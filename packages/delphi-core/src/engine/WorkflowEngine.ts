@@ -441,12 +441,61 @@ export class WorkflowEngine {
    *
    * COPY FROM bypasses the INSERT planner and uses optimized buffer/lock handling.
    * Hatchet reports 63-92k writes/sec with this approach.
+   *
+   * @param opts.synchronousCommit  When true, the COPY transaction uses
+   *   synchronous_commit=ON — COMMIT blocks until the WAL is fsync'd to disk.
+   *   REQUIRED for workflows with durability='committed': otherwise the HTTP
+   *   200 can race ahead of the actual disk flush and a crash would lose the
+   *   "committed" row. Default false preserves the batched-ingest fast path
+   *   (IngestWorker → COPY) where HTTP has already returned — losing a few
+   *   in-flight rows is the explicit tradeoff of that path.
+   *
+   * @param opts.checkIdempotency  When true, pre-fetch existing rows by
+   *   (tenantId, idempotencyKey) and dedupe both against PG and within the
+   *   current batch (first-wins). Deduped triggers receive the original
+   *   runId in the result and skip both the COPY and the step dispatch —
+   *   no duplicate run, no duplicate side-effects. REQUIRED for committed
+   *   payment-style flows where double-submit would charge twice. Default
+   *   false preserves buffered fast-path behavior (no extra SELECT
+   *   roundtrip per batch).
    */
-  async startBatchCopy(triggers: WorkflowTriggerInput[]): Promise<Array<{ runId: string }>> {
+  async startBatchCopy(
+    triggers: WorkflowTriggerInput[],
+    opts?: { synchronousCommit?: boolean; checkIdempotency?: boolean },
+  ): Promise<Array<{ runId: string }>> {
     if (!this.config.pgPool || triggers.length === 0) {
       return this.startBatch(triggers)
     }
 
+    // Idempotency pre-check: one SELECT per tenant collecting all existing
+    // (tenantId, idempotencyKey) → runId mappings. Cheap (indexed) and runs
+    // BEFORE the COPY transaction so we can short-circuit dupes entirely.
+    const existingByKey = new Map<string, string>() // "tenantId|key" → runId
+    if (opts?.checkIdempotency) {
+      const keysByTenant = new Map<string, Set<string>>()
+      for (const t of triggers) {
+        if (!t.idempotencyKey) continue
+        let set = keysByTenant.get(t.tenantId)
+        if (!set) { set = new Set(); keysByTenant.set(t.tenantId, set) }
+        set.add(t.idempotencyKey)
+      }
+      for (const [tenantId, keys] of keysByTenant) {
+        const rows = await this.db
+          .selectFrom('workflow_runs')
+          .select(['id', 'idempotencyKey'])
+          .where('tenantId', '=', tenantId)
+          .where('idempotencyKey', 'in', [...keys])
+          .execute()
+        for (const r of rows) {
+          if (r.idempotencyKey) existingByKey.set(`${tenantId}|${r.idempotencyKey}`, r.id)
+        }
+      }
+    }
+
+    // Parallel output array — index-aligned with triggers so deduped slots
+    // can be filled without disturbing the COPY/dispatch order of the rest.
+    const finalRunIds: string[] = new Array(triggers.length)
+    const seenInBatch = new Map<string, string>() // first-wins within this flush
     const results: Array<{ runId: string; stepRows: any[]; definition: WorkflowDefinition; trigger: WorkflowTriggerInput; traceId: string }> = []
     const runLines: string[] = []
     const stepLines: string[] = []
@@ -460,11 +509,27 @@ export class WorkflowEngine {
     const budgetEsc = this.cachedBudgetEsc
     const budgetUsedEsc = this.cachedBudgetUsedEsc!
 
-    for (const trigger of triggers) {
+    for (let i = 0; i < triggers.length; i++) {
+      const trigger = triggers[i]!
       const definition = this.config.workflows.get(trigger.workflowName)
       if (!definition) throw new WorkflowNotFoundError(trigger.workflowName)
 
+      // Dedupe against PG and within-batch. First occurrence in the batch
+      // wins so a flurry of identical-key retries collapses to one COPY.
+      if (opts?.checkIdempotency && trigger.idempotencyKey) {
+        const k = `${trigger.tenantId}|${trigger.idempotencyKey}`
+        const dedupedTo = existingByKey.get(k) ?? seenInBatch.get(k)
+        if (dedupedTo) {
+          finalRunIds[i] = dedupedTo
+          continue
+        }
+      }
+
       const runId = trigger.runId ?? Ids.nanoId(21)
+      finalRunIds[i] = runId
+      if (opts?.checkIdempotency && trigger.idempotencyKey) {
+        seenInBatch.set(`${trigger.tenantId}|${trigger.idempotencyKey}`, runId)
+      }
       const now = new Date().toISOString()
       const rootNames = new Set(definition.steps.filter(s => !s.dependsOn?.length).map(s => s.name))
 
@@ -563,6 +628,13 @@ export class WorkflowEngine {
       results.push({ runId, stepRows: localStepRows, definition, trigger, traceId })
     }
 
+    // Short-circuit: every trigger was deduplicated by idempotency. No new
+    // rows to COPY, no new steps to dispatch — original runs already have
+    // their own state machine running. Return the resolved runIds.
+    if (runLines.length === 0) {
+      return finalRunIds.map(id => ({ runId: id }))
+    }
+
     // Execute COPY FROM for both tables in one atomic transaction.
     // Sequential on the same client — a Postgres session can only hold one
     // COPY stream at a time. FK from workflow_steps → workflow_runs requires
@@ -571,8 +643,11 @@ export class WorkflowEngine {
     const tBegin = performance.now()
     try {
       // Combine BEGIN + SET LOCAL into one roundtrip (saves ~15-40ms per flush
-      // under the Docker VM and ~2-5ms on native PG)
-      await client.query('BEGIN; SET LOCAL synchronous_commit = OFF;')
+      // under the Docker VM and ~2-5ms on native PG).
+      // synchronous_commit honors opts.synchronousCommit — callers serving
+      // durability='committed' workflows pass true so COMMIT blocks on fsync.
+      const commitMode = opts?.synchronousCommit ? 'ON' : 'OFF'
+      await client.query(`BEGIN; SET LOCAL synchronous_commit = ${commitMode};`)
       const tAfterBegin = performance.now()
 
       const { from: copyFrom } = await import('pg-copy-streams')
@@ -634,7 +709,11 @@ export class WorkflowEngine {
     }
     await this.dispatchStepsBulk(dispatchItems)
 
-    return results.map(r => ({ runId: r.runId }))
+    // finalRunIds is index-aligned with the input triggers — slots filled by
+    // the dedup short-circuit hold the original runId; everything else holds
+    // the freshly-COPY'd runId. results-derived dispatch only covered the
+    // freshly-COPY'd subset, which is correct.
+    return finalRunIds.map(id => ({ runId: id }))
   }
 
   // ── Step Running ───────────────────────────────────────────────

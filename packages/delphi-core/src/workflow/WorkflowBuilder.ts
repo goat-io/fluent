@@ -8,6 +8,7 @@ import type {
   StepContext,
   StepDefinition,
   WorkflowDefinition,
+  WorkflowDurability,
   WorkflowTrigger,
 } from './WorkflowBuilder.types.js'
 
@@ -25,6 +26,7 @@ export class WorkflowBuilder {
   private _queries: Record<string, QueryHandler> = {}
   private _onComplete?: (ctx: StepContext) => Promise<void>
   private _onFail?: (ctx: StepContext, error: Error) => Promise<void>
+  private _durability?: WorkflowDurability
 
   private constructor(name: string) {
     this._name = name
@@ -51,6 +53,21 @@ export class WorkflowBuilder {
 
   failFast(enabled = true): this {
     this._failFast = enabled
+    return this
+  }
+
+  /**
+   * Set the ingest durability guarantee for this workflow.
+   *
+   * 'buffered' (default): HTTP returns ~1-2ms after trigger hits the in-memory
+   * buffer. Small crash window before the batch flushes to PG.
+   *
+   * 'committed': HTTP blocks until the workflow_runs row is COMMITTED to PG.
+   * Batched via BatchedJobProcessor so throughput stays high; use for payments
+   * and other "must be durable before we acknowledge" flows.
+   */
+  durability(d: WorkflowDurability): this {
+    this._durability = d
     return this
   }
 
@@ -108,6 +125,7 @@ export class WorkflowBuilder {
         Object.keys(this._queries).length > 0 ? { ...this._queries } : undefined,
       onComplete: this._onComplete,
       onFail: this._onFail,
+      durability: this._durability,
     }
   }
 

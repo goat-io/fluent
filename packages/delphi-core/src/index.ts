@@ -15,6 +15,7 @@ export type {
   StepResult,
   StepStatus,
   WorkflowDefinition,
+  WorkflowDurability,
   WorkflowStatus,
   WorkflowTrigger,
   WorkflowTriggerInput,
