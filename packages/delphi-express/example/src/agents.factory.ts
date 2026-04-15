@@ -6,14 +6,15 @@
 import {
 	type Database as AgentsDB,
 	EventIngestionService,
-	FunctionStepExecutor,
-	IngestBuffer,
+	FunctionStep,
 	IngestWorker,
+	type JsonObject,
 	type StepPayload,
-	type StepResult,
-	WorkflowBuilder,
-	WorkflowEngine,
+	type TypedEngine,
+	Workflow,
 	WorkflowStepTask,
+	createEngine,
+	step,
 } from "@goatlab/delphi-core";
 import { RedisRealtimeBroker } from "@goatlab/realtime-broker";
 import { BullMQConnector } from "@goatlab/tasks-adapter-bullmq";
@@ -24,9 +25,61 @@ const TENANT_ID = process.env.TENANT_ID ?? "demo-tenant";
 const POOL_SIZE = parseInt(process.env.PG_POOL_SIZE ?? "20", 10);
 const WORKER_CONC = parseInt(process.env.WORKER_CONCURRENCY ?? "50", 10);
 
+// ── Step classes (the work — typed inputs/outputs, no string handler refs) ──
+
+class EchoStep extends FunctionStep<JsonObject, { echoed: boolean; step: string; ts: number }, "echo"> {
+	stepName = "echo" as const;
+	async handle() {
+		return { output: { echoed: true, step: this.stepName, ts: Date.now() } };
+	}
+}
+
+class ChainAStep extends FunctionStep<JsonObject, { chained: boolean; at: "a"; ts: number }, "a"> {
+	stepName = "a" as const;
+	async handle() {
+		return { output: { chained: true, at: "a" as const, ts: Date.now() } };
+	}
+}
+class ChainBStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: "b"; ts: number }, "b"> {
+	stepName = "b" as const;
+	async handle() {
+		return { output: { chained: true, at: "b" as const, ts: Date.now() } };
+	}
+}
+class ChainCStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: "c"; ts: number }, "c"> {
+	stepName = "c" as const;
+	async handle() {
+		return { output: { chained: true, at: "c" as const, ts: Date.now() } };
+	}
+}
+
+const echoStep = new EchoStep();
+const chainA = new ChainAStep();
+const chainB = new ChainBStep();
+const chainC = new ChainCStep();
+
+// ── Workflow classes (DAGs over step instances) ───────────────────
+
+class FastSingleWorkflow extends Workflow<JsonObject, "fast_single"> {
+	workflowName = "fast_single" as const;
+	override defaultRetries = 0;
+	steps = [step(echoStep)] as const;
+}
+
+class FastChainWorkflow extends Workflow<JsonObject, "fast_chain"> {
+	workflowName = "fast_chain" as const;
+	override defaultRetries = 0;
+	steps = [
+		step(chainA),
+		step(chainB, { dependsOn: [chainA], mapInput: (up) => ({ from: up.a }) }),
+		step(chainC, { dependsOn: [chainB], mapInput: (up) => ({ from: up.b }) }),
+	] as const;
+}
+
+type AgentsEngine = TypedEngine<readonly [FastSingleWorkflow, FastChainWorkflow]>;
+
 let cached: Promise<{
-	engine: WorkflowEngine;
-	ingestBuffer: IngestBuffer;
+	engine: AgentsEngine;
 	pool: pg.Pool;
 	connector: BullMQConnector;
 	broker: RedisRealtimeBroker;
@@ -64,61 +117,14 @@ export async function getAgents() {
 			},
 		});
 
-		// Step handlers — register your business logic here
-		const executor = new FunctionStepExecutor();
-		executor.register(
-			"echo",
-			async (p: StepPayload): Promise<StepResult> => ({
-				output: { echoed: true, step: p.stepName, ts: Date.now() },
-			}),
-		);
-		executor.register(
-			"chain",
-			async (p: StepPayload): Promise<StepResult> => ({
-				output: { chained: true, input: p.input, ts: Date.now() },
-			}),
-		);
-
-		// Workflow definitions
-		const fastSingle = WorkflowBuilder.create("fast_single")
-			.version("1.0.0")
-			.defaultRetries(0)
-			.step("work", {
-				executorType: "function",
-				executorConfig: { handler: "echo" },
-			})
-			.build();
-
-		const fastChain = WorkflowBuilder.create("fast_chain")
-			.version("1.0.0")
-			.defaultRetries(0)
-			.step("a", {
-				executorType: "function",
-				executorConfig: { handler: "chain" },
-			})
-			.step("b", {
-				dependsOn: ["a"],
-				executorType: "function",
-				executorConfig: { handler: "chain" },
-				mapInput: (u) => ({ from: u.a }),
-			})
-			.step("c", {
-				dependsOn: ["b"],
-				executorType: "function",
-				executorConfig: { handler: "chain" },
-				mapInput: (u) => ({ from: u.b }),
-			})
-			.build();
-
-		const engine = new WorkflowEngine({
+		// createEngine wires up FunctionStepExecutor + IngestBuffer internally
+		// and auto-registers each step class's handle() method. The returned
+		// engine has typed `.fast_single` / `.fast_chain` properties.
+		const engine = createEngine({
+			workflows: [new FastSingleWorkflow(), new FastChainWorkflow()] as const,
 			db,
 			pgPool: pool,
 			connector,
-			executors: new Map([["function", executor]]),
-			workflows: new Map([
-				["fast_single", fastSingle],
-				["fast_chain", fastChain],
-			]),
 			tenantId: TENANT_ID,
 			schema: "agents", // engine tables live in the `agents` PG schema
 			eventIngestion: new EventIngestionService({ db }),
@@ -126,12 +132,15 @@ export async function getAgents() {
 			// Fires AFTER each PG state-transition write commits — subscribers can
 			// immediately query PG and see the new state.
 			onEngineEvent: (evt) => {
-				// Per-run channel for granular subscriptions
 				broker
 					.publish(evt.tenantId, `engine:run:${evt.runId}`, evt)
 					.catch(() => {});
-				// Tenant-wide firehose for dashboards
 				broker.publish(evt.tenantId, `engine:tenant`, evt).catch(() => {});
+			},
+			ingest: {
+				flushThreshold: 200,
+				flushIntervalMs: 50,
+				maxJitterMs: 20,
 			},
 		});
 
@@ -140,16 +149,6 @@ export async function getAgents() {
 			flushThreshold: 200,
 			flushIntervalMs: 20,
 			maxConcurrentFlushes: 8,
-		});
-		const ingestBuffer = new IngestBuffer({
-			// Backend-agnostic: TaskConnector.bulkQueue is used when the adapter
-			// implements it (BullMQ does, via addBulk). Falls back to a queue()
-			// loop for adapters that don't.
-			connector,
-			taskName: "workflow_ingest",
-			flushThreshold: 200,
-			flushIntervalMs: 50,
-			maxJitterMs: 20,
 		});
 
 		const stepTask = new WorkflowStepTask(engine);
@@ -187,15 +186,15 @@ export async function getAgents() {
 			],
 		});
 
-		return { engine, ingestBuffer, pool, connector, broker };
+		return { engine, pool, connector, broker };
 	})();
 	return cached;
 }
 
 export async function shutdownAgents() {
 	if (!cached) return;
-	const { engine, ingestBuffer, pool, connector, broker } = await cached;
-	await ingestBuffer.shutdown();
+	const { engine, pool, connector, broker } = await cached;
+	await engine.ingestBuffer.shutdown();
 	await engine.shutdown();
 	await broker.close();
 	await connector.close();
