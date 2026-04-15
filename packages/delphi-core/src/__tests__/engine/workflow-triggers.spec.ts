@@ -1,12 +1,16 @@
 // npx vitest run src/__tests__/engine/workflow-triggers.spec.ts
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
+import type { Database } from '../../entities/Database.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 function createMockConnector() {
@@ -14,7 +18,10 @@ function createMockConnector() {
   return {
     connector: {
       queue: async (params: any) => {
-        queuedJobs.push({ taskName: params.taskName, taskBody: params.taskBody })
+        queuedJobs.push({
+          taskName: params.taskName,
+          taskBody: params.taskBody,
+        })
         return {
           id: params.uniqueTaskName,
           name: params.taskName,
@@ -59,9 +66,12 @@ describe('Workflow Triggers', () => {
     await truncateAll(db)
 
     executor = new FunctionStepExecutor()
-    executor.register('echo', async (payload: StepPayload): Promise<StepResult> => {
-      return { output: { echoed: true, input: payload.input } }
-    })
+    executor.register(
+      'echo',
+      async (payload: StepPayload): Promise<StepResult> => {
+        return { output: { echoed: true, input: payload.input } }
+      },
+    )
   })
 
   function createEngine(
@@ -86,7 +96,10 @@ describe('Workflow Triggers', () => {
     const definition = WorkflowBuilder.create('triggered-wf')
       .trigger({ eventType: 'github.push' })
       .trigger({ eventType: 'github.pr.opened', type: 'event' })
-      .step('s1', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('s1', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
     expect(definition.triggers).toBeDefined()
@@ -106,10 +119,16 @@ describe('Workflow Triggers', () => {
 
     const definition = WorkflowBuilder.create('deploy-on-push')
       .trigger({ eventType: 'github.push' })
-      .step('deploy', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('deploy', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
-    const { engine, queuedJobs } = createEngine([definition], eventIngestion)
+    const { engine: _engine, queuedJobs } = createEngine(
+      [definition],
+      eventIngestion,
+    )
 
     await eventIngestion.ingest({
       eventType: 'github.push',
@@ -136,12 +155,18 @@ describe('Workflow Triggers', () => {
     const definition = WorkflowBuilder.create('transform-wf')
       .trigger({
         eventType: 'github.push',
-        mapTriggerInput: (payload) => ({ ref: payload.branch, commit: payload.sha }),
+        mapTriggerInput: payload => ({
+          ref: payload.branch,
+          commit: payload.sha,
+        }),
       })
-      .step('s1', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('s1', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
-    const { engine } = createEngine([definition], eventIngestion)
+    const { engine: _engine } = createEngine([definition], eventIngestion)
 
     await eventIngestion.ingest({
       eventType: 'github.push',
@@ -168,12 +193,15 @@ describe('Workflow Triggers', () => {
     const definition = WorkflowBuilder.create('filtered-wf')
       .trigger({
         eventType: 'github.push',
-        filter: (payload) => payload.branch === 'main',
+        filter: payload => payload.branch === 'main',
       })
-      .step('s1', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('s1', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
-    const { engine } = createEngine([definition], eventIngestion)
+    const { engine: _engine } = createEngine([definition], eventIngestion)
 
     // Ingest event that does NOT match filter
     await eventIngestion.ingest({
@@ -197,10 +225,13 @@ describe('Workflow Triggers', () => {
 
     const definition = WorkflowBuilder.create('idempotent-wf')
       .trigger({ eventType: 'github.push' })
-      .step('s1', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('s1', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
-    const { engine } = createEngine([definition], eventIngestion)
+    const { engine: _engine } = createEngine([definition], eventIngestion)
 
     const event = {
       eventType: 'github.push',
@@ -227,15 +258,21 @@ describe('Workflow Triggers', () => {
 
     const defA = WorkflowBuilder.create('wf-a')
       .trigger({ eventType: 'github.push' })
-      .step('s1', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('s1', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
     const defB = WorkflowBuilder.create('wf-b')
       .trigger({ eventType: 'github.push' })
-      .step('s1', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('s1', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
-    const { engine } = createEngine([defA, defB], eventIngestion)
+    const { engine: _engine } = createEngine([defA, defB], eventIngestion)
 
     await eventIngestion.ingest({
       eventType: 'github.push',

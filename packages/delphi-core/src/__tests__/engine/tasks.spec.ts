@@ -3,14 +3,15 @@
 // Integration tests for TaskManager — real Postgres via testcontainers.
 // Tests CRUD, FOR UPDATE SKIP LOCKED concurrency, retry lifecycle, and aggregation.
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { TaskManager } from '../../engine/TaskManager.js'
+import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
+import type { Database } from '../../entities/Database.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type { StepResult } from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 function createMockConnector() {
@@ -18,10 +19,32 @@ function createMockConnector() {
   return {
     connector: {
       queue: async (params: any) => {
-        queuedJobs.push({ taskName: params.taskName, taskBody: params.taskBody })
-        return { id: params.uniqueTaskName, name: params.taskName, status: 'QUEUED', output: '', attempts: 0, created: new Date().toISOString(), nextRun: null, nextRunMinutes: null }
+        queuedJobs.push({
+          taskName: params.taskName,
+          taskBody: params.taskBody,
+        })
+        return {
+          id: params.uniqueTaskName,
+          name: params.taskName,
+          status: 'QUEUED',
+          output: '',
+          attempts: 0,
+          created: new Date().toISOString(),
+          nextRun: null,
+          nextRunMinutes: null,
+        }
       },
-      getStatus: async () => ({ id: '', name: '', status: 'QUEUED' as const, output: '', attempts: 0, created: '', nextRun: null, nextRunMinutes: null, payload: {} }),
+      getStatus: async () => ({
+        id: '',
+        name: '',
+        status: 'QUEUED' as const,
+        output: '',
+        attempts: 0,
+        created: '',
+        nextRun: null,
+        nextRunMinutes: null,
+        payload: {},
+      }),
       forTenant: () => null as any,
     } as any,
     queuedJobs,
@@ -46,22 +69,31 @@ describe('TaskManager', () => {
   })
 
   // Helper: create a real workflow run via the engine so all columns are populated
-  async function startRun(): Promise<{ engine: WorkflowEngine; runId: string }> {
+  async function startRun(): Promise<{
+    engine: WorkflowEngine
+    runId: string
+  }> {
     const executor = new FunctionStepExecutor()
     executor.register('noop', async (): Promise<StepResult> => ({ output: {} }))
     const { connector } = createMockConnector()
     const wf = WorkflowBuilder.create('task-test')
-      .step('s1', { executorType: 'function', executorConfig: { handler: 'noop' } })
+      .step('s1', {
+        executorType: 'function',
+        executorConfig: { handler: 'noop' },
+      })
       .build()
     const engine = new WorkflowEngine({
-      db, connector,
+      db,
+      connector,
       executors: new Map([['function', executor]]),
       workflows: new Map([[wf.name, wf]]),
       tenantId: 'test-tenant',
       disableLogBuffering: true,
     })
     const { runId } = await engine.start({
-      workflowName: 'task-test', tenantId: 'test-tenant', input: {},
+      workflowName: 'task-test',
+      tenantId: 'test-tenant',
+      input: {},
     })
     return { engine, runId }
   }
@@ -80,7 +112,8 @@ describe('TaskManager', () => {
       expect(ids).toHaveLength(3)
 
       // Verify directly in DB
-      const rows = await db.selectFrom('workflow_tasks')
+      const rows = await db
+        .selectFrom('workflow_tasks')
         .selectAll()
         .where('workflowRunId', '=', runId)
         .where('stepName', '=', 'process')
@@ -100,8 +133,11 @@ describe('TaskManager', () => {
         { payload: { x: 1 }, priority: 10, maxRetries: 5 },
       ])
 
-      const row = await db.selectFrom('workflow_tasks')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      const row = await db
+        .selectFrom('workflow_tasks')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
 
       expect(row.priority).toBe(10)
       expect(row.maxRetries).toBe(5)
@@ -113,7 +149,8 @@ describe('TaskManager', () => {
       const ids = await tm.createTasks(runId, 'step1', [])
       expect(ids).toEqual([])
 
-      const count = await db.selectFrom('workflow_tasks')
+      const count = await db
+        .selectFrom('workflow_tasks')
         .where('workflowRunId', '=', runId)
         .select(db.fn.countAll().as('n'))
         .executeTakeFirstOrThrow()
@@ -133,7 +170,10 @@ describe('TaskManager', () => {
       const { runId: runId2 } = await startRun()
 
       await tm.createTasks(runId, 'step-a', [{ payload: { a: 1 } }])
-      await tm.createTasks(runId, 'step-b', [{ payload: { b: 1 } }, { payload: { b: 2 } }])
+      await tm.createTasks(runId, 'step-b', [
+        { payload: { b: 1 } },
+        { payload: { b: 2 } },
+      ])
       await tm.createTasks(runId2, 'step-a', [{ payload: { other: true } }])
 
       const tasksA = await tm.getTasks(runId, 'step-a')
@@ -179,10 +219,10 @@ describe('TaskManager', () => {
       const stats = await tm.getTaskStats(runId, 'step1')
       expect(stats).toEqual({
         total: 4,
-        pending: 1,   // ids[3]
-        running: 1,   // ids[0]
-        completed: 1,  // ids[1]
-        failed: 1,    // ids[2]
+        pending: 1, // ids[3]
+        running: 1, // ids[0]
+        completed: 1, // ids[1]
+        failed: 1, // ids[2]
       })
     })
   })
@@ -259,8 +299,11 @@ describe('TaskManager', () => {
       await tm.markTaskRunning(id)
       await tm.markTaskCompleted(id, { answer: 42 })
 
-      const row = await db.selectFrom('workflow_tasks')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      const row = await db
+        .selectFrom('workflow_tasks')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
       expect(row.status).toBe('completed')
       expect(JSON.parse(row.result!)).toEqual({ answer: 42 })
     })
@@ -271,8 +314,11 @@ describe('TaskManager', () => {
 
       await tm.markTaskRunning(id)
       await tm.markTaskFailed(id, 'err1')
-      let row = await db.selectFrom('workflow_tasks')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      let row = await db
+        .selectFrom('workflow_tasks')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
       expect(row.attempt).toBe(1)
       expect(row.error).toBe('err1')
 
@@ -280,28 +326,38 @@ describe('TaskManager', () => {
       await tm.retryTask(id)
       await tm.markTaskRunning(id)
       await tm.markTaskFailed(id, 'err2')
-      row = await db.selectFrom('workflow_tasks')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      row = await db
+        .selectFrom('workflow_tasks')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
       expect(row.attempt).toBe(2)
       expect(row.error).toBe('err2')
     })
 
     it('retryTask resets to pending if under maxRetries', async () => {
       const { runId } = await startRun()
-      const [id] = await tm.createTasks(runId, 's', [{ payload: {}, maxRetries: 3 }])
+      const [id] = await tm.createTasks(runId, 's', [
+        { payload: {}, maxRetries: 3 },
+      ])
       await tm.markTaskRunning(id)
       await tm.markTaskFailed(id, 'transient')
       await tm.retryTask(id)
 
-      const row = await db.selectFrom('workflow_tasks')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      const row = await db
+        .selectFrom('workflow_tasks')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
       expect(row.status).toBe('pending')
       expect(row.error).toBeNull()
     })
 
     it('retryTask throws when maxRetries exceeded', async () => {
       const { runId } = await startRun()
-      const [id] = await tm.createTasks(runId, 's', [{ payload: {}, maxRetries: 1 }])
+      const [id] = await tm.createTasks(runId, 's', [
+        { payload: {}, maxRetries: 1 },
+      ])
       await tm.markTaskRunning(id)
       await tm.markTaskFailed(id, 'fatal')
 
@@ -319,7 +375,10 @@ describe('TaskManager', () => {
 
     it('returns false when running count meets limit', async () => {
       const { runId } = await startRun()
-      const ids = await tm.createTasks(runId, 's', [{ payload: {} }, { payload: {} }])
+      const ids = await tm.createTasks(runId, 's', [
+        { payload: {} },
+        { payload: {} },
+      ])
       await tm.markTaskRunning(ids[0])
       await tm.markTaskRunning(ids[1])
       expect(await tm.checkTaskConcurrency(runId, 2)).toBe(false)

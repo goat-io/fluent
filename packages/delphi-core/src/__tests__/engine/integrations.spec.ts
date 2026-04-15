@@ -1,15 +1,16 @@
 // npx vitest run src/__tests__/engine/integrations.spec.ts
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
-import type { Database } from '../../entities/Database.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
-import { IntegrationRegistry } from '../../integrations/IntegrationRegistry.js'
-import { createGitHubIntegration } from '../../integrations/github/GitHubIntegration.js'
+import type { Database } from '../../entities/Database.js'
 import type { GitHubClient } from '../../integrations/github/GitHubIntegration.js'
-import { createLinearIntegration } from '../../integrations/linear/LinearIntegration.js'
+import { createGitHubIntegration } from '../../integrations/github/GitHubIntegration.js'
+import { IntegrationRegistry } from '../../integrations/IntegrationRegistry.js'
 import type { LinearClient } from '../../integrations/linear/LinearIntegration.js'
-import { createSlackIntegration } from '../../integrations/slack/SlackIntegration.js'
+import { createLinearIntegration } from '../../integrations/linear/LinearIntegration.js'
 import type { SlackClient } from '../../integrations/slack/SlackIntegration.js'
+import { createSlackIntegration } from '../../integrations/slack/SlackIntegration.js'
 import type { StepExecutionContext } from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
@@ -28,15 +29,18 @@ describe('Integrations', () => {
   beforeEach(async () => {
     await truncateAll(db)
     // Insert a parent workflow run so FK constraints are satisfied
-    await db.insertInto('workflow_runs').values({
-      id: 'wf-int-1',
-      tenantId: 'test',
-      workflowName: 'test_wf',
-      workflowVersion: '1.0.0',
-      status: 'RUNNING',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).execute()
+    await db
+      .insertInto('workflow_runs')
+      .values({
+        id: 'wf-int-1',
+        tenantId: 'test',
+        workflowName: 'test_wf',
+        workflowVersion: '1.0.0',
+        status: 'RUNNING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .execute()
     executor = new ExternalActionExecutor({ db })
   })
 
@@ -55,7 +59,9 @@ describe('Integrations', () => {
 
     it('get() throws for unknown provider', () => {
       const registry = new IntegrationRegistry()
-      expect(() => registry.get('unknown')).toThrow('Integration not found: "unknown"')
+      expect(() => registry.get('unknown')).toThrow(
+        'Integration not found: "unknown"',
+      )
     })
 
     it('list() returns provider names', () => {
@@ -90,10 +96,16 @@ describe('Integrations', () => {
 
       expect(result.cached).toBe(false)
       expect(result.externalId).toBe('42')
-      expect(result.data).toEqual({ id: 'pr-1', number: 42, url: 'https://github.com/test/repo/pull/42' })
+      expect(result.data).toEqual({
+        id: 'pr-1',
+        number: 42,
+        url: 'https://github.com/test/repo/pull/42',
+      })
 
       // Verify DB row
-      const actions = await db.selectFrom('external_actions').selectAll()
+      const actions = await db
+        .selectFrom('external_actions')
+        .selectAll()
         .where('workflowRunId', '=', 'wf-int-1')
         .execute()
 
@@ -110,7 +122,14 @@ describe('Integrations', () => {
     it('integration action respects idempotency', async () => {
       let callCount = 0
       const client: GitHubClient = {
-        createPR: async () => { callCount++; return { id: 'pr-1', number: 42, url: 'https://github.com/test/repo/pull/42' } },
+        createPR: async () => {
+          callCount++
+          return {
+            id: 'pr-1',
+            number: 42,
+            url: 'https://github.com/test/repo/pull/42',
+          }
+        },
         createIssue: async () => ({ id: 'i-1', number: 1, url: '' }),
         addComment: async () => ({ id: 'c-1' }),
         mergePR: async () => ({ merged: true, sha: 'abc' }),
@@ -160,9 +179,15 @@ describe('Integrations', () => {
 
       expect(result.cached).toBe(false)
       expect(result.externalId).toBe('LIN-123')
-      expect(result.data).toEqual({ id: 'issue-1', identifier: 'LIN-123', url: 'https://linear.app/team/LIN-123' })
+      expect(result.data).toEqual({
+        id: 'issue-1',
+        identifier: 'LIN-123',
+        url: 'https://linear.app/team/LIN-123',
+      })
 
-      const actions = await db.selectFrom('external_actions').selectAll()
+      const actions = await db
+        .selectFrom('external_actions')
+        .selectAll()
         .where('provider', '=', 'linear')
         .execute()
       expect(actions).toHaveLength(1)
@@ -190,9 +215,14 @@ describe('Integrations', () => {
 
       expect(result.cached).toBe(false)
       expect(result.externalId).toBe('1234567890.123456')
-      expect(result.data).toEqual({ ts: '1234567890.123456', channel: '#general' })
+      expect(result.data).toEqual({
+        ts: '1234567890.123456',
+        channel: '#general',
+      })
 
-      const actions = await db.selectFrom('external_actions').selectAll()
+      const actions = await db
+        .selectFrom('external_actions')
+        .selectAll()
         .where('provider', '=', 'slack')
         .execute()
       expect(actions).toHaveLength(1)
@@ -223,8 +253,16 @@ describe('Integrations', () => {
 
 function mockGitHubClient(): GitHubClient {
   return {
-    createPR: async () => ({ id: 'pr-1', number: 42, url: 'https://github.com/test/repo/pull/42' }),
-    createIssue: async () => ({ id: 'issue-1', number: 10, url: 'https://github.com/test/repo/issues/10' }),
+    createPR: async () => ({
+      id: 'pr-1',
+      number: 42,
+      url: 'https://github.com/test/repo/pull/42',
+    }),
+    createIssue: async () => ({
+      id: 'issue-1',
+      number: 10,
+      url: 'https://github.com/test/repo/issues/10',
+    }),
     addComment: async () => ({ id: 'comment-1' }),
     mergePR: async () => ({ merged: true, sha: 'abc123' }),
   }
@@ -232,8 +270,16 @@ function mockGitHubClient(): GitHubClient {
 
 function mockLinearClient(): LinearClient {
   return {
-    createIssue: async () => ({ id: 'issue-1', identifier: 'LIN-123', url: 'https://linear.app/team/LIN-123' }),
-    updateIssue: async () => ({ id: 'issue-1', identifier: 'LIN-123', url: 'https://linear.app/team/LIN-123' }),
+    createIssue: async () => ({
+      id: 'issue-1',
+      identifier: 'LIN-123',
+      url: 'https://linear.app/team/LIN-123',
+    }),
+    updateIssue: async () => ({
+      id: 'issue-1',
+      identifier: 'LIN-123',
+      url: 'https://linear.app/team/LIN-123',
+    }),
     addComment: async () => ({ id: 'comment-1' }),
   }
 }
@@ -241,6 +287,9 @@ function mockLinearClient(): LinearClient {
 function mockSlackClient(): SlackClient {
   return {
     sendMessage: async () => ({ ts: '1234567890.123456', channel: '#general' }),
-    updateMessage: async () => ({ ts: '1234567890.123456', channel: '#general' }),
+    updateMessage: async () => ({
+      ts: '1234567890.123456',
+      channel: '#general',
+    }),
   }
 }

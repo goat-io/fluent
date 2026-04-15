@@ -3,9 +3,10 @@
 // SchedulerService — durable, idempotent recurring triggers via cron expressions.
 // Emits cron.trigger events through EventIngestionService (does not start workflows directly).
 //
-import { sql, type Kysely } from 'kysely'
+
 import { Ids } from '@goatlab/js-utils'
 import { CronExpressionParser } from 'cron-parser'
+import { type Kysely, sql } from 'kysely'
 import type { Database, WorkflowSchedule } from '../entities/Database.js'
 import type { EventIngestionService } from '../events/EventIngestion.js'
 
@@ -39,9 +40,11 @@ export class SchedulerService {
   }
 
   start(): void {
-    if (this.timer) return
+    if (this.timer) {
+      return
+    }
     this.timer = setInterval(() => {
-      this.tick().catch((err) => {
+      this.tick().catch(err => {
         this.logger?.error('Scheduler tick error', err)
       })
     }, this.pollIntervalMs)
@@ -82,7 +85,7 @@ export class SchedulerService {
     // Wrap in transaction so FOR UPDATE locks hold across the inner work.
     // Without this, `FOR UPDATE` releases the lock immediately after the
     // SELECT returns (auto-commit), letting parallel pods grab the same row.
-    await this.db.transaction().execute(async (tx) => {
+    await this.db.transaction().execute(async tx => {
       const dueSchedules = await sql<WorkflowSchedule>`
         SELECT * FROM workflow_schedules
         WHERE active = true
@@ -131,7 +134,9 @@ export class SchedulerService {
           .where('id', '=', schedule.id)
           .execute()
 
-        this.logger?.info(`Scheduler triggered ${schedule.workflowName} (next: ${nextRun.toISOString()})`)
+        this.logger?.info(
+          `Scheduler triggered ${schedule.workflowName} (next: ${nextRun.toISOString()})`,
+        )
       }
     })
 
@@ -150,15 +155,18 @@ export class SchedulerService {
     const interval = CronExpressionParser.parse(cronExpression)
     const nextRunAt = interval.next().toDate()
 
-    await this.db.insertInto('workflow_schedules').values({
-      id,
-      tenantId,
-      workflowName,
-      cronExpression,
-      nextRunAt,
-      lastRunAt: null,
-      active: true,
-    }).execute()
+    await this.db
+      .insertInto('workflow_schedules')
+      .values({
+        id,
+        tenantId,
+        workflowName,
+        cronExpression,
+        nextRunAt,
+        lastRunAt: null,
+        active: true,
+      })
+      .execute()
 
     return id
   }

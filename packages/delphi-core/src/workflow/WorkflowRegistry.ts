@@ -11,7 +11,9 @@ export class WorkflowRegistry {
 
   get(name: string): WorkflowDefinition {
     const def = this.definitions.get(name)
-    if (!def) throw new WorkflowNotFoundError(name)
+    if (!def) {
+      throw new WorkflowNotFoundError(name)
+    }
     return def
   }
 

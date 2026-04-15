@@ -43,7 +43,7 @@ model workflow_runs {
   triggerInput        String?   @db.Text
   output              String?   @db.Text
   error               String?   @db.Text
-  idempotencyKey      String?   @unique @db.VarChar(255)
+  idempotencyKey      String?   @db.VarChar(255)
   traceId             String?   @db.VarChar(36)
   parentRunId         String?   @db.VarChar(36)
   originEventId       String?   @db.VarChar(36)
@@ -58,6 +58,15 @@ model workflow_runs {
   signals             workflow_signals[]
   external_actions    external_actions[]
   workflow_tasks      workflow_tasks[]
+
+  // Idempotency is (tenantId, idempotencyKey) — NOT global idempotencyKey.
+  // A global UNIQUE would leak state across tenants: tenant A's
+  // "payment-123" would block tenant B from using the same key. The
+  // compound UNIQUE still enforces "at most one run per (tenant, key)"
+  // so parallel requests with the same key within a tenant race cleanly
+  // to the pre-SELECT dedupe in startBatchCopy, and the loser collapses
+  // into the winner's runId.
+  @@unique([tenantId, idempotencyKey])
 
   @@index([tenantId, status])
   @@index([tenantId, workflowName])
@@ -140,7 +149,7 @@ model external_actions {
   tenantId        String    @db.VarChar(255)
   provider        String    @db.VarChar(100)
   actionType      String    @db.VarChar(100)
-  idempotencyKey  String    @unique @db.VarChar(500)
+  idempotencyKey  String    @db.VarChar(500)
   status          String    @default("pending") @db.VarChar(20)
   externalId      String?   @db.VarChar(500)
   request         String?   @db.Text
@@ -152,6 +161,8 @@ model external_actions {
 
   run             workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
 
+  // Tenant-scoped idempotency — same reasoning as workflow_runs.
+  @@unique([tenantId, idempotencyKey])
   @@index([workflowRunId, stepName, attempt])
   // @@schema("agents")
 }
@@ -162,7 +173,7 @@ model workflow_events {
   eventType       String    @db.VarChar(255)
   source          String    @db.VarChar(255)
   payload         String?   @db.Text
-  idempotencyKey  String?   @unique @db.VarChar(500)
+  idempotencyKey  String?   @db.VarChar(500)
   entityKey       String?   @db.VarChar(500)
   sequenceNumber  Int?
   traceId         String?   @db.VarChar(36)
@@ -171,6 +182,8 @@ model workflow_events {
   processedAt     DateTime?
   createdAt       DateTime  @default(now())
 
+  // Tenant-scoped idempotency — same reasoning as workflow_runs.
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, eventType, status])
   @@index([entityKey, sequenceNumber])
   // @@schema("agents")

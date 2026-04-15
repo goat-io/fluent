@@ -2,11 +2,11 @@
 //
 // Tests for Issue #4: Observability — step/action latency + cost metrics
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
-import type { Database } from '../../entities/Database.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowMetricsCollector } from '../../engine/WorkflowMetrics.js'
-import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
+import type { Database } from '../../entities/Database.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('WorkflowMetricsCollector', () => {
@@ -45,35 +45,41 @@ describe('WorkflowMetricsCollector', () => {
     }>
   }) {
     const now = new Date()
-    await db.insertInto('workflow_runs').values({
-      id: opts.runId,
-      tenantId: 'test',
-      workflowName: opts.name ?? 'test_wf',
-      workflowVersion: '1.0.0',
-      status: opts.status ?? 'COMPLETED',
-      startedAt: opts.startedAt ?? now,
-      completedAt: opts.completedAt,
-      createdAt: now,
-      updatedAt: now,
-    }).execute()
+    await db
+      .insertInto('workflow_runs')
+      .values({
+        id: opts.runId,
+        tenantId: 'test',
+        workflowName: opts.name ?? 'test_wf',
+        workflowVersion: '1.0.0',
+        status: opts.status ?? 'COMPLETED',
+        startedAt: opts.startedAt ?? now,
+        completedAt: opts.completedAt,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .execute()
 
     if (opts.steps) {
       for (const s of opts.steps) {
-        await db.insertInto('workflow_steps').values({
-          id: `step-${opts.runId}-${s.stepName}`,
-          workflowRunId: opts.runId,
-          tenantId: 'test',
-          stepName: s.stepName,
-          status: s.status ?? 'COMPLETED',
-          executorType: s.executorType ?? 'function',
-          attempt: s.attempt ?? 1,
-          maxRetries: 3,
-          createdAt: s.createdAt ?? now,
-          scheduledAt: s.scheduledAt,
-          startedAt: s.startedAt,
-          completedAt: s.completedAt,
-          updatedAt: now,
-        }).execute()
+        await db
+          .insertInto('workflow_steps')
+          .values({
+            id: `step-${opts.runId}-${s.stepName}`,
+            workflowRunId: opts.runId,
+            tenantId: 'test',
+            stepName: s.stepName,
+            status: s.status ?? 'COMPLETED',
+            executorType: s.executorType ?? 'function',
+            attempt: s.attempt ?? 1,
+            maxRetries: 3,
+            createdAt: s.createdAt ?? now,
+            scheduledAt: s.scheduledAt,
+            startedAt: s.startedAt,
+            completedAt: s.completedAt,
+            updatedAt: now,
+          })
+          .execute()
       }
     }
   }
@@ -94,14 +100,16 @@ describe('WorkflowMetricsCollector', () => {
         runId: 'run-1',
         startedAt: t0,
         completedAt: t3,
-        steps: [{
-          stepName: 'compute',
-          executorType: 'function',
-          createdAt: t0,
-          scheduledAt: t1,
-          startedAt: t2,
-          completedAt: t3,
-        }],
+        steps: [
+          {
+            stepName: 'compute',
+            executorType: 'function',
+            createdAt: t0,
+            scheduledAt: t1,
+            startedAt: t2,
+            completedAt: t3,
+          },
+        ],
       })
 
       const result = await metrics.getRunMetrics('run-1')
@@ -165,28 +173,33 @@ describe('WorkflowMetricsCollector', () => {
         runId: 'run-3',
         startedAt: base,
         completedAt: ms(2000),
-        steps: [{
-          stepName: 'create_tasks',
-          createdAt: base,
-          startedAt: ms(100),
-          completedAt: ms(2000),
-        }],
+        steps: [
+          {
+            stepName: 'create_tasks',
+            createdAt: base,
+            startedAt: ms(100),
+            completedAt: ms(2000),
+          },
+        ],
       })
 
       // Insert external action
-      await db.insertInto('external_actions').values({
-        id: 'ea-1',
-        workflowRunId: 'run-3',
-        stepName: 'create_tasks',
-        attempt: 1,
-        tenantId: 'test',
-        provider: 'linear',
-        actionType: 'create_issue',
-        idempotencyKey: 'run-3:create_tasks:create_issue',
-        status: 'completed',
-        createdAt: ms(200),
-        completedAt: ms(800),
-      }).execute()
+      await db
+        .insertInto('external_actions')
+        .values({
+          id: 'ea-1',
+          workflowRunId: 'run-3',
+          stepName: 'create_tasks',
+          attempt: 1,
+          tenantId: 'test',
+          provider: 'linear',
+          actionType: 'create_issue',
+          idempotencyKey: 'run-3:create_tasks:create_issue',
+          status: 'completed',
+          createdAt: ms(200),
+          completedAt: ms(800),
+        })
+        .execute()
 
       const result = await metrics.getRunMetrics('run-3')
       expect(result!.externalActions).toHaveLength(1)
@@ -204,9 +217,24 @@ describe('WorkflowMetricsCollector', () => {
       await insertRun({
         runId: 'agg-1',
         steps: [
-          { stepName: 'a', executorType: 'function', startedAt: base, completedAt: ms(100) },
-          { stepName: 'b', executorType: 'function', startedAt: base, completedAt: ms(200) },
-          { stepName: 'c', executorType: 'sandbox', startedAt: base, completedAt: ms(5000) },
+          {
+            stepName: 'a',
+            executorType: 'function',
+            startedAt: base,
+            completedAt: ms(100),
+          },
+          {
+            stepName: 'b',
+            executorType: 'function',
+            startedAt: base,
+            completedAt: ms(200),
+          },
+          {
+            stepName: 'c',
+            executorType: 'sandbox',
+            startedAt: base,
+            completedAt: ms(5000),
+          },
         ],
       })
 
@@ -243,26 +271,50 @@ describe('WorkflowMetricsCollector', () => {
       await insertRun({ runId: 'prov-1', steps: [{ stepName: 'a' }] })
 
       // Multiple actions for different providers
-      await db.insertInto('external_actions').values([
-        {
-          id: 'pa-1', workflowRunId: 'prov-1', stepName: 'a', attempt: 1,
-          tenantId: 'test', provider: 'github', actionType: 'create_pr',
-          idempotencyKey: 'k1', status: 'completed',
-          createdAt: base, completedAt: ms(200),
-        },
-        {
-          id: 'pa-2', workflowRunId: 'prov-1', stepName: 'a', attempt: 1,
-          tenantId: 'test', provider: 'github', actionType: 'add_review',
-          idempotencyKey: 'k2', status: 'completed',
-          createdAt: base, completedAt: ms(400),
-        },
-        {
-          id: 'pa-3', workflowRunId: 'prov-1', stepName: 'a', attempt: 1,
-          tenantId: 'test', provider: 'linear', actionType: 'create_issue',
-          idempotencyKey: 'k3', status: 'completed',
-          createdAt: base, completedAt: ms(100),
-        },
-      ]).execute()
+      await db
+        .insertInto('external_actions')
+        .values([
+          {
+            id: 'pa-1',
+            workflowRunId: 'prov-1',
+            stepName: 'a',
+            attempt: 1,
+            tenantId: 'test',
+            provider: 'github',
+            actionType: 'create_pr',
+            idempotencyKey: 'k1',
+            status: 'completed',
+            createdAt: base,
+            completedAt: ms(200),
+          },
+          {
+            id: 'pa-2',
+            workflowRunId: 'prov-1',
+            stepName: 'a',
+            attempt: 1,
+            tenantId: 'test',
+            provider: 'github',
+            actionType: 'add_review',
+            idempotencyKey: 'k2',
+            status: 'completed',
+            createdAt: base,
+            completedAt: ms(400),
+          },
+          {
+            id: 'pa-3',
+            workflowRunId: 'prov-1',
+            stepName: 'a',
+            attempt: 1,
+            tenantId: 'test',
+            provider: 'linear',
+            actionType: 'create_issue',
+            idempotencyKey: 'k3',
+            status: 'completed',
+            createdAt: base,
+            completedAt: ms(100),
+          },
+        ])
+        .execute()
 
       const result = await metrics.getAggregateMetrics('test')
       expect(result.avgActionLatencyByProvider.github).toBe(300) // (200+400)/2
@@ -282,10 +334,14 @@ describe('WorkflowMetricsCollector', () => {
       })
       await insertRun({
         runId: 'new-1',
-        steps: [{ stepName: 'a', startedAt: recent, completedAt: ms(recent, 500) }],
+        steps: [
+          { stepName: 'a', startedAt: recent, completedAt: ms(recent, 500) },
+        ],
       })
 
-      const result = await metrics.getAggregateMetrics('test', { since: new Date('2025-01-01') })
+      const result = await metrics.getAggregateMetrics('test', {
+        since: new Date('2025-01-01'),
+      })
       expect(result.avgExecutionMsByExecutor.function).toBe(500) // Only recent
     })
   })

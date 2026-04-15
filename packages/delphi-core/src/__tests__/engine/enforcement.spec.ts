@@ -2,11 +2,15 @@
 //
 // Tests for Issue #5: Runtime ExternalAction enforcement
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
-import type { Database } from '../../entities/Database.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { ExternalActionEnforcer } from '../../engine/ExternalActionEnforcer.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import type { Database } from '../../entities/Database.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('ExternalActionEnforcer', () => {
@@ -23,15 +27,18 @@ describe('ExternalActionEnforcer', () => {
   beforeEach(async () => {
     await truncateAll(db)
     // Insert parent workflow run
-    await db.insertInto('workflow_runs').values({
-      id: 'wf-enforce',
-      tenantId: 'test',
-      workflowName: 'enforce_test',
-      workflowVersion: '1.0.0',
-      status: 'RUNNING',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).execute()
+    await db
+      .insertInto('workflow_runs')
+      .values({
+        id: 'wf-enforce',
+        tenantId: 'test',
+        workflowName: 'enforce_test',
+        workflowVersion: '1.0.0',
+        status: 'RUNNING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .execute()
   })
 
   const makePayload = (overrides: Partial<StepPayload> = {}): StepPayload => ({
@@ -49,18 +56,21 @@ describe('ExternalActionEnforcer', () => {
 
   it('passes when external actions exist for enforced executor type', async () => {
     // Insert an ExternalAction record
-    await db.insertInto('external_actions').values({
-      id: 'ea-ok',
-      workflowRunId: 'wf-enforce',
-      stepName: 'test_step',
-      attempt: 1,
-      tenantId: 'test',
-      provider: 'github',
-      actionType: 'create_pr',
-      idempotencyKey: 'wf-enforce:test_step:create_pr',
-      status: 'completed',
-      createdAt: new Date(),
-    }).execute()
+    await db
+      .insertInto('external_actions')
+      .values({
+        id: 'ea-ok',
+        workflowRunId: 'wf-enforce',
+        stepName: 'test_step',
+        attempt: 1,
+        tenantId: 'test',
+        provider: 'github',
+        actionType: 'create_pr',
+        idempotencyKey: 'wf-enforce:test_step:create_pr',
+        status: 'completed',
+        createdAt: new Date(),
+      })
+      .execute()
 
     const enforcer = new ExternalActionEnforcer({ db })
     const out = await enforcer.afterExecute!(makePayload(), result)
@@ -85,9 +95,9 @@ describe('ExternalActionEnforcer', () => {
   it('throws when no external actions for enforced type (strict mode)', async () => {
     const enforcer = new ExternalActionEnforcer({ db, strict: true })
 
-    await expect(
-      enforcer.afterExecute!(makePayload(), result),
-    ).rejects.toThrow('ExternalActionEnforcer')
+    await expect(enforcer.afterExecute!(makePayload(), result)).rejects.toThrow(
+      'ExternalActionEnforcer',
+    )
   })
 
   it('skips enforcement for function executor type (not enforced by default)', async () => {
@@ -143,18 +153,21 @@ describe('ExternalActionEnforcer', () => {
 
   it('checks correct attempt number', async () => {
     // Insert action for attempt 1
-    await db.insertInto('external_actions').values({
-      id: 'ea-attempt',
-      workflowRunId: 'wf-enforce',
-      stepName: 'test_step',
-      attempt: 1,
-      tenantId: 'test',
-      provider: 'github',
-      actionType: 'create_pr',
-      idempotencyKey: 'wf-enforce:test_step:create_pr:1',
-      status: 'completed',
-      createdAt: new Date(),
-    }).execute()
+    await db
+      .insertInto('external_actions')
+      .values({
+        id: 'ea-attempt',
+        workflowRunId: 'wf-enforce',
+        stepName: 'test_step',
+        attempt: 1,
+        tenantId: 'test',
+        provider: 'github',
+        actionType: 'create_pr',
+        idempotencyKey: 'wf-enforce:test_step:create_pr:1',
+        status: 'completed',
+        createdAt: new Date(),
+      })
+      .execute()
 
     const enforcer = new ExternalActionEnforcer({ db, strict: true })
 

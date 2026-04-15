@@ -4,17 +4,20 @@
 // Tests the full agent lifecycle: token generation → registration → job dispatch
 // → execution → result reporting → DB verification.
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
 import { sql } from 'kysely'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { AgentRegistry } from '../../broker/AgentRegistry.js'
-import { WorkerBroker } from '../../broker/WorkerBroker.js'
 import { createBrokerHandlers } from '../../broker/BrokerHandlers.js'
+import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
+import type { Database } from '../../entities/Database.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from '../engine/shared.js'
 
 function createMockConnector() {
@@ -22,10 +25,32 @@ function createMockConnector() {
   return {
     connector: {
       queue: async (params: any) => {
-        queuedJobs.push({ taskName: params.taskName, taskBody: params.taskBody })
-        return { id: params.uniqueTaskName, name: params.taskName, status: 'QUEUED', output: '', attempts: 0, created: new Date().toISOString(), nextRun: null, nextRunMinutes: null }
+        queuedJobs.push({
+          taskName: params.taskName,
+          taskBody: params.taskBody,
+        })
+        return {
+          id: params.uniqueTaskName,
+          name: params.taskName,
+          status: 'QUEUED',
+          output: '',
+          attempts: 0,
+          created: new Date().toISOString(),
+          nextRun: null,
+          nextRunMinutes: null,
+        }
       },
-      getStatus: async () => ({ id: '', name: '', status: 'QUEUED' as const, output: '', attempts: 0, created: '', nextRun: null, nextRunMinutes: null, payload: {} }),
+      getStatus: async () => ({
+        id: '',
+        name: '',
+        status: 'QUEUED' as const,
+        output: '',
+        attempts: 0,
+        created: '',
+        nextRun: null,
+        nextRunMinutes: null,
+        payload: {},
+      }),
       forTenant: () => null as any,
       listen: async () => ({ stop: async () => {}, isRunning: () => false }),
     } as any,
@@ -38,7 +63,7 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
   let registry: AgentRegistry
   let handlers: ReturnType<typeof createBrokerHandlers>
   let fnExecutor: FunctionStepExecutor
-  let engine: WorkflowEngine
+  let _engine: WorkflowEngine
 
   beforeAll(async () => {
     db = await getSharedDb()
@@ -66,11 +91,18 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
     const { connector } = createMockConnector()
     const wf = WorkflowBuilder.create('broker-test')
-      .step('step1', { executorType: 'function', executorConfig: { handler: 'echo' } })
-      .step('step2', { executorType: 'function', executorConfig: { handler: 'echo' }, dependsOn: ['step1'] })
+      .step('step1', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
+      .step('step2', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+        dependsOn: ['step1'],
+      })
       .build()
 
-    engine = new WorkflowEngine({
+    _engine = new WorkflowEngine({
       db,
       connector,
       executors: new Map([['function', fnExecutor]]),
@@ -86,9 +118,10 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
   describe('token lifecycle', () => {
     it('generates a registration token stored in DB', async () => {
-      const { registrationToken, expiresAt } = await handlers.generateAgentToken({
-        tenantId: 'test-tenant',
-      })
+      const { registrationToken, expiresAt } =
+        await handlers.generateAgentToken({
+          tenantId: 'test-tenant',
+        })
 
       expect(registrationToken).toBeTruthy()
       expect(registrationToken.length).toBe(64) // 32 bytes hex
@@ -111,7 +144,10 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
         name: 'my-agent',
         hostname: 'macbook.local',
         capabilities: {
-          cpuCount: 8, memoryMB: 16384, dockerAvailable: true, gpuAvailable: false,
+          cpuCount: 8,
+          memoryMB: 16384,
+          dockerAvailable: true,
+          gpuAvailable: false,
           queues: ['workflow_step_light', 'workflow_step_ai'],
         },
         registrationToken,
@@ -137,16 +173,34 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
       })
 
       await handlers.register({
-        tenantId: 'test-tenant', name: 'a1', hostname: 'h',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken, secret: 'secret1',
+        tenantId: 'test-tenant',
+        name: 'a1',
+        hostname: 'h',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken,
+        secret: 'secret1',
       })
 
       await expect(
         handlers.register({
-          tenantId: 'test-tenant', name: 'a2', hostname: 'h',
-          capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-          registrationToken, secret: 'secret2',
+          tenantId: 'test-tenant',
+          name: 'a2',
+          hostname: 'h',
+          capabilities: {
+            cpuCount: 1,
+            memoryMB: 1024,
+            dockerAvailable: false,
+            gpuAvailable: false,
+            queues: ['workflow_step_light'],
+          },
+          registrationToken,
+          secret: 'secret2',
         }),
       ).rejects.toThrow('already used')
     })
@@ -154,9 +208,18 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
     it('rejects invalid registration token', async () => {
       await expect(
         handlers.register({
-          tenantId: 'test-tenant', name: 'a', hostname: 'h',
-          capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-          registrationToken: 'totally-invalid-token', secret: 'secret',
+          tenantId: 'test-tenant',
+          name: 'a',
+          hostname: 'h',
+          capabilities: {
+            cpuCount: 1,
+            memoryMB: 1024,
+            dockerAvailable: false,
+            gpuAvailable: false,
+            queues: ['workflow_step_light'],
+          },
+          registrationToken: 'totally-invalid-token',
+          secret: 'secret',
         }),
       ).rejects.toThrow('Invalid registration token')
     })
@@ -166,11 +229,22 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
   describe('auth', () => {
     it('rejects requests with wrong secret', async () => {
-      const { registrationToken } = await handlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken } = await handlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId } = await handlers.register({
-        tenantId: 'test-tenant', name: 'a', hostname: 'h',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken, secret: 'correct-secret',
+        tenantId: 'test-tenant',
+        name: 'a',
+        hostname: 'h',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken,
+        secret: 'correct-secret',
       })
 
       await expect(
@@ -189,12 +263,27 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
   describe('full job flow', () => {
     async function registerAgent() {
-      const { registrationToken } = await handlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken } = await handlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId } = await handlers.register({
-        tenantId: 'test-tenant', name: 'test-agent', hostname: 'h',
-        capabilities: { cpuCount: 4, memoryMB: 8192, dockerAvailable: true, gpuAvailable: false,
-          queues: ['workflow_step_light', 'workflow_step_heavy', 'workflow_step_ai', 'workflow_step_sandbox'] },
-        registrationToken, secret: 'agent-secret',
+        tenantId: 'test-tenant',
+        name: 'test-agent',
+        hostname: 'h',
+        capabilities: {
+          cpuCount: 4,
+          memoryMB: 8192,
+          dockerAvailable: true,
+          gpuAvailable: false,
+          queues: [
+            'workflow_step_light',
+            'workflow_step_heavy',
+            'workflow_step_ai',
+            'workflow_step_sandbox',
+          ],
+        },
+        registrationToken,
+        secret: 'agent-secret',
         maxConcurrent: 5,
       })
       return agentId
@@ -208,23 +297,35 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
         tenantId: 'test-tenant',
         type: 'step',
         queue: 'workflow_step_light',
-        payload: { tenantId: 'test-tenant', stepName: 'step1', input: { msg: 'hello' } },
+        payload: {
+          tenantId: 'test-tenant',
+          stepName: 'step1',
+          input: { msg: 'hello' },
+        },
       })
 
       // Agent polls
       const { job } = await handlers.nextJob({
-        agentId, secret: 'agent-secret', timeoutMs: 1_000,
+        agentId,
+        secret: 'agent-secret',
+        timeoutMs: 1_000,
       })
       expect(job).toBeTruthy()
       expect(job!.type).toBe('step')
       expect((job!.payload as any).stepName).toBe('step1')
 
       // Agent reports started
-      await handlers.stepStarted({ agentId, secret: 'agent-secret', jobId: job!.id })
+      await handlers.stepStarted({
+        agentId,
+        secret: 'agent-secret',
+        jobId: job!.id,
+      })
 
       // Agent reports result
       const { accepted } = await handlers.stepResult({
-        agentId, secret: 'agent-secret', jobId: job!.id,
+        agentId,
+        secret: 'agent-secret',
+        jobId: job!.id,
         result: { output: { echoed: true } },
       })
       expect(accepted).toBe(true)
@@ -237,21 +338,33 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
     it('idempotent result: second POST returns accepted=false', async () => {
       const agentId = await registerAgent()
 
-      registry.enqueueJob({
-        tenantId: 'test-tenant', type: 'step', queue: 'workflow_step_light',
-        payload: { tenantId: 'test-tenant' },
-      }).catch(() => {})
+      registry
+        .enqueueJob({
+          tenantId: 'test-tenant',
+          type: 'step',
+          queue: 'workflow_step_light',
+          payload: { tenantId: 'test-tenant' },
+        })
+        .catch(() => {})
 
-      const { job } = await handlers.nextJob({ agentId, secret: 'agent-secret', timeoutMs: 1_000 })
+      const { job } = await handlers.nextJob({
+        agentId,
+        secret: 'agent-secret',
+        timeoutMs: 1_000,
+      })
 
       await handlers.stepResult({
-        agentId, secret: 'agent-secret', jobId: job!.id,
+        agentId,
+        secret: 'agent-secret',
+        jobId: job!.id,
         result: { output: { first: true } },
       })
 
       // Second result for same job
       const { accepted } = await handlers.stepResult({
-        agentId, secret: 'agent-secret', jobId: job!.id,
+        agentId,
+        secret: 'agent-secret',
+        jobId: job!.id,
         result: { output: { second: true } },
       })
       expect(accepted).toBe(false)
@@ -261,14 +374,22 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
       const agentId = await registerAgent()
 
       const resultPromise = registry.enqueueJob({
-        tenantId: 'test-tenant', type: 'step', queue: 'workflow_step_light',
+        tenantId: 'test-tenant',
+        type: 'step',
+        queue: 'workflow_step_light',
         payload: { tenantId: 'test-tenant' },
       })
 
-      const { job } = await handlers.nextJob({ agentId, secret: 'agent-secret', timeoutMs: 1_000 })
+      const { job } = await handlers.nextJob({
+        agentId,
+        secret: 'agent-secret',
+        timeoutMs: 1_000,
+      })
 
       await handlers.stepFailed({
-        agentId, secret: 'agent-secret', jobId: job!.id,
+        agentId,
+        secret: 'agent-secret',
+        jobId: job!.id,
         error: 'executor crashed',
       })
 
@@ -279,7 +400,9 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
       const agentId = await registerAgent()
 
       const { job } = await handlers.nextJob({
-        agentId, secret: 'agent-secret', timeoutMs: 200, // Short timeout
+        agentId,
+        secret: 'agent-secret',
+        timeoutMs: 200, // Short timeout
       })
       expect(job).toBeNull()
     })
@@ -289,11 +412,22 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
   describe('heartbeat + sweep', () => {
     it('heartbeat keeps agent alive', async () => {
-      const { registrationToken } = await handlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken } = await handlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId } = await handlers.register({
-        tenantId: 'test-tenant', name: 'a', hostname: 'h',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken, secret: 'sec',
+        tenantId: 'test-tenant',
+        name: 'a',
+        hostname: 'h',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken,
+        secret: 'sec',
       })
 
       const result = await handlers.heartbeat({ agentId, secret: 'sec' })
@@ -303,20 +437,38 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
     it('stale agent: sweep rejects in-flight jobs', async () => {
       const staleRegistry = new AgentRegistry({
-        maxPendingJobs: 100, sweepIntervalMs: 999_999,
-        agentStaleAfterMs: 1, defaultJobTimeoutMs: 999_999,
+        maxPendingJobs: 100,
+        sweepIntervalMs: 999_999,
+        agentStaleAfterMs: 1,
+        defaultJobTimeoutMs: 999_999,
       })
-      const staleHandlers = createBrokerHandlers({ db, registry: staleRegistry })
+      const staleHandlers = createBrokerHandlers({
+        db,
+        registry: staleRegistry,
+      })
 
-      const { registrationToken } = await staleHandlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken } = await staleHandlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId } = await staleHandlers.register({
-        tenantId: 'test-tenant', name: 'a', hostname: 'h',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken, secret: 'sec',
+        tenantId: 'test-tenant',
+        name: 'a',
+        hostname: 'h',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken,
+        secret: 'sec',
       })
 
       const resultPromise = staleRegistry.enqueueJob({
-        tenantId: 'test-tenant', type: 'step', queue: 'workflow_step_light',
+        tenantId: 'test-tenant',
+        type: 'step',
+        queue: 'workflow_step_light',
         payload: { tenantId: 'test-tenant' },
       })
 
@@ -334,21 +486,40 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
     it('execution timeout: sweep rejects job even with heartbeats', async () => {
       const timeoutRegistry = new AgentRegistry({
-        maxPendingJobs: 100, sweepIntervalMs: 999_999,
-        agentStaleAfterMs: 999_999, defaultJobTimeoutMs: 1,
+        maxPendingJobs: 100,
+        sweepIntervalMs: 999_999,
+        agentStaleAfterMs: 999_999,
+        defaultJobTimeoutMs: 1,
       })
-      const timeoutHandlers = createBrokerHandlers({ db, registry: timeoutRegistry })
+      const timeoutHandlers = createBrokerHandlers({
+        db,
+        registry: timeoutRegistry,
+      })
 
-      const { registrationToken } = await timeoutHandlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken } = await timeoutHandlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId } = await timeoutHandlers.register({
-        tenantId: 'test-tenant', name: 'a', hostname: 'h',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken, secret: 'sec',
+        tenantId: 'test-tenant',
+        name: 'a',
+        hostname: 'h',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken,
+        secret: 'sec',
       })
 
       const resultPromise = timeoutRegistry.enqueueJob({
-        tenantId: 'test-tenant', type: 'step', queue: 'workflow_step_light',
-        payload: { tenantId: 'test-tenant' }, timeoutMs: 1,
+        tenantId: 'test-tenant',
+        type: 'step',
+        queue: 'workflow_step_light',
+        payload: { tenantId: 'test-tenant' },
+        timeoutMs: 1,
       })
 
       const job = timeoutRegistry.getNextJob(agentId)!
@@ -368,15 +539,28 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
   describe('deregister', () => {
     it('removes agent and rejects its jobs', async () => {
-      const { registrationToken } = await handlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken } = await handlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId } = await handlers.register({
-        tenantId: 'test-tenant', name: 'a', hostname: 'h',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken, secret: 'sec',
+        tenantId: 'test-tenant',
+        name: 'a',
+        hostname: 'h',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken,
+        secret: 'sec',
       })
 
       const resultPromise = registry.enqueueJob({
-        tenantId: 'test-tenant', type: 'step', queue: 'workflow_step_light',
+        tenantId: 'test-tenant',
+        type: 'step',
+        queue: 'workflow_step_light',
         payload: { tenantId: 'test-tenant' },
       })
 
@@ -393,13 +577,25 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
   describe('backpressure', () => {
     it('rejects jobs when maxPendingJobs exceeded', async () => {
-      const smallRegistry = new AgentRegistry({ maxPendingJobs: 2, sweepIntervalMs: 999_999 })
+      const smallRegistry = new AgentRegistry({
+        maxPendingJobs: 2,
+        sweepIntervalMs: 999_999,
+      })
 
-      smallRegistry.enqueueJob({ tenantId: 't', type: 'step', queue: 'q', payload: {} }).catch(() => {})
-      smallRegistry.enqueueJob({ tenantId: 't', type: 'step', queue: 'q', payload: {} }).catch(() => {})
+      smallRegistry
+        .enqueueJob({ tenantId: 't', type: 'step', queue: 'q', payload: {} })
+        .catch(() => {})
+      smallRegistry
+        .enqueueJob({ tenantId: 't', type: 'step', queue: 'q', payload: {} })
+        .catch(() => {})
 
       await expect(
-        smallRegistry.enqueueJob({ tenantId: 't', type: 'step', queue: 'q', payload: {} }),
+        smallRegistry.enqueueJob({
+          tenantId: 't',
+          type: 'step',
+          queue: 'q',
+          payload: {},
+        }),
       ).rejects.toThrow('backpressure')
     })
   })
@@ -409,27 +605,71 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
   describe('multiple agents', () => {
     it('two agents get different jobs from the same queue', async () => {
       // Register two agents
-      const { registrationToken: t1 } = await handlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken: t1 } = await handlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId: a1 } = await handlers.register({
-        tenantId: 'test-tenant', name: 'agent-1', hostname: 'h1',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken: t1, secret: 'sec1',
+        tenantId: 'test-tenant',
+        name: 'agent-1',
+        hostname: 'h1',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken: t1,
+        secret: 'sec1',
       })
 
-      const { registrationToken: t2 } = await handlers.generateAgentToken({ tenantId: 'test-tenant' })
+      const { registrationToken: t2 } = await handlers.generateAgentToken({
+        tenantId: 'test-tenant',
+      })
       const { agentId: a2 } = await handlers.register({
-        tenantId: 'test-tenant', name: 'agent-2', hostname: 'h2',
-        capabilities: { cpuCount: 1, memoryMB: 1024, dockerAvailable: false, gpuAvailable: false, queues: ['workflow_step_light'] },
-        registrationToken: t2, secret: 'sec2',
+        tenantId: 'test-tenant',
+        name: 'agent-2',
+        hostname: 'h2',
+        capabilities: {
+          cpuCount: 1,
+          memoryMB: 1024,
+          dockerAvailable: false,
+          gpuAvailable: false,
+          queues: ['workflow_step_light'],
+        },
+        registrationToken: t2,
+        secret: 'sec2',
       })
 
       // Enqueue two jobs
-      registry.enqueueJob({ tenantId: 'test-tenant', type: 'step', queue: 'workflow_step_light', payload: { tenantId: 'test-tenant', idx: 0 } }).catch(() => {})
-      registry.enqueueJob({ tenantId: 'test-tenant', type: 'step', queue: 'workflow_step_light', payload: { tenantId: 'test-tenant', idx: 1 } }).catch(() => {})
+      registry
+        .enqueueJob({
+          tenantId: 'test-tenant',
+          type: 'step',
+          queue: 'workflow_step_light',
+          payload: { tenantId: 'test-tenant', idx: 0 },
+        })
+        .catch(() => {})
+      registry
+        .enqueueJob({
+          tenantId: 'test-tenant',
+          type: 'step',
+          queue: 'workflow_step_light',
+          payload: { tenantId: 'test-tenant', idx: 1 },
+        })
+        .catch(() => {})
 
       // Both agents poll
-      const { job: j1 } = await handlers.nextJob({ agentId: a1, secret: 'sec1', timeoutMs: 1_000 })
-      const { job: j2 } = await handlers.nextJob({ agentId: a2, secret: 'sec2', timeoutMs: 1_000 })
+      const { job: j1 } = await handlers.nextJob({
+        agentId: a1,
+        secret: 'sec1',
+        timeoutMs: 1_000,
+      })
+      const { job: j2 } = await handlers.nextJob({
+        agentId: a2,
+        secret: 'sec2',
+        timeoutMs: 1_000,
+      })
 
       expect(j1).toBeTruthy()
       expect(j2).toBeTruthy()

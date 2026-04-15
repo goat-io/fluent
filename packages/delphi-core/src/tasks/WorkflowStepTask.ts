@@ -1,8 +1,12 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
-import { ShouldQueue } from '@goatlab/tasks-core'
+
 import type { JsonObject } from '@goatlab/tasks-core'
+import { ShouldQueue } from '@goatlab/tasks-core'
 import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
-import type { StepExecutionContext, StepPayload } from '../workflow/WorkflowBuilder.types.js'
+import type {
+  StepExecutionContext,
+  StepPayload,
+} from '../workflow/WorkflowBuilder.types.js'
 
 export class WorkflowStepTask extends ShouldQueue<
   StepPayload,
@@ -37,7 +41,7 @@ export class WorkflowStepTask extends ShouldQueue<
     try {
       // Run interceptors beforeExecute
       let processedPayload = payload
-      for (const interceptor of this.engine['config'].interceptors ?? []) {
+      for (const interceptor of this.engine.config.interceptors ?? []) {
         if (interceptor.beforeExecute) {
           processedPayload = await interceptor.beforeExecute(processedPayload)
         }
@@ -46,7 +50,7 @@ export class WorkflowStepTask extends ShouldQueue<
       // Build execution context with engine services
       const executionContext: StepExecutionContext = {
         externalActions: this.engine.externalActions,
-        integrations: this.engine['config'].integrations,
+        integrations: this.engine.config.integrations,
         taskManager: this.engine.taskManager,
         checkBudget: (runId, field, amount) =>
           this.engine.incrementBudgetUsage(runId, field as any, amount),
@@ -56,7 +60,7 @@ export class WorkflowStepTask extends ShouldQueue<
       let result = await executor.execute(processedPayload, executionContext)
 
       // Run interceptors afterExecute
-      for (const interceptor of this.engine['config'].interceptors ?? []) {
+      for (const interceptor of this.engine.config.interceptors ?? []) {
         if (interceptor.afterExecute) {
           result = await interceptor.afterExecute(processedPayload, result)
         }
@@ -73,7 +77,7 @@ export class WorkflowStepTask extends ShouldQueue<
       return result.output
     } catch (error) {
       // Run interceptors onError
-      for (const interceptor of this.engine['config'].interceptors ?? []) {
+      for (const interceptor of this.engine.config.interceptors ?? []) {
         if (interceptor.onError) {
           await interceptor.onError(payload, error as Error)
         }

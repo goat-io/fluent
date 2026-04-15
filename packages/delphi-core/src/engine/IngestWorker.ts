@@ -8,9 +8,9 @@
 // bounded concurrent flushes, per-job promise resolution — lives in
 // BatchedJobProcessor and is shared with StepStatusBuffer.
 
-import type { WorkflowEngine } from './WorkflowEngine.js'
 import type { WorkflowTriggerInput } from '../workflow/WorkflowBuilder.types.js'
 import { BatchedJobProcessor } from './BatchedJobProcessor.js'
+import type { WorkflowEngine } from './WorkflowEngine.js'
 
 export interface IngestWorkerConfig {
   engine: WorkflowEngine
@@ -24,10 +24,15 @@ export interface IngestWorkerConfig {
    * to leave headroom for other engine queries. Default 8.
    */
   maxConcurrentFlushes?: number
-  logger?: { info?: (...args: unknown[]) => void; error?: (...args: unknown[]) => void }
+  logger?: {
+    info?: (...args: unknown[]) => void
+    error?: (...args: unknown[]) => void
+  }
 }
 
-interface IngestJob { trigger: WorkflowTriggerInput }
+interface IngestJob {
+  trigger: WorkflowTriggerInput
+}
 
 export class IngestWorker {
   private readonly engine: WorkflowEngine
@@ -41,7 +46,7 @@ export class IngestWorker {
       flushIntervalMs: config.flushIntervalMs ?? 20,
       maxConcurrentFlushes: config.maxConcurrentFlushes ?? 8,
       logger: config.logger,
-      flushBatch: async (jobs) => {
+      flushBatch: async jobs => {
         const triggers = jobs.map(j => j.trigger)
         const results = await this.engine.startBatchCopy(triggers)
         // results[i].runId matches jobs[i].trigger.runId by construction
@@ -55,14 +60,21 @@ export class IngestWorker {
    * Returns the runId once the COPY transaction commits (or throws on failure).
    * BullMQ will retry on rejection.
    */
-  async handleJob(data: { runId: string; trigger: WorkflowTriggerInput }): Promise<{ runId: string }> {
+  async handleJob(data: {
+    runId: string
+    trigger: WorkflowTriggerInput
+  }): Promise<{ runId: string }> {
     const trigger: WorkflowTriggerInput = { ...data.trigger, runId: data.runId }
     const runId = await this.processor.enqueue({ trigger })
     return { runId }
   }
 
   /** Flush any in-flight waiters (for graceful shutdown). */
-  async drain(): Promise<void> { await this.processor.flushNow() }
+  async drain(): Promise<void> {
+    await this.processor.flushNow()
+  }
 
-  pendingCount(): number { return this.processor.pendingCount() }
+  pendingCount(): number {
+    return this.processor.pendingCount()
+  }
 }

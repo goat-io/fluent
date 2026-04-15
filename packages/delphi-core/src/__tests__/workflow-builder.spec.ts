@@ -1,13 +1,16 @@
 // npx vitest run src/__tests__/workflow-builder.spec.ts
-import { describe, it, expect } from 'vitest'
-import { WorkflowBuilder } from '../workflow/WorkflowBuilder.js'
+import { describe, expect, it } from 'vitest'
 import { DAGValidationError } from '../errors/WorkflowErrors.js'
+import { WorkflowBuilder } from '../workflow/WorkflowBuilder.js'
 
 describe('WorkflowBuilder', () => {
   describe('valid workflows', () => {
     it('builds a single step workflow', () => {
       const wf = WorkflowBuilder.create('test')
-        .step('only', { executorType: 'function', executorConfig: { handler: 'echo' } })
+        .step('only', {
+          executorType: 'function',
+          executorConfig: { handler: 'echo' },
+        })
         .build()
 
       expect(wf.name).toBe('test')
@@ -18,8 +21,16 @@ describe('WorkflowBuilder', () => {
     it('builds a linear chain', () => {
       const wf = WorkflowBuilder.create('linear')
         .step('a', { executorType: 'function', executorConfig: {} })
-        .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: {} })
-        .step('c', { dependsOn: ['b'], executorType: 'function', executorConfig: {} })
+        .step('b', {
+          dependsOn: ['a'],
+          executorType: 'function',
+          executorConfig: {},
+        })
+        .step('c', {
+          dependsOn: ['b'],
+          executorType: 'function',
+          executorConfig: {},
+        })
         .build()
 
       expect(wf.steps).toHaveLength(3)
@@ -28,9 +39,21 @@ describe('WorkflowBuilder', () => {
     it('builds a diamond DAG', () => {
       const wf = WorkflowBuilder.create('diamond')
         .step('root', { executorType: 'function', executorConfig: {} })
-        .step('left', { dependsOn: ['root'], executorType: 'function', executorConfig: {} })
-        .step('right', { dependsOn: ['root'], executorType: 'function', executorConfig: {} })
-        .step('join', { dependsOn: ['left', 'right'], executorType: 'function', executorConfig: {} })
+        .step('left', {
+          dependsOn: ['root'],
+          executorType: 'function',
+          executorConfig: {},
+        })
+        .step('right', {
+          dependsOn: ['root'],
+          executorType: 'function',
+          executorConfig: {},
+        })
+        .step('join', {
+          dependsOn: ['left', 'right'],
+          executorType: 'function',
+          executorConfig: {},
+        })
         .build()
 
       expect(wf.steps).toHaveLength(4)
@@ -39,9 +62,21 @@ describe('WorkflowBuilder', () => {
     it('builds fan-out workflow', () => {
       const wf = WorkflowBuilder.create('fanout')
         .step('source', { executorType: 'function', executorConfig: {} })
-        .step('branch1', { dependsOn: ['source'], executorType: 'function', executorConfig: {} })
-        .step('branch2', { dependsOn: ['source'], executorType: 'function', executorConfig: {} })
-        .step('branch3', { dependsOn: ['source'], executorType: 'function', executorConfig: {} })
+        .step('branch1', {
+          dependsOn: ['source'],
+          executorType: 'function',
+          executorConfig: {},
+        })
+        .step('branch2', {
+          dependsOn: ['source'],
+          executorType: 'function',
+          executorConfig: {},
+        })
+        .step('branch3', {
+          dependsOn: ['source'],
+          executorType: 'function',
+          executorConfig: {},
+        })
         .build()
 
       expect(wf.steps).toHaveLength(4)
@@ -238,7 +273,11 @@ describe('WorkflowBuilder', () => {
     it('rejects missing dependency reference', () => {
       expect(() =>
         WorkflowBuilder.create('test')
-          .step('a', { dependsOn: ['nonexistent'], executorType: 'function', executorConfig: {} })
+          .step('a', {
+            dependsOn: ['nonexistent'],
+            executorType: 'function',
+            executorConfig: {},
+          })
           .build(),
       ).toThrow(/unknown step "nonexistent"/)
     })
@@ -246,7 +285,11 @@ describe('WorkflowBuilder', () => {
     it('rejects self-dependency', () => {
       expect(() =>
         WorkflowBuilder.create('test')
-          .step('a', { dependsOn: ['a'], executorType: 'function', executorConfig: {} })
+          .step('a', {
+            dependsOn: ['a'],
+            executorType: 'function',
+            executorConfig: {},
+          })
           .build(),
       ).toThrow(/depends on itself/)
     })
@@ -254,8 +297,16 @@ describe('WorkflowBuilder', () => {
     it('rejects cycle (A→B→A)', () => {
       expect(() =>
         WorkflowBuilder.create('test')
-          .step('a', { dependsOn: ['b'], executorType: 'function', executorConfig: {} })
-          .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: {} })
+          .step('a', {
+            dependsOn: ['b'],
+            executorType: 'function',
+            executorConfig: {},
+          })
+          .step('b', {
+            dependsOn: ['a'],
+            executorType: 'function',
+            executorConfig: {},
+          })
           .build(),
       ).toThrow(/Cycle detected/)
     })
@@ -263,9 +314,21 @@ describe('WorkflowBuilder', () => {
     it('rejects longer cycle (A→B→C→A)', () => {
       expect(() =>
         WorkflowBuilder.create('test')
-          .step('a', { dependsOn: ['c'], executorType: 'function', executorConfig: {} })
-          .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: {} })
-          .step('c', { dependsOn: ['b'], executorType: 'function', executorConfig: {} })
+          .step('a', {
+            dependsOn: ['c'],
+            executorType: 'function',
+            executorConfig: {},
+          })
+          .step('b', {
+            dependsOn: ['a'],
+            executorType: 'function',
+            executorConfig: {},
+          })
+          .step('c', {
+            dependsOn: ['b'],
+            executorType: 'function',
+            executorConfig: {},
+          })
           .build(),
       ).toThrow(/Cycle detected/)
     })
@@ -274,11 +337,31 @@ describe('WorkflowBuilder', () => {
       expect(() =>
         WorkflowBuilder.create('complex')
           .step('a', { executorType: 'function', executorConfig: {} })
-          .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: {} })
-          .step('c', { dependsOn: ['a'], executorType: 'function', executorConfig: {} })
-          .step('d', { dependsOn: ['b', 'c'], executorType: 'function', executorConfig: {} })
-          .step('e', { dependsOn: ['c'], executorType: 'function', executorConfig: {} })
-          .step('f', { dependsOn: ['d', 'e'], executorType: 'function', executorConfig: {} })
+          .step('b', {
+            dependsOn: ['a'],
+            executorType: 'function',
+            executorConfig: {},
+          })
+          .step('c', {
+            dependsOn: ['a'],
+            executorType: 'function',
+            executorConfig: {},
+          })
+          .step('d', {
+            dependsOn: ['b', 'c'],
+            executorType: 'function',
+            executorConfig: {},
+          })
+          .step('e', {
+            dependsOn: ['c'],
+            executorType: 'function',
+            executorConfig: {},
+          })
+          .step('f', {
+            dependsOn: ['d', 'e'],
+            executorType: 'function',
+            executorConfig: {},
+          })
           .build(),
       ).not.toThrow()
     })

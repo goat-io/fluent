@@ -73,14 +73,18 @@ export class WorkflowMetricsCollector {
   /**
    * Get detailed metrics for a single workflow run.
    */
-  async getRunMetrics(workflowRunId: string): Promise<WorkflowRunMetrics | null> {
+  async getRunMetrics(
+    workflowRunId: string,
+  ): Promise<WorkflowRunMetrics | null> {
     const run = await this.db
       .selectFrom('workflow_runs')
       .selectAll()
       .where('id', '=', workflowRunId)
       .executeTakeFirst()
 
-    if (!run) return null
+    if (!run) {
+      return null
+    }
 
     const steps = await this.db
       .selectFrom('workflow_steps')
@@ -110,7 +114,7 @@ export class WorkflowMetricsCollector {
         totalMs: diffMs(created, completed),
         attempt: s.attempt,
         tokensUsed: s.tokensUsed ?? null,
-        costUsd: s.costUsd ? parseFloat(s.costUsd) : null,
+        costUsd: s.costUsd ? Number.parseFloat(s.costUsd) : null,
         modelUsed: s.modelUsed ?? null,
       }
     })
@@ -126,8 +130,14 @@ export class WorkflowMetricsCollector {
     const runStart = toMs(run.startedAt)
     const runEnd = toMs(run.completedAt)
 
-    const totalTokens = stepMetrics.reduce((sum, s) => sum + (s.tokensUsed ?? 0), 0)
-    const totalCostUsd = stepMetrics.reduce((sum, s) => sum + (s.costUsd ?? 0), 0)
+    const totalTokens = stepMetrics.reduce(
+      (sum, s) => sum + (s.tokensUsed ?? 0),
+      0,
+    )
+    const totalCostUsd = stepMetrics.reduce(
+      (sum, s) => sum + (s.costUsd ?? 0),
+      0,
+    )
 
     return {
       workflowRunId,
@@ -184,7 +194,9 @@ export class WorkflowMetricsCollector {
       const completed = toMs(s.completedAt)
       const execMs = diffMs(started, completed)
       if (execMs !== null) {
-        if (!execByType[s.executorType]) execByType[s.executorType] = []
+        if (!execByType[s.executorType]) {
+          execByType[s.executorType] = []
+        }
         execByType[s.executorType].push(execMs)
         allExecTimes.push(execMs)
       }
@@ -192,7 +204,9 @@ export class WorkflowMetricsCollector {
 
     const avgExecutionMsByExecutor: Record<string, number> = {}
     for (const [type, times] of Object.entries(execByType)) {
-      avgExecutionMsByExecutor[type] = Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+      avgExecutionMsByExecutor[type] = Math.round(
+        times.reduce((a, b) => a + b, 0) / times.length,
+      )
     }
 
     // Aggregate action latency by provider
@@ -201,8 +215,12 @@ export class WorkflowMetricsCollector {
 
     for (const a of actions) {
       const latMs = diffMs(toMs(a.createdAt), toMs(a.completedAt))
-      if (!latencyByProvider[a.provider]) latencyByProvider[a.provider] = []
-      if (latMs !== null) latencyByProvider[a.provider].push(latMs)
+      if (!latencyByProvider[a.provider]) {
+        latencyByProvider[a.provider] = []
+      }
+      if (latMs !== null) {
+        latencyByProvider[a.provider].push(latMs)
+      }
       countByProvider[a.provider] = (countByProvider[a.provider] ?? 0) + 1
     }
 
@@ -214,7 +232,11 @@ export class WorkflowMetricsCollector {
     }
 
     // Percentiles
-    let stepExecutionPercentiles: { p50: number; p95: number; p99: number } | null = null
+    let stepExecutionPercentiles: {
+      p50: number
+      p95: number
+      p99: number
+    } | null = null
     if (allExecTimes.length > 0) {
       allExecTimes.sort((a, b) => a - b)
       stepExecutionPercentiles = {
@@ -236,12 +258,16 @@ export class WorkflowMetricsCollector {
 // ── Helpers ───────────────────────────────────────────────────────
 
 function toMs(value: Date | string | null | undefined): number | null {
-  if (value === null || value === undefined) return null
+  if (value === null || value === undefined) {
+    return null
+  }
   return new Date(value).getTime()
 }
 
 function diffMs(start: number | null, end: number | null): number | null {
-  if (start === null || end === null) return null
+  if (start === null || end === null) {
+    return null
+  }
   return end - start
 }
 

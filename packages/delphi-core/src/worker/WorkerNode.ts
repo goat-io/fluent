@@ -1,14 +1,21 @@
 // npx vitest run src/__tests__/engine/worker-node.spec.ts
-import os from 'node:os'
-import { existsSync } from 'node:fs'
+
 import { execSync } from 'node:child_process'
-import type { WorkerNodeConfig, WorkerCapabilities, WorkerRegistration } from './WorkerNode.types.js'
+import { existsSync } from 'node:fs'
+import os from 'node:os'
 import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
-import type { StepPayload } from '../workflow/WorkflowBuilder.types.js'
 import { WorkflowStepTask } from '../tasks/WorkflowStepTask.js'
+import type { StepPayload } from '../workflow/WorkflowBuilder.types.js'
+import type {
+  WorkerCapabilities,
+  WorkerNodeConfig,
+} from './WorkerNode.types.js'
 
 export class WorkerNode {
-  private config: Required<Pick<WorkerNodeConfig, 'heartbeatIntervalMs' | 'name'>> & WorkerNodeConfig
+  private config: Required<
+    Pick<WorkerNodeConfig, 'heartbeatIntervalMs' | 'name'>
+  > &
+    WorkerNodeConfig
   private capabilities: WorkerCapabilities | null = null
   private status: 'idle' | 'active' | 'draining' | 'offline' = 'idle'
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
@@ -19,7 +26,9 @@ export class WorkerNode {
     const envConfig: WorkerNodeConfig = {
       redisUrl: process.env.AGENTS_REDIS_URL,
       redisHost: process.env.AGENTS_REDIS_HOST,
-      redisPort: process.env.AGENTS_REDIS_PORT ? Number(process.env.AGENTS_REDIS_PORT) : undefined,
+      redisPort: process.env.AGENTS_REDIS_PORT
+        ? Number(process.env.AGENTS_REDIS_PORT)
+        : undefined,
       engineUrl: process.env.AGENTS_ENGINE_URL,
       workerToken: process.env.AGENTS_WORKER_TOKEN,
       tenantId: process.env.AGENTS_TENANT_ID,
@@ -51,24 +60,50 @@ export class WorkerNode {
         '/var/run/docker.sock',
         '/run/docker.sock',
       ].filter(Boolean) as string[]
-      dockerAvailable = dockerPaths.some(p => existsSync(p)) || (() => {
-        try { execSync('docker info', { stdio: 'ignore', timeout: 5000 }); return true } catch { return false }
-      })()
+      dockerAvailable =
+        dockerPaths.some(p => existsSync(p)) ||
+        (() => {
+          try {
+            execSync('docker info', { stdio: 'ignore', timeout: 5000 })
+            return true
+          } catch {
+            return false
+          }
+        })()
     } catch {
       dockerAvailable = false
     }
 
     let gpuAvailable = false
-    try { execSync('nvidia-smi', { stdio: 'ignore', timeout: 5000 }); gpuAvailable = true } catch { /* no GPU */ }
+    try {
+      execSync('nvidia-smi', { stdio: 'ignore', timeout: 5000 })
+      gpuAvailable = true
+    } catch {
+      /* no GPU */
+    }
 
-    const base: WorkerCapabilities = { cpuCount, memoryMB, dockerAvailable, gpuAvailable, queues: [] }
+    const base: WorkerCapabilities = {
+      cpuCount,
+      memoryMB,
+      dockerAvailable,
+      gpuAvailable,
+      queues: [],
+    }
 
     // Apply overrides from config
     if (this.config.capabilities) {
-      if (this.config.capabilities.cpuCount !== undefined) base.cpuCount = this.config.capabilities.cpuCount
-      if (this.config.capabilities.memoryMB !== undefined) base.memoryMB = this.config.capabilities.memoryMB
-      if (this.config.capabilities.dockerAvailable !== undefined) base.dockerAvailable = this.config.capabilities.dockerAvailable
-      if (this.config.capabilities.gpuAvailable !== undefined) base.gpuAvailable = this.config.capabilities.gpuAvailable
+      if (this.config.capabilities.cpuCount !== undefined) {
+        base.cpuCount = this.config.capabilities.cpuCount
+      }
+      if (this.config.capabilities.memoryMB !== undefined) {
+        base.memoryMB = this.config.capabilities.memoryMB
+      }
+      if (this.config.capabilities.dockerAvailable !== undefined) {
+        base.dockerAvailable = this.config.capabilities.dockerAvailable
+      }
+      if (this.config.capabilities.gpuAvailable !== undefined) {
+        base.gpuAvailable = this.config.capabilities.gpuAvailable
+      }
     }
 
     base.queues = this.getQueueSubscriptions(base).map(q => q.taskName)
@@ -77,7 +112,9 @@ export class WorkerNode {
   }
 
   /** Determine which queues to subscribe to based on capabilities */
-  getQueueSubscriptions(caps?: WorkerCapabilities): Array<{ taskName: string; concurrency: number }> {
+  getQueueSubscriptions(
+    caps?: WorkerCapabilities,
+  ): Array<{ taskName: string; concurrency: number }> {
     const c = caps ?? this.detectResources()
     const subs: Array<{ taskName: string; concurrency: number }> = []
 
@@ -114,9 +151,13 @@ export class WorkerNode {
       const depth = await getQueueDepth(sub.taskName)
       let concurrency = sub.concurrency
 
-      if (depth > 100) concurrency = Math.min(sub.concurrency * 3, 50)
-      else if (depth > 20) concurrency = Math.min(sub.concurrency * 2, 30)
-      else if (depth === 0) concurrency = Math.max(Math.floor(sub.concurrency / 2), 1)
+      if (depth > 100) {
+        concurrency = Math.min(sub.concurrency * 3, 50)
+      } else if (depth > 20) {
+        concurrency = Math.min(sub.concurrency * 2, 30)
+      } else if (depth === 0) {
+        concurrency = Math.max(Math.floor(sub.concurrency / 2), 1)
+      }
 
       adjusted.push({ taskName: sub.taskName, concurrency })
     }
@@ -154,24 +195,31 @@ export class WorkerNode {
     // Register with engine via API if engineUrl is set
     if (this.config.engineUrl) {
       try {
-        const regResponse = await fetch(`${this.config.engineUrl}/workers/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(this.config.workerToken ? { Authorization: `Bearer ${this.config.workerToken}` } : {}),
+        const regResponse = await fetch(
+          `${this.config.engineUrl}/workers/register`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(this.config.workerToken
+                ? { Authorization: `Bearer ${this.config.workerToken}` }
+                : {}),
+            },
+            body: JSON.stringify({
+              tenantId: this.config.tenantId ?? 'default',
+              name: this.config.name,
+              hostname: os.hostname(),
+              capabilities: caps,
+            }),
           },
-          body: JSON.stringify({
-            tenantId: this.config.tenantId ?? 'default',
-            name: this.config.name,
-            hostname: os.hostname(),
-            capabilities: caps,
-          }),
-        })
-        const body = await regResponse.json() as { workerId: string }
+        )
+        const body = (await regResponse.json()) as { workerId: string }
         this.workerId = body.workerId
       } catch (err) {
         // Registration failure is non-fatal — worker can still process jobs
-        console.warn(`[WorkerNode] Failed to register with engine: ${(err as Error).message}`)
+        console.warn(
+          `[WorkerNode] Failed to register with engine: ${(err as Error).message}`,
+        )
       }
     }
 
@@ -180,7 +228,9 @@ export class WorkerNode {
       this.sendHeartbeat().catch(() => {})
     }, this.config.heartbeatIntervalMs)
 
-    console.log(`[WorkerNode] ${this.config.name} started — queues: ${subs.map(s => `${s.taskName}(${s.concurrency})`).join(', ')}`)
+    console.log(
+      `[WorkerNode] ${this.config.name} started — queues: ${subs.map(s => `${s.taskName}(${s.concurrency})`).join(', ')}`,
+    )
   }
 
   /**
@@ -208,7 +258,9 @@ export class WorkerNode {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(this.config.workerToken ? { Authorization: `Bearer ${this.config.workerToken}` } : {}),
+            ...(this.config.workerToken
+              ? { Authorization: `Bearer ${this.config.workerToken}` }
+              : {}),
           },
           body: JSON.stringify({ workerId: this.workerId }),
         })
@@ -223,7 +275,13 @@ export class WorkerNode {
   }
 
   /** Get current worker info */
-  getInfo(): { name: string; capabilities: WorkerCapabilities; status: string; workerId: string | null; config: Partial<WorkerNodeConfig> } {
+  getInfo(): {
+    name: string
+    capabilities: WorkerCapabilities
+    status: string
+    workerId: string | null
+    config: Partial<WorkerNodeConfig>
+  } {
     return {
       name: this.config.name,
       capabilities: this.capabilities ?? this.detectResources(),
@@ -241,13 +299,17 @@ export class WorkerNode {
   }
 
   private async sendHeartbeat(): Promise<void> {
-    if (!this.workerId || !this.config.engineUrl) return
+    if (!this.workerId || !this.config.engineUrl) {
+      return
+    }
 
     await fetch(`${this.config.engineUrl}/workers/heartbeat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(this.config.workerToken ? { Authorization: `Bearer ${this.config.workerToken}` } : {}),
+        ...(this.config.workerToken
+          ? { Authorization: `Bearer ${this.config.workerToken}` }
+          : {}),
       },
       body: JSON.stringify({ workerId: this.workerId }),
     })

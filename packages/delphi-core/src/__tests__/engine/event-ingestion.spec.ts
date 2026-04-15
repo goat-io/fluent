@@ -2,7 +2,15 @@
 
 import { createHmac } from 'node:crypto'
 import type { Kysely } from 'kysely'
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import type { Database } from '../../entities/Database.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'
 import { WebhookVerifier } from '../../events/WebhookVerifier.js'
@@ -365,7 +373,9 @@ describe('EventIngestionService', () => {
       .execute()
 
     expect(events).toHaveLength(2)
-    expect(events.find(e => e.sequenceNumber === 1)!.status).toBe('skipped_stale')
+    expect(events.find(e => e.sequenceNumber === 1)!.status).toBe(
+      'skipped_stale',
+    )
     expect(events.find(e => e.sequenceNumber === 3)!.status).toBe('processed')
   })
 

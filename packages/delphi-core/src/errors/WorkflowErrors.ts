@@ -13,22 +13,18 @@ export class WorkflowError extends Error {
 
 export class WorkflowNotFoundError extends WorkflowError {
   constructor(workflowName: string) {
-    super(
-      `Workflow "${workflowName}" not found`,
-      'WORKFLOW_NOT_FOUND',
-      { workflowName },
-    )
+    super(`Workflow "${workflowName}" not found`, 'WORKFLOW_NOT_FOUND', {
+      workflowName,
+    })
     this.name = 'WorkflowNotFoundError'
   }
 }
 
 export class WorkflowRunNotFoundError extends WorkflowError {
   constructor(runId: string) {
-    super(
-      `Workflow run "${runId}" not found`,
-      'WORKFLOW_RUN_NOT_FOUND',
-      { runId },
-    )
+    super(`Workflow run "${runId}" not found`, 'WORKFLOW_RUN_NOT_FOUND', {
+      runId,
+    })
     this.name = 'WorkflowRunNotFoundError'
   }
 }

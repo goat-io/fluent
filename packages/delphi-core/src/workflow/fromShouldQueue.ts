@@ -18,7 +18,7 @@ import type {
   ShouldQueue,
 } from '@goatlab/tasks-core'
 import { FunctionStep } from './Step.js'
-import { Workflow, step } from './Workflow.js'
+import { step, Workflow } from './Workflow.js'
 
 /**
  * Map a ShouldQueue's `TResult` (which may be `undefined`) onto the
@@ -26,8 +26,9 @@ import { Workflow, step } from './Workflow.js'
  * - `TResult = undefined` → step output is `JsonObject` (we return `{}`)
  * - `TResult = JsonObject`-shaped → step output preserves the shape
  */
-type StepOutputOf<TResult extends OutputType> =
-  TResult extends JsonObject ? TResult : JsonObject
+type StepOutputOf<TResult extends OutputType> = TResult extends JsonObject
+  ? TResult
+  : JsonObject
 
 /**
  * Wrap a `ShouldQueue` task as a typed `FunctionStep` instance.

@@ -12,7 +12,11 @@ export interface RateLimiterBackend {
    * Check if a request is allowed under the rate limit.
    * If not, waits until it is. Returns when the request can proceed.
    */
-  checkRateLimit(provider: string, maxRequests: number, windowMs: number): Promise<void>
+  checkRateLimit(
+    provider: string,
+    maxRequests: number,
+    windowMs: number,
+  ): Promise<void>
 
   /** Record that a request was made (for tracking). */
   recordRequest(provider: string): Promise<void>
@@ -33,7 +37,11 @@ export class InMemoryRateLimiter implements RateLimiterBackend {
   private rateBuckets = new Map<string, { timestamps: number[] }>()
   private concurrency = new Map<string, number>()
 
-  async checkRateLimit(provider: string, maxRequests: number, windowMs: number): Promise<void> {
+  async checkRateLimit(
+    provider: string,
+    maxRequests: number,
+    windowMs: number,
+  ): Promise<void> {
     const bucket = this.rateBuckets.get(provider) ?? { timestamps: [] }
     this.rateBuckets.set(provider, bucket)
 
@@ -43,16 +51,23 @@ export class InMemoryRateLimiter implements RateLimiterBackend {
     if (bucket.timestamps.length >= maxRequests) {
       const waitMs = bucket.timestamps[0] - windowStart + 100
       await new Promise(resolve => setTimeout(resolve, waitMs))
-      bucket.timestamps = bucket.timestamps.filter(t => t >= Date.now() - windowMs)
+      bucket.timestamps = bucket.timestamps.filter(
+        t => t >= Date.now() - windowMs,
+      )
     }
   }
 
   async recordRequest(provider: string): Promise<void> {
     const bucket = this.rateBuckets.get(provider)
-    if (bucket) bucket.timestamps.push(Date.now())
+    if (bucket) {
+      bucket.timestamps.push(Date.now())
+    }
   }
 
-  async checkConcurrency(workflowRunId: string, maxConcurrent: number): Promise<void> {
+  async checkConcurrency(
+    workflowRunId: string,
+    maxConcurrent: number,
+  ): Promise<void> {
     const current = this.concurrency.get(workflowRunId) ?? 0
     if (current >= maxConcurrent) {
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -78,7 +93,11 @@ export class InMemoryRateLimiter implements RateLimiterBackend {
  */
 export interface RedisClient {
   zadd(key: string, ...args: (string | number)[]): Promise<number | string>
-  zremrangebyscore(key: string, min: string | number, max: string | number): Promise<number>
+  zremrangebyscore(
+    key: string,
+    min: string | number,
+    max: string | number,
+  ): Promise<number>
   zcard(key: string): Promise<number>
   zrange(key: string, start: number, stop: number): Promise<string[]>
   expire(key: string, seconds: number): Promise<number>
@@ -86,7 +105,11 @@ export interface RedisClient {
   decr(key: string): Promise<number>
   get(key: string): Promise<string | null>
   /** Lua script execution — required for atomic rate limiting */
-  eval(script: string, numkeys: number, ...args: (string | number)[]): Promise<unknown>
+  eval(
+    script: string,
+    numkeys: number,
+    ...args: (string | number)[]
+  ): Promise<unknown>
 }
 
 // ── Lua Scripts (atomic, single round-trip) ───────────────────────
@@ -127,7 +150,7 @@ return 0
  * ARGV[1] = maxConcurrent, ARGV[2] = ttl
  * Returns: 0 = allowed (and incremented), 1 = at limit
  */
-const CONCURRENCY_CHECK_INCR_LUA = `
+const _CONCURRENCY_CHECK_INCR_LUA = `
 local key = KEYS[1]
 local maxConc = tonumber(ARGV[1])
 local ttl = tonumber(ARGV[2])
@@ -151,15 +174,26 @@ export class RedisRateLimiter implements RateLimiterBackend {
     this.prefix = prefix
   }
 
-  async checkRateLimit(provider: string, maxRequests: number, windowMs: number): Promise<void> {
+  async checkRateLimit(
+    provider: string,
+    maxRequests: number,
+    windowMs: number,
+  ): Promise<void> {
     const key = `${this.prefix}:provider:${provider}`
     const now = Date.now()
     const member = `${now}:${Math.random().toString(36).slice(2, 6)}`
 
     // Single atomic Lua call: clean window, check count, return wait time
-    const waitMs = await this.redis.eval(
-      RATE_LIMIT_LUA, 1, key, windowMs, maxRequests, now, member, 600,
-    ) as number
+    const waitMs = (await this.redis.eval(
+      RATE_LIMIT_LUA,
+      1,
+      key,
+      windowMs,
+      maxRequests,
+      now,
+      member,
+      600,
+    )) as number
 
     if (waitMs > 0) {
       await new Promise(resolve => setTimeout(resolve, waitMs))
@@ -171,15 +205,22 @@ export class RedisRateLimiter implements RateLimiterBackend {
   async recordRequest(provider: string): Promise<void> {
     const key = `${this.prefix}:provider:${provider}`
     const now = Date.now()
-    await this.redis.zadd(key, now, `${now}:${Math.random().toString(36).slice(2, 6)}`)
+    await this.redis.zadd(
+      key,
+      now,
+      `${now}:${Math.random().toString(36).slice(2, 6)}`,
+    )
     await this.redis.expire(key, 600)
   }
 
-  async checkConcurrency(workflowRunId: string, maxConcurrent: number): Promise<void> {
+  async checkConcurrency(
+    workflowRunId: string,
+    maxConcurrent: number,
+  ): Promise<void> {
     const key = `${this.prefix}:concurrency:${workflowRunId}`
 
     const current = await this.redis.get(key)
-    const count = current ? parseInt(current, 10) : 0
+    const count = current ? Number.parseInt(current, 10) : 0
 
     if (count >= maxConcurrent) {
       await new Promise(resolve => setTimeout(resolve, 500))

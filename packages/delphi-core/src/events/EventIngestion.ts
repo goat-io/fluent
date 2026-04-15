@@ -2,11 +2,11 @@
 // npx vitest run src/__tests__/engine/event-ingestion.spec.ts
 
 import { Ids } from '@goatlab/js-utils'
-import type { Kysely } from 'kysely'
 import type { JsonObject } from '@goatlab/tasks-core'
+import type { Kysely } from 'kysely'
+import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
 import type { Database, WorkflowEvent } from '../entities/Database.js'
 import { fromJson, toJson } from '../entities/Database.js'
-import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
 import type {
   EventSubscription,
   IncomingEvent,
@@ -77,18 +77,21 @@ export class EventIngestionService {
 
         if (newer) {
           // A newer event for this entity was already processed — skip
-          await this.db.insertInto('workflow_events').values({
-            id: eventId,
-            tenantId: event.tenantId,
-            eventType: event.eventType,
-            source: event.source,
-            payload: toJson(event.payload),
-            idempotencyKey: event.idempotencyKey ?? null,
-            entityKey: event.entityKey,
-            sequenceNumber: event.sequenceNumber,
-            traceId: event.traceId ?? null,
-            status: 'skipped_stale',
-          }).execute()
+          await this.db
+            .insertInto('workflow_events')
+            .values({
+              id: eventId,
+              tenantId: event.tenantId,
+              eventType: event.eventType,
+              source: event.source,
+              payload: toJson(event.payload),
+              idempotencyKey: event.idempotencyKey ?? null,
+              entityKey: event.entityKey,
+              sequenceNumber: event.sequenceNumber,
+              traceId: event.traceId ?? null,
+              status: 'skipped_stale',
+            })
+            .execute()
 
           this.logger?.info(
             `Skipped stale event: ${event.eventType} entity=${event.entityKey} seq=${event.sequenceNumber} (newer exists)`,
@@ -150,7 +153,9 @@ export class EventIngestionService {
       .where('id', '=', eventId)
       .executeTakeFirst()
 
-    if (!event) throw new Error(`Event not found: ${eventId}`)
+    if (!event) {
+      throw new Error(`Event not found: ${eventId}`)
+    }
 
     // Find matching subscriptions
     const _subscriptions = await this.db
@@ -166,12 +171,19 @@ export class EventIngestionService {
       const payload = fromJson<JsonObject>(event.payload) ?? {}
       for (const [name, def] of this.engine.getWorkflows()) {
         for (const trigger of def.triggers ?? []) {
-          if (trigger.type === 'event' && trigger.eventType === event.eventType) {
+          if (
+            trigger.type === 'event' &&
+            trigger.eventType === event.eventType
+          ) {
             // Apply filter if defined
-            if (trigger.filter && !trigger.filter(payload)) continue
+            if (trigger.filter && !trigger.filter(payload)) {
+              continue
+            }
 
             // Map input if defined
-            const input = trigger.mapTriggerInput ? trigger.mapTriggerInput(payload) : payload
+            const input = trigger.mapTriggerInput
+              ? trigger.mapTriggerInput(payload)
+              : payload
 
             // Use event idempotencyKey to prevent duplicate workflow starts
             const wfIdempotencyKey = event.idempotencyKey
@@ -185,10 +197,14 @@ export class EventIngestionService {
                 input: input as JsonObject,
                 idempotencyKey: wfIdempotencyKey,
               })
-              this.logger?.info(`Triggered workflow ${name} from event ${event.eventType}`)
+              this.logger?.info(
+                `Triggered workflow ${name} from event ${event.eventType}`,
+              )
             } catch (err: any) {
               // Swallow idempotency conflicts (duplicate events)
-              if (err.name !== 'IdempotencyConflictError') throw err
+              if (err.name !== 'IdempotencyConflictError') {
+                throw err
+              }
             }
           }
         }

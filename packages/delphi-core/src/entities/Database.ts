@@ -13,7 +13,7 @@ export interface WorkflowRunTable {
   workflowName: string
   workflowVersion: string
   status: string
-  definitionSnapshot: string | null    // JSON: frozen workflow definition at start time
+  definitionSnapshot: string | null // JSON: frozen workflow definition at start time
   triggerInput: string | null
   output: string | null
   error: string | null
@@ -48,7 +48,7 @@ export interface WorkflowStepTable {
   status: string
   executorType: string
   executorConfig: string | null
-  dependsOn: string | null        // JSON array of step names
+  dependsOn: string | null // JSON array of step names
   input: string | null
   output: string | null
   error: string | null
@@ -128,7 +128,11 @@ export type NewWorkflowSignal = Insertable<WorkflowSignalTable>
 // MUST go through this table. This guarantees exactly-once execution
 // even across retries and worker crashes.
 
-export type ExternalActionStatus = 'pending' | 'completing' | 'completed' | 'failed'
+export type ExternalActionStatus =
+  | 'pending'
+  | 'completing'
+  | 'completed'
+  | 'failed'
 
 export interface ExternalActionTable {
   id: string
@@ -137,16 +141,16 @@ export interface ExternalActionTable {
   attempt: number
   tenantId: string
 
-  provider: string                    // 'github' | 'linear' | 'slack' | etc
-  actionType: string                  // 'create_pr' | 'create_issue' | 'comment' | etc
-  idempotencyKey: string              // unique per action, e.g. '{runId}:{stepName}:{actionType}'
+  provider: string // 'github' | 'linear' | 'slack' | etc
+  actionType: string // 'create_pr' | 'create_issue' | 'comment' | etc
+  idempotencyKey: string // unique per action, e.g. '{runId}:{stepName}:{actionType}'
 
-  status: string                      // 'pending' | 'completed' | 'failed'
-  externalId: string | null           // The ID returned by the external system (PR id, issue id)
+  status: string // 'pending' | 'completed' | 'failed'
+  externalId: string | null // The ID returned by the external system (PR id, issue id)
 
-  request: string | null              // JSON: what we sent
-  response: string | null             // JSON: what we got back
-  error: string | null                // Error message if failed
+  request: string | null // JSON: what we sent
+  response: string | null // JSON: what we got back
+  error: string | null // Error message if failed
 
   /** Trace ID for cross-workflow lineage */
   traceId: string | null
@@ -196,8 +200,10 @@ export interface WorkflowEventSubscriptionTable {
   createdAt: Generated<Date | string>
 }
 
-export type WorkflowEventSubscription = Selectable<WorkflowEventSubscriptionTable>
-export type NewWorkflowEventSubscription = Insertable<WorkflowEventSubscriptionTable>
+export type WorkflowEventSubscription =
+  Selectable<WorkflowEventSubscriptionTable>
+export type NewWorkflowEventSubscription =
+  Insertable<WorkflowEventSubscriptionTable>
 
 // ── Worker Nodes ──────────────────────────────────────────────────
 
@@ -312,12 +318,18 @@ export interface Database {
 // ── JSON Helpers ───────────────────────────────────────────────────
 
 export function toJson(value: unknown): string | null {
-  if (value === null || value === undefined) return null
+  if (value === null || value === undefined) {
+    return null
+  }
   return JSON.stringify(value)
 }
 
-export function fromJson<T = Record<string, unknown>>(value: string | null | undefined): T | null {
-  if (value === null || value === undefined) return null
+export function fromJson<T = Record<string, unknown>>(
+  value: string | null | undefined,
+): T | null {
+  if (value === null || value === undefined) {
+    return null
+  }
   try {
     return JSON.parse(value) as T
   } catch {
@@ -347,7 +359,12 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
   "startedAt" TIMESTAMP,
   "completedAt" TIMESTAMP,
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Tenant-scoped idempotency: two tenants can legitimately use the
+  -- same idempotencyKey without colliding. Within a tenant, the
+  -- constraint + pre-SELECT dedupe in startBatchCopy guarantee at
+  -- most one run per key.
+  UNIQUE("tenantId", "idempotencyKey")
 );
 
 CREATE TABLE IF NOT EXISTS workflow_steps (
@@ -420,7 +437,7 @@ CREATE TABLE IF NOT EXISTS external_actions (
   "traceId" VARCHAR(36),
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "completedAt" TIMESTAMP,
-  UNIQUE("idempotencyKey")
+  UNIQUE("tenantId", "idempotencyKey")
 );
 
 CREATE INDEX IF NOT EXISTS idx_runs_tenant_status ON workflow_runs("tenantId", status);
@@ -445,7 +462,7 @@ CREATE TABLE IF NOT EXISTS workflow_events (
   error TEXT,
   "processedAt" TIMESTAMP,
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE("idempotencyKey")
+  UNIQUE("tenantId", "idempotencyKey")
 );
 CREATE INDEX IF NOT EXISTS idx_events_tenant_type ON workflow_events("tenantId", "eventType", status);
 CREATE INDEX IF NOT EXISTS idx_events_entity ON workflow_events("entityKey", "sequenceNumber");

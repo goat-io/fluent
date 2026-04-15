@@ -46,7 +46,10 @@ export interface BatchedJobProcessorConfig<TJob, TResult> {
   maxConcurrentFlushes?: number
   /** Optional name for log lines. */
   name?: string
-  logger?: { info?: (...a: unknown[]) => void; error?: (...a: unknown[]) => void }
+  logger?: {
+    info?: (...a: unknown[]) => void
+    error?: (...a: unknown[]) => void
+  }
 }
 
 interface PendingEntry<TJob, TResult> {
@@ -61,7 +64,10 @@ export class BatchedJobProcessor<TJob, TResult = void> {
   private inFlight = 0
   private shuttingDown = false
 
-  private readonly flushBatch: BatchedJobProcessorConfig<TJob, TResult>['flushBatch']
+  private readonly flushBatch: BatchedJobProcessorConfig<
+    TJob,
+    TResult
+  >['flushBatch']
   private readonly flushThreshold: number
   private readonly flushIntervalMs: number
   private readonly maxConcurrentFlushes: number
@@ -87,11 +93,16 @@ export class BatchedJobProcessor<TJob, TResult = void> {
     }
     return new Promise<TResult>((resolve, reject) => {
       this.pending.push({ job, resolve, reject })
-      if (this.pending.length >= this.flushThreshold && this.inFlight < this.maxConcurrentFlushes) {
+      if (
+        this.pending.length >= this.flushThreshold &&
+        this.inFlight < this.maxConcurrentFlushes
+      ) {
         this.triggerFlush()
       } else if (!this.timer) {
         this.timer = setTimeout(() => this.triggerFlush(), this.flushIntervalMs)
-        if (this.timer.unref) this.timer.unref()
+        if (this.timer.unref) {
+          this.timer.unref()
+        }
       }
     })
   }
@@ -99,31 +110,49 @@ export class BatchedJobProcessor<TJob, TResult = void> {
   /** Drain remaining pending items. For graceful shutdown. */
   async shutdown(): Promise<void> {
     this.shuttingDown = true
-    if (this.timer) { clearTimeout(this.timer); this.timer = null }
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = null
+    }
     while (this.pending.length > 0 || this.inFlight > 0) {
       await this.flush()
-      if (this.inFlight > 0) await new Promise(r => setTimeout(r, 10))
+      if (this.inFlight > 0) {
+        await new Promise(r => setTimeout(r, 10))
+      }
     }
   }
 
   /** Force a flush now. */
-  async flushNow(): Promise<void> { await this.flush() }
+  async flushNow(): Promise<void> {
+    await this.flush()
+  }
 
   /** Diagnostics — count of jobs waiting to flush. */
-  pendingCount(): number { return this.pending.length }
+  pendingCount(): number {
+    return this.pending.length
+  }
 
   /** Diagnostics — count of in-flight flushes. */
-  inFlightCount(): number { return this.inFlight }
+  inFlightCount(): number {
+    return this.inFlight
+  }
 
   private triggerFlush(): void {
-    if (this.timer) { clearTimeout(this.timer); this.timer = null }
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = null
+    }
     // Fire-and-forget; per-job errors delivered via individual rejections
     void this.flush()
   }
 
   private async flush(): Promise<void> {
-    if (this.pending.length === 0) return
-    if (this.inFlight >= this.maxConcurrentFlushes) return
+    if (this.pending.length === 0) {
+      return
+    }
+    if (this.inFlight >= this.maxConcurrentFlushes) {
+      return
+    }
     this.inFlight++
 
     // Atomic swap — this batch is owned by this flush call alone
@@ -138,19 +167,29 @@ export class BatchedJobProcessor<TJob, TResult = void> {
         const err = new Error(
           `${this.name}: flushBatch returned ${results.length} results for ${batch.length} jobs`,
         )
-        for (const p of batch) p.reject(err)
+        for (const p of batch) {
+          p.reject(err)
+        }
         return
       }
       for (let i = 0; i < batch.length; i++) {
         batch[i]!.resolve(results[i] as TResult)
       }
     } catch (err) {
-      this.logger?.error?.(`${this.name} flushBatch failed; rejecting batch of ${batch.length}`, err)
-      for (const p of batch) p.reject(err)
+      this.logger?.error?.(
+        `${this.name} flushBatch failed; rejecting batch of ${batch.length}`,
+        err,
+      )
+      for (const p of batch) {
+        p.reject(err)
+      }
     } finally {
       this.inFlight--
       // If pending grew past threshold while we were in-flight, kick another flush
-      if (this.pending.length >= this.flushThreshold && this.inFlight < this.maxConcurrentFlushes) {
+      if (
+        this.pending.length >= this.flushThreshold &&
+        this.inFlight < this.maxConcurrentFlushes
+      ) {
         void this.flush()
       }
     }

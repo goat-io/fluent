@@ -20,7 +20,13 @@ import type { WorkflowEngine } from './WorkflowEngine.js'
  *     `queue: connector.getQueue(...)` API.
  */
 type RawBulkQueue = {
-  addBulk: (jobs: Array<{ name: string; data: unknown; opts?: Record<string, unknown> }>) => Promise<unknown>
+  addBulk: (
+    jobs: Array<{
+      name: string
+      data: unknown
+      opts?: Record<string, unknown>
+    }>,
+  ) => Promise<unknown>
 }
 
 export interface IngestBufferConfig {
@@ -43,7 +49,10 @@ export interface IngestBufferConfig {
   maxJitterMs?: number
   /** BullMQ job name (default: 'ingest') */
   jobName?: string
-  logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void }
+  logger?: {
+    info: (...args: unknown[]) => void
+    error: (...args: unknown[]) => void
+  }
 
   /**
    * Optional engine reference. REQUIRED to use enqueueCommitted() — the
@@ -98,7 +107,9 @@ export class IngestBuffer {
 
   constructor(config: IngestBufferConfig) {
     if (!config.connector && !config.queue) {
-      throw new Error('IngestBuffer requires either { connector + taskName } or { queue }')
+      throw new Error(
+        'IngestBuffer requires either { connector + taskName } or { queue }',
+      )
     }
     this.connector = config.connector
     this.taskName = config.taskName ?? 'workflow_ingest'
@@ -119,7 +130,7 @@ export class IngestBuffer {
         logger: config.logger
           ? { info: config.logger.info, error: config.logger.error }
           : undefined,
-        flushBatch: async (jobs) => {
+        flushBatch: async jobs => {
           const triggers = jobs.map(j => j.trigger)
           // synchronousCommit: true — committed workflows MUST survive a
           // power loss. COMMIT blocks until WAL fsync; BatchedJobProcessor
@@ -132,7 +143,10 @@ export class IngestBuffer {
             synchronousCommit: true,
             checkIdempotency: true,
           })
-          return results.map((r, i) => ({ runId: r.runId, traceId: jobs[i]!.traceId }))
+          return results.map((r, i) => ({
+            runId: r.runId,
+            traceId: jobs[i]!.traceId,
+          }))
         },
       })
     }
@@ -148,7 +162,9 @@ export class IngestBuffer {
    */
   enqueue(trigger: WorkflowTriggerInput): { runId: string; traceId: string } {
     if (this.shuttingDown) {
-      throw new Error('IngestBuffer is shutting down; not accepting new triggers')
+      throw new Error(
+        'IngestBuffer is shutting down; not accepting new triggers',
+      )
     }
     const runId = trigger.runId ?? Ids.nanoId(21)
     // Assign traceId at the HTTP boundary so callers can correlate distributed
@@ -175,7 +191,9 @@ export class IngestBuffer {
     trigger: WorkflowTriggerInput,
   ): Promise<{ runId: string; traceId: string }> {
     if (this.shuttingDown) {
-      throw new Error('IngestBuffer is shutting down; not accepting new triggers')
+      throw new Error(
+        'IngestBuffer is shutting down; not accepting new triggers',
+      )
     }
     if (!this.committedProcessor) {
       throw new Error(
@@ -193,7 +211,9 @@ export class IngestBuffer {
   /** Force a flush now (e.g. on graceful shutdown). */
   async flushNow(): Promise<void> {
     await this.flush()
-    if (this.committedProcessor) await this.committedProcessor.flushNow()
+    if (this.committedProcessor) {
+      await this.committedProcessor.flushNow()
+    }
   }
 
   async shutdown(): Promise<void> {
@@ -203,7 +223,9 @@ export class IngestBuffer {
       this.timer = null
     }
     await this.flush()
-    if (this.committedProcessor) await this.committedProcessor.shutdown()
+    if (this.committedProcessor) {
+      await this.committedProcessor.shutdown()
+    }
   }
 
   currentDepth(): number {
@@ -211,7 +233,9 @@ export class IngestBuffer {
   }
 
   private scheduleNext(): void {
-    if (this.shuttingDown) return
+    if (this.shuttingDown) {
+      return
+    }
     const jitter = Math.floor(Math.random() * this.maxJitterMs)
     this.timer = setTimeout(() => {
       void this.flush().finally(() => this.scheduleNext())
@@ -219,8 +243,12 @@ export class IngestBuffer {
   }
 
   private async flush(): Promise<void> {
-    if (this.flushing) return
-    if (this.buffer.length === 0) return
+    if (this.flushing) {
+      return
+    }
+    if (this.buffer.length === 0) {
+      return
+    }
     this.flushing = true
 
     // Atomic swap — isolate the batch we're about to ship
@@ -260,7 +288,11 @@ export class IngestBuffer {
           batch.map(b => ({
             name: this.jobName,
             data: { runId: b.runId, trigger: b.trigger },
-            opts: { jobId: `ingest-${b.runId}`, removeOnComplete: true, removeOnFail: 100 },
+            opts: {
+              jobId: `ingest-${b.runId}`,
+              removeOnComplete: true,
+              removeOnFail: 100,
+            },
           })),
         )
       }

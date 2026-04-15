@@ -48,7 +48,10 @@ export interface StepStatusBufferConfig {
    * `UPDATE <schema>.workflow_steps`. Default: no schema prefix.
    */
   schema?: string
-  logger?: { info?: (...a: unknown[]) => void; error?: (...a: unknown[]) => void }
+  logger?: {
+    info?: (...a: unknown[]) => void
+    error?: (...a: unknown[]) => void
+  }
 }
 
 export class StepStatusBuffer {
@@ -58,18 +61,20 @@ export class StepStatusBuffer {
 
   constructor(config: StepStatusBufferConfig) {
     this.pgPool = config.pgPool
-    this.tableName = config.schema ? `${config.schema}.workflow_steps` : 'workflow_steps'
+    this.tableName = config.schema
+      ? `${config.schema}.workflow_steps`
+      : 'workflow_steps'
     this.processor = new BatchedJobProcessor<StepStatusUpdate, void>({
       name: 'StepStatusBuffer',
       flushThreshold: config.flushThreshold ?? 100,
       flushIntervalMs: config.flushIntervalMs ?? 20,
       maxConcurrentFlushes: config.maxConcurrentFlushes ?? 4,
       logger: config.logger,
-      flushBatch: async (batch) => {
+      flushBatch: async batch => {
         await this.commitBatch(batch)
         // void result for each item — promise resolves when the batched
         // UPDATE commits, callers don't need a per-item value
-        return new Array(batch.length).fill(undefined as void)
+        return new Array(batch.length).fill(undefined as undefined)
       },
     })
   }
@@ -83,9 +88,13 @@ export class StepStatusBuffer {
     return this.processor.enqueue(update)
   }
 
-  async shutdown(): Promise<void> { await this.processor.shutdown() }
+  async shutdown(): Promise<void> {
+    await this.processor.shutdown()
+  }
 
-  currentDepth(): number { return this.processor.pendingCount() }
+  currentDepth(): number {
+    return this.processor.pendingCount()
+  }
 
   private async commitBatch(batch: StepStatusUpdate[]): Promise<void> {
     // Build six parallel arrays for unnest. PG arrays accept NULL elements.
@@ -134,10 +143,20 @@ export class StepStatusBuffer {
     try {
       // SET LOCAL synchronous_commit=off — same trade-off as the COPY path
       await client.query('BEGIN; SET LOCAL synchronous_commit = OFF;')
-      await client.query(sql, [ids, statuses, outputs, errors, completedAts, startedAts, humanPrompts])
+      await client.query(sql, [
+        ids,
+        statuses,
+        outputs,
+        errors,
+        completedAts,
+        startedAts,
+        humanPrompts,
+      ])
       await client.query('COMMIT')
     } catch (err) {
-      try { await client.query('ROLLBACK') } catch {}
+      try {
+        await client.query('ROLLBACK')
+      } catch {}
       throw err
     } finally {
       client.release()

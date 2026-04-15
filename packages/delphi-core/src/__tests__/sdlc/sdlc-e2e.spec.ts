@@ -1,34 +1,42 @@
 // npx vitest run src/__tests__/sdlc/sdlc-e2e.spec.ts
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import type { Kysely } from 'kysely'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
+import type { Kysely } from 'kysely'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import type { Database } from '../../entities/Database.js'
+import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import type { StepPayload } from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from '../engine/shared.js'
 import {
-  MockLinearAdapter,
   MockGitHubAdapter,
+  MockLinearAdapter,
   MockUIGenerator,
   SideEffectTracker,
 } from './mocks.js'
 import {
   buildSDLCWorkflow,
   createSDLCExecutor,
-  STEP_SCHEMAS,
   type SDLCContext,
+  STEP_SCHEMAS,
 } from './workflow.js'
 
 interface GlobalTestData {
   redis: { host: string; port: number }
-  postgres: { host: string; port: number; database: string; username: string; password: string }
+  postgres: {
+    host: string
+    port: number
+    database: string
+    username: string
+    password: string
+  }
 }
 
 function getGlobalData(): GlobalTestData {
-  return JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
+  return JSON.parse(
+    readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
+  )
 }
 
 async function waitForStatus(
@@ -41,13 +49,15 @@ async function waitForStatus(
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const s = await engine.getStatus(runId, tenantId)
-    if (targets.includes(s.status)) return s.status
+    if (targets.includes(s.status)) {
+      return s.status
+    }
     await new Promise(r => setTimeout(r, 200))
   }
   const final = await engine.getStatus(runId, tenantId)
   throw new Error(
     `Workflow ${runId} did not reach ${targets.join('|')} within ${timeoutMs}ms. ` +
-    `Current: ${final.status}, steps: ${final.steps.map(s => `${s.stepName}=${s.status}`).join(', ')}`,
+      `Current: ${final.status}, steps: ${final.steps.map(s => `${s.stepName}=${s.status}`).join(', ')}`,
   )
 }
 
@@ -69,8 +79,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   })
 
   afterAll(async () => {
-    if (stopWorker) await stopWorker()
-    if (connector) await connector.close()
+    if (stopWorker) {
+      await stopWorker()
+    }
+    if (connector) {
+      await connector.close()
+    }
     await releaseSharedDb()
   })
 
@@ -83,8 +97,13 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   })
 
   async function setupEngine(ctx: SDLCContext) {
-    if (stopWorker) { await stopWorker(); stopWorker = null }
-    if (connector) await connector.close()
+    if (stopWorker) {
+      await stopWorker()
+      stopWorker = null
+    }
+    if (connector) {
+      await connector.close()
+    }
 
     const data = getGlobalData()
     connector = new BullMQConnector({
@@ -138,14 +157,24 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('1. End-to-End Happy Path', () => {
     it('executes full SDLC pipeline from feedback to completion', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
-        input: { feedback: 'Add a user dashboard with activity feed and notifications' },
+        input: {
+          feedback: 'Add a user dashboard with activity feed and notifications',
+        },
       })
 
-      const status = await waitForStatus(engine, runId, TENANT, ['COMPLETED', 'FAILED'])
+      const status = await waitForStatus(engine, runId, TENANT, [
+        'COMPLETED',
+        'FAILED',
+      ])
       expect(status).toBe('COMPLETED')
 
       const final = await engine.getStatus(runId, TENANT)
@@ -177,7 +206,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('2. Step Isolation — Idempotency', () => {
     it('Linear tasks not duplicated when create_tasks runs twice with same externalId', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
 
       // Run full workflow
       const { runId } = await engine.start({
@@ -191,7 +225,9 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
 
       // Run second workflow with same structure — externalIds include runId so they'll be different
       // But within a single workflow, if create_tasks ran twice (retry), externalIds deduplicate
-      const createTaskCalls = linear.callLog.filter(c => c.method === 'createIssue')
+      const createTaskCalls = linear.callLog.filter(
+        c => c.method === 'createIssue',
+      )
       const externalIds = createTaskCalls.map(c => c.args.externalId)
       const uniqueExternalIds = new Set(externalIds)
       expect(uniqueExternalIds.size).toBe(externalIds.length) // All unique
@@ -199,7 +235,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
     })
 
     it('GitHub PRs not duplicated when implement_code runs twice with same branch', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -219,7 +260,10 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   describe('3. Failure + Retry', () => {
     it('recovers from agent timeout via retry', async () => {
       const engine = await setupEngine({
-        linear, github, uiGenerator: uiGen, tracker,
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
         failureConfig: { failAt: 'structure_feedback', failCount: 2 },
       })
 
@@ -229,18 +273,26 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
         input: { feedback: 'Retry test — agent will fail twice then succeed' },
       })
 
-      const status = await waitForStatus(engine, runId, TENANT, ['COMPLETED', 'FAILED'])
+      const status = await waitForStatus(engine, runId, TENANT, [
+        'COMPLETED',
+        'FAILED',
+      ])
       expect(status).toBe('COMPLETED')
 
       // Verify retry happened
       const final = await engine.getStatus(runId, TENANT)
-      const structStep = final.steps.find(s => s.stepName === 'structure_feedback')
+      const structStep = final.steps.find(
+        s => s.stepName === 'structure_feedback',
+      )
       expect(structStep?.attempt).toBeGreaterThanOrEqual(2)
     })
 
     it('fails workflow when retries exhausted', async () => {
       const engine = await setupEngine({
-        linear, github, uiGenerator: uiGen, tracker,
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
         failureConfig: { failAt: 'generate_plan', failCount: 99 }, // Always fail
       })
 
@@ -250,7 +302,10 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
         input: { feedback: 'This will fail permanently' },
       })
 
-      const status = await waitForStatus(engine, runId, TENANT, ['COMPLETED', 'FAILED'])
+      const status = await waitForStatus(engine, runId, TENANT, [
+        'COMPLETED',
+        'FAILED',
+      ])
       expect(status).toBe('FAILED')
 
       const final = await engine.getStatus(runId, TENANT)
@@ -267,7 +322,10 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
 
     it('maintains state integrity after failure — no duplicate side effects', async () => {
       const engine = await setupEngine({
-        linear, github, uiGenerator: uiGen, tracker,
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
         failureConfig: { failAt: 'create_tasks', failCount: 1 },
       })
 
@@ -280,7 +338,9 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
       await waitForStatus(engine, runId, TENANT, ['COMPLETED', 'FAILED'])
 
       // Even with retry, Linear issues should be deduplicated via externalId
-      const createCalls = linear.callLog.filter(c => c.method === 'createIssue')
+      const _createCalls = linear.callLog.filter(
+        c => c.method === 'createIssue',
+      )
       // Issues created = 3 (not 6, because externalId dedup)
       expect(linear.issues.length).toBe(3)
     })
@@ -291,7 +351,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('4. Queue Reliability', () => {
     it('workflow resumes after worker restart', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -303,10 +368,15 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
 
       // Verify workflow is in progress
       const mid = await engine.getStatus(runId, TENANT)
-      const completedSteps = mid.steps.filter(s => s.status === 'COMPLETED').length
+      const _completedSteps = mid.steps.filter(
+        s => s.status === 'COMPLETED',
+      ).length
 
       // Wait for full completion (worker is still running)
-      const status = await waitForStatus(engine, runId, TENANT, ['COMPLETED', 'FAILED'])
+      const status = await waitForStatus(engine, runId, TENANT, [
+        'COMPLETED',
+        'FAILED',
+      ])
       expect(status).toBe('COMPLETED')
 
       // All steps should be completed
@@ -320,7 +390,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('5. State Consistency', () => {
     it('all step outputs persisted in DB after completion', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -330,20 +405,30 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
       await waitForStatus(engine, runId, TENANT, ['COMPLETED'])
 
       // Read directly from DB — verify output is persisted
-      const steps = await db.selectFrom('workflow_steps').selectAll()
+      const steps = await db
+        .selectFrom('workflow_steps')
+        .selectAll()
         .where('workflowRunId', '=', runId)
         .execute()
 
       for (const step of steps) {
         expect(step.output, `Step ${step.stepName} has no output`).toBeDefined()
-        expect(step.output, `Step ${step.stepName} output is null`).not.toBeNull()
+        expect(
+          step.output,
+          `Step ${step.stepName} output is null`,
+        ).not.toBeNull()
         expect(step.status).toBe('COMPLETED')
         expect(step.completedAt).toBeDefined()
       }
     })
 
     it('audit log contains events for all step transitions', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -352,7 +437,9 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
 
       await waitForStatus(engine, runId, TENANT, ['COMPLETED'])
 
-      const logs = await db.selectFrom('workflow_step_logs').selectAll()
+      const logs = await db
+        .selectFrom('workflow_step_logs')
+        .selectAll()
         .where('tenantId', '=', TENANT)
         .orderBy('createdAt', 'asc')
         .execute()
@@ -369,7 +456,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
     })
 
     it('no hidden state outside DB — engine reconstructs from Postgres', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -382,7 +474,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
       const engine2 = new WorkflowEngine({
         db,
         connector,
-        executors: new Map([['function', createSDLCExecutor({ linear, github, uiGenerator: uiGen, tracker })]]),
+        executors: new Map([
+          [
+            'function',
+            createSDLCExecutor({ linear, github, uiGenerator: uiGen, tracker }),
+          ],
+        ]),
         workflows: new Map([['sdlc_pipeline', buildSDLCWorkflow()]]),
         tenantId: TENANT,
         disableLogBuffering: true,
@@ -400,7 +497,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('7. External Integrations', () => {
     it('Linear: tasks created exactly once with correct mapping from plan', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -427,7 +529,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
     })
 
     it('GitHub: PR created and reviewed correctly', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -453,7 +560,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('8. Multi-Agent Coordination — Output Chaining', () => {
     it('each step receives correct input from upstream steps', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -465,7 +577,9 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
       const final = await engine.getStatus(runId, TENANT)
 
       // structure_feedback received rawText from ingest
-      const structStep = final.steps.find(s => s.stepName === 'structure_feedback')
+      const structStep = final.steps.find(
+        s => s.stepName === 'structure_feedback',
+      )
       expect(structStep?.input).toHaveProperty('rawText')
 
       // generate_plan received title + requirements from structure
@@ -493,7 +607,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('9. Data Validation — Schema Enforcement', () => {
     it('all step outputs conform to expected schemas', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -507,7 +626,10 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
         const validator = STEP_SCHEMAS[step.stepName]
         if (validator) {
           const valid = validator(step.output)
-          expect(valid, `Step "${step.stepName}" output does not match schema: ${JSON.stringify(step.output)}`).toBe(true)
+          expect(
+            valid,
+            `Step "${step.stepName}" output does not match schema: ${JSON.stringify(step.output)}`,
+          ).toBe(true)
         }
       }
     })
@@ -518,7 +640,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('10. Performance — Concurrent Workflows', () => {
     it('runs 10 workflows concurrently without contention', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
 
       const runIds: string[] = []
       for (let i = 0; i < 10; i++) {
@@ -555,7 +682,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
   // ─────────────────────────────────────────────────────────────────
   describe('Anti-Pattern Detection', () => {
     it('all external calls tracked in side effect tracker', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -582,7 +714,12 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
     })
 
     it('no step produces output without corresponding DB entry', async () => {
-      const engine = await setupEngine({ linear, github, uiGenerator: uiGen, tracker })
+      const engine = await setupEngine({
+        linear,
+        github,
+        uiGenerator: uiGen,
+        tracker,
+      })
       const { runId } = await engine.start({
         workflowName: 'sdlc_pipeline',
         tenantId: TENANT,
@@ -592,7 +729,9 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
       await waitForStatus(engine, runId, TENANT, ['COMPLETED'])
 
       // Every tracked side effect should correspond to a completed step in DB
-      const steps = await db.selectFrom('workflow_steps').selectAll()
+      const steps = await db
+        .selectFrom('workflow_steps')
+        .selectAll()
         .where('workflowRunId', '=', runId)
         .execute()
       const completedStepNames = new Set(
@@ -601,12 +740,20 @@ describe('SDLC Multi-Agent Workflow — Full E2E', () => {
 
       // All 9 step names present
       const expected = [
-        'ingest_feedback', 'structure_feedback', 'generate_plan',
-        'create_tasks', 'implement_code', 'review_code',
-        'generate_ui', 'validate_output', 'complete_workflow',
+        'ingest_feedback',
+        'structure_feedback',
+        'generate_plan',
+        'create_tasks',
+        'implement_code',
+        'review_code',
+        'generate_ui',
+        'validate_output',
+        'complete_workflow',
       ]
       for (const name of expected) {
-        expect(completedStepNames.has(name), `Step "${name}" not in DB`).toBe(true)
+        expect(completedStepNames.has(name), `Step "${name}" not in DB`).toBe(
+          true,
+        )
       }
     })
   })

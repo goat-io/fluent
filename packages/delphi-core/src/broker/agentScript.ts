@@ -2,7 +2,12 @@
 // Returns a JS string that can be eval'd on any machine with Node 18+.
 // No npm packages required — uses only Node built-ins (crypto, os, child_process, fetch).
 
-export function generateAgentScript(brokerUrl: string, token: string, tenantId: string, queues?: string[]): string {
+export function generateAgentScript(
+  brokerUrl: string,
+  token: string,
+  tenantId: string,
+  queues?: string[],
+): string {
   return `
 // Goat Agent — self-contained remote worker
 // Connects to ${brokerUrl} via HTTPS only. No dependencies required.

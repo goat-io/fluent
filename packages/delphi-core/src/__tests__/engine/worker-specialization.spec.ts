@@ -2,17 +2,18 @@
 //
 // Tests for Issue #1: Worker specialization — light/heavy queue routing
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
+import type { Kysely } from 'kysely'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
-import type { Kysely } from 'kysely'
-import type { Database } from '../../entities/Database.js'
 
 describe('Worker Specialization — Light/Heavy Queue Routing', () => {
   let db: Kysely<Database>
@@ -20,7 +21,9 @@ describe('Worker Specialization — Light/Heavy Queue Routing', () => {
 
   beforeAll(async () => {
     db = await getSharedDb()
-    const tempData = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
+    const tempData = JSON.parse(
+      readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
+    )
     connector = new BullMQConnector({
       connection: { host: tempData.redis.host, port: tempData.redis.port },
     })
@@ -67,7 +70,11 @@ describe('Worker Specialization — Light/Heavy Queue Routing', () => {
       disableLogBuffering: true,
     })
 
-    await engine.start({ workflowName: 'light_test', tenantId: 'test', input: {} })
+    await engine.start({
+      workflowName: 'light_test',
+      tenantId: 'test',
+      input: {},
+    })
 
     expect(queuedTo).toContain('workflow_step_light')
     expect(queuedTo).not.toContain('workflow_step_heavy')
@@ -107,7 +114,11 @@ describe('Worker Specialization — Light/Heavy Queue Routing', () => {
       disableLogBuffering: true,
     })
 
-    await engine.start({ workflowName: 'heavy_test', tenantId: 'test', input: {} })
+    await engine.start({
+      workflowName: 'heavy_test',
+      tenantId: 'test',
+      input: {},
+    })
 
     expect(queuedTo).toContain('workflow_step_heavy')
     expect(queuedTo).not.toContain('workflow_step_light')
@@ -147,7 +158,11 @@ describe('Worker Specialization — Light/Heavy Queue Routing', () => {
       disableLogBuffering: true,
     })
 
-    await engine.start({ workflowName: 'default_test', tenantId: 'test', input: {} })
+    await engine.start({
+      workflowName: 'default_test',
+      tenantId: 'test',
+      input: {},
+    })
 
     expect(queuedTo).toContain('workflow_step_light')
     await engine.shutdown()
@@ -191,7 +206,11 @@ describe('Worker Specialization — Light/Heavy Queue Routing', () => {
       disableLogBuffering: true,
     })
 
-    await engine.start({ workflowName: 'mixed_test', tenantId: 'test', input: {} })
+    await engine.start({
+      workflowName: 'mixed_test',
+      tenantId: 'test',
+      input: {},
+    })
 
     // First step should be light
     expect(queuedTo[0]).toBe('workflow_step_light')
@@ -232,19 +251,23 @@ describe('Worker Specialization — Light/Heavy Queue Routing', () => {
 
     // Start separate workers for each queue
     const lightWorker = await connector.listen({
-      tasks: [{
-        taskName: 'workflow_step_light',
-        handle: (data: unknown) => stepTask.handle(data as any),
-        concurrency: 10,
-      }],
+      tasks: [
+        {
+          taskName: 'workflow_step_light',
+          handle: (data: unknown) => stepTask.handle(data as any),
+          concurrency: 10,
+        },
+      ],
     })
 
     const heavyWorker = await connector.listen({
-      tasks: [{
-        taskName: 'workflow_step_heavy',
-        handle: (data: unknown) => stepTask.handle(data as any),
-        concurrency: 2,
-      }],
+      tasks: [
+        {
+          taskName: 'workflow_step_heavy',
+          handle: (data: unknown) => stepTask.handle(data as any),
+          concurrency: 2,
+        },
+      ],
     })
 
     const { runId } = await engine.start({
@@ -258,7 +281,9 @@ describe('Worker Specialization — Light/Heavy Queue Routing', () => {
     const start = Date.now()
     while (Date.now() - start < maxWait) {
       const status = await engine.getStatus(runId, 'test')
-      if (status.status === 'COMPLETED') break
+      if (status.status === 'COMPLETED') {
+        break
+      }
       await new Promise(r => setTimeout(r, 200))
     }
 

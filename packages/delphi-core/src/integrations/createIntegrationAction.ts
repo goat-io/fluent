@@ -23,7 +23,10 @@ export function createIntegrationAction<TReq, TRes>(
         },
         async () => {
           const result = await fn(request)
-          return { externalId: result.externalId, data: result.data as unknown as Record<string, unknown> }
+          return {
+            externalId: result.externalId,
+            data: result.data as unknown as Record<string, unknown>,
+          }
         },
       ) as any
     },

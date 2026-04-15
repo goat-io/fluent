@@ -41,12 +41,18 @@ export class MockLinearAdapter {
     labels?: string[]
     externalId?: string
   }): Promise<LinearIssue> {
-    this.callLog.push({ method: 'createIssue', args: input, timestamp: Date.now() })
+    this.callLog.push({
+      method: 'createIssue',
+      args: input,
+      timestamp: Date.now(),
+    })
 
     // Idempotency: if externalId already exists, return existing
     if (input.externalId) {
       const existing = this.issues.find(i => i.externalId === input.externalId)
-      if (existing) return existing
+      if (existing) {
+        return existing
+      }
     }
 
     const issue: LinearIssue = {
@@ -61,10 +67,19 @@ export class MockLinearAdapter {
     return issue
   }
 
-  async updateIssue(id: string, updates: Partial<LinearIssue>): Promise<LinearIssue> {
-    this.callLog.push({ method: 'updateIssue', args: { id, updates }, timestamp: Date.now() })
+  async updateIssue(
+    id: string,
+    updates: Partial<LinearIssue>,
+  ): Promise<LinearIssue> {
+    this.callLog.push({
+      method: 'updateIssue',
+      args: { id, updates },
+      timestamp: Date.now(),
+    })
     const issue = this.issues.find(i => i.id === id)
-    if (!issue) throw new Error(`Issue ${id} not found`)
+    if (!issue) {
+      throw new Error(`Issue ${id} not found`)
+    }
     Object.assign(issue, updates)
     return issue
   }
@@ -81,7 +96,11 @@ export class MockLinearAdapter {
  */
 export class MockGitHubAdapter {
   readonly prs: GitHubPR[] = []
-  readonly commits: Array<{ branch: string; message: string; files: string[] }> = []
+  readonly commits: Array<{
+    branch: string
+    message: string
+    files: string[]
+  }> = []
   readonly callLog: Array<{ method: string; args: any; timestamp: number }> = []
 
   async createPR(input: {
@@ -90,11 +109,19 @@ export class MockGitHubAdapter {
     branch: string
     files: Array<{ path: string; content: string }>
   }): Promise<GitHubPR> {
-    this.callLog.push({ method: 'createPR', args: input, timestamp: Date.now() })
+    this.callLog.push({
+      method: 'createPR',
+      args: input,
+      timestamp: Date.now(),
+    })
 
     // Idempotency: if branch already has open PR, return existing
-    const existing = this.prs.find(p => p.branch === input.branch && p.status === 'open')
-    if (existing) return existing
+    const existing = this.prs.find(
+      p => p.branch === input.branch && p.status === 'open',
+    )
+    if (existing) {
+      return existing
+    }
 
     const pr: GitHubPR = {
       id: `PR-${this.prs.length + 1}`,
@@ -109,22 +136,45 @@ export class MockGitHubAdapter {
     return pr
   }
 
-  async addReview(prId: string, review: { approved: boolean; comment: string }): Promise<void> {
-    this.callLog.push({ method: 'addReview', args: { prId, review }, timestamp: Date.now() })
+  async addReview(
+    prId: string,
+    review: { approved: boolean; comment: string },
+  ): Promise<void> {
+    this.callLog.push({
+      method: 'addReview',
+      args: { prId, review },
+      timestamp: Date.now(),
+    })
     const pr = this.prs.find(p => p.id === prId)
-    if (!pr) throw new Error(`PR ${prId} not found`)
+    if (!pr) {
+      throw new Error(`PR ${prId} not found`)
+    }
     pr.reviews.push(review)
   }
 
   async mergePR(prId: string): Promise<void> {
-    this.callLog.push({ method: 'mergePR', args: { prId }, timestamp: Date.now() })
+    this.callLog.push({
+      method: 'mergePR',
+      args: { prId },
+      timestamp: Date.now(),
+    })
     const pr = this.prs.find(p => p.id === prId)
-    if (!pr) throw new Error(`PR ${prId} not found`)
+    if (!pr) {
+      throw new Error(`PR ${prId} not found`)
+    }
     pr.status = 'merged'
   }
 
-  async commit(branch: string, message: string, files: string[]): Promise<void> {
-    this.callLog.push({ method: 'commit', args: { branch, message, files }, timestamp: Date.now() })
+  async commit(
+    branch: string,
+    message: string,
+    files: string[],
+  ): Promise<void> {
+    this.callLog.push({
+      method: 'commit',
+      args: { branch, message, files },
+      timestamp: Date.now(),
+    })
     this.commits.push({ branch, message, files })
   }
 
@@ -147,7 +197,11 @@ export class MockUIGenerator {
     type: 'component' | 'page' | 'layout'
     spec: string
   }): Promise<UIArtifact> {
-    this.callLog.push({ method: 'generate', args: input, timestamp: Date.now() })
+    this.callLog.push({
+      method: 'generate',
+      args: input,
+      timestamp: Date.now(),
+    })
 
     const artifact: UIArtifact = {
       id: `UI-${this.artifacts.length + 1}`,
@@ -179,7 +233,13 @@ export class SideEffectTracker {
   }> = []
 
   record(service: string, method: string, args: any, stepName: string): void {
-    this.effects.push({ service, method, args, timestamp: Date.now(), stepName })
+    this.effects.push({
+      service,
+      method,
+      args,
+      timestamp: Date.now(),
+      stepName,
+    })
   }
 
   getEffectsForStep(stepName: string) {

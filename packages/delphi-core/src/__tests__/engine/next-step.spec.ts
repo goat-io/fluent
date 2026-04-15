@@ -7,7 +7,6 @@ import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
 import type { Database } from '../../entities/Database.js'
-import { NonRetryableError } from '../../errors/WorkflowErrors.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -83,7 +82,9 @@ async function waitForWorkflowStatus(
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const status = await engine.getStatus(runId, tenantId)
-    if (targetStatuses.includes(status.status)) return status.status
+    if (targetStatuses.includes(status.status)) {
+      return status.status
+    }
     await new Promise(r => setTimeout(r, intervalMs))
   }
   const final = await engine.getStatus(runId, tenantId)
@@ -310,8 +311,12 @@ describe('nextStep Runtime Transitions', () => {
     let stopWorker: (() => Promise<void>) | null = null
 
     afterAll(async () => {
-      if (stopWorker) await stopWorker()
-      if (connector) await connector.close()
+      if (stopWorker) {
+        await stopWorker()
+      }
+      if (connector) {
+        await connector.close()
+      }
     })
 
     async function setupE2E(
@@ -321,7 +326,9 @@ describe('nextStep Runtime Transitions', () => {
         await stopWorker()
         stopWorker = null
       }
-      if (connector) await connector.close()
+      if (connector) {
+        await connector.close()
+      }
 
       const data = getGlobalData()
       connector = new BullMQConnector({
@@ -352,14 +359,14 @@ describe('nextStep Runtime Transitions', () => {
             taskName: 'workflow_step_heavy',
             handle: (data: unknown) => stepTask.handle(data as StepPayload),
           },
-        {
-          taskName: 'workflow_step_ai',
-          handle: (data: unknown) => stepTask.handle(data as StepPayload),
-        },
-        {
-          taskName: 'workflow_step_sandbox',
-          handle: (data: unknown) => stepTask.handle(data as StepPayload),
-        },
+          {
+            taskName: 'workflow_step_ai',
+            handle: (data: unknown) => stepTask.handle(data as StepPayload),
+          },
+          {
+            taskName: 'workflow_step_sandbox',
+            handle: (data: unknown) => stepTask.handle(data as StepPayload),
+          },
         ],
         defaultConcurrency: 5,
       })
@@ -374,7 +381,7 @@ describe('nextStep Runtime Transitions', () => {
       let loopCount = 0
       executor.register(
         'loopHandler',
-        async (payload: StepPayload): Promise<StepResult> => {
+        async (_payload: StepPayload): Promise<StepResult> => {
           loopCount++
           if (loopCount <= 2) {
             return { output: { loop: loopCount }, nextStep: 'looper' }

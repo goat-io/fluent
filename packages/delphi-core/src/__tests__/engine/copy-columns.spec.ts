@@ -3,25 +3,65 @@
 // Validates that COPY FROM column lists in startBatchCopy() match the actual
 // database schema. Catches column order drift that would cause silent data corruption.
 //
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+
 import type { Kysely } from 'kysely'
 import { sql } from 'kysely'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Database } from '../../entities/Database.js'
 import { getSharedDb, releaseSharedDb } from './shared.js'
 
 // Extract the COPY column lists from the engine source (hardcoded here to match)
 const COPY_RUNS_COLUMNS = [
-  'id', 'tenantId', 'workflowName', 'workflowVersion', 'status', 'definitionSnapshot',
-  'triggerInput', 'idempotencyKey', 'traceId', 'parentRunId', 'originEventId',
-  'budget', 'budgetUsed', 'startedAt', 'completedAt', 'createdAt', 'updatedAt',
+  'id',
+  'tenantId',
+  'workflowName',
+  'workflowVersion',
+  'status',
+  'definitionSnapshot',
+  'triggerInput',
+  'idempotencyKey',
+  'traceId',
+  'parentRunId',
+  'originEventId',
+  'budget',
+  'budgetUsed',
+  'startedAt',
+  'completedAt',
+  'createdAt',
+  'updatedAt',
 ]
 
 const COPY_STEPS_COLUMNS = [
-  'id', 'workflowRunId', 'tenantId', 'stepName', 'status', 'executorType', 'executorConfig',
-  'dependsOn', 'input', 'output', 'error', 'attempt', 'maxRetries', 'startedAt', 'completedAt',
-  'scheduledAt', 'lastHeartbeatAt', 'lastHeartbeatData', 'heartbeatTimeoutMs',
-  'humanPrompt', 'humanResponse', 'humanRespondedBy', 'humanRespondedAt',
-  'iterationCount', 'maxIterations', 'tokensUsed', 'costUsd', 'modelUsed', 'createdAt', 'updatedAt',
+  'id',
+  'workflowRunId',
+  'tenantId',
+  'stepName',
+  'status',
+  'executorType',
+  'executorConfig',
+  'dependsOn',
+  'input',
+  'output',
+  'error',
+  'attempt',
+  'maxRetries',
+  'startedAt',
+  'completedAt',
+  'scheduledAt',
+  'lastHeartbeatAt',
+  'lastHeartbeatData',
+  'heartbeatTimeoutMs',
+  'humanPrompt',
+  'humanResponse',
+  'humanRespondedBy',
+  'humanRespondedAt',
+  'iterationCount',
+  'maxIterations',
+  'tokensUsed',
+  'costUsd',
+  'modelUsed',
+  'createdAt',
+  'updatedAt',
 ]
 
 // Columns intentionally omitted from COPY (NULL defaults at creation time)

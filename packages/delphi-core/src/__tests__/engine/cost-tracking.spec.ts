@@ -2,13 +2,17 @@
 //
 // Tests for cost-per-step tracking via StepCostTracker interceptor
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
-import type { Database } from '../../entities/Database.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { StepCostTracker } from '../../engine/StepCostTracker.js'
 import { WorkflowMetricsCollector } from '../../engine/WorkflowMetrics.js'
+import type { Database } from '../../entities/Database.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
 
 describe('StepCostTracker', () => {
   let db: Kysely<Database>
@@ -24,28 +28,34 @@ describe('StepCostTracker', () => {
   beforeEach(async () => {
     await truncateAll(db)
     // Insert workflow run and step
-    await db.insertInto('workflow_runs').values({
-      id: 'wf-cost',
-      tenantId: 'test',
-      workflowName: 'cost_test',
-      workflowVersion: '1.0.0',
-      status: 'RUNNING',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).execute()
+    await db
+      .insertInto('workflow_runs')
+      .values({
+        id: 'wf-cost',
+        tenantId: 'test',
+        workflowName: 'cost_test',
+        workflowVersion: '1.0.0',
+        status: 'RUNNING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .execute()
 
-    await db.insertInto('workflow_steps').values({
-      id: 'step-cost-1',
-      workflowRunId: 'wf-cost',
-      tenantId: 'test',
-      stepName: 'ai_step',
-      status: 'RUNNING',
-      executorType: 'ai',
-      attempt: 1,
-      maxRetries: 3,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).execute()
+    await db
+      .insertInto('workflow_steps')
+      .values({
+        id: 'step-cost-1',
+        workflowRunId: 'wf-cost',
+        tenantId: 'test',
+        stepName: 'ai_step',
+        status: 'RUNNING',
+        executorType: 'ai',
+        attempt: 1,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .execute()
   })
 
   const payload: StepPayload = {
@@ -70,8 +80,11 @@ describe('StepCostTracker', () => {
 
     await tracker.afterExecute!(payload, result)
 
-    const step = await db.selectFrom('workflow_steps').selectAll()
-      .where('id', '=', 'step-cost-1').executeTakeFirst()
+    const step = await db
+      .selectFrom('workflow_steps')
+      .selectAll()
+      .where('id', '=', 'step-cost-1')
+      .executeTakeFirst()
 
     expect(step!.tokensUsed).toBe(150)
     expect(step!.costUsd).toBe('0.003')
@@ -93,8 +106,11 @@ describe('StepCostTracker', () => {
 
     await tracker.afterExecute!(payload, result)
 
-    const step = await db.selectFrom('workflow_steps').selectAll()
-      .where('id', '=', 'step-cost-1').executeTakeFirst()
+    const step = await db
+      .selectFrom('workflow_steps')
+      .selectAll()
+      .where('id', '=', 'step-cost-1')
+      .executeTakeFirst()
 
     expect(step!.tokensUsed).toBe(2000)
     expect(step!.costUsd).toBe('0.02') // 2000/1000 * 0.01
@@ -107,14 +123,21 @@ describe('StepCostTracker', () => {
     const result: StepResult = {
       output: {
         response: 'Result',
-        _usage: { promptTokens: 100, completionTokens: 50, model: 'claude-sonnet-4-20250514' },
+        _usage: {
+          promptTokens: 100,
+          completionTokens: 50,
+          model: 'claude-sonnet-4-20250514',
+        },
       },
     }
 
     await tracker.afterExecute!(payload, result)
 
-    const step = await db.selectFrom('workflow_steps').selectAll()
-      .where('id', '=', 'step-cost-1').executeTakeFirst()
+    const step = await db
+      .selectFrom('workflow_steps')
+      .selectAll()
+      .where('id', '=', 'step-cost-1')
+      .executeTakeFirst()
 
     expect(step!.tokensUsed).toBe(150) // 100 + 50
     expect(step!.modelUsed).toBe('claude-sonnet-4-20250514')
@@ -130,8 +153,11 @@ describe('StepCostTracker', () => {
     const out = await tracker.afterExecute!(payload, result)
     expect(out).toBe(result)
 
-    const step = await db.selectFrom('workflow_steps').selectAll()
-      .where('id', '=', 'step-cost-1').executeTakeFirst()
+    const step = await db
+      .selectFrom('workflow_steps')
+      .selectAll()
+      .where('id', '=', 'step-cost-1')
+      .executeTakeFirst()
 
     expect(step!.tokensUsed).toBeNull()
     expect(step!.costUsd).toBeNull()
@@ -149,8 +175,11 @@ describe('StepCostTracker', () => {
 
     await tracker.afterExecute!(payload, result)
 
-    const step = await db.selectFrom('workflow_steps').selectAll()
-      .where('id', '=', 'step-cost-1').executeTakeFirst()
+    const step = await db
+      .selectFrom('workflow_steps')
+      .selectAll()
+      .where('id', '=', 'step-cost-1')
+      .executeTakeFirst()
 
     expect(step!.tokensUsed).toBe(500)
     expect(step!.modelUsed).toBe('llama3')
@@ -168,8 +197,11 @@ describe('StepCostTracker', () => {
 
     await tracker.afterExecute!(payload, result)
 
-    const step = await db.selectFrom('workflow_steps').selectAll()
-      .where('id', '=', 'step-cost-1').executeTakeFirst()
+    const step = await db
+      .selectFrom('workflow_steps')
+      .selectAll()
+      .where('id', '=', 'step-cost-1')
+      .executeTakeFirst()
 
     expect(step!.modelUsed).toBe('gpt-4o') // From executorConfig
   })
@@ -177,33 +209,40 @@ describe('StepCostTracker', () => {
   describe('integration with WorkflowMetricsCollector', () => {
     it('includes cost data in run metrics', async () => {
       // Set cost data directly on step
-      await db.updateTable('workflow_steps').set({
-        status: 'COMPLETED',
-        tokensUsed: 1500,
-        costUsd: '0.015',
-        modelUsed: 'gpt-4o',
-        startedAt: new Date(),
-        completedAt: new Date(),
-      }).where('id', '=', 'step-cost-1').execute()
+      await db
+        .updateTable('workflow_steps')
+        .set({
+          status: 'COMPLETED',
+          tokensUsed: 1500,
+          costUsd: '0.015',
+          modelUsed: 'gpt-4o',
+          startedAt: new Date(),
+          completedAt: new Date(),
+        })
+        .where('id', '=', 'step-cost-1')
+        .execute()
 
       // Add a second step with cost
-      await db.insertInto('workflow_steps').values({
-        id: 'step-cost-2',
-        workflowRunId: 'wf-cost',
-        tenantId: 'test',
-        stepName: 'review_step',
-        status: 'COMPLETED',
-        executorType: 'ai',
-        attempt: 1,
-        maxRetries: 3,
-        tokensUsed: 500,
-        costUsd: '0.005',
-        modelUsed: 'claude-haiku-4-5-20251001',
-        startedAt: new Date(),
-        completedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).execute()
+      await db
+        .insertInto('workflow_steps')
+        .values({
+          id: 'step-cost-2',
+          workflowRunId: 'wf-cost',
+          tenantId: 'test',
+          stepName: 'review_step',
+          status: 'COMPLETED',
+          executorType: 'ai',
+          attempt: 1,
+          maxRetries: 3,
+          tokensUsed: 500,
+          costUsd: '0.005',
+          modelUsed: 'claude-haiku-4-5-20251001',
+          startedAt: new Date(),
+          completedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .execute()
 
       const metrics = new WorkflowMetricsCollector(db)
       const result = await metrics.getRunMetrics('wf-cost')

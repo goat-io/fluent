@@ -4,9 +4,13 @@
 // Uses your Claude Max subscription. No API key needed.
 // The worker machine must have Claude Code installed and authenticated.
 //
-import { execSync, spawn, type ChildProcess } from 'node:child_process'
+import { type ChildProcess, execSync, spawn } from 'node:child_process'
+import type {
+  StepExecutionContext,
+  StepPayload,
+  StepResult,
+} from '../workflow/WorkflowBuilder.types.js'
 import type { StepExecutor } from './StepExecutor.js'
-import type { StepExecutionContext, StepPayload, StepResult } from '../workflow/WorkflowBuilder.types.js'
 
 export interface ClaudeCodeConfig {
   /** The prompt to send to Claude. Supports template variables: {{input.fieldName}} */
@@ -54,7 +58,10 @@ export interface ClaudeCodeConfig {
 export class ClaudeCodeExecutor implements StepExecutor {
   readonly type = 'claude_code'
 
-  async execute(payload: StepPayload, _context?: StepExecutionContext): Promise<StepResult> {
+  async execute(
+    payload: StepPayload,
+    _context?: StepExecutionContext,
+  ): Promise<StepResult> {
     const config = payload.executorConfig as unknown as ClaudeCodeConfig
     const input = payload.input as Record<string, unknown>
 
@@ -77,20 +84,44 @@ export class ClaudeCodeExecutor implements StepExecutor {
     // Build CLI args
     const args: string[] = ['-p', prompt]
 
-    if (config.systemPrompt) args.push('--system-prompt', config.systemPrompt)
-    if (config.appendSystemPrompt) args.push('--append-system-prompt', config.appendSystemPrompt)
-    if (config.model) args.push('--model', config.model)
-    if (config.fallbackModel) args.push('--fallback-model', config.fallbackModel)
-    if (config.maxTurns) args.push('--max-turns', String(config.maxTurns))
-    if (config.effort) args.push('--effort', config.effort)
-    if (config.maxBudgetUsd) args.push('--max-budget-usd', String(config.maxBudgetUsd))
-    if (config.permissionMode) args.push('--permission-mode', config.permissionMode)
-    if (config.cwd) args.push('--add-dir', config.cwd)
-    if (config.jsonSchema) args.push('--json-schema', config.jsonSchema)
-    if (config.mcpConfig) args.push('--mcp-config', config.mcpConfig)
+    if (config.systemPrompt) {
+      args.push('--system-prompt', config.systemPrompt)
+    }
+    if (config.appendSystemPrompt) {
+      args.push('--append-system-prompt', config.appendSystemPrompt)
+    }
+    if (config.model) {
+      args.push('--model', config.model)
+    }
+    if (config.fallbackModel) {
+      args.push('--fallback-model', config.fallbackModel)
+    }
+    if (config.maxTurns) {
+      args.push('--max-turns', String(config.maxTurns))
+    }
+    if (config.effort) {
+      args.push('--effort', config.effort)
+    }
+    if (config.maxBudgetUsd) {
+      args.push('--max-budget-usd', String(config.maxBudgetUsd))
+    }
+    if (config.permissionMode) {
+      args.push('--permission-mode', config.permissionMode)
+    }
+    if (config.cwd) {
+      args.push('--add-dir', config.cwd)
+    }
+    if (config.jsonSchema) {
+      args.push('--json-schema', config.jsonSchema)
+    }
+    if (config.mcpConfig) {
+      args.push('--mcp-config', config.mcpConfig)
+    }
 
     if (config.addDirs?.length) {
-      for (const dir of config.addDirs) args.push('--add-dir', dir)
+      for (const dir of config.addDirs) {
+        args.push('--add-dir', dir)
+      }
     }
     if (config.allowedTools?.length) {
       args.push('--allowedTools', config.allowedTools.join(' '))
@@ -103,7 +134,9 @@ export class ClaudeCodeExecutor implements StepExecutor {
     const streaming = config.streaming || config.outputFormat === 'stream-json'
     if (streaming) {
       args.push('--output-format', 'stream-json', '--verbose')
-      if (config.includePartialMessages) args.push('--include-partial-messages')
+      if (config.includePartialMessages) {
+        args.push('--include-partial-messages')
+      }
     } else if (config.outputFormat === 'json') {
       args.push('--output-format', 'json')
     }
@@ -119,7 +152,11 @@ export class ClaudeCodeExecutor implements StepExecutor {
     return this.executeSync(args, timeoutMs, config)
   }
 
-  private executeSync(args: string[], timeoutMs: number, config: ClaudeCodeConfig): StepResult {
+  private executeSync(
+    args: string[],
+    timeoutMs: number,
+    config: ClaudeCodeConfig,
+  ): StepResult {
     try {
       const cmd = `claude ${args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ')}`
       const stdout = execSync(cmd, {
@@ -136,7 +173,9 @@ export class ClaudeCodeExecutor implements StepExecutor {
           output = { result: parsed }
           if (parsed.usage) {
             output._usage = {
-              tokens: (parsed.usage.input_tokens ?? 0) + (parsed.usage.output_tokens ?? 0),
+              tokens:
+                (parsed.usage.input_tokens ?? 0) +
+                (parsed.usage.output_tokens ?? 0),
               model: parsed.model ?? config.model ?? 'claude',
             }
           }
@@ -156,13 +195,16 @@ export class ClaudeCodeExecutor implements StepExecutor {
     }
   }
 
-  private async executeStreaming(args: string[], timeoutMs: number): Promise<StepResult> {
+  private async executeStreaming(
+    args: string[],
+    timeoutMs: number,
+  ): Promise<StepResult> {
     return new Promise((resolve, reject) => {
       const child: ChildProcess = spawn('claude', args, {
         stdio: ['pipe', 'pipe', 'pipe'],
       })
 
-      const events: Array<Record<string, any>> = []
+      const events: Record<string, any>[] = []
       let resultText = ''
       let usage: Record<string, any> | null = null
       let buffer = ''
@@ -178,31 +220,43 @@ export class ClaudeCodeExecutor implements StepExecutor {
         buffer = lines.pop() ?? ''
 
         for (const line of lines) {
-          if (!line.trim()) continue
+          if (!line.trim()) {
+            continue
+          }
           try {
             const event = JSON.parse(line)
             events.push(event)
 
             if (event.type === 'assistant' && event.message?.content) {
               for (const block of event.message.content) {
-                if (block.type === 'text') resultText += block.text
+                if (block.type === 'text') {
+                  resultText += block.text
+                }
               }
             }
             if (event.type === 'result') {
               resultText = event.result ?? resultText
-              if (event.usage) usage = event.usage
+              if (event.usage) {
+                usage = event.usage
+              }
             }
-          } catch { /* non-JSON line */ }
+          } catch {
+            /* non-JSON line */
+          }
         }
       })
 
       let stderr = ''
-      child.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
+      child.stderr?.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString()
+      })
 
-      child.on('close', (code) => {
+      child.on('close', code => {
         clearTimeout(timer)
         if (code !== 0 && !resultText) {
-          reject(new Error(stderr.trim() || `Claude Code exited with code ${code}`))
+          reject(
+            new Error(stderr.trim() || `Claude Code exited with code ${code}`),
+          )
           return
         }
 
@@ -221,7 +275,7 @@ export class ClaudeCodeExecutor implements StepExecutor {
         resolve({ output })
       })
 
-      child.on('error', (err) => {
+      child.on('error', err => {
         clearTimeout(timer)
         reject(err)
       })

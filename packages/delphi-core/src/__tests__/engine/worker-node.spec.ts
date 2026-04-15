@@ -1,17 +1,17 @@
 // npx vitest run src/__tests__/engine/worker-node.spec.ts
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
-import os from 'node:os'
+
 import type { Kysely } from 'kysely'
-import { WorkerNode } from '../../worker/WorkerNode.js'
-import { LocalWorkerProvisioner } from '../../worker/WorkerProvisioner.js'
-import type { WorkerCapabilities } from '../../worker/WorkerNode.types.js'
-import type { Database } from '../../entities/Database.js'
-import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import { createWorkflowHandlers } from '../../api/WorkflowHandlers.js'
-import { getSharedDb, releaseSharedDb } from './shared.js'
 import { sql } from 'kysely'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createWorkflowHandlers } from '../../api/WorkflowHandlers.js'
+import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
+import type { Database } from '../../entities/Database.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkerNode } from '../../worker/WorkerNode.js'
+import type { WorkerCapabilities } from '../../worker/WorkerNode.types.js'
+import { LocalWorkerProvisioner } from '../../worker/WorkerProvisioner.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import { getSharedDb, releaseSharedDb } from './shared.js'
 
 // ── Unit tests (no containers) ────────────────────────────────────
 
@@ -39,7 +39,7 @@ describe('WorkerNode — unit', () => {
       queues: [],
     })
 
-    const names = subs.map((s) => s.taskName)
+    const names = subs.map(s => s.taskName)
     expect(names).toContain('workflow_step_light')
     expect(names).toContain('workflow_step_ai')
     expect(names).not.toContain('workflow_step_heavy')
@@ -56,7 +56,7 @@ describe('WorkerNode — unit', () => {
       queues: [],
     })
 
-    const names = subs.map((s) => s.taskName)
+    const names = subs.map(s => s.taskName)
     expect(names).toContain('workflow_step_sandbox')
   })
 
@@ -70,7 +70,7 @@ describe('WorkerNode — unit', () => {
       queues: [],
     })
 
-    const names = subs.map((s) => s.taskName)
+    const names = subs.map(s => s.taskName)
     expect(names).toContain('workflow_step_heavy')
   })
 
@@ -84,16 +84,16 @@ describe('WorkerNode — unit', () => {
       queues: [],
     })
 
-    const light = subs.find((s) => s.taskName === 'workflow_step_light')
+    const light = subs.find(s => s.taskName === 'workflow_step_light')
     expect(light?.concurrency).toBe(8) // cpuCount * 2
 
-    const heavy = subs.find((s) => s.taskName === 'workflow_step_heavy')
+    const heavy = subs.find(s => s.taskName === 'workflow_step_heavy')
     expect(heavy?.concurrency).toBe(2)
 
-    const ai = subs.find((s) => s.taskName === 'workflow_step_ai')
+    const ai = subs.find(s => s.taskName === 'workflow_step_ai')
     expect(ai?.concurrency).toBe(3)
 
-    const sandbox = subs.find((s) => s.taskName === 'workflow_step_sandbox')
+    const sandbox = subs.find(s => s.taskName === 'workflow_step_sandbox')
     expect(sandbox?.concurrency).toBe(1)
   })
 
@@ -120,23 +120,41 @@ describe('WorkerNode — unit', () => {
       expect(info.config.tenantId).toBe('tenant-abc')
     } finally {
       // Restore env
-      if (origRedis !== undefined) process.env.AGENTS_REDIS_URL = origRedis
-      else delete process.env.AGENTS_REDIS_URL
-      if (origEngine !== undefined) process.env.AGENTS_ENGINE_URL = origEngine
-      else delete process.env.AGENTS_ENGINE_URL
-      if (origTenant !== undefined) process.env.AGENTS_TENANT_ID = origTenant
-      else delete process.env.AGENTS_TENANT_ID
-      if (origName !== undefined) process.env.AGENTS_WORKER_NAME = origName
-      else delete process.env.AGENTS_WORKER_NAME
-      if (origToken !== undefined) process.env.AGENTS_WORKER_TOKEN = origToken
-      else delete process.env.AGENTS_WORKER_TOKEN
+      if (origRedis !== undefined) {
+        process.env.AGENTS_REDIS_URL = origRedis
+      } else {
+        delete process.env.AGENTS_REDIS_URL
+      }
+      if (origEngine !== undefined) {
+        process.env.AGENTS_ENGINE_URL = origEngine
+      } else {
+        delete process.env.AGENTS_ENGINE_URL
+      }
+      if (origTenant !== undefined) {
+        process.env.AGENTS_TENANT_ID = origTenant
+      } else {
+        delete process.env.AGENTS_TENANT_ID
+      }
+      if (origName !== undefined) {
+        process.env.AGENTS_WORKER_NAME = origName
+      } else {
+        delete process.env.AGENTS_WORKER_NAME
+      }
+      if (origToken !== undefined) {
+        process.env.AGENTS_WORKER_TOKEN = origToken
+      } else {
+        delete process.env.AGENTS_WORKER_TOKEN
+      }
     }
   })
 
   it('WorkerNode config overrides env vars', () => {
     process.env.AGENTS_REDIS_URL = 'redis://env:6379'
     try {
-      const worker = new WorkerNode({ redisUrl: 'redis://config:6379', name: 'override-name' })
+      const worker = new WorkerNode({
+        redisUrl: 'redis://config:6379',
+        name: 'override-name',
+      })
       const info = worker.getInfo()
       expect(info.config.redisUrl).toBe('redis://config:6379')
       expect(info.name).toBe('override-name')
@@ -147,7 +165,12 @@ describe('WorkerNode — unit', () => {
 
   it('detectResources() applies capability overrides', () => {
     const worker = new WorkerNode({
-      capabilities: { cpuCount: 64, memoryMB: 131072, dockerAvailable: true, gpuAvailable: true },
+      capabilities: {
+        cpuCount: 64,
+        memoryMB: 131072,
+        dockerAvailable: true,
+        gpuAvailable: true,
+      },
     })
     const caps = worker.detectResources()
 
@@ -244,7 +267,7 @@ describe('LocalWorkerProvisioner', () => {
 
     // Heartbeat
     const oldBeat = reg.lastHeartbeatAt
-    await new Promise((r) => setTimeout(r, 10))
+    await new Promise(r => setTimeout(r, 10))
     await prov.heartbeat(reg.id)
     const list2 = await prov.listWorkers('tenant-x')
     expect(list2[0].lastHeartbeatAt).not.toBe(oldBeat)
@@ -267,10 +290,32 @@ describe('Worker registration roundtrip (DB)', () => {
     return {
       connector: {
         queue: async (params: any) => {
-          queuedJobs.push({ taskName: params.taskName, taskBody: params.taskBody })
-          return { id: params.uniqueTaskName, name: params.taskName, status: 'QUEUED', output: '', attempts: 0, created: new Date().toISOString(), nextRun: null, nextRunMinutes: null }
+          queuedJobs.push({
+            taskName: params.taskName,
+            taskBody: params.taskBody,
+          })
+          return {
+            id: params.uniqueTaskName,
+            name: params.taskName,
+            status: 'QUEUED',
+            output: '',
+            attempts: 0,
+            created: new Date().toISOString(),
+            nextRun: null,
+            nextRunMinutes: null,
+          }
         },
-        getStatus: async () => ({ id: '', name: '', status: 'QUEUED' as const, output: '', attempts: 0, created: '', nextRun: null, nextRunMinutes: null, payload: {} }),
+        getStatus: async () => ({
+          id: '',
+          name: '',
+          status: 'QUEUED' as const,
+          output: '',
+          attempts: 0,
+          created: '',
+          nextRun: null,
+          nextRunMinutes: null,
+          payload: {},
+        }),
         forTenant: () => null as any,
       } as any,
       queuedJobs,
@@ -282,7 +327,10 @@ describe('Worker registration roundtrip (DB)', () => {
     const { connector } = createMockConnector()
     const wf = WorkflowBuilder.create('test-wf')
       .version('1.0.0')
-      .step('a', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('a', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
     const fnExecutor = new FunctionStepExecutor()
     fnExecutor.register('echo', async () => ({ output: {} }))

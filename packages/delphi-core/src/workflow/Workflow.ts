@@ -104,14 +104,15 @@ export abstract class Workflow<
   abstract readonly workflowName: TName
   readonly version: string = '1.0.0'
   readonly defaultRetries: number = 3
-  readonly defaultTimeoutMs: number = 300_000  // 5 min
+  readonly defaultTimeoutMs: number = 300_000 // 5 min
   readonly failFast: boolean = false
   readonly durability?: WorkflowDurability
 
   /** DAG of typed steps. Use the `step(...)` helper to build entries. */
-  abstract readonly steps: ReadonlyArray<
-    StepEntry<Step<any, any, any>, readonly Step<any, any, any>[]>
-  >
+  abstract readonly steps: readonly StepEntry<
+    Step<any, any, any>,
+    readonly Step<any, any, any>[]
+  >[]
 
   readonly triggers?: WorkflowTrigger[]
   readonly signals?: Record<string, SignalHandler>
@@ -133,12 +134,14 @@ export abstract class Workflow<
   toDefinition(): WorkflowDefinition {
     this.validate()
 
-    const stepDefs: StepDefinition[] = this.steps.map((entry) => ({
+    const stepDefs: StepDefinition[] = this.steps.map(entry => ({
       name: entry.step.stepName,
       executorType: entry.step.executorType,
       // Namespace by workflowName so the same Step class can be used in
       // multiple workflows without handler-key collisions.
-      executorConfig: { handler: `${this.workflowName}.${entry.step.stepName}` },
+      executorConfig: {
+        handler: `${this.workflowName}.${entry.step.stepName}`,
+      },
       dependsOn: entry.dependsOn?.map(d => d.stepName),
       retries: entry.step.retries,
       timeoutMs: entry.step.timeoutMs,

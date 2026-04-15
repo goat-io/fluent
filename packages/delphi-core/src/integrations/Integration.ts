@@ -1,7 +1,13 @@
 // npx vitest run src/__tests__/engine/integrations.spec.ts
-import type { ExternalActionExecutor, ExternalActionResult } from '../engine/ExternalActionExecutor.js'
+import type {
+  ExternalActionExecutor,
+  ExternalActionResult,
+} from '../engine/ExternalActionExecutor.js'
 
-export interface IntegrationAction<TRequest = Record<string, unknown>, TResponse = Record<string, unknown>> {
+export interface IntegrationAction<
+  TRequest = Record<string, unknown>,
+  TResponse = Record<string, unknown>,
+> {
   /** Action type identifier (e.g. 'create_pr', 'create_issue') */
   actionType: string
   /** Execute the action through ExternalActionExecutor */

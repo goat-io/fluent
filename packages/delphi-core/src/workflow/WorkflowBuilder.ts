@@ -71,7 +71,9 @@ export class WorkflowBuilder {
     return this
   }
 
-  trigger(config: Omit<WorkflowTrigger, 'type'> & { type?: 'event' | 'manual' }): this {
+  trigger(
+    config: Omit<WorkflowTrigger, 'type'> & { type?: 'event' | 'manual' },
+  ): this {
     const type = config.type ?? (config.eventType ? 'event' : 'manual')
     this._triggers.push({ ...config, type })
     return this
@@ -117,12 +119,15 @@ export class WorkflowBuilder {
       defaultTimeoutMs: this._defaultTimeoutMs,
       failFast: this._failFast,
       steps: [...this._steps],
-      triggers:
-        this._triggers.length > 0 ? [...this._triggers] : undefined,
+      triggers: this._triggers.length > 0 ? [...this._triggers] : undefined,
       signals:
-        Object.keys(this._signals).length > 0 ? { ...this._signals } : undefined,
+        Object.keys(this._signals).length > 0
+          ? { ...this._signals }
+          : undefined,
       queries:
-        Object.keys(this._queries).length > 0 ? { ...this._queries } : undefined,
+        Object.keys(this._queries).length > 0
+          ? { ...this._queries }
+          : undefined,
       onComplete: this._onComplete,
       onFail: this._onFail,
       durability: this._durability,
@@ -142,10 +147,9 @@ export class WorkflowBuilder {
     const names = new Set<string>()
     for (const step of this._steps) {
       if (names.has(step.name)) {
-        throw new DAGValidationError(
-          `Duplicate step name: "${step.name}"`,
-          { step: step.name },
-        )
+        throw new DAGValidationError(`Duplicate step name: "${step.name}"`, {
+          step: step.name,
+        })
       }
       names.add(step.name)
     }
@@ -165,10 +169,9 @@ export class WorkflowBuilder {
     // Check for self-dependencies
     for (const step of this._steps) {
       if (step.dependsOn?.includes(step.name)) {
-        throw new DAGValidationError(
-          `Step "${step.name}" depends on itself`,
-          { step: step.name },
-        )
+        throw new DAGValidationError(`Step "${step.name}" depends on itself`, {
+          step: step.name,
+        })
       }
     }
 

@@ -3,16 +3,20 @@
 // Integration tests for SchedulerService — real Postgres, real EventIngestionService.
 // Tests cron scheduling, idempotency, tick lifecycle, and trigger-to-workflow flow.
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
 import { sql } from 'kysely'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
-import { SchedulerService } from '../../scheduler/SchedulerService.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'
+import { SchedulerService } from '../../scheduler/SchedulerService.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 function createMockConnector() {
@@ -20,10 +24,32 @@ function createMockConnector() {
   return {
     connector: {
       queue: async (params: any) => {
-        queuedJobs.push({ taskName: params.taskName, taskBody: params.taskBody })
-        return { id: params.uniqueTaskName, name: params.taskName, status: 'QUEUED', output: '', attempts: 0, created: new Date().toISOString(), nextRun: null, nextRunMinutes: null }
+        queuedJobs.push({
+          taskName: params.taskName,
+          taskBody: params.taskBody,
+        })
+        return {
+          id: params.uniqueTaskName,
+          name: params.taskName,
+          status: 'QUEUED',
+          output: '',
+          attempts: 0,
+          created: new Date().toISOString(),
+          nextRun: null,
+          nextRunMinutes: null,
+        }
       },
-      getStatus: async () => ({ id: '', name: '', status: 'QUEUED' as const, output: '', attempts: 0, created: '', nextRun: null, nextRunMinutes: null, payload: {} }),
+      getStatus: async () => ({
+        id: '',
+        name: '',
+        status: 'QUEUED' as const,
+        output: '',
+        attempts: 0,
+        created: '',
+        nextRun: null,
+        nextRunMinutes: null,
+        payload: {},
+      }),
       forTenant: () => null as any,
     } as any,
     queuedJobs,
@@ -57,7 +83,11 @@ describe('SchedulerService', () => {
 
   describe('createSchedule', () => {
     it('computes correct nextRunAt in the future', async () => {
-      const id = await scheduler.createSchedule('test-tenant', 'daily-report', '0 9 * * *')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'daily-report',
+        '0 9 * * *',
+      )
       expect(id).toBeTruthy()
       expect(id.length).toBe(21) // nanoId
 
@@ -78,16 +108,24 @@ describe('SchedulerService', () => {
 
       const schedules = await scheduler.listSchedules('test-tenant')
       expect(schedules).toHaveLength(2)
-      expect(schedules.map(s => s.workflowName).sort()).toEqual(['wf-a', 'wf-b'])
+      expect(schedules.map(s => s.workflowName).sort()).toEqual([
+        'wf-a',
+        'wf-b',
+      ])
     })
   })
 
   describe('tick()', () => {
     it('emits cron.trigger event for due schedule and verifies DB state', async () => {
-      const id = await scheduler.createSchedule('test-tenant', 'test-wf', '*/5 * * * *')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'test-wf',
+        '*/5 * * * *',
+      )
 
       // Force nextRunAt to the past so it's immediately due
-      await db.updateTable('workflow_schedules')
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: new Date('2020-01-01T00:00:00Z') })
         .where('id', '=', id)
         .execute()
@@ -96,7 +134,8 @@ describe('SchedulerService', () => {
       expect(emitted).toBe(1)
 
       // Verify the event was created in workflow_events table
-      const events = await db.selectFrom('workflow_events')
+      const events = await db
+        .selectFrom('workflow_events')
         .selectAll()
         .where('eventType', '=', 'cron.trigger')
         .execute()
@@ -110,13 +149,20 @@ describe('SchedulerService', () => {
       expect(payload.scheduledAt).toBe('2020-01-01T00:00:00.000Z')
 
       // Verify idempotency key format
-      expect(events[0].idempotencyKey).toBe('cron:test-wf:2020-01-01T00:00:00.000Z')
+      expect(events[0].idempotencyKey).toBe(
+        'cron:test-wf:2020-01-01T00:00:00.000Z',
+      )
     })
 
     it('does not re-trigger for same scheduledAt (idempotency)', async () => {
-      const id = await scheduler.createSchedule('test-tenant', 'test-wf', '*/5 * * * *')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'test-wf',
+        '*/5 * * * *',
+      )
       const pastDate = new Date('2020-01-01T00:00:00Z')
-      await db.updateTable('workflow_schedules')
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: pastDate })
         .where('id', '=', id)
         .execute()
@@ -125,7 +171,8 @@ describe('SchedulerService', () => {
       expect(await scheduler.tick()).toBe(1)
 
       // Reset nextRunAt to same past time (simulating a stuck schedule)
-      await db.updateTable('workflow_schedules')
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: pastDate })
         .where('id', '=', id)
         .execute()
@@ -134,7 +181,8 @@ describe('SchedulerService', () => {
       expect(await scheduler.tick()).toBe(0)
 
       // Only one event in DB
-      const events = await db.selectFrom('workflow_events')
+      const events = await db
+        .selectFrom('workflow_events')
         .selectAll()
         .where('eventType', '=', 'cron.trigger')
         .execute()
@@ -142,17 +190,25 @@ describe('SchedulerService', () => {
     })
 
     it('advances nextRunAt after trigger', async () => {
-      const id = await scheduler.createSchedule('test-tenant', 'test-wf', '*/5 * * * *')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'test-wf',
+        '*/5 * * * *',
+      )
       const pastDate = new Date('2020-01-01T00:00:00Z')
-      await db.updateTable('workflow_schedules')
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: pastDate })
         .where('id', '=', id)
         .execute()
 
       await scheduler.tick()
 
-      const schedule = await db.selectFrom('workflow_schedules')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      const schedule = await db
+        .selectFrom('workflow_schedules')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
 
       const nextRun = new Date(schedule.nextRunAt)
       expect(nextRun.getTime()).toBeGreaterThan(pastDate.getTime())
@@ -160,20 +216,30 @@ describe('SchedulerService', () => {
       expect(nextRun.toISOString()).toBe('2020-01-01T00:05:00.000Z')
 
       // lastRunAt should be updated to the past date
-      expect(new Date(schedule.lastRunAt!).toISOString()).toBe('2020-01-01T00:00:00.000Z')
+      expect(new Date(schedule.lastRunAt!).toISOString()).toBe(
+        '2020-01-01T00:00:00.000Z',
+      )
     })
 
     it('skips inactive schedules', async () => {
-      const id = await scheduler.createSchedule('test-tenant', 'test-wf', '*/5 * * * *')
-      await db.updateTable('workflow_schedules')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'test-wf',
+        '*/5 * * * *',
+      )
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: new Date('2020-01-01'), active: false })
         .where('id', '=', id)
         .execute()
 
       expect(await scheduler.tick()).toBe(0)
 
-      const events = await db.selectFrom('workflow_events')
-        .selectAll().where('eventType', '=', 'cron.trigger').execute()
+      const events = await db
+        .selectFrom('workflow_events')
+        .selectAll()
+        .where('eventType', '=', 'cron.trigger')
+        .execute()
       expect(events).toHaveLength(0)
     })
 
@@ -182,16 +248,23 @@ describe('SchedulerService', () => {
       // Simulates 4 sodium pods each running their own SchedulerService instance
       // against the same DB. They all poll roughly at the same time. Without
       // proper locking + idempotency, all 4 would fire the same workflow.
-      const id = await scheduler.createSchedule('test-tenant', 'multi-pod-wf', '*/5 * * * *')
-      await db.updateTable('workflow_schedules')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'multi-pod-wf',
+        '*/5 * * * *',
+      )
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: new Date('2020-06-01T00:00:00Z') })
         .where('id', '=', id)
         .execute()
 
       // Build 4 independent scheduler instances — each has its own DI but
       // shares the same db + eventIngestion. Mirrors N pods on Cloud Run.
-      const pods = Array.from({ length: 4 }, () =>
-        new SchedulerService({ db, eventIngestion, tenantId: 'test-tenant' }),
+      const pods = Array.from(
+        { length: 4 },
+        () =>
+          new SchedulerService({ db, eventIngestion, tenantId: 'test-tenant' }),
       )
 
       // Fire all 4 ticks in parallel — worst-case race
@@ -204,23 +277,36 @@ describe('SchedulerService', () => {
       expect(totalEmitted).toBe(1)
 
       // And exactly ONE row in workflow_events
-      const events = await db.selectFrom('workflow_events')
+      const events = await db
+        .selectFrom('workflow_events')
         .selectAll()
         .where('eventType', '=', 'cron.trigger')
-        .where('idempotencyKey', '=', 'cron:multi-pod-wf:2020-06-01T00:00:00.000Z')
+        .where(
+          'idempotencyKey',
+          '=',
+          'cron:multi-pod-wf:2020-06-01T00:00:00.000Z',
+        )
         .execute()
       expect(events).toHaveLength(1)
 
       // nextRunAt advanced exactly once (all UPDATEs converge to the same value)
-      const sched = await db.selectFrom('workflow_schedules')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      const sched = await db
+        .selectFrom('workflow_schedules')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
       expect(sched.lastRunAt).toEqual(new Date('2020-06-01T00:00:00Z'))
     }, 15_000)
 
     it('does not process other tenants schedules (per-tenant isolation)', async () => {
       // Create a schedule for a different tenant
-      const otherTenantSchedulerId = await scheduler.createSchedule('OTHER-tenant', 'other-wf', '*/5 * * * *')
-      await db.updateTable('workflow_schedules')
+      const otherTenantSchedulerId = await scheduler.createSchedule(
+        'OTHER-tenant',
+        'other-wf',
+        '*/5 * * * *',
+      )
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: new Date('2020-01-01') })
         .where('id', '=', otherTenantSchedulerId)
         .execute()
@@ -230,16 +316,28 @@ describe('SchedulerService', () => {
       expect(emitted).toBe(0)
 
       // Confirm OTHER-tenant's schedule wasn't touched
-      const sched = await db.selectFrom('workflow_schedules')
-        .selectAll().where('id', '=', otherTenantSchedulerId).executeTakeFirstOrThrow()
-      expect(sched.lastRunAt).toBeNull()  // never fired
+      const sched = await db
+        .selectFrom('workflow_schedules')
+        .selectAll()
+        .where('id', '=', otherTenantSchedulerId)
+        .executeTakeFirstOrThrow()
+      expect(sched.lastRunAt).toBeNull() // never fired
     })
 
     it('processes multiple due schedules in a single tick', async () => {
-      const id1 = await scheduler.createSchedule('test-tenant', 'wf-a', '*/5 * * * *')
-      const id2 = await scheduler.createSchedule('test-tenant', 'wf-b', '0 * * * *')
+      const id1 = await scheduler.createSchedule(
+        'test-tenant',
+        'wf-a',
+        '*/5 * * * *',
+      )
+      const id2 = await scheduler.createSchedule(
+        'test-tenant',
+        'wf-b',
+        '0 * * * *',
+      )
 
-      await db.updateTable('workflow_schedules')
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: new Date('2020-01-01') })
         .where('id', 'in', [id1, id2])
         .execute()
@@ -247,30 +345,47 @@ describe('SchedulerService', () => {
       const emitted = await scheduler.tick()
       expect(emitted).toBe(2)
 
-      const events = await db.selectFrom('workflow_events')
-        .selectAll().where('eventType', '=', 'cron.trigger').execute()
+      const events = await db
+        .selectFrom('workflow_events')
+        .selectAll()
+        .where('eventType', '=', 'cron.trigger')
+        .execute()
       expect(events).toHaveLength(2)
-      expect(events.map(e => JSON.parse(e.payload!).workflowName).sort()).toEqual(['wf-a', 'wf-b'])
+      expect(
+        events.map(e => JSON.parse(e.payload!).workflowName).sort(),
+      ).toEqual(['wf-a', 'wf-b'])
     })
   })
 
   describe('deleteSchedule', () => {
     it('soft-deletes by setting active=false', async () => {
-      const id = await scheduler.createSchedule('test-tenant', 'test-wf', '*/5 * * * *')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'test-wf',
+        '*/5 * * * *',
+      )
       await scheduler.deleteSchedule(id)
 
       // Not visible in listSchedules
       expect(await scheduler.listSchedules('test-tenant')).toHaveLength(0)
 
       // Still in DB
-      const row = await db.selectFrom('workflow_schedules')
-        .selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+      const row = await db
+        .selectFrom('workflow_schedules')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
       expect(row.active).toBe(false)
     })
 
     it('deleted schedule is not triggered by tick', async () => {
-      const id = await scheduler.createSchedule('test-tenant', 'test-wf', '*/5 * * * *')
-      await db.updateTable('workflow_schedules')
+      const id = await scheduler.createSchedule(
+        'test-tenant',
+        'test-wf',
+        '*/5 * * * *',
+      )
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: new Date('2020-01-01') })
         .where('id', '=', id)
         .execute()
@@ -283,9 +398,12 @@ describe('SchedulerService', () => {
   describe('scheduler → event → workflow trigger (full integration)', () => {
     it('cron.trigger event starts a workflow when subscription exists', async () => {
       const executor = new FunctionStepExecutor()
-      executor.register('echo', async (p: StepPayload): Promise<StepResult> => {
-        return { output: { scheduled: true } }
-      })
+      executor.register(
+        'echo',
+        async (_p: StepPayload): Promise<StepResult> => {
+          return { output: { scheduled: true } }
+        },
+      )
 
       // Set up EventIngestion with auto-processing enabled this time
       const ingestion = new EventIngestionService({ db })
@@ -293,11 +411,15 @@ describe('SchedulerService', () => {
       const { connector, queuedJobs } = createMockConnector()
       const wf = WorkflowBuilder.create('scheduled-wf')
         .trigger({ type: 'event', eventType: 'cron.trigger' })
-        .step('run', { executorType: 'function', executorConfig: { handler: 'echo' } })
+        .step('run', {
+          executorType: 'function',
+          executorConfig: { handler: 'echo' },
+        })
         .build()
 
       const engine = new WorkflowEngine({
-        db, connector,
+        db,
+        connector,
         executors: new Map([['function', executor]]),
         workflows: new Map([[wf.name, wf]]),
         tenantId: 'test-tenant',
@@ -309,9 +431,18 @@ describe('SchedulerService', () => {
       await ingestion.subscribe('test-tenant', 'cron.trigger', 'scheduled-wf')
 
       // Create and trigger schedule
-      const sched = new SchedulerService({ db, eventIngestion: ingestion, tenantId: 'test-tenant' })
-      const schedId = await sched.createSchedule('test-tenant', 'scheduled-wf', '*/5 * * * *')
-      await db.updateTable('workflow_schedules')
+      const sched = new SchedulerService({
+        db,
+        eventIngestion: ingestion,
+        tenantId: 'test-tenant',
+      })
+      const schedId = await sched.createSchedule(
+        'test-tenant',
+        'scheduled-wf',
+        '*/5 * * * *',
+      )
+      await db
+        .updateTable('workflow_schedules')
         .set({ nextRunAt: new Date('2020-01-01') })
         .where('id', '=', schedId)
         .execute()
@@ -320,7 +451,8 @@ describe('SchedulerService', () => {
       expect(emitted).toBe(1)
 
       // The event should have been auto-processed, starting a workflow
-      const runs = await db.selectFrom('workflow_runs')
+      const runs = await db
+        .selectFrom('workflow_runs')
         .selectAll()
         .where('workflowName', '=', 'scheduled-wf')
         .execute()

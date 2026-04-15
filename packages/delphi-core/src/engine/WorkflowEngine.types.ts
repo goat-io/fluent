@@ -1,14 +1,18 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
-import type { Kysely } from 'kysely'
+
 import type { TaskConnector, TaskTracker } from '@goatlab/tasks-core'
+import type { Kysely } from 'kysely'
 import type { Database } from '../entities/Database.js'
+import type { EventIngestionService } from '../events/EventIngestion.js'
+import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
-import type { StepInterceptor, WorkflowDefinition } from '../workflow/WorkflowBuilder.types.js'
+import type {
+  StepInterceptor,
+  WorkflowDefinition,
+} from '../workflow/WorkflowBuilder.types.js'
+import type { EngineEvent } from './EngineEvent.types.js'
 import type { RateLimitConfig } from './ExternalActionExecutor.js'
 import type { RateLimiterBackend } from './RateLimiterBackend.js'
-import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
-import type { EventIngestionService } from '../events/EventIngestion.js'
-import type { EngineEvent } from './EngineEvent.types.js'
 
 export interface WorkflowBudget {
   /** Max total tokens across all steps in a workflow run */

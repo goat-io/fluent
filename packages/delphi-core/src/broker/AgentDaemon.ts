@@ -7,7 +7,7 @@
 import { randomBytes } from 'node:crypto'
 import os from 'node:os'
 import type { StepExecutor } from '../steps/StepExecutor.js'
-import type { StepPayload, StepResult } from '../workflow/WorkflowBuilder.types.js'
+import type { StepPayload } from '../workflow/WorkflowBuilder.types.js'
 import type { AgentCapabilities } from './AgentRegistry.js'
 
 export interface AgentDaemonConfig {
@@ -32,7 +32,13 @@ export class AgentDaemon {
   private running = false
   private activeJobs = new Map<string, AbortController>()
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
-  private config: Required<Pick<AgentDaemonConfig, 'brokerUrl' | 'registrationToken' | 'tenantId' | 'executors'>> & AgentDaemonConfig
+  private config: Required<
+    Pick<
+      AgentDaemonConfig,
+      'brokerUrl' | 'registrationToken' | 'tenantId' | 'executors'
+    >
+  > &
+    AgentDaemonConfig
 
   constructor(config: AgentDaemonConfig) {
     this.config = {
@@ -46,7 +52,9 @@ export class AgentDaemon {
   }
 
   async start(): Promise<void> {
-    if (this.running) return
+    if (this.running) {
+      return
+    }
 
     const capabilities = this.detectCapabilities()
     this.config.logger?.info(`Agent starting: ${this.config.name}`)
@@ -136,12 +144,17 @@ export class AgentDaemon {
           backoffMs = 1_000 // Reset backoff on success
           // Spawn execution (don't await — parallel)
           this.executeJob(res.job).catch(err => {
-            this.config.logger?.error(`Job ${res.job.id} execution error:`, err.message)
+            this.config.logger?.error(
+              `Job ${res.job.id} execution error:`,
+              err.message,
+            )
           })
         }
         // If no job, immediately re-poll (long-poll already waited)
       } catch (err: any) {
-        this.config.logger?.error(`Poll error: ${err.message}, retrying in ${backoffMs}ms`)
+        this.config.logger?.error(
+          `Poll error: ${err.message}, retrying in ${backoffMs}ms`,
+        )
         await new Promise(r => setTimeout(r, backoffMs))
         backoffMs = Math.min(backoffMs * 2, 30_000) // Cap at 30s
       }
@@ -171,14 +184,18 @@ export class AgentDaemon {
       const payload = job.payload as StepPayload
       const executor = this.config.executors.get(payload.executorType)
       if (!executor) {
-        throw new Error(`No executor registered for type "${payload.executorType}"`)
+        throw new Error(
+          `No executor registered for type "${payload.executorType}"`,
+        )
       }
 
       // Execute (no context — remote agents don't have engine/DB access)
       const result = await executor.execute(payload)
 
       // Check if aborted
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted) {
+        return
+      }
 
       // Report success
       await this.post('/agents/step-result', {
@@ -188,7 +205,9 @@ export class AgentDaemon {
         result,
       })
     } catch (err: any) {
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted) {
+        return
+      }
 
       // Report failure
       try {
@@ -209,7 +228,9 @@ export class AgentDaemon {
   // ── Heartbeat ────────────────────────────────────────────────
 
   private async sendHeartbeat(): Promise<void> {
-    if (!this.agentId || !this.running) return
+    if (!this.agentId || !this.running) {
+      return
+    }
 
     const res = await this.post('/agents/heartbeat', {
       agentId: this.agentId,
@@ -230,7 +251,9 @@ export class AgentDaemon {
 
     // Handle drain request
     if (res.status === 'draining') {
-      this.config.logger?.info('Broker requested drain — stopping after current jobs')
+      this.config.logger?.info(
+        'Broker requested drain — stopping after current jobs',
+      )
       this.running = false
     }
   }
@@ -251,9 +274,13 @@ export class AgentDaemon {
     }
 
     const queues: string[] = ['workflow_step_light']
-    if (memoryMB >= 4096) queues.push('workflow_step_heavy')
+    if (memoryMB >= 4096) {
+      queues.push('workflow_step_heavy')
+    }
     queues.push('workflow_step_ai')
-    if (dockerAvailable) queues.push('workflow_step_sandbox')
+    if (dockerAvailable) {
+      queues.push('workflow_step_sandbox')
+    }
 
     return {
       cpuCount,
@@ -266,7 +293,10 @@ export class AgentDaemon {
 
   // ── HTTP Helper ──────────────────────────────────────────────
 
-  private async post(path: string, body: Record<string, unknown>): Promise<any> {
+  private async post(
+    path: string,
+    body: Record<string, unknown>,
+  ): Promise<any> {
     const url = `${this.config.brokerUrl}${path}`
     const res = await fetch(url, {
       method: 'POST',

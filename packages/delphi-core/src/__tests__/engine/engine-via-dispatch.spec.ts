@@ -19,20 +19,29 @@
 //
 // npx vitest run src/__tests__/engine/engine-via-dispatch.spec.ts
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
+import {
+  PostgreSqlContainer,
+  type StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql'
+import {
+  RedisContainer,
+  type StartedRedisContainer,
+} from '@testcontainers/redis'
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
-import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis'
-import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { IngestBuffer } from '../../engine/IngestBuffer.js'
 import { IngestWorker } from '../../engine/IngestWorker.js'
+import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
 import { CREATE_TABLES_SQL, type Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 
 describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
   let pgContainer: StartedPostgreSqlContainer
@@ -57,7 +66,9 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
   // Drain loop — simulates sodium's dispatch listener calling
   // processIncomingDispatch repeatedly until no more work.
   // Returns total jobs processed across all queues.
-  async function drainAllQueues(timeBudgetMs = 30_000): Promise<{ processed: number; failed: number }> {
+  async function drainAllQueues(
+    timeBudgetMs = 30_000,
+  ): Promise<{ processed: number; failed: number }> {
     const deadline = Date.now() + timeBudgetMs
     let totalProcessed = 0
     let totalFailed = 0
@@ -75,15 +86,18 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
         },
         validQueueNames: ENGINE_QUEUES,
         timeBudgetMs: 2_000,
-        batchSize: 50,        // matches recommended engine-queue setting
+        batchSize: 50, // matches recommended engine-queue setting
         concurrency: 50,
       })
       totalProcessed += result.processed
       totalFailed += result.failed
 
       // Track consecutive empty drains so we exit when truly done
-      if (result.processed === 0 && result.failed === 0) consecutiveEmpty++
-      else consecutiveEmpty = 0
+      if (result.processed === 0 && result.failed === 0) {
+        consecutiveEmpty++
+      } else {
+        consecutiveEmpty = 0
+      }
     }
 
     return { processed: totalProcessed, failed: totalFailed }
@@ -103,8 +117,12 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
       password: pgContainer.getPassword(),
       max: 10,
     })
-    db = new Kysely<Database>({ dialect: new PostgresDialect({ pool: pgPool }) })
-    for (const stmt of CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(Boolean)) {
+    db = new Kysely<Database>({
+      dialect: new PostgresDialect({ pool: pgPool }),
+    })
+    for (const stmt of CREATE_TABLES_SQL.split(';')
+      .map(s => s.trim())
+      .filter(Boolean)) {
       await sql.raw(stmt).execute(db)
     }
 
@@ -117,29 +135,58 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
     })
 
     const executor = new FunctionStepExecutor()
-    executor.register('echo', async (p: StepPayload): Promise<StepResult> => ({
-      output: { echoed: p.input },
-    }))
-    executor.register('chain', async (p: StepPayload): Promise<StepResult> => ({
-      output: { from: p.input, ts: Date.now() },
-    }))
+    executor.register(
+      'echo',
+      async (p: StepPayload): Promise<StepResult> => ({
+        output: { echoed: p.input },
+      }),
+    )
+    executor.register(
+      'chain',
+      async (p: StepPayload): Promise<StepResult> => ({
+        output: { from: p.input, ts: Date.now() },
+      }),
+    )
 
     const wfSingle = WorkflowBuilder.create('wf_single')
-      .version('1.0.0').defaultRetries(0)
-      .step('s', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .version('1.0.0')
+      .defaultRetries(0)
+      .step('s', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
     const wfChain = WorkflowBuilder.create('wf_chain')
-      .version('1.0.0').defaultRetries(0)
-      .step('a', { executorType: 'function', executorConfig: { handler: 'chain' } })
-      .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: { handler: 'chain' }, mapInput: (u: any) => ({ from: u.a }) })
-      .step('c', { dependsOn: ['b'], executorType: 'function', executorConfig: { handler: 'chain' }, mapInput: (u: any) => ({ from: u.b }) })
+      .version('1.0.0')
+      .defaultRetries(0)
+      .step('a', {
+        executorType: 'function',
+        executorConfig: { handler: 'chain' },
+      })
+      .step('b', {
+        dependsOn: ['a'],
+        executorType: 'function',
+        executorConfig: { handler: 'chain' },
+        mapInput: (u: any) => ({ from: u.a }),
+      })
+      .step('c', {
+        dependsOn: ['b'],
+        executorType: 'function',
+        executorConfig: { handler: 'chain' },
+        mapInput: (u: any) => ({ from: u.b }),
+      })
       .build()
 
     engine = new WorkflowEngine({
-      db, pgPool, connector,
+      db,
+      pgPool,
+      connector,
       executors: new Map([['function', executor]]),
-      workflows: new Map([['wf_single', wfSingle], ['wf_chain', wfChain]]),
+      workflows: new Map([
+        ['wf_single', wfSingle],
+        ['wf_chain', wfChain],
+      ]),
       tenantId: 'test-tenant',
     })
 
@@ -188,14 +235,16 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
     expect(result.failed).toBe(0)
 
     // Verify run reached COMPLETED in PG
-    const row = await db.selectFrom('workflow_runs')
+    const row = await db
+      .selectFrom('workflow_runs')
       .select(['status', 'output'])
       .where('id', '=', runId)
       .executeTakeFirst()
     expect(row?.status).toBe('COMPLETED')
 
     // And the step
-    const stepRow = await db.selectFrom('workflow_steps')
+    const stepRow = await db
+      .selectFrom('workflow_steps')
       .select('status')
       .where('workflowRunId', '=', runId)
       .where('stepName', '=', 's')
@@ -213,12 +262,18 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
     const result = await drainAllQueues()
     expect(result.failed).toBe(0)
 
-    const row = await db.selectFrom('workflow_runs')
-      .select('status').where('id', '=', runId).executeTakeFirst()
+    const row = await db
+      .selectFrom('workflow_runs')
+      .select('status')
+      .where('id', '=', runId)
+      .executeTakeFirst()
     expect(row?.status).toBe('COMPLETED')
 
-    const steps = await db.selectFrom('workflow_steps')
-      .select(['stepName', 'status']).where('workflowRunId', '=', runId).execute()
+    const steps = await db
+      .selectFrom('workflow_steps')
+      .select(['stepName', 'status'])
+      .where('workflowRunId', '=', runId)
+      .execute()
     expect(steps.find(s => s.stepName === 'a')?.status).toBe('COMPLETED')
     expect(steps.find(s => s.stepName === 'b')?.status).toBe('COMPLETED')
     expect(steps.find(s => s.stepName === 'c')?.status).toBe('COMPLETED')
@@ -250,7 +305,8 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
     await drainAllQueues(60_000)
 
     // Verify all N reached COMPLETED
-    const completed = await db.selectFrom('workflow_runs')
+    const completed = await db
+      .selectFrom('workflow_runs')
       .select('id')
       .where('id', 'in', fired)
       .where('status', '=', 'COMPLETED')

@@ -6,7 +6,11 @@
 //
 import type { Kysely } from 'kysely'
 import type { Database } from '../entities/Database.js'
-import type { StepInterceptor, StepPayload, StepResult } from '../workflow/WorkflowBuilder.types.js'
+import type {
+  StepInterceptor,
+  StepPayload,
+  StepResult,
+} from '../workflow/WorkflowBuilder.types.js'
 
 export interface ExternalActionEnforcerConfig {
   db: Kysely<Database>
@@ -38,14 +42,22 @@ export class ExternalActionEnforcer implements StepInterceptor {
     this.db = config.db
   }
 
-  async afterExecute(payload: StepPayload, result: StepResult): Promise<StepResult> {
+  async afterExecute(
+    payload: StepPayload,
+    result: StepResult,
+  ): Promise<StepResult> {
     // Skip exempt steps
     if (this.config.exemptSteps?.includes(payload.stepName)) {
       return result
     }
 
     // Only enforce on specified executor types
-    const enforcedTypes = this.config.enforcedExecutorTypes ?? ['sandbox', 'ai', 'langgraph', 'agreement']
+    const enforcedTypes = this.config.enforcedExecutorTypes ?? [
+      'sandbox',
+      'ai',
+      'langgraph',
+      'agreement',
+    ]
     if (!enforcedTypes.includes(payload.executorType)) {
       return result
     }
@@ -60,7 +72,8 @@ export class ExternalActionEnforcer implements StepInterceptor {
       .executeTakeFirst()
 
     if (!actions) {
-      const msg = `[ExternalActionEnforcer] Step "${payload.stepName}" (type: ${payload.executorType}) ` +
+      const msg =
+        `[ExternalActionEnforcer] Step "${payload.stepName}" (type: ${payload.executorType}) ` +
         `completed without any ExternalAction records. External calls should go through ` +
         `context.externalActions.execute() for exactly-once guarantees.`
 

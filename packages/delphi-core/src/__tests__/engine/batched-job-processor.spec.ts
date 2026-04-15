@@ -9,21 +9,23 @@ import { BatchedJobProcessor } from '../../engine/BatchedJobProcessor.js'
 describe('BatchedJobProcessor', () => {
   it('resolves enqueue() with the corresponding result from flushBatch', async () => {
     const p = new BatchedJobProcessor<number, string>({
-      flushBatch: async (jobs) => jobs.map(j => `result-${j}`),
+      flushBatch: async jobs => jobs.map(j => `result-${j}`),
       flushThreshold: 3,
       flushIntervalMs: 1000,
     })
     const [r1, r2, r3] = await Promise.all([
-      p.enqueue(1), p.enqueue(2), p.enqueue(3),  // hits threshold → flushes
+      p.enqueue(1),
+      p.enqueue(2),
+      p.enqueue(3), // hits threshold → flushes
     ])
     expect([r1, r2, r3]).toEqual(['result-1', 'result-2', 'result-3'])
   })
 
   it('flushes on interval when threshold not reached', async () => {
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async (jobs) => jobs.map(j => j * 10),
-      flushThreshold: 100,    // not going to hit it
-      flushIntervalMs: 30,    // will hit this first
+      flushBatch: async jobs => jobs.map(j => j * 10),
+      flushThreshold: 100, // not going to hit it
+      flushIntervalMs: 30, // will hit this first
     })
     const result = await p.enqueue(5)
     expect(result).toBe(50)
@@ -31,7 +33,9 @@ describe('BatchedJobProcessor', () => {
 
   it('rejects all per-job promises if flushBatch throws', async () => {
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async () => { throw new Error('boom') },
+      flushBatch: async () => {
+        throw new Error('boom')
+      },
       flushThreshold: 2,
       flushIntervalMs: 1000,
     })
@@ -43,7 +47,7 @@ describe('BatchedJobProcessor', () => {
 
   it('rejects with helpful error if flushBatch returns wrong-sized array', async () => {
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async () => [1],  // returned 1 result for batch of 2
+      flushBatch: async () => [1], // returned 1 result for batch of 2
       flushThreshold: 2,
       flushIntervalMs: 1000,
     })
@@ -57,14 +61,16 @@ describe('BatchedJobProcessor', () => {
     let inFlight = 0
     let maxObserved = 0
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async (jobs) => {
+      flushBatch: async jobs => {
         inFlight++
-        if (inFlight > maxObserved) maxObserved = inFlight
+        if (inFlight > maxObserved) {
+          maxObserved = inFlight
+        }
         await new Promise(r => setTimeout(r, 50))
         inFlight--
         return jobs
       },
-      flushThreshold: 1,            // each enqueue triggers a flush
+      flushThreshold: 1, // each enqueue triggers a flush
       flushIntervalMs: 5,
       maxConcurrentFlushes: 2,
     })
@@ -72,27 +78,30 @@ describe('BatchedJobProcessor', () => {
     // Fire 10 in parallel — without the cap, all 10 flushes would overlap
     await Promise.all(Array.from({ length: 10 }, (_, i) => p.enqueue(i)))
     expect(maxObserved).toBeLessThanOrEqual(2)
-    expect(maxObserved).toBeGreaterThan(1)  // proves we actually parallelize
+    expect(maxObserved).toBeGreaterThan(1) // proves we actually parallelize
   })
 
   it('shutdown drains remaining pending items', async () => {
     let flushed = 0
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async (jobs) => { flushed += jobs.length; return jobs },
+      flushBatch: async jobs => {
+        flushed += jobs.length
+        return jobs
+      },
       flushThreshold: 1000,
       flushIntervalMs: 5000,
     })
     p.enqueue(1)
     p.enqueue(2)
     p.enqueue(3)
-    expect(flushed).toBe(0)  // not flushed yet
+    expect(flushed).toBe(0) // not flushed yet
     await p.shutdown()
     expect(flushed).toBe(3)
   })
 
   it('enqueue after shutdown rejects', async () => {
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async (jobs) => jobs,
+      flushBatch: async jobs => jobs,
     })
     await p.shutdown()
     await expect(p.enqueue(1)).rejects.toThrow(/shutting down/)
@@ -100,7 +109,7 @@ describe('BatchedJobProcessor', () => {
 
   it('pendingCount reflects in-buffer items', async () => {
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async (jobs) => jobs,
+      flushBatch: async jobs => jobs,
       flushThreshold: 100,
       flushIntervalMs: 5000,
     })
@@ -113,7 +122,10 @@ describe('BatchedJobProcessor', () => {
   it('handles multiple successive batches independently', async () => {
     const seenBatches: number[][] = []
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async (jobs) => { seenBatches.push([...jobs]); return jobs },
+      flushBatch: async jobs => {
+        seenBatches.push([...jobs])
+        return jobs
+      },
       flushThreshold: 3,
       flushIntervalMs: 10,
     })
@@ -131,7 +143,7 @@ describe('BatchedJobProcessor', () => {
   it('one slow flushBatch does not block subsequent enqueues from triggering', async () => {
     const events: string[] = []
     const p = new BatchedJobProcessor<number, number>({
-      flushBatch: async (jobs) => {
+      flushBatch: async jobs => {
         events.push(`flush-start-${jobs.join(',')}`)
         await new Promise(r => setTimeout(r, 100))
         events.push(`flush-end-${jobs.join(',')}`)

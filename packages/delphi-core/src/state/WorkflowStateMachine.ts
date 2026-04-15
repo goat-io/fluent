@@ -35,10 +35,7 @@ export function canWorkflowTransition(
   return WORKFLOW_TRANSITIONS[from]?.includes(to) ?? false
 }
 
-export function canStepTransition(
-  from: StepStatus,
-  to: StepStatus,
-): boolean {
+export function canStepTransition(from: StepStatus, to: StepStatus): boolean {
   return STEP_TRANSITIONS[from]?.includes(to) ?? false
 }
 
@@ -59,24 +56,34 @@ export function isTerminalStepStatus(status: StepStatus): boolean {
 export function deriveWorkflowStatus(
   steps: Array<{ status: StepStatus }>,
 ): WorkflowStatus {
-  if (steps.length === 0) return 'COMPLETED'
+  if (steps.length === 0) {
+    return 'COMPLETED'
+  }
 
   const hasWaiting = steps.some(s => s.status === 'WAITING_HUMAN')
-  if (hasWaiting) return 'WAITING_HUMAN'
+  if (hasWaiting) {
+    return 'WAITING_HUMAN'
+  }
 
   const hasFailed = steps.some(s => s.status === 'FAILED')
   const hasActive = steps.some(
     s => s.status === 'QUEUED' || s.status === 'RUNNING',
   )
 
-  if (hasFailed && !hasActive) return 'FAILED'
+  if (hasFailed && !hasActive) {
+    return 'FAILED'
+  }
 
   const allTerminal = steps.every(
     s => s.status === 'COMPLETED' || s.status === 'SKIPPED',
   )
-  if (allTerminal) return 'COMPLETED'
+  if (allTerminal) {
+    return 'COMPLETED'
+  }
 
-  if (hasActive) return 'RUNNING'
+  if (hasActive) {
+    return 'RUNNING'
+  }
 
   // Some steps pending, some completed
   return 'RUNNING'
@@ -94,7 +101,9 @@ export function getReadySteps(
 ): string[] {
   return steps
     .filter(step => {
-      if (statuses[step.name] !== 'PENDING') return false
+      if (statuses[step.name] !== 'PENDING') {
+        return false
+      }
       const deps = step.dependsOn ?? []
       return deps.every(
         d => statuses[d] === 'COMPLETED' || statuses[d] === 'SKIPPED',
@@ -124,7 +133,9 @@ export function topologicalSort(steps: StepDefinition[]): string[] {
 
   const queue: string[] = []
   for (const [name, degree] of inDegree) {
-    if (degree === 0) queue.push(name)
+    if (degree === 0) {
+      queue.push(name)
+    }
   }
 
   const sorted: string[] = []
@@ -134,14 +145,14 @@ export function topologicalSort(steps: StepDefinition[]): string[] {
     for (const neighbor of graph.get(current) ?? []) {
       const newDegree = (inDegree.get(neighbor) ?? 1) - 1
       inDegree.set(neighbor, newDegree)
-      if (newDegree === 0) queue.push(neighbor)
+      if (newDegree === 0) {
+        queue.push(neighbor)
+      }
     }
   }
 
   if (sorted.length !== steps.length) {
-    const cycleNodes = steps
-      .map(s => s.name)
-      .filter(n => !sorted.includes(n))
+    const cycleNodes = steps.map(s => s.name).filter(n => !sorted.includes(n))
     throw new Error(
       `Cycle detected in workflow DAG involving: ${cycleNodes.join(', ')}`,
     )

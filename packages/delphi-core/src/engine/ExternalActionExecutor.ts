@@ -15,8 +15,8 @@ import { Ids } from '@goatlab/js-utils'
 import type { Kysely } from 'kysely'
 import type { Database, ExternalAction } from '../entities/Database.js'
 import { fromJson, toJson } from '../entities/Database.js'
-import { InMemoryRateLimiter } from './RateLimiterBackend.js'
 import type { RateLimiterBackend } from './RateLimiterBackend.js'
+import { InMemoryRateLimiter } from './RateLimiterBackend.js'
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -84,7 +84,10 @@ export interface RateLimitConfig {
 
 function hashPayload(payload: Record<string, unknown>): string {
   const { createHash } = require('node:crypto')
-  return createHash('sha256').update(JSON.stringify(payload)).digest('hex').substring(0, 12)
+  return createHash('sha256')
+    .update(JSON.stringify(payload))
+    .digest('hex')
+    .substring(0, 12)
 }
 
 // ── Executor ───────────────────────────────────────────────────────
@@ -159,8 +162,9 @@ export class ExternalActionExecutor {
     req: ExternalActionRequest,
     fn: ExternalActionFn<T>,
   ): Promise<ExternalActionResult<T>> {
-    const idempotencyKey = req.idempotencyKey
-      ?? `${req.workflowRunId}:${req.stepName}:${req.actionType}:${hashPayload(req.request)}`
+    const idempotencyKey =
+      req.idempotencyKey ??
+      `${req.workflowRunId}:${req.stepName}:${req.actionType}:${hashPayload(req.request)}`
 
     // ── Step 1: Check for existing completed action ──────
     const existing = await this.db
@@ -189,14 +193,17 @@ export class ExternalActionExecutor {
       return {
         cached: true,
         externalId: existing.externalId,
-        data: fromJson(existing.response) ?? {} as T,
+        data: fromJson(existing.response) ?? ({} as T),
         actionId: existing.id,
       }
     }
 
     // ── Step 2: Failed action — delete so we can retry ────
     if (existing?.status === 'failed') {
-      await this.db.deleteFrom('external_actions').where('id', '=', existing.id).execute()
+      await this.db
+        .deleteFrom('external_actions')
+        .where('id', '=', existing.id)
+        .execute()
     }
 
     // ── Step 3: Concurrency protection ───────────────────
@@ -205,7 +212,11 @@ export class ExternalActionExecutor {
       const createdAt = new Date(existing.createdAt as string).getTime()
       const staleMs = 5 * 60 * 1000
       if (Date.now() - createdAt < staleMs) {
-        throw new ExternalActionPendingError(idempotencyKey, req.provider, req.actionType)
+        throw new ExternalActionPendingError(
+          idempotencyKey,
+          req.provider,
+          req.actionType,
+        )
       }
       // Stale pending — delete it so re-insert works (unique key)
       await this.db
@@ -218,36 +229,51 @@ export class ExternalActionExecutor {
     // ── Step 3: Rate limiting ────────────────────────────
     const providerLimit = this.rateLimits[req.provider]
     if (providerLimit) {
-      await this.rateLimiter.checkRateLimit(req.provider, providerLimit.maxRequests, providerLimit.windowMs)
+      await this.rateLimiter.checkRateLimit(
+        req.provider,
+        providerLimit.maxRequests,
+        providerLimit.windowMs,
+      )
     }
-    await this.rateLimiter.checkConcurrency(req.workflowRunId, this.maxConcurrentPerWorkflow)
+    await this.rateLimiter.checkConcurrency(
+      req.workflowRunId,
+      this.maxConcurrentPerWorkflow,
+    )
 
     // ── Step 4: Insert pending action ────────────────────
     const actionId = Ids.nanoId(21)
     try {
       // Look up traceId from the workflow run for lineage
-      const run = await this.db.selectFrom('workflow_runs')
+      const run = await this.db
+        .selectFrom('workflow_runs')
         .select('traceId')
         .where('id', '=', req.workflowRunId)
         .executeTakeFirst()
 
-      await this.db.insertInto('external_actions').values({
-        id: actionId,
-        workflowRunId: req.workflowRunId,
-        stepName: req.stepName,
-        attempt: req.attempt,
-        tenantId: req.tenantId,
-        provider: req.provider,
-        actionType: req.actionType,
-        idempotencyKey,
-        status: 'pending',
-        request: toJson(req.request),
-        traceId: run?.traceId ?? null,
-        createdAt: new Date(),
-      }).execute()
+      await this.db
+        .insertInto('external_actions')
+        .values({
+          id: actionId,
+          workflowRunId: req.workflowRunId,
+          stepName: req.stepName,
+          attempt: req.attempt,
+          tenantId: req.tenantId,
+          provider: req.provider,
+          actionType: req.actionType,
+          idempotencyKey,
+          status: 'pending',
+          request: toJson(req.request),
+          traceId: run?.traceId ?? null,
+          createdAt: new Date(),
+        })
+        .execute()
     } catch (err: any) {
       // Unique constraint violation = someone else inserted first
-      if (err.message?.includes('unique') || err.message?.includes('duplicate') || err.code === '23505') {
+      if (
+        err.message?.includes('unique') ||
+        err.message?.includes('duplicate') ||
+        err.code === '23505'
+      ) {
         // Re-check — might be completed now
         const recheck = await this.db
           .selectFrom('external_actions')
@@ -262,7 +288,11 @@ export class ExternalActionExecutor {
             actionId: recheck.id,
           }
         }
-        throw new ExternalActionPendingError(idempotencyKey, req.provider, req.actionType)
+        throw new ExternalActionPendingError(
+          idempotencyKey,
+          req.provider,
+          req.actionType,
+        )
       }
       throw err
     }
@@ -346,7 +376,9 @@ export class ExternalActionExecutor {
   /**
    * Get all external actions for a workflow run.
    */
-  async getActionsForWorkflow(workflowRunId: string): Promise<ExternalAction[]> {
+  async getActionsForWorkflow(
+    workflowRunId: string,
+  ): Promise<ExternalAction[]> {
     return this.db
       .selectFrom('external_actions')
       .selectAll()
@@ -354,7 +386,6 @@ export class ExternalActionExecutor {
       .orderBy('createdAt', 'asc')
       .execute()
   }
-
 }
 
 // ── Errors ─────────────────────────────────────────────────────────

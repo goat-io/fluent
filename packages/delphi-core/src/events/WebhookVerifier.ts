@@ -14,7 +14,9 @@ export class WebhookVerifier {
     secret: string,
   ): boolean {
     const expected = createHmac('sha256', secret).update(payload).digest('hex')
-    if (expected.length !== signature.length) return false
+    if (expected.length !== signature.length) {
+      return false
+    }
     try {
       return timingSafeEqual(
         Buffer.from(expected, 'hex'),

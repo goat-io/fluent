@@ -5,7 +5,10 @@
 // Handles task_runner fan-out on the platform side (agents have no DB access).
 //
 import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
-import type { StepPayload, StepResult } from '../workflow/WorkflowBuilder.types.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../workflow/WorkflowBuilder.types.js'
 import type { AgentRegistry } from './AgentRegistry.js'
 
 export interface WorkerBrokerConfig {
@@ -46,11 +49,15 @@ export class WorkerBroker {
    */
   async start(connector: {
     listen: (params: {
-      tasks: Array<{ taskName: string; handle: (data: unknown) => Promise<unknown>; concurrency?: number }>
+      tasks: Array<{
+        taskName: string
+        handle: (data: unknown) => Promise<unknown>
+        concurrency?: number
+      }>
       defaultConcurrency?: number
     }) => Promise<{ stop: () => Promise<void>; isRunning: () => boolean }>
   }): Promise<void> {
-    const tasks = QUEUES.map((queue) => ({
+    const tasks = QUEUES.map(queue => ({
       taskName: queue,
       handle: async (data: unknown): Promise<unknown> => {
         const payload = data as StepPayload
@@ -75,7 +82,10 @@ export class WorkerBroker {
 
   // ── Core Dispatch ─────────────────────────────────────────────
 
-  private async processJob(payload: StepPayload, queue: string): Promise<unknown> {
+  private async processJob(
+    payload: StepPayload,
+    queue: string,
+  ): Promise<unknown> {
     if (payload.executorType === 'task_runner') {
       return this.processTaskRunnerStep(payload, queue)
     }
@@ -84,10 +94,15 @@ export class WorkerBroker {
 
   // ── Path A: Regular Step ──────────────────────────────────────
 
-  private async processRegularStep(payload: StepPayload, queue: string): Promise<unknown> {
+  private async processRegularStep(
+    payload: StepPayload,
+    queue: string,
+  ): Promise<unknown> {
     // 1. Mark step as RUNNING in engine (DB)
     await this.engine.markStepRunning(
-      payload.workflowRunId, payload.stepName, payload.tenantId,
+      payload.workflowRunId,
+      payload.stepName,
+      payload.tenantId,
     )
 
     try {
@@ -102,14 +117,20 @@ export class WorkerBroker {
 
       // 3. Notify engine of completion (all DB work on platform side)
       await this.engine.onStepCompleted(
-        payload.workflowRunId, payload.stepName, payload.tenantId, result,
+        payload.workflowRunId,
+        payload.stepName,
+        payload.tenantId,
+        result,
       )
 
       return result.output
     } catch (error) {
       // Agent failure, timeout, or stale — notify engine
       await this.engine.onStepFailed(
-        payload.workflowRunId, payload.stepName, payload.tenantId, error as Error,
+        payload.workflowRunId,
+        payload.stepName,
+        payload.tenantId,
+        error as Error,
       )
       throw error
     }
@@ -117,14 +138,21 @@ export class WorkerBroker {
 
   // ── Path B: task_runner Fan-out ───────────────────────────────
 
-  private async processTaskRunnerStep(payload: StepPayload, queue: string): Promise<unknown> {
+  private async processTaskRunnerStep(
+    payload: StepPayload,
+    queue: string,
+  ): Promise<unknown> {
     const taskManager = this.engine.taskManager
-    const maxConcurrentTasks = (payload.executorConfig.maxConcurrentTasks as number) ?? 5
-    const innerExecutorType = (payload.executorConfig.executor as string) ?? 'function'
+    const maxConcurrentTasks =
+      (payload.executorConfig.maxConcurrentTasks as number) ?? 5
+    const innerExecutorType =
+      (payload.executorConfig.executor as string) ?? 'function'
 
     // 1. Mark step as RUNNING
     await this.engine.markStepRunning(
-      payload.workflowRunId, payload.stepName, payload.tenantId,
+      payload.workflowRunId,
+      payload.stepName,
+      payload.tenantId,
     )
 
     try {
@@ -134,10 +162,13 @@ export class WorkerBroker {
       while (true) {
         // Budget check
         const budgetExceeded = await this.engine.incrementBudgetUsage(
-          payload.workflowRunId, 'taskExecutions',
+          payload.workflowRunId,
+          'taskExecutions',
         )
         if (budgetExceeded) {
-          this.logger?.warn(`Budget exceeded for run ${payload.workflowRunId}: ${budgetExceeded}`)
+          this.logger?.warn(
+            `Budget exceeded for run ${payload.workflowRunId}: ${budgetExceeded}`,
+          )
           break
         }
 
@@ -148,9 +179,12 @@ export class WorkerBroker {
 
         // Fetch next task from DB (SKIP LOCKED)
         const task = await taskManager.fetchNextTask(
-          payload.workflowRunId, payload.stepName,
+          payload.workflowRunId,
+          payload.stepName,
         )
-        if (!task) break // No more tasks
+        if (!task) {
+          break // No more tasks
+        }
 
         await taskManager.markTaskRunning(task.id)
 
@@ -162,22 +196,33 @@ export class WorkerBroker {
         }
 
         // Dispatch to agent (non-blocking)
-        const taskPromise = this.registry.enqueueJob({
-          tenantId: payload.tenantId,
-          type: 'task',
-          queue,
-          payload: taskPayload,
-          timeoutMs: this.jobExecutionTimeoutMs,
-        }).then(async (result) => {
-          await taskManager.markTaskCompleted(task.id, result.output)
-        }).catch(async (err: Error) => {
-          await taskManager.markTaskFailed(task.id, err.message ?? String(err))
-          if (task.attempt < task.maxRetries) {
-            try { await taskManager.retryTask(task.id) } catch { /* maxRetries exceeded */ }
-          }
-        }).finally(() => {
-          activeTasks.delete(task.id)
-        })
+        const taskPromise = this.registry
+          .enqueueJob({
+            tenantId: payload.tenantId,
+            type: 'task',
+            queue,
+            payload: taskPayload,
+            timeoutMs: this.jobExecutionTimeoutMs,
+          })
+          .then(async result => {
+            await taskManager.markTaskCompleted(task.id, result.output)
+          })
+          .catch(async (err: Error) => {
+            await taskManager.markTaskFailed(
+              task.id,
+              err.message ?? String(err),
+            )
+            if (task.attempt < task.maxRetries) {
+              try {
+                await taskManager.retryTask(task.id)
+              } catch {
+                /* maxRetries exceeded */
+              }
+            }
+          })
+          .finally(() => {
+            activeTasks.delete(task.id)
+          })
 
         activeTasks.set(task.id, taskPromise)
       }
@@ -187,19 +232,26 @@ export class WorkerBroker {
 
       // 3. Report aggregate stats
       const stats = await taskManager.getTaskStats(
-        payload.workflowRunId, payload.stepName,
+        payload.workflowRunId,
+        payload.stepName,
       )
 
       const result: StepResult = { output: { taskStats: { ...stats } } }
 
       await this.engine.onStepCompleted(
-        payload.workflowRunId, payload.stepName, payload.tenantId, result,
+        payload.workflowRunId,
+        payload.stepName,
+        payload.tenantId,
+        result,
       )
 
       return result.output
     } catch (error) {
       await this.engine.onStepFailed(
-        payload.workflowRunId, payload.stepName, payload.tenantId, error as Error,
+        payload.workflowRunId,
+        payload.stepName,
+        payload.tenantId,
+        error as Error,
       )
       throw error
     }

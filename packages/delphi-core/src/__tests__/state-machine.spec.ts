@@ -1,15 +1,15 @@
 // npx vitest run src/__tests__/state-machine.spec.ts
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  canWorkflowTransition,
   canStepTransition,
+  canWorkflowTransition,
   deriveWorkflowStatus,
   getReadySteps,
-  isTerminalWorkflowStatus,
   isTerminalStepStatus,
+  isTerminalWorkflowStatus,
   topologicalSort,
 } from '../state/WorkflowStateMachine.js'
-import type { StepStatus, WorkflowStatus } from '../workflow/WorkflowBuilder.types.js'
+import type { StepStatus } from '../workflow/WorkflowBuilder.types.js'
 
 describe('WorkflowStateMachine', () => {
   describe('canWorkflowTransition', () => {
@@ -164,10 +164,7 @@ describe('WorkflowStateMachine', () => {
 
     it('returns COMPLETED when all steps COMPLETED or SKIPPED', () => {
       expect(
-        deriveWorkflowStatus([
-          { status: 'COMPLETED' },
-          { status: 'SKIPPED' },
-        ]),
+        deriveWorkflowStatus([{ status: 'COMPLETED' }, { status: 'SKIPPED' }]),
       ).toBe('COMPLETED')
     })
 
@@ -177,19 +174,13 @@ describe('WorkflowStateMachine', () => {
 
     it('returns RUNNING when any step QUEUED', () => {
       expect(
-        deriveWorkflowStatus([
-          { status: 'COMPLETED' },
-          { status: 'QUEUED' },
-        ]),
+        deriveWorkflowStatus([{ status: 'COMPLETED' }, { status: 'QUEUED' }]),
       ).toBe('RUNNING')
     })
 
     it('returns RUNNING when any step RUNNING', () => {
       expect(
-        deriveWorkflowStatus([
-          { status: 'COMPLETED' },
-          { status: 'RUNNING' },
-        ]),
+        deriveWorkflowStatus([{ status: 'COMPLETED' }, { status: 'RUNNING' }]),
       ).toBe('RUNNING')
     })
 
@@ -213,28 +204,19 @@ describe('WorkflowStateMachine', () => {
 
     it('returns FAILED when step FAILED and nothing active', () => {
       expect(
-        deriveWorkflowStatus([
-          { status: 'COMPLETED' },
-          { status: 'FAILED' },
-        ]),
+        deriveWorkflowStatus([{ status: 'COMPLETED' }, { status: 'FAILED' }]),
       ).toBe('FAILED')
     })
 
     it('returns RUNNING when step FAILED but others still active', () => {
       expect(
-        deriveWorkflowStatus([
-          { status: 'RUNNING' },
-          { status: 'FAILED' },
-        ]),
+        deriveWorkflowStatus([{ status: 'RUNNING' }, { status: 'FAILED' }]),
       ).toBe('RUNNING')
     })
 
     it('returns RUNNING when some PENDING, some COMPLETED', () => {
       expect(
-        deriveWorkflowStatus([
-          { status: 'COMPLETED' },
-          { status: 'PENDING' },
-        ]),
+        deriveWorkflowStatus([{ status: 'COMPLETED' }, { status: 'PENDING' }]),
       ).toBe('RUNNING')
     })
   })
@@ -243,43 +225,80 @@ describe('WorkflowStateMachine', () => {
     it('returns root steps (no deps) when PENDING', () => {
       const steps = [
         { name: 'a', executorType: 'function', executorConfig: {} },
-        { name: 'b', dependsOn: ['a'], executorType: 'function', executorConfig: {} },
+        {
+          name: 'b',
+          dependsOn: ['a'],
+          executorType: 'function',
+          executorConfig: {},
+        },
       ]
-      const statuses = { a: 'PENDING' as StepStatus, b: 'PENDING' as StepStatus }
+      const statuses = {
+        a: 'PENDING' as StepStatus,
+        b: 'PENDING' as StepStatus,
+      }
       expect(getReadySteps(steps, statuses)).toEqual(['a'])
     })
 
     it('returns step when all deps COMPLETED', () => {
       const steps = [
         { name: 'a', executorType: 'function', executorConfig: {} },
-        { name: 'b', dependsOn: ['a'], executorType: 'function', executorConfig: {} },
+        {
+          name: 'b',
+          dependsOn: ['a'],
+          executorType: 'function',
+          executorConfig: {},
+        },
       ]
-      const statuses = { a: 'COMPLETED' as StepStatus, b: 'PENDING' as StepStatus }
+      const statuses = {
+        a: 'COMPLETED' as StepStatus,
+        b: 'PENDING' as StepStatus,
+      }
       expect(getReadySteps(steps, statuses)).toEqual(['b'])
     })
 
     it('returns step when dep SKIPPED', () => {
       const steps = [
         { name: 'a', executorType: 'function', executorConfig: {} },
-        { name: 'b', dependsOn: ['a'], executorType: 'function', executorConfig: {} },
+        {
+          name: 'b',
+          dependsOn: ['a'],
+          executorType: 'function',
+          executorConfig: {},
+        },
       ]
-      const statuses = { a: 'SKIPPED' as StepStatus, b: 'PENDING' as StepStatus }
+      const statuses = {
+        a: 'SKIPPED' as StepStatus,
+        b: 'PENDING' as StepStatus,
+      }
       expect(getReadySteps(steps, statuses)).toEqual(['b'])
     })
 
     it('does NOT return step when dep RUNNING', () => {
       const steps = [
         { name: 'a', executorType: 'function', executorConfig: {} },
-        { name: 'b', dependsOn: ['a'], executorType: 'function', executorConfig: {} },
+        {
+          name: 'b',
+          dependsOn: ['a'],
+          executorType: 'function',
+          executorConfig: {},
+        },
       ]
-      const statuses = { a: 'RUNNING' as StepStatus, b: 'PENDING' as StepStatus }
+      const statuses = {
+        a: 'RUNNING' as StepStatus,
+        b: 'PENDING' as StepStatus,
+      }
       expect(getReadySteps(steps, statuses)).toEqual([])
     })
 
     it('does NOT return step when dep FAILED', () => {
       const steps = [
         { name: 'a', executorType: 'function', executorConfig: {} },
-        { name: 'b', dependsOn: ['a'], executorType: 'function', executorConfig: {} },
+        {
+          name: 'b',
+          dependsOn: ['a'],
+          executorType: 'function',
+          executorConfig: {},
+        },
       ]
       const statuses = { a: 'FAILED' as StepStatus, b: 'PENDING' as StepStatus }
       expect(getReadySteps(steps, statuses)).toEqual([])
@@ -288,8 +307,18 @@ describe('WorkflowStateMachine', () => {
     it('returns multiple ready steps (fan-out)', () => {
       const steps = [
         { name: 'root', executorType: 'function', executorConfig: {} },
-        { name: 'left', dependsOn: ['root'], executorType: 'function', executorConfig: {} },
-        { name: 'right', dependsOn: ['root'], executorType: 'function', executorConfig: {} },
+        {
+          name: 'left',
+          dependsOn: ['root'],
+          executorType: 'function',
+          executorConfig: {},
+        },
+        {
+          name: 'right',
+          dependsOn: ['root'],
+          executorType: 'function',
+          executorConfig: {},
+        },
       ]
       const statuses = {
         root: 'COMPLETED' as StepStatus,
@@ -303,7 +332,12 @@ describe('WorkflowStateMachine', () => {
       const steps = [
         { name: 'a', executorType: 'function', executorConfig: {} },
         { name: 'b', executorType: 'function', executorConfig: {} },
-        { name: 'join', dependsOn: ['a', 'b'], executorType: 'function', executorConfig: {} },
+        {
+          name: 'join',
+          dependsOn: ['a', 'b'],
+          executorType: 'function',
+          executorConfig: {},
+        },
       ]
       const statuses = {
         a: 'COMPLETED' as StepStatus,
@@ -337,9 +371,24 @@ describe('WorkflowStateMachine', () => {
     it('handles diamond DAG', () => {
       const steps = [
         { name: 'root', executorType: 'f', executorConfig: {} },
-        { name: 'left', dependsOn: ['root'], executorType: 'f', executorConfig: {} },
-        { name: 'right', dependsOn: ['root'], executorType: 'f', executorConfig: {} },
-        { name: 'join', dependsOn: ['left', 'right'], executorType: 'f', executorConfig: {} },
+        {
+          name: 'left',
+          dependsOn: ['root'],
+          executorType: 'f',
+          executorConfig: {},
+        },
+        {
+          name: 'right',
+          dependsOn: ['root'],
+          executorType: 'f',
+          executorConfig: {},
+        },
+        {
+          name: 'join',
+          dependsOn: ['left', 'right'],
+          executorType: 'f',
+          executorConfig: {},
+        },
       ]
       const sorted = topologicalSort(steps)
       expect(sorted[0]).toBe('root')
@@ -362,9 +411,7 @@ describe('WorkflowStateMachine', () => {
     })
 
     it('handles single step', () => {
-      const steps = [
-        { name: 'only', executorType: 'f', executorConfig: {} },
-      ]
+      const steps = [{ name: 'only', executorType: 'f', executorConfig: {} }]
       expect(topologicalSort(steps)).toEqual(['only'])
     })
 

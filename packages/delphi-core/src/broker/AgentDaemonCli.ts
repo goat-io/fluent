@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { FunctionStepExecutor } from '../steps/FunctionStepExecutor.js'
 // npx tsx src/broker/AgentDaemonCli.ts
 //
 // Agent Daemon CLI — start a remote worker that connects to the platform via HTTPS.
@@ -14,7 +15,6 @@
 //   BROKER_URL=... BROKER_TOKEN=... AGENTS_TENANT_ID=... npx @goatlab/delphi-core agent start
 //
 import { AgentDaemon } from './AgentDaemon.js'
-import { FunctionStepExecutor } from '../steps/FunctionStepExecutor.js'
 
 // ── Parse CLI args ──────────────────────────────────────────────
 
@@ -22,7 +22,11 @@ function parseArgs(argv: string[]): Record<string, string> {
   const args: Record<string, string> = {}
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
-    if (arg.startsWith('--') && i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
+    if (
+      arg.startsWith('--') &&
+      i + 1 < argv.length &&
+      !argv[i + 1].startsWith('--')
+    ) {
       args[arg.slice(2)] = argv[i + 1]
       i++
     }
@@ -32,8 +36,13 @@ function parseArgs(argv: string[]): Record<string, string> {
 
 const args = parseArgs(process.argv.slice(2))
 
-const brokerUrl = args.url || args.broker || process.env.BROKER_URL || process.env.AGENTS_ENGINE_URL
-const registrationToken = args.token || process.env.BROKER_TOKEN || process.env.AGENTS_WORKER_TOKEN
+const brokerUrl =
+  args.url ||
+  args.broker ||
+  process.env.BROKER_URL ||
+  process.env.AGENTS_ENGINE_URL
+const registrationToken =
+  args.token || process.env.BROKER_TOKEN || process.env.AGENTS_WORKER_TOKEN
 const tenantId = args.tenant || process.env.AGENTS_TENANT_ID || 'default'
 const name = args.name || process.env.AGENTS_WORKER_NAME
 
@@ -57,7 +66,9 @@ Example:
 }
 
 if (!registrationToken) {
-  console.error('Error: --token is required. Generate one via the platform UI: Workers > + Add Worker')
+  console.error(
+    'Error: --token is required. Generate one via the platform UI: Workers > + Add Worker',
+  )
   process.exit(1)
 }
 
@@ -87,7 +98,7 @@ console.log(`
   Name:     ${name || '(auto-detect hostname)'}
 `)
 
-daemon.start().catch((err) => {
+daemon.start().catch(err => {
   console.error('Failed to start agent:', err.message)
   process.exit(1)
 })

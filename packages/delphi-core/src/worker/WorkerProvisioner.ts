@@ -23,7 +23,7 @@ export class LocalWorkerProvisioner implements WorkerProvisioner {
 
   async provision(
     name: string,
-    tenantId: string,
+    _tenantId: string,
     capabilities: WorkerCapabilities,
   ): Promise<WorkerRegistration> {
     const now = new Date().toISOString()
@@ -46,7 +46,7 @@ export class LocalWorkerProvisioner implements WorkerProvisioner {
     }
   }
 
-  async listWorkers(tenantId: string): Promise<WorkerRegistration[]> {
+  async listWorkers(_tenantId: string): Promise<WorkerRegistration[]> {
     return Array.from(this.workers.values())
   }
 

@@ -206,6 +206,7 @@ export type { TypedStepResult } from './workflow/Step.js'
 export { FunctionStep, Step } from './workflow/Step.js'
 export type { StepEntry, StepOutputs } from './workflow/Workflow.js'
 export { step, Workflow } from './workflow/Workflow.js'
+export { WorkflowBuilder } from './workflow/WorkflowBuilder.js'
 // ── Types ──────────────────────────────────────────────────────────
 export type {
   HumanInput,
@@ -225,5 +226,4 @@ export type {
   WorkflowTrigger,
   WorkflowTriggerInput,
 } from './workflow/WorkflowBuilder.types.js'
-export { WorkflowBuilder } from './workflow/WorkflowBuilder.js'
 export { WorkflowRegistry } from './workflow/WorkflowRegistry.js'

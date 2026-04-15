@@ -13,21 +13,27 @@
 //
 // npx vitest run src/__tests__/engine/full-stack.spec.ts
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { RedisRealtimeBroker } from '@goatlab/realtime-broker'
+import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
+import {
+  PostgreSqlContainer,
+  type StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql'
+import {
+  RedisContainer,
+  type StartedRedisContainer,
+} from '@testcontainers/redis'
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
-import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis'
-import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import { RedisRealtimeBroker } from '@goatlab/realtime-broker'
-import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { EngineEvent } from '../../engine/EngineEvent.types.js'
 import { IngestBuffer } from '../../engine/IngestBuffer.js'
 import { IngestWorker } from '../../engine/IngestWorker.js'
+import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
 import { CREATE_TABLES_SQL, type Database } from '../../entities/Database.js'
-import type { EngineEvent } from '../../engine/EngineEvent.types.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 
 const ENGINE_QUEUES = new Set([
   'workflow_ingest',
@@ -56,21 +62,28 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
     while (Date.now() < deadline && consecutive < 3) {
       const r = await connector.processIncomingDispatch({
         handleTask: async (queueName, data) => {
-          if (queueName === 'workflow_ingest') return ingestWorker.handleJob(data as any)
+          if (queueName === 'workflow_ingest') {
+            return ingestWorker.handleJob(data as any)
+          }
           return stepTask.handle(data as any)
         },
         validQueueNames: ENGINE_QUEUES,
         timeBudgetMs: 1500,
-        batchSize: 50, concurrency: 50,
+        batchSize: 50,
+        concurrency: 50,
       })
-      if (r.processed === 0 && r.failed === 0) consecutive++
-      else consecutive = 0
+      if (r.processed === 0 && r.failed === 0) {
+        consecutive++
+      } else {
+        consecutive = 0
+      }
     }
   }
 
   beforeAll(async () => {
     pgContainer = await new PostgreSqlContainer('postgres:18-alpine')
-      .withDatabase('full_stack_test').start()
+      .withDatabase('full_stack_test')
+      .start()
     redisContainer = await new RedisContainer('redis:7-alpine').start()
 
     pgPool = new pg.Pool({
@@ -81,8 +94,12 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
       password: pgContainer.getPassword(),
       max: 10,
     })
-    db = new Kysely<Database>({ dialect: new PostgresDialect({ pool: pgPool }) })
-    for (const s of CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(Boolean)) {
+    db = new Kysely<Database>({
+      dialect: new PostgresDialect({ pool: pgPool }),
+    })
+    for (const s of CREATE_TABLES_SQL.split(';')
+      .map(s => s.trim())
+      .filter(Boolean)) {
       await sql.raw(s).execute(db)
     }
 
@@ -103,33 +120,56 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
     })
 
     const executor = new FunctionStepExecutor()
-    executor.register('echo', async (p: any) => ({ output: { step: p.stepName, input: p.input } }))
+    executor.register('echo', async (p: any) => ({
+      output: { step: p.stepName, input: p.input },
+    }))
 
     const wfDouble = WorkflowBuilder.create('wf_double')
-      .version('1.0.0').defaultRetries(0)
-      .step('first',  { executorType: 'function', executorConfig: { handler: 'echo' } })
-      .step('second', { dependsOn: ['first'], executorType: 'function', executorConfig: { handler: 'echo' }, mapInput: (u: any) => ({ from: u.first }) })
+      .version('1.0.0')
+      .defaultRetries(0)
+      .step('first', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
+      .step('second', {
+        dependsOn: ['first'],
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+        mapInput: (u: any) => ({ from: u.first }),
+      })
       .build()
 
     engine = new WorkflowEngine({
-      db, pgPool, connector,
+      db,
+      pgPool,
+      connector,
       executors: new Map([['function', executor]]),
       workflows: new Map([['wf_double', wfDouble]]),
       tenantId: 'test-tenant',
-      onEngineEvent: (evt) => {
+      onEngineEvent: evt => {
         // Publish to per-run channel (what an SSE subscriber would watch)
-        broker.publish(evt.tenantId, `engine:run:${evt.runId}`, evt).catch(() => {})
+        broker
+          .publish(evt.tenantId, `engine:run:${evt.runId}`, evt)
+          .catch(() => {})
         // Publish to tenant-wide firehose (what a dashboard would watch)
         broker.publish(evt.tenantId, 'engine:tenant', evt).catch(() => {})
       },
     })
 
-    ingestWorker = new IngestWorker({ engine, flushThreshold: 20, flushIntervalMs: 20, maxConcurrentFlushes: 4 })
-    ingestBuffer = new IngestBuffer({
-      connector, taskName: 'workflow_ingest',
-      flushThreshold: 20, flushIntervalMs: 50,
+    ingestWorker = new IngestWorker({
+      engine,
+      flushThreshold: 20,
+      flushIntervalMs: 20,
+      maxConcurrentFlushes: 4,
     })
-    stepTask = new WorkflowStepTask(engine); stepTask.setConnector(connector)
+    ingestBuffer = new IngestBuffer({
+      connector,
+      taskName: 'workflow_ingest',
+      flushThreshold: 20,
+      flushIntervalMs: 50,
+    })
+    stepTask = new WorkflowStepTask(engine)
+    stepTask.setConnector(connector)
   }, 90_000)
 
   afterAll(async () => {
@@ -148,9 +188,13 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
     const runIdPlaceholder = 'to-be-filled'
     // Pre-subscribe to the tenant-wide firehose so we catch run.started
     // (which fires before we know the runId)
-    const sub = await broker.subscribe<EngineEvent>('test-tenant', 'engine:tenant', (evt) => {
-      received.push(evt)
-    })
+    const sub = await broker.subscribe<EngineEvent>(
+      'test-tenant',
+      'engine:tenant',
+      evt => {
+        received.push(evt)
+      },
+    )
 
     try {
       // Fire a 2-step workflow via the queue-first ingest path
@@ -186,8 +230,11 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
 
       // PG row reflects terminal state AT TIME of run.completed event
       // (the contract: events fire AFTER commit)
-      const row = await db.selectFrom('workflow_runs')
-        .select(['status']).where('id', '=', runId).executeTakeFirst()
+      const row = await db
+        .selectFrom('workflow_runs')
+        .select(['status'])
+        .where('id', '=', runId)
+        .executeTakeFirst()
       expect(row?.status).toBe('COMPLETED')
 
       void runIdPlaceholder
@@ -200,21 +247,39 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
     const tenantAEvents: EngineEvent[] = []
     const tenantBEvents: EngineEvent[] = []
 
-    const subA = await broker.subscribe<EngineEvent>('tenant-a', 'engine:tenant', (evt) => tenantAEvents.push(evt))
-    const subB = await broker.subscribe<EngineEvent>('tenant-b', 'engine:tenant', (evt) => tenantBEvents.push(evt))
+    const subA = await broker.subscribe<EngineEvent>(
+      'tenant-a',
+      'engine:tenant',
+      evt => tenantAEvents.push(evt),
+    )
+    const subB = await broker.subscribe<EngineEvent>(
+      'tenant-b',
+      'engine:tenant',
+      evt => tenantBEvents.push(evt),
+    )
 
     try {
       // The engine in this test is scoped to 'test-tenant'. Publish directly
       // to the broker for each tenant to confirm isolation at the broker layer
       // independent of engine wiring.
       await broker.publish('tenant-a', 'engine:tenant', {
-        type: 'run.started', tenantId: 'tenant-a', runId: 'a-run', traceId: 't1',
-        workflowName: 'x', workflowVersion: '1', emittedAt: new Date(),
+        type: 'run.started',
+        tenantId: 'tenant-a',
+        runId: 'a-run',
+        traceId: 't1',
+        workflowName: 'x',
+        workflowVersion: '1',
+        emittedAt: new Date(),
       } satisfies EngineEvent)
 
       await broker.publish('tenant-b', 'engine:tenant', {
-        type: 'run.started', tenantId: 'tenant-b', runId: 'b-run', traceId: 't2',
-        workflowName: 'y', workflowVersion: '1', emittedAt: new Date(),
+        type: 'run.started',
+        tenantId: 'tenant-b',
+        runId: 'b-run',
+        traceId: 't2',
+        workflowName: 'y',
+        workflowVersion: '1',
+        emittedAt: new Date(),
       } satisfies EngineEvent)
 
       await new Promise(r => setTimeout(r, 200))
@@ -233,9 +298,15 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
     // up by rapid publish activity.
     const N = 5
     const received: string[] = []
-    const sub = await broker.subscribe<EngineEvent>('test-tenant', 'engine:tenant', (evt) => {
-      if (evt.type === 'run.completed') received.push(evt.runId)
-    })
+    const sub = await broker.subscribe<EngineEvent>(
+      'test-tenant',
+      'engine:tenant',
+      evt => {
+        if (evt.type === 'run.completed') {
+          received.push(evt.runId)
+        }
+      },
+    )
 
     try {
       const runIds: string[] = []

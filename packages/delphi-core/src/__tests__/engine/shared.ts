@@ -8,11 +8,19 @@ import { CREATE_TABLES_SQL } from '../../entities/Database.js'
 
 interface GlobalTestData {
   redis: { host: string; port: number }
-  postgres: { host: string; port: number; database: string; username: string; password: string }
+  postgres: {
+    host: string
+    port: number
+    database: string
+    username: string
+    password: string
+  }
 }
 
 function getGlobalData(): GlobalTestData {
-  return JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
+  return JSON.parse(
+    readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
+  )
 }
 
 let sharedDb: Kysely<Database> | null = null
@@ -21,7 +29,9 @@ let refCount = 0
 
 export async function getSharedDb(): Promise<Kysely<Database>> {
   refCount++
-  if (sharedDb) return sharedDb
+  if (sharedDb) {
+    return sharedDb
+  }
 
   if (!initPromise) {
     initPromise = (async () => {
@@ -40,7 +50,9 @@ export async function getSharedDb(): Promise<Kysely<Database>> {
       })
 
       // Create tables
-      const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(Boolean)
+      const statements = CREATE_TABLES_SQL.split(';')
+        .map(s => s.trim())
+        .filter(Boolean)
       for (const stmt of statements) {
         await sql.raw(stmt).execute(db)
       }
@@ -63,5 +75,7 @@ export async function releaseSharedDb(): Promise<void> {
 }
 
 export async function truncateAll(db: Kysely<Database>): Promise<void> {
-  await sql`TRUNCATE TABLE agent_tokens, workflow_schedules, workflow_tasks, workflow_event_subscriptions, workflow_events, workflow_step_logs, workflow_signals, workflow_steps, workflow_runs CASCADE`.execute(db)
+  await sql`TRUNCATE TABLE agent_tokens, workflow_schedules, workflow_tasks, workflow_event_subscriptions, workflow_events, workflow_step_logs, workflow_signals, workflow_steps, workflow_runs CASCADE`.execute(
+    db,
+  )
 }

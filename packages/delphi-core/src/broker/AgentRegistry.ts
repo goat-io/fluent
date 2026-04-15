@@ -112,7 +112,9 @@ export class AgentRegistry {
 
   removeAgent(agentId: string): void {
     const agent = this.agents.get(agentId)
-    if (!agent) return
+    if (!agent) {
+      return
+    }
 
     // Reject all in-flight jobs so BullMQ retries them
     for (const [, job] of agent.pendingJobs) {
@@ -147,7 +149,9 @@ export class AgentRegistry {
   }): Promise<StepResult> {
     // Backpressure: hard cap on in-memory jobs
     if (this.allJobs.size >= this.maxPendingJobs) {
-      return Promise.reject(new Error('Broker backpressure: too many pending jobs'))
+      return Promise.reject(
+        new Error('Broker backpressure: too many pending jobs'),
+      )
     }
 
     return new Promise<StepResult>((resolve, reject) => {
@@ -179,10 +183,14 @@ export class AgentRegistry {
    */
   getNextJob(agentId: string): PendingJob | null {
     const agent = this.agents.get(agentId)
-    if (!agent || agent.status !== 'connected') return null
+    if (!agent || agent.status !== 'connected') {
+      return null
+    }
 
     // Capacity check
-    if (agent.pendingJobs.size >= agent.maxConcurrent) return null
+    if (agent.pendingJobs.size >= agent.maxConcurrent) {
+      return null
+    }
 
     // Find first unassigned job matching agent's queues (FIFO fairness)
     for (let i = 0; i < this.unassignedJobs.length; i++) {
@@ -196,11 +204,15 @@ export class AgentRegistry {
       }
 
       // Queue match
-      if (!agent.capabilities.queues.includes(job.queue)) continue
+      if (!agent.capabilities.queues.includes(job.queue)) {
+        continue
+      }
 
       // Tenant match
       const payload = job.payload as Record<string, unknown>
-      if (payload.tenantId && payload.tenantId !== agent.tenantId) continue
+      if (payload.tenantId && payload.tenantId !== agent.tenantId) {
+        continue
+      }
 
       // Assign
       this.unassignedJobs.splice(i, 1)
@@ -222,7 +234,9 @@ export class AgentRegistry {
    */
   completeJob(agentId: string, jobId: string, result: StepResult): boolean {
     const job = this.allJobs.get(jobId)
-    if (!job || job.completed) return false
+    if (!job || job.completed) {
+      return false
+    }
 
     job.completed = true
     job.resolve(result)
@@ -235,7 +249,9 @@ export class AgentRegistry {
    */
   failJob(agentId: string, jobId: string, errorMsg: string): boolean {
     const job = this.allJobs.get(jobId)
-    if (!job || job.completed) return false
+    if (!job || job.completed) {
+      return false
+    }
 
     this.safeReject(job, new Error(errorMsg))
     this.cleanupJob(agentId, jobId)
@@ -259,7 +275,9 @@ export class AgentRegistry {
    */
   heartbeat(agentId: string): { cancelJobIds: string[] } {
     const agent = this.agents.get(agentId)
-    if (!agent) return { cancelJobIds: [] }
+    if (!agent) {
+      return { cancelJobIds: [] }
+    }
 
     agent.lastHeartbeatAt = new Date()
     agent.status = 'connected'
@@ -280,7 +298,9 @@ export class AgentRegistry {
   // ── Sweep ────────────────────────────────────────────────────
 
   startSweep(): void {
-    if (this.sweepTimer) return
+    if (this.sweepTimer) {
+      return
+    }
     this.sweepTimer = setInterval(() => this.sweep(), this.sweepIntervalMs)
   }
 
@@ -299,13 +319,20 @@ export class AgentRegistry {
 
     // 1. Mark stale agents and reject their jobs
     for (const [, agent] of this.agents) {
-      if (agent.status === 'stale') continue
+      if (agent.status === 'stale') {
+        continue
+      }
       const sinceLast = now - agent.lastHeartbeatAt.getTime()
       if (sinceLast > this.agentStaleAfterMs) {
-        this.logger?.warn(`Agent ${agent.id} (${agent.name}) stale — no heartbeat for ${sinceLast}ms`)
+        this.logger?.warn(
+          `Agent ${agent.id} (${agent.name}) stale — no heartbeat for ${sinceLast}ms`,
+        )
         agent.status = 'stale'
         for (const [jobId, job] of agent.pendingJobs) {
-          this.safeReject(job, new Error(`Agent stale: no heartbeat for ${sinceLast}ms`))
+          this.safeReject(
+            job,
+            new Error(`Agent stale: no heartbeat for ${sinceLast}ms`),
+          )
           agent.pendingJobs.delete(jobId)
         }
       }
@@ -313,12 +340,19 @@ export class AgentRegistry {
 
     // 2. Execution timeout: assigned jobs where startedAt exceeded timeout
     for (const [, job] of this.allJobs) {
-      if (job.completed) continue
+      if (job.completed) {
+        continue
+      }
       if (job.startedAt) {
         const elapsed = now - job.startedAt.getTime()
         if (elapsed > job.timeoutMs) {
-          this.logger?.warn(`Job ${job.id} execution timeout after ${elapsed}ms`)
-          this.safeReject(job, new Error(`Execution timeout: ${elapsed}ms > ${job.timeoutMs}ms`))
+          this.logger?.warn(
+            `Job ${job.id} execution timeout after ${elapsed}ms`,
+          )
+          this.safeReject(
+            job,
+            new Error(`Execution timeout: ${elapsed}ms > ${job.timeoutMs}ms`),
+          )
           if (job.assignedAgentId) {
             this.agents.get(job.assignedAgentId)?.pendingJobs.delete(job.id)
           }
@@ -336,7 +370,10 @@ export class AgentRegistry {
       }
       const waiting = now - job.enqueuedAt.getTime()
       if (waiting > unassignedTimeout) {
-        this.safeReject(job, new Error(`Unassigned timeout: no agent for ${waiting}ms`))
+        this.safeReject(
+          job,
+          new Error(`Unassigned timeout: no agent for ${waiting}ms`),
+        )
         this.unassignedJobs.splice(i, 1)
       }
     }
@@ -366,7 +403,9 @@ export class AgentRegistry {
   // ── Private ──────────────────────────────────────────────────
 
   private safeReject(job: PendingJob, error: Error): void {
-    if (job.completed) return
+    if (job.completed) {
+      return
+    }
     job.completed = true
     job.reject(error)
   }

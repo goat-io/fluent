@@ -2,28 +2,40 @@
 //
 // Full end-to-end test: engine → BullMQ queue → real worker → WorkflowStepTask.handle() → engine callback → next step → completion
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import type { Kysely } from 'kysely'
-import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
-import { StepCostTracker } from '../../engine/StepCostTracker.js'
-import { ExternalActionEnforcer } from '../../engine/ExternalActionEnforcer.js'
-import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult, StepExecutionContext } from '../../workflow/WorkflowBuilder.types.js'
-import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
+
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
+import type { Kysely } from 'kysely'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { ExternalActionEnforcer } from '../../engine/ExternalActionEnforcer.js'
+import { StepCostTracker } from '../../engine/StepCostTracker.js'
+import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
+import type { Database } from '../../entities/Database.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
+import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 interface GlobalTestData {
   redis: { host: string; port: number }
-  postgres: { host: string; port: number; database: string; username: string; password: string }
+  postgres: {
+    host: string
+    port: number
+    database: string
+    username: string
+    password: string
+  }
 }
 
 function getGlobalData(): GlobalTestData {
-  return JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
+  return JSON.parse(
+    readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
+  )
 }
 
 /** Poll until workflow reaches a terminal status or timeout */
@@ -38,7 +50,9 @@ async function waitForWorkflowStatus(
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const status = await engine.getStatus(runId, tenantId)
-    if (targetStatuses.includes(status.status)) return status.status
+    if (targetStatuses.includes(status.status)) {
+      return status.status
+    }
     await new Promise(r => setTimeout(r, intervalMs))
   }
   const final = await engine.getStatus(runId, tenantId)
@@ -58,8 +72,12 @@ describe('E2E: Full BullMQ Worker Flow', () => {
   })
 
   afterAll(async () => {
-    if (stopWorker) await stopWorker()
-    if (connector) await connector.close()
+    if (stopWorker) {
+      await stopWorker()
+    }
+    if (connector) {
+      await connector.close()
+    }
     await releaseSharedDb()
   })
 
@@ -68,16 +86,31 @@ describe('E2E: Full BullMQ Worker Flow', () => {
 
     // Reset executor handlers
     executor = new FunctionStepExecutor()
-    executor.register('echo', async (payload: StepPayload): Promise<StepResult> => {
-      return { output: { echoed: true, step: payload.stepName, input: payload.input } }
-    })
-    executor.register('transform', async (payload: StepPayload): Promise<StepResult> => {
-      return { output: { transformed: true, data: payload.input } }
-    })
-    executor.register('slow', async (payload: StepPayload): Promise<StepResult> => {
-      await new Promise(r => setTimeout(r, 100))
-      return { output: { slow: true } }
-    })
+    executor.register(
+      'echo',
+      async (payload: StepPayload): Promise<StepResult> => {
+        return {
+          output: {
+            echoed: true,
+            step: payload.stepName,
+            input: payload.input,
+          },
+        }
+      },
+    )
+    executor.register(
+      'transform',
+      async (payload: StepPayload): Promise<StepResult> => {
+        return { output: { transformed: true, data: payload.input } }
+      },
+    )
+    executor.register(
+      'slow',
+      async (_payload: StepPayload): Promise<StepResult> => {
+        await new Promise(r => setTimeout(r, 100))
+        return { output: { slow: true } }
+      },
+    )
   })
 
   async function setupE2E(
@@ -89,7 +122,9 @@ describe('E2E: Full BullMQ Worker Flow', () => {
       await stopWorker()
       stopWorker = null
     }
-    if (connector) await connector.close()
+    if (connector) {
+      await connector.close()
+    }
 
     const data = getGlobalData()
     connector = new BullMQConnector({
@@ -144,7 +179,10 @@ describe('E2E: Full BullMQ Worker Flow', () => {
 
   it('completes a single-step workflow via real BullMQ worker', async () => {
     const wf = WorkflowBuilder.create('e2e_single')
-      .step('only', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('only', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
     const { engine } = await setupE2E([wf])
@@ -155,7 +193,10 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     const finalStatus = await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+      engine,
+      runId,
+      'e2e-tenant',
+      ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
 
@@ -166,18 +207,21 @@ describe('E2E: Full BullMQ Worker Flow', () => {
 
   it('chains A → B → C through real BullMQ workers', async () => {
     const wf = WorkflowBuilder.create('e2e_chain')
-      .step('a', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('a', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .step('b', {
         dependsOn: ['a'],
         executorType: 'function',
         executorConfig: { handler: 'transform' },
-        mapInput: (upstream) => ({ fromA: upstream.a }),
+        mapInput: upstream => ({ fromA: upstream.a }),
       })
       .step('c', {
         dependsOn: ['b'],
         executorType: 'function',
         executorConfig: { handler: 'echo' },
-        mapInput: (upstream) => ({ fromB: upstream.b }),
+        mapInput: upstream => ({ fromB: upstream.b }),
       })
       .build()
 
@@ -189,7 +233,10 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     const finalStatus = await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+      engine,
+      runId,
+      'e2e-tenant',
+      ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
 
@@ -208,9 +255,20 @@ describe('E2E: Full BullMQ Worker Flow', () => {
 
   it('handles diamond DAG with parallel branches via BullMQ', async () => {
     const wf = WorkflowBuilder.create('e2e_diamond')
-      .step('root', { executorType: 'function', executorConfig: { handler: 'echo' } })
-      .step('left', { dependsOn: ['root'], executorType: 'function', executorConfig: { handler: 'slow' } })
-      .step('right', { dependsOn: ['root'], executorType: 'function', executorConfig: { handler: 'slow' } })
+      .step('root', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
+      .step('left', {
+        dependsOn: ['root'],
+        executorType: 'function',
+        executorConfig: { handler: 'slow' },
+      })
+      .step('right', {
+        dependsOn: ['root'],
+        executorType: 'function',
+        executorConfig: { handler: 'slow' },
+      })
       .step('join', {
         dependsOn: ['left', 'right'],
         executorType: 'function',
@@ -226,7 +284,10 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     const finalStatus = await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+      engine,
+      runId,
+      'e2e-tenant',
+      ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
 
@@ -238,7 +299,9 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     let callCount = 0
     executor.register('flakyE2E', async (): Promise<StepResult> => {
       callCount++
-      if (callCount < 3) throw new Error('Transient e2e failure')
+      if (callCount < 3) {
+        throw new Error('Transient e2e failure')
+      }
       return { output: { recovered: true, attempts: callCount } }
     })
 
@@ -258,7 +321,10 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     const finalStatus = await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+      engine,
+      runId,
+      'e2e-tenant',
+      ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
 
@@ -276,7 +342,10 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     const wf = WorkflowBuilder.create('e2e_human')
-      .step('analyze', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('analyze', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .step('review', {
         dependsOn: ['analyze'],
         executorType: 'function',
@@ -297,9 +366,7 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     // Wait for workflow to pause at human step
-    await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['WAITING_HUMAN'],
-    )
+    await waitForWorkflowStatus(engine, runId, 'e2e-tenant', ['WAITING_HUMAN'])
 
     const paused = await engine.getStatus(runId, 'e2e-tenant')
     expect(paused.status).toBe('WAITING_HUMAN')
@@ -317,21 +384,30 @@ describe('E2E: Full BullMQ Worker Flow', () => {
 
     // Wait for workflow to complete (deploy step runs via BullMQ)
     const finalStatus = await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+      engine,
+      runId,
+      'e2e-tenant',
+      ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
   })
 
   it('StepCostTracker interceptor persists cost data through full workflow', async () => {
-    executor.register('aiStep', async (): Promise<StepResult> => ({
-      output: {
-        response: 'The answer is 42.',
-        _usage: { tokens: 250, costUsd: 0.005, model: 'gpt-4o' },
-      },
-    }))
+    executor.register(
+      'aiStep',
+      async (): Promise<StepResult> => ({
+        output: {
+          response: 'The answer is 42.',
+          _usage: { tokens: 250, costUsd: 0.005, model: 'gpt-4o' },
+        },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('e2e_cost')
-      .step('ai', { executorType: 'function', executorConfig: { handler: 'aiStep' } })
+      .step('ai', {
+        executorType: 'function',
+        executorConfig: { handler: 'aiStep' },
+      })
       .build()
 
     const { engine } = await setupE2E([wf], {
@@ -345,12 +421,17 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     const finalStatus = await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+      engine,
+      runId,
+      'e2e-tenant',
+      ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
 
     // Verify cost data persisted in DB
-    const step = await db.selectFrom('workflow_steps').selectAll()
+    const step = await db
+      .selectFrom('workflow_steps')
+      .selectAll()
       .where('workflowRunId', '=', runId)
       .where('stepName', '=', 'ai')
       .executeTakeFirst()
@@ -363,9 +444,12 @@ describe('E2E: Full BullMQ Worker Flow', () => {
   it('ExternalActionEnforcer interceptor warns when no ExternalAction records', async () => {
     const warnings: string[] = []
 
-    executor.register('directCall', async (): Promise<StepResult> => ({
-      output: { result: 'called API directly' },
-    }))
+    executor.register(
+      'directCall',
+      async (): Promise<StepResult> => ({
+        output: { result: 'called API directly' },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('e2e_enforce')
       .step('direct', {
@@ -375,12 +459,17 @@ describe('E2E: Full BullMQ Worker Flow', () => {
       .build()
 
     const { engine } = await setupE2E([wf], {
-      interceptors: [new ExternalActionEnforcer({
-        db,
-        strict: false,
-        enforcedExecutorTypes: ['function'], // Enforce on function for test
-        logger: { warn: (msg: any) => warnings.push(String(msg)), error: () => {} },
-      })],
+      interceptors: [
+        new ExternalActionEnforcer({
+          db,
+          strict: false,
+          enforcedExecutorTypes: ['function'], // Enforce on function for test
+          logger: {
+            warn: (msg: any) => warnings.push(String(msg)),
+            error: () => {},
+          },
+        }),
+      ],
     })
 
     const { runId } = await engine.start({
@@ -390,7 +479,10 @@ describe('E2E: Full BullMQ Worker Flow', () => {
     })
 
     const finalStatus = await waitForWorkflowStatus(
-      engine, runId, 'e2e-tenant', ['COMPLETED', 'FAILED'],
+      engine,
+      runId,
+      'e2e-tenant',
+      ['COMPLETED', 'FAILED'],
     )
     expect(finalStatus).toBe('COMPLETED')
 

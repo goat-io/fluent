@@ -21,7 +21,8 @@ import type {
  * Step result narrowed to the step's declared output type.
  * Subclasses return `{ output: TOutput }` (plus optional nextStep / waitForHuman).
  */
-export interface TypedStepResult<TOutput extends JsonObject> extends Omit<StepResult, 'output'> {
+export interface TypedStepResult<TOutput extends JsonObject>
+  extends Omit<StepResult, 'output'> {
   output: TOutput
 }
 

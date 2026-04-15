@@ -3,18 +3,22 @@
 // E2E tests for WorkerNode — real BullMQ, real Postgres, real job processing.
 // Verifies that WorkerNode.start() actually subscribes to queues and processes workflows.
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Kysely } from 'kysely'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
+import type { Kysely } from 'kysely'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createWorkflowHandlers } from '../../api/WorkflowHandlers.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkerNode } from '../../worker/WorkerNode.js'
-import { createWorkflowHandlers } from '../../api/WorkflowHandlers.js'
-import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 interface GlobalTestData {
@@ -22,7 +26,9 @@ interface GlobalTestData {
 }
 
 function getGlobalData(): GlobalTestData {
-  return JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
+  return JSON.parse(
+    readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
+  )
 }
 
 describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
@@ -100,23 +106,31 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
     const start = Date.now()
     while (Date.now() - start < timeoutMs) {
       const status = await engine.getStatus(runId, 'worker-e2e')
-      if (targets.includes(status.status)) return status.status
+      if (targets.includes(status.status)) {
+        return status.status
+      }
       await new Promise(r => setTimeout(r, 200))
     }
     const final = await engine.getStatus(runId, 'worker-e2e')
     throw new Error(
       `Workflow ${runId} did not reach ${targets.join('|')} within ${timeoutMs}ms. ` +
-      `Current: ${final.status}, steps: ${final.steps.map(s => `${s.stepName}=${s.status}`).join(', ')}`,
+        `Current: ${final.status}, steps: ${final.steps.map(s => `${s.stepName}=${s.status}`).join(', ')}`,
     )
   }
 
   it('worker node processes a single-step workflow end-to-end', async () => {
-    executor.register('hello', async (): Promise<StepResult> => ({
-      output: { message: 'Hello from worker node!' },
-    }))
+    executor.register(
+      'hello',
+      async (): Promise<StepResult> => ({
+        output: { message: 'Hello from worker node!' },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('worker_hello')
-      .step('greet', { executorType: 'function', executorConfig: { handler: 'hello' } })
+      .step('greet', {
+        executorType: 'function',
+        executorConfig: { handler: 'hello' },
+      })
       .build()
 
     await setupAndStart([wf])
@@ -131,33 +145,47 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
     expect(finalStatus).toBe('COMPLETED')
 
     const status = await engine.getStatus(runId, 'worker-e2e')
-    expect((status.steps[0].output as any)?.message).toBe('Hello from worker node!')
+    expect((status.steps[0].output as any)?.message).toBe(
+      'Hello from worker node!',
+    )
   })
 
   it('worker node processes a multi-step chain', async () => {
-    executor.register('step_a', async (): Promise<StepResult> => ({
-      output: { from: 'A' },
-    }))
-    executor.register('step_b', async (p: StepPayload): Promise<StepResult> => ({
-      output: { from: 'B', received: p.input },
-    }))
-    executor.register('step_c', async (p: StepPayload): Promise<StepResult> => ({
-      output: { from: 'C', received: p.input },
-    }))
+    executor.register(
+      'step_a',
+      async (): Promise<StepResult> => ({
+        output: { from: 'A' },
+      }),
+    )
+    executor.register(
+      'step_b',
+      async (p: StepPayload): Promise<StepResult> => ({
+        output: { from: 'B', received: p.input },
+      }),
+    )
+    executor.register(
+      'step_c',
+      async (p: StepPayload): Promise<StepResult> => ({
+        output: { from: 'C', received: p.input },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('worker_chain')
-      .step('a', { executorType: 'function', executorConfig: { handler: 'step_a' } })
+      .step('a', {
+        executorType: 'function',
+        executorConfig: { handler: 'step_a' },
+      })
       .step('b', {
         dependsOn: ['a'],
         executorType: 'function',
         executorConfig: { handler: 'step_b' },
-        mapInput: (up) => ({ upstream: up.a }),
+        mapInput: up => ({ upstream: up.a }),
       })
       .step('c', {
         dependsOn: ['b'],
         executorType: 'function',
         executorConfig: { handler: 'step_c' },
-        mapInput: (up) => ({ upstream: up.b }),
+        mapInput: up => ({ upstream: up.b }),
       })
       .build()
 
@@ -197,12 +225,18 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
   })
 
   it('worker node processes steps with different weights', async () => {
-    executor.register('light_work', async (): Promise<StepResult> => ({
-      output: { type: 'light' },
-    }))
-    executor.register('heavy_work', async (): Promise<StepResult> => ({
-      output: { type: 'heavy' },
-    }))
+    executor.register(
+      'light_work',
+      async (): Promise<StepResult> => ({
+        output: { type: 'light' },
+      }),
+    )
+    executor.register(
+      'heavy_work',
+      async (): Promise<StepResult> => ({
+        output: { type: 'heavy' },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('worker_weights')
       .step('light', {
@@ -240,7 +274,10 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
     })
 
     const wf = WorkflowBuilder.create('worker_drain')
-      .step('slow', { executorType: 'function', executorConfig: { handler: 'slow_step' } })
+      .step('slow', {
+        executorType: 'function',
+        executorConfig: { handler: 'slow_step' },
+      })
       .build()
 
     await setupAndStart([wf])
@@ -252,7 +289,9 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
     })
 
     // Wait for step to start
-    while (!stepStarted) await new Promise(r => setTimeout(r, 100))
+    while (!stepStarted) {
+      await new Promise(r => setTimeout(r, 100))
+    }
 
     // Stop worker while step is in-flight — should drain gracefully
     await workerNode.stop()
@@ -267,7 +306,10 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
     executor.register('echo', async (): Promise<StepResult> => ({ output: {} }))
 
     const wf = WorkflowBuilder.create('worker_reg')
-      .step('a', { executorType: 'function', executorConfig: { handler: 'echo' } })
+      .step('a', {
+        executorType: 'function',
+        executorConfig: { handler: 'echo' },
+      })
       .build()
 
     const { engine: eng } = await setupAndStart([wf])
@@ -278,7 +320,11 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
       tenantId: 'worker-e2e',
       name: 'test-worker-1',
       hostname: 'localhost',
-      capabilities: { cpuCount: 4, memoryMB: 8192, queues: ['workflow_step_light'] },
+      capabilities: {
+        cpuCount: 4,
+        memoryMB: 8192,
+        queues: ['workflow_step_light'],
+      },
     })
     expect(reg.workerId).toBeDefined()
 
@@ -303,7 +349,10 @@ describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
     executor.register('noop', async (): Promise<StepResult> => ({ output: {} }))
 
     const wf = WorkflowBuilder.create('worker_info')
-      .step('a', { executorType: 'function', executorConfig: { handler: 'noop' } })
+      .step('a', {
+        executorType: 'function',
+        executorConfig: { handler: 'noop' },
+      })
       .build()
 
     await setupAndStart([wf])

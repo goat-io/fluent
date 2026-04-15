@@ -2,15 +2,19 @@
 //
 // Tests for Issue #3: Redis-backed rate limiter
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import Redis from 'ioredis'
-import { InMemoryRateLimiter, RedisRateLimiter } from '../../engine/RateLimiterBackend.js'
-import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
-import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 import type { Kysely } from 'kysely'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
+import {
+  InMemoryRateLimiter,
+  RedisRateLimiter,
+} from '../../engine/RateLimiterBackend.js'
 import type { Database } from '../../entities/Database.js'
+import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('RateLimiterBackend', () => {
   // ── In-Memory Tests (no containers needed) ─────────────────────
@@ -44,8 +48,16 @@ describe('RateLimiterBackend', () => {
     let limiter: RedisRateLimiter
 
     beforeAll(async () => {
-      const tempData = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
-      redis = new Redis({ host: tempData.redis.host, port: tempData.redis.port })
+      const tempData = JSON.parse(
+        readFileSync(
+          join(__dirname, '..', '..', '..', 'tempData.json'),
+          'utf-8',
+        ),
+      )
+      redis = new Redis({
+        host: tempData.redis.host,
+        port: tempData.redis.port,
+      })
     })
 
     afterAll(async () => {
@@ -55,7 +67,9 @@ describe('RateLimiterBackend', () => {
     beforeEach(async () => {
       // Clean up rate limiter keys
       const keys = await redis.keys('test:ratelimit:*')
-      if (keys.length > 0) await redis.del(...keys)
+      if (keys.length > 0) {
+        await redis.del(...keys)
+      }
       limiter = new RedisRateLimiter(redis as any, 'test:ratelimit')
     })
 
@@ -81,11 +95,11 @@ describe('RateLimiterBackend', () => {
       await limiter.incrementConcurrency('wf-1')
 
       const val = await redis.get('test:ratelimit:concurrency:wf-1')
-      expect(parseInt(val!, 10)).toBe(2)
+      expect(Number.parseInt(val!, 10)).toBe(2)
 
       await limiter.decrementConcurrency('wf-1')
       const val2 = await redis.get('test:ratelimit:concurrency:wf-1')
-      expect(parseInt(val2!, 10)).toBe(1)
+      expect(Number.parseInt(val2!, 10)).toBe(1)
     })
 
     it('concurrency survives separate limiter instances (shared Redis)', async () => {
@@ -95,7 +109,7 @@ describe('RateLimiterBackend', () => {
       await limiter2.incrementConcurrency('wf-shared')
 
       const val = await redis.get('test:ratelimit:concurrency:wf-shared')
-      expect(parseInt(val!, 10)).toBe(2)
+      expect(Number.parseInt(val!, 10)).toBe(2)
     })
 
     it('sets TTL on concurrency keys for crash recovery', async () => {
@@ -123,8 +137,16 @@ describe('RateLimiterBackend', () => {
 
     beforeAll(async () => {
       db = await getSharedDb()
-      const tempData = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
-      redis = new Redis({ host: tempData.redis.host, port: tempData.redis.port })
+      const tempData = JSON.parse(
+        readFileSync(
+          join(__dirname, '..', '..', '..', 'tempData.json'),
+          'utf-8',
+        ),
+      )
+      redis = new Redis({
+        host: tempData.redis.host,
+        port: tempData.redis.port,
+      })
     })
 
     afterAll(async () => {
@@ -135,17 +157,22 @@ describe('RateLimiterBackend', () => {
     beforeEach(async () => {
       await truncateAll(db)
       const keys = await redis.keys('integ:ratelimit:*')
-      if (keys.length > 0) await redis.del(...keys)
+      if (keys.length > 0) {
+        await redis.del(...keys)
+      }
 
-      await db.insertInto('workflow_runs').values({
-        id: 'wf-redis',
-        tenantId: 'test',
-        workflowName: 'test_wf',
-        workflowVersion: '1.0.0',
-        status: 'RUNNING',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).execute()
+      await db
+        .insertInto('workflow_runs')
+        .values({
+          id: 'wf-redis',
+          tenantId: 'test',
+          workflowName: 'test_wf',
+          workflowVersion: '1.0.0',
+          status: 'RUNNING',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .execute()
     })
 
     it('uses Redis backend for rate limiting', async () => {
@@ -180,7 +207,10 @@ describe('RateLimiterBackend', () => {
     })
 
     it('tracks concurrency in Redis across executor instances', async () => {
-      const sharedBackend = new RedisRateLimiter(redis as any, 'integ:ratelimit')
+      const sharedBackend = new RedisRateLimiter(
+        redis as any,
+        'integ:ratelimit',
+      )
 
       const executor1 = new ExternalActionExecutor({
         db,
@@ -188,7 +218,7 @@ describe('RateLimiterBackend', () => {
         rateLimiterBackend: sharedBackend,
       })
 
-      const executor2 = new ExternalActionExecutor({
+      const _executor2 = new ExternalActionExecutor({
         db,
         maxConcurrentPerWorkflow: 10,
         rateLimiterBackend: sharedBackend,
@@ -209,14 +239,14 @@ describe('RateLimiterBackend', () => {
         async () => {
           // While executing, concurrency should be tracked
           const val = await redis.get('integ:ratelimit:concurrency:wf-redis')
-          expect(parseInt(val!, 10)).toBe(1)
+          expect(Number.parseInt(val!, 10)).toBe(1)
           return { externalId: 'PR-1', data: {} }
         },
       )
 
       // After execution, concurrency should be decremented
       const val = await redis.get('integ:ratelimit:concurrency:wf-redis')
-      expect(parseInt(val!, 10)).toBe(0)
+      expect(Number.parseInt(val!, 10)).toBe(0)
     })
   })
 })

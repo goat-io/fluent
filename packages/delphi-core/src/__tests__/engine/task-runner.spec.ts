@@ -3,14 +3,19 @@
 // Integration tests for TaskRunnerExecutor — real Postgres, real engine,
 // real executeStep pattern. Tests the full planner→task_runner fan-out flow.
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import type { Kysely } from 'kysely'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
+import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { TaskRunnerExecutor } from '../../steps/TaskRunnerExecutor.js'
-import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult, StepExecutionContext } from '../../workflow/WorkflowBuilder.types.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepExecutionContext,
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 function createMockConnector() {
@@ -18,10 +23,32 @@ function createMockConnector() {
   return {
     connector: {
       queue: async (params: any) => {
-        queuedJobs.push({ taskName: params.taskName, taskBody: params.taskBody })
-        return { id: params.uniqueTaskName, name: params.taskName, status: 'QUEUED', output: '', attempts: 0, created: new Date().toISOString(), nextRun: null, nextRunMinutes: null }
+        queuedJobs.push({
+          taskName: params.taskName,
+          taskBody: params.taskBody,
+        })
+        return {
+          id: params.uniqueTaskName,
+          name: params.taskName,
+          status: 'QUEUED',
+          output: '',
+          attempts: 0,
+          created: new Date().toISOString(),
+          nextRun: null,
+          nextRunMinutes: null,
+        }
       },
-      getStatus: async () => ({ id: '', name: '', status: 'QUEUED' as const, output: '', attempts: 0, created: '', nextRun: null, nextRunMinutes: null, payload: {} }),
+      getStatus: async () => ({
+        id: '',
+        name: '',
+        status: 'QUEUED' as const,
+        output: '',
+        attempts: 0,
+        created: '',
+        nextRun: null,
+        nextRunMinutes: null,
+        payload: {},
+      }),
       forTenant: () => null as any,
     } as any,
     queuedJobs,
@@ -72,7 +99,8 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
   /** Simulate what BullMQ worker does: mark RUNNING, execute, call engine callback */
   async function executeStep(engine: WorkflowEngine, job: any) {
     const payload = job.taskBody as StepPayload
-    await db.updateTable('workflow_steps')
+    await db
+      .updateTable('workflow_steps')
       .set({ status: 'RUNNING', startedAt: new Date(), updatedAt: new Date() })
       .where('workflowRunId', '=', payload.workflowRunId)
       .where('stepName', '=', payload.stepName)
@@ -86,35 +114,63 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
     }
     try {
       const result = await exec.execute(payload, context)
-      await engine.onStepCompleted(payload.workflowRunId, payload.stepName, payload.tenantId, result)
+      await engine.onStepCompleted(
+        payload.workflowRunId,
+        payload.stepName,
+        payload.tenantId,
+        result,
+      )
     } catch (error) {
-      await engine.onStepFailed(payload.workflowRunId, payload.stepName, payload.tenantId, error as Error)
+      await engine.onStepFailed(
+        payload.workflowRunId,
+        payload.stepName,
+        payload.tenantId,
+        error as Error,
+      )
     }
   }
 
   it('planner step creates tasks, task_runner step processes them all', async () => {
     // Planner: fan out work into tasks
-    fnExecutor.register('plan', async (p: StepPayload, ctx?: StepExecutionContext): Promise<StepResult> => {
-      const mgr = ctx!.taskManager!
-      await mgr.createTasks(p.workflowRunId, 'execute', [
-        { payload: { item: 'A' } },
-        { payload: { item: 'B' } },
-        { payload: { item: 'C' } },
-      ])
-      return { output: { planned: 3 } }
-    })
+    fnExecutor.register(
+      'plan',
+      async (
+        p: StepPayload,
+        ctx?: StepExecutionContext,
+      ): Promise<StepResult> => {
+        const mgr = ctx!.taskManager!
+        await mgr.createTasks(p.workflowRunId, 'execute', [
+          { payload: { item: 'A' } },
+          { payload: { item: 'B' } },
+          { payload: { item: 'C' } },
+        ])
+        return { output: { planned: 3 } }
+      },
+    )
 
     // Inner executor for each task
     fnExecutor.register('work', async (p: StepPayload): Promise<StepResult> => {
-      return { output: { processed: (p.input as any).item, upper: ((p.input as any).item as string).toUpperCase() } }
+      return {
+        output: {
+          processed: (p.input as any).item,
+          upper: ((p.input as any).item as string).toUpperCase(),
+        },
+      }
     })
 
     const wf = WorkflowBuilder.create('fanout')
-      .step('plan', { executorType: 'function', executorConfig: { handler: 'plan' } })
+      .step('plan', {
+        executorType: 'function',
+        executorConfig: { handler: 'plan' },
+      })
       .step('execute', {
         dependsOn: ['plan'],
         executorType: 'task_runner',
-        executorConfig: { executor: 'function', handler: 'work', maxConcurrentTasks: 10 },
+        executorConfig: {
+          executor: 'function',
+          handler: 'work',
+          maxConcurrentTasks: 10,
+        },
       })
       .step('summarize', {
         dependsOn: ['execute'],
@@ -123,13 +179,18 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
       })
       .build()
 
-    fnExecutor.register('summarize', async (p: StepPayload): Promise<StepResult> => {
-      return { output: { summarized: true } }
-    })
+    fnExecutor.register(
+      'summarize',
+      async (_p: StepPayload): Promise<StepResult> => {
+        return { output: { summarized: true } }
+      },
+    )
 
     const { engine, queuedJobs } = createEngine([wf])
     const { runId } = await engine.start({
-      workflowName: 'fanout', tenantId: 'test-tenant', input: {},
+      workflowName: 'fanout',
+      tenantId: 'test-tenant',
+      input: {},
     })
 
     // Step 1: plan
@@ -138,7 +199,8 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
     await executeStep(engine, queuedJobs[0])
 
     // Verify tasks were created in DB
-    const tasksAfterPlan = await db.selectFrom('workflow_tasks')
+    const tasksAfterPlan = await db
+      .selectFrom('workflow_tasks')
       .selectAll()
       .where('workflowRunId', '=', runId)
       .where('stepName', '=', 'execute')
@@ -152,7 +214,8 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
     await executeStep(engine, queuedJobs[1])
 
     // Verify all tasks completed in DB
-    const tasksAfterRun = await db.selectFrom('workflow_tasks')
+    const tasksAfterRun = await db
+      .selectFrom('workflow_tasks')
       .selectAll()
       .where('workflowRunId', '=', runId)
       .where('stepName', '=', 'execute')
@@ -182,38 +245,56 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
 
   it('task_runner retries failed tasks and eventually completes', async () => {
     let callCount = 0
-    fnExecutor.register('plan_one', async (p: StepPayload, ctx?: StepExecutionContext): Promise<StepResult> => {
-      await ctx!.taskManager!.createTasks(p.workflowRunId, 'run', [
-        { payload: { x: 1 }, maxRetries: 3 },
-      ])
-      return { output: { planned: 1 } }
-    })
+    fnExecutor.register(
+      'plan_one',
+      async (
+        p: StepPayload,
+        ctx?: StepExecutionContext,
+      ): Promise<StepResult> => {
+        await ctx!.taskManager!.createTasks(p.workflowRunId, 'run', [
+          { payload: { x: 1 }, maxRetries: 3 },
+        ])
+        return { output: { planned: 1 } }
+      },
+    )
 
     fnExecutor.register('flaky', async (): Promise<StepResult> => {
       callCount++
-      if (callCount === 1) throw new Error('transient failure')
+      if (callCount === 1) {
+        throw new Error('transient failure')
+      }
       return { output: { recovered: true } }
     })
 
     const wf = WorkflowBuilder.create('retry-fanout')
-      .step('plan', { executorType: 'function', executorConfig: { handler: 'plan_one' } })
+      .step('plan', {
+        executorType: 'function',
+        executorConfig: { handler: 'plan_one' },
+      })
       .step('run', {
         dependsOn: ['plan'],
         executorType: 'task_runner',
-        executorConfig: { executor: 'function', handler: 'flaky', maxConcurrentTasks: 10 },
+        executorConfig: {
+          executor: 'function',
+          handler: 'flaky',
+          maxConcurrentTasks: 10,
+        },
       })
       .build()
 
     const { engine, queuedJobs } = createEngine([wf])
     const { runId } = await engine.start({
-      workflowName: 'retry-fanout', tenantId: 'test-tenant', input: {},
+      workflowName: 'retry-fanout',
+      tenantId: 'test-tenant',
+      input: {},
     })
 
     await executeStep(engine, queuedJobs[0]) // plan
     await executeStep(engine, queuedJobs[1]) // task_runner
 
     // The task should be completed after retry
-    const tasks = await db.selectFrom('workflow_tasks')
+    const tasks = await db
+      .selectFrom('workflow_tasks')
       .selectAll()
       .where('workflowRunId', '=', runId)
       .where('stepName', '=', 'run')
@@ -226,31 +307,51 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
   })
 
   it('task_runner returns taskStats summary even when some tasks fail permanently', async () => {
-    fnExecutor.register('plan_mixed', async (p: StepPayload, ctx?: StepExecutionContext): Promise<StepResult> => {
-      await ctx!.taskManager!.createTasks(p.workflowRunId, 'run', [
-        { payload: { fail: false } },
-        { payload: { fail: true }, maxRetries: 0 },
-      ])
-      return { output: { planned: 2 } }
-    })
+    fnExecutor.register(
+      'plan_mixed',
+      async (
+        p: StepPayload,
+        ctx?: StepExecutionContext,
+      ): Promise<StepResult> => {
+        await ctx!.taskManager!.createTasks(p.workflowRunId, 'run', [
+          { payload: { fail: false } },
+          { payload: { fail: true }, maxRetries: 0 },
+        ])
+        return { output: { planned: 2 } }
+      },
+    )
 
-    fnExecutor.register('maybe_fail', async (p: StepPayload): Promise<StepResult> => {
-      if ((p.input as any).fail) throw new Error('permanent')
-      return { output: { ok: true } }
-    })
+    fnExecutor.register(
+      'maybe_fail',
+      async (p: StepPayload): Promise<StepResult> => {
+        if ((p.input as any).fail) {
+          throw new Error('permanent')
+        }
+        return { output: { ok: true } }
+      },
+    )
 
     const wf = WorkflowBuilder.create('mixed-fanout')
-      .step('plan', { executorType: 'function', executorConfig: { handler: 'plan_mixed' } })
+      .step('plan', {
+        executorType: 'function',
+        executorConfig: { handler: 'plan_mixed' },
+      })
       .step('run', {
         dependsOn: ['plan'],
         executorType: 'task_runner',
-        executorConfig: { executor: 'function', handler: 'maybe_fail', maxConcurrentTasks: 10 },
+        executorConfig: {
+          executor: 'function',
+          handler: 'maybe_fail',
+          maxConcurrentTasks: 10,
+        },
       })
       .build()
 
     const { engine, queuedJobs } = createEngine([wf])
     const { runId } = await engine.start({
-      workflowName: 'mixed-fanout', tenantId: 'test-tenant', input: {},
+      workflowName: 'mixed-fanout',
+      tenantId: 'test-tenant',
+      input: {},
     })
 
     await executeStep(engine, queuedJobs[0]) // plan
@@ -267,17 +368,42 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
   it('throws if no taskManager is available in context', async () => {
     const { runId } = await (async () => {
       const executor = new FunctionStepExecutor()
-      executor.register('noop', async (): Promise<StepResult> => ({ output: {} }))
+      executor.register(
+        'noop',
+        async (): Promise<StepResult> => ({ output: {} }),
+      )
       const { connector } = createMockConnector()
-      const wf = WorkflowBuilder.create('t').step('s', { executorType: 'function', executorConfig: { handler: 'noop' } }).build()
-      const engine = new WorkflowEngine({ db, connector, executors: new Map([['function', executor]]), workflows: new Map([[wf.name, wf]]), tenantId: 't', disableLogBuffering: true })
+      const wf = WorkflowBuilder.create('t')
+        .step('s', {
+          executorType: 'function',
+          executorConfig: { handler: 'noop' },
+        })
+        .build()
+      const engine = new WorkflowEngine({
+        db,
+        connector,
+        executors: new Map([['function', executor]]),
+        workflows: new Map([[wf.name, wf]]),
+        tenantId: 't',
+        disableLogBuffering: true,
+      })
       return engine.start({ workflowName: 't', tenantId: 't', input: {} })
     })()
 
-    const runner = new TaskRunnerExecutor(new Map([['function', fnExecutor as any]]))
+    const runner = new TaskRunnerExecutor(
+      new Map([['function', fnExecutor as any]]),
+    )
     await expect(
       runner.execute(
-        { workflowRunId: runId, stepName: 's', tenantId: 't', input: {}, attempt: 0, executorType: 'task_runner', executorConfig: {} },
+        {
+          workflowRunId: runId,
+          stepName: 's',
+          tenantId: 't',
+          input: {},
+          attempt: 0,
+          executorType: 'task_runner',
+          executorConfig: {},
+        },
         { externalActions: {} as any },
       ),
     ).rejects.toThrow('requires taskManager')

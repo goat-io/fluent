@@ -10,7 +10,11 @@
 //
 import type { Kysely } from 'kysely'
 import type { Database } from '../entities/Database.js'
-import type { StepInterceptor, StepPayload, StepResult } from '../workflow/WorkflowBuilder.types.js'
+import type {
+  StepInterceptor,
+  StepPayload,
+  StepResult,
+} from '../workflow/WorkflowBuilder.types.js'
 
 export interface StepCostTrackerConfig {
   db: Kysely<Database>
@@ -54,14 +58,23 @@ export class StepCostTracker implements StepInterceptor {
     this.logger = config.logger
   }
 
-  async afterExecute(payload: StepPayload, result: StepResult): Promise<StepResult> {
-    const usage = (result.output as any)?.[this.usageKey] as StepUsage | undefined
-    if (!usage) return result
+  async afterExecute(
+    payload: StepPayload,
+    result: StepResult,
+  ): Promise<StepResult> {
+    const usage = (result.output as any)?.[this.usageKey] as
+      | StepUsage
+      | undefined
+    if (!usage) {
+      return result
+    }
 
-    const tokens = usage.tokens
-      ?? (((usage.promptTokens ?? 0) + (usage.completionTokens ?? 0)) || null)
+    const tokens =
+      usage.tokens ??
+      ((usage.promptTokens ?? 0) + (usage.completionTokens ?? 0) || null)
 
-    const model = usage.model ?? (payload.executorConfig.model as string) ?? null
+    const model =
+      usage.model ?? (payload.executorConfig.model as string) ?? null
 
     let costUsd = usage.costUsd ?? null
     if (costUsd === null && tokens && model && this.pricing[model]) {

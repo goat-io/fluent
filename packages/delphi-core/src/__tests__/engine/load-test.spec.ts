@@ -7,20 +7,24 @@
 //   - Idempotency failures
 //   - Performance bottlenecks
 //
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Kysely } from 'kysely'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
-import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import type { Kysely } from 'kysely'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
-import { EventIngestionService } from '../../events/EventIngestion.js'
+import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
 import { WorkflowMetricsCollector } from '../../engine/WorkflowMetrics.js'
 import type { Database } from '../../entities/Database.js'
-import type { StepPayload, StepResult, StepExecutionContext } from '../../workflow/WorkflowBuilder.types.js'
+import { EventIngestionService } from '../../events/EventIngestion.js'
+import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 interface GlobalTestData {
@@ -28,7 +32,9 @@ interface GlobalTestData {
 }
 
 function getGlobalData(): GlobalTestData {
-  return JSON.parse(readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'))
+  return JSON.parse(
+    readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
+  )
 }
 
 describe('Load Tests — Real Infrastructure', () => {
@@ -45,7 +51,9 @@ describe('Load Tests — Real Infrastructure', () => {
   })
 
   afterAll(async () => {
-    if (stopWorker) await stopWorker()
+    if (stopWorker) {
+      await stopWorker()
+    }
     await connector.close()
     await releaseSharedDb()
   })
@@ -80,10 +88,26 @@ describe('Load Tests — Real Infrastructure', () => {
 
     const handle = await connector.listen({
       tasks: [
-        { taskName: 'workflow_step_light', handle: (d: unknown) => stepTask.handle(d as StepPayload), concurrency: 20 },
-        { taskName: 'workflow_step_heavy', handle: (d: unknown) => stepTask.handle(d as StepPayload), concurrency: 5 },
-        { taskName: 'workflow_step_ai', handle: (d: unknown) => stepTask.handle(d as StepPayload), concurrency: 10 },
-        { taskName: 'workflow_step_sandbox', handle: (d: unknown) => stepTask.handle(d as StepPayload), concurrency: 3 },
+        {
+          taskName: 'workflow_step_light',
+          handle: (d: unknown) => stepTask.handle(d as StepPayload),
+          concurrency: 20,
+        },
+        {
+          taskName: 'workflow_step_heavy',
+          handle: (d: unknown) => stepTask.handle(d as StepPayload),
+          concurrency: 5,
+        },
+        {
+          taskName: 'workflow_step_ai',
+          handle: (d: unknown) => stepTask.handle(d as StepPayload),
+          concurrency: 10,
+        },
+        {
+          taskName: 'workflow_step_sandbox',
+          handle: (d: unknown) => stepTask.handle(d as StepPayload),
+          concurrency: 3,
+        },
       ],
     })
     stopWorker = handle.stop
@@ -101,13 +125,15 @@ describe('Load Tests — Real Infrastructure', () => {
     const start = Date.now()
     while (Date.now() - start < timeoutMs) {
       const status = await engine.getStatus(runId, 'load-test')
-      if (targets.includes(status.status)) return status.status
+      if (targets.includes(status.status)) {
+        return status.status
+      }
       await new Promise(r => setTimeout(r, 200))
     }
     const final = await engine.getStatus(runId, 'load-test')
     throw new Error(
       `Workflow ${runId} did not reach ${targets.join('|')} within ${timeoutMs}ms. ` +
-      `Current: ${final.status}, steps: ${final.steps.map(s => `${s.stepName}=${s.status}`).join(', ')}`,
+        `Current: ${final.status}, steps: ${final.steps.map(s => `${s.stepName}=${s.status}`).join(', ')}`,
     )
   }
 
@@ -115,12 +141,18 @@ describe('Load Tests — Real Infrastructure', () => {
 
   it('handles 50 concurrent workflow starts without conflicts', async () => {
     const executor = new FunctionStepExecutor()
-    executor.register('fast', async (): Promise<StepResult> => ({
-      output: { done: true, ts: Date.now() },
-    }))
+    executor.register(
+      'fast',
+      async (): Promise<StepResult> => ({
+        output: { done: true, ts: Date.now() },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('load_concurrent')
-      .step('work', { executorType: 'function', executorConfig: { handler: 'fast' } })
+      .step('work', {
+        executorType: 'function',
+        executorConfig: { handler: 'fast' },
+      })
       .build()
 
     const engine = await setupEngine(executor, [wf])
@@ -145,7 +177,9 @@ describe('Load Tests — Real Infrastructure', () => {
 
     // Wait for all to complete
     await Promise.all(
-      runIds.map(id => waitForStatus(engine, id, ['COMPLETED', 'FAILED'], 30_000)),
+      runIds.map(id =>
+        waitForStatus(engine, id, ['COMPLETED', 'FAILED'], 30_000),
+      ),
     )
 
     // Verify all completed
@@ -156,7 +190,9 @@ describe('Load Tests — Real Infrastructure', () => {
     expect(completed.length).toBe(COUNT)
 
     const elapsed = Date.now() - startTime
-    console.log(`  50 concurrent workflows completed in ${elapsed}ms (${Math.round(elapsed / COUNT)}ms/workflow)`)
+    console.log(
+      `  50 concurrent workflows completed in ${elapsed}ms (${Math.round(elapsed / COUNT)}ms/workflow)`,
+    )
 
     await engine.shutdown()
   }, 60_000)
@@ -165,16 +201,34 @@ describe('Load Tests — Real Infrastructure', () => {
 
   it('handles 20 concurrent diamond DAGs (80 parallel steps)', async () => {
     const executor = new FunctionStepExecutor()
-    executor.register('compute', async (p: StepPayload): Promise<StepResult> => {
-      await new Promise(r => setTimeout(r, 50)) // Simulate work
-      return { output: { step: p.stepName, ts: Date.now() } }
-    })
+    executor.register(
+      'compute',
+      async (p: StepPayload): Promise<StepResult> => {
+        await new Promise(r => setTimeout(r, 50)) // Simulate work
+        return { output: { step: p.stepName, ts: Date.now() } }
+      },
+    )
 
     const wf = WorkflowBuilder.create('load_diamond')
-      .step('root', { executorType: 'function', executorConfig: { handler: 'compute' } })
-      .step('left', { dependsOn: ['root'], executorType: 'function', executorConfig: { handler: 'compute' } })
-      .step('right', { dependsOn: ['root'], executorType: 'function', executorConfig: { handler: 'compute' } })
-      .step('join', { dependsOn: ['left', 'right'], executorType: 'function', executorConfig: { handler: 'compute' } })
+      .step('root', {
+        executorType: 'function',
+        executorConfig: { handler: 'compute' },
+      })
+      .step('left', {
+        dependsOn: ['root'],
+        executorType: 'function',
+        executorConfig: { handler: 'compute' },
+      })
+      .step('right', {
+        dependsOn: ['root'],
+        executorType: 'function',
+        executorConfig: { handler: 'compute' },
+      })
+      .step('join', {
+        dependsOn: ['left', 'right'],
+        executorType: 'function',
+        executorConfig: { handler: 'compute' },
+      })
       .build()
 
     const engine = await setupEngine(executor, [wf])
@@ -182,12 +236,18 @@ describe('Load Tests — Real Infrastructure', () => {
 
     const results = await Promise.all(
       Array.from({ length: COUNT }, (_, i) =>
-        engine.start({ workflowName: 'load_diamond', tenantId: 'load-test', input: { i } }),
+        engine.start({
+          workflowName: 'load_diamond',
+          tenantId: 'load-test',
+          input: { i },
+        }),
       ),
     )
 
     await Promise.all(
-      results.map(r => waitForStatus(engine, r.runId, ['COMPLETED', 'FAILED'], 45_000)),
+      results.map(r =>
+        waitForStatus(engine, r.runId, ['COMPLETED', 'FAILED'], 45_000),
+      ),
     )
 
     const statuses = await Promise.all(
@@ -209,15 +269,18 @@ describe('Load Tests — Real Infrastructure', () => {
 
   it('ExternalAction handles 100 concurrent calls with same idempotency key', async () => {
     // Insert parent workflow run for FK
-    await db.insertInto('workflow_runs').values({
-      id: 'wf-load',
-      tenantId: 'load-test',
-      workflowName: 'load_test',
-      workflowVersion: '1.0.0',
-      status: 'RUNNING',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).execute()
+    await db
+      .insertInto('workflow_runs')
+      .values({
+        id: 'wf-load',
+        tenantId: 'load-test',
+        workflowName: 'load_test',
+        workflowVersion: '1.0.0',
+        status: 'RUNNING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .execute()
 
     const executor = new ExternalActionExecutor({ db })
     let callCount = 0
@@ -245,8 +308,10 @@ describe('Load Tests — Real Infrastructure', () => {
     )
 
     const successes = results.filter(r => r.status === 'fulfilled')
-    const pending = results.filter(r =>
-      r.status === 'rejected' && (r.reason as any)?.name === 'ExternalActionPendingError',
+    const pending = results.filter(
+      r =>
+        r.status === 'rejected' &&
+        (r.reason as any)?.name === 'ExternalActionPendingError',
     )
 
     // At least 1 success (might be more due to race timing)
@@ -260,7 +325,9 @@ describe('Load Tests — Real Infrastructure', () => {
       expect((r as any).value.externalId).toBe('PR-1')
     }
 
-    console.log(`  100 concurrent ExternalAction calls: ${successes.length} succeeded, ${pending.length} pending, ${callCount} actual API calls`)
+    console.log(
+      `  100 concurrent ExternalAction calls: ${successes.length} succeeded, ${pending.length} pending, ${callCount} actual API calls`,
+    )
   })
 
   // ── Test 4: Event Ingestion Throughput ──────────────────────────
@@ -296,24 +363,35 @@ describe('Load Tests — Real Infrastructure', () => {
     expect(dupes.length).toBe(100)
 
     // Verify exactly 100 events in DB
-    const count = await db.selectFrom('workflow_events').select(db.fn.count<number>('id').as('count')).executeTakeFirst()
+    const count = await db
+      .selectFrom('workflow_events')
+      .select(db.fn.count<number>('id').as('count'))
+      .executeTakeFirst()
     expect(Number(count?.count)).toBe(100)
 
     const elapsed = Date.now() - startTime
-    console.log(`  200 events (100 unique + 100 dupes) ingested in ${elapsed}ms (${Math.round(elapsed / 200)}ms/event)`)
+    console.log(
+      `  200 events (100 unique + 100 dupes) ingested in ${elapsed}ms (${Math.round(elapsed / 200)}ms/event)`,
+    )
   })
 
   // ── Test 5: Event-Triggered Workflow Starts Under Load ─────────
 
   it('100 events trigger 100 workflows via triggers', async () => {
     const executor = new FunctionStepExecutor()
-    executor.register('handle_push', async (p: StepPayload): Promise<StepResult> => ({
-      output: { handled: true, input: p.input },
-    }))
+    executor.register(
+      'handle_push',
+      async (p: StepPayload): Promise<StepResult> => ({
+        output: { handled: true, input: p.input },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('on_push')
       .trigger({ eventType: 'load.push' })
-      .step('handle', { executorType: 'function', executorConfig: { handler: 'handle_push' } })
+      .step('handle', {
+        executorType: 'function',
+        executorConfig: { handler: 'handle_push' },
+      })
       .build()
 
     const eventService = new EventIngestionService({ db })
@@ -338,7 +416,8 @@ describe('Load Tests — Real Infrastructure', () => {
     // Wait for workflows to be created
     await new Promise(r => setTimeout(r, 2000))
 
-    const runs = await db.selectFrom('workflow_runs')
+    const runs = await db
+      .selectFrom('workflow_runs')
       .selectAll()
       .where('workflowName', '=', 'on_push')
       .execute()
@@ -347,10 +426,13 @@ describe('Load Tests — Real Infrastructure', () => {
 
     // Wait for all to complete
     await Promise.all(
-      runs.map(r => waitForStatus(engine, r.id, ['COMPLETED', 'FAILED'], 30_000)),
+      runs.map(r =>
+        waitForStatus(engine, r.id, ['COMPLETED', 'FAILED'], 30_000),
+      ),
     )
 
-    const finalRuns = await db.selectFrom('workflow_runs')
+    const finalRuns = await db
+      .selectFrom('workflow_runs')
       .selectAll()
       .where('workflowName', '=', 'on_push')
       .where('status', '=', 'COMPLETED')
@@ -392,12 +474,18 @@ describe('Load Tests — Real Infrastructure', () => {
 
     const results = await Promise.all(
       Array.from({ length: COUNT }, (_, i) =>
-        engine.start({ workflowName: 'load_loop', tenantId: 'load-test', input: { i } }),
+        engine.start({
+          workflowName: 'load_loop',
+          tenantId: 'load-test',
+          input: { i },
+        }),
       ),
     )
 
     await Promise.all(
-      results.map(r => waitForStatus(engine, r.runId, ['COMPLETED', 'FAILED'], 45_000)),
+      results.map(r =>
+        waitForStatus(engine, r.runId, ['COMPLETED', 'FAILED'], 45_000),
+      ),
     )
 
     const statuses = await Promise.all(
@@ -412,7 +500,9 @@ describe('Load Tests — Real Infrastructure', () => {
       expect((s.steps[0].output as any)?.iteration).toBe(10)
     }
 
-    console.log(`  ${COUNT} looping workflows (${COUNT * 10} total iterations) completed`)
+    console.log(
+      `  ${COUNT} looping workflows (${COUNT * 10} total iterations) completed`,
+    )
     await engine.shutdown()
   }, 60_000)
 
@@ -420,13 +510,23 @@ describe('Load Tests — Real Infrastructure', () => {
 
   it('metrics collector handles queries on large dataset', async () => {
     const executor = new FunctionStepExecutor()
-    executor.register('metered', async (): Promise<StepResult> => ({
-      output: { result: 'ok', _usage: { tokens: 100, model: 'test-model' } },
-    }))
+    executor.register(
+      'metered',
+      async (): Promise<StepResult> => ({
+        output: { result: 'ok', _usage: { tokens: 100, model: 'test-model' } },
+      }),
+    )
 
     const wf = WorkflowBuilder.create('load_metrics')
-      .step('a', { executorType: 'function', executorConfig: { handler: 'metered' } })
-      .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: { handler: 'metered' } })
+      .step('a', {
+        executorType: 'function',
+        executorConfig: { handler: 'metered' },
+      })
+      .step('b', {
+        dependsOn: ['a'],
+        executorType: 'function',
+        executorConfig: { handler: 'metered' },
+      })
       .build()
 
     const engine = await setupEngine(executor, [wf])
@@ -434,12 +534,18 @@ describe('Load Tests — Real Infrastructure', () => {
     // Start 30 workflows
     const results = await Promise.all(
       Array.from({ length: 30 }, (_, i) =>
-        engine.start({ workflowName: 'load_metrics', tenantId: 'load-test', input: { i } }),
+        engine.start({
+          workflowName: 'load_metrics',
+          tenantId: 'load-test',
+          input: { i },
+        }),
       ),
     )
 
     await Promise.all(
-      results.map(r => waitForStatus(engine, r.runId, ['COMPLETED', 'FAILED'], 30_000)),
+      results.map(r =>
+        waitForStatus(engine, r.runId, ['COMPLETED', 'FAILED'], 30_000),
+      ),
     )
 
     // Query metrics
@@ -459,7 +565,9 @@ describe('Load Tests — Real Infrastructure', () => {
     expect(runMetrics!.steps).toHaveLength(2)
 
     console.log(`  Aggregate metrics over 30 runs (60 steps) in ${queryTime}ms`)
-    console.log(`  p50=${aggregate.stepExecutionPercentiles!.p50}ms, p95=${aggregate.stepExecutionPercentiles!.p95}ms`)
+    console.log(
+      `  p50=${aggregate.stepExecutionPercentiles!.p50}ms, p95=${aggregate.stepExecutionPercentiles!.p95}ms`,
+    )
     await engine.shutdown()
   }, 60_000)
 
@@ -486,7 +594,7 @@ describe('Load Tests — Real Infrastructure', () => {
     }
 
     // Ingest all concurrently
-    const results = await Promise.all(events.map(e => service.ingest(e)))
+    const _results = await Promise.all(events.map(e => service.ingest(e)))
 
     // For each entity, check the latest sequence
     for (let entity = 0; entity < 10; entity++) {
@@ -496,7 +604,8 @@ describe('Load Tests — Real Infrastructure', () => {
     }
 
     // Count skipped vs processed
-    const allEvents = await db.selectFrom('workflow_events')
+    const allEvents = await db
+      .selectFrom('workflow_events')
       .selectAll()
       .where('tenantId', '=', 'load-test')
       .execute()
@@ -504,7 +613,9 @@ describe('Load Tests — Real Infrastructure', () => {
     const processed = allEvents.filter(e => e.status === 'processed')
     const skipped = allEvents.filter(e => e.status === 'skipped_stale')
 
-    console.log(`  50 out-of-order events: ${processed.length} processed, ${skipped.length} skipped`)
+    console.log(
+      `  50 out-of-order events: ${processed.length} processed, ${skipped.length} skipped`,
+    )
 
     // At least some should be skipped (lower sequences after higher ones)
     // Due to concurrency, exact counts vary

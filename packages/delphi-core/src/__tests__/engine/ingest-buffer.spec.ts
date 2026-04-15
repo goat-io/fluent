@@ -4,7 +4,7 @@
 //
 // npx vitest run src/__tests__/engine/ingest-buffer.spec.ts
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { IngestBuffer } from '../../engine/IngestBuffer.js'
 import type { WorkflowEngine } from '../../engine/WorkflowEngine.js'
 import type { WorkflowTriggerInput } from '../../workflow/WorkflowBuilder.types.js'
@@ -16,12 +16,16 @@ function makeEngineStub(opts?: {
     o?: { synchronousCommit?: boolean; checkIdempotency?: boolean },
   ) => Promise<Array<{ runId: string }>>
 }): WorkflowEngine {
-  const startBatchCopy = vi.fn(async (triggers: WorkflowTriggerInput[], o?: any) => {
-    if (opts?.onStartBatchCopy) return opts.onStartBatchCopy(triggers, o)
-    // Default: echo the runIds the buffer assigned (committed path always
-    // pre-assigns runId before calling startBatchCopy).
-    return triggers.map((t) => ({ runId: t.runId! }))
-  })
+  const startBatchCopy = vi.fn(
+    async (triggers: WorkflowTriggerInput[], o?: any) => {
+      if (opts?.onStartBatchCopy) {
+        return opts.onStartBatchCopy(triggers, o)
+      }
+      // Default: echo the runIds the buffer assigned (committed path always
+      // pre-assigns runId before calling startBatchCopy).
+      return triggers.map(t => ({ runId: t.runId! }))
+    },
+  )
   return { startBatchCopy } as unknown as WorkflowEngine
 }
 
@@ -32,8 +36,12 @@ function makeQueueStub() {
 }
 
 describe('IngestBuffer', () => {
-  beforeEach(() => { vi.useFakeTimers() })
-  afterEach(() => { vi.useRealTimers() })
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
   describe('buffered path (enqueue)', () => {
     it('returns runId + traceId synchronously without an engine', () => {
@@ -41,7 +49,9 @@ describe('IngestBuffer', () => {
       const buf = new IngestBuffer({ queue })
 
       const { runId, traceId } = buf.enqueue({
-        workflowName: 'fast', tenantId: 't', input: {},
+        workflowName: 'fast',
+        tenantId: 't',
+        input: {},
       })
 
       expect(runId).toMatch(/^[A-Za-z0-9_-]{21}$/)
@@ -55,7 +65,9 @@ describe('IngestBuffer', () => {
       const buf = new IngestBuffer({ queue })
 
       const { runId, traceId } = buf.enqueue({
-        workflowName: 'fast', tenantId: 't', input: {},
+        workflowName: 'fast',
+        tenantId: 't',
+        input: {},
         runId: 'custom-run-id-aaa',
         traceId: 'custom-trace-id-aa',
       })
@@ -72,18 +84,24 @@ describe('IngestBuffer', () => {
 
       await expect(
         buf.enqueueCommitted({ workflowName: 'pay', tenantId: 't', input: {} }),
-      ).rejects.toThrow(/requires IngestBuffer to be constructed with \{ engine \}/)
+      ).rejects.toThrow(
+        /requires IngestBuffer to be constructed with \{ engine \}/,
+      )
     })
 
     it('resolves with runId + traceId AFTER engine.startBatchCopy resolves', async () => {
       const queue = makeQueueStub()
       const engine = makeEngineStub()
       const buf = new IngestBuffer({
-        queue, engine, committedFlushIntervalMs: 5,
+        queue,
+        engine,
+        committedFlushIntervalMs: 5,
       })
 
       const promise = buf.enqueueCommitted({
-        workflowName: 'pay', tenantId: 't', input: { amount: 100 },
+        workflowName: 'pay',
+        tenantId: 't',
+        input: { amount: 100 },
       })
 
       // Drive the BatchedJobProcessor's flushIntervalMs timer
@@ -92,18 +110,23 @@ describe('IngestBuffer', () => {
 
       expect(result.runId).toMatch(/^[A-Za-z0-9_-]{21}$/)
       expect(result.traceId).toMatch(/^[A-Za-z0-9_-]{21}$/)
-      expect((engine.startBatchCopy as any)).toHaveBeenCalledTimes(1)
+      expect(engine.startBatchCopy as any).toHaveBeenCalledTimes(1)
     })
 
     it('passes synchronousCommit + checkIdempotency opts to the engine', async () => {
       const queue = makeQueueStub()
       const engine = makeEngineStub()
       const buf = new IngestBuffer({
-        queue, engine, committedFlushIntervalMs: 5,
+        queue,
+        engine,
+        committedFlushIntervalMs: 5,
       })
 
       const promise = buf.enqueueCommitted({
-        workflowName: 'pay', tenantId: 't', input: {}, idempotencyKey: 'order-42',
+        workflowName: 'pay',
+        tenantId: 't',
+        input: {},
+        idempotencyKey: 'order-42',
       })
       await vi.advanceTimersByTimeAsync(10)
       await promise
@@ -120,7 +143,8 @@ describe('IngestBuffer', () => {
       const queue = makeQueueStub()
       const engine = makeEngineStub()
       const buf = new IngestBuffer({
-        queue, engine,
+        queue,
+        engine,
         committedFlushIntervalMs: 20,
         committedFlushThreshold: 100,
       })
@@ -129,7 +153,9 @@ describe('IngestBuffer', () => {
       // should all wait for the timer and flush together as ONE batch.
       const promises = Array.from({ length: 25 }, (_, i) =>
         buf.enqueueCommitted({
-          workflowName: 'pay', tenantId: 't', input: { i },
+          workflowName: 'pay',
+          tenantId: 't',
+          input: { i },
         }),
       )
 
@@ -138,7 +164,8 @@ describe('IngestBuffer', () => {
 
       expect(results).toHaveLength(25)
       expect(engine.startBatchCopy).toHaveBeenCalledTimes(1)
-      const triggersArg = (engine.startBatchCopy as any).mock.calls[0][0] as unknown[]
+      const triggersArg = (engine.startBatchCopy as any).mock
+        .calls[0][0] as unknown[]
       expect(triggersArg).toHaveLength(25)
     })
 
@@ -151,13 +178,17 @@ describe('IngestBuffer', () => {
         onStartBatchCopy: () => Promise.reject(new Error('PG down')),
       })
       const buf = new IngestBuffer({
-        queue, engine, committedFlushIntervalMs: 5,
+        queue,
+        engine,
+        committedFlushIntervalMs: 5,
         // Silence the BatchedJobProcessor's error log so test output is clean
         logger: { info: () => {}, error: () => {} },
       })
 
       const promise = buf.enqueueCommitted({
-        workflowName: 'pay', tenantId: 't', input: {},
+        workflowName: 'pay',
+        tenantId: 't',
+        input: {},
       })
       // Pre-attach the rejection handler so Node sees it before the timer fires
       const rejection = expect(promise).rejects.toThrow(/PG down/)
@@ -169,12 +200,15 @@ describe('IngestBuffer', () => {
       const queue = makeQueueStub()
       const engine = makeEngineStub()
       const buf = new IngestBuffer({
-        queue, engine,
-        committedFlushIntervalMs: 1000,  // long enough that timer wouldn't fire
+        queue,
+        engine,
+        committedFlushIntervalMs: 1000, // long enough that timer wouldn't fire
       })
 
       const promise = buf.enqueueCommitted({
-        workflowName: 'pay', tenantId: 't', input: {},
+        workflowName: 'pay',
+        tenantId: 't',
+        input: {},
       })
 
       // Drain via shutdown — should resolve the pending committed promise

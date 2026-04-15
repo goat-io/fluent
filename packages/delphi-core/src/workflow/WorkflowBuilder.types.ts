@@ -28,7 +28,15 @@ export interface StepContext {
   completedOutputs: Record<string, JsonObject>
   triggerInput: JsonObject
   /** Task results from upstream steps, keyed by stepName */
-  tasks?: Record<string, Array<{ id: string; payload: JsonObject | null; result: JsonObject | null; status: string }>>
+  tasks?: Record<
+    string,
+    Array<{
+      id: string
+      payload: JsonObject | null
+      result: JsonObject | null
+      status: string
+    }>
+  >
 }
 
 // ── Step Execution Context ────────────────────────────────────────
@@ -36,8 +44,8 @@ export interface StepContext {
 // The externalActions field is the ONLY sanctioned way to call external APIs.
 
 import type { ExternalActionExecutor } from '../engine/ExternalActionExecutor.js'
-import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
 import type { TaskManager } from '../engine/TaskManager.js'
+import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
 
 export interface StepExecutionContext {
   /** The only sanctioned way to call external APIs from a step. */
@@ -47,7 +55,11 @@ export interface StepExecutionContext {
   /** Task manager for fan-out/fan-in task execution */
   taskManager?: TaskManager
   /** Budget check callback: increments usage and returns exceeded reason or null */
-  checkBudget?: (runId: string, field: string, amount?: number) => Promise<string | null>
+  checkBudget?: (
+    runId: string,
+    field: string,
+    amount?: number,
+  ) => Promise<string | null>
 }
 
 // ── Step Definition ────────────────────────────────────────────────

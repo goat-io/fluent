@@ -13,10 +13,14 @@ if (command !== 'start') {
   console.log('Usage: worker-node start')
   console.log('')
   console.log('Environment variables:')
-  console.log('  AGENTS_REDIS_URL       Redis connection URL (e.g. redis://localhost:6379)')
+  console.log(
+    '  AGENTS_REDIS_URL       Redis connection URL (e.g. redis://localhost:6379)',
+  )
   console.log('  AGENTS_REDIS_HOST      Redis host (alternative to URL)')
   console.log('  AGENTS_REDIS_PORT      Redis port (default: 6379)')
-  console.log('  AGENTS_ENGINE_URL      Engine API URL for registration/heartbeat')
+  console.log(
+    '  AGENTS_ENGINE_URL      Engine API URL for registration/heartbeat',
+  )
   console.log('  AGENTS_WORKER_TOKEN    Worker auth token')
   console.log('  AGENTS_TENANT_ID       Tenant ID (default: "default")')
   console.log('  AGENTS_WORKER_NAME     Worker name (default: hostname)')
@@ -30,7 +34,9 @@ async function main() {
   console.log(`[WorkerNode] Detected resources:`)
   console.log(`  CPU: ${caps.cpuCount} cores`)
   console.log(`  Memory: ${(caps.memoryMB / 1024).toFixed(1)} GB`)
-  console.log(`  Docker: ${caps.dockerAvailable ? 'available' : 'not available'}`)
+  console.log(
+    `  Docker: ${caps.dockerAvailable ? 'available' : 'not available'}`,
+  )
   console.log(`  GPU: ${caps.gpuAvailable ? 'available' : 'not available'}`)
   console.log(`  Queues: ${caps.queues.join(', ')}`)
   console.log('')
@@ -47,7 +53,7 @@ async function main() {
 
   try {
     const { BullMQConnector } = await import('@goatlab/tasks-adapter-bullmq')
-    const { WorkflowEngine, FunctionStepExecutor, CREATE_TABLES_SQL } = await import('../index.js')
+    const { WorkflowEngine } = await import('../index.js')
 
     const connection = redisUrl
       ? { url: redisUrl }
@@ -72,7 +78,9 @@ async function main() {
     }
 
     const db = new Kysely<any>({
-      dialect: new PostgresDialect({ pool: new pg.default.Pool({ connectionString: pgUrl, max: 5 }) }),
+      dialect: new PostgresDialect({
+        pool: new pg.default.Pool({ connectionString: pgUrl, max: 5 }),
+      }),
     })
 
     const engine = new WorkflowEngine({
