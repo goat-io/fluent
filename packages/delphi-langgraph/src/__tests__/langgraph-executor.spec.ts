@@ -1,9 +1,13 @@
 // npx vitest run src/__tests__/langgraph-executor.spec.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { LangGraphStepExecutor } from '../LangGraphStepExecutor.js'
-import type { StepPayload } from '@goatlab/delphi-core'
 
-function createMockGraph(returnValue: any, options?: { pendingNodes?: boolean }) {
+import type { StepPayload } from '@goatlab/delphi-core'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { LangGraphStepExecutor } from '../LangGraphStepExecutor.js'
+
+function createMockGraph(
+  returnValue: any,
+  options?: { pendingNodes?: boolean },
+) {
   const compiled = {
     invoke: vi.fn().mockResolvedValue(returnValue),
     getState: vi.fn().mockResolvedValue({
@@ -54,18 +58,23 @@ describe('LangGraphStepExecutor', () => {
     })
 
     it('passes executorConfig to graph factory', async () => {
-      const factory = vi.fn().mockReturnValue(
-        createMockGraph({ built: true }),
-      )
+      const factory = vi.fn().mockReturnValue(createMockGraph({ built: true }))
       executor.registerGraph('custom', factory)
 
       await executor.execute(
         makePayload({
-          executorConfig: { graphName: 'custom', model: 'gpt-4o', temperature: 0.5 },
+          executorConfig: {
+            graphName: 'custom',
+            model: 'gpt-4o',
+            temperature: 0.5,
+          },
         }),
       )
 
-      expect(factory).toHaveBeenCalledWith({ model: 'gpt-4o', temperature: 0.5 })
+      expect(factory).toHaveBeenCalledWith({
+        model: 'gpt-4o',
+        temperature: 0.5,
+      })
     })
 
     it('throws for missing graphName', async () => {

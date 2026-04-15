@@ -1,7 +1,10 @@
 // npx vitest run src/__tests__/langgraph-executor.spec.ts
-import type { StepExecutor, StepPayload, StepResult } from '@goatlab/delphi-core'
+import type {
+  StepExecutor,
+  StepPayload,
+  StepResult,
+} from '@goatlab/delphi-core'
 
-type JsonObject = Record<string, unknown>
 import type {
   GraphFactory,
   LangGraphExecutorConfig,
@@ -64,9 +67,10 @@ export class LangGraphStepExecutor implements StepExecutor {
       compileOptions.checkpointer = this.checkpointer
     }
 
-    const compiled = typeof graph.compile === 'function'
-      ? graph.compile(compileOptions)
-      : graph // Already compiled
+    const compiled =
+      typeof graph.compile === 'function'
+        ? graph.compile(compileOptions)
+        : graph // Already compiled
 
     // Invoke the graph
     const result = await compiled.invoke(payload.input, {
@@ -83,8 +87,7 @@ export class LangGraphStepExecutor implements StepExecutor {
           return {
             output: result as any,
             waitForHuman: {
-              prompt:
-                (result as any)?.__humanPrompt ?? 'Human input required',
+              prompt: (result as any)?.__humanPrompt ?? 'Human input required',
               schema: (result as any)?.__humanSchema,
             },
           }
