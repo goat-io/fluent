@@ -15,17 +15,17 @@ There are two ways to use the engine — pick the one that matches your deployme
 **Library mode (default — start here):** import `@goatlab/delphi-core` directly into your app, construct the engine once, and call its methods from inside your existing handlers. No new HTTP surface, no new auth surface, no extra process. Your app's auth, tenant resolution, observability, and rate limiting wrap engine calls for free.
 
 ```ts
-// Inside your existing checkout handler:
+// Inside your existing checkout handler — typed, no strings:
 app.post('/api/orders/:id/checkout', requireAuth, async (req, res) => {
-  const { runId } = await ingestBuffer.enqueueCommitted({
-    workflowName: 'payment_critical',
-    tenantId: req.user.tenantId,
-    input: req.body,
-    idempotencyKey: `checkout-${req.params.id}`,
-  })
+  const { runId } = await engine.payment_critical.startCommitted(
+    { orderId: req.params.id, amountCents: req.body.amountCents, customerId: req.user.id },
+    { idempotencyKey: `checkout-${req.params.id}` },
+  )
   res.json({ runId })
 })
 ```
+
+For multi-tenant apps, keep a `Map<tenantId, TypedEngine>` and construct one engine per tenant (cached, LRU). The `tenantId` is baked into the engine at `createEngine({ tenantId })` time so every proxy call is automatically tenant-scoped.
 
 **Service mode (for shared infrastructure):** when multiple independent client apps (web, mobile, partner APIs, other services) need to start workflows against a single shared engine. Mount the engine behind HTTP via [`@goatlab/delphi-express`](../delphi-express). The HTTP boundary becomes the contract; you must wire your own auth middleware. Choose this for the same reasons you'd put a queue or DB behind a service rather than embedding it.
 
@@ -50,40 +50,50 @@ Requires Postgres 14+ and Redis 6+.
 
 ## Quick start
 
+Workflows are authored as **typed classes** — one class per Step (the actual work), one class per Workflow (the DAG), and `createEngine({ workflows: [...] })` wires everything together into a typed engine where each workflow appears as an addressable property. No string handler names, no `executorConfig` blobs at the call site.
+
 ```ts
-import { WorkflowEngine, WorkflowBuilder, FunctionStepExecutor, CREATE_TABLES_SQL } from '@goatlab/delphi-core'
+import {
+  Workflow, FunctionStep, step, createEngine,
+  WorkflowStepTask, CREATE_TABLES_SQL,
+} from '@goatlab/delphi-core'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 20 })
 const db = new Kysely({ dialect: new PostgresDialect({ pool }) })
-
-// Create tables (idempotent)
 for (const stmt of CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(Boolean)) {
   await sql.raw(stmt).execute(db)
 }
-
-const executor = new FunctionStepExecutor()
-executor.register('greet', async ({ input }) => ({ output: { hi: `hello ${input.name}` } }))
-
 const connector = new BullMQConnector({ connection: { host: 'localhost', port: 6379 } })
 
-const wf = WorkflowBuilder.create('greet_flow')
-  .step('greet', { executorType: 'function', executorConfig: { handler: 'greet' } })
-  .build()
+// ── 1. Define steps (the work) ───────────────────────────────
+class GreetStep extends FunctionStep<
+  { name: string },       // TInput
+  { hi: string },         // TOutput
+  'greet'                 // TName (literal)
+> {
+  stepName = 'greet' as const
+  async handle(input) {
+    return { output: { hi: `hello ${input.name}` } }
+  }
+}
+const greetStep = new GreetStep()
 
-const engine = new WorkflowEngine({
-  db,
-  pgPool: pool,                                        // enables COPY FROM fast path
-  connector,
-  executors: new Map([['function', executor]]),
-  workflows: new Map([['greet_flow', wf]]),
-  tenantId: 'default',
+// ── 2. Define workflows (DAGs over Step instances — no strings) ───
+class GreetWorkflow extends Workflow<{ name: string }, 'greet_flow'> {
+  workflowName = 'greet_flow' as const
+  steps = [step(greetStep)] as const
+}
+
+// ── 3. Build the typed engine ───────────────────────────────
+const engine = createEngine({
+  workflows: [new GreetWorkflow()] as const,
+  db, pgPool: pool, connector, tenantId: 'default',
 })
 
-// Workers: consume from all step queues
-import { WorkflowStepTask } from '@goatlab/delphi-core'
+// ── 4. Consume step queues (same as before) ─────────────────
 const stepTask = new WorkflowStepTask(engine)
 stepTask.setConnector(connector)
 await connector.listen({
@@ -95,8 +105,15 @@ await connector.listen({
   ],
 })
 
-const { runId } = await engine.start({ workflowName: 'greet_flow', tenantId: 'default', input: { name: 'Ada' } })
+// ── 5. Call it — fully typed, no string workflow names ──────
+const { runId } = await engine.greet_flow.start({ name: 'Ada' })
+//                        ↑ autocomplete      ↑ TS enforces { name: string }
+
+await engine.greet_flow.cancel(runId)
+await engine.greet_flow.signal(runId, 'someSignal', { data: 'payload' })
 ```
+
+**Why the class API:** renaming a step renames the handler key everywhere; renaming a workflow renames the property on the engine; changing a step's input type surfaces as a TS error at every `mapInput` callsite. Nothing compiles unless the graph is consistent.
 
 ## Core concepts
 
@@ -110,101 +127,93 @@ Runs and steps live in Postgres. The state machine enforces valid transitions (`
 On `engine.start()`, the engine inserts the run + steps and dispatches root steps (those with no `dependsOn`) to the appropriate BullMQ queue. Step workers pick up jobs, call `engine.markStepRunning`, run the executor, and call `engine.onStepCompleted` or `engine.onStepFailed`. The engine then advances the DAG.
 
 ### Queue-first ingestion (high throughput)
-For ingesting workflows at scale, use `IngestBuffer` + `IngestWorker`:
+
+`createEngine` wires up `IngestBuffer` internally and exposes the two fast paths on every workflow:
 
 ```ts
-import { IngestBuffer, IngestWorker } from '@goatlab/delphi-core'
+// ~1-2ms in-memory ack; PG write happens downstream in IngestWorker.
+const { runId } = engine.event_ingest.startBuffered({ payload: 'hi' })
 
-const ingestWorker = new IngestWorker({ engine, flushThreshold: 200, maxConcurrentFlushes: 8 })
-
-const ingestBuffer = new IngestBuffer({
-  // Backend-agnostic — TaskConnector.bulkQueue (BullMQ uses addBulk under the hood).
-  connector,
-  taskName: 'workflow_ingest',
-  flushThreshold: 200,
-  flushIntervalMs: 50,
-  maxJitterMs: 20,
-  // Required if any registered workflow uses durability('committed') —
-  // enqueueCommitted() flushes directly via engine.startBatchCopy().
-  engine,
-  committedFlushThreshold: 100,
-  committedFlushIntervalMs: 20,
-  committedMaxConcurrentFlushes: 4,
-})
-
-// Wire the worker-side consumer
-await connector.listen({ tasks: [
-  { taskName: 'workflow_ingest', handle: (d) => ingestWorker.handleJob(d as any), concurrency: 300 },
-  // ... step queues
-]})
-
-// In your HTTP handler — dispatch by workflow.durability:
-const def = engine.getWorkflows().get(req.body.workflowName)
-if (def?.durability === 'committed') {
-  const { runId, traceId } = await ingestBuffer.enqueueCommitted({ ...req.body, tenantId })
-  return { runId, traceId, status: 'COMMITTED' }   // PG fsync'd before 200
-}
-const { runId, traceId } = ingestBuffer.enqueue({ ...req.body, tenantId })
-return { runId, traceId, status: 'QUEUED' }       // in-memory ack, ~1-2ms
+// Blocks until PG COMMIT (synchronous_commit=ON); batched across callers.
+const { runId } = await engine.payment_critical.startCommitted({ /* ... */ })
 ```
 
-(Or use `@goatlab/delphi-express` — its `agentsRouter()` does this dispatch automatically.)
+On the worker side (may be the same process or a separate one), wire the `workflow_ingest` queue to an `IngestWorker` so buffered triggers drain to PG via `COPY FROM`:
 
-`IngestBuffer` accumulates triggers in-memory, flushes to Redis via `queue.addBulk` (one LUA script call per batch). `IngestWorker` re-batches BullMQ jobs into a single `COPY FROM` transaction per ~200 workflows. End-to-end: 5k req/s on 2 vCPU, p95 < 100ms, zero data loss.
+```ts
+import { IngestWorker } from '@goatlab/delphi-core'
+
+const ingestWorker = new IngestWorker({ engine, flushThreshold: 200, maxConcurrentFlushes: 8 })
+await connector.listen({ tasks: [
+  { taskName: 'workflow_ingest', handle: (d) => ingestWorker.handleJob(d as any), concurrency: 300 },
+  // ... step queues (workflow_step_light/heavy/ai/sandbox)
+]})
+```
+
+Tune `createEngine`'s ingest knobs via the `ingest` option if the defaults don't fit your profile:
+
+```ts
+const engine = createEngine({
+  workflows: [...] as const,
+  db, pgPool, connector, tenantId,
+  ingest: {
+    flushThreshold: 200,
+    flushIntervalMs: 50,
+    committedFlushThreshold: 100,
+    committedFlushIntervalMs: 20,
+    committedMaxConcurrentFlushes: 4,
+  },
+})
+```
+
+Under the hood: `IngestBuffer` accumulates triggers in-memory, flushes to Redis via `queue.addBulk` (one LUA script per batch). `IngestWorker` re-batches BullMQ jobs into a single `COPY FROM` transaction per ~200 workflows. End-to-end: 5k req/s on 2 vCPU, p95 < 100ms, zero data loss.
 
 ### Workflow durability (`buffered` vs `committed`)
 
-Each workflow definition declares its **ingest durability guarantee** — what `/start-async` actually promises when it returns 200.
+Each workflow declares its **ingest durability guarantee** — what `start-async` (or the typed proxy's `startBuffered` / `startCommitted`) actually promises when it returns. Declared on the workflow class via an `override durability = '...' as const` field.
 
 ```ts
-// Buffered (default) — HTTP returns ~1-2ms after the trigger hits the
+// Buffered (default) — caller returns ~1-2ms after the trigger hits the
 // in-memory IngestBuffer. Flush to Redis + PG happens asynchronously.
 // Tradeoff: a process crash inside the ~70ms flush window loses the request.
-const fastWorkflow = WorkflowBuilder.create('event_ingest')
-  .step('process', { executorType: 'function', executorConfig: { handler: 'doWork' } })
-  .build()
+class EventIngestWorkflow extends Workflow<{ payload: string }, 'event_ingest'> {
+  workflowName = 'event_ingest' as const
+  steps = [step(processEventStep)] as const
+  // no `durability` → defaults to buffered
+}
 
-// Committed — HTTP blocks until the workflow_runs row is COPY-FROM'd and
+// Committed — caller blocks until the workflow_runs row is COPY-FROM'd and
 // COMMIT'd to Postgres (synchronous_commit=ON, fsync'd to WAL). Use for
 // payments, financial flows, or anything where "accepted" must mean
 // "durable on disk". Throughput stays high because BatchedJobProcessor
 // amortizes the COPY+COMMIT across every concurrent committed caller.
-const paymentWorkflow = WorkflowBuilder.create('payment_critical')
-  .durability('committed')
-  .step('charge', { executorType: 'function', executorConfig: { handler: 'chargeCard' } })
-  .build()
-```
-
-To enable the committed path, pass `engine` to `IngestBuffer` so it can call `engine.startBatchCopy(triggers, { synchronousCommit: true })` directly from the HTTP process:
-
-```ts
-const ingestBuffer = new IngestBuffer({
-  connector,
-  taskName: 'workflow_ingest',
-  flushThreshold: 200,
-  flushIntervalMs: 50,
-  // Required for durability='committed' — otherwise enqueueCommitted() throws:
-  engine,
-  committedFlushThreshold: 100,
-  committedFlushIntervalMs: 20,
-  committedMaxConcurrentFlushes: 4,
-})
-```
-
-Your HTTP handler dispatches by definition:
-
-```ts
-const trigger = { ...req.body, tenantId }
-const def = engine.getWorkflows().get(trigger.workflowName)
-if (def?.durability === 'committed') {
-  const { runId, traceId } = await ingestBuffer.enqueueCommitted(trigger)
-  return res.json({ runId, traceId, status: 'COMMITTED' })
+class PaymentCriticalWorkflow extends Workflow<
+  { orderId: string; amountCents: number; customerId: string },
+  'payment_critical'
+> {
+  workflowName = 'payment_critical' as const
+  override durability = 'committed' as const
+  steps = [step(chargeCardStep), step(sendReceiptStep, { dependsOn: [chargeCardStep] })] as const
 }
-const { runId, traceId } = ingestBuffer.enqueue(trigger)
-return res.json({ runId, traceId, status: 'QUEUED' })
 ```
 
-The `@goatlab/delphi-express` router does this dispatch automatically — just expose `engine` and `ingestBuffer` from your `resolveAgents` callback.
+`createEngine` wires up the committed path automatically (it constructs `IngestBuffer` internally). At the call site you pick which durability promise to make per call:
+
+```ts
+// Buffered → ~1-2ms, in-memory ack
+engine.event_ingest.startBuffered({ payload: 'hello' })
+
+// Committed → blocks until PG COMMIT with synchronous_commit=ON
+await engine.payment_critical.startCommitted({
+  orderId: 'ord_123',
+  amountCents: 4200,
+  customerId: 'cust_42',
+}, { idempotencyKey: 'payment-ord_123' })
+```
+
+The `override durability = 'committed'` on the class is informational — it flags intent for readers/lint rules. The actual durability is determined by **which method you call** at the start site (`startBuffered` vs `startCommitted`). A committed-flagged workflow can still be started via `startBuffered` (unusual) and vice versa. For `/start-async` HTTP adapters that dispatch by definition, the flag is authoritative — see the generic dispatch pattern in `test-server.ts`.
+
+If you prefer the HTTP adapter shape (dispatch by `definition.durability`), the `@goatlab/delphi-express` `agentsRouter()` does that automatically.
 
 #### Idempotency
 
@@ -221,6 +230,51 @@ pool ≥ committedMaxConcurrentFlushes      // committed COPY transactions
 ```
 
 For the test server (`PG_POOL_SIZE=20`) with `committedMaxConcurrentFlushes=5` and `ingestMaxConcurrentFlushes=10`, that's `5 + 10 + 5 = 20` — just enough headroom. If you raise either knob to push committed/buffered throughput, raise `pool` proportionally or you'll starve status reads under sustained load.
+
+### Using `@goatlab/tasks-core` `ShouldQueue` tasks as Delphi steps
+
+Already have a catalogue of Sodium-style `ShouldQueue` tasks? Don't rewrite them. A task is a typed unit of work with an input, an output, and a `handle(body)` method — the same shape as a Delphi `FunctionStep`. **Pass the task instance directly to `createEngine`** — it's auto-wrapped as a single-step workflow:
+
+```ts
+import { createEngine } from '@goatlab/delphi-core'
+import { checkPostTask } from '@/api/posts/tasks/checkPosts.task'      // a ShouldQueue singleton
+import { paymentWorkflow } from '@/workflows/payment/payment.workflow' // a Workflow instance
+
+// Mix ShouldQueue tasks and Workflow instances freely in the same array:
+const engine = createEngine({
+  workflows: [paymentWorkflow, checkPostTask] as const,
+  db, pgPool, connector, tenantId: 'default',
+})
+
+// Typed call site — `TInput` comes straight from each entry's generics:
+await engine.payment_critical.startCommitted({ orderId, amountCents, customerId })
+await engine.check_post.start({ postId: 'p_123' })            // from the ShouldQueue
+```
+
+That's it. No wrapping call, no extra import. `createEngine` checks `instanceof ShouldQueue` at construction and adapts on the fly — a task is literally just a one-step workflow.
+
+If you want to compose a `ShouldQueue` task into a **multi-step DAG** (as one step among several), adapt it explicitly:
+
+```ts
+import { fromShouldQueue, Workflow, step } from '@goatlab/delphi-core'
+
+const checkPostStep = fromShouldQueue(checkPostTask)
+class PostPipeline extends Workflow<{ postId: string }, 'post_pipeline'> {
+  workflowName = 'post_pipeline' as const
+  steps = [
+    step(checkPostStep),                                      // the task as a step
+    step(indexPostStep, { dependsOn: [checkPostStep] }),
+  ] as const
+}
+```
+
+What carries over automatically:
+- `task.taskName` → `workflow.workflowName` (literal type preserved)
+- `task.retries` → `workflow.defaultRetries`
+- `task.handle(body)` runs inline on the workflow worker — Delphi owns retries, timeouts, observability, and durability
+- `TInput` / `TResult` generics flow through to `engine.<taskName>.start(input)`
+
+What's left out: the task's own `connector` / `tracker`. If you want the task's *queueing* semantics (HTTP dispatch, separate worker pool, GCP Cloud Tasks), enqueue from a step via `connector.queue(...)` instead — the adapter only wraps the task's logic, not its transport.
 
 ### External actions (exactly-once)
 Use `engine.externalActions.run({...})` to call systems of record (GitHub, Linear, Stripe). The engine persists intent → dispatches → records result → replays safely on retry. See `ExternalActionExecutor`.
@@ -245,16 +299,27 @@ Beyond in-process BullMQ workers, registered `WorkerNode` instances can pull ste
 
 ## Library API surface (anything an HTTP endpoint can do)
 
-`createWorkflowHandlers(engine)` returns a plain object of async functions — no HTTP awareness. `delphi-express` is just `req.body → handlers.X(...) → res.json(result)`, so library mode exposes the same surface without needing the network boundary:
+In library mode the **typed engine proxy** from `createEngine` is the primary API — every workflow is an addressable property, fully typed, no strings:
 
 ```ts
-import { createWorkflowHandlers, WorkflowEngine, IngestBuffer } from '@goatlab/delphi-core'
+// Start (three durability flavors):
+await engine.payment_critical.start(input, { idempotencyKey })             // sync INSERT, returns runId
+      engine.event_ingest.startBuffered(input)                             // in-memory ack, ~1-2ms
+await engine.payment_critical.startCommitted(input, { idempotencyKey })    // PG fsync'd before return
 
-const engine = new WorkflowEngine({ ... })
-const ingestBuffer = new IngestBuffer({ engine, ... })
+// Lifecycle (runId is a string — no workflow name needed, path is typed):
+await engine.payment_critical.getStatus(runId)
+await engine.payment_critical.cancel(runId)
+await engine.payment_critical.signal(runId, 'approved', { reviewer: 'alice' })
+await engine.payment_critical.submitHumanInput(runId, 'review', { approved: true })
+```
+
+For HTTP-adapter shapes (string-based `workflowName` coming off `req.body`), `createWorkflowHandlers(engine)` returns a plain object of async functions — the same surface `delphi-express` mounts over HTTP, callable in-process:
+
+```ts
+import { createWorkflowHandlers } from '@goatlab/delphi-core'
 const handlers = createWorkflowHandlers(engine)
 
-// Equivalent of every HTTP endpoint, callable in-process:
 await handlers.start({ workflowName, tenantId, input })
 await handlers.startBatch({ workflows: [...] })
 await handlers.startBatchCopy({ workflows: [...] })
@@ -267,12 +332,12 @@ await handlers.ingestEvent({ eventType, source, payload, tenantId })
 await handlers.listWorkflows({ tenantId })
 await handlers.getDefinition({ workflowName })   // adds input-field inference
 
-// Plus the ingestion helpers (no HTTP equivalent needed — call directly):
-ingestBuffer.enqueue({ ... })                    // buffered fast path
-await ingestBuffer.enqueueCommitted({ ... })     // committed durable path
+// The underlying IngestBuffer is also exposed for shutdown + depth probes:
+engine.ingestBuffer.currentDepth()
+await engine.ingestBuffer.shutdown()
 ```
 
-Prefer `handlers` over raw `engine.X` calls in library mode — handlers add small conveniences (e.g., input-field inference in `getDefinition`) that the HTTP layer relies on. `engine.X` instance methods (`engine.start`, `engine.cancel`, `engine.signal`, etc.) are also available if you want zero indirection.
+**Rule of thumb:** use the typed proxy (`engine.payment_critical.start(...)`) when the caller is your own code and knows the workflow at compile time. Use `handlers` when the caller receives a string `workflowName` at runtime (HTTP handler, message consumer, CLI). The two APIs coexist — both operate on the same engine state.
 
 ## Performance
 
@@ -357,12 +422,16 @@ Most test files carry a run hint at the top (e.g. `// npx vitest run src/__tests
 
 | Export | Purpose |
 |---|---|
-| `WorkflowEngine` | Core engine |
-| `WorkflowBuilder` | Fluent API for workflow definitions |
+| `Step`, `FunctionStep` | Base classes for typed steps — subclass and override `handle()` |
+| `Workflow`, `step` | Base class for typed workflows + composition helper |
+| `createEngine` | Factory: returns engine with typed per-workflow proxy properties |
+| `fromShouldQueue`, `workflowFromShouldQueue` | Adapters: reuse `@goatlab/tasks-core` `ShouldQueue` tasks as Steps / single-step Workflows |
+| `TypedStepResult`, `StepEntry`, `StepOutputs`, `WorkflowOps`, `TypedEngine` | Type helpers used by the class API |
+| `WorkflowEngine` | Core engine (constructed by `createEngine`; usable directly for advanced cases) |
 | `WorkflowStepTask` | BullMQ handler that bridges jobs → `engine.onStepCompleted`/Failed |
 | `IngestBuffer`, `IngestWorker` | Queue-first ingestion accumulators (buffered + committed paths) |
-| `WorkflowDurability` | `'buffered' \| 'committed'` — set per-workflow via `WorkflowBuilder.durability(...)` |
-| `FunctionStepExecutor`, `TaskRunnerExecutor`, `ClaudeCodeExecutor` | Built-in executors |
+| `WorkflowDurability` | `'buffered' \| 'committed'` — set per-workflow via `override durability = ... as const` |
+| `FunctionStepExecutor`, `TaskRunnerExecutor`, `ClaudeCodeExecutor` | Built-in executors (auto-registered by `createEngine` for class steps) |
 | `ExternalActionExecutor` | Exactly-once external side effects |
 | `EventIngestionService` | Event ingest + trigger matching |
 | `WorkerNode` | Remote worker runtime |

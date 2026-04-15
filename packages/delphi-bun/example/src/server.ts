@@ -40,8 +40,8 @@ async function runServer() {
 
 	const handler = agentsBunHandler({
 		resolveAgents: async (_req) => {
-			const { engine, ingestBuffer } = await getAgents();
-			return { engine, ingestBuffer, tenantId: TENANT_ID };
+			const { engine } = await getAgents();
+			return { engine, ingestBuffer: engine.ingestBuffer, tenantId: TENANT_ID };
 		},
 		prefix: "/api/workflows",
 	});

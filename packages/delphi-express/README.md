@@ -24,10 +24,10 @@ app.use('/api/workflows', agentsRouter({
   // Called per request. Resolve your engine (your factory should cache
   // by tenant — this resolver should be a Map lookup most of the time).
   resolveAgents: async (req) => {
-    const { engine, ingestBuffer } = await myDelphiFactory(req)
+    const engine = await myDelphiFactory(req)
     return {
       engine,
-      ingestBuffer,
+      ingestBuffer: engine.ingestBuffer,
       tenantId: req.user.tenantId,   // however you get it
     }
   },
@@ -83,8 +83,8 @@ app.use('/api/workflows', agentsRouter({
   resolveAgents: async (req) => {
     // 3. tenantId from req.user (auth context), NOT from req.body.
     const tenantId = req.user.tenantId
-    const { engine, ingestBuffer } = await myDelphiFactory(tenantId)
-    return { engine, ingestBuffer, tenantId }
+    const engine = await myDelphiFactory(tenantId)
+    return { engine, ingestBuffer: engine.ingestBuffer, tenantId }
   },
 }))
 ```
@@ -139,13 +139,27 @@ The adapter doesn't dictate how you build the engine — that's deliberate. For 
 // my-delphi-factory.ts
 import { Kysely, PostgresDialect } from 'kysely'
 import {
-  WorkflowEngine, WorkflowStepTask, FunctionStepExecutor,
-  IngestBuffer, IngestWorker, EventIngestionService,
+  createEngine, FunctionStep, Workflow, step,
+  WorkflowStepTask, IngestWorker, EventIngestionService,
+  type Database as AgentsDB, type TypedEngine, type JsonObject,
 } from '@goatlab/delphi-core'
-import type { Database as AgentsDB } from '@goatlab/delphi-core'
 import type { Request } from 'express'
 
-const cache = new Map<string, Promise<{ engine: WorkflowEngine; ingestBuffer: IngestBuffer }>>()
+// Step + Workflow classes are shared across tenants — same business logic,
+// tenant isolation happens at the engine/PG-schema layer.
+class GreetStep extends FunctionStep<{ name: string }, { hi: string }, 'greet'> {
+  stepName = 'greet' as const
+  async handle(input) { return { output: { hi: `hello ${input.name}` } } }
+}
+const greetStep = new GreetStep()
+
+class GreetWorkflow extends Workflow<{ name: string }, 'greet_flow'> {
+  workflowName = 'greet_flow' as const
+  steps = [step(greetStep)] as const
+}
+
+type AgentsEngine = TypedEngine<readonly [GreetWorkflow]>
+const cache = new Map<string, Promise<AgentsEngine>>()
 
 export async function myDelphiFactory(req: Request) {
   const tenantId = req.user.tenantId
@@ -153,28 +167,19 @@ export async function myDelphiFactory(req: Request) {
   if (cached) return cached
 
   cached = (async () => {
-    const pool = await getYourPool(tenantId)         // your code
+    const pool = await getYourPool(tenantId)                  // your code
     const connector = await getYourBullMQConnector(tenantId)  // your code
     const db = new Kysely<AgentsDB>({ dialect: new PostgresDialect({ pool }) })
 
-    const executor = new FunctionStepExecutor()
-    executor.register('greet', async ({ input }) => ({ output: { hi: input.name } }))
-
-    const engine = new WorkflowEngine({
-      db, pgPool: pool, connector,
-      executors: new Map([['function', executor]]),
-      workflows: new Map(/* your defs */),
-      tenantId,
+    const engine = createEngine({
+      workflows: [new GreetWorkflow()] as const,
+      db, pgPool: pool, connector, tenantId,
       schema: 'agents',                            // optional: PG schema isolation
       eventIngestion: new EventIngestionService({ db }),
     })
 
+    // Worker-side: drain the buffered ingest queue + handle step jobs.
     const ingestWorker = new IngestWorker({ engine, flushThreshold: 200 })
-    const ingestBuffer = new IngestBuffer({
-      queue: connector.getQueue('workflow_ingest'),
-      flushThreshold: 200, flushIntervalMs: 50,
-    })
-
     const stepTask = new WorkflowStepTask(engine); stepTask.setConnector(connector)
     await connector.listen({ tasks: [
       { taskName: 'workflow_ingest',     handle: d => ingestWorker.handleJob(d as any), concurrency: 300 },
@@ -182,7 +187,7 @@ export async function myDelphiFactory(req: Request) {
       // ... heavy / ai / sandbox queues as needed
     ]})
 
-    return { engine, ingestBuffer }
+    return engine
   })()
 
   cache.set(tenantId, cached)

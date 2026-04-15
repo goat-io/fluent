@@ -30,8 +30,20 @@ export { ClaudeCodeExecutor } from './steps/ClaudeCodeExecutor.js'
 export type { ClaudeCodeConfig } from './steps/ClaudeCodeExecutor.js'
 
 // ── Core Classes ───────────────────────────────────────────────────
-export { WorkflowBuilder } from './workflow/WorkflowBuilder.js'
-export type { StepConfig } from './workflow/WorkflowBuilder.js'
+// New typed-class authoring API — subclass Workflow + Step, compose with
+// `step(...)`, pass to `createEngine({ workflows: [...] })`.
+export { Step, FunctionStep } from './workflow/Step.js'
+export type { TypedStepResult } from './workflow/Step.js'
+export { Workflow, step } from './workflow/Workflow.js'
+export type { StepEntry, StepOutputs } from './workflow/Workflow.js'
+export { createEngine } from './workflow/createEngine.js'
+export { fromShouldQueue, workflowFromShouldQueue } from './workflow/fromShouldQueue.js'
+export type {
+  TypedEngine,
+  WorkflowOps,
+  WorkflowsApi,
+  CreateEngineIngestOptions,
+} from './workflow/createEngine.js'
 export { WorkflowRegistry } from './workflow/WorkflowRegistry.js'
 export { WorkflowEngine } from './engine/WorkflowEngine.js'
 export { IngestBuffer } from './engine/IngestBuffer.js'

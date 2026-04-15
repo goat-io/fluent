@@ -51,8 +51,8 @@ async function main() {
 		"/api/workflows",
 		agentsRouter({
 			resolveAgents: async (_req) => {
-				const { engine, ingestBuffer } = await getAgents();
-				return { engine, ingestBuffer, tenantId: TENANT_ID };
+				const { engine } = await getAgents();
+				return { engine, ingestBuffer: engine.ingestBuffer, tenantId: TENANT_ID };
 			},
 		}),
 	);

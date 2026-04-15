@@ -42,18 +42,17 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql'
 import { RedisContainer } from '@testcontainers/redis'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
 import {
-  WorkflowEngine,
-  WorkflowBuilder,
+  FunctionStep,
+  Workflow,
+  step,
+  createEngine,
   WorkflowStepTask,
-  FunctionStepExecutor,
   createWorkflowHandlers,
   CREATE_TABLES_SQL,
   EventIngestionService,
-  IngestBuffer,
   IngestWorker,
 } from '@goatlab/delphi-core'
-import type { Database } from '@goatlab/delphi-core'
-import type { StepPayload, StepResult } from '@goatlab/delphi-core'
+import type { Database, JsonObject, TypedStepResult } from '@goatlab/delphi-core'
 
 const PORT = parseInt(process.env.PORT ?? '4444', 10)
 const TENANT = 'e2e-ui-tenant'
@@ -160,104 +159,173 @@ async function main() {
     },
   })
 
-  // ── Executors ────────────────────────────────────────
-  const executor = new FunctionStepExecutor()
+  // ── Workflow steps (class-based — no string handler refs) ─────
+  // Each step declares TInput / TOutput / TName generics. Workflow classes
+  // reference these instances directly; createEngine() auto-registers each
+  // handler under a namespaced key. This is the same pattern sodium uses
+  // for `ShouldQueue` task classes.
 
-  // Fast workflow handlers (zero delay for load testing)
-  executor.register('fast_echo', async (p: StepPayload): Promise<StepResult> => ({
-    output: { echoed: true, step: p.stepName, ts: Date.now() },
-  }))
+  class FastEchoStep extends FunctionStep<JsonObject, { echoed: boolean; step: string; ts: number }, 'work'> {
+    stepName = 'work' as const
+    retries = 0
+    async handle(_input, _ctx) {
+      return { output: { echoed: true, step: this.stepName, ts: Date.now() } }
+    }
+  }
 
-  executor.register('fast_chain', async (p: StepPayload): Promise<StepResult> => ({
-    output: { chained: true, input: p.input, ts: Date.now() },
-  }))
+  class ChargeStep extends FunctionStep<JsonObject, { charged: boolean; ts: number }, 'charge'> {
+    stepName = 'charge' as const
+    retries = 0
+    async handle(_input, _ctx) {
+      return { output: { charged: true, ts: Date.now() } }
+    }
+  }
 
-  // Demo pipeline handlers (with realistic delays)
-  executor.register('analyze', async (p: StepPayload): Promise<StepResult> => {
-    await new Promise(r => setTimeout(r, 500))
-    return { output: { analysis: 'Feature looks viable', confidence: 0.9, requirements: ['auth', 'dashboard'] } }
-  })
-  executor.register('plan', async (p: StepPayload): Promise<StepResult> => {
-    await new Promise(r => setTimeout(r, 300))
-    return { output: { tasks: [{ name: 'Create API' }, { name: 'Build UI' }, { name: 'Write tests' }], approved: true } }
-  })
-  executor.register('implement', async (p: StepPayload): Promise<StepResult> => {
-    await new Promise(r => setTimeout(r, 800))
-    return { output: { filesCreated: 5, linesOfCode: 250, branch: 'feat/new-feature' } }
-  })
-  executor.register('review', async (p: StepPayload): Promise<StepResult> => ({
-    output: { reviewStarted: true },
-    waitForHuman: { prompt: 'Please review the implementation and approve or reject.', schema: { type: 'object', properties: { approved: { type: 'boolean' }, comment: { type: 'string' } } } },
-  }))
-  executor.register('deploy', async (p: StepPayload): Promise<StepResult> => {
-    await new Promise(r => setTimeout(r, 400))
-    return { output: { deployed: true, url: 'https://app.example.com', version: '1.0.0' } }
-  })
+  class ChainAStep extends FunctionStep<JsonObject, { chained: boolean; at: 'a'; ts: number }, 'a'> {
+    stepName = 'a' as const
+    retries = 0
+    async handle(input) {
+      return { output: { chained: true, at: 'a' as const, ts: Date.now() } }
+    }
+  }
+  class ChainBStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: 'b'; ts: number }, 'b'> {
+    stepName = 'b' as const
+    retries = 0
+    async handle(input) {
+      return { output: { chained: true, at: 'b' as const, ts: Date.now() } }
+    }
+  }
+  class ChainCStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: 'c'; ts: number }, 'c'> {
+    stepName = 'c' as const
+    retries = 0
+    async handle(input) {
+      return { output: { chained: true, at: 'c' as const, ts: Date.now() } }
+    }
+  }
 
-  // ── Workflows ────────────────────────────────────────
+  // Demo pipeline steps — realistic delays + human-in-the-loop
+  class AnalyzeStep extends FunctionStep<JsonObject, { analysis: string; confidence: number; requirements: string[] }, 'analyze'> {
+    stepName = 'analyze' as const
+    async handle(_input) {
+      await new Promise(r => setTimeout(r, 500))
+      return { output: { analysis: 'Feature looks viable', confidence: 0.9, requirements: ['auth', 'dashboard'] } }
+    }
+  }
+  class PlanStep extends FunctionStep<{ analysis: unknown }, { tasks: { name: string }[]; approved: boolean }, 'plan'> {
+    stepName = 'plan' as const
+    async handle(_input) {
+      await new Promise(r => setTimeout(r, 300))
+      return { output: { tasks: [{ name: 'Create API' }, { name: 'Build UI' }, { name: 'Write tests' }], approved: true } }
+    }
+  }
+  class ImplementStep extends FunctionStep<{ plan: unknown }, { filesCreated: number; linesOfCode: number; branch: string }, 'implement'> {
+    stepName = 'implement' as const
+    async handle(_input) {
+      await new Promise(r => setTimeout(r, 800))
+      return { output: { filesCreated: 5, linesOfCode: 250, branch: 'feat/new-feature' } }
+    }
+  }
+  class ReviewStep extends FunctionStep<JsonObject, { reviewStarted: boolean }, 'review'> {
+    stepName = 'review' as const
+    async handle(_input): Promise<TypedStepResult<{ reviewStarted: boolean }>> {
+      return {
+        output: { reviewStarted: true },
+        waitForHuman: {
+          prompt: 'Please review the implementation and approve or reject.',
+          schema: { type: 'object', properties: { approved: { type: 'boolean' }, comment: { type: 'string' } } },
+        },
+      }
+    }
+  }
+  class DeployStep extends FunctionStep<JsonObject, { deployed: boolean; url: string; version: string }, 'deploy'> {
+    stepName = 'deploy' as const
+    async handle(_input) {
+      await new Promise(r => setTimeout(r, 400))
+      return { output: { deployed: true, url: 'https://app.example.com', version: '1.0.0' } }
+    }
+  }
 
-  // Fast single-step workflow (for throughput benchmarking)
-  const fastWorkflow = WorkflowBuilder.create('fast_single')
-    .version('1.0.0')
-    .defaultRetries(0)
-    .step('work', { executorType: 'function', executorConfig: { handler: 'fast_echo' } })
-    .build()
+  // Singleton step instances — workflows reference these directly.
+  const fastEchoStep = new FastEchoStep()
+  const chargeStep = new ChargeStep()
+  const chainA = new ChainAStep(), chainB = new ChainBStep(), chainC = new ChainCStep()
+  const analyze = new AnalyzeStep(), plan = new PlanStep(), implement = new ImplementStep()
+  const review = new ReviewStep(), deploy = new DeployStep()
+
+  // ── Workflows (class-based) ──────────────────────────
+
+  class FastSingleWorkflow extends Workflow<JsonObject, 'fast_single'> {
+    workflowName = 'fast_single' as const
+    override defaultRetries = 0
+    steps = [step(fastEchoStep)] as const
+  }
 
   // Payment-critical: durability='committed' — HTTP blocks until PG COMMIT.
-  // Used by loadtest/k6-workflow-committed.js to measure sustainable throughput
-  // of the committed path vs the buffered fast_single path.
-  const paymentCritical = WorkflowBuilder.create('payment_critical')
-    .version('1.0.0')
-    .defaultRetries(0)
-    .durability('committed')
-    .step('charge', { executorType: 'function', executorConfig: { handler: 'fast_echo' } })
-    .build()
+  // Used by loadtest/k6-workflow-committed.js to measure the committed path.
+  class PaymentCriticalWorkflow extends Workflow<{ amountCents?: number; ts?: number }, 'payment_critical'> {
+    workflowName = 'payment_critical' as const
+    override durability = 'committed' as const
+    override defaultRetries = 0
+    steps = [step(chargeStep)] as const
+  }
 
-  // Fast 3-step chain (for pipeline throughput)
-  const fastChain = WorkflowBuilder.create('fast_chain')
-    .version('1.0.0')
-    .defaultRetries(0)
-    .step('a', { executorType: 'function', executorConfig: { handler: 'fast_chain' } })
-    .step('b', { dependsOn: ['a'], executorType: 'function', executorConfig: { handler: 'fast_chain' }, mapInput: (up) => ({ from: up.a }) })
-    .step('c', { dependsOn: ['b'], executorType: 'function', executorConfig: { handler: 'fast_chain' }, mapInput: (up) => ({ from: up.b }) })
-    .build()
+  class FastChainWorkflow extends Workflow<JsonObject, 'fast_chain'> {
+    workflowName = 'fast_chain' as const
+    override defaultRetries = 0
+    steps = [
+      step(chainA),
+      step(chainB, { dependsOn: [chainA], mapInput: (up) => ({ from: up.a }) }),
+      step(chainC, { dependsOn: [chainB], mapInput: (up) => ({ from: up.b }) }),
+    ] as const
+  }
 
-  // Demo pipeline (with realistic delays + human-in-the-loop)
-  const demoWorkflow = WorkflowBuilder.create('demo_pipeline')
-    .version('1.0.0')
-    .defaultRetries(2)
-    .step('analyze', { executorType: 'function', executorConfig: { handler: 'analyze' } })
-    .step('plan', { dependsOn: ['analyze'], executorType: 'function', executorConfig: { handler: 'plan' }, mapInput: (up) => ({ analysis: up.analyze }) })
-    .step('implement', { dependsOn: ['plan'], executorType: 'function', executorConfig: { handler: 'implement' }, mapInput: (up) => ({ plan: up.plan }) })
-    .step('review', { dependsOn: ['implement'], executorType: 'function', executorConfig: { handler: 'review' } })
-    .step('deploy', { dependsOn: ['review'], executorType: 'function', executorConfig: { handler: 'deploy' } })
-    .build()
+  // Demo pipeline (realistic delays + human-in-the-loop)
+  class DemoPipelineWorkflow extends Workflow<JsonObject, 'demo_pipeline'> {
+    workflowName = 'demo_pipeline' as const
+    override defaultRetries = 2
+    steps = [
+      step(analyze),
+      step(plan, { dependsOn: [analyze], mapInput: (up) => ({ analysis: up.analyze }) }),
+      step(implement, { dependsOn: [plan], mapInput: (up) => ({ plan: up.plan }) }),
+      step(review, { dependsOn: [implement] }),
+      step(deploy, { dependsOn: [review] }),
+    ] as const
+  }
 
   // ── Event Ingestion ──────────────────────────────────
   const eventService = new EventIngestionService({ db })
 
-  // ── Engine ───────────────────────────────────────────
-  const engine = new WorkflowEngine({
+  // ── Engine (typed proxy — engine.<workflowName>.start(…) surface) ─────
+  const engine = createEngine({
+    workflows: [
+      new FastSingleWorkflow(),
+      new PaymentCriticalWorkflow(),
+      new FastChainWorkflow(),
+      new DemoPipelineWorkflow(),
+    ] as const,
     db,
-    pgPool,  // For COPY FROM bulk inserts
+    pgPool,
     connector,
-    executors: new Map([['function', executor]]),
-    workflows: new Map([
-      ['demo_pipeline', demoWorkflow],
-      ['fast_single', fastWorkflow],
-      ['fast_chain', fastChain],
-      ['payment_critical', paymentCritical],
-    ]),
     tenantId: TENANT,
     disableLogBuffering: DISABLE_LOG_BUFFER,
     eventIngestion: eventService,
+    ingest: {
+      flushThreshold: 200,
+      flushIntervalMs: 50,
+      maxJitterMs: 20,
+      committedFlushThreshold: 100,
+      committedFlushIntervalMs: 20,
+      committedMaxConcurrentFlushes: Math.max(2, Math.floor(PG_POOL_SIZE / 4)),
+    },
   })
+  const ingestBuffer = engine.ingestBuffer
 
-  // ── BullMQ Workers (high concurrency) ────────────────
+  // ── BullMQ step-task consumer (same for all workflows) ─────────
   const stepTask = new WorkflowStepTask(engine)
   stepTask.setConnector(connector)
 
-  // Queue-first ingestion: HTTP → IngestBuffer → BullMQ → IngestWorker → COPY FROM → PG
+  // Worker-side ingest consumer: BullMQ → IngestWorker → COPY FROM → PG
+  // (the buffered path's downstream drain; committed path bypasses BullMQ)
   const ingestWorker = new IngestWorker({
     engine,
     flushThreshold: 200,
@@ -269,22 +337,6 @@ async function main() {
     // Cap below pool size to leave headroom for status reads / log flushes
     maxConcurrentFlushes: Math.max(2, Math.floor(PG_POOL_SIZE / 2)),
     logger: console,
-  })
-  const ingestBuffer = new IngestBuffer({
-    // Backend-agnostic via TaskConnector.bulkQueue (BullMQ uses addBulk)
-    connector,
-    taskName: 'workflow_ingest',
-    flushThreshold: 200,
-    flushIntervalMs: 50,
-    maxJitterMs: 20,
-    logger: console,
-    // Engine reference enables the 'committed' durability path:
-    // enqueueCommitted() flushes directly via engine.startBatchCopy() from the
-    // HTTP process so the per-request promise resolves only after PG COMMIT.
-    engine,
-    committedFlushThreshold: 100,
-    committedFlushIntervalMs: 20,
-    committedMaxConcurrentFlushes: Math.max(2, Math.floor(PG_POOL_SIZE / 4)),
   })
 
   const workerHandle = await connector.listen({
