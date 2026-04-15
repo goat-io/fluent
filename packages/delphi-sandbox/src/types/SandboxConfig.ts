@@ -9,7 +9,12 @@ export interface SandboxScriptExecution {
   env?: Record<string, string>
 }
 
-export type SandboxToolName = 'bash' | 'file_read' | 'file_write' | 'git' | 'http'
+export type SandboxToolName =
+  | 'bash'
+  | 'file_read'
+  | 'file_write'
+  | 'git'
+  | 'http'
 
 export interface SandboxAgentExecution {
   type: 'agent'

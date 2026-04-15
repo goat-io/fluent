@@ -1,192 +1,125 @@
 // @goatlab/delphi-core — Distributed Agent Workflow Engine
 // npx vitest run
 
-// ── Types ──────────────────────────────────────────────────────────
+export type { WorkflowHandlers } from './api/WorkflowHandlers.js'
+// ── API Handlers ───────────────────────────────────────────────────
+export { createWorkflowHandlers } from './api/WorkflowHandlers.js'
+export type { AgentDaemonConfig } from './broker/AgentDaemon.js'
+export { AgentDaemon } from './broker/AgentDaemon.js'
 export type {
-  HumanInput,
-  QueryHandler,
-  SignalHandler,
-  StepContext,
-  StepDefinition,
-  StepExecutionContext,
-  StepInterceptor,
-  StepPayload,
-  StepWeight,
-  StepResult,
-  StepStatus,
-  WorkflowDefinition,
-  WorkflowDurability,
-  WorkflowStatus,
-  WorkflowTrigger,
-  WorkflowTriggerInput,
-} from './workflow/WorkflowBuilder.types.js'
-
-export type { WorkflowEngineConfig, WorkflowBudget, BudgetUsed } from './engine/WorkflowEngine.types.js'
-
-export type { StepExecutor } from './steps/StepExecutor.js'
-export type { StepHandler } from './steps/FunctionStepExecutor.js'
-export { TaskRunnerExecutor } from './steps/TaskRunnerExecutor.js'
-export { ClaudeCodeExecutor } from './steps/ClaudeCodeExecutor.js'
-export type { ClaudeCodeConfig } from './steps/ClaudeCodeExecutor.js'
-
-// ── Core Classes ───────────────────────────────────────────────────
-// New typed-class authoring API — subclass Workflow + Step, compose with
-// `step(...)`, pass to `createEngine({ workflows: [...] })`.
-export { Step, FunctionStep } from './workflow/Step.js'
-export type { TypedStepResult } from './workflow/Step.js'
-export { Workflow, step } from './workflow/Workflow.js'
-export type { StepEntry, StepOutputs } from './workflow/Workflow.js'
-export { createEngine } from './workflow/createEngine.js'
-export { fromShouldQueue, workflowFromShouldQueue } from './workflow/fromShouldQueue.js'
+  AgentCapabilities,
+  AgentRegistryConfig,
+  PendingJob,
+  RegisteredAgent,
+} from './broker/AgentRegistry.js'
+// ── Broker (Agent Mode) ──────────────────────────────────────────
+export { AgentRegistry } from './broker/AgentRegistry.js'
 export type {
-  TypedEngine,
-  WorkflowOps,
-  WorkflowsApi,
-  CreateEngineIngestOptions,
-} from './workflow/createEngine.js'
-export { WorkflowRegistry } from './workflow/WorkflowRegistry.js'
-export { WorkflowEngine } from './engine/WorkflowEngine.js'
-export { IngestBuffer } from './engine/IngestBuffer.js'
-export type { IngestBufferConfig } from './engine/IngestBuffer.js'
-export { IngestWorker } from './engine/IngestWorker.js'
-export type { IngestWorkerConfig } from './engine/IngestWorker.js'
-export { WriteBuffer } from './engine/WriteBuffer.js'
-export type { WriteBufferConfig } from './engine/WriteBuffer.js'
-export { BatchedJobProcessor } from './engine/BatchedJobProcessor.js'
+  BrokerHandlers,
+  BrokerHandlersConfig,
+} from './broker/BrokerHandlers.js'
+export { createBrokerHandlers } from './broker/BrokerHandlers.js'
+export type { WorkerBrokerConfig } from './broker/WorkerBroker.js'
+export { WorkerBroker } from './broker/WorkerBroker.js'
 export type { BatchedJobProcessorConfig } from './engine/BatchedJobProcessor.js'
-export { StepStatusBuffer } from './engine/StepStatusBuffer.js'
-export type { StepStatusBufferConfig, StepStatusUpdate } from './engine/StepStatusBuffer.js'
-export { isEngineEvent } from './engine/EngineEvent.types.js'
+export { BatchedJobProcessor } from './engine/BatchedJobProcessor.js'
 export type {
   EngineEvent,
-  RunStartedEvent,
   RunCompletedEvent,
-  StepRunningEvent,
+  RunStartedEvent,
   StepCompletedEvent,
   StepFailedEvent,
   StepHumanRequestedEvent,
+  StepRunningEvent,
 } from './engine/EngineEvent.types.js'
-export { FunctionStepExecutor } from './steps/FunctionStepExecutor.js'
-export { WorkflowStepTask } from './tasks/WorkflowStepTask.js'
-
-// ── State Machine (pure functions) ─────────────────────────────────
+export { isEngineEvent } from './engine/EngineEvent.types.js'
+export type { ExternalActionEnforcerConfig } from './engine/ExternalActionEnforcer.js'
+// ── ExternalAction Enforcement ─────────────────────────────────────
+export { ExternalActionEnforcer } from './engine/ExternalActionEnforcer.js'
+export type {
+  ExternalActionExecutorConfig,
+  ExternalActionFn,
+  ExternalActionRequest,
+  ExternalActionResult,
+  RateLimitConfig,
+} from './engine/ExternalActionExecutor.js'
+// ── External Actions (consistency layer) ───────────────────────────
 export {
-  canStepTransition,
-  canWorkflowTransition,
-  deriveWorkflowStatus,
-  getReadySteps,
-  isTerminalStepStatus,
-  isTerminalWorkflowStatus,
-  topologicalSort,
-} from './state/WorkflowStateMachine.js'
-
+  ExternalActionExecutor,
+  ExternalActionPendingError,
+} from './engine/ExternalActionExecutor.js'
+export type { IngestBufferConfig } from './engine/IngestBuffer.js'
+export { IngestBuffer } from './engine/IngestBuffer.js'
+export type { IngestWorkerConfig } from './engine/IngestWorker.js'
+export { IngestWorker } from './engine/IngestWorker.js'
+export type {
+  RateLimiterBackend,
+  RedisClient,
+} from './engine/RateLimiterBackend.js'
+// ── Rate Limiter Backends ─────────────────────────────────────────
+export {
+  InMemoryRateLimiter,
+  RedisRateLimiter,
+} from './engine/RateLimiterBackend.js'
+export type {
+  StepCostTrackerConfig,
+  StepUsage,
+} from './engine/StepCostTracker.js'
+// ── Cost Tracking ─────────────────────────────────────────────────
+export { StepCostTracker } from './engine/StepCostTracker.js'
+export type {
+  StepStatusBufferConfig,
+  StepStatusUpdate,
+} from './engine/StepStatusBuffer.js'
+export { StepStatusBuffer } from './engine/StepStatusBuffer.js'
+export type { JsonObject, TaskInput, TaskStats } from './engine/TaskManager.js'
+// ── Task Manager ──────────────────────────────────────────────────
+export { TaskManager } from './engine/TaskManager.js'
+export { WorkflowEngine } from './engine/WorkflowEngine.js'
+export type {
+  BudgetUsed,
+  WorkflowBudget,
+  WorkflowEngineConfig,
+} from './engine/WorkflowEngine.types.js'
+export type {
+  AggregateMetrics,
+  ExternalActionMetrics,
+  StepLatencyMetrics,
+  WorkflowRunMetrics,
+} from './engine/WorkflowMetrics.js'
+// ── Observability ─────────────────────────────────────────────────
+export { WorkflowMetricsCollector } from './engine/WorkflowMetrics.js'
+export type { WriteBufferConfig } from './engine/WriteBuffer.js'
+export { WriteBuffer } from './engine/WriteBuffer.js'
 // ── Database Schema (Kysely) ───────────────────────────────────────
 export type {
+  AgentToken,
+  AgentTokenTable,
   Database,
+  ExternalAction,
+  ExternalActionTable,
+  ExternalActionUpdate,
   NewWorkflowRun,
+  NewWorkflowSignal,
   NewWorkflowStep,
   NewWorkflowStepLog,
-  NewWorkflowSignal,
+  StepLogEvent,
   WorkflowRun,
   WorkflowRunTable,
   WorkflowRunUpdate,
+  WorkflowSchedule,
+  WorkflowScheduleTable,
+  WorkflowSignal,
+  WorkflowSignalTable,
   WorkflowStep,
   WorkflowStepLog,
   WorkflowStepTable,
   WorkflowStepUpdate,
-  WorkflowSignal,
-  WorkflowSignalTable,
-  ExternalAction,
-  ExternalActionTable,
-  ExternalActionUpdate,
-  StepLogEvent,
   WorkflowTask,
-  WorkflowTaskTable,
   WorkflowTaskStatus,
-  WorkflowSchedule,
-  WorkflowScheduleTable,
-  AgentToken,
-  AgentTokenTable,
+  WorkflowTaskTable,
 } from './entities/Database.js'
 export { CREATE_TABLES_SQL, fromJson, toJson } from './entities/Database.js'
-
-// ── External Actions (consistency layer) ───────────────────────────
-export { ExternalActionExecutor, ExternalActionPendingError } from './engine/ExternalActionExecutor.js'
-export type {
-  ExternalActionRequest,
-  ExternalActionFn,
-  ExternalActionResult,
-  ExternalActionExecutorConfig,
-  RateLimitConfig,
-} from './engine/ExternalActionExecutor.js'
-
-// ── Rate Limiter Backends ─────────────────────────────────────────
-export { InMemoryRateLimiter, RedisRateLimiter } from './engine/RateLimiterBackend.js'
-export type { RateLimiterBackend, RedisClient } from './engine/RateLimiterBackend.js'
-
-// ── ExternalAction Enforcement ─────────────────────────────────────
-export { ExternalActionEnforcer } from './engine/ExternalActionEnforcer.js'
-export type { ExternalActionEnforcerConfig } from './engine/ExternalActionEnforcer.js'
-
-// ── Task Manager ──────────────────────────────────────────────────
-export { TaskManager } from './engine/TaskManager.js'
-export type { TaskInput, TaskStats, JsonObject } from './engine/TaskManager.js'
-
-// ── Cost Tracking ─────────────────────────────────────────────────
-export { StepCostTracker } from './engine/StepCostTracker.js'
-export type { StepCostTrackerConfig, StepUsage } from './engine/StepCostTracker.js'
-
-// ── Observability ─────────────────────────────────────────────────
-export { WorkflowMetricsCollector } from './engine/WorkflowMetrics.js'
-export type {
-  StepLatencyMetrics,
-  ExternalActionMetrics,
-  WorkflowRunMetrics,
-  AggregateMetrics,
-} from './engine/WorkflowMetrics.js'
-
-// ── Event Ingestion ───────────────────────────────────────────────
-export { EventIngestionService } from './events/EventIngestion.js'
-export type { IncomingEvent, EventSubscription, EventStatus } from './events/EventIngestion.types.js'
-export { WebhookVerifier } from './events/WebhookVerifier.js'
-
-// ── Integrations ──────────────────────────────────────────────────
-export { IntegrationRegistry } from './integrations/IntegrationRegistry.js'
-export type { Integration, IntegrationAction } from './integrations/Integration.js'
-export { createIntegrationAction } from './integrations/createIntegrationAction.js'
-export { createGitHubIntegration } from './integrations/github/GitHubIntegration.js'
-export type { GitHubClient } from './integrations/github/GitHubIntegration.js'
-export { createLinearIntegration } from './integrations/linear/LinearIntegration.js'
-export type { LinearClient } from './integrations/linear/LinearIntegration.js'
-export { createSlackIntegration } from './integrations/slack/SlackIntegration.js'
-export type { SlackClient } from './integrations/slack/SlackIntegration.js'
-
-// ── Skills ────────────────────────────────────────────────────────
-export { SkillRegistry } from './skills/SkillRegistry.js'
-export type { Skill, ToolDefinition } from './skills/Skill.js'
-export { webSearchSkill } from './skills/builtin/WebSearchSkill.js'
-export { codeExecutionSkill } from './skills/builtin/CodeExecutionSkill.js'
-
-// ── Worker Node ───────────────────────────────────────────────────
-export { WorkerNode } from './worker/WorkerNode.js'
-export type { WorkerNodeConfig, WorkerCapabilities, WorkerRegistration, QueueDepthProvider } from './worker/WorkerNode.types.js'
-export { LocalWorkerProvisioner } from './worker/WorkerProvisioner.js'
-export type { WorkerProvisioner } from './worker/WorkerProvisioner.js'
-
-// ── Scheduler ─────────────────────────────────────────────────────
-export { SchedulerService } from './scheduler/SchedulerService.js'
-export type { SchedulerServiceConfig } from './scheduler/SchedulerService.js'
-
-// ── Broker (Agent Mode) ──────────────────────────────────────────
-export { AgentRegistry } from './broker/AgentRegistry.js'
-export type { RegisteredAgent, PendingJob, AgentCapabilities, AgentRegistryConfig } from './broker/AgentRegistry.js'
-export { WorkerBroker } from './broker/WorkerBroker.js'
-export type { WorkerBrokerConfig } from './broker/WorkerBroker.js'
-export { createBrokerHandlers } from './broker/BrokerHandlers.js'
-export type { BrokerHandlers, BrokerHandlersConfig } from './broker/BrokerHandlers.js'
-export { AgentDaemon } from './broker/AgentDaemon.js'
-export type { AgentDaemonConfig } from './broker/AgentDaemon.js'
-
 // ── Errors ─────────────────────────────────────────────────────────
 export {
   DAGValidationError,
@@ -199,7 +132,98 @@ export {
   WorkflowNotFoundError,
   WorkflowRunNotFoundError,
 } from './errors/WorkflowErrors.js'
-
-// ── API Handlers ───────────────────────────────────────────────────
-export { createWorkflowHandlers } from './api/WorkflowHandlers.js'
-export type { WorkflowHandlers } from './api/WorkflowHandlers.js'
+// ── Event Ingestion ───────────────────────────────────────────────
+export { EventIngestionService } from './events/EventIngestion.js'
+export type {
+  EventStatus,
+  EventSubscription,
+  IncomingEvent,
+} from './events/EventIngestion.types.js'
+export { WebhookVerifier } from './events/WebhookVerifier.js'
+export { createIntegrationAction } from './integrations/createIntegrationAction.js'
+export type { GitHubClient } from './integrations/github/GitHubIntegration.js'
+export { createGitHubIntegration } from './integrations/github/GitHubIntegration.js'
+export type {
+  Integration,
+  IntegrationAction,
+} from './integrations/Integration.js'
+// ── Integrations ──────────────────────────────────────────────────
+export { IntegrationRegistry } from './integrations/IntegrationRegistry.js'
+export type { LinearClient } from './integrations/linear/LinearIntegration.js'
+export { createLinearIntegration } from './integrations/linear/LinearIntegration.js'
+export type { SlackClient } from './integrations/slack/SlackIntegration.js'
+export { createSlackIntegration } from './integrations/slack/SlackIntegration.js'
+export type { SchedulerServiceConfig } from './scheduler/SchedulerService.js'
+// ── Scheduler ─────────────────────────────────────────────────────
+export { SchedulerService } from './scheduler/SchedulerService.js'
+export { codeExecutionSkill } from './skills/builtin/CodeExecutionSkill.js'
+export { webSearchSkill } from './skills/builtin/WebSearchSkill.js'
+export type { Skill, ToolDefinition } from './skills/Skill.js'
+// ── Skills ────────────────────────────────────────────────────────
+export { SkillRegistry } from './skills/SkillRegistry.js'
+// ── State Machine (pure functions) ─────────────────────────────────
+export {
+  canStepTransition,
+  canWorkflowTransition,
+  deriveWorkflowStatus,
+  getReadySteps,
+  isTerminalStepStatus,
+  isTerminalWorkflowStatus,
+  topologicalSort,
+} from './state/WorkflowStateMachine.js'
+export type { ClaudeCodeConfig } from './steps/ClaudeCodeExecutor.js'
+export { ClaudeCodeExecutor } from './steps/ClaudeCodeExecutor.js'
+export type { StepHandler } from './steps/FunctionStepExecutor.js'
+export { FunctionStepExecutor } from './steps/FunctionStepExecutor.js'
+export type { StepExecutor } from './steps/StepExecutor.js'
+export { TaskRunnerExecutor } from './steps/TaskRunnerExecutor.js'
+export { WorkflowStepTask } from './tasks/WorkflowStepTask.js'
+// ── Worker Node ───────────────────────────────────────────────────
+export { WorkerNode } from './worker/WorkerNode.js'
+export type {
+  QueueDepthProvider,
+  WorkerCapabilities,
+  WorkerNodeConfig,
+  WorkerRegistration,
+} from './worker/WorkerNode.types.js'
+export type { WorkerProvisioner } from './worker/WorkerProvisioner.js'
+export { LocalWorkerProvisioner } from './worker/WorkerProvisioner.js'
+export type {
+  CreateEngineIngestOptions,
+  TypedEngine,
+  WorkflowOps,
+  WorkflowsApi,
+} from './workflow/createEngine.js'
+export { createEngine } from './workflow/createEngine.js'
+export {
+  fromShouldQueue,
+  workflowFromShouldQueue,
+} from './workflow/fromShouldQueue.js'
+export type { TypedStepResult } from './workflow/Step.js'
+// ── Core Classes ───────────────────────────────────────────────────
+// New typed-class authoring API — subclass Workflow + Step, compose with
+// `step(...)`, pass to `createEngine({ workflows: [...] })`.
+export { FunctionStep, Step } from './workflow/Step.js'
+export type { StepEntry, StepOutputs } from './workflow/Workflow.js'
+export { step, Workflow } from './workflow/Workflow.js'
+// ── Types ──────────────────────────────────────────────────────────
+export type {
+  HumanInput,
+  QueryHandler,
+  SignalHandler,
+  StepContext,
+  StepDefinition,
+  StepExecutionContext,
+  StepInterceptor,
+  StepPayload,
+  StepResult,
+  StepStatus,
+  StepWeight,
+  WorkflowDefinition,
+  WorkflowDurability,
+  WorkflowStatus,
+  WorkflowTrigger,
+  WorkflowTriggerInput,
+} from './workflow/WorkflowBuilder.types.js'
+export { WorkflowBuilder } from './workflow/WorkflowBuilder.js'
+export { WorkflowRegistry } from './workflow/WorkflowRegistry.js'

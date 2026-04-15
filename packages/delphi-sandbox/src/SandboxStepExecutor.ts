@@ -1,19 +1,28 @@
 // npx vitest run src/__tests__/integration/sandbox-executor.spec.ts
-import type { StepExecutor, StepPayload, StepResult } from '@goatlab/delphi-core'
-import { NonRetryableError } from '@goatlab/delphi-core'
+
 import type { LLMAdapter } from '@goatlab/delphi-ai'
-import { ContainerManager, type ContainerManagerConfig } from './container/ContainerManager.js'
-import type { ContainerHandle } from './container/ContainerHandle.js'
-import { SandboxAgentRunner } from './agent/SandboxAgentRunner.js'
-import { SandboxToolRegistry } from './tools/SandboxToolRegistry.js'
-import { GitWorkflowManager } from './git/GitWorkflowManager.js'
-import { resolveTemplate, resolveTemplates } from './utils/TemplateResolver.js'
 import type {
-  SandboxExecutorConfig,
+  StepExecutor,
+  StepPayload,
+  StepResult,
+} from '@goatlab/delphi-core'
+import { NonRetryableError } from '@goatlab/delphi-core'
+import { SandboxAgentRunner } from './agent/SandboxAgentRunner.js'
+import type { ContainerHandle } from './container/ContainerHandle.js'
+import { ContainerManager } from './container/ContainerManager.js'
+import { GitWorkflowManager } from './git/GitWorkflowManager.js'
+import { SandboxToolRegistry } from './tools/SandboxToolRegistry.js'
+import type {
   SandboxArtifacts,
+  SandboxExecutorConfig,
   SandboxStepExecutorConfig,
 } from './types/SandboxConfig.js'
-import { DEFAULT_IMAGE, DEFAULT_TIMEOUT, DEFAULT_WORKDIR } from './types/SandboxConfig.js'
+import {
+  DEFAULT_IMAGE,
+  DEFAULT_TIMEOUT,
+  DEFAULT_WORKDIR,
+} from './types/SandboxConfig.js'
+import { resolveTemplate, resolveTemplates } from './utils/TemplateResolver.js'
 
 export class SandboxStepExecutor implements StepExecutor {
   readonly type = 'sandbox'
@@ -36,13 +45,16 @@ export class SandboxStepExecutor implements StepExecutor {
       this.agentRunner = new SandboxAgentRunner(
         llmAdapter,
         this.toolRegistry,
-        config.logger ? { info: config.logger.info, debug: config.logger.debug } : undefined,
+        config.logger
+          ? { info: config.logger.info, debug: config.logger.debug }
+          : undefined,
       )
     }
   }
 
   async execute(payload: StepPayload): Promise<StepResult> {
-    const sandboxConfig = payload.executorConfig as unknown as SandboxExecutorConfig
+    const sandboxConfig =
+      payload.executorConfig as unknown as SandboxExecutorConfig
     const secrets = sandboxConfig.secrets ?? {}
 
     // Resolve image
@@ -57,11 +69,14 @@ export class SandboxStepExecutor implements StepExecutor {
     }
 
     // Create container
-    const container = await this.containerManager.createContainer(resolvedConfig, {
-      workflowRunId: payload.workflowRunId,
-      stepName: payload.stepName,
-      tenantId: payload.tenantId,
-    })
+    const container = await this.containerManager.createContainer(
+      resolvedConfig,
+      {
+        workflowRunId: payload.workflowRunId,
+        stepName: payload.stepName,
+        tenantId: payload.tenantId,
+      },
+    )
 
     const timeout = sandboxConfig.resources?.timeout ?? DEFAULT_TIMEOUT
     const timeoutHandle = setTimeout(() => {
@@ -71,9 +86,15 @@ export class SandboxStepExecutor implements StepExecutor {
     try {
       // ── Setup phase ──────────────────────────────────────────
       if (sandboxConfig.setup?.length) {
-        const resolvedSetup = resolveTemplates(sandboxConfig.setup, payload, secrets)
+        const resolvedSetup = resolveTemplates(
+          sandboxConfig.setup,
+          payload,
+          secrets,
+        )
         for (const cmd of resolvedSetup) {
-          this.config.logger?.debug?.(`[Sandbox] Setup: ${cmd.substring(0, 100)}`)
+          this.config.logger?.debug?.(
+            `[Sandbox] Setup: ${cmd.substring(0, 100)}`,
+          )
           const result = await container.exec(cmd, {
             timeout: 120_000,
             cwd: resolvedConfig.workdir,
@@ -91,7 +112,11 @@ export class SandboxStepExecutor implements StepExecutor {
       let executionOutput: Record<string, unknown>
 
       if (sandboxConfig.execute.type === 'script') {
-        executionOutput = await this.executeScript(container, sandboxConfig, payload)
+        executionOutput = await this.executeScript(
+          container,
+          sandboxConfig,
+          payload,
+        )
       } else if (sandboxConfig.execute.type === 'agent') {
         if (!this.agentRunner) {
           throw new NonRetryableError(
@@ -123,7 +148,11 @@ export class SandboxStepExecutor implements StepExecutor {
       }
 
       // ── Extract phase ────────────────────────────────────────
-      const artifacts = await this.extractArtifacts(container, sandboxConfig, payload)
+      const artifacts = await this.extractArtifacts(
+        container,
+        sandboxConfig,
+        payload,
+      )
 
       return {
         output: {
@@ -142,9 +171,18 @@ export class SandboxStepExecutor implements StepExecutor {
     config: SandboxExecutorConfig,
     payload: StepPayload,
   ): Promise<Record<string, unknown>> {
-    const scriptConfig = config.execute as { type: 'script'; commands: string[]; env?: Record<string, string> }
+    const scriptConfig = config.execute as {
+      type: 'script'
+      commands: string[]
+      env?: Record<string, string>
+    }
     const secrets = config.secrets ?? {}
-    const results: Array<{ command: string; exitCode: number; stdout: string; stderr: string }> = []
+    const results: Array<{
+      command: string
+      exitCode: number
+      stdout: string
+      stderr: string
+    }> = []
     let lastStdout = ''
 
     for (const cmd of scriptConfig.commands) {
@@ -184,7 +222,9 @@ export class SandboxStepExecutor implements StepExecutor {
     config: SandboxExecutorConfig,
     payload: StepPayload,
   ): Promise<SandboxArtifacts | null> {
-    if (!config.extract) return null
+    if (!config.extract) {
+      return null
+    }
 
     const artifacts: SandboxArtifacts = { exitCode: 0 }
 
@@ -194,7 +234,11 @@ export class SandboxStepExecutor implements StepExecutor {
       const resolvedGit = config.extract.git.branch
         ? {
             ...config.extract.git,
-            branch: resolveTemplate(config.extract.git.branch, payload, config.secrets),
+            branch: resolveTemplate(
+              config.extract.git.branch,
+              payload,
+              config.secrets,
+            ),
           }
         : config.extract.git
       artifacts.git = await gitManager.extract(resolvedGit)
@@ -227,7 +271,10 @@ export class SandboxStepExecutor implements StepExecutor {
 
     // Capture stdout
     if (config.extract.stdout) {
-      const result = await container.exec('cat /tmp/sandbox-stdout.log 2>/dev/null || echo ""', { cwd: '/' })
+      const result = await container.exec(
+        'cat /tmp/sandbox-stdout.log 2>/dev/null || echo ""',
+        { cwd: '/' },
+      )
       artifacts.stdout = result.stdout
     }
 

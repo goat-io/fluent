@@ -1,9 +1,6 @@
 // npx vitest run src/__tests__/unit/container-manager.spec.ts
 import Dockerode from 'dockerode'
-import type {
-  SandboxExecutorConfig,
-  SandboxResources,
-} from '../types/SandboxConfig.js'
+import type { SandboxExecutorConfig } from '../types/SandboxConfig.js'
 import {
   DEFAULT_IMAGE,
   DEFAULT_MEMORY,
@@ -28,8 +25,7 @@ export class ContainerManager {
 
   constructor(config: ContainerManagerConfig = {}) {
     // Auto-detect Docker socket: try Docker Desktop path first, then standard
-    const socketPath = config.dockerSocketPath
-      ?? this.detectDockerSocket()
+    const socketPath = config.dockerSocketPath ?? this.detectDockerSocket()
     this.docker = new Dockerode(socketPath ? { socketPath } : undefined)
     this.logger = config.logger ?? {
       info: console.log,
@@ -77,7 +73,9 @@ export class ContainerManager {
 
     // Security: when dockerAccess is enabled, we need broader capabilities
     // since the agent needs to talk to the Docker daemon
-    const needsNetAdmin = config.dockerAccess || (config.networkMode === 'bridge' && config.allowedDomains?.length)
+    const needsNetAdmin =
+      config.dockerAccess ||
+      (config.networkMode === 'bridge' && config.allowedDomains?.length)
     const capDrop = config.dockerAccess ? [] : ['ALL']
     const capAdd = needsNetAdmin ? ['NET_RAW', 'NET_ADMIN'] : []
     const securityOpt = config.dockerAccess ? [] : ['no-new-privileges']
@@ -98,7 +96,7 @@ export class ContainerManager {
         Memory: memoryBytes,
         NanoCpus: (resources.cpus ?? 2) * 1e9,
         PidsLimit: config.dockerAccess
-          ? (resources.pidsLimit ?? 1024)   // Higher limit when running containers
+          ? (resources.pidsLimit ?? 1024) // Higher limit when running containers
           : (resources.pidsLimit ?? DEFAULT_PIDS_LIMIT),
 
         // Security (relaxed when dockerAccess is enabled)
@@ -126,11 +124,13 @@ export class ContainerManager {
     await handle.exec(`mkdir -p ${workdir}`, { cwd: '/' })
 
     // Apply domain allowlist (iptables) when using 'bridge' mode with restrictions
-    if ((config.networkMode === 'bridge') && config.allowedDomains?.length) {
+    if (config.networkMode === 'bridge' && config.allowedDomains?.length) {
       await this.applyDomainAllowlist(handle, config.allowedDomains)
     }
 
-    this.logger!.debug?.(`Container ${container.id.substring(0, 12)} started (image: ${image})`)
+    this.logger!.debug?.(
+      `Container ${container.id.substring(0, 12)} started (image: ${image})`,
+    )
 
     return handle
   }
@@ -146,8 +146,11 @@ export class ContainerManager {
       const stream = await this.docker.pull(image)
       await new Promise<void>((resolve, reject) => {
         this.docker.modem.followProgress(stream, (err: any) => {
-          if (err) reject(err)
-          else resolve()
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
         })
       })
     }
@@ -156,18 +159,19 @@ export class ContainerManager {
   /**
    * Build an image from an inline Dockerfile.
    */
-  async buildImage(dockerfile: string, tag: string): Promise<void> {
-    const { Readable } = await import('node:stream')
-    const tar = await import('node:stream')
+  async buildImage(_dockerfile: string, tag: string): Promise<void> {
+    const _tar = await import('node:stream')
 
     // Create a minimal tar with just the Dockerfile
     // For simplicity, use exec to write Dockerfile and build
     this.logger!.info?.(`Building image: ${tag}`)
 
-    const Pack = (await import('node:stream')).PassThrough
+    const _Pack = (await import('node:stream')).PassThrough
     // Note: In production, use a proper tar library.
     // For now, write Dockerfile to a temp location and build.
-    throw new Error('Inline Dockerfile building not yet implemented. Use a pre-built image.')
+    throw new Error(
+      'Inline Dockerfile building not yet implemented. Use a pre-built image.',
+    )
   }
 
   /**
@@ -215,7 +219,10 @@ export class ContainerManager {
    * Apply iptables rules inside the container to restrict outbound traffic
    * to only the specified domains. Requires CAP_NET_ADMIN capability.
    */
-  private async applyDomainAllowlist(handle: ContainerHandle, domains: string[]): Promise<void> {
+  private async applyDomainAllowlist(
+    handle: ContainerHandle,
+    domains: string[],
+  ): Promise<void> {
     // Resolve domains to IPs and add iptables rules
     const commands = [
       // Allow loopback
@@ -252,22 +259,28 @@ export class ContainerManager {
     const { existsSync } = require('node:fs')
     const candidates = [
       process.env.DOCKER_HOST?.replace('unix://', ''),
-      `${process.env.HOME}/.docker/run/docker.sock`,  // Docker Desktop (macOS)
-      '/var/run/docker.sock',                           // Standard Linux
+      `${process.env.HOME}/.docker/run/docker.sock`, // Docker Desktop (macOS)
+      '/var/run/docker.sock', // Standard Linux
     ].filter(Boolean) as string[]
     return candidates.find(p => existsSync(p))
   }
 
   private parseMemory(mem: string): number {
     const match = mem.match(/^(\d+)(g|m|k)?$/i)
-    if (!match) return 2 * 1024 * 1024 * 1024 // Default 2GB
-    const value = parseInt(match[1], 10)
+    if (!match) {
+      return 2 * 1024 * 1024 * 1024 // Default 2GB
+    }
+    const value = Number.parseInt(match[1], 10)
     const unit = (match[2] ?? 'm').toLowerCase()
     switch (unit) {
-      case 'g': return value * 1024 * 1024 * 1024
-      case 'm': return value * 1024 * 1024
-      case 'k': return value * 1024
-      default: return value
+      case 'g':
+        return value * 1024 * 1024 * 1024
+      case 'm':
+        return value * 1024 * 1024
+      case 'k':
+        return value * 1024
+      default:
+        return value
     }
   }
 }

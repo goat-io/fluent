@@ -4,7 +4,8 @@ import type { SandboxTool, ToolResult } from './SandboxTool.js'
 
 export class BashTool implements SandboxTool {
   readonly name = 'bash'
-  readonly description = 'Execute a shell command in the sandbox environment. Use this for running scripts, installing packages, building projects, running tests, etc.'
+  readonly description =
+    'Execute a shell command in the sandbox environment. Use this for running scripts, installing packages, building projects, running tests, etc.'
   readonly parameters = {
     type: 'object',
     properties: {
@@ -25,7 +26,9 @@ export class BashTool implements SandboxTool {
     args: Record<string, unknown>,
   ): Promise<ToolResult> {
     const command = args.command as string
-    if (!command) return { output: '', error: 'command is required', exitCode: 1 }
+    if (!command) {
+      return { output: '', error: 'command is required', exitCode: 1 }
+    }
 
     const result = await container.exec(command, {
       cwd: (args.cwd as string) ?? undefined,

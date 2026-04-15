@@ -55,7 +55,12 @@ export class ContainerHandle {
       const inspect = await exec.inspect()
       const exitCode = inspect.ExitCode ?? -1
 
-      return { exitCode, stdout: stdout.trim(), stderr: stderr.trim(), timedOut }
+      return {
+        exitCode,
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        timedOut,
+      }
     } finally {
       clearTimeout(timeoutHandle)
     }
@@ -83,8 +88,8 @@ export class ContainerHandle {
         }
         // Read file size from tar header (bytes 124-135, octal)
         const sizeStr = tar.subarray(124, 136).toString('utf-8').trim()
-        const fileSize = parseInt(sizeStr, 8)
-        if (isNaN(fileSize) || fileSize <= 0) {
+        const fileSize = Number.parseInt(sizeStr, 8)
+        if (Number.isNaN(fileSize) || fileSize <= 0) {
           resolve(Buffer.alloc(0))
           return
         }
@@ -99,7 +104,7 @@ export class ContainerHandle {
    */
   async writeFile(containerPath: string, content: string): Promise<void> {
     // Use heredoc to avoid escaping issues
-    const escapedContent = content.replace(/'/g, "'\\''")
+    const _escapedContent = content.replace(/'/g, "'\\''")
     const result = await this.exec(
       `cat > ${containerPath} << 'GOAT_EOF'\n${content}\nGOAT_EOF`,
       { cwd: '/' },
@@ -125,7 +130,9 @@ export class ContainerHandle {
    */
   async getEnv(varName: string): Promise<string | undefined> {
     const result = await this.exec(`echo "$${varName}"`, { cwd: '/' })
-    if (result.exitCode !== 0) return undefined
+    if (result.exitCode !== 0) {
+      return undefined
+    }
     const value = result.stdout.trim()
     return value || undefined
   }
@@ -138,7 +145,10 @@ export class ContainerHandle {
       await this.container.stop({ t: timeoutSeconds })
     } catch (err: any) {
       // Ignore "container already stopped" errors
-      if (!err.message?.includes('already stopped') && !err.message?.includes('is not running')) {
+      if (
+        !err.message?.includes('already stopped') &&
+        !err.message?.includes('is not running')
+      ) {
         throw err
       }
     }
@@ -152,7 +162,10 @@ export class ContainerHandle {
       await this.container.remove({ force: true })
     } catch (err: any) {
       // Ignore "no such container" errors
-      if (!err.message?.includes('no such container') && err.statusCode !== 404) {
+      if (
+        !err.message?.includes('no such container') &&
+        err.statusCode !== 404
+      ) {
         throw err
       }
     }

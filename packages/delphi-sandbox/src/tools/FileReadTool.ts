@@ -4,7 +4,8 @@ import type { SandboxTool, ToolResult } from './SandboxTool.js'
 
 export class FileReadTool implements SandboxTool {
   readonly name = 'file_read'
-  readonly description = 'Read the contents of a file from the sandbox environment.'
+  readonly description =
+    'Read the contents of a file from the sandbox environment.'
   readonly parameters = {
     type: 'object',
     properties: {
@@ -21,7 +22,9 @@ export class FileReadTool implements SandboxTool {
     args: Record<string, unknown>,
   ): Promise<ToolResult> {
     const path = args.path as string
-    if (!path) return { output: '', error: 'path is required', exitCode: 1 }
+    if (!path) {
+      return { output: '', error: 'path is required', exitCode: 1 }
+    }
 
     try {
       const content = await container.readFile(path)

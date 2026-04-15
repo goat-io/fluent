@@ -4,13 +4,15 @@ import type { SandboxTool, ToolResult } from './SandboxTool.js'
 
 export class GitTool implements SandboxTool {
   readonly name = 'git'
-  readonly description = 'Execute git commands in the sandbox. Use for checking status, creating commits, viewing diffs, switching branches, etc.'
+  readonly description =
+    'Execute git commands in the sandbox. Use for checking status, creating commits, viewing diffs, switching branches, etc.'
   readonly parameters = {
     type: 'object',
     properties: {
       command: {
         type: 'string',
-        description: 'The git subcommand and arguments (e.g., "status", "diff", "add -A", "commit -m \\"msg\\"")',
+        description:
+          'The git subcommand and arguments (e.g., "status", "diff", "add -A", "commit -m \\"msg\\"")',
       },
       cwd: {
         type: 'string',
@@ -25,7 +27,9 @@ export class GitTool implements SandboxTool {
     args: Record<string, unknown>,
   ): Promise<ToolResult> {
     const command = args.command as string
-    if (!command) return { output: '', error: 'command is required', exitCode: 1 }
+    if (!command) {
+      return { output: '', error: 'command is required', exitCode: 1 }
+    }
 
     const result = await container.exec(`git ${command}`, {
       cwd: (args.cwd as string) ?? undefined,

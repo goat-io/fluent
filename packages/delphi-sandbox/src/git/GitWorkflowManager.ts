@@ -28,7 +28,9 @@ export class GitWorkflowManager {
    */
   async setup(config: GitSetupConfig): Promise<void> {
     // Configure git user
-    await this.container.exec('git config --global user.email "agent@goatlab.io"')
+    await this.container.exec(
+      'git config --global user.email "agent@goatlab.io"',
+    )
     await this.container.exec('git config --global user.name "Goat Agent"')
 
     // Configure credentials if provided
@@ -64,7 +66,9 @@ export class GitWorkflowManager {
    */
   async extract(config?: SandboxGitExtraction): Promise<GitExtractResult> {
     // Get current branch
-    const branchResult = await this.container.exec('git rev-parse --abbrev-ref HEAD')
+    const branchResult = await this.container.exec(
+      'git rev-parse --abbrev-ref HEAD',
+    )
     const branch = branchResult.stdout.trim()
 
     // Get latest commit SHA
@@ -72,7 +76,9 @@ export class GitWorkflowManager {
     const commitSha = shaResult.stdout.trim()
 
     // Get diff stat
-    const diffResult = await this.container.exec('git diff --stat HEAD~1 2>/dev/null || echo "No previous commit"')
+    const diffResult = await this.container.exec(
+      'git diff --stat HEAD~1 2>/dev/null || echo "No previous commit"',
+    )
     const diffStat = diffResult.stdout.trim()
 
     // Push if requested

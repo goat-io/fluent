@@ -1,10 +1,10 @@
 // npx vitest run src/__tests__/unit/tools.spec.ts
 import type { SandboxToolName } from '../types/SandboxConfig.js'
-import type { SandboxTool } from './SandboxTool.js'
 import { BashTool } from './BashTool.js'
 import { FileReadTool } from './FileReadTool.js'
 import { FileWriteTool } from './FileWriteTool.js'
 import { GitTool } from './GitTool.js'
+import type { SandboxTool } from './SandboxTool.js'
 
 /**
  * Registry of sandbox tools available to AI agents.

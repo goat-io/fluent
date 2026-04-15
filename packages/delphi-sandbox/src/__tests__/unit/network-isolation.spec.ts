@@ -2,7 +2,7 @@
 //
 // Tests for Issue #2: Sandbox network isolation defaults
 //
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { SandboxExecutorConfig } from '../../types/SandboxConfig.js'
 
 describe('Sandbox Network Isolation Config', () => {
@@ -20,7 +20,10 @@ describe('Sandbox Network Isolation Config', () => {
       networkMode: 'bridge',
       allowedDomains: ['api.example.com', 'registry.npmjs.org'],
     }
-    expect(config.allowedDomains).toEqual(['api.example.com', 'registry.npmjs.org'])
+    expect(config.allowedDomains).toEqual([
+      'api.example.com',
+      'registry.npmjs.org',
+    ])
   })
 
   it('allowedDomains is optional', () => {

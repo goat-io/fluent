@@ -51,7 +51,9 @@ export function collectStream(
           break
         }
 
-        const payload = chunk.subarray(offset + 8, offset + 8 + size).toString('utf-8')
+        const payload = chunk
+          .subarray(offset + 8, offset + 8 + size)
+          .toString('utf-8')
 
         if (streamType === 2) {
           stderr += payload

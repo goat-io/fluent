@@ -1,11 +1,10 @@
 // npx vitest run src/__tests__/unit/sandbox-agent-runner.spec.ts
-import type { LLMAdapter, ChatMessage, ChatResponse } from '@goatlab/delphi-ai'
+import type { ChatMessage, LLMAdapter } from '@goatlab/delphi-ai'
 import { modelSelector } from '@goatlab/delphi-ai'
 import type { ContainerHandle } from '../container/ContainerHandle.js'
-import type { SandboxAgentExecution, SandboxToolName } from '../types/SandboxConfig.js'
-import { DEFAULT_MAX_TURNS } from '../types/SandboxConfig.js'
-import type { SandboxTool } from '../tools/SandboxTool.js'
 import { SandboxToolRegistry } from '../tools/SandboxToolRegistry.js'
+import type { SandboxAgentExecution } from '../types/SandboxConfig.js'
+import { DEFAULT_MAX_TURNS } from '../types/SandboxConfig.js'
 
 export interface AgentRunResult {
   output: Record<string, unknown>
@@ -18,12 +17,18 @@ export interface AgentRunResult {
 export class SandboxAgentRunner {
   private adapter: LLMAdapter
   private toolRegistry: SandboxToolRegistry
-  private logger?: { info: (...a: unknown[]) => void; debug: (...a: unknown[]) => void }
+  private logger?: {
+    info: (...a: unknown[]) => void
+    debug: (...a: unknown[]) => void
+  }
 
   constructor(
     adapter: LLMAdapter,
     toolRegistry?: SandboxToolRegistry,
-    logger?: { info: (...a: unknown[]) => void; debug: (...a: unknown[]) => void },
+    logger?: {
+      info: (...a: unknown[]) => void
+      debug: (...a: unknown[]) => void
+    },
   ) {
     this.adapter = adapter
     this.toolRegistry = toolRegistry ?? new SandboxToolRegistry()
@@ -37,8 +42,8 @@ export class SandboxAgentRunner {
     onHeartbeat?: (data: Record<string, unknown>) => void,
   ): Promise<AgentRunResult> {
     const maxTurns = config.maxTurns ?? DEFAULT_MAX_TURNS
-    const tools = this.toolRegistry.getTools(config.tools)
-    const toolDefs = this.toolRegistry.toToolDefinitions(config.tools)
+    const _tools = this.toolRegistry.getTools(config.tools)
+    const _toolDefs = this.toolRegistry.toToolDefinitions(config.tools)
 
     const resolvedModel = modelSelector.resolveModelConfig(config.model)
 
@@ -55,7 +60,11 @@ export class SandboxAgentRunner {
 
       // Call LLM
       const response = await this.adapter.chatFromConfig(
-        { ...resolvedModel, temperature: config.temperature, maxTokens: config.maxTokens },
+        {
+          ...resolvedModel,
+          temperature: config.temperature,
+          maxTokens: config.maxTokens,
+        },
         messages,
       )
 
@@ -78,12 +87,21 @@ export class SandboxAgentRunner {
             continue
           }
 
-          this.logger?.debug?.(`[SandboxAgent] Tool: ${toolCall.name}(${JSON.stringify(toolCall.arguments)})`)
-          onHeartbeat?.({ turn, totalToolCalls, phase: 'tool_exec', tool: toolCall.name })
+          this.logger?.debug?.(
+            `[SandboxAgent] Tool: ${toolCall.name}(${JSON.stringify(toolCall.arguments)})`,
+          )
+          onHeartbeat?.({
+            turn,
+            totalToolCalls,
+            phase: 'tool_exec',
+            tool: toolCall.name,
+          })
 
           const result = await tool.execute(container, toolCall.arguments)
 
-          this.logger?.debug?.(`[SandboxAgent] Result: exitCode=${result.exitCode}, output=${result.output.substring(0, 200)}`)
+          this.logger?.debug?.(
+            `[SandboxAgent] Result: exitCode=${result.exitCode}, output=${result.output.substring(0, 200)}`,
+          )
 
           messages.push({
             role: 'user',
@@ -94,7 +112,9 @@ export class SandboxAgentRunner {
         // LLM returned text without tool calls — agent is done
         messages.push({ role: 'assistant', content: response.content })
 
-        this.logger?.info?.(`[SandboxAgent] Completed in ${turn + 1} turns, ${totalToolCalls} tool calls`)
+        this.logger?.info?.(
+          `[SandboxAgent] Completed in ${turn + 1} turns, ${totalToolCalls} tool calls`,
+        )
 
         // Try to parse final output as JSON, fall back to raw text
         let output: Record<string, unknown>
@@ -116,7 +136,11 @@ export class SandboxAgentRunner {
 
     // Max turns reached
     return {
-      output: { error: 'Max turns reached', turns: maxTurns, toolCalls: totalToolCalls },
+      output: {
+        error: 'Max turns reached',
+        turns: maxTurns,
+        toolCalls: totalToolCalls,
+      },
       toolCalls: totalToolCalls,
       turns: maxTurns,
       tokenUsage,
