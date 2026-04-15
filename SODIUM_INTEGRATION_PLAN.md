@@ -1,8 +1,10 @@
 # Sodium ↔ Goat Agents Engine — Full Context & Integration Plan
 
 > **Status**: planning + handover document, ready to execute in any session.
-> **Last updated**: 2026-04-14
+> **Last updated**: 2026-04-15
 > **Audience**: another agent or engineer with **zero prior context**. This document is self-contained — read it cold and you should be able to pick up where we left off.
+>
+> **What changed since 2026-04-14**: the public authoring API has been rewritten — class-based `Workflow` + `Step` subclasses replace `WorkflowBuilder`, `createEngine({ workflows: [...] as const })` returns a fully-typed engine proxy (`engine.payment_critical.startCommitted({...})`), and `@goatlab/tasks-core` `ShouldQueue` instances can be passed **directly** to `createEngine` — auto-adapted as single-step workflows. A workflow-level `durability: 'buffered' \| 'committed'` flag was added with fsync-durable commit semantics + batched COPY idempotency. See §1.5 (commits `510df67` + `71005bd`), §1.6 (new buffered-vs-committed perf table), and §2.0 decision #9 for what this means for the integration.
 
 ---
 
@@ -33,7 +35,10 @@ The goal is to integrate the agents engine into sodium's existing Express + Post
 
 `@goatlab/delphi-core` is a TypeScript distributed workflow engine inspired by Hatchet, Temporal, Trigger.dev. It runs DAGs of steps over Postgres (source of truth) + BullMQ (execution queues) with:
 
-- Idempotent starts (UNIQUE constraint on `idempotencyKey`)
+- **Class-based authoring API** — subclass `Workflow` + `FunctionStep`, compose typed step instances via `step()`, call through `createEngine({ workflows: [...] as const })` returning a typed proxy (`engine.payment_critical.startCommitted({...})`). No string handler names, no `executorConfig` blobs at the call site.
+- **`ShouldQueue` auto-adaption** — pass a bare `@goatlab/tasks-core` task directly to `createEngine` and it becomes a single-step workflow with the task's `taskName`/`retries` preserved and `TInput`/`TResult`/`TName` generics threaded through to the typed proxy.
+- **Workflow-level durability** — each workflow declares `durability: 'buffered' \| 'committed'`. Buffered (default) returns the runId ~1-2ms after the trigger hits the in-memory `IngestBuffer`; committed blocks until the `workflow_runs` row has been COPY-FROM'd and COMMIT'd to PG with `synchronous_commit=ON`. Batched CO PY + fsync amortized across concurrent committed callers via `BatchedJobProcessor`.
+- Idempotent starts (UNIQUE constraint on `idempotencyKey`) — the committed path pre-checks existing rows per tenant + within-batch first-wins, so payment-style double-submits return the original `runId` instead of duplicating.
 - Per-step retries with backoff
 - Human-in-the-loop (`waitForHuman` step result → `WAITING_HUMAN` state)
 - External actions with exactly-once semantics (`engine.externalActions.run(...)`)
@@ -271,6 +276,47 @@ Bun is best for latency-sensitive front-door services; Node still wins for workf
 
 **No perf regression** — quick load test showed 2k @ p95=45ms, 4k @ p95=83ms, 0% errors. Same as before.
 
+### Commit 14: `510df67` — Workflow durability flag (`buffered` vs `committed`) + idempotency
+
+**Why**: the existing `/start-async` path returned 200 as soon as the trigger hit the in-memory `IngestBuffer` — fast (~1-2ms) but with a ~70ms crash window before the batch flush to PG. Payment-style flows need an honest "accepted = durable on disk" ack.
+
+**Changes**:
+- `WorkflowDefinition.durability: 'buffered' \| 'committed'` (optional; default `buffered`)
+- `IngestBuffer.enqueueCommitted(trigger)` — returns `Promise<{runId, traceId}>` resolving only after `workflow_runs` row has been COPY-FROM'd and COMMIT'd. Uses a second `BatchedJobProcessor` wired directly to `engine.startBatchCopy()` from the HTTP process (bypasses BullMQ since the caller is blocked anyway).
+- `WorkflowEngine.startBatchCopy(triggers, { synchronousCommit, checkIdempotency })`:
+  - `synchronousCommit: true` — the COPY transaction uses `SET LOCAL synchronous_commit = ON` so COMMIT blocks until WAL fsync. Committed workflows always pass true. Fixes a correctness bug: the previous hard-coded `synchronous_commit = OFF` made `durability='committed'` a lie.
+  - `checkIdempotency: true` — pre-fetches existing rows by `(tenantId, idempotencyKey)` per tenant (one SELECT per tenant per batch), dedupes both against PG and within-batch first-wins. Required so payment-style double-submits return the original `runId`. Buffered path doesn't dedupe by default (skips the extra SELECT).
+- Generic HTTP adapter + `delphi-express` dispatch by `definition.durability`.
+- Production-like PG settings in the test server (`fsync=on, synchronous_commit=on, full_page_writes=on`) — the prior fsync=off dev settings made the durability story dishonest under load.
+
+**Perf** (cluster=2, prod-like PG — see §1.6 new table): buffered ~4k rps @ p95 37ms; committed ~1.6k rps @ p95 151ms; 0% errors both paths. Committed is 2.5× slower throughput and adds ~120ms p95 latency for honest on-disk durability. `BatchedJobProcessor` amortizes fsync across ~100 concurrent committed callers so per-caller fsync cost is ~0.1ms.
+
+### Commit 15: `71005bd` — Class-based workflow API + `ShouldQueue` auto-adaption
+
+**Why**: the `WorkflowBuilder.create('x').step('y', { executorType: 'function', executorConfig: { handler: 'z' } }).build()` shape was string-heavy — typos compile, refactors don't follow renames, step outputs lose their type through `mapInput`. Sodium-style `taskClasses` (typed class per task) is strictly better ergonomically. Also: a task is essentially a one-step workflow, so sodium's existing task catalogue should plug into delphi without rewriting.
+
+**Changes**:
+- `Step` + `FunctionStep` abstract base classes with `TInput`/`TOutput`/`TName` generics. Subclass and override `handle()`.
+- `Workflow` abstract base + `step()` composition helper. Typed `dependsOn` by reference (not string), typed `mapInput` with `StepOutputs<TDeps>` mapped-type over upstream step outputs.
+- `createEngine({ workflows: [...] as const })` — returns a `WorkflowEngine` subtype where each workflow is an addressable property with typed input/signal/return shapes:
+  ```ts
+  await engine.payment_critical.startCommitted({ orderId, amountCents, customerId })
+  ```
+  Auto-registers step handlers under namespaced keys (`<workflowName>.<stepName>`) and constructs the `IngestBuffer` internally. Refuses workflow names that collide with `WorkflowEngine` methods at construction time.
+- `fromShouldQueue(task)` — adapts a `@goatlab/tasks-core` `ShouldQueue` as a typed `FunctionStep` instance. Preserves `TInput`/`TResult`/`TName` generics.
+- `workflowFromShouldQueue(task)` — adapts as a single-step `Workflow` instance.
+- **`createEngine` auto-detects `ShouldQueue` instances** in its `workflows` array via `instanceof` and wraps them on the fly. Sodium's existing `taskClasses` array plugs in directly:
+  ```ts
+  createEngine({ workflows: [paymentWorkflow, ...taskClasses.map(Cls => new Cls())] as const, ... })
+  await engine.check_post.start({ postId })   // fully typed, no rewriting
+  ```
+- `WorkflowBuilder` kept as internal-only primitive (still powers the 30+ existing engine tests). Removed from public exports.
+- 39 tests in `workflow.spec.ts`, 11 type-level via `expectTypeOf` + `@ts-expect-error` (verify input/output/name generics flow, wrong call-site input rejected at compile time, mixed `Workflow` + `ShouldQueue` arrays typecheck).
+
+**Migration cost for sodium**: drops dramatically. The 28 existing `ShouldQueue` task classes in `sodium/apps/backend/src/config/tasks.ts` become usable as delphi workflows by passing the array directly to `createEngine`. No per-task rewriting required.
+
+**No perf regression** — cluster=2 prod-PG: buffered p50 6ms / p95 37ms / p99 106ms; committed p50 72ms / p95 151ms / p99 245ms. Identical throughput to pre-refactor (4k buffered / 1.6k committed sustained, 0% errors).
+
 ## 1.6 The full performance picture
 
 All measured on the same machine (M-series Mac, Docker Desktop with PG+Redis containers). **Cloud Run with managed PG/Redis will be faster** because (a) no Docker Desktop VM overhead, (b) PG/Redis on dedicated machines, (c) GCP VPC sub-millisecond network.
@@ -288,6 +334,23 @@ All measured on the same machine (M-series Mac, Docker Desktop with PG+Redis con
 | 5,000 req/s | 23-80ms | 49-171ms | 824-7779ms | 0-0.86% | 4,460/s (saturating) |
 
 Drain: ~700-770 completions/sec sustained.
+
+### 2-vCPU cluster, buffered vs committed durability (production-like PG)
+
+Apples-to-apples at cluster=2 with `fsync=on, synchronous_commit=on, full_page_writes=on` (production defaults). Committed path uses `synchronous_commit=ON` inside the COPY transaction so COMMIT actually fsyncs the WAL; `BatchedJobProcessor` amortizes fsync across every concurrent caller in the batch. Measured post-class-API rewrite (3 buffered + 2 committed iterations; medians shown).
+
+| Metric | Buffered (`fast_single`) | Committed (`payment_critical`) |
+|---|---|---|
+| Sustained peak RPS | **4,000** | **1,600** |
+| p50 | 6 ms | 72 ms |
+| p95 | 37 ms | 151 ms |
+| p99 | 106 ms | 245 ms |
+| max | 474 ms | 543 ms |
+| Error rate | 0.00% | 0.00% |
+
+**Tradeoff**: committed costs ~2.5× throughput and ~120ms p95 for honest "row fsync'd to disk before we say 200." Trivially within payment SLOs. The gap is NOT the fsync itself — that's amortized — it's per-caller flush coordination. Horizontal scaling applies the same ~linear way as buffered.
+
+Reproduce: `k6 run packages/delphi-core/loadtest/k6-workflow-buffered.js` then `k6 run packages/delphi-core/loadtest/k6-workflow-committed.js` against `CLUSTER_MODE=2 npx tsx packages/delphi-ui/test-server/server.ts`.
 
 ### 16-core (CLUSTER_MODE=auto → 15 workers)
 - HTTP: ~17,000 req/s sustained, 0% errors, p95<100ms
@@ -609,8 +672,24 @@ Replace `processIncomingDispatch`'s sequential `while` loop with parallel batch 
 ### 7. Per-tenant tables stay in tenant DB
 Engine tables go in **tenant's** Prisma DB, not a shared platform DB. Same connection string, same Prisma client, same connection pool.
 
-### 8. Replace sodium's task system with workflows over time
-Every existing task (notifications, tenant provisioning, realtime broadcast) becomes a 1-step (or N-step) workflow. Every new task is a workflow by default.
+### 8. Sodium's task system becomes delphi workflows instantly via ShouldQueue auto-adaption
+The previous plan was "migrate one task per week to a `WorkflowBuilder` definition." With `createEngine`'s `ShouldQueue` auto-detection (commit `71005bd`), sodium's existing `taskClasses` array (in `config/tasks.ts`) is passable **directly** — zero rewriting:
+
+```ts
+createEngine({
+  workflows: [...taskClasses.map(Cls => new Cls())] as const,
+  db, pgPool, connector, tenantId,
+})
+await engine.check_post.start({ postId })     // check_post was a ShouldQueue, now a typed workflow
+```
+
+Every existing task instantly becomes: DB-durable (PG `workflow_runs` row), idempotent (via `idempotencyKey`), retryable, observable (state transitions emit events), traceable (`traceId` lineage), optionally committed (via `override durability = 'committed' as const` on a companion `Workflow` class). **Migration is opt-in, not mandatory** — only promote a task to an explicit `Workflow` subclass when you want multi-step DAG composition, human-in-the-loop, signals, or `committed` durability.
+
+### 9. Class-based authoring API is the default surface
+- Public API: `Workflow` + `FunctionStep` subclasses, composed via `step()`, wired through `createEngine({ workflows: [...] as const })`.
+- `WorkflowBuilder` is internal-only (still powers engine tests); not exported from `@goatlab/delphi-core`.
+- Sodium's call sites use `engine.<taskName>.start(input)` — fully typed inputs, no string workflow names, no `executorConfig` blobs. Typo-proof, rename-refactor-safe.
+- Workflow durability: `override durability = 'committed' as const` on the class → caller decides buffered vs committed via method choice (`startBuffered` vs `startCommitted`). Generic HTTP adapters (delphi-express) dispatch by `definition.durability`.
 
 ## 2.1 Phases
 
@@ -649,13 +728,17 @@ Each phase is independently shippable.
 | 1 | `apps/backend/package.json` | Add `@goatlab/delphi-core` and `@goatlab/delphi-express` workspace deps |
 | 2 | `apps/backend/prisma/schema.prisma` | Append the 12 engine models from `packages/delphi-core/prisma.fragment` with `@@schema("agents")`. Enable `previewFeatures = ["multiSchema"]`. |
 | 3 | `apps/backend/pgroll-migrations/` | Run `pnpm db:create:migration` — generates pgroll migration creating `agents` schema + 12 tables. Apply via normal flow. |
-| 4 | `apps/backend/src/config/agents/agents.factory.ts` (new) | LRU+TTL cached engine factory. Mirror `better-auth.factory.ts`. |
-| 5 | `apps/backend/src/api/_express/agents/agents.resource.ts` (new) | One-line wrap of `agentsRouter({ resolveAgents })` |
-| 6 | `apps/backend/src/router_express.ts` | `app.use('/api/workflows', agentsResource)` |
-| 7 | `apps/backend/src/config/tasks.ts` | Register engine queue handlers in task registry: `tasks.register('workflow_ingest', ...)`, etc. |
-| 8 | `apps/backend/src/config/dispatch/dispatch.setup.ts` | Optional 3-line filter to skip dispatch hint emission for engine queues if double-routing causes issues — investigate first |
+| 4 | `apps/backend/src/config/agents/agents.config.ts` (new) | `getAgentsConfig(ctx)` factory — mirror `getQueueConfig` / `getTasksConfig`. Calls `createEngine({ workflows: [...workflowClasses.map(new), ...taskClasses.map(new)] as const, db, pgPool: getSharedPool(...), connector: ctx.queueService.getBullMQ(), tenantId, schema: 'agents', eventIngestion })`. Returns `{ engine, ingestWorker, stepTask }`. **~40 LOC** — no LRU cache needed, the DI container already caches per-tenant. |
+| 5 | `apps/backend/src/config/agents/workflows/index.ts` (new) | `export const workflowClasses = [] as const` — starts empty; grows in Phase 3 as you opt tasks into multi-step / HITL / committed durability. |
+| 6 | `apps/backend/src/config/_container.ts` | Wire `getAgentsConfig` into the container initializer: add to `factory` (for the Preload type), construct in Phase 2 alongside `getQueueConfig` / `getTaskTrackerConfig`, return in the context object, declare in `ContainerContext` interface. **~6 lines touched.** |
+| 7 | `apps/backend/src/api/_express/agents/agents.resource.ts` (new) | One-line wrap of `agentsRouter({ resolveAgents })` — pulls `ctx.agentsService` from the container. |
+| 8 | `apps/backend/src/router_express.ts` | `app.use('/api/workflows', agentsResource)` |
+| 9 | `apps/backend/src/config/tasks.ts` | Register the 5 engine queue handlers in the task registry (`workflow_ingest`, `workflow_step_light/heavy/ai/sandbox`). Handlers pull from `ctx.agentsService`. |
+| 10 | `apps/backend/src/config/dispatch/dispatch.setup.ts` | Optional 3-line filter to skip dispatch hint emission for engine queues if double-routing causes issues — investigate first |
 
-**Result**: any sodium endpoint can do `engine.start({...})`. Engine queues consumed via existing dispatch infrastructure. Zero impact on existing tasks.
+**Result**: any sodium endpoint can call `ctx.agentsService.engine.<taskName>.start(input)` with full type safety. Every existing `ShouldQueue` task in sodium's `taskClasses` array is instantly addressable as a typed delphi workflow — no rewriting. Engine queues consumed via existing dispatch infrastructure. Zero impact on existing task-style callers (`connector.queue('check_post', ...)` continues to work unchanged; callers can migrate to `engine.check_post.start(...)` at their own pace to pick up durability/idempotency/traceability).
+
+**Why no LRU+TTL cache?** Sodium's `Container` from `@goatlab/node-backend` already caches per-tenant contexts. `withContainer(req)` returns an already-initialized container for that tenant — the engine bundle constructed inside `initializeContainer` is cached for the container's lifetime. An external `getAgentsBundle(...)` cache would be redundant (and worse: two caches with different eviction policies).
 
 ### Phase 2 — Realtime broker extraction (in `fluent` repo) — partial ✅
 
@@ -710,22 +793,47 @@ new WorkflowEngine({
 
 **Remaining work** (broker extraction): sodium's `TenantSubscriberPool` lifts cleanly into a new `@goatlab/realtime-broker` package. ~250 LOC. Engine integration is a 5-line wire-up: `onEngineEvent: evt => broker.publish(evt.tenantId, channel, evt)`.
 
-### Phase 3 — Migrate easy tasks (in `sodium` repo, ongoing)
+### Phase 3 — Enhance tasks with workflow features (in `sodium` repo, opt-in)
 
-Migration order (easiest → hardest):
-1. **Cron-style**: `job_alert_check`, `job_expiration_sweep` → 1-step workflow + `SchedulerService` cron entry. **Drops `setInterval` from your codebase.** PG-backed scheduling means no duplicate firing across pods.
-   - ✅ **Verified multi-pod safe in `fluent`** (commit `<next>`): `SchedulerService.tick()` now wraps in a transaction so `FOR UPDATE SKIP LOCKED` actually holds; adds `WHERE tenantId = $1` filter for per-tenant isolation; defense-in-depth via `idempotencyKey: cron:<workflowName>:<scheduledAt>` UNIQUE constraint. New test proves 4 parallel pods → exactly 1 cron.trigger event per due schedule.
-2. **Tenant provisioning**: `provision_medusa_tenant`, `create_tenant`, `migrate_tenant` → multi-step DAG. Each step idempotent, retryable, observable.
-3. **Notifications**: `notify`, `notify.deferred-email`, `notify.digest-flush` → 1-step workflows with `idempotencyKey: notify-${userId}-${eventId}`.
-4. **Realtime broadcast**: `realtime.broadcast` → 1-step workflow with `idempotencyKey: broadcast-${tenantId}-${1secBucket}`.
+With `ShouldQueue` auto-adaption (commit `71005bd`), every existing sodium task is already a delphi workflow the moment you ship Phase 1. No per-task rewriting is required to get: DB durability, idempotency, retries, observability, `traceId` lineage, status polling via `/api/workflows/status/:runId`.
 
-For each migration:
-- Define `WorkflowBuilder.create('task_name')` in `apps/backend/src/config/agents/workflows/`
-- Update producer call sites: `connector.queue('task_name', data)` → `engine.start({ workflowName: 'task_name', input: data, idempotencyKey })`
-- Remove the old task handler from sodium's task registry
-- Verify in dashboard / via `/api/workflows/status`
+**Critical framing: the old `ctx.tasks.X.queue(...)` and new `ctx.agentsService.engine.X.start(...)` paths coexist.** They run the same `ShouldQueue.handle()` method via different queues — no conflict, no duplicate execution. Migrating a call site is opt-in, not mandatory:
 
-Target: **one task per week**.
+```
+ctx.tasks.check_post.queue({ postId })                          // → BullMQ `check_post` queue → dispatch → task.handle()
+ctx.agentsService.engine.check_post.start({ postId }, {         // → INSERT workflow_runs → BullMQ workflow_step_light →
+  idempotencyKey: 'check-123',                                  //   WorkflowStepTask → FunctionStepExecutor → task.handle()
+})                                                              // → UPDATE workflow_runs status, emit events
+```
+
+**Migrate a call site only when** you want one of: committed durability, DB-level idempotency, status polling, traceability, observability / dashboard, step-level retries, human-in-the-loop, or multi-step composition. Fire-and-forget calls ("notify user that their post was created") can stay on `ctx.tasks.X.queue(...)` forever — zero pressure, zero value lost.
+
+Phase 3 is about **opting tasks into workflow-specific features** — only do this when a task needs something a plain `ShouldQueue` doesn't give you.
+
+**Upgrade ladder** (in rough order of "common reason to upgrade"):
+
+1. **Committed durability** — add a companion `Workflow` subclass with `override durability = 'committed' as const` for flows where "accepted = on disk" matters (payments, financial ops, irreversible actions). Caller switches to `engine.<name>.startCommitted(input, { idempotencyKey })`.
+2. **Multi-step DAG** — promote from a single `ShouldQueue` to a `Workflow` subclass with multiple `step(...)` entries. Each step idempotent, retryable, observable independently. Fan-out via `dependsOn: [a, b]` rejoins.
+3. **Human-in-the-loop** — any step returning `{ waitForHuman: { prompt, schema } }` transitions to `WAITING_HUMAN` until `engine.<name>.submitHumanInput(runId, stepName, data)`. Replaces ad-hoc "set a DB flag, poll from the UI" patterns.
+4. **Cron scheduling** — `SchedulerService` owns PG-backed cron. Drops `setInterval` / platform-worker loops; multi-pod-safe via transaction-wrapped `FOR UPDATE SKIP LOCKED`.
+   - ✅ **Verified multi-pod safe**: defense-in-depth via `idempotencyKey: cron:<workflowName>:<scheduledAt>` UNIQUE constraint. 4 parallel pods → exactly 1 `cron.trigger` event per due schedule.
+5. **Signals** — long-running workflow receives async inputs (`engine.<name>.signal(runId, 'approved', data)`). Pairs naturally with HITL.
+6. **External actions** (exactly-once) — `ctx.externalActions.run({...})` inside a step for calls to systems of record (Stripe, GitHub, etc.). Persists intent → dispatches → records result → replays safely on retry.
+
+**Candidate tasks for each upgrade** (illustrative — pick as priorities emerge):
+
+- **Committed durability**: any task that touches billing, a primary ledger, or external systems where retrying is expensive.
+- **Multi-step**: `provision_medusa_tenant` (5+ real steps), `create_tenant` (migrate → seed → first admin → welcome email).
+- **HITL**: `check_post` (if moderator review gate is ever needed), tenant-deletion workflows (require admin approval before irreversible steps).
+- **Cron**: `job_alert`, `job_expiration_sweep`, digest rollups — drops `setInterval` loops.
+
+For each upgrade:
+- Define a companion `Workflow` subclass in `apps/backend/src/config/agents/workflows/` (e.g. `PaymentCriticalWorkflow.ts`). Reuse the existing `ShouldQueue` via `fromShouldQueue(task)` if one step's logic already lives there.
+- Register alongside or instead of the original task in `createEngine({ workflows: [...] })`.
+- Update call sites to use the new typed entry: `engine.payment_critical.startCommitted(...)` etc.
+- Verify in dashboard / via `/api/workflows/status`.
+
+**Target**: no pressure — migrate tasks only when they need something new. The default state is "task works fine as an auto-adapted workflow."
 
 ### Phase 4 — Production-readiness
 
@@ -744,146 +852,307 @@ When all `connector.queue(...)` callsites migrated, remove the `tasks.handleByNa
 
 ## 2.2 Drop-in code
 
-### `apps/backend/src/config/agents/agents.factory.ts`
+The integration lives entirely inside sodium's existing DI container — no external cache, no parallel bootstrap path. `getAgentsConfig(ctx)` mirrors `getQueueConfig` / `getTasksConfig`. The container caches the bundle per-tenant automatically.
+
+### 1. `apps/backend/src/config/agents/workflows/index.ts` (new)
+
+```ts
+// Phase 1 starts empty. Add Workflow subclasses here as you opt tasks into
+// multi-step / HITL / committed durability / etc.
+// Example (Phase 3):
+//   export class PaymentCriticalWorkflow extends Workflow<{ orderId, amountCents }, 'payment_critical'> {
+//     workflowName = 'payment_critical' as const
+//     override durability = 'committed' as const
+//     steps = [step(chargeCardStep), step(sendReceiptStep, { dependsOn: [chargeCardStep] })] as const
+//   }
+export const workflowClasses = [] as const
+```
+
+### 2. `apps/backend/src/config/agents/agents.config.ts` (new — ~40 LOC)
+
+Follows the same destructured-context shape as every other `getXConfig` in sodium (`getEmailConfig`, `getQueueConfig`, `getTasksConfig`). Delphi depends on `queueService` (constructed in Phase 2 parallel alongside everything else), so `getAgentsConfig` takes `ContextWithServices` plus the explicit `connector` — matching `getTasksConfig`'s "Phase 2.5" pattern where a service is built right after Phase 2's `Promise.all` completes and can reach into its results.
 
 ```ts
 import { Kysely, PostgresDialect } from 'kysely'
 import {
-  WorkflowEngine, WorkflowStepTask, FunctionStepExecutor,
-  IngestBuffer, IngestWorker, EventIngestionService,
+  createEngine,
+  IngestWorker,
+  WorkflowStepTask,
+  EventIngestionService,
+  type Database as AgentsDB,
+  type TypedEngine,
 } from '@goatlab/delphi-core'
-import type { Database as AgentsDB } from '@goatlab/delphi-core'
+import type { TaskConnector } from '@goatlab/tasks-core'
 import { getSharedPool } from '@src/config/database/getConfiguredPrismaClient'
-import { logger } from '@src/services/logger/logger.service'
+import { taskClasses } from '@src/config/tasks'                      // sodium's existing task catalogue
+import { workflowClasses } from '@src/config/agents/workflows'       // new Workflow subclasses (may be empty at Phase 1)
 import type { ContextWithServices } from '../_container'
 
-interface Bundle {
-  engine: WorkflowEngine
-  ingestBuffer: IngestBuffer
+// Instantiate both catalogues. Workflow instances first, then ShouldQueue
+// tasks — createEngine rejects duplicate names across both kinds, surfaced
+// as a bootstrap-time error rather than a silent overwrite.
+const registeredWorkflows = [
+  ...workflowClasses.map(Cls => new Cls()),
+  ...taskClasses.map(Cls => new Cls()),
+] as const
+
+export type SodiumAgentsEngine = TypedEngine<typeof registeredWorkflows>
+
+export interface SodiumAgentsService {
+  engine: SodiumAgentsEngine
   ingestWorker: IngestWorker
   stepTask: WorkflowStepTask
-  pool: import('pg').Pool
-  lastAccessed: number
+  shutdown: () => Promise<void>
 }
 
-const cache = new Map<string, Bundle>()
-const MAX_INSTANCES = 50
-const TTL_MS = 30 * 60 * 1000
-
-async function evict() {
-  const now = Date.now()
-  for (const [k, v] of cache.entries()) {
-    if (now - v.lastAccessed > TTL_MS) {
-      logger.info(`[Agents] Evicting stale engine for ${k}`)
-      // CRITICAL: do NOT call connector.close() — connector is shared
-      await v.engine.shutdown()
-      cache.delete(k)
-    }
-  }
-  if (cache.size > MAX_INSTANCES) {
-    const oldest = [...cache.entries()].sort((a, b) => a[1].lastAccessed - b[1].lastAccessed)
-    for (const [k, v] of oldest.slice(0, cache.size - MAX_INSTANCES)) {
-      await v.engine.shutdown()
-      cache.delete(k)
-    }
-  }
-}
-
-export async function getAgentsBundle(ctx: ContextWithServices): Promise<Bundle> {
-  const tenantId = ctx.tenantMeta.id
-  const dbUrl = ctx.secretService.getSecretSync('DATABASE_URL')
-  const key = `${tenantId}|${dbUrl}`
-
-  let bundle = cache.get(key)
-  if (bundle) {
-    bundle.lastAccessed = Date.now()
-    return bundle
-  }
-
-  const pool = getSharedPool(dbUrl, { max: 30 })  // bumped from sodium's default 5
+/**
+ * Build the per-tenant delphi engine + step/ingest consumers.
+ *
+ * Destructured signature matches `getEmailConfig` / `getQueueConfig` etc.
+ * `connector` is passed explicitly because delphi sits in Phase 2.5 — runs
+ * AFTER Phase 2's `Promise.all` so `queueService.getBullMQ()` is resolved.
+ */
+export const getAgentsConfig = async ({
+  tenantMeta: { id: tenantId },
+  secretService,
+  connector,
+  logger,
+}: ContextWithServices & {
+  connector: TaskConnector<object>
+  logger?: { info: (...a: unknown[]) => void; error: (...a: unknown[]) => void }
+}): Promise<SodiumAgentsService> => {
+  const dbUrl = secretService.getSecretSync('DATABASE_URL')
+  const pool = getSharedPool(dbUrl, { max: 30 })                      // bumped from sodium's default 5
   const db = new Kysely<AgentsDB>({ dialect: new PostgresDialect({ pool }) })
-  const { connector } = ctx.services.queue
 
-  const executor = new FunctionStepExecutor()
-  // TODO: register tenant-aware step handlers
-  // executor.register('sendEmail', sendEmailHandler)
-
-  const engine = new WorkflowEngine({
+  // createEngine auto-adapts every ShouldQueue in `registeredWorkflows`
+  // into a single-step workflow via `instanceof ShouldQueue`. No manual
+  // FunctionStepExecutor / IngestBuffer / workflows Map construction —
+  // createEngine builds those internally.
+  const engine = createEngine({
+    workflows: registeredWorkflows,
     db,
     pgPool: pool,
     connector,
-    executors: new Map([['function', executor]]),
-    workflows: new Map(/* loaded from your workflow registry */),
     tenantId,
     schema: 'agents',
     eventIngestion: new EventIngestionService({ db }),
-    // Phase 2: add onEngineEvent for SSE broadcast
+    logger,
+    // Phase 2-realtime: add onEngineEvent: evt => broker.publish(evt.tenantId, `engine:run:${evt.runId}`, evt)
   })
 
+  // Worker-side consumer for the buffered ingest queue — drains BullMQ jobs
+  // into PG via COPY FROM. Sodium's dispatch system routes jobs to these.
   const ingestWorker = new IngestWorker({
     engine,
     flushThreshold: 200,
     flushIntervalMs: 20,
     maxConcurrentFlushes: 8,
-  })
-  const ingestBuffer = new IngestBuffer({
-    connector,
-    taskName: 'workflow_ingest',
-    flushThreshold: 200,
-    flushIntervalMs: 50,
-    maxJitterMs: 20,
+    logger,
   })
 
   const stepTask = new WorkflowStepTask(engine)
   stepTask.setConnector(connector)
 
-  // CRITICAL: do NOT call connector.listen() here. After dispatch v2,
-  // engine queues route through sodium's dispatch system, not persistent
-  // per-tenant workers. Just register the queue handlers in the task
-  // registry below so dispatch can route them.
+  // CRITICAL: do NOT call connector.listen() here. Engine queues route
+  // through sodium's dispatch system, not persistent per-tenant workers.
+  // Tasks are registered in config/tasks.ts so dispatch can route them.
 
-  bundle = {
-    engine, ingestBuffer, ingestWorker, stepTask, pool,
-    lastAccessed: Date.now(),
+  return {
+    engine,
+    ingestWorker,
+    stepTask,
+    async shutdown() {
+      // NOTE: do NOT close the connector — it's shared across services.
+      await engine.ingestBuffer.shutdown()
+      await engine.shutdown()
+    },
   }
-  cache.set(key, bundle)
-  evict().catch(() => {})
-  return bundle
 }
 ```
 
-### `apps/backend/src/config/tasks.ts` — register engine handlers
+### 3. `apps/backend/src/config/_container.ts` — wire it in (~6 lines touched)
+
+Delphi slots in after Phase 2's `Promise.all` (same spot `getTasksConfig` uses), since it needs `queueService.getBullMQ()`:
 
 ```ts
-// Existing sodium task registry, now with engine queues:
-tasks.register('workflow_ingest', async (data, ctx) => {
-  const { ingestWorker } = await getAgentsBundle(ctx)
-  return ingestWorker.handleJob(data as any)
+// (existing imports)
+import { getAgentsConfig } from './agents/agents.config'
+import type { SodiumAgentsService } from './agents/agents.config'
+
+const factory = {
+  // ...existing entries...
+  agentsService: (): SodiumAgentsService => ({} as SodiumAgentsService),  // ← add
+} as const
+
+// Inside initializeContainer — after Phase 2's Promise.all completes,
+// right next to the existing getTasksConfig call:
+const tasksRegistry = getTasksConfig({
+  connector: queueService.getBullMQ(),
+  logger,
 })
-tasks.register('workflow_step_light', async (data, ctx) => {
-  const { stepTask } = await getAgentsBundle(ctx)
-  return stepTask.handle(data as any)
+
+const agentsService = await getAgentsConfig({                        // ← add
+  ...contextWithServices,
+  connector: queueService.getBullMQ(),
+  logger,
 })
-// Same for workflow_step_heavy, workflow_step_ai, workflow_step_sandbox
+
+// Return object — append:
+return {
+  // ...existing fields...
+  tasks,
+  agentsService,                                                     // ← add
+}
+
+// ContainerContext interface — append:
+export interface ContainerContext {
+  // ...existing fields...
+  agentsService: SodiumAgentsService                                 // ← add
+}
 ```
 
-### `apps/backend/src/api/_express/agents/agents.resource.ts`
+The container's existing LRU+TTL cache (`@goatlab/node-backend`'s `Container`) now handles per-tenant engine lifecycle. `withContainer(req)` returns the cached bundle on subsequent calls; eviction triggers the `shutdown()` callback we registered above.
+
+### 4. Engine queue handlers as `ShouldQueue` classes
+
+Sodium registers tasks via `TaskRegistry.fromClasses({ classes: taskClasses })` — there is no separate `tasks.register(name, fn)` surface. So the 5 engine queue handlers are authored as tiny `ShouldQueue` subclasses that delegate to `agentsService`, reading it from the tenant's container context via `getTaskServices()` (the same pattern every existing sodium task uses).
+
+Create `apps/backend/src/config/agents/agents.tasks.ts`:
+
+```ts
+import { ShouldQueue } from '@goatlab/tasks-core'
+import { getTaskServices } from '@src/config/tasks/task.utils'
+import { getBackendUrl } from '@src/config/tasks/task.utils'
+
+// 1 task per engine queue. Each is a thin adapter from BullMQ job → the
+// engine's ingestWorker / stepTask, scoped to the tenant's container.
+export class WorkflowIngestTask extends ShouldQueue<object, undefined, 'workflow_ingest'> {
+  taskName = 'workflow_ingest' as const
+  get postUrl() { return `${getBackendUrl()}/dispatch/worker` }
+  async handle(data: object) {
+    const { agentsService } = getTaskServices()
+    await agentsService.ingestWorker.handleJob(data as any)
+    return undefined
+  }
+}
+
+export class WorkflowStepLightTask extends ShouldQueue<object, undefined, 'workflow_step_light'> {
+  taskName = 'workflow_step_light' as const
+  get postUrl() { return `${getBackendUrl()}/dispatch/worker` }
+  async handle(data: object) {
+    const { agentsService } = getTaskServices()
+    await agentsService.stepTask.handle(data as any)
+    return undefined
+  }
+}
+
+// (identical for WorkflowStepHeavyTask / WorkflowStepAiTask / WorkflowStepSandboxTask —
+//  just change the taskName to match each engine queue)
+```
+
+Then register them alongside sodium's existing tasks in `apps/backend/src/config/tasks.ts`:
+
+```ts
+import {
+  WorkflowIngestTask,
+  WorkflowStepLightTask,
+  WorkflowStepHeavyTask,
+  WorkflowStepAiTask,
+  WorkflowStepSandboxTask,
+} from './agents/agents.tasks'
+
+export const taskClasses = [
+  // ...existing sodium tasks...
+  CheckPostTask,
+  ProcessPostTask,
+  // ...
+  // ── Engine queue handlers (consumed by sodium's dispatch; NOT passed to
+  //    createEngine's workflows array — those are separate engine queues) ──
+  WorkflowIngestTask,
+  WorkflowStepLightTask,
+  WorkflowStepHeavyTask,
+  WorkflowStepAiTask,
+  WorkflowStepSandboxTask,
+] as const
+```
+
+**Important: filter out the engine-queue classes when passing `taskClasses` to `createEngine`** — otherwise delphi would try to auto-adapt them as workflows (which would loop: the engine's own step queues would be workflow steps). In `agents.config.ts`, change the catalogue composition to:
+
+```ts
+import {
+  WorkflowIngestTask,
+  WorkflowStepLightTask,
+  WorkflowStepHeavyTask,
+  WorkflowStepAiTask,
+  WorkflowStepSandboxTask,
+} from './agents.tasks'
+
+const ENGINE_QUEUE_CLASSES = new Set([
+  WorkflowIngestTask, WorkflowStepLightTask,
+  WorkflowStepHeavyTask, WorkflowStepAiTask, WorkflowStepSandboxTask,
+])
+
+const registeredWorkflows = [
+  ...workflowClasses.map(Cls => new Cls()),
+  ...taskClasses
+    .filter(Cls => !ENGINE_QUEUE_CLASSES.has(Cls))   // ← skip engine-queue handlers
+    .map(Cls => new Cls()),
+] as const
+```
+
+### 5. Call sites — how sodium handlers use the engine
+
+```ts
+// Anywhere in sodium — fully typed, no string workflow names:
+import { withContainer } from '@src/config/_container'
+
+app.post('/api/posts/:id/check', requireAuth, async (req, res) => {
+  const ctx = await withContainer(req)
+
+  // ctx.agentsService.engine.check_post exists because CheckPostTask is
+  // in taskClasses — auto-adapted by createEngine. TInput is inferred
+  // from the ShouldQueue's <TInput, TResult, TName> generics.
+  const { runId } = await ctx.agentsService.engine.check_post.start(
+    { postId: req.params.id },
+    { idempotencyKey: `check-${req.params.id}` },
+  )
+
+  res.json({ runId })
+})
+```
+
+For a committed payment flow (after adding `PaymentCriticalWorkflow` to `workflowClasses`):
+
+```ts
+app.post('/api/orders/:id/checkout', requireAuth, async (req, res) => {
+  const ctx = await withContainer(req)
+  const { runId } = await ctx.agentsService.engine.payment_critical.startCommitted(
+    { orderId: req.params.id, amountCents: req.body.amountCents, customerId: ctx.user.id },
+    { idempotencyKey: `checkout-${req.params.id}` },
+  )
+  res.json({ runId })
+})
+```
+
+### 6. `apps/backend/src/api/_express/agents/agents.resource.ts` (new)
 
 ```ts
 import { agentsRouter } from '@goatlab/delphi-express'
 import { withContainer } from '@src/config/_container'
-import { getAgentsBundle } from '@src/config/agents/agents.factory'
 
 export const agentsResource = agentsRouter({
   resolveAgents: async (req) => {
     const ctx = await withContainer(req)
-    const { engine, ingestBuffer } = await getAgentsBundle(ctx)
-    return { engine, ingestBuffer, tenantId: ctx.tenantMeta.id }
+    const { engine } = ctx.agentsService
+    // delphi-express needs the ingestBuffer separately for the /start-async
+    // path; the typed engine exposes it at engine.ingestBuffer.
+    return { engine, ingestBuffer: engine.ingestBuffer, tenantId: ctx.tenantMeta.id }
   },
 })
 ```
 
-### `apps/backend/src/router_express.ts`
+### 7. `apps/backend/src/router_express.ts`
 
 ```ts
 import { agentsResource } from '@src/api/_express/agents/agents.resource'
@@ -891,16 +1160,17 @@ import { agentsResource } from '@src/api/_express/agents/agents.resource'
 app.use('/api/workflows', agentsResource)
 ```
 
-That's the entire integration. ~150 LOC of net-new code in sodium.
+That's the entire integration. **~100 LOC of net-new code** in sodium — 40 for `agents.config.ts`, ~6 touched in `_container.ts`, ~7 in `tasks.ts`, ~10 across the empty `workflows/index.ts` + `agents.resource.ts` + `router_express.ts` edits. Down from ~150 under the earlier plan because (a) `createEngine` subsumes the executor/IngestBuffer construction, (b) `ShouldQueue` auto-adaption eliminates per-task wrapping, and (c) the container owns per-tenant caching so no external LRU cache is needed.
 
 ## 2.3 Open questions to resolve before starting
 
 1. **Which secret holds the per-tenant `DATABASE_URL`?** — answer determines env var name in factory.
 2. **PgBouncer rollout timing** — needed at scale, maybe not for canary.
-3. **Workflow registry source of truth** — code-defined `WorkflowBuilder` definitions or persisted in `workflow_definitions` table? Phase 1: code-defined.
-4. **Step handler conventions** — convention for registering business handlers. Phase 1: just `executor.register(...)` calls.
+3. ~~**Workflow registry source of truth**~~ — **Resolved.** Code-defined via `workflowClasses` + `taskClasses` arrays (`config/agents/workflows/index.ts` + existing `config/tasks.ts`). Both are instantiated and passed to `createEngine({ workflows: [...] as const })`. No persisted `workflow_definitions` table in Phase 1.
+4. ~~**Step handler conventions**~~ — **Resolved.** Step handlers live on class instances (`FunctionStep.handle(input, ctx)`). For Phase 1, sodium reuses its existing `ShouldQueue.handle()` methods via auto-adaption — no manual `executor.register(...)` calls. When a task is promoted to a multi-step Workflow subclass, the same class-based pattern applies to each step.
 5. **SSE channel naming for engine events** — `engine:run:<runId>` (per-run), `engine:tenant:<tenantId>` (firehose), or both? Decide in Phase 2.
-6. **Auth for `/api/workflows/*`** — same as `/trpc/*` middleware? Confirm before mount.
+6. **Auth for `/api/workflows/*`** — same as `/trpc/*` middleware? Confirm before mount. (Delphi-express mounts auth-agnostic; auth middleware must run upstream of the router — see `delphi-express/README.md` §"Security model".)
+7. **Workflow naming collisions with `WorkflowEngine` methods** — `createEngine` throws if a workflow's name collides with `start / cancel / shutdown / getStatus / signal / submitHumanInput / query / ingestBuffer` etc. Sodium's existing `taskClasses` names (`check_post`, `process_post`, `create_tenant`, `notify`, `realtime.broadcast`, etc.) all use nouns/dot-names — no collisions expected. Audit `taskClasses.map(Cls => new Cls().taskName)` against `Object.getOwnPropertyNames(WorkflowEngine.prototype)` before shipping.
 
 ## 2.4 Risks and mitigations
 
@@ -944,7 +1214,12 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `ac441b6` | feat: @goatlab/delphi-trpc — typed tRPC adapter (sodium-friendly) |
 | `8fa1aab` | example(express): wire realtime-broker + onEngineEvent → SSE endpoint |
 | `118a282` | test: full-stack composition (engine + dispatch v2 + event hook + broker) |
-| **(next)** | **refactor: extract BatchedJobProcessor primitive — IngestWorker + StepStatusBuffer share it** |
+| `4d0572f` | refactor: extract BatchedJobProcessor primitive — IngestWorker + StepStatusBuffer share it |
+| `4a07214` | test: horizontal scaling loadtest — multi-instance fleet on shared infra |
+| `104fd42` | rename: agents-* packages → delphi-* (umbrella name for the platform) |
+| `01c5332` | fix(broker): verify agent secret on reconnect + ESM-friendly realtime-broker export |
+| `510df67` | **feat(delphi-core): `workflow.durability('committed')` — fsync-durable ingest path with batched COPY + idempotency** |
+| `71005bd` | **feat(delphi-core): class-based workflow API (`Workflow` + `FunctionStep` + `createEngine`) + `ShouldQueue` auto-adaption** |
 
 ## 3.2 File index — where everything lives
 
@@ -990,15 +1265,18 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 To get fully up to speed:
 
 1. **This document** (PART 1 + 2)
-2. `packages/delphi-core/README.md` — engine architecture + queue-first ingestion
-3. `packages/delphi-express/README.md` — Express adapter shape
+2. `packages/delphi-core/README.md` — engine architecture, **class API quick start (Step + Workflow + createEngine)**, Library vs service mode, Workflow durability, Library API surface, **"Using ShouldQueue tasks as Delphi steps"**, buffered-vs-committed benchmark table
+3. `packages/delphi-express/README.md` — Express adapter shape + **Security model section** (BYO-auth contract)
 4. `packages/delphi-express/example/README.md` — concrete integration example with perf numbers
-5. `packages/delphi-express/example/src/agents.factory.ts` — the model factory
-6. `packages/delphi-express/example/scripts/loadtest.sh` — how we test end-to-end
-7. `packages/tasks-adapter-bullmq/README.md` — BullMQ connector internals (single vs bulk)
-8. Sodium: `apps/backend/src/services/auth/better-auth.factory.ts` — pattern to mirror
-9. Sodium: `apps/backend/src/config/queue.ts` + `dispatch.setup.ts` — what we plug into
-10. Sodium: `apps/backend/src/config/database/getConfiguredPrismaClient.ts` — what we reuse
+5. `packages/delphi-express/example/src/agents.factory.ts` — **the model factory — rewritten for the class API** (pattern to mirror in sodium's factory)
+6. `packages/delphi-core/src/__tests__/workflow.spec.ts` — type-level tests (`expectTypeOf`) that spell out the class-API type contract: input/output/name generics flow, `ShouldQueue` adaption, proxy shape, `@ts-expect-error` coverage for wrong call-site inputs
+7. `packages/delphi-express/example/scripts/loadtest.sh` — how we test end-to-end
+8. `packages/tasks-adapter-bullmq/README.md` — BullMQ connector internals (single vs bulk)
+9. Sodium: `apps/backend/src/services/auth/better-auth.factory.ts` — pattern to mirror for the LRU+TTL cache shape
+10. Sodium: `apps/backend/src/config/tasks.ts` — **the `taskClasses` array that plugs straight into `createEngine`** via auto-adaption
+11. Sodium: `apps/backend/src/api/posts/tasks/checkPosts.task.ts` — representative `ShouldQueue` subclass (the shape that becomes a workflow for free)
+12. Sodium: `apps/backend/src/config/queue.ts` + `dispatch.setup.ts` — what we plug into
+13. Sodium: `apps/backend/src/config/database/getConfiguredPrismaClient.ts` — what we reuse
 
 ## 3.4 How to start any work session
 
@@ -1114,8 +1392,25 @@ A: One config knob (`schema: 'agents'`) vs touching 250 string literals across t
 **Q: Why no auto-bootstrap when user provides schema?**
 A: Sodium owns its migrations via pgroll. Auto-creating tables would race their tooling. Engine's `CREATE_TABLES_SQL` is for testcontainers + dev convenience only.
 
+**Q: Why did the migration strategy change from "rewrite one task per week" to "opt-in enhancement"?**
+A: Commit `71005bd` (class-based API + `ShouldQueue` auto-adaption) lets `createEngine` detect `ShouldQueue` instances in its `workflows` array via `instanceof` and wrap each as a single-step workflow automatically. Sodium's 28 existing `ShouldQueue` tasks become delphi workflows the moment Phase 1 ships — DB durability, idempotency, retries, observability, all free. Migration to an explicit `Workflow` subclass is now opt-in: do it when a task needs multi-step composition, HITL, signals, or `committed` durability. This collapses the original Phase 3 timeline from ~28 weeks to "as needed."
+
+**Q: Why both the class API AND `WorkflowBuilder`?**
+A: `WorkflowBuilder` is now internal-only (still powers the 30+ engine test files that were written before the class API existed). Public API is the class-based surface (`Workflow`, `FunctionStep`, `step`, `createEngine`). The two compile down to the same `WorkflowDefinition` shape — no runtime difference, just authoring ergonomics.
+
+**Q: Do I need to migrate every `ctx.tasks.X.queue(...)` call to `ctx.agentsService.engine.X.start(...)`?**
+A: **No.** The two paths coexist — they run the same `ShouldQueue.handle()` method via different queues. The old path is fine to keep for fire-and-forget calls (notifications, cache invalidations, log ingestion). Only migrate a call site when you actually want one of: committed durability, DB-level idempotency, status polling, traceability, observability, step-level retries, human-in-the-loop, or multi-step composition. Everything else can stay on `ctx.tasks.X.queue(...)` indefinitely — zero value lost, zero refactor churn.
+
+**Q: What's the difference between `engine.foo.start(input)`, `engine.foo.startBuffered(input)`, and `engine.foo.startCommitted(input)`?**
+A:
+- `start(input)` — synchronous INSERT + dispatch + return. Use for low-volume one-off starts where you want the simplest semantics.
+- `startBuffered(input)` — returns `{ runId, traceId }` ~1-2ms after the trigger hits `IngestBuffer`. PG write happens async in `IngestWorker`. Use for high-volume non-critical flows.
+- `startCommitted(input)` — blocks until PG COMMIT with `synchronous_commit=ON` and fsync to WAL. Use for payments / financial ops / anything where "accepted = durable on disk" matters. Batched across concurrent committed callers; per-caller fsync cost amortized to ~0.1ms.
+
+The workflow's `override durability = 'committed' as const` flag is informational (for `/start-async` HTTP dispatch that decides by `definition.durability`); the actual durability is determined by which method you call at the call site.
+
 ---
 
 *Maintained alongside `packages/delphi-core/`. Update this doc when architecture decisions change.*
 
-*Last updated: 2026-04-14, after 13 commits, 1 working day of integration design + perf engineering.*
+*Last updated: 2026-04-15, after the class-API rewrite + `ShouldQueue` auto-adaption landed on `master` (PR #211, commit `71005bd`). Total delphi-core commits since kickoff: 22.*
