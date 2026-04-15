@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useAgents } from '@/providers/AgentsProvider'
 import type { WorkflowRunDetail } from '@/api/types'
+import { useAgents } from '@/providers/AgentsProvider'
 
 /**
  * Subscribe to real-time workflow updates via SSE.
@@ -14,24 +14,31 @@ export function useRealtimeWorkflow(runId: string | undefined) {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    if (!runId) return
+    if (!runId) {
+      return
+    }
 
     // Initial fetch
-    client.getWorkflow(runId).then(data => {
-      setWorkflow(data)
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    client
+      .getWorkflow(runId)
+      .then(data => {
+        setWorkflow(data)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
 
     // Connect SSE
     const es = client.subscribe(runId)
     eventSourceRef.current = es
 
-    es.onmessage = (event) => {
+    es.onmessage = event => {
       try {
         const data = JSON.parse(event.data)
         if (data.type === 'workflowUpdate' && data.workflow) {
           setWorkflow(prev => {
-            if (!prev) return prev
+            if (!prev) {
+              return prev
+            }
             const updated = data.workflow
             return {
               ...prev,
@@ -42,7 +49,9 @@ export function useRealtimeWorkflow(runId: string | undefined) {
                 const updatedStep = updated.steps?.find(
                   (s: any) => s.stepName === step.stepName,
                 )
-                if (!updatedStep) return step
+                if (!updatedStep) {
+                  return step
+                }
                 return {
                   ...step,
                   status: updatedStep.status ?? step.status,
@@ -68,7 +77,10 @@ export function useRealtimeWorkflow(runId: string | undefined) {
       eventSourceRef.current = null
       if (!pollIntervalRef.current) {
         pollIntervalRef.current = setInterval(() => {
-          client.getWorkflow(runId).then(setWorkflow).catch(() => {})
+          client
+            .getWorkflow(runId)
+            .then(setWorkflow)
+            .catch(() => {})
         }, 2000)
       }
     }

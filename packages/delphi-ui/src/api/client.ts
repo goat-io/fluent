@@ -1,12 +1,12 @@
 import type {
-  WorkflowRunSummary,
-  WorkflowRunDetail,
-  StepLog,
-  WorkflowFilters,
-  QueueStats,
-  WorkflowRunMetrics,
   AggregateMetrics,
+  QueueStats,
+  StepLog,
   WorkerNodeInfo,
+  WorkflowFilters,
+  WorkflowRunDetail,
+  WorkflowRunMetrics,
+  WorkflowRunSummary,
 } from './types'
 
 export class AgentsClient {
@@ -14,23 +14,39 @@ export class AgentsClient {
   private tenantId: string
   private headers: Record<string, string>
 
-  constructor(config: { baseUrl: string; tenantId: string; authToken?: string }) {
+  constructor(config: {
+    baseUrl: string
+    tenantId: string
+    authToken?: string
+  }) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '')
     this.tenantId = config.tenantId
     this.headers = {
       'Content-Type': 'application/json',
-      ...(config.authToken ? { Authorization: `Bearer ${config.authToken}` } : {}),
+      ...(config.authToken
+        ? { Authorization: `Bearer ${config.authToken}` }
+        : {}),
     }
   }
 
   // ── Workflows ──────────────────────────────────────
 
-  async listWorkflows(filters?: WorkflowFilters): Promise<WorkflowRunSummary[]> {
+  async listWorkflows(
+    filters?: WorkflowFilters,
+  ): Promise<WorkflowRunSummary[]> {
     const params = new URLSearchParams()
-    if (filters?.status) params.set('status', filters.status.join(','))
-    if (filters?.workflowName) params.set('workflowName', filters.workflowName)
-    if (filters?.limit) params.set('limit', String(filters.limit))
-    if (filters?.offset) params.set('offset', String(filters.offset))
+    if (filters?.status) {
+      params.set('status', filters.status.join(','))
+    }
+    if (filters?.workflowName) {
+      params.set('workflowName', filters.workflowName)
+    }
+    if (filters?.limit) {
+      params.set('limit', String(filters.limit))
+    }
+    if (filters?.offset) {
+      params.set('offset', String(filters.offset))
+    }
     return this.get(`/workflows?${params}`)
   }
 
@@ -38,7 +54,9 @@ export class AgentsClient {
     return this.post('/workflows/status', { runId, tenantId: this.tenantId })
   }
 
-  async listDefinitions(): Promise<Array<{ name: string; version: string; stepCount: number }>> {
+  async listDefinitions(): Promise<
+    Array<{ name: string; version: string; stepCount: number }>
+  > {
     return this.get('/workflows/definitions')
   }
 
@@ -108,7 +126,10 @@ export class AgentsClient {
     })
   }
 
-  async query(runId: string, queryName: string): Promise<Record<string, unknown>> {
+  async query(
+    runId: string,
+    queryName: string,
+  ): Promise<Record<string, unknown>> {
     return this.post('/workflows/query', {
       runId,
       tenantId: this.tenantId,
@@ -215,7 +236,9 @@ export class AgentsClient {
 
   private async get<T>(path: string): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`, { headers: this.headers })
-    if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`)
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}: ${await res.text()}`)
+    }
     return res.json()
   }
 
@@ -225,7 +248,9 @@ export class AgentsClient {
       headers: this.headers,
       body: JSON.stringify(body),
     })
-    if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`)
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}: ${await res.text()}`)
+    }
     return res.json()
   }
 }

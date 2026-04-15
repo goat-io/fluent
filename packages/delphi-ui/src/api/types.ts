@@ -165,8 +165,22 @@ export interface WorkflowSchedule {
 
 export interface TraceLineage {
   runs: WorkflowRunSummary[]
-  events: Array<{ id: string; eventType: string; source: string; payload?: Record<string, unknown>; traceId?: string; createdAt: string }>
-  actions: Array<{ id: string; provider: string; actionType: string; status: string; traceId?: string; createdAt: string }>
+  events: Array<{
+    id: string
+    eventType: string
+    source: string
+    payload?: Record<string, unknown>
+    traceId?: string
+    createdAt: string
+  }>
+  actions: Array<{
+    id: string
+    provider: string
+    actionType: string
+    status: string
+    traceId?: string
+    createdAt: string
+  }>
 }
 
 // ── Worker Types ─────────────────────────────────────────────────
