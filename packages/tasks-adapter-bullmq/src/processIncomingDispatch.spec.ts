@@ -153,7 +153,9 @@ describe('processIncomingDispatch', () => {
     const result = await connector.processIncomingDispatch({
       handleTask: async () => {
         inFlight++
-        if (inFlight > maxInFlight) maxInFlight = inFlight
+        if (inFlight > maxInFlight) {
+          maxInFlight = inFlight
+        }
         await new Promise(r => setTimeout(r, HANDLER_DELAY))
         inFlight--
         return { ok: true }
@@ -182,7 +184,9 @@ describe('processIncomingDispatch', () => {
       handleTask: async (_name, data) => {
         attempts++
         const i = (data as { i: number }).i
-        if (i === 2) throw new Error('boom')
+        if (i === 2) {
+          throw new Error('boom')
+        }
         return { ok: true, i }
       },
       timeBudgetMs: 10_000,

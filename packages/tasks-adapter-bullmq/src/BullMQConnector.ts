@@ -522,8 +522,10 @@ export class BullMQConnector implements TaskConnector<object> {
       taskBody: object
       opts?: Record<string, unknown>
     }>,
-  ): Promise<Array<Omit<TaskStatus, 'payload'>>> {
-    if (jobs.length === 0) return []
+  ): Promise<Omit<TaskStatus, 'payload'>[]> {
+    if (jobs.length === 0) {
+      return []
+    }
 
     // Group by target queue so each addBulk is one LUA roundtrip.
     // We track the original index so we can reassemble results in order.
@@ -541,7 +543,7 @@ export class BullMQConnector implements TaskConnector<object> {
       bucket.push({ idx: i, job: j })
     }
 
-    const results: Array<Omit<TaskStatus, 'payload'>> = new Array(jobs.length)
+    const results: Omit<TaskStatus, 'payload'>[] = new Array(jobs.length)
     const now = new Date().toISOString()
 
     await Promise.all(
@@ -821,7 +823,9 @@ export class BullMQConnector implements TaskConnector<object> {
     }
 
     for (const queueName of queueNames) {
-      if (Date.now() >= deadline) break
+      if (Date.now() >= deadline) {
+        break
+      }
 
       const tempWorker = new Worker(queueName, undefined as any, {
         connection: this.getSharedConnection(),
@@ -852,7 +856,9 @@ export class BullMQConnector implements TaskConnector<object> {
           const jobs = pulled.filter(
             (j): j is NonNullable<typeof j> => j != null,
           )
-          if (jobs.length === 0) break // queue empty
+          if (jobs.length === 0) {
+            break // queue empty
+          }
 
           // ── PARALLEL HANDLER INVOCATION (chunked by concurrency) ──
           // For batchSize > concurrency we process in chunks so we don't
