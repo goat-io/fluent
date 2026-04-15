@@ -37,7 +37,7 @@ export var options = {
 export function async() {
 	var t = Date.now();
 	var r = http.post(
-		BASE + "/api/workflows/start-async",
+		`${BASE}/api/workflows/start-async`,
 		JSON.stringify({ workflowName: WORKFLOW, input: { t: t } }),
 		{ headers: h },
 	);
@@ -50,7 +50,7 @@ export function async() {
 export function single() {
 	var t = Date.now();
 	var r = http.post(
-		BASE + "/api/workflows/start",
+		`${BASE}/api/workflows/start`,
 		JSON.stringify({ workflowName: WORKFLOW, input: { t: t } }),
 		{ headers: h },
 	);

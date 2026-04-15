@@ -38,7 +38,7 @@ export var options = {
 export function fire() {
 	// Pick a random port — simulates LB distribution across N instances
 	var port = BASE_PORT + Math.floor(Math.random() * INSTANCES);
-	var url = "http://localhost:" + port + "/api/workflows/start-async";
+	var url = `http://localhost:${port}/api/workflows/start-async`;
 	var t = Date.now();
 	var r = http.post(
 		url,
@@ -62,9 +62,8 @@ export function handleSummary(data) {
 	var distribution = "";
 	// k6 doesn't easily expose tagged sub-metric values in handleSummary;
 	// print a simple note instead
-	for (var i = 0; i < INSTANCES; i++) {
-		distribution +=
-			"    instance " + (BASE_PORT + i) + ": hits split via VU randomness\n";
+	for (let i = 0; i < INSTANCES; i++) {
+		distribution += `    instance ${BASE_PORT + i}: hits split via VU randomness\n`;
 	}
 
 	return {

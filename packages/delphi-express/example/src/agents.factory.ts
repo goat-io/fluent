@@ -5,16 +5,16 @@
 
 import {
 	type Database as AgentsDB,
+	createEngine,
 	EventIngestionService,
 	FunctionStep,
 	IngestWorker,
 	type JsonObject,
 	type StepPayload,
+	step,
 	type TypedEngine,
 	Workflow,
 	WorkflowStepTask,
-	createEngine,
-	step,
 } from "@goatlab/delphi-core";
 import { RedisRealtimeBroker } from "@goatlab/realtime-broker";
 import { BullMQConnector } from "@goatlab/tasks-adapter-bullmq";
@@ -27,26 +27,42 @@ const WORKER_CONC = parseInt(process.env.WORKER_CONCURRENCY ?? "50", 10);
 
 // ── Step classes (the work — typed inputs/outputs, no string handler refs) ──
 
-class EchoStep extends FunctionStep<JsonObject, { echoed: boolean; step: string; ts: number }, "echo"> {
+class EchoStep extends FunctionStep<
+	JsonObject,
+	{ echoed: boolean; step: string; ts: number },
+	"echo"
+> {
 	stepName = "echo" as const;
 	async handle() {
 		return { output: { echoed: true, step: this.stepName, ts: Date.now() } };
 	}
 }
 
-class ChainAStep extends FunctionStep<JsonObject, { chained: boolean; at: "a"; ts: number }, "a"> {
+class ChainAStep extends FunctionStep<
+	JsonObject,
+	{ chained: boolean; at: "a"; ts: number },
+	"a"
+> {
 	stepName = "a" as const;
 	async handle() {
 		return { output: { chained: true, at: "a" as const, ts: Date.now() } };
 	}
 }
-class ChainBStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: "b"; ts: number }, "b"> {
+class ChainBStep extends FunctionStep<
+	{ from: unknown },
+	{ chained: boolean; at: "b"; ts: number },
+	"b"
+> {
 	stepName = "b" as const;
 	async handle() {
 		return { output: { chained: true, at: "b" as const, ts: Date.now() } };
 	}
 }
-class ChainCStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: "c"; ts: number }, "c"> {
+class ChainCStep extends FunctionStep<
+	{ from: unknown },
+	{ chained: boolean; at: "c"; ts: number },
+	"c"
+> {
 	stepName = "c" as const;
 	async handle() {
 		return { output: { chained: true, at: "c" as const, ts: Date.now() } };
@@ -76,7 +92,9 @@ class FastChainWorkflow extends Workflow<JsonObject, "fast_chain"> {
 	] as const;
 }
 
-type AgentsEngine = TypedEngine<readonly [FastSingleWorkflow, FastChainWorkflow]>;
+type AgentsEngine = TypedEngine<
+	readonly [FastSingleWorkflow, FastChainWorkflow]
+>;
 
 let cached: Promise<{
 	engine: AgentsEngine;

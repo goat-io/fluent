@@ -138,7 +138,8 @@ export function agentsRouter(config: AgentsRouterConfig): Router {
 					.getWorkflows()
 					.get((trigger as { workflowName?: string }).workflowName ?? "");
 				if (def?.durability === "committed") {
-					const { runId, traceId } = await ingestBuffer.enqueueCommitted(trigger);
+					const { runId, traceId } =
+						await ingestBuffer.enqueueCommitted(trigger);
 					return { runId, traceId, status: "COMMITTED" };
 				}
 				const { runId, traceId } = ingestBuffer.enqueue(trigger);

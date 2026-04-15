@@ -52,7 +52,11 @@ async function main() {
 		agentsRouter({
 			resolveAgents: async (_req) => {
 				const { engine } = await getAgents();
-				return { engine, ingestBuffer: engine.ingestBuffer, tenantId: TENANT_ID };
+				return {
+					engine,
+					ingestBuffer: engine.ingestBuffer,
+					tenantId: TENANT_ID,
+				};
 			},
 		}),
 	);
