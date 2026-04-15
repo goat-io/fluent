@@ -1,13 +1,13 @@
 # @goatlab/tasks-adapter-bullmq
 
-BullMQ adapter implementing the `TaskConnector` interface from `@goatlab/tasks-core`. The production queue backend for `@goatlab/agents-core`. Supports single-job enqueue, bulk enqueue (`addBulk`), worker listen loops with per-queue concurrency, graceful shutdown, and multi-tenant key prefixing.
+BullMQ adapter implementing the `TaskConnector` interface from `@goatlab/tasks-core`. The production queue backend for `@goatlab/delphi-core`. Supports single-job enqueue, bulk enqueue (`addBulk`), worker listen loops with per-queue concurrency, graceful shutdown, and multi-tenant key prefixing.
 
 ## What it is
 
 A thin, production-hardened BullMQ wrapper that:
 
 - Implements `TaskConnector` so the same calling code works with the GCP Tasks and Hatchet adapters
-- Exposes BullMQ-native features (`getQueue`, `addJob`, `addBulk`, `getJob`, `getWorkers`, `getJobCounts`) for callers that want raw access (e.g., `IngestBuffer` in `@goatlab/agents-core`)
+- Exposes BullMQ-native features (`getQueue`, `addJob`, `addBulk`, `getJob`, `getWorkers`, `getJobCounts`) for callers that want raw access (e.g., `IngestBuffer` in `@goatlab/delphi-core`)
 - Shares one `ioredis` connection across all queues and workers to avoid connection storms
 - Prefixes all Redis keys with a tenant prefix when `_tenantId` is set
 
@@ -64,7 +64,7 @@ await connector.close()
 ## Key behaviour
 
 - **Job IDs**: pass your own `jobId` for deduplication. BullMQ will reject duplicates silently — perfect for idempotent producers.
-- **`onAfterQueue` hook**: optional callback fired after a job is successfully enqueued; used by `@goatlab/agents-core` to log dispatches or update auxiliary state.
+- **`onAfterQueue` hook**: optional callback fired after a job is successfully enqueued; used by `@goatlab/delphi-core` to log dispatches or update auxiliary state.
 - **Default job options**: `removeOnComplete: true` and `removeOnFail: 100` by default — avoids Redis memory growth. Override per-queue or per-job via opts.
 - **Per-queue concurrency**: `listen({ tasks: [{ taskName, concurrency }] })` creates one BullMQ `Worker` per task name. Concurrency is applied per worker instance.
 - **Shared connection**: a single ioredis connection is shared across all queues and workers, exposed via `getSharedConnection()` for advanced use.
@@ -72,7 +72,7 @@ await connector.close()
 
 ## Why bulk matters
 
-`addBulk(N jobs)` executes one Lua script against Redis for N jobs — typically ~0.5–2ms. Calling `queue.add()` N times is ~N Redis roundtrips. For high-throughput ingestion paths this is a 10–50× difference. `@goatlab/agents-core`'s `IngestBuffer` exploits this: HTTP handlers push triggers into an in-memory accumulator, which flushes via `addBulk` every 50ms (or 200 entries).
+`addBulk(N jobs)` executes one Lua script against Redis for N jobs — typically ~0.5–2ms. Calling `queue.add()` N times is ~N Redis roundtrips. For high-throughput ingestion paths this is a 10–50× difference. `@goatlab/delphi-core`'s `IngestBuffer` exploits this: HTTP handlers push triggers into an in-memory accumulator, which flushes via `addBulk` every 50ms (or 200 entries).
 
 Keep bulk sizes ≤1000 — BullMQ's Lua script latency starts to dominate above that. See [BullMQ issue #1670](https://github.com/taskforcesh/bullmq/issues/1670).
 

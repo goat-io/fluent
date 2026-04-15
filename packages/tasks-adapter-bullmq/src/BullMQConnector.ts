@@ -515,21 +515,29 @@ export class BullMQConnector implements TaskConnector<object> {
    * call (issue #1670). Callers should chunk if they need to push more than
    * 1000 at once.
    */
-  async bulkQueue(jobs: Array<{
-    uniqueTaskName: string
-    taskName: string
-    taskBody: object
-    opts?: Record<string, unknown>
-  }>): Promise<Array<Omit<TaskStatus, 'payload'>>> {
+  async bulkQueue(
+    jobs: Array<{
+      uniqueTaskName: string
+      taskName: string
+      taskBody: object
+      opts?: Record<string, unknown>
+    }>,
+  ): Promise<Array<Omit<TaskStatus, 'payload'>>> {
     if (jobs.length === 0) return []
 
     // Group by target queue so each addBulk is one LUA roundtrip.
     // We track the original index so we can reassemble results in order.
-    const byQueue = new Map<string, Array<{ idx: number; job: typeof jobs[number] }>>()
+    const byQueue = new Map<
+      string,
+      Array<{ idx: number; job: (typeof jobs)[number] }>
+    >()
     for (let i = 0; i < jobs.length; i++) {
       const j = jobs[i]!
       let bucket = byQueue.get(j.taskName)
-      if (!bucket) { bucket = []; byQueue.set(j.taskName, bucket) }
+      if (!bucket) {
+        bucket = []
+        byQueue.set(j.taskName, bucket)
+      }
       bucket.push({ idx: i, job: j })
     }
 
@@ -542,7 +550,11 @@ export class BullMQConnector implements TaskConnector<object> {
         const bulk = bucket.map(({ job }) => ({
           name: queueName,
           data: job.taskBody,
-          opts: { jobId: job.uniqueTaskName, ...this.defaultJobOptions, ...(job.opts ?? {}) },
+          opts: {
+            jobId: job.uniqueTaskName,
+            ...this.defaultJobOptions,
+            ...(job.opts ?? {}),
+          },
         }))
         const enqueued = await queue.addBulk(bulk)
 
@@ -570,7 +582,9 @@ export class BullMQConnector implements TaskConnector<object> {
                 queueName,
                 jobId: results[bucket[i]!.idx]!.id,
               })
-            } catch { /* non-fatal */ }
+            } catch {
+              /* non-fatal */
+            }
           }
         }
       }),
@@ -782,7 +796,10 @@ export class BullMQConnector implements TaskConnector<object> {
   }): Promise<{ processed: number; failed: number }> {
     const { handleTask, timeBudgetMs = 25_000, validQueueNames, hint } = params
     const batchSize = Math.max(1, params.batchSize ?? 50)
-    const concurrency = Math.max(1, Math.min(params.concurrency ?? batchSize, batchSize))
+    const concurrency = Math.max(
+      1,
+      Math.min(params.concurrency ?? batchSize, batchSize),
+    )
     const deadline = Date.now() + timeBudgetMs
     let processed = 0
     let failed = 0
@@ -828,9 +845,13 @@ export class BullMQConnector implements TaskConnector<object> {
           // Note: BullMQ's getNextJob is atomic (Lua script), so multiple
           // parallel calls won't return the same job to two callers.
           const pulled = await Promise.all(
-            Array.from({ length: batchSize }, () => tempWorker.getNextJob('dispatch')),
+            Array.from({ length: batchSize }, () =>
+              tempWorker.getNextJob('dispatch'),
+            ),
           )
-          const jobs = pulled.filter((j): j is NonNullable<typeof j> => j != null)
+          const jobs = pulled.filter(
+            (j): j is NonNullable<typeof j> => j != null,
+          )
           if (jobs.length === 0) break // queue empty
 
           // ── PARALLEL HANDLER INVOCATION (chunked by concurrency) ──
@@ -852,9 +873,16 @@ export class BullMQConnector implements TaskConnector<object> {
             )
             for (let i = 0; i < settled.length; i++) {
               const r = settled[i]!
-              results[off + i] = r.status === 'fulfilled'
-                ? { ok: true, value: r.value }
-                : { ok: false, error: r.reason instanceof Error ? r.reason : new Error(String(r.reason)) }
+              results[off + i] =
+                r.status === 'fulfilled'
+                  ? { ok: true, value: r.value }
+                  : {
+                      ok: false,
+                      error:
+                        r.reason instanceof Error
+                          ? r.reason
+                          : new Error(String(r.reason)),
+                    }
             }
           }
 
@@ -870,9 +898,17 @@ export class BullMQConnector implements TaskConnector<object> {
             jobs.map((j, i): Promise<unknown> => {
               const r = results[i]!
               if (r.ok === true) {
-                return j.moveToCompleted(r.value, j.token || '0', false) as Promise<unknown>
+                return j.moveToCompleted(
+                  r.value,
+                  j.token || '0',
+                  false,
+                ) as Promise<unknown>
               }
-              return j.moveToFailed(r.error, j.token || '0', false) as Promise<unknown>
+              return j.moveToFailed(
+                r.error,
+                j.token || '0',
+                false,
+              ) as Promise<unknown>
             }),
           )
 

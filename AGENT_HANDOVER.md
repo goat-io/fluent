@@ -16,14 +16,14 @@ Branch: `master` | All 7 phases implemented, TypeScript clean (2 pre-existing er
 
 | Package | Tests | Status |
 |---------|-------|--------|
-| agents-core | **277** vitest (22 files) + **new test files** (5 files for phases) | ✅ Type-checks clean |
-| agents-ai | **63** vitest (5 files) | ✅ All pass |
-| agents-langgraph | **15** | ✅ All pass |
-| agents-sandbox | **30+** | ✅ All pass |
-| agents-ui | **12** Playwright | ✅ All pass + type-checks clean |
+| delphi-core | **277** vitest (22 files) + **new test files** (5 files for phases) | ✅ Type-checks clean |
+| delphi-ai | **63** vitest (5 files) | ✅ All pass |
+| delphi-langgraph | **15** | ✅ All pass |
+| delphi-sandbox | **30+** | ✅ All pass |
+| delphi-ui | **12** Playwright | ✅ All pass + type-checks clean |
 
 **Total: 397+ existing tests + new phase test files (tasks, task-runner, scheduler, trace, guardrails)**
-**Note:** New tests require Docker (testcontainers) — run with `cd packages/agents-core && pnpm test`
+**Note:** New tests require Docker (testcontainers) — run with `cd packages/delphi-core && pnpm test`
 
 ### Performance (single CPU, testcontainer Postgres 18)
 - COPY FROM batch: **2,500-6,500 wf/sec** (100/batch)
@@ -33,7 +33,7 @@ Branch: `master` | All 7 phases implemented, TypeScript clean (2 pre-existing er
 
 ## Architecture Summary
 
-### Engine (`agents-core/src/engine/`)
+### Engine (`delphi-core/src/engine/`)
 - **WorkflowEngine.ts** — Core orchestrator. DAG execution, step chaining via `onStepCompleted()`, nextStep runtime loops, 4-queue dispatch (light/heavy/ai/sandbox), per-workflow concurrency fairness.
 - **ExternalActionExecutor.ts** — Exactly-once side effects. Two-phase commit (pending→completing→completed). Idempotency key includes sha256(payload). Pluggable RateLimiterBackend (InMemory or Redis with Lua scripts).
 - **WorkflowMetrics.ts** — Step/action latency, p50/p95/p99, cost aggregation.
@@ -41,26 +41,26 @@ Branch: `master` | All 7 phases implemented, TypeScript clean (2 pre-existing er
 - **ExternalActionEnforcer.ts** — Interceptor warning/throwing when steps bypass ExternalAction.
 - **RateLimiterBackend.ts** — InMemory + Redis (atomic Lua scripts for sliding window).
 
-### Events (`agents-core/src/events/`)
+### Events (`delphi-core/src/events/`)
 - **EventIngestion.ts** — Idempotent event storage, dead letter queue, replay. Auto-processes triggers. Bridges `human.response` events to `submitHumanInput()`. Event ordering via entityKey+sequenceNumber (last-write-wins).
 - **WebhookVerifier.ts** — HMAC-SHA256 verification (GitHub format support).
 
-### Integrations (`agents-core/src/integrations/`)
+### Integrations (`delphi-core/src/integrations/`)
 - **IntegrationRegistry** + **createIntegrationAction()** factory wrapping ExternalAction.
 - Typed: GitHub (create_pr, create_issue, add_comment, merge_pr), Linear (create_issue, update_issue, add_comment), Slack (send_message, update_message).
 
-### Skills (`agents-core/src/skills/`)
+### Skills (`delphi-core/src/skills/`)
 - **SkillRegistry** with `toToolDefinitions()` (OpenAI-compatible format).
 - Built-in: webSearchSkill, codeExecutionSkill.
 - AIStepExecutor has tool-call loop: LLM → tool_call → skill.execute → iterate (maxTurns + maxTokenBudget).
 
-### Workers (`agents-core/src/worker/`)
+### Workers (`delphi-core/src/worker/`)
 - **WorkerNode.ts** — detectResources(), getQueueSubscriptions(), start()/stop(), heartbeat, queue-depth-aware scaling.
 - **cli.ts** — `node worker/cli.js start` with env-based config.
 - **WorkerProvisioner.ts** — Interface + LocalWorkerProvisioner.
 - **Worker onboarding UI** — "Add Worker" button generates token + copyable command (like GitHub Actions runner).
 
-### UI (`agents-ui/src/`)
+### UI (`delphi-ui/src/`)
 - **Dashboard** — Status cards, workflow list, MetricsPanel (percentiles + bar charts).
 - **WorkflowRun** — React Flow DAG visualization, StepDetailPanel with I/O/logs/retries/container tabs.
 - **WorkflowDesigner** — Visual editor: StepPalette (drag-drop), StepConfigPanel, EditorToolbar (validate/export/import JSON), dagre auto-layout.
@@ -137,7 +137,7 @@ workflow_runs (+ traceId, parentRunId, originEventId, budget, budgetUsed), workf
 ## Key Files
 
 ```
-packages/agents-core/
+packages/delphi-core/
   src/engine/WorkflowEngine.ts              ← Core orchestrator (nextStep, COPY FROM, 4-queue, budget, trace)
   src/engine/TaskManager.ts                 ← NEW: Task CRUD + FOR UPDATE SKIP LOCKED + aggregation
   src/engine/ExternalActionExecutor.ts      ← Exactly-once (two-phase, hash idempotency, traceId)
@@ -158,13 +158,13 @@ packages/agents-core/
   src/api/WorkflowHandlers.ts              ← 20+ API handlers
   loadtest/k6-workflow.js                   ← k6 load test script
 
-packages/agents-ai/
+packages/delphi-ai/
   src/executors/AIStepExecutor.ts           ← Tool-call loop (maxTurns + maxTokenBudget)
 
-packages/agents-sandbox/
+packages/delphi-sandbox/
   src/container/ContainerManager.ts         ← NetworkMode:none + allowedDomains iptables
 
-packages/agents-ui/
+packages/delphi-ui/
   src/components/workflow-editor/           ← Visual editor (7 files)
   src/components/metrics/                   ← MetricsPanel + StepMetricsTab
   src/pages/Workers.tsx                     ← Worker monitoring + "Add Worker" modal
@@ -176,10 +176,10 @@ packages/agents-ui/
 
 ## Tips for Next Agent
 
-- **Run tests:** `cd packages/agents-core && pnpm test` (NOT from root — avoids Mongo/MySQL containers)
+- **Run tests:** `cd packages/delphi-core && pnpm test` (NOT from root — avoids Mongo/MySQL containers)
 - **Exclude load test:** `npx vitest run --exclude="**/load-test*"` (load test can timeout)
-- **Build before test server:** `cd packages/agents-core && npx tsc` (test server imports from dist/)
-- **Start example:** `cd packages/agents-ui && npx tsx example/start.ts` then `VITE_API_URL=http://localhost:4444 npx vite --port 5173`
+- **Build before test server:** `cd packages/delphi-core && npx tsc` (test server imports from dist/)
+- **Start example:** `cd packages/delphi-ui && npx tsx example/start.ts` then `VITE_API_URL=http://localhost:4444 npx vite --port 5173`
 - **Workers listen on 4 queues:** workflow_step_light, workflow_step_heavy, workflow_step_ai, workflow_step_sandbox
 - **disableLogBuffering: true** in tests (async flush breaks log assertions)
 - **fileParallelism: false** — tests share Postgres
@@ -541,7 +541,7 @@ For each due schedule:
 - `src/engine/WorkflowEngine.types.ts` — Add budget config to WorkflowEngineConfig
 - `src/engine/WorkflowEngine.ts` — Check budgets in dispatchReadySteps and onStepCompleted
 - `src/steps/TaskRunnerExecutor.ts` — Check budgets in task loop
-- `agents-ai/src/executors/AIStepExecutor.ts` — Already has maxTokenBudget, extend with global check
+- `delphi-ai/src/executors/AIStepExecutor.ts` — Already has maxTokenBudget, extend with global check
 
 **Budget config (per workflow run):**
 ```typescript
@@ -597,7 +597,7 @@ budgetUsed: { tokens: number; costUsd: number; steps: number; taskExecutions: nu
 
 ### Verification
 1. `npx tsc --noEmit` — 0 errors (all pre-existing errors fixed)
-2. `cd packages/agents-core && pnpm test` — requires Docker for testcontainers
+2. `cd packages/delphi-core && pnpm test` — requires Docker for testcontainers
 3. New test files: `tasks.spec.ts`, `task-runner.spec.ts`, `scheduler.spec.ts`, `trace.spec.ts`, `guardrails.spec.ts`
 4. AGENT_HANDOVER.md updated with phase status
 

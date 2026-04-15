@@ -72,10 +72,10 @@ Called once per tenant on first subscribe; result is reused for that tenant's li
 
 ## Wiring with the agent engine
 
-Pair with `@goatlab/agents-core`'s `onEngineEvent` hook:
+Pair with `@goatlab/delphi-core`'s `onEngineEvent` hook:
 
 ```ts
-import { WorkflowEngine, type EngineEvent } from '@goatlab/agents-core'
+import { WorkflowEngine, type EngineEvent } from '@goatlab/delphi-core'
 import { RedisRealtimeBroker } from '@goatlab/realtime-broker'
 
 const broker = new RedisRealtimeBroker({ redis: { host, port } })

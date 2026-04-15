@@ -191,7 +191,7 @@ describe('processIncomingDispatch', () => {
       concurrency: N,
     })
 
-    expect(attempts).toBe(N)         // all handlers ran
+    expect(attempts).toBe(N) // all handlers ran
     expect(result.processed).toBe(N - 1)
     expect(result.failed).toBe(1)
   }, 10_000)
@@ -235,7 +235,10 @@ describe('processIncomingDispatch', () => {
 
     let saw: unknown = null
     const result = await connector.processIncomingDispatch({
-      handleTask: async (_name, data) => { saw = data; return { ok: true } },
+      handleTask: async (_name, data) => {
+        saw = data
+        return { ok: true }
+      },
       timeBudgetMs: 5_000,
       validQueueNames: new Set([queueName]),
       // No batchSize passed — uses default 50

@@ -180,7 +180,7 @@ const users = await userRepo
 
 ## ⚙️ Agent Workflow Engine — Run, Test, and Load-Benchmark
 
-This monorepo also ships a distributed agent workflow engine — see [`packages/agents-core/README.md`](packages/agents-core/README.md) for the full architecture. This section is the handover for **running**, **testing**, and **load-benchmarking** the engine.
+This monorepo also ships a distributed agent workflow engine — see [`packages/delphi-core/README.md`](packages/delphi-core/README.md) for the full architecture. This section is the handover for **running**, **testing**, and **load-benchmarking** the engine.
 
 ### One-shot: run the full stack with Docker
 
@@ -199,7 +199,7 @@ docker compose down -v --remove-orphans
 The compose stack uses:
 - `Dockerfile` — multi-stage build (alpine runtime, ~500 MB)
 - `docker-compose.yml` — PG (with `fsync=off` for benchmarking — never in prod) + Redis + app
-- App image runs `packages/agents-ui/test-server/server.ts` via tsx
+- App image runs `packages/delphi-ui/test-server/server.ts` via tsx
 
 To bump capacity, edit `docker-compose.yml` → `deploy.resources.limits.cpus`. The app auto-detects container CPU and forks `cores - 1` cluster workers (`CLUSTER_MODE=auto`). Override with `CLUSTER_MODE=N` or `off`.
 
@@ -207,7 +207,7 @@ To bump capacity, edit `docker-compose.yml` → `deploy.resources.limits.cpus`. 
 
 ```bash
 # Brings up its own Postgres + Redis via testcontainers (Docker daemon needed)
-cd packages/agents-ui
+cd packages/delphi-ui
 PORT=4445 CLUSTER_MODE=2 PG_POOL_SIZE=20 WORKER_CONCURRENCY=50 \
   npx tsx test-server/server.ts
 ```
@@ -233,7 +233,7 @@ When `PG_HOST` and `REDIS_HOST` env vars are set, the test server connects to th
 | `POST /workflows/ingest-event` | Event ingestion |
 | `GET /health` | 503 if no ingest worker registered; otherwise `{ok, ingestWorkers, ingestBufferDepth}` |
 
-Full list in [`packages/agents-ui/README.md`](packages/agents-ui/README.md).
+Full list in [`packages/delphi-ui/README.md`](packages/delphi-ui/README.md).
 
 ### Running the load tests
 
@@ -243,7 +243,7 @@ We use [`k6`](https://k6.io) (`brew install k6`). Two scripts ship in-tree:
 ```bash
 # Requires the test server running on :4445
 API_URL=http://localhost:4445 \
-  k6 run packages/agents-core/loadtest/k6-workflow.js
+  k6 run packages/delphi-core/loadtest/k6-workflow.js
 ```
 Hits the **sync** `start` endpoint by default — useful for stress-testing the full DB-first path. Targets 2000 req/s, sweeps multiple scenarios in parallel (single starts, batch starts, event ingest, status polling).
 
@@ -328,40 +328,74 @@ docker exec $REDIS redis-cli ZCARD bull:workflow_ingest:failed   # should be 0
 
 ### Performance reference (measured)
 
-On a 2-vCPU cluster (Cloud Run starter shape simulated locally):
+All numbers from running `packages/delphi-express/example` against a fresh stack on an M-series Mac with Docker Desktop (PG + Redis + app colocated). Production with managed PG + managed Redis removes the host-CPU bottleneck.
 
-| SLO | Sustained throughput per instance |
+#### Per-process ceiling (1 Node process, `CLUSTER_MODE=off`)
+
+| Rate | p50 | p95 | p99 | Errors | Verdict |
+|---|---|---|---|---|---|
+| 1,000 req/s | 9ms | 29ms | 80ms | 0% | clean |
+| **2,000** | **25ms** | **54ms** | **79ms** | **0%** | **safe ceiling** |
+| 3,000 | 71ms | 7,009ms | 8,851ms | 4.29% | 🚨 cliff |
+| 4,000 | 78ms | 134ms | 20,053ms | 1.96% | overload |
+| 6,000 | 82ms | 172ms | 18,751ms | 3.17% | throughput degrading |
+
+#### 2-vCPU cluster (`CLUSTER_MODE=2`)
+
+| Rate | p50 | p95 | p99 | Errors | Sustained |
+|---|---|---|---|---|---|
+| 2,000 | 23ms | 62ms | 161ms | 0% | 1,984/s ✓ |
+| 4,000 | 48ms | 102ms | 192ms | 0% | 3,908/s ✓ |
+| **5,000** | **80ms** | **171ms** | **824ms** | **0%** | **4,460/s (healthy)** |
+
+#### Horizontal (4 instances × 2 processes, shared infra — breaking-point sweep)
+
+| Target | Actual | p95 | p99 | Errors | Verdict |
+|---|---|---|---|---|---|
+| 2k | 1,999 | 19ms | 60ms | 0% | ✅ trivial |
+| **5k** | **4,864** | **156ms** | **463ms** | **0%** | **✅ healthy** |
+| 10k | 5,540 | 1,314ms | 4,733ms | 0.02% | ⚠ first cliff — host CPU saturates |
+| 15k | 5,828 | 969ms | 5,492ms | 0.07% | ⚠ accept > drain |
+| 20k | 5,510 | 546ms | 6,079ms | 0.09% | ⚠ plateau |
+| 25k | 3,016 | 3,005ms | 7,636ms | 0.06% | ⚠ degrading |
+| 40k | 4,309 | 1,874ms | 3,674ms | 0.74% | ⚠ deep overload |
+
+**Graceful overload** — above the cliff, throughput plateaus but **correctness holds**: 0 FAILED runs across the entire sweep.
+
+#### Durability check (5k sustained, 60s)
+- **316,929 fired → 316,930 in `agents.workflow_runs` → 316,930 COMPLETED** (1 from smoke)
+- **0 BullMQ failed jobs · 0 FAILED runs**
+- Step drain: ~730 completions/sec/instance
+
+#### Scaling rule of thumb
+**Budget ~2,000 req/s per Node process.** Scale via (a) cluster mode within a pod, (b) horizontal pods. 4 pods × 2 workers = ~5k ingestion (host CPU bound in dev; production linearizes with managed PG/Redis).
+
+| Setup | Healthy ceiling (p95<200ms, 0% err) |
 |---|---|
-| p95 < 50 ms | ~4,000 req/s |
-| p95 < 100 ms | ~5,000 req/s |
-| p99 < 500 ms (0% errors) | ~8,000 req/s |
+| 1 instance × 1 process | ~2,000 req/s |
+| 1 instance × 2 processes (2 vCPU) | ~5,000 req/s |
+| 4 instances × 2 processes (shared infra, Mac host) | ~5,000 req/s (CPU bound) |
 
-10-minute soak at 5 k req/s validated:
-- 2.87 M workflows accepted, 0% failed BullMQ jobs
-- p95 = 74 ms, p99 = 246 ms
-- 0.06% transient HTTP errors (Node accept-queue overflow at peak; recoverable)
-- Zero permanent data loss (queue drains to PG after load ends)
-
-Scaling beyond a single instance is horizontal — same code, multiple instances, shared PG + Redis. Cluster math: app vCPU × ~2,500 req/s ≈ ceiling per instance with `p95 < 100 ms`.
+Reproduce: `cd packages/delphi-express/example && pnpm loadtest` or `pnpm loadtest:horizontal`.
 
 ### Engine-package tests
 
 ```bash
 # Engine + state machine + COPY FROM (277 tests, needs Docker for testcontainers)
-cd packages/agents-core && pnpm test
+cd packages/delphi-core && pnpm test
 
 # Skip the long load-test file
-cd packages/agents-core && npx vitest run --exclude="**/load-test*"
+cd packages/delphi-core && npx vitest run --exclude="**/load-test*"
 
 # AI layer (63 tests, no containers)
-cd packages/agents-ai && pnpm test
+cd packages/delphi-ai && pnpm test
 
 # Sandbox unit + integration tests
-cd packages/agents-sandbox && pnpm test:unit
-cd packages/agents-sandbox && pnpm test:integration
+cd packages/delphi-sandbox && pnpm test:unit
+cd packages/delphi-sandbox && pnpm test:integration
 
 # Visual editor E2E (Playwright, 12 tests)
-cd packages/agents-ui && npx playwright test e2e/workflow-editor.spec.ts
+cd packages/delphi-ui && npx playwright test e2e/workflow-editor.spec.ts
 ```
 
 ### Tuning knobs (env vars)
@@ -385,17 +419,17 @@ Tables grow forever without a cleanup job. The repo ships a one-shot script that
 # One-shot (default 'public' schema)
 DATABASE_URL=postgres://agents:agents@localhost:5432/agents \
 RETENTION_DAYS=30 \
-  npx tsx packages/agents-core/bin/retention-cleanup.ts
+  npx tsx packages/delphi-core/bin/retention-cleanup.ts
 
 # Engine deployed with schema='agents' — MUST set RETENTION_SCHEMA to match
 DATABASE_URL=$DATABASE_URL \
 RETENTION_SCHEMA=agents \
 RETENTION_DAYS=30 \
-  npx tsx packages/agents-core/bin/retention-cleanup.ts
+  npx tsx packages/delphi-core/bin/retention-cleanup.ts
 
 # Crontab — hourly
 0 * * * * cd /app && DATABASE_URL=$DATABASE_URL RETENTION_SCHEMA=agents RETENTION_DAYS=30 \
-  npx tsx packages/agents-core/bin/retention-cleanup.ts >> /var/log/retention.log 2>&1
+  npx tsx packages/delphi-core/bin/retention-cleanup.ts >> /var/log/retention.log 2>&1
 ```
 
 A Kubernetes `CronJob` template is in the script's header comment. For installations >500GB, also enable the autovacuum overrides shown commented in `docker-compose.yml` — without aggressive vacuum, table bloat compounds even with retention enabled.
@@ -412,7 +446,7 @@ This is an explicit follow-up; the env-var flags don't exist yet, but the `Sched
 
 ### Internal write buffers
 
-The engine uses the `WriteBuffer<T>` primitive (`packages/agents-core/src/engine/WriteBuffer.ts`) to batch writes Hatchet-style. Currently wired up:
+The engine uses the `WriteBuffer<T>` primitive (`packages/delphi-core/src/engine/WriteBuffer.ts`) to batch writes Hatchet-style. Currently wired up:
 
 | Buffer | Threshold / Interval | Purpose |
 |---|---|---|
@@ -426,17 +460,17 @@ The engine uses the `WriteBuffer<T>` primitive (`packages/agents-core/src/engine
 
 The engine is framework-agnostic. Two adapters ship today:
 
-- [**`@goatlab/agents-express`**](packages/agents-express/README.md) — Express Router for Node backends. ~250 LOC. ~4.5k req/s sustained @ p95<200ms on 2 vCPU.
-- [**`@goatlab/agents-bun`**](packages/agents-bun/README.md) — `Bun.serve` fetch handler. Wins on HTTP latency (p50 6ms vs 23ms), loses on engine drain (Bun's Node compat on `pg`/`bullmq`).
+- [**`@goatlab/delphi-express`**](packages/delphi-express/README.md) — Express Router for Node backends. ~250 LOC. ~4.5k req/s sustained @ p95<200ms on 2 vCPU.
+- [**`@goatlab/delphi-bun`**](packages/delphi-bun/README.md) — `Bun.serve` fetch handler. Wins on HTTP latency (p50 6ms vs 23ms), loses on engine drain (Bun's Node compat on `pg`/`bullmq`).
 
 Both have working examples with one-command load tests:
-- [`packages/agents-express/example`](packages/agents-express/example) — Express + Prisma + Postgres + Redis
-- [`packages/agents-bun/example`](packages/agents-bun/example) — same stack, swapping Bun for Node
+- [`packages/delphi-express/example`](packages/delphi-express/example) — Express + Prisma + Postgres + Redis
+- [`packages/delphi-bun/example`](packages/delphi-bun/example) — same stack, swapping Bun for Node
 
 For Express:
 
 ```ts
-import { agentsRouter } from '@goatlab/agents-express'
+import { agentsRouter } from '@goatlab/delphi-express'
 
 app.use('/api/workflows', agentsRouter({
   resolveAgents: async (req) => {
@@ -446,7 +480,7 @@ app.use('/api/workflows', agentsRouter({
 }))
 ```
 
-That's it — every workflow endpoint (`start-async`, `status`, `signal`, etc.) is now mounted under `/api/workflows`. See the [agents-express README](packages/agents-express/README.md) for selective routes, custom error mapping, and a complete multi-tenant factory example.
+That's it — every workflow endpoint (`start-async`, `status`, `signal`, etc.) is now mounted under `/api/workflows`. See the [delphi-express README](packages/delphi-express/README.md) for selective routes, custom error mapping, and a complete multi-tenant factory example.
 
 ### Schema isolation + Prisma integration
 
@@ -455,18 +489,18 @@ Two ways to keep engine tables organized in your existing schema:
 1. **Postgres schema isolation** — pass `schema: 'agents'` to `WorkflowEngine` and engine tables become `agents.workflow_runs` instead of `public.workflow_runs`. Pair with Prisma `previewFeatures = ["multiSchema"]` and `@@schema("agents")` directives.
 2. **Prisma `@@map` for client-side renaming** — your Prisma client sees `prisma.MyAgentRun` while the physical table stays `workflow_runs`. No engine change needed.
 
-Drop-in [`prisma.fragment`](packages/agents-core/prisma.fragment) ships all 12 engine models with proper indexes — copy into your `schema.prisma` and migrate via your existing tool (Prisma Migrate, pgroll, etc.). The engine **does not auto-bootstrap** when you provide your own schema — migration ownership stays with your tooling.
+Drop-in [`prisma.fragment`](packages/delphi-core/prisma.fragment) ships all 12 engine models with proper indexes — copy into your `schema.prisma` and migrate via your existing tool (Prisma Migrate, pgroll, etc.). The engine **does not auto-bootstrap** when you provide your own schema — migration ownership stays with your tooling.
 
 ### Where to dig deeper
-- Architecture, queue-first ingestion, key exports → [`packages/agents-core/README.md`](packages/agents-core/README.md)
-- Dashboard + test server + endpoint reference → [`packages/agents-ui/README.md`](packages/agents-ui/README.md)
+- Architecture, queue-first ingestion, key exports → [`packages/delphi-core/README.md`](packages/delphi-core/README.md)
+- Dashboard + test server + endpoint reference → [`packages/delphi-ui/README.md`](packages/delphi-ui/README.md)
 - BullMQ adapter (single vs bulk enqueue, why `addBulk` matters) → [`packages/tasks-adapter-bullmq/README.md`](packages/tasks-adapter-bullmq/README.md)
-- Express adapter (router factory, multi-tenant pattern) → [`packages/agents-express/README.md`](packages/agents-express/README.md)
-- Bun adapter (fetch handler, reusePort cluster) → [`packages/agents-bun/README.md`](packages/agents-bun/README.md)
-- Prisma schema fragment for engine tables → [`packages/agents-core/prisma.fragment`](packages/agents-core/prisma.fragment)
-- LLM adapter, multi-agent consensus → [`packages/agents-ai/README.md`](packages/agents-ai/README.md)
-- LangGraph integration → [`packages/agents-langgraph/README.md`](packages/agents-langgraph/README.md)
-- Sandboxed step execution → [`packages/agents-sandbox/README.md`](packages/agents-sandbox/README.md)
+- Express adapter (router factory, multi-tenant pattern) → [`packages/delphi-express/README.md`](packages/delphi-express/README.md)
+- Bun adapter (fetch handler, reusePort cluster) → [`packages/delphi-bun/README.md`](packages/delphi-bun/README.md)
+- Prisma schema fragment for engine tables → [`packages/delphi-core/prisma.fragment`](packages/delphi-core/prisma.fragment)
+- LLM adapter, multi-agent consensus → [`packages/delphi-ai/README.md`](packages/delphi-ai/README.md)
+- LangGraph integration → [`packages/delphi-langgraph/README.md`](packages/delphi-langgraph/README.md)
+- Sandboxed step execution → [`packages/delphi-sandbox/README.md`](packages/delphi-sandbox/README.md)
 
 ## 🚢 Release Process
 

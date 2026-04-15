@@ -31,4 +31,4 @@ dist/**
 .next/**
 # Act secrets file
 .secrets
-packages/agents-ui/test-results/
+packages/delphi-ui/test-results/

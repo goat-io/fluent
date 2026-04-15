@@ -1,0 +1,262 @@
+// Example Prisma schema showing the agent engine tables alongside a
+// hypothetical "domain" model (Customer). The engine queries the engine
+// tables via Kysely + raw SQL — Prisma owns the schema.
+//
+// Migration here uses `prisma db push` for example simplicity. In a real
+// app, use Prisma Migrate or pgroll.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "agents"]
+}
+
+// ── Your domain models live in `public` ────────────────────────────────
+model Customer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@schema("public")
+}
+
+// ── Engine tables live in `agents` ─────────────────────────────────────
+// Verbatim copy of packages/delphi-core/prisma.fragment with @@schema("agents")
+// uncommented. In your real app, copy the fragment as-is and choose your schema.
+
+model workflow_runs {
+  id                  String    @id @db.VarChar(36)
+  tenantId            String    @db.VarChar(255)
+  workflowName        String    @db.VarChar(255)
+  workflowVersion     String    @db.VarChar(50)
+  status              String    @db.VarChar(20)
+  definitionSnapshot  String?   @db.Text
+  triggerInput        String?   @db.Text
+  output              String?   @db.Text
+  error               String?   @db.Text
+  idempotencyKey      String?   @unique @db.VarChar(255)
+  traceId             String?   @db.VarChar(36)
+  parentRunId         String?   @db.VarChar(36)
+  originEventId       String?   @db.VarChar(36)
+  budget              String?   @db.Text
+  budgetUsed          String?   @db.Text
+  startedAt           DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
+
+  steps               workflow_steps[]
+  signals             workflow_signals[]
+  external_actions    external_actions[]
+  workflow_tasks      workflow_tasks[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, workflowName])
+  @@index([traceId])
+  @@index([createdAt])
+  @@schema("agents")
+}
+
+model workflow_steps {
+  id                  String    @id @db.VarChar(36)
+  workflowRunId       String    @db.VarChar(36)
+  tenantId            String    @db.VarChar(255)
+  stepName            String    @db.VarChar(255)
+  status              String    @db.VarChar(20)
+  executorType        String    @db.VarChar(100)
+  executorConfig      String?   @db.Text
+  dependsOn           String?   @db.Text
+  input               String?   @db.Text
+  output              String?   @db.Text
+  error               String?   @db.Text
+  attempt             Int       @default(0)
+  maxRetries          Int       @default(3)
+  startedAt           DateTime?
+  completedAt         DateTime?
+  scheduledAt         DateTime?
+  lastHeartbeatAt     DateTime?
+  lastHeartbeatData   String?   @db.Text
+  heartbeatTimeoutMs  Int?
+  humanPrompt         String?   @db.Text
+  humanResponse       String?   @db.Text
+  humanRespondedBy    String?   @db.VarChar(255)
+  humanRespondedAt    DateTime?
+  iterationCount      Int?      @default(0)
+  maxIterations       Int?
+  tokensUsed          Int?
+  costUsd             String?   @db.VarChar(20)
+  modelUsed           String?   @db.VarChar(100)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
+
+  run                 workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowRunId, stepName])
+  @@index([tenantId, status])
+  @@schema("agents")
+}
+
+model workflow_step_logs {
+  id        String   @id @db.VarChar(36)
+  stepId    String   @db.VarChar(36)
+  tenantId  String   @db.VarChar(255)
+  event     String   @db.VarChar(30)
+  data      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, stepId])
+  @@schema("agents")
+}
+
+model workflow_signals {
+  id            String    @id @db.VarChar(36)
+  workflowRunId String    @db.VarChar(36)
+  tenantId      String    @db.VarChar(255)
+  signalName    String    @db.VarChar(255)
+  data          String    @db.Text
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  run           workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, signalName, processedAt])
+  @@schema("agents")
+}
+
+model external_actions {
+  id              String    @id @db.VarChar(36)
+  workflowRunId   String    @db.VarChar(36)
+  stepName        String    @db.VarChar(255)
+  attempt         Int
+  tenantId        String    @db.VarChar(255)
+  provider        String    @db.VarChar(100)
+  actionType      String    @db.VarChar(100)
+  idempotencyKey  String    @unique @db.VarChar(500)
+  status          String    @default("pending") @db.VarChar(20)
+  externalId      String?   @db.VarChar(500)
+  request         String?   @db.Text
+  response        String?   @db.Text
+  error           String?   @db.Text
+  traceId         String?   @db.VarChar(36)
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+
+  run             workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, stepName, attempt])
+  @@schema("agents")
+}
+
+model workflow_events {
+  id              String    @id @db.VarChar(36)
+  tenantId        String    @db.VarChar(255)
+  eventType       String    @db.VarChar(255)
+  source          String    @db.VarChar(255)
+  payload         String?   @db.Text
+  idempotencyKey  String?   @unique @db.VarChar(500)
+  entityKey       String?   @db.VarChar(500)
+  sequenceNumber  Int?
+  traceId         String?   @db.VarChar(36)
+  status          String    @default("pending") @db.VarChar(20)
+  error           String?   @db.Text
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId, eventType, status])
+  @@index([entityKey, sequenceNumber])
+  @@schema("agents")
+}
+
+model workflow_event_subscriptions {
+  id                String   @id @db.VarChar(36)
+  tenantId          String   @db.VarChar(255)
+  eventType         String   @db.VarChar(255)
+  workflowName      String   @db.VarChar(255)
+  filterExpression  String?  @db.Text
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  @@index([tenantId, eventType, active])
+  @@schema("agents")
+}
+
+model worker_nodes {
+  id              String    @id @db.VarChar(36)
+  tenantId        String    @db.VarChar(255)
+  name            String    @db.VarChar(255)
+  hostname        String?   @db.VarChar(255)
+  capabilities    String?   @db.Text
+  status          String    @default("active") @db.VarChar(20)
+  lastHeartbeatAt DateTime?
+  registeredAt    DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId, status])
+  @@schema("agents")
+}
+
+model workflow_definitions {
+  id          String   @id @db.VarChar(36)
+  tenantId    String   @db.VarChar(255)
+  name        String   @db.VarChar(255)
+  version     String   @db.VarChar(50)
+  definition  String   @db.Text
+  createdBy   String?  @db.VarChar(255)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@index([tenantId, name])
+  @@schema("agents")
+}
+
+model workflow_tasks {
+  id            String   @id @db.VarChar(36)
+  workflowRunId String   @db.VarChar(36)
+  stepName      String   @db.VarChar(255)
+  status        String   @default("pending") @db.VarChar(20)
+  payload       String?  @db.Text
+  result        String?  @db.Text
+  error         String?  @db.Text
+  attempt       Int      @default(0)
+  maxRetries    Int      @default(3)
+  priority      Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  run           workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, stepName, status])
+  @@index([status, priority(sort: Desc)])
+  @@schema("agents")
+}
+
+model workflow_schedules {
+  id              String    @id @db.VarChar(36)
+  tenantId        String    @db.VarChar(255)
+  workflowName    String    @db.VarChar(255)
+  cronExpression  String    @db.VarChar(100)
+  nextRunAt       DateTime
+  lastRunAt       DateTime?
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  @@index([active, nextRunAt])
+  @@schema("agents")
+}
+
+model agent_tokens {
+  id        String    @id @db.VarChar(36)
+  tenantId  String    @db.VarChar(255)
+  token     String    @unique @db.VarChar(255)
+  used      Boolean   @default(false)
+  usedBy    String?   @db.VarChar(36)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@schema("agents")
+}

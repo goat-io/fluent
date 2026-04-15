@@ -1,7 +1,7 @@
 # Multi-stage build for the agents test-server.
 # Builds the workspace once, runs from compiled dist where possible.
 #
-# Build:  docker build -t fluent-agents:latest .
+# Build:  docker build -t delphi:latest .
 # Run:    docker compose up
 
 FROM node:22-alpine AS builder
@@ -16,9 +16,9 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
 COPY tsconfig*.json ./
 
 # Copy only the packages we actually need (keeps the build fast and the
-# image small). agents-ui is the entrypoint; the rest are its workspace deps.
-COPY packages/agents-core packages/agents-core
-COPY packages/agents-ui packages/agents-ui
+# image small). delphi-ui is the entrypoint; the rest are its workspace deps.
+COPY packages/delphi-core packages/delphi-core
+COPY packages/delphi-ui packages/delphi-ui
 COPY packages/tasks-adapter-bullmq packages/tasks-adapter-bullmq
 COPY packages/tasks-core packages/tasks-core
 COPY packages/js-utils packages/js-utils
@@ -27,8 +27,8 @@ COPY packages/tsconfig packages/tsconfig
 
 # Install the deps for those packages (pnpm filter avoids touching others)
 RUN pnpm install --frozen-lockfile --prefer-offline \
-  --filter @goatlab/agents-ui... \
-  --filter @goatlab/agents-core... \
+  --filter @goatlab/delphi-ui... \
+  --filter @goatlab/delphi-core... \
   --filter @goatlab/tasks-adapter-bullmq...
 
 # Build everything we need in dependency order
@@ -36,7 +36,7 @@ RUN pnpm --filter @goatlab/js-utils build \
  && pnpm --filter @goatlab/node-utils build \
  && pnpm --filter @goatlab/tasks-core build \
  && pnpm --filter @goatlab/tasks-adapter-bullmq build \
- && pnpm --filter @goatlab/agents-core build
+ && pnpm --filter @goatlab/delphi-core build
 
 # ── Runtime stage ───────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
@@ -47,7 +47,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Copy the built workspace (includes node_modules with hoisted layout)
 COPY --from=builder /repo /repo
 
-WORKDIR /repo/packages/agents-ui
+WORKDIR /repo/packages/delphi-ui
 EXPOSE 4445
 
 # tsx runs the test-server. In production you'd compile and run dist/,

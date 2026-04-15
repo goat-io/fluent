@@ -31,7 +31,7 @@ The goal is to integrate the agents engine into sodium's existing Express + Post
 
 ## 1.2 What "agent engine" means here
 
-`@goatlab/agents-core` is a TypeScript distributed workflow engine inspired by Hatchet, Temporal, Trigger.dev. It runs DAGs of steps over Postgres (source of truth) + BullMQ (execution queues) with:
+`@goatlab/delphi-core` is a TypeScript distributed workflow engine inspired by Hatchet, Temporal, Trigger.dev. It runs DAGs of steps over Postgres (source of truth) + BullMQ (execution queues) with:
 
 - Idempotent starts (UNIQUE constraint on `idempotencyKey`)
 - Per-step retries with backoff
@@ -53,13 +53,13 @@ You should clone or read the source. Here's the map:
 
 | Package | What it is |
 |---|---|
-| **`agents-core`** | The engine itself. Workflow DSL, state machine, queue-first ingestion, batched DB writes, all the perf tricks |
-| **`agents-express`** | Express adapter. `agentsRouter()` factory mounts every workflow endpoint via a `resolveAgents(req)` callback |
-| **`agents-bun`** | Same idea for Bun's `Bun.serve()` runtime |
-| **`agents-ai`** | Multi-provider LLM adapter (OpenAI/Anthropic/Google/Ollama) + tool-call loop + multi-agent consensus |
-| **`agents-langgraph`** | LangGraph `StateGraph` runs as engine steps, with PG checkpointing |
-| **`agents-sandbox`** | Docker-isolated step execution with network lockdown |
-| **`agents-ui`** | Vite + React + ReactFlow workflow dashboard (visual editor + run inspector + metrics + worker monitoring) |
+| **`delphi-core`** | The engine itself. Workflow DSL, state machine, queue-first ingestion, batched DB writes, all the perf tricks |
+| **`delphi-express`** | Express adapter. `agentsRouter()` factory mounts every workflow endpoint via a `resolveAgents(req)` callback |
+| **`delphi-bun`** | Same idea for Bun's `Bun.serve()` runtime |
+| **`delphi-ai`** | Multi-provider LLM adapter (OpenAI/Anthropic/Google/Ollama) + tool-call loop + multi-agent consensus |
+| **`delphi-langgraph`** | LangGraph `StateGraph` runs as engine steps, with PG checkpointing |
+| **`delphi-sandbox`** | Docker-isolated step execution with network lockdown |
+| **`delphi-ui`** | Vite + React + ReactFlow workflow dashboard (visual editor + run inspector + metrics + worker monitoring) |
 
 ### Queue / task primitives (sodium uses these too)
 
@@ -81,7 +81,7 @@ You should clone or read the source. Here's the map:
 | `tsconfig`, `biome` | Shared dev configs |
 | `docs`, `benchmarks`, `dev` | Internal tooling |
 
-**For this work, you only need to know `agents-core`, `agents-express`, `tasks-core`, `tasks-adapter-bullmq`.** Everything else is irrelevant to the integration.
+**For this work, you only need to know `delphi-core`, `delphi-express`, `tasks-core`, `tasks-adapter-bullmq`.** Everything else is irrelevant to the integration.
 
 ## 1.4 What sodium looks like (`sodium/apps/backend/`)
 
@@ -129,8 +129,8 @@ A summary of every commit, what it does, and why. Read this if you want to under
 **Solution**: HTTP path returns immediately with `{runId, traceId, status: 'QUEUED'}` after pushing to an in-memory buffer. A worker accumulates these and writes them to PG via `COPY FROM` in batches.
 
 **Code**:
-- `IngestBuffer` (`packages/agents-core/src/engine/IngestBuffer.ts`) — HTTP-side accumulator. Flushes via `connector.bulkQueue([...])` (or BullMQ's `addBulk` directly) every 200 jobs or 50ms.
-- `IngestWorker` (`packages/agents-core/src/engine/IngestWorker.ts`) — BullMQ-side accumulator. Each handler call returns a promise; the promise resolves only after the batch flushes. Calls `engine.startBatchCopy(triggers)` for the actual COPY FROM.
+- `IngestBuffer` (`packages/delphi-core/src/engine/IngestBuffer.ts`) — HTTP-side accumulator. Flushes via `connector.bulkQueue([...])` (or BullMQ's `addBulk` directly) every 200 jobs or 50ms.
+- `IngestWorker` (`packages/delphi-core/src/engine/IngestWorker.ts`) — BullMQ-side accumulator. Each handler call returns a promise; the promise resolves only after the batch flushes. Calls `engine.startBatchCopy(triggers)` for the actual COPY FROM.
 
 **Other things in this commit**:
 - Cluster mode (`CLUSTER_MODE=auto|off|N`) — Node `cluster` module, primary forks N children, all bind same HTTP port (kernel SO_REUSEPORT), all consume same BullMQ queues. Mirrors what production deploys do.
@@ -140,7 +140,7 @@ A summary of every commit, what it does, and why. Read this if you want to under
 
 ### Commit 2: `1af2ae7` — READMEs for 6 agent-platform packages
 
-agents-core, agents-ai, agents-langgraph, agents-sandbox, agents-ui, tasks-adapter-bullmq. Each ~100-200 lines covering architecture, install, quick start, key exports.
+delphi-core, delphi-ai, delphi-langgraph, delphi-sandbox, delphi-ui, tasks-adapter-bullmq. Each ~100-200 lines covering architecture, install, quick start, key exports.
 
 ### Commit 3: `8986ac9` — 2× drain rate via fixed batch sizing
 
@@ -172,7 +172,7 @@ Added a comprehensive "Agent Workflow Engine — Run, Test, and Load-Benchmark" 
 
 ### Commit 6: `a89d4ae` — `WriteBuffer<T>` + retention + prod tuning + scheduler docs
 
-**`WriteBuffer<T>`** (`packages/agents-core/src/engine/WriteBuffer.ts`) — generic batched-write accumulator. The Hatchet pattern abstracted into a primitive: `flushFn`, `flushThreshold`, `flushIntervalMs`, `maxJitterMs`, `maxConcurrentFlushes`, snapshot-and-swap, re-prepend on failure.
+**`WriteBuffer<T>`** (`packages/delphi-core/src/engine/WriteBuffer.ts`) — generic batched-write accumulator. The Hatchet pattern abstracted into a primitive: `flushFn`, `flushThreshold`, `flushIntervalMs`, `maxJitterMs`, `maxConcurrentFlushes`, snapshot-and-swap, re-prepend on failure.
 
 Refactored the existing `logBuffer` in `WorkflowEngine.ts` to use it. Same behavior, cleaner code, ready for new consumers.
 
@@ -189,7 +189,7 @@ Refactored the existing `logBuffer` in `WorkflowEngine.ts` to use it. Same behav
 
 **Problem**: every step transition (`markStepRunning`, `onStepCompleted`, `onStepFailed`) does a sync UPDATE on `workflow_steps`. Under load, that's N RTTs per second.
 
-**Solution**: `StepStatusBuffer` (`packages/agents-core/src/engine/StepStatusBuffer.ts`) — batches updates and flushes via a single `UPDATE … FROM unnest($1::text[], $2::text[], ...)` per ~100 transitions.
+**Solution**: `StepStatusBuffer` (`packages/delphi-core/src/engine/StepStatusBuffer.ts`) — batches updates and flushes via a single `UPDATE … FROM unnest($1::text[], $2::text[], ...)` per ~100 transitions.
 
 **Critical invariant**: per-step promise from `enqueue()` resolves ONLY after the UPDATE has COMMITTED. Caller (`WorkflowStepTask` via `engine.markStepRunning` / `onStepCompleted`) awaits the promise before returning, so BullMQ ack ↔ PG commit stay coupled. **A crash between BullMQ ack and PG commit is impossible by construction.**
 
@@ -212,9 +212,9 @@ WHERE s.id = v.id
 
 **Validated**: 213,187 workflows fired → 213,188 in PG → 213,188 reached COMPLETED, 0 failures. Sustained ~770 completions/sec on 2 vCPU.
 
-### Commit 8: `27e9b76` — Pluggable adapters (agents-express + Prisma fragment + schema isolation)
+### Commit 8: `27e9b76` — Pluggable adapters (delphi-express + Prisma fragment + schema isolation)
 
-**`@goatlab/agents-express`** — generic Express router factory:
+**`@goatlab/delphi-express`** — generic Express router factory:
 ```ts
 app.use('/api/workflows', agentsRouter({
   resolveAgents: async (req) => ({ engine, ingestBuffer, tenantId }),
@@ -224,11 +224,11 @@ Mounts 12 endpoints. No tenant/auth assumptions. Per-route enable/disable. Custo
 
 **`WorkflowEngine.schema` config option** — `schema: 'agents'` makes engine queries use `agents.workflow_runs` instead of `public.workflow_runs`. One-line constructor wrap (`this.db = config.db.withSchema(schema)`); raw COPY FROM strings interpolate the prefix; `StepStatusBuffer` accepts schema and prefixes its UPDATE SQL too. Default behavior unchanged when `schema` is unset.
 
-**Prisma schema fragment** (`packages/agents-core/prisma.fragment`) — copy-paste-ready Prisma models for all 12 engine tables, with documented examples for `@@schema("agents")` + multiSchema and for `@@map()` to rename Prisma client view while keeping physical table names default. Engine **does not auto-bootstrap** when user manages schema.
+**Prisma schema fragment** (`packages/delphi-core/prisma.fragment`) — copy-paste-ready Prisma models for all 12 engine tables, with documented examples for `@@schema("agents")` + multiSchema and for `@@map()` to rename Prisma client view while keeping physical table names default. Engine **does not auto-bootstrap** when user manages schema.
 
 ### Commit 9: `1e8d83a` — Express + Prisma example with full load-test script
 
-Full self-contained example app at `packages/agents-express/example/`:
+Full self-contained example app at `packages/delphi-express/example/`:
 - `docker-compose.yml`
 - `prisma/schema.prisma` (Customer + 12 engine tables in `agents` schema)
 - `src/agents.factory.ts` (single-tenant cached engine factory)
@@ -248,7 +248,7 @@ Bug fixes in `loadtest.sh`: cleanup kills cluster primary's children (`pkill -P`
 
 Recorded actual numbers from running the loadtest: 2k @ p95=62ms, 4k @ p95=102ms, 5k @ p95=171ms (saturating), 0% errors, 316,929 fired → 316,930 COMPLETED. Plus side-by-side comparison vs raw `node:http` showing Express adds ~20% latency overhead but doesn't slow the engine itself.
 
-### Commit 12: `0d82940` — `@goatlab/agents-bun` adapter + Bun + Prisma example
+### Commit 12: `0d82940` — `@goatlab/delphi-bun` adapter + Bun + Prisma example
 
 Mirror of the Express adapter, using `Bun.serve()`'s fetch handler API. Bun supports clustering via `reusePort: true` (no `node:cluster`); we spawn N child processes that all bind the same port.
 
@@ -261,7 +261,7 @@ Bun is best for latency-sensitive front-door services; Node still wins for workf
 
 ### Commit 13: `1e34216` — `bulkQueue` promoted to `TaskConnector` interface
 
-**Why**: `agents-core` was implicitly coupled to BullMQ (used `connector.getQueue(name).addBulk(...)` which is BullMQ-specific). To make agents-core truly backend-agnostic, we promoted bulk enqueue to the `TaskConnector` interface.
+**Why**: `delphi-core` was implicitly coupled to BullMQ (used `connector.getQueue(name).addBulk(...)` which is BullMQ-specific). To make delphi-core truly backend-agnostic, we promoted bulk enqueue to the `TaskConnector` interface.
 
 **Changes**:
 - `TaskConnector.bulkQueue?(jobs[])` — optional method, returns `TaskStatus[]`
@@ -321,26 +321,26 @@ Drain: ~700-770 completions/sec sustained.
 Install: `brew install k6`
 
 **Test scripts**:
-- `packages/agents-core/loadtest/k6-workflow.js` — multi-scenario benchmark (start, batch, event, status). Hatchet-style sweep up to 2000 req/s.
-- `packages/agents-express/example/scripts/k6-flat.js` — simpler constant-arrival-rate flat sweep, configurable via env.
+- `packages/delphi-core/loadtest/k6-workflow.js` — multi-scenario benchmark (start, batch, event, status). Hatchet-style sweep up to 2000 req/s.
+- `packages/delphi-express/example/scripts/k6-flat.js` — simpler constant-arrival-rate flat sweep, configurable via env.
 
 **Common invocation**:
 ```bash
 # Run against running test-server
-API_URL=http://localhost:4445 k6 run packages/agents-core/loadtest/k6-workflow.js
+API_URL=http://localhost:4445 k6 run packages/delphi-core/loadtest/k6-workflow.js
 
 # Sweep one rate against the example
-cd packages/agents-express/example
+cd packages/delphi-express/example
 API_URL=http://localhost:3000 MODE=async RATE=5000 DUR=30s k6 run scripts/k6-flat.js
 
 # Full lifecycle (recommended)
-cd packages/agents-express/example
+cd packages/delphi-express/example
 SWEEP="2000 4000 5000" DUR=30s pnpm loadtest
 ```
 
 ### `loadtest.sh` orchestration script
 
-Located at `packages/agents-express/example/scripts/loadtest.sh` (and similar in `packages/agents-bun/example/`). Does:
+Located at `packages/delphi-express/example/scripts/loadtest.sh` (and similar in `packages/delphi-bun/example/`). Does:
 
 1. Verify prereqs (k6, docker, pnpm, [bun])
 2. `docker compose up -d` (PG + Redis)
@@ -359,13 +359,13 @@ Knobs: `SWEEP` (rates list), `DUR` (per-rate duration), `KEEP_RUNNING` (skip tea
 
 ```bash
 # All engine tests (224 tests, needs Docker for testcontainers)
-cd packages/agents-core && pnpm test
+cd packages/delphi-core && pnpm test
 
 # Skip the long load-test file
-cd packages/agents-core && npx vitest run --exclude="**/load-test*"
+cd packages/delphi-core && npx vitest run --exclude="**/load-test*"
 
 # Targeted
-cd packages/agents-core && npx vitest run src/__tests__/engine/lifecycle.spec.ts
+cd packages/delphi-core && npx vitest run src/__tests__/engine/lifecycle.spec.ts
 ```
 
 Each test file has a run hint at the top: `// npx vitest run src/__tests__/...`
@@ -374,7 +374,7 @@ Each test file has a run hint at the top: `// npx vitest run src/__tests__/...`
 
 ```bash
 # Start the test server (testcontainers spin up PG + Redis)
-cd packages/agents-ui
+cd packages/delphi-ui
 PORT=4445 CLUSTER_MODE=2 PG_POOL_SIZE=20 WORKER_CONCURRENCY=50 \
   npx tsx test-server/server.ts
 
@@ -474,7 +474,7 @@ Hot path is heavily optimized: 2 buffered UPDATEs (markRunning + completed) beco
 
 ### Schema
 
-All in `packages/agents-core/src/entities/Database.ts` as Kysely interfaces (no decorators, no reflect-metadata). `CREATE_TABLES_SQL` exports the schema as a string for testcontainers / dev.
+All in `packages/delphi-core/src/entities/Database.ts` as Kysely interfaces (no decorators, no reflect-metadata). `CREATE_TABLES_SQL` exports the schema as a string for testcontainers / dev.
 
 12 tables:
 - `workflow_runs` — durable run state
@@ -646,8 +646,8 @@ Each phase is independently shippable.
 
 | Step | File in sodium | What |
 |---|---|---|
-| 1 | `apps/backend/package.json` | Add `@goatlab/agents-core` and `@goatlab/agents-express` workspace deps |
-| 2 | `apps/backend/prisma/schema.prisma` | Append the 12 engine models from `packages/agents-core/prisma.fragment` with `@@schema("agents")`. Enable `previewFeatures = ["multiSchema"]`. |
+| 1 | `apps/backend/package.json` | Add `@goatlab/delphi-core` and `@goatlab/delphi-express` workspace deps |
+| 2 | `apps/backend/prisma/schema.prisma` | Append the 12 engine models from `packages/delphi-core/prisma.fragment` with `@@schema("agents")`. Enable `previewFeatures = ["multiSchema"]`. |
 | 3 | `apps/backend/pgroll-migrations/` | Run `pnpm db:create:migration` — generates pgroll migration creating `agents` schema + 12 tables. Apply via normal flow. |
 | 4 | `apps/backend/src/config/agents/agents.factory.ts` (new) | LRU+TTL cached engine factory. Mirror `better-auth.factory.ts`. |
 | 5 | `apps/backend/src/api/_express/agents/agents.resource.ts` (new) | One-line wrap of `agentsRouter({ resolveAgents })` |
@@ -662,15 +662,15 @@ Each phase is independently shippable.
 | Step | File | What | Status |
 |---|---|---|---|
 | 1 | `packages/realtime-broker/` (new) | Lift `TenantSubscriberPool` from sodium. ~250 LOC. Tests against ioredis-mock. | ✅ DONE |
-| 2 | `packages/agents-core/src/engine/WorkflowEngine.ts` | Add `onEngineEvent?: (evt: EngineEvent) => void` config hook. Fires synchronously after PG commit at every state transition. | ✅ DONE |
-| 3 | `packages/agents-core/src/engine/EngineEvent.types.ts` (new) | Typed event union: `run.started`, `step.running`, `step.completed`, `step.failed`, `run.completed`, `step.human_requested` | ✅ DONE |
+| 2 | `packages/delphi-core/src/engine/WorkflowEngine.ts` | Add `onEngineEvent?: (evt: EngineEvent) => void` config hook. Fires synchronously after PG commit at every state transition. | ✅ DONE |
+| 3 | `packages/delphi-core/src/engine/EngineEvent.types.ts` (new) | Typed event union: `run.started`, `step.running`, `step.completed`, `step.failed`, `run.completed`, `step.human_requested` | ✅ DONE |
 | 4 | Sodium's `apps/backend/src/api/realtime/shared-subscriber.ts` | Replace internals with thin wrapper around `@goatlab/realtime-broker` | TODO (sodium-side) |
 | 5 | Sodium's `agents.factory.ts` | Wire `onEngineEvent` to `broker.publish(...)` | TODO (sodium-side) |
 | 6 | Sodium's `realtime.controller.ts` | Add `engine:*` channel subscription | TODO (sodium-side) |
 
 **What's done in `fluent`** (commit `<next>`):
 
-`packages/agents-core/src/engine/EngineEvent.types.ts` defines a 6-variant typed union:
+`packages/delphi-core/src/engine/EngineEvent.types.ts` defines a 6-variant typed union:
 - `run.started` (workflowName, workflowVersion)
 - `run.completed` (status: COMPLETED|FAILED|CANCELLED, output?, error?)
 - `step.running` (stepName, attempt)
@@ -735,7 +735,7 @@ Target: **one task per week**.
 | Retention cron | Ops | Run `bin/retention-cleanup.ts` hourly with `RETENTION_DAYS=30` **and** `RETENTION_SCHEMA=agents` (must match `WorkflowEngine.schema`). Without the schema env, the script targets `public.workflow_runs` and silently no-ops or errors with "relation does not exist". |
 | PG autovacuum tuning | Ops | Apply production overrides from `docker-compose.yml` (commented block) |
 | Cloud Monitoring alerts | Ops | Ingest queue depth >10k for >30s; failed run delta >X/hour |
-| Dashboard for workflow_runs | Eng | Embed `@goatlab/agents-ui` or build custom Prisma view |
+| Dashboard for workflow_runs | Eng | Embed `@goatlab/delphi-ui` or build custom Prisma view |
 | Per-tenant rate limiting on `/api/workflows/start-async` | Eng | Prevent one tenant from filling the ingest queue |
 
 ### Phase 5 — Eventually delete legacy task system (long-tail)
@@ -751,8 +751,8 @@ import { Kysely, PostgresDialect } from 'kysely'
 import {
   WorkflowEngine, WorkflowStepTask, FunctionStepExecutor,
   IngestBuffer, IngestWorker, EventIngestionService,
-} from '@goatlab/agents-core'
-import type { Database as AgentsDB } from '@goatlab/agents-core'
+} from '@goatlab/delphi-core'
+import type { Database as AgentsDB } from '@goatlab/delphi-core'
 import { getSharedPool } from '@src/config/database/getConfiguredPrismaClient'
 import { logger } from '@src/services/logger/logger.service'
 import type { ContextWithServices } from '../_container'
@@ -870,7 +870,7 @@ tasks.register('workflow_step_light', async (data, ctx) => {
 ### `apps/backend/src/api/_express/agents/agents.resource.ts`
 
 ```ts
-import { agentsRouter } from '@goatlab/agents-express'
+import { agentsRouter } from '@goatlab/delphi-express'
 import { withContainer } from '@src/config/_container'
 import { getAgentsBundle } from '@src/config/agents/agents.factory'
 
@@ -928,12 +928,12 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `520404f` | docs: agent engine handover — how to run, test, and load-benchmark |
 | `a89d4ae` | feat: WriteBuffer<T> abstraction + retention script + prod tuning docs |
 | `2502050` | perf: step-status batching — single UPDATE per ~100 step transitions |
-| `27e9b76` | feat: pluggable adapters — agents-express + Prisma fragment + schema isolation |
-| `1e8d83a` | feat(agents-express): blank Express + Prisma example with full load-test script |
+| `27e9b76` | feat: pluggable adapters — delphi-express + Prisma fragment + schema isolation |
+| `1e8d83a` | feat(delphi-express): blank Express + Prisma example with full load-test script |
 | `2d0ef9b` | feat(example): cluster mode — 4500 req/s on 2-worker Express + Prisma |
 | `b238b0e` | docs(example): record load-test results |
-| `0d82940` | feat: @goatlab/agents-bun adapter + Bun + Prisma example |
-| `1e34216` | refactor: promote bulkQueue() to TaskConnector — agents-core no longer BullMQ-specific |
+| `0d82940` | feat: @goatlab/delphi-bun adapter + Bun + Prisma example |
+| `1e34216` | refactor: promote bulkQueue() to TaskConnector — delphi-core no longer BullMQ-specific |
 | `d24707b` | docs: full sodium integration plan + zero-context handover |
 | `078bd33` | perf: dispatch v2 — parallel batched processIncomingDispatch (Phase 0 ✅) |
 | `d8355a0` | feat: engine onEngineEvent hook + EngineEvent types (Phase 2 partial ✅) |
@@ -941,7 +941,7 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 | `b486f9a` | fix: retention-cleanup.ts schema-aware via RETENTION_SCHEMA env |
 | `0e5082d` | test: engine-via-dispatch integration (proves sodium-shape consumer works end-to-end) |
 | `a7bb1fc` | feat: @goatlab/realtime-broker — pooled per-tenant pub/sub (Phase 2 ✅) |
-| `ac441b6` | feat: @goatlab/agents-trpc — typed tRPC adapter (sodium-friendly) |
+| `ac441b6` | feat: @goatlab/delphi-trpc — typed tRPC adapter (sodium-friendly) |
 | `8fa1aab` | example(express): wire realtime-broker + onEngineEvent → SSE endpoint |
 | `118a282` | test: full-stack composition (engine + dispatch v2 + event hook + broker) |
 | **(next)** | **refactor: extract BatchedJobProcessor primitive — IngestWorker + StepStatusBuffer share it** |
@@ -949,36 +949,36 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 ## 3.2 File index — where everything lives
 
 ### Core engine files
-- `packages/agents-core/src/engine/WorkflowEngine.ts` — main engine
-- `packages/agents-core/src/engine/WorkflowEngine.types.ts` — config types
-- `packages/agents-core/src/engine/IngestBuffer.ts` — HTTP-side accumulator
-- `packages/agents-core/src/engine/IngestWorker.ts` — Redis-side accumulator
-- `packages/agents-core/src/engine/StepStatusBuffer.ts` — batched step UPDATEs
-- `packages/agents-core/src/engine/WriteBuffer.ts` — generic batched-write primitive
-- `packages/agents-core/src/engine/ExternalActionExecutor.ts` — exactly-once side effects
-- `packages/agents-core/src/engine/SchedulerService.ts` — cron triggers
-- `packages/agents-core/src/engine/TaskManager.ts` — task fan-out
-- `packages/agents-core/src/state/WorkflowStateMachine.ts` — pure-function state derivation
-- `packages/agents-core/src/tasks/WorkflowStepTask.ts` — BullMQ handler
-- `packages/agents-core/src/entities/Database.ts` — Kysely interfaces + CREATE_TABLES_SQL
-- `packages/agents-core/src/api/WorkflowHandlers.ts` — framework-agnostic handler factory
-- `packages/agents-core/prisma.fragment` — Prisma schema for engine tables
-- `packages/agents-core/bin/retention-cleanup.ts` — retention script
+- `packages/delphi-core/src/engine/WorkflowEngine.ts` — main engine
+- `packages/delphi-core/src/engine/WorkflowEngine.types.ts` — config types
+- `packages/delphi-core/src/engine/IngestBuffer.ts` — HTTP-side accumulator
+- `packages/delphi-core/src/engine/IngestWorker.ts` — Redis-side accumulator
+- `packages/delphi-core/src/engine/StepStatusBuffer.ts` — batched step UPDATEs
+- `packages/delphi-core/src/engine/WriteBuffer.ts` — generic batched-write primitive
+- `packages/delphi-core/src/engine/ExternalActionExecutor.ts` — exactly-once side effects
+- `packages/delphi-core/src/engine/SchedulerService.ts` — cron triggers
+- `packages/delphi-core/src/engine/TaskManager.ts` — task fan-out
+- `packages/delphi-core/src/state/WorkflowStateMachine.ts` — pure-function state derivation
+- `packages/delphi-core/src/tasks/WorkflowStepTask.ts` — BullMQ handler
+- `packages/delphi-core/src/entities/Database.ts` — Kysely interfaces + CREATE_TABLES_SQL
+- `packages/delphi-core/src/api/WorkflowHandlers.ts` — framework-agnostic handler factory
+- `packages/delphi-core/prisma.fragment` — Prisma schema for engine tables
+- `packages/delphi-core/bin/retention-cleanup.ts` — retention script
 
 ### Adapters
-- `packages/agents-express/src/index.ts` — Express router factory
-- `packages/agents-bun/src/index.ts` — Bun fetch handler factory
+- `packages/delphi-express/src/index.ts` — Express router factory
+- `packages/delphi-bun/src/index.ts` — Bun fetch handler factory
 
 ### Examples
-- `packages/agents-express/example/` — Express + Prisma example (with loadtest)
-- `packages/agents-bun/example/` — Bun + Prisma example (with loadtest)
-- `packages/agents-ui/test-server/server.ts` — internal benchmarking server (raw node:http)
+- `packages/delphi-express/example/` — Express + Prisma example (with loadtest)
+- `packages/delphi-bun/example/` — Bun + Prisma example (with loadtest)
+- `packages/delphi-ui/test-server/server.ts` — internal benchmarking server (raw node:http)
 
 ### Test infrastructure
-- `packages/agents-core/loadtest/k6-workflow.js` — Hatchet-style multi-scenario benchmark
-- `packages/agents-express/example/scripts/k6-flat.js` — flat-rate sweep
-- `packages/agents-express/example/scripts/loadtest.sh` — full lifecycle automation
-- `packages/agents-core/src/__tests__/engine/` — 224 engine tests
+- `packages/delphi-core/loadtest/k6-workflow.js` — Hatchet-style multi-scenario benchmark
+- `packages/delphi-express/example/scripts/k6-flat.js` — flat-rate sweep
+- `packages/delphi-express/example/scripts/loadtest.sh` — full lifecycle automation
+- `packages/delphi-core/src/__tests__/engine/` — 224 engine tests
 
 ### Top-level
 - `Dockerfile` + `docker-compose.yml` — full stack for benchmarking
@@ -990,11 +990,11 @@ That's the entire integration. ~150 LOC of net-new code in sodium.
 To get fully up to speed:
 
 1. **This document** (PART 1 + 2)
-2. `packages/agents-core/README.md` — engine architecture + queue-first ingestion
-3. `packages/agents-express/README.md` — Express adapter shape
-4. `packages/agents-express/example/README.md` — concrete integration example with perf numbers
-5. `packages/agents-express/example/src/agents.factory.ts` — the model factory
-6. `packages/agents-express/example/scripts/loadtest.sh` — how we test end-to-end
+2. `packages/delphi-core/README.md` — engine architecture + queue-first ingestion
+3. `packages/delphi-express/README.md` — Express adapter shape
+4. `packages/delphi-express/example/README.md` — concrete integration example with perf numbers
+5. `packages/delphi-express/example/src/agents.factory.ts` — the model factory
+6. `packages/delphi-express/example/scripts/loadtest.sh` — how we test end-to-end
 7. `packages/tasks-adapter-bullmq/README.md` — BullMQ connector internals (single vs bulk)
 8. Sodium: `apps/backend/src/services/auth/better-auth.factory.ts` — pattern to mirror
 9. Sodium: `apps/backend/src/config/queue.ts` + `dispatch.setup.ts` — what we plug into
@@ -1009,17 +1009,17 @@ git pull
 pnpm install
 
 # 2. Build everything (or just the changed package)
-pnpm --filter @goatlab/agents-core build
-pnpm --filter @goatlab/agents-express build
+pnpm --filter @goatlab/delphi-core build
+pnpm --filter @goatlab/delphi-express build
 pnpm --filter @goatlab/tasks-adapter-bullmq build
 
 # 3. Run the full test suite (validates engine integrity)
-cd packages/agents-core
+cd packages/delphi-core
 npx vitest run --exclude="**/load-test*" --reporter=dot
 # Should be 224/224 passing
 
 # 4. Optional: validate perf hasn't regressed
-cd packages/agents-express/example
+cd packages/delphi-express/example
 SWEEP="2000 4000" DUR=20s pnpm loadtest
 # Should output "Zero data loss — every accepted workflow reached COMPLETED in PG"
 
@@ -1030,22 +1030,22 @@ SWEEP="2000 4000" DUR=20s pnpm loadtest
 
 ```bash
 # Run engine tests (skip the long load-test file)
-cd packages/agents-core && npx vitest run --exclude="**/load-test*" --reporter=dot
+cd packages/delphi-core && npx vitest run --exclude="**/load-test*" --reporter=dot
 
 # Run a specific test file
-cd packages/agents-core && npx vitest run src/__tests__/engine/lifecycle.spec.ts
+cd packages/delphi-core && npx vitest run src/__tests__/engine/lifecycle.spec.ts
 
 # Start test-server (raw node:http, internal benchmarking)
-cd packages/agents-ui && PORT=4445 CLUSTER_MODE=2 npx tsx test-server/server.ts
+cd packages/delphi-ui && PORT=4445 CLUSTER_MODE=2 npx tsx test-server/server.ts
 
 # Start Express example
-cd packages/agents-express/example && pnpm start
+cd packages/delphi-express/example && pnpm start
 
 # Loadtest the Express example end-to-end
-cd packages/agents-express/example && SWEEP="2000 4000 5000" DUR=30s pnpm loadtest
+cd packages/delphi-express/example && SWEEP="2000 4000 5000" DUR=30s pnpm loadtest
 
 # Loadtest with debug timing
-cd packages/agents-ui && INGEST_TIMING=1 CLUSTER_MODE=2 npx tsx test-server/server.ts
+cd packages/delphi-ui && INGEST_TIMING=1 CLUSTER_MODE=2 npx tsx test-server/server.ts
 # (then run k6 against it)
 
 # Clean all docker
@@ -1085,7 +1085,7 @@ After all phases:
 
 ## 3.7 Why some things are the way they are (FAQ)
 
-**Q: Why use Kysely instead of Prisma in agents-core?**
+**Q: Why use Kysely instead of Prisma in delphi-core?**
 A: Engine needs raw `pg.Pool` for COPY FROM (Prisma can't do this cleanly). Kysely is the lightest-weight TS-typed query builder that plays well with raw pg. Sodium also uses Kysely alongside Prisma already (`getConfiguredPrismaClient.ts`).
 
 **Q: Why JSON in TEXT columns instead of jsonb?**
@@ -1116,6 +1116,6 @@ A: Sodium owns its migrations via pgroll. Auto-creating tables would race their 
 
 ---
 
-*Maintained alongside `packages/agents-core/`. Update this doc when architecture decisions change.*
+*Maintained alongside `packages/delphi-core/`. Update this doc when architecture decisions change.*
 
 *Last updated: 2026-04-14, after 13 commits, 1 working day of integration design + perf engineering.*

@@ -70,26 +70,26 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 
 ### Agent Workflow System
 
-- **agents-core** - Distributed workflow engine (Kysely/Postgres 18, BullMQ 4-queue, DAG+nextStep loops, HITL, ExternalAction exactly-once, event ingestion, integrations, skills, worker nodes, COPY FROM bulk inserts)
-- **agents-ai** - Multi-provider LLM adapter (OpenAI/Anthropic/Google/Ollama) + multi-agent consensus + AI tool-call loop with skills
-- **agents-langgraph** - LangGraph StateGraph executor with Postgres checkpointing
-- **agents-sandbox** - Docker sandboxed execution (NetworkMode:none default, allowedDomains iptables, DinD)
-- **agents-ui** - Vite+React+ReactFlow workflow dashboard (SSE, visual editor, metrics, worker monitoring)
+- **delphi-core** - Distributed workflow engine (Kysely/Postgres 18, BullMQ 4-queue, DAG+nextStep loops, HITL, ExternalAction exactly-once, event ingestion, integrations, skills, worker nodes, COPY FROM bulk inserts)
+- **delphi-ai** - Multi-provider LLM adapter (OpenAI/Anthropic/Google/Ollama) + multi-agent consensus + AI tool-call loop with skills
+- **delphi-langgraph** - LangGraph StateGraph executor with Postgres checkpointing
+- **delphi-sandbox** - Docker sandboxed execution (NetworkMode:none default, allowedDomains iptables, DinD)
+- **delphi-ui** - Vite+React+ReactFlow workflow dashboard (SSE, visual editor, metrics, worker monitoring)
 
 #### Agent Package Commands
 
-- `cd packages/agents-core && pnpm test` - Run engine tests (277 tests, needs Docker for testcontainers)
-- `cd packages/agents-core && npx vitest run --exclude="**/load-test*"` - Skip load test (can timeout)
-- `cd packages/agents-ai && pnpm test` - Run AI layer tests (63 tests, no containers needed)
-- `cd packages/agents-sandbox && pnpm test:unit` - Run sandbox unit tests (no Docker)
-- `cd packages/agents-sandbox && pnpm test:integration` - Run Docker integration tests (needs Docker daemon)
-- `cd packages/agents-ui && pnpm dev` - Start dashboard dev server
-- `cd packages/agents-ui && npx tsx example/start.ts` - Start full example (Postgres+Redis+BullMQ+API+3 demo workflows+worker registration)
-- `cd packages/agents-ui && npx playwright test e2e/workflow-editor.spec.ts` - Run visual editor E2E tests (12 tests)
-- `k6 run packages/agents-core/loadtest/k6-workflow.js` - Run k6 load tests (requires test server running)
+- `cd packages/delphi-core && pnpm test` - Run engine tests (277 tests, needs Docker for testcontainers)
+- `cd packages/delphi-core && npx vitest run --exclude="**/load-test*"` - Skip load test (can timeout)
+- `cd packages/delphi-ai && pnpm test` - Run AI layer tests (63 tests, no containers needed)
+- `cd packages/delphi-sandbox && pnpm test:unit` - Run sandbox unit tests (no Docker)
+- `cd packages/delphi-sandbox && pnpm test:integration` - Run Docker integration tests (needs Docker daemon)
+- `cd packages/delphi-ui && pnpm dev` - Start dashboard dev server
+- `cd packages/delphi-ui && npx tsx example/start.ts` - Start full example (Postgres+Redis+BullMQ+API+3 demo workflows+worker registration)
+- `cd packages/delphi-ui && npx playwright test e2e/workflow-editor.spec.ts` - Run visual editor E2E tests (12 tests)
+- `k6 run packages/delphi-core/loadtest/k6-workflow.js` - Run k6 load tests (requires test server running)
 
-#### Important: agents-core uses Kysely (not TypeORM)
-- Schema defined in `packages/agents-core/src/entities/Database.ts` as plain TS interfaces
+#### Important: delphi-core uses Kysely (not TypeORM)
+- Schema defined in `packages/delphi-core/src/entities/Database.ts` as plain TS interfaces
 - No decorators, no reflection, no `reflect-metadata` needed
 - JSON fields stored as TEXT with `toJson()`/`fromJson()` helpers
 - Always rebuild (`npx tsc`) before running tests in downstream packages

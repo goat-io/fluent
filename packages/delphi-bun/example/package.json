@@ -1,0 +1,33 @@
+{
+	"name": "@goatlab/delphi-bun-example",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Bun + Prisma example app showing how to mount the agent engine via @goatlab/delphi-bun",
+	"scripts": {
+		"infra:up": "docker compose up -d",
+		"infra:down": "docker compose down -v --remove-orphans",
+		"infra:logs": "docker compose logs -f",
+		"db:push": "prisma db push --skip-generate",
+		"db:generate": "prisma generate",
+		"start": "bun run src/server.ts",
+		"dev": "bun --watch src/server.ts",
+		"loadtest": "bash scripts/loadtest.sh",
+		"verify": "bash scripts/verify.sh"
+	},
+	"dependencies": {
+		"@goatlab/delphi-bun": "workspace:*",
+		"@goatlab/delphi-core": "workspace:*",
+		"@goatlab/tasks-adapter-bullmq": "workspace:*",
+		"@prisma/client": "^6.1.0",
+		"kysely": "^0.27.6",
+		"pg": "^8.20.0"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.1.14",
+		"@types/node": "^22.10.7",
+		"@types/pg": "^8.11.10",
+		"prisma": "^6.1.0",
+		"typescript": "^5.7.0"
+	}
+}
