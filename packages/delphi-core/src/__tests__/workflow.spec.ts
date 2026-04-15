@@ -8,17 +8,17 @@
 //
 // npx vitest run src/__tests__/workflow.spec.ts
 
-import { describe, it, expect, expectTypeOf, vi } from 'vitest'
 import type { JsonObject } from '@goatlab/tasks-core'
 import { ShouldQueue } from '@goatlab/tasks-core'
-import { FunctionStep } from '../workflow/Step.js'
-import { Workflow, step } from '../workflow/Workflow.js'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
+import { DAGValidationError } from '../errors/WorkflowErrors.js'
 import { createEngine } from '../workflow/createEngine.js'
 import {
   fromShouldQueue,
   workflowFromShouldQueue,
 } from '../workflow/fromShouldQueue.js'
-import { DAGValidationError } from '../errors/WorkflowErrors.js'
+import { FunctionStep } from '../workflow/Step.js'
+import { step, Workflow } from '../workflow/Workflow.js'
 
 // ── Test fixtures ─────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ describe('Workflow.toDefinition', () => {
         step(echoStep),
         step(appendStep, {
           dependsOn: [echoStep],
-          mapInput: (up) => ({ base: up.echo.echoed }),
+          mapInput: up => ({ base: up.echo.echoed }),
         }),
       ] as const
     }
@@ -131,8 +131,8 @@ describe('Workflow DAG validation', () => {
         return { output: {} }
       }
     }
-    const a = new A(),
-      b = new B()
+    const a = new A()
+    const b = new B()
     class Cyclic extends Workflow<any, 'cyclic'> {
       workflowName = 'cyclic' as const
       steps = [
@@ -224,6 +224,58 @@ describe('createEngine', () => {
         ...makeEngineConfig(),
       }),
     ).toThrow(/duplicate workflow name "same"/)
+  })
+
+  it('exposes every workflow under BOTH snake and camelCase aliases', () => {
+    // A snake_case workflow name should be callable as both
+    // `engine.process_post.start` and `engine.processPost.start`.
+    // They must point at the *same* ops object — no duplicate spinup,
+    // no divergent behavior between the two aliases.
+    class ProcessPost extends Workflow<{ postId: string }, 'process_post'> {
+      workflowName = 'process_post' as const
+      steps = [step(echoStep)] as const
+    }
+    const engine = createEngine({
+      workflows: [new ProcessPost()] as const,
+      ...makeEngineConfig(),
+    })
+    expect(typeof (engine as any).process_post.start).toBe('function')
+    expect(typeof (engine as any).processPost.start).toBe('function')
+    // Same ops reference — not two independent objects
+    expect((engine as any).process_post).toBe((engine as any).processPost)
+  })
+
+  it('already-camelCase names do not double-mount (no extra alias)', () => {
+    class CamelOnly extends Workflow<JsonObject, 'camelOnly'> {
+      workflowName = 'camelOnly' as const
+      steps = [step(echoStep)] as const
+    }
+    const engine = createEngine({
+      workflows: [new CamelOnly()] as const,
+      ...makeEngineConfig(),
+    })
+    expect(typeof (engine as any).camelOnly.start).toBe('function')
+    // No property named 'camelonly' or similar accidentally created
+    expect((engine as any).camelonly).toBeUndefined()
+  })
+
+  it('throws on snake/camel alias collision between two workflows', () => {
+    // `foo_bar` and `fooBar` both resolve to the `fooBar` camelCase
+    // property — ambiguous, so construction should fail loud.
+    class A extends Workflow<JsonObject, 'foo_bar'> {
+      workflowName = 'foo_bar' as const
+      steps = [step(echoStep)] as const
+    }
+    class B extends Workflow<JsonObject, 'fooBar'> {
+      workflowName = 'fooBar' as const
+      steps = [step(echoStep)] as const
+    }
+    expect(() =>
+      createEngine({
+        workflows: [new A(), new B()] as const,
+        ...makeEngineConfig(),
+      }),
+    ).toThrow(/collision.*fooBar/)
   })
 
   it('refuses workflow names that collide with WorkflowEngine methods', () => {
@@ -354,7 +406,7 @@ describe('createEngine', () => {
         step(echoStep),
         step(appendStep, {
           dependsOn: [echoStep],
-          mapInput: (up) => ({ base: up.echo.echoed.toLowerCase() }),
+          mapInput: up => ({ base: up.echo.echoed.toLowerCase() }),
         }),
       ] as const
     }
@@ -486,7 +538,7 @@ describe('createEngine auto-adapts ShouldQueue entries', () => {
     get postUrl() {
       return 'http://localhost/posts/check'
     }
-    async handle(body: { postId: string }) {
+    async handle(_body: { postId: string }) {
       return { ok: true }
     }
   }
@@ -581,22 +633,36 @@ describe('workflowFromShouldQueue', () => {
 // Each assertion is also a human-readable spec of the type contract.
 
 describe('type-level: fromShouldQueue preserves generics', () => {
-  class CheckPostTask extends ShouldQueue<{ postId: string }, { ok: boolean }, 'check_post'> {
+  class CheckPostTask extends ShouldQueue<
+    { postId: string },
+    { ok: boolean },
+    'check_post'
+  > {
     taskName = 'check_post' as const
-    get postUrl() { return '' }
-    async handle() { return { ok: true } }
+    get postUrl() {
+      return ''
+    }
+    async handle() {
+      return { ok: true }
+    }
   }
   class VoidTask extends ShouldQueue<{ id: string }, undefined, 'void_task'> {
     taskName = 'void_task' as const
-    get postUrl() { return '' }
-    async handle() { return undefined }
+    get postUrl() {
+      return ''
+    }
+    async handle() {
+      return undefined
+    }
   }
 
   it('adapted step carries the task input generic (narrowed, not widened)', () => {
     const adapted = fromShouldQueue(new CheckPostTask())
     // handle()'s input must be exactly the task's TInput & JsonObject —
     // not unknown, not any, not JsonObject.
-    expectTypeOf<Parameters<typeof adapted.handle>[0]>().toEqualTypeOf<{ postId: string } & JsonObject>()
+    expectTypeOf<Parameters<typeof adapted.handle>[0]>().toEqualTypeOf<
+      { postId: string } & JsonObject
+    >()
   })
 
   it('adapted step carries the task output generic', () => {
@@ -617,26 +683,45 @@ describe('type-level: fromShouldQueue preserves generics', () => {
     // When TResult = undefined, StepOutputOf<TResult> resolves to JsonObject.
     // The runtime adapter returns {} in that case; the type contract is
     // that the adapted step IS-A FunctionStep with TOutput = JsonObject.
-    expectTypeOf(adapted).toMatchTypeOf<FunctionStep<{ id: string } & JsonObject, JsonObject, 'void_task'>>()
+    expectTypeOf(adapted).toMatchTypeOf<
+      FunctionStep<{ id: string } & JsonObject, JsonObject, 'void_task'>
+    >()
   })
 })
 
 describe('type-level: engine.<name>.start accepts the right input type', () => {
-  class ChargeStep extends FunctionStep<{ orderId: string; amountCents: number }, { chargeId: string }, 'charge'> {
+  class ChargeStep extends FunctionStep<
+    { orderId: string; amountCents: number },
+    { chargeId: string },
+    'charge'
+  > {
     stepName = 'charge' as const
-    async handle(_input) { return { output: { chargeId: 'x' } } }
+    async handle(_input) {
+      return { output: { chargeId: 'x' } }
+    }
   }
 
-  class PaymentWorkflow extends Workflow<{ orderId: string; amountCents: number }, 'payment_critical'> {
+  class PaymentWorkflow extends Workflow<
+    { orderId: string; amountCents: number },
+    'payment_critical'
+  > {
     workflowName = 'payment_critical' as const
     // Root step receives the trigger input directly — no mapInput needed.
     steps = [step(new ChargeStep())] as const
   }
 
-  class CheckPostTask extends ShouldQueue<{ postId: string }, { ok: boolean }, 'check_post'> {
+  class CheckPostTask extends ShouldQueue<
+    { postId: string },
+    { ok: boolean },
+    'check_post'
+  > {
     taskName = 'check_post' as const
-    get postUrl() { return '' }
-    async handle() { return { ok: true } }
+    get postUrl() {
+      return ''
+    }
+    async handle() {
+      return { ok: true }
+    }
   }
 
   it('Workflow entry → engine.<name>.start typed against the workflow TInput', () => {
@@ -644,7 +729,8 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
       workflows: [new PaymentWorkflow()] as const,
       ...makeEngineConfig(),
     })
-    expectTypeOf(engine.payment_critical.start).parameter(0)
+    expectTypeOf(engine.payment_critical.start)
+      .parameter(0)
       .toEqualTypeOf<{ orderId: string; amountCents: number }>()
   })
 
@@ -653,10 +739,12 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
       workflows: [new CheckPostTask()] as const,
       ...makeEngineConfig(),
     })
-    // ShouldQueue's TInput is intersected with JsonObject at the adapter
-    // boundary (TInput extends object, which is broader than JsonObject).
-    expectTypeOf(engine.check_post.start).parameter(0)
-      .toEqualTypeOf<{ postId: string } & JsonObject>()
+    // ShouldQueue's TInput flows through InputOf verbatim — no
+    // `& JsonObject` intersection (we dropped that in 0.1.5 so task
+    // shapes with optional fields don't break the constraint).
+    expectTypeOf(engine.check_post.start)
+      .parameter(0)
+      .toEqualTypeOf<{ postId: string }>()
   })
 
   it('startBuffered and startCommitted have the same input shape as start', () => {
@@ -664,9 +752,11 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
       workflows: [new PaymentWorkflow()] as const,
       ...makeEngineConfig(),
     })
-    expectTypeOf(engine.payment_critical.startBuffered).parameter(0)
+    expectTypeOf(engine.payment_critical.startBuffered)
+      .parameter(0)
       .toEqualTypeOf<{ orderId: string; amountCents: number }>()
-    expectTypeOf(engine.payment_critical.startCommitted).parameter(0)
+    expectTypeOf(engine.payment_critical.startCommitted)
+      .parameter(0)
       .toEqualTypeOf<{ orderId: string; amountCents: number }>()
   })
 
@@ -675,27 +765,40 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
       workflows: [new PaymentWorkflow()] as const,
       ...makeEngineConfig(),
     })
-    expectTypeOf<Awaited<ReturnType<typeof engine.payment_critical.start>>>()
-      .toEqualTypeOf<{ runId: string }>()
-    expectTypeOf<ReturnType<typeof engine.payment_critical.startBuffered>>()
-      .toEqualTypeOf<{ runId: string; traceId: string }>()
-    expectTypeOf<Awaited<ReturnType<typeof engine.payment_critical.startCommitted>>>()
-      .toEqualTypeOf<{ runId: string; traceId: string }>()
+    expectTypeOf<
+      Awaited<ReturnType<typeof engine.payment_critical.start>>
+    >().toEqualTypeOf<{ runId: string }>()
+    expectTypeOf<
+      ReturnType<typeof engine.payment_critical.startBuffered>
+    >().toEqualTypeOf<{ runId: string; traceId: string }>()
+    expectTypeOf<
+      Awaited<ReturnType<typeof engine.payment_critical.startCommitted>>
+    >().toEqualTypeOf<{ runId: string; traceId: string }>()
   })
 })
 
 describe('type-level: mixed arrays expose all entries as proxy properties', () => {
   class WfA extends Workflow<{ a: number }, 'wf_a'> {
     workflowName = 'wf_a' as const
-    steps = [step(new (class extends FunctionStep<JsonObject, JsonObject, 's'> {
-      stepName = 's' as const
-      async handle() { return { output: {} } }
-    })())] as const
+    steps = [
+      step(
+        new (class extends FunctionStep<JsonObject, JsonObject, 's'> {
+          stepName = 's' as const
+          async handle() {
+            return { output: {} }
+          }
+        })(),
+      ),
+    ] as const
   }
   class TaskB extends ShouldQueue<{ b: string }, { done: boolean }, 'task_b'> {
     taskName = 'task_b' as const
-    get postUrl() { return '' }
-    async handle() { return { done: true } }
+    get postUrl() {
+      return ''
+    }
+    async handle() {
+      return { done: true }
+    }
   }
 
   it('both the Workflow and ShouldQueue entries appear on the engine proxy', () => {
@@ -703,9 +806,11 @@ describe('type-level: mixed arrays expose all entries as proxy properties', () =
       workflows: [new WfA(), new TaskB()] as const,
       ...makeEngineConfig(),
     })
-    // engine.wf_a accepts { a: number }; engine.task_b accepts { b: string } & JsonObject.
+    // engine.wf_a accepts { a: number }; engine.task_b accepts { b: string }.
     expectTypeOf(engine.wf_a.start).parameter(0).toEqualTypeOf<{ a: number }>()
-    expectTypeOf(engine.task_b.start).parameter(0).toEqualTypeOf<{ b: string } & JsonObject>()
+    expectTypeOf(engine.task_b.start)
+      .parameter(0)
+      .toEqualTypeOf<{ b: string }>()
   })
 
   it('property keys of the typed engine are exactly the workflow names (literal union)', () => {
@@ -724,10 +829,16 @@ describe('type-level: mixed arrays expose all entries as proxy properties', () =
 describe('type-level: wrong input at call site is rejected at compile time', () => {
   class PayWf extends Workflow<{ amountCents: number }, 'pay'> {
     workflowName = 'pay' as const
-    steps = [step(new (class extends FunctionStep<JsonObject, JsonObject, 's'> {
-      stepName = 's' as const
-      async handle() { return { output: {} } }
-    })())] as const
+    steps = [
+      step(
+        new (class extends FunctionStep<JsonObject, JsonObject, 's'> {
+          stepName = 's' as const
+          async handle() {
+            return { output: {} }
+          }
+        })(),
+      ),
+    ] as const
   }
 
   it('wrong field names are a type error (proved via `@ts-expect-error`)', () => {
