@@ -108,13 +108,15 @@ export interface TaskConnector<TInput> {
    * Returns one TaskStatus per input job, in the same order. On partial
    * failure the implementation throws — bulk semantics are all-or-nothing.
    */
-  bulkQueue?(jobs: Array<{
-    uniqueTaskName: string
-    taskName: string
-    taskBody: TInput
-    /** Per-job options (e.g. priority, deduplication id). Adapter-specific. */
-    opts?: Record<string, unknown>
-  }>): Promise<Array<Omit<TaskStatus, 'payload'>>>
+  bulkQueue?(
+    jobs: Array<{
+      uniqueTaskName: string
+      taskName: string
+      taskBody: TInput
+      /** Per-job options (e.g. priority, deduplication id). Adapter-specific. */
+      opts?: Record<string, unknown>
+    }>,
+  ): Promise<Omit<TaskStatus, 'payload'>[]>
 
   /**
    * Get the status of a task by its ID.
