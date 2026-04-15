@@ -1,44 +1,36 @@
 [
-  {
-    "config": {
-      "name": "Hono Native + Bun",
-      "runtime": "bun",
-      "framework": "hono-native",
-      "port": 3005,
-      "command": [
-        "bun",
-        "run",
-        "src/servers/hono-native-server.ts"
-      ]
-    },
-    "metrics": {
-      "avgLatency": 8.22,
-      "p95Latency": 70.61,
-      "p99Latency": 7.13,
-      "totalRequests": 5764,
-      "requestsPerSecond": 82.097611,
-      "errorRate": 5
-    }
-  },
-  {
-    "config": {
-      "name": "Elysia Native + Bun",
-      "runtime": "bun",
-      "framework": "elysia-native",
-      "port": 3004,
-      "command": [
-        "bun",
-        "run",
-        "src/servers/elysia-native-server.ts"
-      ]
-    },
-    "metrics": {
-      "avgLatency": 9,
-      "p95Latency": 80.55,
-      "p99Latency": 7.53,
-      "totalRequests": 5710,
-      "requestsPerSecond": 81.311108,
-      "errorRate": 6
-    }
-  }
+	{
+		"config": {
+			"name": "Hono Native + Bun",
+			"runtime": "bun",
+			"framework": "hono-native",
+			"port": 3005,
+			"command": ["bun", "run", "src/servers/hono-native-server.ts"]
+		},
+		"metrics": {
+			"avgLatency": 8.22,
+			"p95Latency": 70.61,
+			"p99Latency": 7.13,
+			"totalRequests": 5764,
+			"requestsPerSecond": 82.097611,
+			"errorRate": 5
+		}
+	},
+	{
+		"config": {
+			"name": "Elysia Native + Bun",
+			"runtime": "bun",
+			"framework": "elysia-native",
+			"port": 3004,
+			"command": ["bun", "run", "src/servers/elysia-native-server.ts"]
+		},
+		"metrics": {
+			"avgLatency": 9,
+			"p95Latency": 80.55,
+			"p99Latency": 7.53,
+			"totalRequests": 5710,
+			"requestsPerSecond": 81.311108,
+			"errorRate": 6
+		}
+	}
 ]

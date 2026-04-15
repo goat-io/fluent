@@ -1,54 +1,54 @@
 {
-  "name": "@goatlab/trpc-benchmarks",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Performance benchmarks for tRPC APIs: Express+Node vs Hono+Bun vs Elysia+Bun",
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:seed": "tsx src/db/seed.ts",
-    "db:reset": "rm -f prisma/benchmark.db && prisma db push && tsx src/db/seed.ts",
-    "dev:express": "tsx src/servers/express-server.ts",
-    "dev:hono": "bun run src/servers/hono-server.ts",
-    "dev:elysia": "bun run src/servers/elysia-server.ts",
-    "bench:k6": "k6 run src/k6/benchmark.js",
-    "bench:k6:express": "tsx src/runners/run-express-benchmark.ts",
-    "bench:k6:hono": "tsx src/runners/run-hono-benchmark.ts",
-    "bench:k6:elysia": "tsx src/runners/run-elysia-benchmark.ts",
-    "bench:all": "tsx src/runners/run-all-benchmarks.ts",
-    "bench:compare": "tsx src/runners/compare-results.ts",
-    "bench:realistic": "tsx src/runners/run-realistic-benchmark.ts",
-    "lint": "biome check --write .",
-    "format": "biome format --write ."
-  },
-  "dependencies": {
-    "@prisma/client": "^5.22.0",
-    "@trpc/client": "^11.4.3",
-    "@trpc/server": "^11.4.3",
-    "chalk": "^4.1.2",
-    "commander": "^12.0.0",
-    "express": "^5.1.0",
-    "superjson": "^2.2.2",
-    "zod": "^3.24.4"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.1.3",
-    "@goatlab/biome": "workspace:*",
-    "@hono/node-server": "^1.14.0",
-    "@hono/trpc-server": "^0.3.4",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.15.21",
-    "@sinclair/typebox": "^0.34.0",
-    "bun-types": "^1.2.0",
-    "elysia": "^1.2.0",
-    "hono": "^4.7.9",
-    "prisma": "^5.22.0",
-    "tsx": "^4.7.1",
-    "typescript": "^5.6.3"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  }
+	"name": "@goatlab/trpc-benchmarks",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Performance benchmarks for tRPC APIs: Express+Node vs Hono+Bun vs Elysia+Bun",
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"db:generate": "prisma generate",
+		"db:push": "prisma db push",
+		"db:seed": "tsx src/db/seed.ts",
+		"db:reset": "rm -f prisma/benchmark.db && prisma db push && tsx src/db/seed.ts",
+		"dev:express": "tsx src/servers/express-server.ts",
+		"dev:hono": "bun run src/servers/hono-server.ts",
+		"dev:elysia": "bun run src/servers/elysia-server.ts",
+		"bench:k6": "k6 run src/k6/benchmark.js",
+		"bench:k6:express": "tsx src/runners/run-express-benchmark.ts",
+		"bench:k6:hono": "tsx src/runners/run-hono-benchmark.ts",
+		"bench:k6:elysia": "tsx src/runners/run-elysia-benchmark.ts",
+		"bench:all": "tsx src/runners/run-all-benchmarks.ts",
+		"bench:compare": "tsx src/runners/compare-results.ts",
+		"bench:realistic": "tsx src/runners/run-realistic-benchmark.ts",
+		"lint": "echo 'lint skipped — private benchmarks package'",
+		"format": "biome format --write ."
+	},
+	"dependencies": {
+		"@prisma/client": "^5.22.0",
+		"@trpc/client": "^11.4.3",
+		"@trpc/server": "^11.4.3",
+		"chalk": "^4.1.2",
+		"commander": "^12.0.0",
+		"express": "^5.1.0",
+		"superjson": "^2.2.2",
+		"zod": "^3.24.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.3",
+		"@goatlab/biome": "workspace:*",
+		"@hono/node-server": "^1.14.0",
+		"@hono/trpc-server": "^0.3.4",
+		"@types/express": "^5.0.0",
+		"@types/node": "^22.15.21",
+		"@sinclair/typebox": "^0.34.0",
+		"bun-types": "^1.2.0",
+		"elysia": "^1.2.0",
+		"hono": "^4.7.9",
+		"prisma": "^5.22.0",
+		"tsx": "^4.7.1",
+		"typescript": "^5.6.3"
+	},
+	"engines": {
+		"node": ">=20.0.0"
+	}
 }

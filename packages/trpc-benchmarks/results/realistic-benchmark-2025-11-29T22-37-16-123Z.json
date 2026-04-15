@@ -1,56 +1,44 @@
 [
-  {
-    "config": {
-      "name": "Express + Node + SQLite",
-      "runtime": "node",
-      "framework": "express",
-      "serverScript": "src/servers/express-db-server.ts",
-      "port": 3001,
-      "command": [
-        "npx",
-        "tsx",
-        "src/servers/express-db-server.ts"
-      ]
-    },
-    "metrics": {
-      "totalRequests": 4656,
-      "errorRate": 0
-    }
-  },
-  {
-    "config": {
-      "name": "Hono + Bun + SQLite",
-      "runtime": "bun",
-      "framework": "hono",
-      "serverScript": "src/servers/hono-db-server.ts",
-      "port": 3002,
-      "command": [
-        "bun",
-        "run",
-        "src/servers/hono-db-server.ts"
-      ]
-    },
-    "metrics": {
-      "totalRequests": 4684,
-      "errorRate": 0
-    }
-  },
-  {
-    "config": {
-      "name": "Elysia + Bun + SQLite",
-      "runtime": "bun",
-      "framework": "elysia",
-      "serverScript": "src/servers/elysia-db-server.ts",
-      "port": 3003,
-      "command": [
-        "bun",
-        "run",
-        "src/servers/elysia-db-server.ts"
-      ]
-    },
-    "metrics": {
-      "totalRequests": 4647,
-      "errorRate": 0
-    }
-  }
+	{
+		"config": {
+			"name": "Express + Node + SQLite",
+			"runtime": "node",
+			"framework": "express",
+			"serverScript": "src/servers/express-db-server.ts",
+			"port": 3001,
+			"command": ["npx", "tsx", "src/servers/express-db-server.ts"]
+		},
+		"metrics": {
+			"totalRequests": 4656,
+			"errorRate": 0
+		}
+	},
+	{
+		"config": {
+			"name": "Hono + Bun + SQLite",
+			"runtime": "bun",
+			"framework": "hono",
+			"serverScript": "src/servers/hono-db-server.ts",
+			"port": 3002,
+			"command": ["bun", "run", "src/servers/hono-db-server.ts"]
+		},
+		"metrics": {
+			"totalRequests": 4684,
+			"errorRate": 0
+		}
+	},
+	{
+		"config": {
+			"name": "Elysia + Bun + SQLite",
+			"runtime": "bun",
+			"framework": "elysia",
+			"serverScript": "src/servers/elysia-db-server.ts",
+			"port": 3003,
+			"command": ["bun", "run", "src/servers/elysia-db-server.ts"]
+		},
+		"metrics": {
+			"totalRequests": 4647,
+			"errorRate": 0
+		}
+	}
 ]
