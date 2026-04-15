@@ -92,11 +92,22 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
         .where('tenantId', '=', input.tenantId)
         .executeTakeFirst()
 
-      // Allow re-registration with used token if same secret (backend restarted, token already consumed)
       if (!tokenRow) throw new Error('Invalid registration token')
       if (tokenRow.used && tokenRow.usedBy) {
-        // Token was used before — this is a reconnect after backend restart
-        // Accept it and create a new in-memory registration
+        // Token was used before — this is a reconnect after backend restart.
+        // Verify the incoming secret matches the one stored at first registration
+        // so a leaked used token alone isn't enough to impersonate the agent.
+        const prior = await db.selectFrom('worker_nodes')
+          .select(['secretHash'])
+          .where('id', '=', tokenRow.usedBy)
+          .where('tenantId', '=', input.tenantId)
+          .executeTakeFirst()
+        // Reject with a single generic message so we don't leak whether the
+        // failure is a missing worker_nodes row, a legacy row without stored
+        // hash, or a genuine secret mismatch.
+        if (!prior || prior.secretHash == null || prior.secretHash !== secretHash) {
+          throw new Error('Registration token already used')
+        }
         logger?.info(`Agent reconnecting with used token: ${input.name}`)
       } else if (tokenRow.expiresAt && new Date(tokenRow.expiresAt) < new Date()) {
         throw new Error('Registration token expired')
@@ -118,13 +129,15 @@ export function createBrokerHandlers(config: BrokerHandlersConfig) {
         .where('id', '=', tokenRow.id)
         .execute()
 
-      // Insert into worker_nodes table so it shows in the Workers UI
+      // Insert into worker_nodes table so it shows in the Workers UI.
+      // secretHash is persisted so cross-restart reconnects can be authenticated.
       await db.insertInto('worker_nodes' as any).values({
         id: agent.id,
         tenantId: input.tenantId,
         name: input.name,
         hostname: input.hostname,
         capabilities: JSON.stringify(input.capabilities),
+        secretHash,
         status: 'active',
         lastHeartbeatAt: new Date(),
         registeredAt: new Date(),

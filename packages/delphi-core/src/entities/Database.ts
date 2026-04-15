@@ -207,6 +207,7 @@ export interface WorkerNodeTable {
   name: string
   hostname: string | null
   capabilities: string | null
+  secretHash: string | null
   status: string
   lastHeartbeatAt: Date | string | null
   registeredAt: Generated<Date | string>
@@ -466,6 +467,7 @@ CREATE TABLE IF NOT EXISTS worker_nodes (
   name VARCHAR(255) NOT NULL,
   hostname VARCHAR(255),
   capabilities TEXT,
+  "secretHash" VARCHAR(255),
   status VARCHAR(20) NOT NULL DEFAULT 'active',
   "lastHeartbeatAt" TIMESTAMP,
   "registeredAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
