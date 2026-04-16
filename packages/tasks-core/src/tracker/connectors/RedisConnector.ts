@@ -108,6 +108,13 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
   private readonly config: Required<RedisTaskTrackerConfig>
   private readonly subscriptions: Map<string, Set<TaskStateCallback>> =
     new Map()
+  /**
+   * Tracks in-flight Redis SUBSCRIBE commands so that publish() can wait
+   * for the subscription to be active before sending a message.
+   * Without this, a publish() immediately after subscribe() races the async
+   * Redis SUBSCRIBE command and the message is silently dropped.
+   */
+  private readonly pendingSubscriptions: Map<string, Promise<void>> = new Map()
   private messageHandler: ((channel: string, message: string) => void) | null =
     null
 
@@ -370,6 +377,14 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
     state: TrackedTaskState,
   ): Promise<void> {
     const channel = this.getChannel(tenantId, taskId)
+
+    // Wait for any in-flight SUBSCRIBE on this channel to complete before
+    // publishing, otherwise the message is silently dropped by Redis.
+    const pending = this.pendingSubscriptions.get(channel)
+    if (pending) {
+      await pending
+    }
+
     await this.redis.publish(channel, JSON.stringify(state))
   }
 
@@ -415,8 +430,17 @@ export class RedisTaskTrackerConnector implements TaskTrackerConnector {
     if (!callbacks) {
       callbacks = new Set()
       this.subscriptions.set(channel, callbacks)
-      // Subscribe to Redis channel
-      this.subscriber.subscribe(channel)
+      // Subscribe to Redis channel and track the pending promise so that
+      // publish() can wait for the subscription to be active.
+      const pending = this.subscriber.subscribe(channel).then(
+        () => {
+          this.pendingSubscriptions.delete(channel)
+        },
+        () => {
+          this.pendingSubscriptions.delete(channel)
+        },
+      )
+      this.pendingSubscriptions.set(channel, pending)
     }
     callbacks.add(callback)
 

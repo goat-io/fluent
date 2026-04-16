@@ -39,11 +39,7 @@ describe('RedisTaskTrackerConnector - Shared Connection', () => {
     await container.stop()
   }, 30_000)
 
-  // TODO: pub/sub portion fails because forTenant()'s shared subscriber
-  // doesn't issue a Redis SUBSCRIBE command for the channel — messages
-  // are never delivered. Connection-count assertion passes; the pub/sub
-  // assertion doesn't. Skipped to unblock CI until the connector is fixed.
-  it.skip('forTenant(): 5 tenant trackers share 1 redis + 1 subscriber = 2 connections', async () => {
+  it('forTenant(): 5 tenant trackers share 1 redis + 1 subscriber = 2 connections', async () => {
     const clientsBefore = await countClients(monitor)
 
     // Create ONE base connector that owns the connections
