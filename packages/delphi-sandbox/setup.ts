@@ -5,6 +5,8 @@ import { join } from 'node:path'
 const TEMP_DATA_PATH = join(__dirname, 'tempData.json')
 
 export default async () => {
+  if (existsSync(TEMP_DATA_PATH)) unlinkSync(TEMP_DATA_PATH)
+
   const { PostgreSqlContainer } = await import('@testcontainers/postgresql')
   const { RedisContainer } = await import('@testcontainers/redis')
 

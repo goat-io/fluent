@@ -7,7 +7,9 @@ import { VaultContainer } from '@testcontainers/vault'
 // so we need to load dotenv manually if we want to use env
 
 export default async () => {
-  // Replace this with your actual async function
+  const filePath = resolve(__dirname, 'tempData.json')
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+
   const redisContainer = await new RedisContainer('redis:7.2').start()
 
   // Vault container with dev mode and test token
@@ -27,8 +29,6 @@ export default async () => {
     vaultUrl,
     vaultToken: 'test-token'
   }
-
-  const filePath = resolve(__dirname, 'tempData.json')
   writeFileSync(filePath, JSON.stringify(data), 'utf-8')
 
   return async () => {

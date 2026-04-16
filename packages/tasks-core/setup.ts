@@ -20,6 +20,7 @@ export default async () => {
     process.env.NODE_ENV === 'integration'
 
   const filePath = resolve(__dirname, 'tempData.json')
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
 
   if (!hasIntegrationTests) {
     // For unit tests, just create empty tempData file and return
