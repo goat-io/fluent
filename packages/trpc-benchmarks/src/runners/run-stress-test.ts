@@ -1,8 +1,8 @@
 // Stress Test Runner using autocannon (no k6 required)
 // Run: npx tsx src/runners/run-stress-test.ts
 
-import { spawn, ChildProcess } from 'child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import { type ChildProcess, spawn } from 'node:child_process'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 
 interface ServerConfig {
   name: string
@@ -34,7 +34,7 @@ const configs: ServerConfig[] = [
     runtime: 'node',
     framework: 'express-native',
     port: 3007,
-    command: ['npx', 'tsx', 'src/servers/express-native-server.ts']
+    command: ['npx', 'tsx', 'src/servers/express-native-server.ts'],
   },
   {
     name: 'Express + tRPC + Bun',
@@ -42,15 +42,15 @@ const configs: ServerConfig[] = [
     framework: 'express-trpc',
     port: 3008,
     command: ['bun', 'run', 'src/servers/express-trpc-bun-server.ts'],
-    isTrpc: true
+    isTrpc: true,
   },
   {
     name: 'Hono Native + Bun',
     runtime: 'bun',
     framework: 'hono-native',
     port: 3005,
-    command: ['bun', 'run', 'src/servers/hono-native-server.ts']
-  }
+    command: ['bun', 'run', 'src/servers/hono-native-server.ts'],
+  },
 ]
 
 async function sleep(ms: number): Promise<void> {
@@ -61,7 +61,9 @@ async function waitForServer(url: string, maxAttempts = 30): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const response = await fetch(`${url}/health`)
-      if (response.ok) return true
+      if (response.ok) {
+        return true
+      }
     } catch {
       // Server not ready
     }
@@ -75,14 +77,14 @@ function startServer(config: ServerConfig): ChildProcess {
   const proc = spawn(config.command[0], config.command.slice(1), {
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
-    cwd: process.cwd()
+    cwd: process.cwd(),
   })
 
-  proc.stdout?.on('data', (data) => {
+  proc.stdout?.on('data', data => {
     console.log(`[${config.name}] ${data.toString().trim()}`)
   })
 
-  proc.stderr?.on('data', (data) => {
+  proc.stderr?.on('data', data => {
     const msg = data.toString().trim()
     if (msg && !msg.includes('ExperimentalWarning')) {
       console.error(`[${config.name}] ${msg}`)
@@ -92,31 +94,37 @@ function startServer(config: ServerConfig): ChildProcess {
   return proc
 }
 
-async function runAutocannon(url: string, duration: number, connections: number): Promise<any> {
+async function runAutocannon(
+  url: string,
+  duration: number,
+  connections: number,
+): Promise<any> {
   return new Promise((resolve, reject) => {
     const args = [
       'autocannon',
-      '-c', String(connections),  // concurrent connections
-      '-d', String(duration),     // duration in seconds
-      '-j',                       // JSON output
-      url
+      '-c',
+      String(connections), // concurrent connections
+      '-d',
+      String(duration), // duration in seconds
+      '-j', // JSON output
+      url,
     ]
 
     const proc = spawn('npx', args, { cwd: process.cwd() })
     let output = ''
 
-    proc.stdout?.on('data', (data) => {
+    proc.stdout?.on('data', data => {
       output += data.toString()
     })
 
-    proc.stderr?.on('data', (data) => {
+    proc.stderr?.on('data', data => {
       const msg = data.toString()
       if (!msg.includes('Running')) {
         console.log(`  [autocannon] ${msg.trim()}`)
       }
     })
 
-    proc.on('close', (code) => {
+    proc.on('close', code => {
       if (code === 0) {
         try {
           resolve(JSON.parse(output))
@@ -137,7 +145,9 @@ function getTrpcUrl(baseUrl: string, procedure: string, input: object): string {
   return `${baseUrl}/trpc/${procedure}?input=${encodedInput}`
 }
 
-async function runStressTest(config: ServerConfig): Promise<StressResult | null> {
+async function runStressTest(
+  config: ServerConfig,
+): Promise<StressResult | null> {
   console.log(`\n${'='.repeat(60)}`)
   console.log(`Starting ${config.name}...`)
 
@@ -156,13 +166,18 @@ async function runStressTest(config: ServerConfig): Promise<StressResult | null>
     let testUrl: string
     if (config.isTrpc) {
       // tRPC endpoint for product list
-      testUrl = getTrpcUrl(serverUrl, 'product.list', { page: 1, pageSize: 20 })
+      testUrl = getTrpcUrl(serverUrl, 'product.list', {
+        page: 1,
+        pageSize: 20,
+      })
       console.log(`  Server ready, running stress test...`)
       console.log(`  Testing tRPC product.list with 200 connections for 30s`)
     } else {
       testUrl = `${serverUrl}/api/products`
       console.log(`  Server ready, running stress test...`)
-      console.log(`  Testing /api/products endpoint with 200 connections for 30s`)
+      console.log(
+        `  Testing /api/products endpoint with 200 connections for 30s`,
+      )
     }
 
     // Run autocannon with high concurrency
@@ -174,7 +189,7 @@ async function runStressTest(config: ServerConfig): Promise<StressResult | null>
       p99LatencyMs: result.latency?.p99 || 0,
       totalRequests: result.requests?.total || 0,
       errors: result.errors || 0,
-      duration: result.duration || 30
+      duration: result.duration || 30,
     }
 
     console.log(`\n  Results:`)
@@ -196,36 +211,56 @@ async function runStressTest(config: ServerConfig): Promise<StressResult | null>
 }
 
 function printComparison(results: StressResult[]) {
-  console.log('\n' + '='.repeat(80))
-  console.log('STRESS TEST RESULTS - Max RPS Comparison (200 concurrent connections)')
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(
+    'STRESS TEST RESULTS - Max RPS Comparison (200 concurrent connections)',
+  )
   console.log('='.repeat(80))
 
   // Sort by RPS
-  const sorted = [...results].sort((a, b) => b.metrics.requestsPerSecond - a.metrics.requestsPerSecond)
+  const sorted = [...results].sort(
+    (a, b) => b.metrics.requestsPerSecond - a.metrics.requestsPerSecond,
+  )
 
-  console.log('\n+--------------------------+-------------+-------------+-------------+-------------+')
-  console.log('| Framework                | Requests/s  | Avg Latency | P99 Latency | Total Reqs  |')
-  console.log('+--------------------------+-------------+-------------+-------------+-------------+')
+  console.log(
+    '\n+--------------------------+-------------+-------------+-------------+-------------+',
+  )
+  console.log(
+    '| Framework                | Requests/s  | Avg Latency | P99 Latency | Total Reqs  |',
+  )
+  console.log(
+    '+--------------------------+-------------+-------------+-------------+-------------+',
+  )
 
   sorted.forEach((r, i) => {
     const name = r.config.name.padEnd(24)
     const rps = r.metrics.requestsPerSecond.toFixed(1).padStart(9)
-    const avg = (r.metrics.avgLatencyMs.toFixed(1) + 'ms').padStart(9)
-    const p99 = (r.metrics.p99LatencyMs.toFixed(1) + 'ms').padStart(9)
+    const avg = `${r.metrics.avgLatencyMs.toFixed(1)}ms`.padStart(9)
+    const p99 = `${r.metrics.p99LatencyMs.toFixed(1)}ms`.padStart(9)
     const total = String(r.metrics.totalRequests).padStart(9)
     const medal = i === 0 ? ' *' : ''
-    console.log(`| ${name} | ${rps}${medal} | ${avg}   | ${p99}   | ${total}   |`)
+    console.log(
+      `| ${name} | ${rps}${medal} | ${avg}   | ${p99}   | ${total}   |`,
+    )
   })
 
-  console.log('+--------------------------+-------------+-------------+-------------+-------------+')
+  console.log(
+    '+--------------------------+-------------+-------------+-------------+-------------+',
+  )
 
   // Performance comparison
   if (sorted.length >= 2) {
     console.log('\nPerformance Analysis:')
     const best = sorted[0]
     sorted.slice(1).forEach(r => {
-      const diff = ((best.metrics.requestsPerSecond - r.metrics.requestsPerSecond) / r.metrics.requestsPerSecond * 100).toFixed(1)
-      console.log(`   ${best.config.name} is ${diff}% faster than ${r.config.name}`)
+      const diff = (
+        ((best.metrics.requestsPerSecond - r.metrics.requestsPerSecond) /
+          r.metrics.requestsPerSecond) *
+        100
+      ).toFixed(1)
+      console.log(
+        `   ${best.config.name} is ${diff}% faster than ${r.config.name}`,
+      )
     })
   }
 }

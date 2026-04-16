@@ -18,7 +18,13 @@ interface BenchmarkResult {
     port: number
   }
   metrics: {
-    httpReqDuration: { avg: number; min: number; max: number; p95: number; p99: number }
+    httpReqDuration: {
+      avg: number
+      min: number
+      max: number
+      p95: number
+      p99: number
+    }
     httpReqs: number
     httpReqFailed: number
     iterations: number
@@ -43,7 +49,10 @@ function parseArgs(): { dir: string } {
 
 async function loadResults(resultsDir: string): Promise<BenchmarkResult[][]> {
   const files = await readdir(resultsDir)
-  const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse()
+  const jsonFiles = files
+    .filter(f => f.endsWith('.json'))
+    .sort()
+    .reverse()
 
   const allResults: BenchmarkResult[][] = []
 
@@ -70,14 +79,15 @@ function formatLatency(ms: number): string {
 function colorLatency(ms: number, threshold: number = 10): string {
   if (ms < threshold) {
     return chalk.green(formatLatency(ms))
-  } else if (ms < threshold * 2) {
+  }
+  if (ms < threshold * 2) {
     return chalk.yellow(formatLatency(ms))
   }
   return chalk.red(formatLatency(ms))
 }
 
 function printComparison(results: BenchmarkResult[]) {
-  console.log(chalk.bold('\n' + '='.repeat(80)))
+  console.log(chalk.bold(`\n${'='.repeat(80)}`))
   console.log(chalk.bold('Benchmark Results Comparison'))
   console.log(chalk.bold('='.repeat(80)))
   console.log('')
@@ -85,11 +95,11 @@ function printComparison(results: BenchmarkResult[]) {
   // Header
   console.log(
     chalk.bold('Server'.padEnd(25)) +
-    chalk.bold('Avg'.padStart(12)) +
-    chalk.bold('P95'.padStart(12)) +
-    chalk.bold('P99'.padStart(12)) +
-    chalk.bold('Min'.padStart(12)) +
-    chalk.bold('Max'.padStart(12))
+      chalk.bold('Avg'.padStart(12)) +
+      chalk.bold('P95'.padStart(12)) +
+      chalk.bold('P99'.padStart(12)) +
+      chalk.bold('Min'.padStart(12)) +
+      chalk.bold('Max'.padStart(12)),
   )
   console.log('-'.repeat(85))
 
@@ -98,11 +108,11 @@ function printComparison(results: BenchmarkResult[]) {
     const d = result.metrics.httpReqDuration
     console.log(
       result.config.name.padEnd(25) +
-      colorLatency(d.avg).padStart(12) +
-      colorLatency(d.p95).padStart(12) +
-      colorLatency(d.p99).padStart(12) +
-      colorLatency(d.min).padStart(12) +
-      colorLatency(d.max, 100).padStart(12)
+        colorLatency(d.avg).padStart(12) +
+        colorLatency(d.p95).padStart(12) +
+        colorLatency(d.p99).padStart(12) +
+        colorLatency(d.min).padStart(12) +
+        colorLatency(d.max, 100).padStart(12),
     )
   }
 
@@ -116,32 +126,39 @@ function printComparison(results: BenchmarkResult[]) {
     console.log('')
 
     // Find best performers
-    const sortedByAvg = [...results].sort((a, b) =>
-      a.metrics.httpReqDuration.avg - b.metrics.httpReqDuration.avg
+    const sortedByAvg = [...results].sort(
+      (a, b) => a.metrics.httpReqDuration.avg - b.metrics.httpReqDuration.avg,
     )
-    const sortedByP95 = [...results].sort((a, b) =>
-      a.metrics.httpReqDuration.p95 - b.metrics.httpReqDuration.p95
+    const sortedByP95 = [...results].sort(
+      (a, b) => a.metrics.httpReqDuration.p95 - b.metrics.httpReqDuration.p95,
     )
-    const sortedByReqs = [...results].sort((a, b) =>
-      b.metrics.httpReqs - a.metrics.httpReqs
+    const sortedByReqs = [...results].sort(
+      (a, b) => b.metrics.httpReqs - a.metrics.httpReqs,
     )
 
     const fastest = sortedByAvg[0]
     const slowest = sortedByAvg[sortedByAvg.length - 1]
 
-    const speedup = ((slowest.metrics.httpReqDuration.avg - fastest.metrics.httpReqDuration.avg) /
-      slowest.metrics.httpReqDuration.avg * 100)
+    const speedup =
+      ((slowest.metrics.httpReqDuration.avg -
+        fastest.metrics.httpReqDuration.avg) /
+        slowest.metrics.httpReqDuration.avg) *
+      100
 
     console.log(chalk.green(`✓ Fastest (avg latency): ${fastest.config.name}`))
-    console.log(chalk.green(`✓ Best P95 latency: ${sortedByP95[0].config.name}`))
-    console.log(chalk.green(`✓ Highest throughput: ${sortedByReqs[0].config.name}`))
+    console.log(
+      chalk.green(`✓ Best P95 latency: ${sortedByP95[0].config.name}`),
+    )
+    console.log(
+      chalk.green(`✓ Highest throughput: ${sortedByReqs[0].config.name}`),
+    )
     console.log('')
 
     if (speedup > 0) {
       console.log(
         chalk.cyan(`${fastest.config.name} is `) +
-        chalk.bold.cyan(`${speedup.toFixed(1)}%`) +
-        chalk.cyan(` faster than ${slowest.config.name}`)
+          chalk.bold.cyan(`${speedup.toFixed(1)}%`) +
+          chalk.cyan(` faster than ${slowest.config.name}`),
       )
     }
 
@@ -154,28 +171,50 @@ function printComparison(results: BenchmarkResult[]) {
         const a = results[i]
         const b = results[j]
 
-        const avgDiff = ((a.metrics.httpReqDuration.avg - b.metrics.httpReqDuration.avg) /
-          Math.min(a.metrics.httpReqDuration.avg, b.metrics.httpReqDuration.avg) * 100)
-        const p95Diff = ((a.metrics.httpReqDuration.p95 - b.metrics.httpReqDuration.p95) /
-          Math.min(a.metrics.httpReqDuration.p95, b.metrics.httpReqDuration.p95) * 100)
+        const avgDiff =
+          ((a.metrics.httpReqDuration.avg - b.metrics.httpReqDuration.avg) /
+            Math.min(
+              a.metrics.httpReqDuration.avg,
+              b.metrics.httpReqDuration.avg,
+            )) *
+          100
+        const p95Diff =
+          ((a.metrics.httpReqDuration.p95 - b.metrics.httpReqDuration.p95) /
+            Math.min(
+              a.metrics.httpReqDuration.p95,
+              b.metrics.httpReqDuration.p95,
+            )) *
+          100
 
         console.log('')
         console.log(`  ${a.config.name} vs ${b.config.name}:`)
 
         if (Math.abs(avgDiff) < 5) {
-          console.log(`    Average latency: ${chalk.yellow('Similar')} (${Math.abs(avgDiff).toFixed(1)}% diff)`)
+          console.log(
+            `    Average latency: ${chalk.yellow('Similar')} (${Math.abs(avgDiff).toFixed(1)}% diff)`,
+          )
         } else if (avgDiff > 0) {
-          console.log(`    Average latency: ${chalk.green(b.config.name)} is ${Math.abs(avgDiff).toFixed(1)}% faster`)
+          console.log(
+            `    Average latency: ${chalk.green(b.config.name)} is ${Math.abs(avgDiff).toFixed(1)}% faster`,
+          )
         } else {
-          console.log(`    Average latency: ${chalk.green(a.config.name)} is ${Math.abs(avgDiff).toFixed(1)}% faster`)
+          console.log(
+            `    Average latency: ${chalk.green(a.config.name)} is ${Math.abs(avgDiff).toFixed(1)}% faster`,
+          )
         }
 
         if (Math.abs(p95Diff) < 5) {
-          console.log(`    P95 latency: ${chalk.yellow('Similar')} (${Math.abs(p95Diff).toFixed(1)}% diff)`)
+          console.log(
+            `    P95 latency: ${chalk.yellow('Similar')} (${Math.abs(p95Diff).toFixed(1)}% diff)`,
+          )
         } else if (p95Diff > 0) {
-          console.log(`    P95 latency: ${chalk.green(b.config.name)} is ${Math.abs(p95Diff).toFixed(1)}% better`)
+          console.log(
+            `    P95 latency: ${chalk.green(b.config.name)} is ${Math.abs(p95Diff).toFixed(1)}% better`,
+          )
         } else {
-          console.log(`    P95 latency: ${chalk.green(a.config.name)} is ${Math.abs(p95Diff).toFixed(1)}% better`)
+          console.log(
+            `    P95 latency: ${chalk.green(a.config.name)} is ${Math.abs(p95Diff).toFixed(1)}% better`,
+          )
         }
       }
     }
@@ -202,7 +241,11 @@ async function main() {
     }
 
     // Show most recent results
-    console.log(chalk.dim(`\nFound ${allResults.length} benchmark run(s). Showing most recent:\n`))
+    console.log(
+      chalk.dim(
+        `\nFound ${allResults.length} benchmark run(s). Showing most recent:\n`,
+      ),
+    )
 
     printComparison(allResults[0])
 
@@ -219,8 +262,8 @@ async function main() {
         for (const result of results) {
           console.log(
             `  ${result.config.name}: ` +
-            `avg=${formatLatency(result.metrics.httpReqDuration.avg)}, ` +
-            `p95=${formatLatency(result.metrics.httpReqDuration.p95)}`
+              `avg=${formatLatency(result.metrics.httpReqDuration.avg)}, ` +
+              `p95=${formatLatency(result.metrics.httpReqDuration.p95)}`,
           )
         }
       }

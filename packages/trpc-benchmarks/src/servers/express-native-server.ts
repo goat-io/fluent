@@ -14,7 +14,7 @@ app.get('/health', (_req, res) => {
     status: 'ok',
     runtime: 'node',
     framework: 'express-native',
-    database: 'sqlite'
+    database: 'sqlite',
   })
 })
 
@@ -31,9 +31,9 @@ app.get('/api/products', async (req, res) => {
       where,
       take: limit,
       skip: offset,
-      include: { category: true }
+      include: { category: true },
     }),
-    prisma.product.count({ where })
+    prisma.product.count({ where }),
   ])
 
   res.json({ products, total, limit, offset })
@@ -45,13 +45,10 @@ app.get('/api/products/search', async (req, res) => {
 
   const products = await prisma.product.findMany({
     where: {
-      OR: [
-        { name: { contains: q } },
-        { description: { contains: q } }
-      ]
+      OR: [{ name: { contains: q } }, { description: { contains: q } }],
     },
     take: limit,
-    include: { category: true }
+    include: { category: true },
   })
 
   res.json({ products, query: q })
@@ -67,9 +64,9 @@ app.get('/api/products/:id', async (req, res) => {
       reviews: {
         take: 5,
         orderBy: { createdAt: 'desc' },
-        include: { user: { select: { id: true, name: true } } }
-      }
-    }
+        include: { user: { select: { id: true, name: true } } },
+      },
+    },
   })
 
   if (!product) {
@@ -83,8 +80,8 @@ app.get('/api/products/:id', async (req, res) => {
 app.get('/api/categories', async (_req, res) => {
   const categories = await prisma.category.findMany({
     include: {
-      _count: { select: { products: true } }
-    }
+      _count: { select: { products: true } },
+    },
   })
   res.json(categories)
 })
@@ -100,8 +97,8 @@ app.get('/api/users/:id', async (req, res) => {
       email: true,
       name: true,
       createdAt: true,
-      _count: { select: { orders: true, reviews: true } }
-    }
+      _count: { select: { orders: true, reviews: true } },
+    },
   })
 
   if (!user) {
@@ -121,9 +118,9 @@ app.get('/api/users/:id/orders', async (req, res) => {
     orderBy: { createdAt: 'desc' },
     include: {
       items: {
-        include: { product: { select: { id: true, name: true, price: true } } }
-      }
-    }
+        include: { product: { select: { id: true, name: true, price: true } } },
+      },
+    },
   })
 
   res.json(orders)
@@ -131,30 +128,37 @@ app.get('/api/users/:id/orders', async (req, res) => {
 
 // Order routes
 app.post('/api/orders', async (req, res) => {
-  const { userId, items } = req.body as { userId: string; items: { productId: string; quantity: number }[] }
+  const { userId, items } = req.body as {
+    userId: string
+    items: { productId: string; quantity: number }[]
+  }
 
   // Validate stock and calculate total
   let total = 0
   const productIds = items.map(i => i.productId)
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } }
-  })
+  const products = (await prisma.product.findMany({
+    where: { id: { in: productIds } },
+  })) as any[]
 
   const productMap = new Map(products.map(p => [p.id, p]))
 
   for (const item of items) {
     const product = productMap.get(item.productId)
     if (!product) {
-      return res.status(400).json({ error: `Product ${item.productId} not found` })
+      return res
+        .status(400)
+        .json({ error: `Product ${item.productId} not found` })
     }
     if (product.stock < item.quantity) {
-      return res.status(400).json({ error: `Insufficient stock for ${product.name}` })
+      return res
+        .status(400)
+        .json({ error: `Insufficient stock for ${product.name}` })
     }
     total += product.price * item.quantity
   }
 
   // Create order with transaction
-  const order = await prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async tx => {
     const newOrder = await tx.order.create({
       data: {
         userId,
@@ -164,18 +168,18 @@ app.post('/api/orders', async (req, res) => {
           create: items.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: productMap.get(item.productId)!.price
-          }))
-        }
+            price: productMap.get(item.productId)?.price,
+          })),
+        },
       },
-      include: { items: true }
+      include: { items: true },
     })
 
     // Update stock
     for (const item of items) {
       await tx.product.update({
         where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } }
+        data: { stock: { decrement: item.quantity } },
       })
     }
 
@@ -193,9 +197,9 @@ app.get('/api/orders/:id', async (req, res) => {
     include: {
       user: { select: { id: true, name: true, email: true } },
       items: {
-        include: { product: { select: { id: true, name: true, price: true } } }
-      }
-    }
+        include: { product: { select: { id: true, name: true, price: true } } },
+      },
+    },
   })
 
   if (!order) {
@@ -211,14 +215,14 @@ app.get('/api/analytics/dashboard', async (_req, res) => {
     prisma.user.count(),
     prisma.product.count(),
     prisma.order.count(),
-    prisma.order.aggregate({ _sum: { total: true } })
+    prisma.order.aggregate({ _sum: { total: true } }),
   ])
 
   res.json({
     totalUsers,
     totalProducts,
     totalOrders,
-    totalRevenue: revenue._sum.total || 0
+    totalRevenue: revenue._sum.total || 0,
   })
 })
 
@@ -227,27 +231,37 @@ app.get('/api/analytics/revenue-by-category', async (_req, res) => {
     include: {
       products: {
         include: {
-          orderItems: true
-        }
-      }
-    }
+          orderItems: true,
+        },
+      },
+    },
   })
 
   const result = categories.map(cat => ({
     categoryId: cat.id,
     categoryName: cat.name,
-    revenue: cat.products.reduce((sum, prod) =>
-      sum + prod.orderItems.reduce((itemSum, item) =>
-        itemSum + (item.price * item.quantity), 0), 0),
-    productCount: cat.products.length
+    revenue: cat.products.reduce(
+      (sum, prod) =>
+        sum +
+        prod.orderItems.reduce(
+          (itemSum, item) => itemSum + item.price * item.quantity,
+          0,
+        ),
+      0,
+    ),
+    productCount: cat.products.length,
   }))
 
   res.json(result)
 })
 
 const server = app.listen(PORT, () => {
-  console.log(`[Express-Native+Node+SQLite] Server running on http://localhost:${PORT}`)
-  console.log(`[Express-Native+Node+SQLite] API endpoint: http://localhost:${PORT}/api`)
+  console.log(
+    `[Express-Native+Node+SQLite] Server running on http://localhost:${PORT}`,
+  )
+  console.log(
+    `[Express-Native+Node+SQLite] API endpoint: http://localhost:${PORT}/api`,
+  )
   console.log(`[Express-Native+Node+SQLite] Node version: ${process.version}`)
   console.log(`[Express-Native+Node+SQLite] PID: ${process.pid}`)
 })

@@ -3,11 +3,11 @@
 import * as trpcExpress from '@trpc/server/adapters/express'
 import express from 'express'
 import { prisma } from '../db/client.js'
-import { dbRouter, type Context } from '../shared/db-router.js'
+import { type Context, dbRouter } from '../shared/db-router.js'
 
 const PORT = Number(process.env.PORT) || 3001
 
-const app = express()
+const app: ReturnType<typeof express> = express()
 
 // Minimal middleware for benchmarking
 app.use(express.json({ limit: '1mb' }))
@@ -15,7 +15,12 @@ app.disable('x-powered-by')
 
 // Health check outside of tRPC
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', runtime: 'node', framework: 'express', database: 'sqlite' })
+  res.json({
+    status: 'ok',
+    runtime: 'node',
+    framework: 'express',
+    database: 'sqlite',
+  })
 })
 
 // tRPC endpoint with Prisma context
@@ -23,14 +28,18 @@ app.use(
   '/trpc',
   trpcExpress.createExpressMiddleware({
     router: dbRouter,
-    createContext: (): Context => ({ prisma })
-  })
+    createContext: (): Context => ({ prisma }),
+  }),
 )
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`[Express+Node+SQLite] Server running on http://localhost:${PORT}`)
-  console.log(`[Express+Node+SQLite] tRPC endpoint: http://localhost:${PORT}/trpc`)
+  console.log(
+    `[Express+Node+SQLite] Server running on http://localhost:${PORT}`,
+  )
+  console.log(
+    `[Express+Node+SQLite] tRPC endpoint: http://localhost:${PORT}/trpc`,
+  )
   console.log(`[Express+Node+SQLite] Node version: ${process.version}`)
   console.log(`[Express+Node+SQLite] PID: ${process.pid}`)
 })

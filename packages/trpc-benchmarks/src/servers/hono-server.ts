@@ -9,11 +9,11 @@ const PORT = Number(process.env.PORT) || 3002
 const app = new Hono()
 
 // Health check outside of tRPC
-app.get('/health', (c) => {
+app.get('/health', c => {
   return c.json({
     status: 'ok',
     runtime: typeof Bun !== 'undefined' ? 'bun' : 'node',
-    framework: 'hono'
+    framework: 'hono',
   })
 })
 
@@ -21,9 +21,9 @@ app.get('/health', (c) => {
 app.use(
   '/trpc/*',
   trpcServer({
-    router: appRouter,
-    createContext: () => ({})
-  })
+    router: appRouter as any,
+    createContext: () => ({}),
+  }),
 )
 
 // Detect runtime and start appropriate server
@@ -33,7 +33,7 @@ if (isBun) {
   // Bun native server
   const server = Bun.serve({
     port: PORT,
-    fetch: app.fetch
+    fetch: app.fetch,
   })
 
   console.log(`[Hono+Bun] Server running on http://localhost:${server.port}`)
@@ -46,7 +46,7 @@ if (isBun) {
 
   const server = serve({
     fetch: app.fetch,
-    port: PORT
+    port: PORT,
   })
 
   console.log(`[Hono+Node] Server running on http://localhost:${PORT}`)

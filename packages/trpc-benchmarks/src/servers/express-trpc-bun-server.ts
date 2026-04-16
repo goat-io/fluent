@@ -3,11 +3,11 @@
 import * as trpcExpress from '@trpc/server/adapters/express'
 import express from 'express'
 import { prisma } from '../db/client.js'
-import { dbRouter, type Context } from '../shared/db-router.js'
+import { type Context, dbRouter } from '../shared/db-router.js'
 
 const PORT = Number(process.env.PORT) || 3008
 
-const app = express()
+const app: ReturnType<typeof express> = express()
 
 // Minimal middleware for benchmarking
 app.use(express.json({ limit: '1mb' }))
@@ -19,7 +19,7 @@ app.get('/health', (_req, res) => {
     status: 'ok',
     runtime: 'bun',
     framework: 'express-trpc',
-    database: 'sqlite'
+    database: 'sqlite',
   })
 })
 
@@ -28,14 +28,18 @@ app.use(
   '/trpc',
   trpcExpress.createExpressMiddleware({
     router: dbRouter,
-    createContext: (): Context => ({ prisma })
-  })
+    createContext: (): Context => ({ prisma }),
+  }),
 )
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`[Express+tRPC+Bun+SQLite] Server running on http://localhost:${PORT}`)
-  console.log(`[Express+tRPC+Bun+SQLite] tRPC endpoint: http://localhost:${PORT}/trpc`)
+  console.log(
+    `[Express+tRPC+Bun+SQLite] Server running on http://localhost:${PORT}`,
+  )
+  console.log(
+    `[Express+tRPC+Bun+SQLite] tRPC endpoint: http://localhost:${PORT}/trpc`,
+  )
   console.log(`[Express+tRPC+Bun+SQLite] Bun version: ${Bun.version}`)
   console.log(`[Express+tRPC+Bun+SQLite] PID: ${process.pid}`)
 })

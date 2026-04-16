@@ -8,15 +8,17 @@ const PORT = Number(process.env.PORT) || 3005
 
 const app = new Hono()
 
-app.get('/health', (c) => c.json({
-  status: 'ok',
-  runtime: 'bun',
-  framework: 'hono-native',
-  database: 'sqlite'
-}))
+app.get('/health', c =>
+  c.json({
+    status: 'ok',
+    runtime: 'bun',
+    framework: 'hono-native',
+    database: 'sqlite',
+  }),
+)
 
 // Product routes
-app.get('/api/products', async (c) => {
+app.get('/api/products', async c => {
   const limit = Number(c.req.query('limit')) || 20
   const offset = Number(c.req.query('offset')) || 0
   const categoryId = c.req.query('categoryId')
@@ -28,33 +30,30 @@ app.get('/api/products', async (c) => {
       where,
       take: limit,
       skip: offset,
-      include: { category: true }
+      include: { category: true },
     }),
-    prisma.product.count({ where })
+    prisma.product.count({ where }),
   ])
 
   return c.json({ products, total, limit, offset })
 })
 
-app.get('/api/products/search', async (c) => {
+app.get('/api/products/search', async c => {
   const q = c.req.query('q') || ''
   const limit = Number(c.req.query('limit')) || 20
 
   const products = await prisma.product.findMany({
     where: {
-      OR: [
-        { name: { contains: q } },
-        { description: { contains: q } }
-      ]
+      OR: [{ name: { contains: q } }, { description: { contains: q } }],
     },
     take: limit,
-    include: { category: true }
+    include: { category: true },
   })
 
   return c.json({ products, query: q })
 })
 
-app.get('/api/products/:id', async (c) => {
+app.get('/api/products/:id', async c => {
   const id = c.req.param('id')
 
   const product = await prisma.product.findUnique({
@@ -64,9 +63,9 @@ app.get('/api/products/:id', async (c) => {
       reviews: {
         take: 5,
         orderBy: { createdAt: 'desc' },
-        include: { user: { select: { id: true, name: true } } }
-      }
-    }
+        include: { user: { select: { id: true, name: true } } },
+      },
+    },
   })
 
   if (!product) {
@@ -77,17 +76,17 @@ app.get('/api/products/:id', async (c) => {
 })
 
 // Category routes
-app.get('/api/categories', async (c) => {
+app.get('/api/categories', async c => {
   const categories = await prisma.category.findMany({
     include: {
-      _count: { select: { products: true } }
-    }
+      _count: { select: { products: true } },
+    },
   })
   return c.json(categories)
 })
 
 // User routes
-app.get('/api/users/:id', async (c) => {
+app.get('/api/users/:id', async c => {
   const id = c.req.param('id')
 
   const user = await prisma.user.findUnique({
@@ -97,8 +96,8 @@ app.get('/api/users/:id', async (c) => {
       email: true,
       name: true,
       createdAt: true,
-      _count: { select: { orders: true, reviews: true } }
-    }
+      _count: { select: { orders: true, reviews: true } },
+    },
   })
 
   if (!user) {
@@ -108,7 +107,7 @@ app.get('/api/users/:id', async (c) => {
   return c.json(user)
 })
 
-app.get('/api/users/:id/orders', async (c) => {
+app.get('/api/users/:id/orders', async c => {
   const id = c.req.param('id')
   const limit = Number(c.req.query('limit')) || 10
 
@@ -118,24 +117,27 @@ app.get('/api/users/:id/orders', async (c) => {
     orderBy: { createdAt: 'desc' },
     include: {
       items: {
-        include: { product: { select: { id: true, name: true, price: true } } }
-      }
-    }
+        include: { product: { select: { id: true, name: true, price: true } } },
+      },
+    },
   })
 
   return c.json(orders)
 })
 
 // Order routes
-app.post('/api/orders', async (c) => {
-  const { userId, items } = await c.req.json() as { userId: string; items: { productId: string; quantity: number }[] }
+app.post('/api/orders', async c => {
+  const { userId, items } = (await c.req.json()) as {
+    userId: string
+    items: { productId: string; quantity: number }[]
+  }
 
   // Validate stock and calculate total
   let total = 0
   const productIds = items.map(i => i.productId)
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } }
-  })
+  const products = (await prisma.product.findMany({
+    where: { id: { in: productIds } },
+  })) as any[]
 
   const productMap = new Map(products.map(p => [p.id, p]))
 
@@ -151,7 +153,7 @@ app.post('/api/orders', async (c) => {
   }
 
   // Create order with transaction
-  const order = await prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async tx => {
     const newOrder = await tx.order.create({
       data: {
         userId,
@@ -161,18 +163,18 @@ app.post('/api/orders', async (c) => {
           create: items.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: productMap.get(item.productId)!.price
-          }))
-        }
+            price: productMap.get(item.productId)?.price,
+          })),
+        },
       },
-      include: { items: true }
+      include: { items: true },
     })
 
     // Update stock
     for (const item of items) {
       await tx.product.update({
         where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } }
+        data: { stock: { decrement: item.quantity } },
       })
     }
 
@@ -182,7 +184,7 @@ app.post('/api/orders', async (c) => {
   return c.json(order)
 })
 
-app.get('/api/orders/:id', async (c) => {
+app.get('/api/orders/:id', async c => {
   const id = c.req.param('id')
 
   const order = await prisma.order.findUnique({
@@ -190,9 +192,9 @@ app.get('/api/orders/:id', async (c) => {
     include: {
       user: { select: { id: true, name: true, email: true } },
       items: {
-        include: { product: { select: { id: true, name: true, price: true } } }
-      }
-    }
+        include: { product: { select: { id: true, name: true, price: true } } },
+      },
+    },
   })
 
   if (!order) {
@@ -203,40 +205,46 @@ app.get('/api/orders/:id', async (c) => {
 })
 
 // Analytics routes
-app.get('/api/analytics/dashboard', async (c) => {
+app.get('/api/analytics/dashboard', async c => {
   const [totalUsers, totalProducts, totalOrders, revenue] = await Promise.all([
     prisma.user.count(),
     prisma.product.count(),
     prisma.order.count(),
-    prisma.order.aggregate({ _sum: { total: true } })
+    prisma.order.aggregate({ _sum: { total: true } }),
   ])
 
   return c.json({
     totalUsers,
     totalProducts,
     totalOrders,
-    totalRevenue: revenue._sum.total || 0
+    totalRevenue: revenue._sum.total || 0,
   })
 })
 
-app.get('/api/analytics/revenue-by-category', async (c) => {
+app.get('/api/analytics/revenue-by-category', async c => {
   const categories = await prisma.category.findMany({
     include: {
       products: {
         include: {
-          orderItems: true
-        }
-      }
-    }
+          orderItems: true,
+        },
+      },
+    },
   })
 
   const result = categories.map(cat => ({
     categoryId: cat.id,
     categoryName: cat.name,
-    revenue: cat.products.reduce((sum, prod) =>
-      sum + prod.orderItems.reduce((itemSum, item) =>
-        itemSum + (item.price * item.quantity), 0), 0),
-    productCount: cat.products.length
+    revenue: cat.products.reduce(
+      (sum, prod) =>
+        sum +
+        prod.orderItems.reduce(
+          (itemSum, item) => itemSum + item.price * item.quantity,
+          0,
+        ),
+      0,
+    ),
+    productCount: cat.products.length,
   }))
 
   return c.json(result)
@@ -244,11 +252,15 @@ app.get('/api/analytics/revenue-by-category', async (c) => {
 
 export default {
   port: PORT,
-  fetch: app.fetch
+  fetch: app.fetch,
 }
 
-console.log(`[Hono-Native+Bun+SQLite] Server running on http://localhost:${PORT}`)
-console.log(`[Hono-Native+Bun+SQLite] API endpoint: http://localhost:${PORT}/api`)
+console.log(
+  `[Hono-Native+Bun+SQLite] Server running on http://localhost:${PORT}`,
+)
+console.log(
+  `[Hono-Native+Bun+SQLite] API endpoint: http://localhost:${PORT}/api`,
+)
 console.log(`[Hono-Native+Bun+SQLite] Bun version: ${Bun.version}`)
 console.log(`[Hono-Native+Bun+SQLite] PID: ${process.pid}`)
 

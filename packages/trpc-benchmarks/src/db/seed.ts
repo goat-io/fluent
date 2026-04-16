@@ -36,11 +36,33 @@ const categoryNames = [
   'Food & Beverages',
   'Health & Beauty',
   'Automotive',
-  'Office Supplies'
+  'Office Supplies',
 ]
 
-const adjectives = ['Premium', 'Professional', 'Essential', 'Classic', 'Modern', 'Ultra', 'Smart', 'Eco', 'Deluxe', 'Compact']
-const nouns = ['Widget', 'Gadget', 'Tool', 'Device', 'Kit', 'Set', 'Pack', 'Bundle', 'System', 'Solution']
+const adjectives = [
+  'Premium',
+  'Professional',
+  'Essential',
+  'Classic',
+  'Modern',
+  'Ultra',
+  'Smart',
+  'Eco',
+  'Deluxe',
+  'Compact',
+]
+const nouns = [
+  'Widget',
+  'Gadget',
+  'Tool',
+  'Device',
+  'Kit',
+  'Set',
+  'Pack',
+  'Bundle',
+  'System',
+  'Solution',
+]
 
 async function seed() {
   console.log('Seeding database...')
@@ -58,37 +80,43 @@ async function seed() {
   // Create categories
   console.log(`Creating ${NUM_CATEGORIES} categories...`)
   const categories = await Promise.all(
-    categoryNames.slice(0, NUM_CATEGORIES).map((name) =>
+    categoryNames.slice(0, NUM_CATEGORIES).map(name =>
       prisma.category.create({
-        data: { name }
-      })
-    )
+        data: { name },
+      }),
+    ),
   )
 
   // Create users
   console.log(`Creating ${NUM_USERS} users...`)
-  const users = await prisma.user.createManyAndReturn({
+  const users = (await prisma.user.createManyAndReturn({
     data: Array.from({ length: NUM_USERS }, (_, i) => ({
       email: `user${i + 1}@benchmark.test`,
-      name: `User ${i + 1}`
-    }))
-  })
+      name: `User ${i + 1}`,
+    })),
+  })) as any[]
 
   // Create products
   console.log(`Creating ${NUM_PRODUCTS} products...`)
-  const products = await prisma.product.createManyAndReturn({
+  const products = (await prisma.product.createManyAndReturn({
     data: Array.from({ length: NUM_PRODUCTS }, (_, i) => ({
       name: `${randomElement(adjectives)} ${randomElement(nouns)} ${i + 1}`,
       description: `This is a high-quality product designed for professional use. Product #${i + 1} in our catalog.`,
-      price: parseFloat(randomFloat(9.99, 999.99).toFixed(2)),
+      price: Number.parseFloat(randomFloat(9.99, 999.99).toFixed(2)),
       stock: randomInt(0, 1000),
-      categoryId: randomElement(categories).id
-    }))
-  })
+      categoryId: randomElement(categories).id,
+    })),
+  })) as any[]
 
   // Create orders with items
   console.log(`Creating ${NUM_ORDERS} orders with items...`)
-  const orderStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
+  const orderStatuses = [
+    'pending',
+    'confirmed',
+    'shipped',
+    'delivered',
+    'cancelled',
+  ]
 
   for (let i = 0; i < NUM_ORDERS; i++) {
     const numItems = randomInt(1, MAX_ITEMS_PER_ORDER)
@@ -98,27 +126,30 @@ async function seed() {
       selectedProducts.add(randomElement(products).id)
     }
 
-    const items = Array.from(selectedProducts).map((productId) => {
-      const product = products.find((p) => p.id === productId)!
+    const items = Array.from(selectedProducts).map(productId => {
+      const product = products.find(p => p.id === productId)!
       const quantity = randomInt(1, 5)
       return {
         productId,
         quantity,
-        price: product.price
+        price: product.price,
       }
     })
 
-    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const total = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    )
 
     await prisma.order.create({
       data: {
         userId: randomElement(users).id,
         status: randomElement(orderStatuses),
-        total: parseFloat(total.toFixed(2)),
+        total: Number.parseFloat(total.toFixed(2)),
         items: {
-          create: items
-        }
-      }
+          create: items,
+        },
+      },
     })
 
     if ((i + 1) % 500 === 0) {
@@ -138,7 +169,7 @@ async function seed() {
     'Works as expected.',
     'Could be better, but okay.',
     'Perfect for my needs!',
-    'Highly recommend this product.'
+    'Highly recommend this product.',
   ]
 
   const existingReviews = new Set<string>()
@@ -156,8 +187,8 @@ async function seed() {
           userId,
           productId,
           rating: randomInt(1, 5),
-          comment: randomElement(reviewComments)
-        }
+          comment: randomElement(reviewComments),
+        },
       })
       reviewsCreated++
 
@@ -177,7 +208,7 @@ async function seed() {
 }
 
 seed()
-  .catch((e) => {
+  .catch(e => {
     console.error('Seeding failed:', e)
     process.exit(1)
   })

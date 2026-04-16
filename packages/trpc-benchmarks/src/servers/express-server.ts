@@ -6,7 +6,7 @@ import { appRouter } from '../shared/router.js'
 
 const PORT = Number(process.env.PORT) || 3001
 
-const app = express()
+const app: ReturnType<typeof express> = express()
 
 // Minimal middleware for benchmarking (no unnecessary overhead)
 app.use(express.json({ limit: '1mb' }))
@@ -24,8 +24,8 @@ app.use(
   '/trpc',
   trpcExpress.createExpressMiddleware({
     router: appRouter,
-    createContext: () => ({})
-  })
+    createContext: () => ({}),
+  }),
 )
 
 // Start server

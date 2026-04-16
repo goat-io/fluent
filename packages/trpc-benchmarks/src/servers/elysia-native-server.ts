@@ -1,17 +1,17 @@
 // Native Elysia server without tRPC - using Elysia's native routing
 // Run: bun run src/servers/elysia-native-server.ts
 
-import { Elysia, t } from 'elysia'
+import { Elysia } from 'elysia'
 import { prisma } from '../db/client.js'
 
 const PORT = Number(process.env.PORT) || 3004
 
-const app = new Elysia()
+const _app = new Elysia()
   .get('/health', () => ({
     status: 'ok',
     runtime: 'bun',
     framework: 'elysia-native',
-    database: 'sqlite'
+    database: 'sqlite',
   }))
 
   // Product routes
@@ -27,9 +27,9 @@ const app = new Elysia()
         where,
         take: limit,
         skip: offset,
-        include: { category: true }
+        include: { category: true },
       }),
-      prisma.product.count({ where })
+      prisma.product.count({ where }),
     ])
 
     return { products, total, limit, offset }
@@ -41,13 +41,10 @@ const app = new Elysia()
 
     const products = await prisma.product.findMany({
       where: {
-        OR: [
-          { name: { contains: q } },
-          { description: { contains: q } }
-        ]
+        OR: [{ name: { contains: q } }, { description: { contains: q } }],
       },
       take: limit,
-      include: { category: true }
+      include: { category: true },
     })
 
     return { products, query: q }
@@ -61,9 +58,9 @@ const app = new Elysia()
         reviews: {
           take: 5,
           orderBy: { createdAt: 'desc' },
-          include: { user: { select: { id: true, name: true } } }
-        }
-      }
+          include: { user: { select: { id: true, name: true } } },
+        },
+      },
     })
 
     if (!product) {
@@ -78,8 +75,8 @@ const app = new Elysia()
   .get('/api/categories', async () => {
     const categories = await prisma.category.findMany({
       include: {
-        _count: { select: { products: true } }
-      }
+        _count: { select: { products: true } },
+      },
     })
     return categories
   })
@@ -93,8 +90,8 @@ const app = new Elysia()
         email: true,
         name: true,
         createdAt: true,
-        _count: { select: { orders: true, reviews: true } }
-      }
+        _count: { select: { orders: true, reviews: true } },
+      },
     })
 
     if (!user) {
@@ -114,9 +111,11 @@ const app = new Elysia()
       orderBy: { createdAt: 'desc' },
       include: {
         items: {
-          include: { product: { select: { id: true, name: true, price: true } } }
-        }
-      }
+          include: {
+            product: { select: { id: true, name: true, price: true } },
+          },
+        },
+      },
     })
 
     return orders
@@ -124,14 +123,17 @@ const app = new Elysia()
 
   // Order routes
   .post('/api/orders', async ({ body, set }) => {
-    const { userId, items } = body as { userId: string; items: { productId: string; quantity: number }[] }
+    const { userId, items } = body as {
+      userId: string
+      items: { productId: string; quantity: number }[]
+    }
 
     // Validate stock and calculate total
     let total = 0
     const productIds = items.map(i => i.productId)
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds } }
-    })
+    const products = (await prisma.product.findMany({
+      where: { id: { in: productIds } },
+    })) as any[]
 
     const productMap = new Map(products.map(p => [p.id, p]))
 
@@ -149,7 +151,7 @@ const app = new Elysia()
     }
 
     // Create order with transaction
-    const order = await prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async tx => {
       const newOrder = await tx.order.create({
         data: {
           userId,
@@ -159,18 +161,18 @@ const app = new Elysia()
             create: items.map(item => ({
               productId: item.productId,
               quantity: item.quantity,
-              price: productMap.get(item.productId)!.price
-            }))
-          }
+              price: productMap.get(item.productId)?.price,
+            })),
+          },
         },
-        include: { items: true }
+        include: { items: true },
       })
 
       // Update stock
       for (const item of items) {
         await tx.product.update({
           where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
+          data: { stock: { decrement: item.quantity } },
         })
       }
 
@@ -186,9 +188,11 @@ const app = new Elysia()
       include: {
         user: { select: { id: true, name: true, email: true } },
         items: {
-          include: { product: { select: { id: true, name: true, price: true } } }
-        }
-      }
+          include: {
+            product: { select: { id: true, name: true, price: true } },
+          },
+        },
+      },
     })
 
     if (!order) {
@@ -201,18 +205,20 @@ const app = new Elysia()
 
   // Analytics routes
   .get('/api/analytics/dashboard', async () => {
-    const [totalUsers, totalProducts, totalOrders, revenue] = await Promise.all([
-      prisma.user.count(),
-      prisma.product.count(),
-      prisma.order.count(),
-      prisma.order.aggregate({ _sum: { total: true } })
-    ])
+    const [totalUsers, totalProducts, totalOrders, revenue] = await Promise.all(
+      [
+        prisma.user.count(),
+        prisma.product.count(),
+        prisma.order.count(),
+        prisma.order.aggregate({ _sum: { total: true } }),
+      ],
+    )
 
     return {
       totalUsers,
       totalProducts,
       totalOrders,
-      totalRevenue: revenue._sum.total || 0
+      totalRevenue: revenue._sum.total || 0,
     }
   })
 
@@ -221,19 +227,25 @@ const app = new Elysia()
       include: {
         products: {
           include: {
-            orderItems: true
-          }
-        }
-      }
+            orderItems: true,
+          },
+        },
+      },
     })
 
     const result = categories.map(cat => ({
       categoryId: cat.id,
       categoryName: cat.name,
-      revenue: cat.products.reduce((sum, prod) =>
-        sum + prod.orderItems.reduce((itemSum, item) =>
-          itemSum + (item.price * item.quantity), 0), 0),
-      productCount: cat.products.length
+      revenue: cat.products.reduce(
+        (sum, prod) =>
+          sum +
+          prod.orderItems.reduce(
+            (itemSum, item) => itemSum + item.price * item.quantity,
+            0,
+          ),
+        0,
+      ),
+      productCount: cat.products.length,
     }))
 
     return result
@@ -241,8 +253,12 @@ const app = new Elysia()
 
   .listen(PORT)
 
-console.log(`[Elysia-Native+Bun+SQLite] Server running on http://localhost:${PORT}`)
-console.log(`[Elysia-Native+Bun+SQLite] API endpoint: http://localhost:${PORT}/api`)
+console.log(
+  `[Elysia-Native+Bun+SQLite] Server running on http://localhost:${PORT}`,
+)
+console.log(
+  `[Elysia-Native+Bun+SQLite] API endpoint: http://localhost:${PORT}/api`,
+)
 console.log(`[Elysia-Native+Bun+SQLite] Bun version: ${Bun.version}`)
 console.log(`[Elysia-Native+Bun+SQLite] PID: ${process.pid}`)
 

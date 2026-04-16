@@ -1,7 +1,8 @@
 // Run with Bun: bun run src/servers/elysia-db-server.ts
 // Elysia + Bun server with tRPC and Prisma/SQLite database (manual integration)
-import { Elysia } from 'elysia'
+
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
+import { Elysia } from 'elysia'
 import { prisma } from '../db/client.js'
 import { dbRouter } from '../shared/db-router.js'
 
@@ -12,20 +13,24 @@ const app = new Elysia()
     status: 'ok',
     runtime: 'bun',
     framework: 'elysia',
-    database: 'sqlite'
+    database: 'sqlite',
   }))
   .all('/trpc/*', async ({ request }) => {
     return fetchRequestHandler({
       endpoint: '/trpc',
       req: request,
       router: dbRouter,
-      createContext: () => ({ prisma })
+      createContext: () => ({ prisma }),
     })
   })
   .listen(PORT)
 
-console.log(`[Elysia+Bun+SQLite] Server running on http://localhost:${app.server?.port}`)
-console.log(`[Elysia+Bun+SQLite] tRPC endpoint: http://localhost:${app.server?.port}/trpc`)
+console.log(
+  `[Elysia+Bun+SQLite] Server running on http://localhost:${app.server?.port}`,
+)
+console.log(
+  `[Elysia+Bun+SQLite] tRPC endpoint: http://localhost:${app.server?.port}/trpc`,
+)
 console.log(`[Elysia+Bun+SQLite] Bun version: ${Bun.version}`)
 console.log(`[Elysia+Bun+SQLite] PID: ${process.pid}`)
 

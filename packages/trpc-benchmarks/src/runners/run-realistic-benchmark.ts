@@ -2,7 +2,7 @@
 // Run: npx tsx src/runners/run-realistic-benchmark.ts
 // Runs realistic database benchmarks for Express+Node vs Hono+Bun vs Elysia+Bun
 
-import { spawn, ChildProcess, execSync } from 'node:child_process'
+import { type ChildProcess, execSync, spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,7 +26,7 @@ const configs: BenchmarkConfig[] = [
     framework: 'express',
     serverScript: 'src/servers/express-db-server.ts',
     port: 3001,
-    command: ['npx', 'tsx', 'src/servers/express-db-server.ts']
+    command: ['npx', 'tsx', 'src/servers/express-db-server.ts'],
   },
   {
     name: 'Hono + Bun + SQLite',
@@ -34,7 +34,7 @@ const configs: BenchmarkConfig[] = [
     framework: 'hono',
     serverScript: 'src/servers/hono-db-server.ts',
     port: 3002,
-    command: ['bun', 'run', 'src/servers/hono-db-server.ts']
+    command: ['bun', 'run', 'src/servers/hono-db-server.ts'],
   },
   {
     name: 'Elysia + Bun + SQLite',
@@ -42,11 +42,11 @@ const configs: BenchmarkConfig[] = [
     framework: 'elysia',
     serverScript: 'src/servers/elysia-db-server.ts',
     port: 3003,
-    command: ['bun', 'run', 'src/servers/elysia-db-server.ts']
-  }
+    command: ['bun', 'run', 'src/servers/elysia-db-server.ts'],
+  },
 ]
 
-function parseArgs() {
+function _parseArgs() {
   const args = process.argv.slice(2)
   let duration = '60s'
   let maxVus = 20
@@ -56,7 +56,7 @@ function parseArgs() {
       duration = args[i + 1]
       i++
     } else if (args[i] === '--max-vus' && args[i + 1]) {
-      maxVus = parseInt(args[i + 1], 10)
+      maxVus = Number.parseInt(args[i + 1], 10)
       i++
     }
   }
@@ -91,13 +91,15 @@ async function startServer(config: BenchmarkConfig): Promise<ChildProcess> {
   const serverProcess = spawn(config.command[0], config.command.slice(1), {
     cwd: ROOT_DIR,
     env,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
 
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       serverProcess.kill()
-      reject(new Error(`Server ${config.name} failed to start within 15 seconds`))
+      reject(
+        new Error(`Server ${config.name} failed to start within 15 seconds`),
+      )
     }, 15000)
 
     serverProcess.stdout?.on('data', (data: Buffer) => {
@@ -113,7 +115,7 @@ async function startServer(config: BenchmarkConfig): Promise<ChildProcess> {
       console.error(`[${config.name}] ERROR: ${data.toString().trim()}`)
     })
 
-    serverProcess.on('error', (err) => {
+    serverProcess.on('error', err => {
       clearTimeout(timeout)
       reject(err)
     })
@@ -129,16 +131,25 @@ async function runBenchmark(config: BenchmarkConfig): Promise<string> {
   return new Promise((resolve, reject) => {
     let output = ''
 
-    const k6Process = spawn('k6', [
-      'run',
-      '--env', `BASE_URL=${baseUrl}`,
-      '--summary-trend-stats', 'avg,min,med,max,p(90),p(95),p(99)',
-      'src/k6/realistic-benchmark.js'
-    ], {
-      cwd: ROOT_DIR,
-      env: { ...process.env, PATH: `/home/user/.local/bin:${process.env.PATH}` },
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
+    const k6Process = spawn(
+      'k6',
+      [
+        'run',
+        '--env',
+        `BASE_URL=${baseUrl}`,
+        '--summary-trend-stats',
+        'avg,min,med,max,p(90),p(95),p(99)',
+        'src/k6/realistic-benchmark.js',
+      ],
+      {
+        cwd: ROOT_DIR,
+        env: {
+          ...process.env,
+          PATH: `/home/user/.local/bin:${process.env.PATH}`,
+        },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    )
 
     k6Process.stdout?.on('data', (data: Buffer) => {
       const str = data.toString()
@@ -152,8 +163,9 @@ async function runBenchmark(config: BenchmarkConfig): Promise<string> {
       process.stderr.write(str)
     })
 
-    k6Process.on('close', (code) => {
-      if (code !== 0 && code !== 99) { // 99 = threshold crossed but ran
+    k6Process.on('close', code => {
+      if (code !== 0 && code !== 99) {
+        // 99 = threshold crossed but ran
         reject(new Error(`k6 exited with code ${code}`))
       } else {
         resolve(output)
@@ -166,24 +178,36 @@ function extractMetrics(output: string) {
   const metrics: Record<string, any> = {}
 
   // Extract http_req_duration
-  const durationMatch = output.match(/http_req_duration[^=]*=\s*avg=([0-9.]+)m?s.*p\(95\)=([0-9.]+)m?s.*p\(99\)=([0-9.]+)m?s/i)
+  const durationMatch = output.match(
+    /http_req_duration[^=]*=\s*avg=([0-9.]+)m?s.*p\(95\)=([0-9.]+)m?s.*p\(99\)=([0-9.]+)m?s/i,
+  )
   if (durationMatch) {
     metrics.httpReqDuration = {
-      avg: parseFloat(durationMatch[1]),
-      p95: parseFloat(durationMatch[2]),
-      p99: parseFloat(durationMatch[3])
+      avg: Number.parseFloat(durationMatch[1]),
+      p95: Number.parseFloat(durationMatch[2]),
+      p99: Number.parseFloat(durationMatch[3]),
     }
   }
 
   // Extract custom DB metrics
-  const dbMetrics = ['product_list', 'product_get', 'product_search', 'order_create', 'order_get', 'dashboard']
+  const dbMetrics = [
+    'product_list',
+    'product_get',
+    'product_search',
+    'order_create',
+    'order_get',
+    'dashboard',
+  ]
   for (const metric of dbMetrics) {
-    const regex = new RegExp(`db_${metric}_latency[^=]*=\\s*avg=([0-9.]+)m?s.*p\\(95\\)=([0-9.]+)m?s`, 'i')
+    const regex = new RegExp(
+      `db_${metric}_latency[^=]*=\\s*avg=([0-9.]+)m?s.*p\\(95\\)=([0-9.]+)m?s`,
+      'i',
+    )
     const match = output.match(regex)
     if (match) {
       metrics[metric] = {
-        avg: parseFloat(match[1]),
-        p95: parseFloat(match[2])
+        avg: Number.parseFloat(match[1]),
+        p95: Number.parseFloat(match[2]),
       }
     }
   }
@@ -191,13 +215,13 @@ function extractMetrics(output: string) {
   // Extract request count
   const reqsMatch = output.match(/http_reqs[^0-9]*([0-9]+)/)
   if (reqsMatch) {
-    metrics.totalRequests = parseInt(reqsMatch[1], 10)
+    metrics.totalRequests = Number.parseInt(reqsMatch[1], 10)
   }
 
   // Extract error rate
   const errorMatch = output.match(/error_rate[^0-9]*([0-9.]+)%/)
   if (errorMatch) {
-    metrics.errorRate = parseFloat(errorMatch[1])
+    metrics.errorRate = Number.parseFloat(errorMatch[1])
   }
 
   return metrics
@@ -210,15 +234,23 @@ async function main() {
 
   const hasBun = checkBun()
   if (!hasBun) {
-    console.warn('\nWarning: Bun not installed. Hono+Bun and Elysia+Bun benchmarks will be skipped.')
+    console.warn(
+      '\nWarning: Bun not installed. Hono+Bun and Elysia+Bun benchmarks will be skipped.',
+    )
   }
 
   const hasElysia = hasBun && checkElysia()
   if (hasBun && !hasElysia) {
-    console.warn('\nWarning: Elysia has TypeBox compatibility issues. Elysia benchmark will be skipped.')
+    console.warn(
+      '\nWarning: Elysia has TypeBox compatibility issues. Elysia benchmark will be skipped.',
+    )
   }
 
-  const results: Array<{ config: BenchmarkConfig; metrics: any; output: string }> = []
+  const results: Array<{
+    config: BenchmarkConfig
+    metrics: any
+    output: string
+  }> = []
 
   for (const config of configs) {
     if (config.runtime === 'bun' && !hasBun) {
@@ -244,7 +276,7 @@ async function main() {
       if (serverProcess) {
         console.log(`\nStopping ${config.name} server...`)
         serverProcess.kill('SIGTERM')
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await new Promise(resolve => setTimeout(resolve, 2000))
       }
     }
   }
@@ -263,11 +295,15 @@ async function main() {
     // HTTP overall
     rows.push([
       'HTTP Avg Latency',
-      ...results.map(r => `${r.metrics.httpReqDuration?.avg?.toFixed(2) || 'N/A'}ms`)
+      ...results.map(
+        r => `${r.metrics.httpReqDuration?.avg?.toFixed(2) || 'N/A'}ms`,
+      ),
     ])
     rows.push([
       'HTTP P95 Latency',
-      ...results.map(r => `${r.metrics.httpReqDuration?.p95?.toFixed(2) || 'N/A'}ms`)
+      ...results.map(
+        r => `${r.metrics.httpReqDuration?.p95?.toFixed(2) || 'N/A'}ms`,
+      ),
     ])
 
     // DB operations
@@ -276,28 +312,28 @@ async function main() {
       ['Product Get', 'product_get'],
       ['Product Search', 'product_search'],
       ['Order Create', 'order_create'],
-      ['Dashboard', 'dashboard']
+      ['Dashboard', 'dashboard'],
     ]
 
     for (const [label, key] of dbOps) {
       rows.push([
         `${label} Avg`,
-        ...results.map(r => `${r.metrics[key]?.avg?.toFixed(2) || 'N/A'}ms`)
+        ...results.map(r => `${r.metrics[key]?.avg?.toFixed(2) || 'N/A'}ms`),
       ])
     }
 
     rows.push([
       'Total Requests',
-      ...results.map(r => r.metrics.totalRequests?.toString() || 'N/A')
+      ...results.map(r => r.metrics.totalRequests?.toString() || 'N/A'),
     ])
     rows.push([
       'Error Rate',
-      ...results.map(r => `${r.metrics.errorRate?.toFixed(2) || '0'}%`)
+      ...results.map(r => `${r.metrics.errorRate?.toFixed(2) || '0'}%`),
     ])
 
     // Print table
-    const colWidths = headers.map((h, i) =>
-      Math.max(h.length, ...rows.map(r => (r[i] || '').length)) + 2
+    const colWidths = headers.map(
+      (h, i) => Math.max(h.length, ...rows.map(r => (r[i] || '').length)) + 2,
     )
 
     console.log(headers.map((h, i) => h.padEnd(colWidths[i])).join(''))
@@ -309,21 +345,30 @@ async function main() {
     // Find the fastest
     const sortedByAvg = results
       .filter(r => r.metrics.httpReqDuration?.avg)
-      .sort((a, b) => a.metrics.httpReqDuration.avg - b.metrics.httpReqDuration.avg)
+      .sort(
+        (a, b) => a.metrics.httpReqDuration.avg - b.metrics.httpReqDuration.avg,
+      )
 
     if (sortedByAvg.length >= 2) {
       const fastest = sortedByAvg[0]
-      const slowest = sortedByAvg[sortedByAvg.length - 1]
+      const _slowest = sortedByAvg[sortedByAvg.length - 1]
 
       console.log('')
       console.log('Rankings (by average latency):')
       sortedByAvg.forEach((r, i) => {
-        const diffFromFastest = ((r.metrics.httpReqDuration.avg - fastest.metrics.httpReqDuration.avg) /
-          fastest.metrics.httpReqDuration.avg * 100)
+        const diffFromFastest =
+          ((r.metrics.httpReqDuration.avg -
+            fastest.metrics.httpReqDuration.avg) /
+            fastest.metrics.httpReqDuration.avg) *
+          100
         if (i === 0) {
-          console.log(`  1. ${r.config.name} - ${r.metrics.httpReqDuration.avg.toFixed(2)}ms (fastest)`)
+          console.log(
+            `  1. ${r.config.name} - ${r.metrics.httpReqDuration.avg.toFixed(2)}ms (fastest)`,
+          )
         } else {
-          console.log(`  ${i + 1}. ${r.config.name} - ${r.metrics.httpReqDuration.avg.toFixed(2)}ms (+${diffFromFastest.toFixed(1)}%)`)
+          console.log(
+            `  ${i + 1}. ${r.config.name} - ${r.metrics.httpReqDuration.avg.toFixed(2)}ms (+${diffFromFastest.toFixed(1)}%)`,
+          )
         }
       })
     }
@@ -335,13 +380,19 @@ async function main() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   await writeFile(
     path.join(outputDir, `realistic-benchmark-${timestamp}.json`),
-    JSON.stringify(results.map(r => ({ config: r.config, metrics: r.metrics })), null, 2)
+    JSON.stringify(
+      results.map(r => ({ config: r.config, metrics: r.metrics })),
+      null,
+      2,
+    ),
   )
 
-  console.log(`\nResults saved to results/realistic-benchmark-${timestamp}.json`)
+  console.log(
+    `\nResults saved to results/realistic-benchmark-${timestamp}.json`,
+  )
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error)
   process.exit(1)
 })

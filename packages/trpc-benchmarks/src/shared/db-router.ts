@@ -1,7 +1,8 @@
 // npx tsx src/shared/db-router.ts (for type checking)
 // Realistic tRPC router with database operations for benchmarking
-import { initTRPC, TRPCError } from '@trpc/server'
+
 import type { PrismaClient } from '@prisma/client'
+import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 import { z } from 'zod'
 
@@ -12,7 +13,7 @@ export interface Context {
 
 // Initialize tRPC with context
 const t = initTRPC.context<Context>().create({
-  transformer: superjson
+  transformer: superjson,
 })
 
 export const router = t.router
@@ -21,30 +22,36 @@ export const publicProcedure = t.procedure
 // Input schemas
 const paginationInput = z.object({
   page: z.number().int().min(1).default(1),
-  pageSize: z.number().int().min(1).max(100).default(20)
+  pageSize: z.number().int().min(1).max(100).default(20),
 })
 
-const productFilterInput = z.object({
-  categoryId: z.string().optional(),
-  minPrice: z.number().optional(),
-  maxPrice: z.number().optional(),
-  inStock: z.boolean().optional(),
-  search: z.string().optional()
-}).merge(paginationInput)
+const productFilterInput = z
+  .object({
+    categoryId: z.string().optional(),
+    minPrice: z.number().optional(),
+    maxPrice: z.number().optional(),
+    inStock: z.boolean().optional(),
+    search: z.string().optional(),
+  })
+  .merge(paginationInput)
 
 const createOrderInput = z.object({
   userId: z.string(),
-  items: z.array(z.object({
-    productId: z.string(),
-    quantity: z.number().int().min(1)
-  })).min(1)
+  items: z
+    .array(
+      z.object({
+        productId: z.string(),
+        quantity: z.number().int().min(1),
+      }),
+    )
+    .min(1),
 })
 
 const createReviewInput = z.object({
   userId: z.string(),
   productId: z.string(),
   rating: z.number().int().min(1).max(5),
-  comment: z.string().min(1).max(1000)
+  comment: z.string().min(1).max(1000),
 })
 
 // Create the database-backed router
@@ -64,8 +71,8 @@ export const dbRouter = router({
         const user = await ctx.prisma.user.findUnique({
           where: { id: input.id },
           include: {
-            _count: { select: { orders: true, reviews: true } }
-          }
+            _count: { select: { orders: true, reviews: true } },
+          },
         })
         if (!user) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' })
@@ -83,17 +90,17 @@ export const dbRouter = router({
             take: input.pageSize,
             orderBy: { createdAt: 'desc' },
             include: {
-              _count: { select: { orders: true } }
-            }
+              _count: { select: { orders: true } },
+            },
           }),
-          ctx.prisma.user.count()
+          ctx.prisma.user.count(),
         ])
         return {
           users,
           total,
           page: input.page,
           pageSize: input.pageSize,
-          totalPages: Math.ceil(total / input.pageSize)
+          totalPages: Math.ceil(total / input.pageSize),
         }
       }),
 
@@ -109,14 +116,19 @@ export const dbRouter = router({
             orderBy: { createdAt: 'desc' },
             include: {
               items: {
-                include: { product: true }
-              }
-            }
+                include: { product: true },
+              },
+            },
           }),
-          ctx.prisma.order.count({ where: { userId: input.userId } })
+          ctx.prisma.order.count({ where: { userId: input.userId } }),
         ])
-        return { orders, total, page: input.page, totalPages: Math.ceil(total / input.pageSize) }
-      })
+        return {
+          orders,
+          total,
+          page: input.page,
+          totalPages: Math.ceil(total / input.pageSize),
+        }
+      }),
   }),
 
   // Product operations
@@ -132,13 +144,16 @@ export const dbRouter = router({
             reviews: {
               take: 5,
               orderBy: { createdAt: 'desc' },
-              include: { user: { select: { id: true, name: true } } }
+              include: { user: { select: { id: true, name: true } } },
             },
-            _count: { select: { reviews: true, orderItems: true } }
-          }
+            _count: { select: { reviews: true, orderItems: true } },
+          },
         })
         if (!product) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Product not found' })
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Product not found',
+          })
         }
         return product
       }),
@@ -149,14 +164,22 @@ export const dbRouter = router({
       .query(async ({ ctx, input }) => {
         const where: any = {}
 
-        if (input.categoryId) where.categoryId = input.categoryId
-        if (input.minPrice !== undefined) where.price = { ...where.price, gte: input.minPrice }
-        if (input.maxPrice !== undefined) where.price = { ...where.price, lte: input.maxPrice }
-        if (input.inStock) where.stock = { gt: 0 }
+        if (input.categoryId) {
+          where.categoryId = input.categoryId
+        }
+        if (input.minPrice !== undefined) {
+          where.price = { ...where.price, gte: input.minPrice }
+        }
+        if (input.maxPrice !== undefined) {
+          where.price = { ...where.price, lte: input.maxPrice }
+        }
+        if (input.inStock) {
+          where.stock = { gt: 0 }
+        }
         if (input.search) {
           where.OR = [
             { name: { contains: input.search } },
-            { description: { contains: input.search } }
+            { description: { contains: input.search } },
           ]
         }
 
@@ -168,10 +191,10 @@ export const dbRouter = router({
             orderBy: { createdAt: 'desc' },
             include: {
               category: true,
-              _count: { select: { reviews: true } }
-            }
+              _count: { select: { reviews: true } },
+            },
           }),
-          ctx.prisma.product.count({ where })
+          ctx.prisma.product.count({ where }),
         ])
 
         return {
@@ -179,7 +202,7 @@ export const dbRouter = router({
           total,
           page: input.page,
           pageSize: input.pageSize,
-          totalPages: Math.ceil(total / input.pageSize)
+          totalPages: Math.ceil(total / input.pageSize),
         }
       }),
 
@@ -193,20 +216,20 @@ export const dbRouter = router({
             skip: (input.page - 1) * input.pageSize,
             take: input.pageSize,
             orderBy: { createdAt: 'desc' },
-            include: { user: { select: { id: true, name: true } } }
+            include: { user: { select: { id: true, name: true } } },
           }),
           ctx.prisma.review.count({ where: { productId: input.productId } }),
           ctx.prisma.review.aggregate({
             where: { productId: input.productId },
-            _avg: { rating: true }
-          })
+            _avg: { rating: true },
+          }),
         ])
         return {
           reviews,
           total,
           avgRating: avgRating._avg.rating || 0,
           page: input.page,
-          totalPages: Math.ceil(total / input.pageSize)
+          totalPages: Math.ceil(total / input.pageSize),
         }
       }),
 
@@ -219,24 +242,29 @@ export const dbRouter = router({
             where: {
               OR: [
                 { name: { contains: input.query } },
-                { description: { contains: input.query } }
-              ]
+                { description: { contains: input.query } },
+              ],
             },
             skip: (input.page - 1) * input.pageSize,
             take: input.pageSize,
-            include: { category: true }
+            include: { category: true },
           }),
           ctx.prisma.product.count({
             where: {
               OR: [
                 { name: { contains: input.query } },
-                { description: { contains: input.query } }
-              ]
-            }
-          })
+                { description: { contains: input.query } },
+              ],
+            },
+          }),
         ])
-        return { products, total, page: input.page, totalPages: Math.ceil(total / input.pageSize) }
-      })
+        return {
+          products,
+          total,
+          page: input.page,
+          totalPages: Math.ceil(total / input.pageSize),
+        }
+      }),
   }),
 
   // Category operations
@@ -245,9 +273,9 @@ export const dbRouter = router({
     list: publicProcedure.query(async ({ ctx }) => {
       return ctx.prisma.category.findMany({
         include: {
-          _count: { select: { products: true } }
+          _count: { select: { products: true } },
         },
-        orderBy: { name: 'asc' }
+        orderBy: { name: 'asc' },
       })
     }),
 
@@ -260,13 +288,19 @@ export const dbRouter = router({
             where: { categoryId: input.categoryId },
             skip: (input.page - 1) * input.pageSize,
             take: input.pageSize,
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
           }),
           ctx.prisma.product.count({ where: { categoryId: input.categoryId } }),
-          ctx.prisma.category.findUnique({ where: { id: input.categoryId } })
+          ctx.prisma.category.findUnique({ where: { id: input.categoryId } }),
         ])
-        return { category, products, total, page: input.page, totalPages: Math.ceil(total / input.pageSize) }
-      })
+        return {
+          category,
+          products,
+          total,
+          page: input.page,
+          totalPages: Math.ceil(total / input.pageSize),
+        }
+      }),
   }),
 
   // Order operations
@@ -282,14 +316,17 @@ export const dbRouter = router({
             items: {
               include: {
                 product: {
-                  include: { category: true }
-                }
-              }
-            }
-          }
+                  include: { category: true },
+                },
+              },
+            },
+          },
         })
         if (!order) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Order not found' })
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Order not found',
+          })
         }
         return order
       }),
@@ -298,29 +335,35 @@ export const dbRouter = router({
     create: publicProcedure
       .input(createOrderInput)
       .mutation(async ({ ctx, input }) => {
-        return ctx.prisma.$transaction(async (tx) => {
+        return ctx.prisma.$transaction(async tx => {
           // Get products and validate stock
-          const products = await tx.product.findMany({
-            where: { id: { in: input.items.map((i) => i.productId) } }
-          })
+          const products = (await tx.product.findMany({
+            where: { id: { in: input.items.map(i => i.productId) } },
+          })) as any[]
 
-          const productMap = new Map(products.map((p) => [p.id, p]))
+          const productMap = new Map(products.map(p => [p.id, p]))
 
           // Validate all products exist and have stock
           let total = 0
-          const orderItems = input.items.map((item) => {
+          const orderItems = input.items.map(item => {
             const product = productMap.get(item.productId)
             if (!product) {
-              throw new TRPCError({ code: 'NOT_FOUND', message: `Product ${item.productId} not found` })
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `Product ${item.productId} not found`,
+              })
             }
             if (product.stock < item.quantity) {
-              throw new TRPCError({ code: 'BAD_REQUEST', message: `Insufficient stock for ${product.name}` })
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: `Insufficient stock for ${product.name}`,
+              })
             }
             total += product.price * item.quantity
             return {
               productId: item.productId,
               quantity: item.quantity,
-              price: product.price
+              price: product.price,
             }
           })
 
@@ -328,21 +371,21 @@ export const dbRouter = router({
           const order = await tx.order.create({
             data: {
               userId: input.userId,
-              total: parseFloat(total.toFixed(2)),
+              total: Number.parseFloat(total.toFixed(2)),
               status: 'pending',
-              items: { create: orderItems }
+              items: { create: orderItems },
             },
-            include: { items: true }
+            include: { items: true },
           })
 
           // Update stock
           await Promise.all(
-            input.items.map((item) =>
+            input.items.map(item =>
               tx.product.update({
                 where: { id: item.productId },
-                data: { stock: { decrement: item.quantity } }
-              })
-            )
+                data: { stock: { decrement: item.quantity } },
+              }),
+            ),
           )
 
           return order
@@ -351,14 +394,22 @@ export const dbRouter = router({
 
     // Update order status
     updateStatus: publicProcedure
-      .input(z.object({
-        id: z.string(),
-        status: z.enum(['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'])
-      }))
+      .input(
+        z.object({
+          id: z.string(),
+          status: z.enum([
+            'pending',
+            'confirmed',
+            'shipped',
+            'delivered',
+            'cancelled',
+          ]),
+        }),
+      )
       .mutation(async ({ ctx, input }) => {
         return ctx.prisma.order.update({
           where: { id: input.id },
-          data: { status: input.status }
+          data: { status: input.status },
         })
       }),
 
@@ -373,13 +424,18 @@ export const dbRouter = router({
             orderBy: { createdAt: 'desc' },
             include: {
               user: { select: { id: true, name: true } },
-              _count: { select: { items: true } }
-            }
+              _count: { select: { items: true } },
+            },
           }),
-          ctx.prisma.order.count()
+          ctx.prisma.order.count(),
         ])
-        return { orders, total, page: input.page, totalPages: Math.ceil(total / input.pageSize) }
-      })
+        return {
+          orders,
+          total,
+          page: input.page,
+          totalPages: Math.ceil(total / input.pageSize),
+        }
+      }),
   }),
 
   // Review operations
@@ -390,16 +446,24 @@ export const dbRouter = router({
       .mutation(async ({ ctx, input }) => {
         // Check if user already reviewed this product
         const existing = await ctx.prisma.review.findUnique({
-          where: { userId_productId: { userId: input.userId, productId: input.productId } }
+          where: {
+            userId_productId: {
+              userId: input.userId,
+              productId: input.productId,
+            },
+          },
         })
         if (existing) {
-          throw new TRPCError({ code: 'CONFLICT', message: 'You already reviewed this product' })
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'You already reviewed this product',
+          })
         }
         return ctx.prisma.review.create({
           data: input,
-          include: { user: { select: { id: true, name: true } } }
+          include: { user: { select: { id: true, name: true } } },
         })
-      })
+      }),
   }),
 
   // Analytics/Dashboard operations (complex queries)
@@ -412,7 +476,7 @@ export const dbRouter = router({
         totalOrders,
         recentOrders,
         topProducts,
-        ordersByStatus
+        ordersByStatus,
       ] = await Promise.all([
         ctx.prisma.user.count(),
         ctx.prisma.product.count(),
@@ -420,24 +484,24 @@ export const dbRouter = router({
         ctx.prisma.order.findMany({
           take: 5,
           orderBy: { createdAt: 'desc' },
-          include: { user: { select: { name: true } } }
+          include: { user: { select: { name: true } } },
         }),
         ctx.prisma.product.findMany({
           take: 5,
           orderBy: { orderItems: { _count: 'desc' } },
-          include: { _count: { select: { orderItems: true } } }
+          include: { _count: { select: { orderItems: true } } },
         }),
         ctx.prisma.order.groupBy({
           by: ['status'],
-          _count: true
-        })
+          _count: true,
+        }),
       ])
 
       return {
         summary: { totalUsers, totalProducts, totalOrders },
         recentOrders,
         topProducts,
-        ordersByStatus
+        ordersByStatus,
       }
     }),
 
@@ -447,23 +511,27 @@ export const dbRouter = router({
         include: {
           products: {
             include: {
-              orderItems: true
-            }
-          }
-        }
+              orderItems: true,
+            },
+          },
+        },
       })
 
-      return categories.map((cat) => ({
+      return categories.map(cat => ({
         category: cat.name,
         revenue: cat.products.reduce(
           (sum, product) =>
-            sum + product.orderItems.reduce((pSum, item) => pSum + item.price * item.quantity, 0),
-          0
+            sum +
+            product.orderItems.reduce(
+              (pSum, item) => pSum + item.price * item.quantity,
+              0,
+            ),
+          0,
         ),
-        productCount: cat.products.length
+        productCount: cat.products.length,
       }))
-    })
-  })
+    }),
+  }),
 })
 
 export type DbRouter = typeof dbRouter

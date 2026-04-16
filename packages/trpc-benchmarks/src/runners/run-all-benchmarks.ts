@@ -2,8 +2,8 @@
 // Run: npx tsx src/runners/run-all-benchmarks.ts
 // Options: npx tsx src/runners/run-all-benchmarks.ts --vus 20 --duration 60s --quick
 
-import { spawn, ChildProcess, execSync } from 'node:child_process'
-import { mkdir, writeFile, readFile } from 'node:fs/promises'
+import { type ChildProcess, execSync, spawn } from 'node:child_process'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,7 +22,13 @@ interface BenchmarkConfig {
 interface BenchmarkResult {
   config: BenchmarkConfig
   metrics: {
-    httpReqDuration: { avg: number; min: number; max: number; p95: number; p99: number }
+    httpReqDuration: {
+      avg: number
+      min: number
+      max: number
+      p95: number
+      p99: number
+    }
     httpReqs: number
     httpReqFailed: number
     iterations: number
@@ -40,7 +46,7 @@ const configs: BenchmarkConfig[] = [
     framework: 'express',
     serverScript: 'src/servers/express-server.ts',
     port: 3001,
-    command: ['npx', 'tsx', 'src/servers/express-server.ts']
+    command: ['npx', 'tsx', 'src/servers/express-server.ts'],
   },
   {
     name: 'Hono + Bun',
@@ -48,12 +54,17 @@ const configs: BenchmarkConfig[] = [
     framework: 'hono',
     serverScript: 'src/servers/hono-server.ts',
     port: 3002,
-    command: ['bun', 'run', 'src/servers/hono-server.ts']
-  }
+    command: ['bun', 'run', 'src/servers/hono-server.ts'],
+  },
 ]
 
 // Parse CLI arguments
-function parseArgs(): { vus: number; duration: string; quick: boolean; output: string } {
+function parseArgs(): {
+  vus: number
+  duration: string
+  quick: boolean
+  output: string
+} {
   const args = process.argv.slice(2)
   let vus = 10
   let duration = '30s'
@@ -62,7 +73,7 @@ function parseArgs(): { vus: number; duration: string; quick: boolean; output: s
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--vus' && args[i + 1]) {
-      vus = parseInt(args[i + 1], 10)
+      vus = Number.parseInt(args[i + 1], 10)
       i++
     } else if (args[i] === '--duration' && args[i + 1]) {
       duration = args[i + 1]
@@ -107,14 +118,16 @@ async function startServer(config: BenchmarkConfig): Promise<ChildProcess> {
   const serverProcess = spawn(config.command[0], config.command.slice(1), {
     cwd: ROOT_DIR,
     env,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
 
   // Wait for server to be ready
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       serverProcess.kill()
-      reject(new Error(`Server ${config.name} failed to start within 10 seconds`))
+      reject(
+        new Error(`Server ${config.name} failed to start within 10 seconds`),
+      )
     }, 10000)
 
     serverProcess.stdout?.on('data', (data: Buffer) => {
@@ -131,12 +144,12 @@ async function startServer(config: BenchmarkConfig): Promise<ChildProcess> {
       console.error(`[${config.name}] ERROR: ${data.toString().trim()}`)
     })
 
-    serverProcess.on('error', (err) => {
+    serverProcess.on('error', err => {
       clearTimeout(timeout)
       reject(err)
     })
 
-    serverProcess.on('exit', (code) => {
+    serverProcess.on('exit', code => {
       if (code !== 0 && code !== null) {
         clearTimeout(timeout)
         reject(new Error(`Server exited with code ${code}`))
@@ -148,7 +161,7 @@ async function startServer(config: BenchmarkConfig): Promise<ChildProcess> {
 // Run k6 benchmark
 async function runBenchmark(
   config: BenchmarkConfig,
-  options: { vus: number; duration: string; quick: boolean }
+  options: { vus: number; duration: string; quick: boolean },
 ): Promise<BenchmarkResult> {
   const scriptPath = options.quick
     ? 'src/k6/quick-benchmark.js'
@@ -164,17 +177,22 @@ async function runBenchmark(
   return new Promise((resolve, reject) => {
     const args = [
       'run',
-      '--vus', options.vus.toString(),
-      '--duration', options.duration,
-      '--env', `BASE_URL=${baseUrl}`,
-      '--summary-trend-stats', 'avg,min,med,max,p(90),p(95),p(99)',
-      '--out', 'json=results.json',
-      scriptPath
+      '--vus',
+      options.vus.toString(),
+      '--duration',
+      options.duration,
+      '--env',
+      `BASE_URL=${baseUrl}`,
+      '--summary-trend-stats',
+      'avg,min,med,max,p(90),p(95),p(99)',
+      '--out',
+      'json=results.json',
+      scriptPath,
     ]
 
     const k6Process = spawn('k6', args, {
       cwd: ROOT_DIR,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
     })
 
     let stdout = ''
@@ -192,7 +210,7 @@ async function runBenchmark(
       process.stderr.write(output)
     })
 
-    k6Process.on('close', async (code) => {
+    k6Process.on('close', async code => {
       if (code !== 0) {
         reject(new Error(`k6 exited with code ${code}\n${stderr}`))
         return
@@ -205,7 +223,7 @@ async function runBenchmark(
         config,
         metrics,
         raw: stdout,
-        timestamp: new Date()
+        timestamp: new Date(),
       })
     })
   })
@@ -219,35 +237,37 @@ function parseK6Output(output: string): BenchmarkResult['metrics'] {
     httpReqFailed: 0,
     iterations: 0,
     vus: 0,
-    duration: ''
+    duration: '',
   }
 
   // Extract http_req_duration
-  const durationMatch = output.match(/http_req_duration[^=]*=\s*avg=([0-9.]+)m?s\s+min=([0-9.]+)m?s.*max=([0-9.]+)m?s.*p\(95\)=([0-9.]+)m?s.*p\(99\)=([0-9.]+)m?s/i)
+  const durationMatch = output.match(
+    /http_req_duration[^=]*=\s*avg=([0-9.]+)m?s\s+min=([0-9.]+)m?s.*max=([0-9.]+)m?s.*p\(95\)=([0-9.]+)m?s.*p\(99\)=([0-9.]+)m?s/i,
+  )
   if (durationMatch) {
-    metrics.httpReqDuration.avg = parseFloat(durationMatch[1])
-    metrics.httpReqDuration.min = parseFloat(durationMatch[2])
-    metrics.httpReqDuration.max = parseFloat(durationMatch[3])
-    metrics.httpReqDuration.p95 = parseFloat(durationMatch[4])
-    metrics.httpReqDuration.p99 = parseFloat(durationMatch[5])
+    metrics.httpReqDuration.avg = Number.parseFloat(durationMatch[1])
+    metrics.httpReqDuration.min = Number.parseFloat(durationMatch[2])
+    metrics.httpReqDuration.max = Number.parseFloat(durationMatch[3])
+    metrics.httpReqDuration.p95 = Number.parseFloat(durationMatch[4])
+    metrics.httpReqDuration.p99 = Number.parseFloat(durationMatch[5])
   }
 
   // Extract http_reqs
   const reqsMatch = output.match(/http_reqs[^0-9]*([0-9]+)/)
   if (reqsMatch) {
-    metrics.httpReqs = parseInt(reqsMatch[1], 10)
+    metrics.httpReqs = Number.parseInt(reqsMatch[1], 10)
   }
 
   // Extract iterations
   const iterMatch = output.match(/iterations[^0-9]*([0-9]+)/)
   if (iterMatch) {
-    metrics.iterations = parseInt(iterMatch[1], 10)
+    metrics.iterations = Number.parseInt(iterMatch[1], 10)
   }
 
   // Extract VUs
   const vusMatch = output.match(/vus[^0-9]*([0-9]+)/)
   if (vusMatch) {
-    metrics.vus = parseInt(vusMatch[1], 10)
+    metrics.vus = Number.parseInt(vusMatch[1], 10)
   }
 
   return metrics
@@ -257,9 +277,9 @@ function parseK6Output(output: string): BenchmarkResult['metrics'] {
 function generateReport(results: BenchmarkResult[]): string {
   const lines: string[] = []
 
-  lines.push('=' .repeat(80))
+  lines.push('='.repeat(80))
   lines.push('tRPC API Benchmark Results')
-  lines.push('=' .repeat(80))
+  lines.push('='.repeat(80))
   lines.push('')
   lines.push(`Timestamp: ${new Date().toISOString()}`)
   lines.push('')
@@ -271,25 +291,25 @@ function generateReport(results: BenchmarkResult[]): string {
   lines.push('')
   lines.push(
     'Server'.padEnd(25) +
-    'Avg (ms)'.padStart(12) +
-    'P95 (ms)'.padStart(12) +
-    'P99 (ms)'.padStart(12) +
-    'Requests'.padStart(12) +
-    'Req/s'.padStart(12)
+      'Avg (ms)'.padStart(12) +
+      'P95 (ms)'.padStart(12) +
+      'P99 (ms)'.padStart(12) +
+      'Requests'.padStart(12) +
+      'Req/s'.padStart(12),
   )
   lines.push('-'.repeat(85))
 
   for (const result of results) {
     const duration = result.metrics.httpReqDuration
-    const reqsPerSec = Math.round(result.metrics.httpReqs / 30)  // Approximate
+    const reqsPerSec = Math.round(result.metrics.httpReqs / 30) // Approximate
 
     lines.push(
       result.config.name.padEnd(25) +
-      duration.avg.toFixed(2).padStart(12) +
-      duration.p95.toFixed(2).padStart(12) +
-      duration.p99.toFixed(2).padStart(12) +
-      result.metrics.httpReqs.toString().padStart(12) +
-      reqsPerSec.toString().padStart(12)
+        duration.avg.toFixed(2).padStart(12) +
+        duration.p95.toFixed(2).padStart(12) +
+        duration.p99.toFixed(2).padStart(12) +
+        result.metrics.httpReqs.toString().padStart(12) +
+        reqsPerSec.toString().padStart(12),
     )
   }
 
@@ -303,34 +323,54 @@ function generateReport(results: BenchmarkResult[]): string {
     lines.push('')
 
     const [first, second] = results
-    const avgDiff = ((first.metrics.httpReqDuration.avg - second.metrics.httpReqDuration.avg) /
-      first.metrics.httpReqDuration.avg * 100)
-    const p95Diff = ((first.metrics.httpReqDuration.p95 - second.metrics.httpReqDuration.p95) /
-      first.metrics.httpReqDuration.p95 * 100)
-    const reqsDiff = ((second.metrics.httpReqs - first.metrics.httpReqs) /
-      first.metrics.httpReqs * 100)
+    const avgDiff =
+      ((first.metrics.httpReqDuration.avg -
+        second.metrics.httpReqDuration.avg) /
+        first.metrics.httpReqDuration.avg) *
+      100
+    const p95Diff =
+      ((first.metrics.httpReqDuration.p95 -
+        second.metrics.httpReqDuration.p95) /
+        first.metrics.httpReqDuration.p95) *
+      100
+    const reqsDiff =
+      ((second.metrics.httpReqs - first.metrics.httpReqs) /
+        first.metrics.httpReqs) *
+      100
 
     if (avgDiff > 0) {
-      lines.push(`${second.config.name} is ${Math.abs(avgDiff).toFixed(1)}% faster (avg latency)`)
+      lines.push(
+        `${second.config.name} is ${Math.abs(avgDiff).toFixed(1)}% faster (avg latency)`,
+      )
     } else {
-      lines.push(`${first.config.name} is ${Math.abs(avgDiff).toFixed(1)}% faster (avg latency)`)
+      lines.push(
+        `${first.config.name} is ${Math.abs(avgDiff).toFixed(1)}% faster (avg latency)`,
+      )
     }
 
     if (p95Diff > 0) {
-      lines.push(`${second.config.name} has ${Math.abs(p95Diff).toFixed(1)}% better P95 latency`)
+      lines.push(
+        `${second.config.name} has ${Math.abs(p95Diff).toFixed(1)}% better P95 latency`,
+      )
     } else {
-      lines.push(`${first.config.name} has ${Math.abs(p95Diff).toFixed(1)}% better P95 latency`)
+      lines.push(
+        `${first.config.name} has ${Math.abs(p95Diff).toFixed(1)}% better P95 latency`,
+      )
     }
 
     if (reqsDiff > 0) {
-      lines.push(`${second.config.name} handled ${Math.abs(reqsDiff).toFixed(1)}% more requests`)
+      lines.push(
+        `${second.config.name} handled ${Math.abs(reqsDiff).toFixed(1)}% more requests`,
+      )
     } else {
-      lines.push(`${first.config.name} handled ${Math.abs(reqsDiff).toFixed(1)}% more requests`)
+      lines.push(
+        `${first.config.name} handled ${Math.abs(reqsDiff).toFixed(1)}% more requests`,
+      )
     }
   }
 
   lines.push('')
-  lines.push('=' .repeat(80))
+  lines.push('='.repeat(80))
 
   return lines.join('\n')
 }
@@ -346,12 +386,16 @@ async function main() {
     console.error('  brew install k6  (macOS)')
     console.error('  choco install k6 (Windows)')
     console.error('  sudo apt install k6 (Ubuntu/Debian)')
-    console.error('  Or download from: https://k6.io/docs/getting-started/installation/')
+    console.error(
+      '  Or download from: https://k6.io/docs/getting-started/installation/',
+    )
     process.exit(1)
   }
 
   if (!checkBun()) {
-    console.warn('Warning: Bun is not installed. Hono+Bun benchmark will be skipped.')
+    console.warn(
+      'Warning: Bun is not installed. Hono+Bun benchmark will be skipped.',
+    )
     console.warn('  Install Bun: curl -fsSL https://bun.sh/install | bash')
   }
 
@@ -387,7 +431,7 @@ async function main() {
       if (serverProcess) {
         console.log(`\nStopping ${config.name} server...`)
         serverProcess.kill('SIGTERM')
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
     }
   }
@@ -403,13 +447,10 @@ async function main() {
     await mkdir(outputDir, { recursive: true })
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    await writeFile(
-      path.join(outputDir, `benchmark-${timestamp}.txt`),
-      report
-    )
+    await writeFile(path.join(outputDir, `benchmark-${timestamp}.txt`), report)
     await writeFile(
       path.join(outputDir, `benchmark-${timestamp}.json`),
-      JSON.stringify(results, null, 2)
+      JSON.stringify(results, null, 2),
     )
 
     console.log(`\nResults saved to ${outputDir}/`)
@@ -419,7 +460,7 @@ async function main() {
   }
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Fatal error:', error)
   process.exit(1)
 })
