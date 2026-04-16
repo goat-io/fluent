@@ -35,3 +35,4 @@ packages/delphi-ui/test-results/
 # Testcontainer globalSetup writes connection info here at setup and
 # deletes at teardown — left behind if tests crash before teardown runs.
 tempData.json
+temp-test-*
