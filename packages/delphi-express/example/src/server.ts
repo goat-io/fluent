@@ -86,7 +86,7 @@ async function main() {
 		const sub = await broker.subscribe(
 			TENANT_ID,
 			`engine:run:${runId}`,
-			(evt) => {
+			(evt: any) => {
 				// SSE event format: `event: <type>\ndata: <json>\n\n`
 				// biome-ignore lint/suspicious/noExplicitAny: untyped pubsub payload
 				const e = evt as any;

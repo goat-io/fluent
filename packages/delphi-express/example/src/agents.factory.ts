@@ -49,7 +49,7 @@ class ChainAStep extends FunctionStep<
 	}
 }
 class ChainBStep extends FunctionStep<
-	{ from: unknown },
+	{ from: JsonObject },
 	{ chained: boolean; at: "b"; ts: number },
 	"b"
 > {
@@ -59,7 +59,7 @@ class ChainBStep extends FunctionStep<
 	}
 }
 class ChainCStep extends FunctionStep<
-	{ from: unknown },
+	{ from: JsonObject },
 	{ chained: boolean; at: "c"; ts: number },
 	"c"
 > {
@@ -100,7 +100,7 @@ let cached: Promise<{
 	engine: AgentsEngine;
 	pool: pg.Pool;
 	connector: BullMQConnector;
-	broker: RedisRealtimeBroker;
+	broker: InstanceType<typeof RedisRealtimeBroker>;
 }> | null = null;
 
 export async function getAgents() {

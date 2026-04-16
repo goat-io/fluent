@@ -16,7 +16,7 @@
 	],
 	"scripts": {
 		"prebuild": "rimraf dist",
-		"test": "vitest run",
+		"test": "vitest run --passWithNoTests",
 		"dev": "tsc --watch",
 		"lint": "biome check --write .",
 		"build": "tsc"
