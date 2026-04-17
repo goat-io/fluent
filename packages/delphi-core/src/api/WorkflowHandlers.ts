@@ -175,12 +175,25 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
      */
     async getStatus(input: { runId: string; tenantId: string }) {
       const run = await engine.getStatus(input.runId, input.tenantId)
+
+      // Redact sensitive fields from triggerInput and step I/O
+      const def = engine.getWorkflows().get(run.workflowName)
+      const sensitive = new Set(def?.sensitiveFields ?? [])
+      const redact = (obj: any) => {
+        if (!obj || sensitive.size === 0) return obj
+        const result = { ...obj }
+        for (const key of sensitive) {
+          if (key in result) result[key] = '[REDACTED]'
+        }
+        return result
+      }
+
       return {
         id: run.id,
         workflowName: run.workflowName,
         workflowVersion: run.workflowVersion,
         status: run.status,
-        triggerInput: run.triggerInput,
+        triggerInput: redact(run.triggerInput),
         output: run.output,
         error: run.error,
         startedAt: run.startedAt instanceof Date ? run.startedAt.toISOString() : run.startedAt ? String(run.startedAt) : null,
@@ -198,7 +211,7 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
           attempt: s.attempt,
           maxRetries: s.maxRetries,
           dependsOn: (s as any).dependsOn ?? [],
-          input: s.input,
+          input: redact(s.input),
           output: s.output,
           error: s.error,
           startedAt: s.startedAt instanceof Date ? s.startedAt.toISOString() : s.startedAt ? String(s.startedAt) : null,

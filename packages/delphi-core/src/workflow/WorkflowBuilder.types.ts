@@ -133,6 +133,8 @@ export interface WorkflowDefinition {
   durability?: WorkflowDurability
   /** Declared input field names for runtime introspection (trigger forms). */
   inputFields?: readonly string[]
+  /** Fields containing PII — redacted in API responses. */
+  sensitiveFields?: readonly string[]
 }
 
 // ── Workflow Triggers ──────────────────────────────────────────────

@@ -109,6 +109,8 @@ export abstract class Workflow<
   readonly durability?: WorkflowDurability
   /** Declared input field names for runtime introspection. */
   readonly inputFields?: readonly string[]
+  /** Fields containing PII — redacted server-side before API response. */
+  readonly sensitiveFields?: readonly string[]
 
   /** DAG of typed steps. Use the `step(...)` helper to build entries. */
   abstract readonly steps: readonly StepEntry<
@@ -172,6 +174,7 @@ export abstract class Workflow<
       onFail: this.onFail,
       durability: this.durability,
       inputFields: this.inputFields,
+      sensitiveFields: this.sensitiveFields,
     }
   }
 

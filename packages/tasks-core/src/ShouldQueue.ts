@@ -54,6 +54,12 @@ export abstract class ShouldQueue<
    *   inputFields = ['postId'] as const
    */
   public inputFields?: readonly string[]
+
+  /**
+   * Fields containing PII or sensitive data that should be redacted
+   * in workflow UIs. Values are masked in I/O panels.
+   */
+  public sensitiveFields?: readonly string[]
   public connector!: TaskConnector<TInput>
   public tracker?: TaskTracker
 

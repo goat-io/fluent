@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/delphi-core",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Distributed agent workflow engine for the Goat ecosystem",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",
