@@ -46,6 +46,7 @@ export interface StepDetail {
   humanPrompt?: Record<string, unknown>
   humanResponse?: Record<string, unknown>
   humanRespondedBy?: string
+  executedBy?: string | null
 }
 
 export interface WorkflowRunDetail {

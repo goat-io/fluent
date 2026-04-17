@@ -790,6 +790,7 @@ export class WorkflowEngine {
             '\\N',
             '\\N',
             '\\N', // cost fields
+            '\\N', // executedBy
             now,
             now, // createdAt, updatedAt
           ].join('\t'),
@@ -843,7 +844,7 @@ export class WorkflowEngine {
 
       const stepStream = client.query(
         copyFrom(
-          `COPY ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "createdAt", "updatedAt") FROM STDIN`,
+          `COPY ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "executedBy", "createdAt", "updatedAt") FROM STDIN`,
         ),
       )
       stepStream.write(`${stepLines.join('\n')}\n`)
@@ -921,6 +922,7 @@ export class WorkflowEngine {
     runId: string,
     stepName: string,
     tenantId: string,
+    workerIdentity?: string,
   ): Promise<void> {
     const step = await this.getStep(runId, stepName, tenantId)
     if (!canStepTransition(step.status as StepStatus, 'RUNNING')) {
@@ -935,11 +937,12 @@ export class WorkflowEngine {
         stepId: step.id,
         status: 'RUNNING',
         startedAt: new Date(),
+        executedBy: workerIdentity,
       })
     } else {
-      await this.updateStepStatus(step.id, step.status, 'RUNNING')
+      await this.updateStepStatus(step.id, step.status, 'RUNNING', workerIdentity)
     }
-    await this.logStepEvent(step.id, tenantId, 'started')
+    await this.logStepEvent(step.id, tenantId, 'started', workerIdentity ? { workerIdentity } : undefined)
 
     // Event fires AFTER PG commit (await above). Subscribers can immediately
     // SELECT this step and see status=RUNNING.
@@ -1879,6 +1882,7 @@ export class WorkflowEngine {
     stepId: string,
     currentStatus: string,
     newStatus: StepStatus,
+    workerIdentity?: string,
   ): Promise<void> {
     if (canStepTransition(currentStatus as StepStatus, newStatus)) {
       const set: Record<string, unknown> = {
@@ -1887,6 +1891,9 @@ export class WorkflowEngine {
       }
       if (newStatus === 'RUNNING') {
         set.startedAt = new Date()
+        if (workerIdentity) {
+          set.executedBy = workerIdentity
+        }
       }
       await this.db
         .updateTable('workflow_steps')

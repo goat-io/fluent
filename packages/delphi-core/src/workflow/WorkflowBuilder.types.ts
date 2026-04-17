@@ -131,6 +131,8 @@ export interface WorkflowDefinition {
   onFail?: (ctx: StepContext, error: Error) => Promise<void>
   /** Ingestion durability guarantee. Default: 'buffered'. */
   durability?: WorkflowDurability
+  /** Declared input field names for runtime introspection (trigger forms). */
+  inputFields?: readonly string[]
 }
 
 // ── Workflow Triggers ──────────────────────────────────────────────

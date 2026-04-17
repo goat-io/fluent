@@ -5,7 +5,7 @@ export function JsonViewer({ data, defaultExpanded = true }: { data: unknown; de
   const [expanded, setExpanded] = useState(defaultExpanded)
 
   if (data === null || data === undefined) {
-    return <span className="text-gray-400 italic">null</span>
+    return <span className="text-muted-foreground italic">null</span>
   }
 
   const json = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
@@ -15,13 +15,13 @@ export function JsonViewer({ data, defaultExpanded = true }: { data: unknown; de
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="absolute top-2 right-2 text-xs text-gray-400 hover:text-gray-600"
+        className="absolute top-2 right-2 text-xs text-muted-foreground hover:text-foreground"
       >
         {expanded ? 'Collapse' : 'Expand'}
       </button>
       <pre
         className={cn(
-          'overflow-auto rounded-md bg-gray-50 p-3 text-xs font-mono text-gray-800 border border-gray-200',
+          'overflow-auto rounded-lg bg-muted p-3 text-xs font-mono text-foreground border border-border',
           !expanded && 'max-h-24',
         )}
       >

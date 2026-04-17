@@ -180,6 +180,10 @@ export { TaskRunnerExecutor } from './steps/TaskRunnerExecutor.js'
 export { WorkflowStepTask } from './tasks/WorkflowStepTask.js'
 // ── Worker Node ───────────────────────────────────────────────────
 export { WorkerNode } from './worker/WorkerNode.js'
+export { WorkerSelfRegistration } from './worker/WorkerRegistration.js'
+export type { WorkerSelfRegistrationConfig } from './worker/WorkerRegistration.js'
+export { clusterStart } from './worker/clusterStart.js'
+export type { ClusterStartConfig } from './worker/clusterStart.js'
 export type {
   QueueDepthProvider,
   WorkerCapabilities,

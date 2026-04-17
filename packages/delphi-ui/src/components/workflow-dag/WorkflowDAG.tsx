@@ -89,23 +89,22 @@ export function WorkflowDAG({
         nodeTypes={nodeTypes}
         onNodeClick={onNodeClick}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.4, maxZoom: 0.85 }}
+        maxZoom={1.5}
+        minZoom={0.3}
         proOptions={{ hideAttribution: true }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}
       >
-        <Background color="#e5e7eb" gap={20} />
-        <Controls showInteractive={false} />
-        <MiniMap
-          nodeStrokeWidth={3}
-          nodeColor={(node: Node) => {
-            const status = (node.data as unknown as StepDetail)?.status
-            if (status === 'COMPLETED') return '#22c55e'
-            if (status === 'RUNNING') return '#3b82f6'
-            if (status === 'FAILED') return '#ef4444'
-            if (status === 'WAITING_HUMAN') return '#a855f7'
-            return '#d1d5db'
+        <Background color="hsl(var(--border, 0 0% 85%))" gap={20} />
+        <Controls
+          showInteractive={false}
+          style={{
+            backgroundColor: 'hsl(var(--card, 0 0% 100%))',
+            borderColor: 'hsl(var(--border, 0 0% 90%))',
+            borderRadius: '8px',
+            boxShadow: 'none',
           }}
         />
       </ReactFlow>

@@ -44,6 +44,16 @@ export abstract class ShouldQueue<
   public abstract handle(taskBody: TInput): Promise<TResult>
 
   public retries = 3
+
+  /**
+   * Declared input field names for runtime introspection.
+   * Override in subclasses to enable auto-generated trigger forms
+   * in workflow UIs. Field names should match TInput keys.
+   *
+   * @example
+   *   inputFields = ['postId'] as const
+   */
+  public inputFields?: readonly string[]
   public connector!: TaskConnector<TInput>
   public tracker?: TaskTracker
 

@@ -12,7 +12,8 @@ export function DurationDisplay({ startedAt, completedAt }: { startedAt?: string
   let display: string
   if (hours > 0) display = `${hours}h ${minutes % 60}m`
   else if (minutes > 0) display = `${minutes}m ${seconds % 60}s`
-  else display = `${seconds}s`
+  else if (seconds > 0) display = `${seconds}.${String(ms % 1000).padStart(3, '0').replace(/0+$/, '')}s`
+  else display = `${ms}ms`
 
   return <span className="text-sm tabular-nums text-gray-600">{display}</span>
 }

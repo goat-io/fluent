@@ -18,6 +18,7 @@ export class AgentsClient {
     baseUrl: string
     tenantId: string
     authToken?: string
+    extraHeaders?: Record<string, string>
   }) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '')
     this.tenantId = config.tenantId
@@ -26,6 +27,7 @@ export class AgentsClient {
       ...(config.authToken
         ? { Authorization: `Bearer ${config.authToken}` }
         : {}),
+      ...config.extraHeaders,
     }
   }
 

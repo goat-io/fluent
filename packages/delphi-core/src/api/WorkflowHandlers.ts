@@ -152,6 +152,12 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         }
       }
 
+      // Use declared inputFields from the workflow definition if template
+      // scanning found nothing (common for ShouldQueue-adapted tasks).
+      const finalInputFields = inputFields.length > 0
+        ? inputFields
+        : (def.inputFields ?? []).map(name => ({ name, source: 'declared' }))
+
       return {
         name: def.name,
         version: def.version,
@@ -160,7 +166,7 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
           executorType: s.executorType,
           dependsOn: s.dependsOn,
         })),
-        inputFields,
+        inputFields: finalInputFields,
       }
     },
 
@@ -177,9 +183,13 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         triggerInput: run.triggerInput,
         output: run.output,
         error: run.error,
-        startedAt: run.startedAt ? String(run.startedAt) : null,
-        completedAt: run.completedAt ? String(run.completedAt) : null,
-        createdAt: String(run.createdAt),
+        startedAt: run.startedAt instanceof Date ? run.startedAt.toISOString() : run.startedAt ? String(run.startedAt) : null,
+        completedAt: run.completedAt instanceof Date ? run.completedAt.toISOString() : run.completedAt ? String(run.completedAt) : null,
+        createdAt: run.createdAt instanceof Date ? run.createdAt.toISOString() : String(run.createdAt),
+        traceId: run.traceId ?? null,
+        parentRunId: run.parentRunId ?? null,
+        budget: run.budget ? fromJson(run.budget as any) : null,
+        budgetUsed: run.budgetUsed ? fromJson(run.budgetUsed as any) : null,
         steps: run.steps.map(s => ({
           id: s.id,
           stepName: s.stepName,
@@ -191,11 +201,12 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
           input: s.input,
           output: s.output,
           error: s.error,
-          startedAt: s.startedAt ? String(s.startedAt) : null,
-          completedAt: s.completedAt ? String(s.completedAt) : null,
+          startedAt: s.startedAt instanceof Date ? s.startedAt.toISOString() : s.startedAt ? String(s.startedAt) : null,
+          completedAt: s.completedAt instanceof Date ? s.completedAt.toISOString() : s.completedAt ? String(s.completedAt) : null,
           humanPrompt: s.humanPrompt,
           humanResponse: s.humanResponse,
           humanRespondedBy: s.humanRespondedBy,
+          executedBy: s.executedBy ?? null,
         })),
       }
     },
@@ -357,7 +368,8 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
     // ── Worker Management ──────────────────────────────────────────
 
     async registerWorker(input: {
-      tenantId: string
+      tenantId?: string | null
+      accountId?: string | null
       name: string
       hostname?: string
       capabilities?: Record<string, unknown>
@@ -367,7 +379,8 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         .insertInto('worker_nodes')
         .values({
           id,
-          tenantId: input.tenantId,
+          tenantId: input.tenantId ?? null,
+          accountId: input.accountId ?? null,
           name: input.name,
           hostname: input.hostname ?? null,
           capabilities: toJson(input.capabilities ?? null),
@@ -414,7 +427,12 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       const rows = await (engine as any).db
         .selectFrom('worker_nodes')
         .selectAll()
-        .where('tenantId', '=', input.tenantId)
+        .where((eb: any) =>
+          eb.or([
+            eb('tenantId', '=', input.tenantId),
+            eb('tenantId', 'is', null),
+          ]),
+        )
         .execute()
 
       const STALE_THRESHOLD_MS = 45_000 // 1.5 missed heartbeats (30s each)

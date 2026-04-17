@@ -1,5 +1,6 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
 
+import { hostname } from 'os'
 import type { JsonObject } from '@goatlab/tasks-core'
 import { ShouldQueue } from '@goatlab/tasks-core'
 import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
@@ -36,6 +37,7 @@ export class WorkflowStepTask extends ShouldQueue<
       payload.workflowRunId,
       payload.stepName,
       payload.tenantId,
+      hostname() + ':' + process.pid,
     )
 
     try {

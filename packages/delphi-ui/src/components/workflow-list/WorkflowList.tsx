@@ -3,6 +3,10 @@ import { DurationDisplay } from '../common/DurationDisplay'
 import { RelativeTime } from '../common/RelativeTime'
 import type { WorkflowRunSummary } from '@/api/types'
 
+function formatName(name: string): string {
+  return name.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 export function WorkflowList({
   workflows,
   onSelect,
@@ -30,7 +34,7 @@ export function WorkflowList({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                  {wf.workflowName}
+                  {formatName(wf.workflowName)}
                 </h3>
                 <span className="text-xs text-[var(--color-text-muted)]">v{wf.workflowVersion}</span>
                 <StatusBadge status={wf.status} />

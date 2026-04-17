@@ -107,6 +107,8 @@ export abstract class Workflow<
   readonly defaultTimeoutMs: number = 300_000 // 5 min
   readonly failFast: boolean = false
   readonly durability?: WorkflowDurability
+  /** Declared input field names for runtime introspection. */
+  readonly inputFields?: readonly string[]
 
   /** DAG of typed steps. Use the `step(...)` helper to build entries. */
   abstract readonly steps: readonly StepEntry<
@@ -169,6 +171,7 @@ export abstract class Workflow<
       onComplete: this.onComplete,
       onFail: this.onFail,
       durability: this.durability,
+      inputFields: this.inputFields,
     }
   }
 

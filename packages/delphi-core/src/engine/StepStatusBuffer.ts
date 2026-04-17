@@ -33,6 +33,8 @@ export interface StepStatusUpdate {
   completedAt?: Date | null
   /** humanPrompt column (JSON-stringified) — only used for WAITING_HUMAN transitions */
   humanPrompt?: string | null
+  /** Worker identity (hostname:pid) — set when transitioning to RUNNING */
+  executedBy?: string | null
 }
 
 export interface StepStatusBufferConfig {
@@ -105,6 +107,7 @@ export class StepStatusBuffer {
     const completedAts: (string | null)[] = new Array(batch.length)
     const startedAts: (string | null)[] = new Array(batch.length)
     const humanPrompts: (string | null)[] = new Array(batch.length)
+    const executedBys: (string | null)[] = new Array(batch.length)
 
     for (let i = 0; i < batch.length; i++) {
       const u = batch[i]!
@@ -117,6 +120,7 @@ export class StepStatusBuffer {
       completedAts[i] = u.completedAt ? u.completedAt.toISOString() : null
       startedAts[i] = u.startedAt ? u.startedAt.toISOString() : null
       humanPrompts[i] = u.humanPrompt ?? null
+      executedBys[i] = u.executedBy ?? null
     }
 
     // Single UPDATE … FROM unnest(...). For each column we keep the existing
@@ -129,12 +133,13 @@ export class StepStatusBuffer {
           "completedAt" = CASE WHEN v.completed_at  IS NOT NULL THEN v.completed_at  ELSE s."completedAt" END,
           "startedAt"   = CASE WHEN v.started_at    IS NOT NULL THEN v.started_at    ELSE s."startedAt"   END,
           "humanPrompt" = CASE WHEN v.human_prompt  IS NOT NULL THEN v.human_prompt  ELSE s."humanPrompt" END,
+          "executedBy"  = CASE WHEN v.executed_by   IS NOT NULL THEN v.executed_by   ELSE s."executedBy"  END,
           "updatedAt"   = NOW()
       FROM (
         SELECT * FROM unnest(
           $1::text[], $2::text[], $3::text[], $4::text[],
-          $5::timestamp[], $6::timestamp[], $7::text[]
-        ) AS t(id, status, output, error, completed_at, started_at, human_prompt)
+          $5::timestamp[], $6::timestamp[], $7::text[], $8::text[]
+        ) AS t(id, status, output, error, completed_at, started_at, human_prompt, executed_by)
       ) AS v
       WHERE s.id = v.id
     `
@@ -151,6 +156,7 @@ export class StepStatusBuffer {
         completedAts,
         startedAts,
         humanPrompts,
+        executedBys,
       ])
       await client.query('COMMIT')
     } catch (err) {

@@ -108,6 +108,7 @@ export function workflowFromShouldQueue<
     readonly workflowName = task.taskName
     override readonly defaultRetries = task.retries
     readonly steps = [step(adapted)] as const
+    override readonly inputFields = task.inputFields
   }
 
   return new TaskWorkflow()

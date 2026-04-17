@@ -73,6 +73,8 @@ export interface WorkflowStepTable {
   costUsd: string | null
   /** Cost tracking: model used (e.g., 'gpt-4o', 'claude-sonnet-4-20250514') */
   modelUsed: string | null
+  /** Worker identity: which machine/process executed this step */
+  executedBy: string | null
   createdAt: Generated<Date | string>
   updatedAt: Generated<Date | string>
 }
@@ -209,7 +211,8 @@ export type NewWorkflowEventSubscription =
 
 export interface WorkerNodeTable {
   id: string
-  tenantId: string
+  tenantId: string | null
+  accountId: string | null
   name: string
   hostname: string | null
   capabilities: string | null
@@ -396,6 +399,7 @@ CREATE TABLE IF NOT EXISTS workflow_steps (
   "tokensUsed" INTEGER,
   "costUsd" VARCHAR(20),
   "modelUsed" VARCHAR(100),
+  "executedBy" VARCHAR(255),
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE("workflowRunId", "stepName")
@@ -480,7 +484,8 @@ CREATE INDEX IF NOT EXISTS idx_event_subs_tenant_type ON workflow_event_subscrip
 
 CREATE TABLE IF NOT EXISTS worker_nodes (
   id VARCHAR(36) PRIMARY KEY,
-  "tenantId" VARCHAR(255) NOT NULL,
+  "tenantId" VARCHAR(255),
+  "accountId" VARCHAR(255),
   name VARCHAR(255) NOT NULL,
   hostname VARCHAR(255),
   capabilities TEXT,

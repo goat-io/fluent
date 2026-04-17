@@ -20,6 +20,11 @@ export { useWorkflowEditor } from './components/workflow-editor/useWorkflowEdito
 // Workflow Editor
 export { WorkflowEditor } from './components/workflow-editor/WorkflowEditor'
 export { WorkflowList } from './components/workflow-list/WorkflowList'
+export { WorkflowOverview } from './components/workflow-overview/WorkflowOverview'
+export { WorkflowRunsView } from './components/workflow-runs/WorkflowRunsView'
+export { RunDetailView } from './components/run-detail/RunDetailView'
+export { WorkersView } from './components/workers/WorkersView'
+export { RunTimeline } from './components/run-detail/RunTimeline'
 // Pages
 export { WorkflowDesigner } from './pages/WorkflowDesigner'
 // Providers

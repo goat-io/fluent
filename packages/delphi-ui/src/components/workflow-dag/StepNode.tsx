@@ -4,6 +4,10 @@ import { StatusBadge } from '../common/StatusBadge'
 import { DurationDisplay } from '../common/DurationDisplay'
 import type { StepDetail } from '@/api/types'
 
+function formatName(name: string): string {
+  return name.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 const executorIcons: Record<string, string> = {
   function: '\u26A1',
   sandbox: '\uD83D\uDC33',
@@ -17,27 +21,24 @@ export function StepNode({ data, selected }: NodeProps) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-gray-300 !w-2 !h-2" />
+      <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div
         className={cn(
-          'rounded-lg border-2 bg-white px-4 py-3 shadow-sm transition-all min-w-[180px]',
-          selected ? 'border-blue-500 shadow-md ring-2 ring-blue-100' : 'border-gray-200 hover:border-gray-300',
+          'rounded-lg border-2 bg-card px-4 py-3 shadow-sm transition-all w-[220px] cursor-pointer',
+          selected ? 'border-blue-500 shadow-md ring-2 ring-blue-100' : 'border-border hover:border-primary/30',
           step.status === 'RUNNING' && 'border-blue-300',
           step.status === 'FAILED' && 'border-red-200 bg-red-50/30',
           step.status === 'WAITING_HUMAN' && 'border-purple-300 bg-purple-50/30',
         )}
       >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm">{executorIcons[step.executorType] ?? '\uD83D\uDCE6'}</span>
-            <span className="text-sm font-semibold text-gray-800 truncate max-w-[120px]">
-              {step.stepName}
-            </span>
-          </div>
-          <StatusBadge status={step.status} />
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span className="text-sm">{executorIcons[step.executorType] ?? '\uD83D\uDCE6'}</span>
+          <span className="text-sm font-semibold text-foreground truncate">
+            {formatName(step.stepName)}
+          </span>
         </div>
-        <div className="mt-1.5 flex items-center justify-between text-xs text-gray-400">
-          <span>{step.executorType}</span>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <StatusBadge status={step.status} />
           <DurationDisplay startedAt={step.startedAt} completedAt={step.completedAt} />
         </div>
         {step.attempt > 1 && (
@@ -46,7 +47,7 @@ export function StepNode({ data, selected }: NodeProps) {
           </div>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-300 !w-2 !h-2" />
+      <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground !w-2 !h-2" />
     </>
   )
 }
