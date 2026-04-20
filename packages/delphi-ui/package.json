@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/delphi-ui",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "description": "Workflow dashboard for the Goat agent ecosystem",
   "type": "module",
   "main": "dist/index.js",
@@ -10,8 +10,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/index.css"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

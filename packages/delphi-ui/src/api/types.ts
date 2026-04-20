@@ -49,6 +49,27 @@ export interface StepDetail {
   executedBy?: string | null
 }
 
+/**
+ * A single row in `workflow_tasks` — the fan-out primitive delphi uses
+ * to record multiple sub-units of work under one step. For agreement
+ * cycles, each row is one LLM call (proposer, reviewer, arbiter, etc.)
+ * and the payload/result carry domain-specific data (turn, role,
+ * rubric scores, tokens).
+ */
+export interface WorkflowTask {
+  id: string
+  workflowRunId: string
+  stepName: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  payload: Record<string, unknown> | null
+  result: Record<string, unknown> | null
+  error: string | null
+  attempt: number
+  priority: number | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface WorkflowRunDetail {
   id: string
   workflowName: string

@@ -7,6 +7,7 @@ import type {
   WorkflowRunDetail,
   WorkflowRunMetrics,
   WorkflowRunSummary,
+  WorkflowTask,
 } from './types'
 
 export class AgentsClient {
@@ -90,6 +91,19 @@ export class AgentsClient {
 
   async getStepLogs(runId: string, stepName: string): Promise<StepLog[]> {
     return this.post('/workflows/step-logs', {
+      runId,
+      stepName,
+      tenantId: this.tenantId,
+    })
+  }
+
+  /**
+   * List `workflow_tasks` for a run, optionally scoped to one step.
+   * Each row is a fan-out unit of work (e.g. one LLM call in an
+   * agreement cycle). Powers the <AgreementCycle> visualisation.
+   */
+  async getStepTasks(runId: string, stepName?: string): Promise<WorkflowTask[]> {
+    return this.post('/workflows/tasks', {
       runId,
       stepName,
       tenantId: this.tenantId,

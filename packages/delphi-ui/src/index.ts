@@ -3,6 +3,7 @@
 // API Client
 export { AgentsClient } from './api/client'
 export type * from './api/types'
+export { AgreementCycle } from './components/agreement-cycle/AgreementCycle'
 export { DurationDisplay } from './components/common/DurationDisplay'
 export { JsonViewer } from './components/common/JsonViewer'
 export { RelativeTime } from './components/common/RelativeTime'
