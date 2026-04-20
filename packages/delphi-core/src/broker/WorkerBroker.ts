@@ -106,13 +106,17 @@ export class WorkerBroker {
     )
 
     try {
-      // 2. Enqueue to registry — blocks until agent completes
+      // 2. Enqueue to registry — blocks until agent completes.
+      // `requiresLabels` is carried in the StepPayload by the engine's
+      // dispatch code and surfaces here so the registry can AND-match
+      // agents' advertised labels (GitHub Actions `runs-on` semantics).
       const result = await this.registry.enqueueJob({
         tenantId: payload.tenantId,
         type: 'step',
         queue,
         payload: payload as unknown as Record<string, unknown>,
         timeoutMs: this.jobExecutionTimeoutMs,
+        requiresLabels: payload.requiresLabels,
       })
 
       // 3. Notify engine of completion (all DB work on platform side)
@@ -195,7 +199,9 @@ export class WorkerBroker {
           input: task.payload ? JSON.parse(task.payload as string) : {},
         }
 
-        // Dispatch to agent (non-blocking)
+        // Dispatch to agent (non-blocking). Fan-out tasks inherit
+        // their parent step's label requirements — a step that must
+        // run on `sdlc` workers produces tasks that must also run there.
         const taskPromise = this.registry
           .enqueueJob({
             tenantId: payload.tenantId,
@@ -203,6 +209,7 @@ export class WorkerBroker {
             queue,
             payload: taskPayload,
             timeoutMs: this.jobExecutionTimeoutMs,
+            requiresLabels: payload.requiresLabels,
           })
           .then(async result => {
             await taskManager.markTaskCompleted(task.id, result.output)

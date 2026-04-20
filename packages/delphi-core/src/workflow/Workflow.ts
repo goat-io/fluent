@@ -154,6 +154,7 @@ export abstract class Workflow<
       stepWeight: entry.step.stepWeight,
       requiresHumanApproval: entry.step.requiresHumanApproval,
       maxIterations: entry.step.maxIterations,
+      requiresLabels: entry.step.requiresLabels,
       condition: entry.condition,
       // mapInput is typed against the upstream's StepOutputs<TDeps> at
       // definition time but the engine treats it as JsonObject → JsonObject.

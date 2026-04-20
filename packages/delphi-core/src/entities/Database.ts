@@ -75,6 +75,14 @@ export interface WorkflowStepTable {
   modelUsed: string | null
   /** Worker identity: which machine/process executed this step */
   executedBy: string | null
+  /**
+   * Labels a worker MUST advertise to be eligible to run this step.
+   * Serialized JSON array (e.g. `["sdlc","claude-max"]`). Used by the
+   * WorkerBroker's AND-match scheduling. When null / empty, any
+   * worker subscribed to this step's queue is eligible. Mirrors
+   * `StepDefinition.requiresLabels`.
+   */
+  requiresLabels: string | null
   createdAt: Generated<Date | string>
   updatedAt: Generated<Date | string>
 }
@@ -400,6 +408,7 @@ CREATE TABLE IF NOT EXISTS workflow_steps (
   "costUsd" VARCHAR(20),
   "modelUsed" VARCHAR(100),
   "executedBy" VARCHAR(255),
+  "requiresLabels" TEXT,
   "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE("workflowRunId", "stepName")

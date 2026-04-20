@@ -52,6 +52,12 @@ export abstract class Step<
   readonly stepWeight?: StepWeight
   readonly requiresHumanApproval?: boolean
   readonly maxIterations?: number
+  /**
+   * Labels a worker MUST advertise to be eligible to run this step.
+   * AND-matched against the agent's `capabilities.labels`. Mirrors
+   * GitHub Actions `runs-on`. See `StepDefinition.requiresLabels`.
+   */
+  readonly requiresLabels?: string[]
 
   /** The work itself. Receives the typed input + engine services context. */
   abstract handle(

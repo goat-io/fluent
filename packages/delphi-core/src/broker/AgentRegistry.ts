@@ -14,6 +14,14 @@ export interface AgentCapabilities {
   dockerAvailable: boolean
   gpuAvailable: boolean
   queues: string[]
+  /**
+   * Free-form labels the worker advertises. When a step declares
+   * `requiresLabels: [...]`, the scheduler will only route that step
+   * to a worker whose labels are a superset (AND-match). Mirrors
+   * GitHub Actions runner labels. Empty / unset = worker accepts any
+   * step that matches its queues and other criteria.
+   */
+  labels?: string[]
 }
 
 export interface RegisteredAgent {
@@ -44,6 +52,12 @@ export interface PendingJob {
   assignedAt: Date | null
   startedAt: Date | null
   timeoutMs: number
+  /**
+   * Labels the step requires on its runner (AND-match). Sourced from
+   * the step definition's `requiresLabels`. When empty/undefined the
+   * job runs on any worker whose queues match.
+   */
+  requiresLabels?: string[]
 }
 
 export interface AgentRegistryConfig {
@@ -146,6 +160,8 @@ export class AgentRegistry {
     queue: string
     payload: Record<string, unknown>
     timeoutMs?: number
+    /** Labels the runner must advertise. AND-matched in `getNextJob`. */
+    requiresLabels?: string[]
   }): Promise<StepResult> {
     // Backpressure: hard cap on in-memory jobs
     if (this.allJobs.size >= this.maxPendingJobs) {
@@ -168,6 +184,7 @@ export class AgentRegistry {
         assignedAt: null,
         startedAt: null,
         timeoutMs: params.timeoutMs ?? this.defaultJobTimeoutMs,
+        requiresLabels: params.requiresLabels,
       }
 
       this.allJobs.set(job.id, job)
@@ -206,6 +223,16 @@ export class AgentRegistry {
       // Queue match
       if (!agent.capabilities.queues.includes(job.queue)) {
         continue
+      }
+
+      // Label match (AND-match). If the step declared required labels,
+      // every one must be present in the agent's advertised labels.
+      // Mirrors GitHub Actions `runs-on` — a runner must have all the
+      // requested labels, not just one of them.
+      if (job.requiresLabels && job.requiresLabels.length > 0) {
+        const agentLabels = agent.capabilities.labels ?? []
+        const missing = job.requiresLabels.some(l => !agentLabels.includes(l))
+        if (missing) continue
       }
 
       // Tenant match

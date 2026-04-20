@@ -484,6 +484,12 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       tenantId: string
       engineUrl: string
       queues?: string[]
+      /**
+       * Labels the issued agent will advertise. Consumed by the
+       * scheduler's AND-match against a step's `requiresLabels`.
+       * See `AgentCapabilities.labels` for semantics.
+       */
+      labels?: string[]
     }): Promise<{
       token: string
       installCommand: string
@@ -515,7 +521,10 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       const queueParam = input.queues?.length
         ? `&queues=${input.queues.join(',')}`
         : ''
-      const startCommand = `curl -fsSL '${input.engineUrl}/agent/run?token=${token}${queueParam}' | node`
+      const labelParam = input.labels?.length
+        ? `&labels=${input.labels.join(',')}`
+        : ''
+      const startCommand = `curl -fsSL '${input.engineUrl}/agent/run?token=${token}${queueParam}${labelParam}' | node`
 
       return { token, installCommand, startCommand, engineUrl: input.engineUrl }
     },

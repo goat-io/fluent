@@ -22,6 +22,13 @@ export interface WorkerSelfRegistrationConfig {
     gpuAvailable?: boolean
     dockerAvailable?: boolean
     queues?: string[]
+    /**
+     * Labels this worker advertises for GitHub-Actions-style step
+     * routing. AND-matched against a step's `requiresLabels`. Auto-
+     * falls back to `process.env.DELPHI_WORKER_LABELS` (comma-separated)
+     * if not explicitly provided.
+     */
+    labels?: string[]
     [key: string]: unknown
   }
 }
@@ -52,11 +59,22 @@ export class WorkerSelfRegistration {
     // Node cluster forks don't share memory — each has its own V8 heap.
     const workerCount = parseInt(process.env.DELPHI_WORKER_COUNT || '1', 10) || 1
     const machineMemMB = Math.round(totalmem() / 1024 / 1024)
+    // Labels: explicit config wins; else DELPHI_WORKER_LABELS env var
+    // (comma-separated); else undefined (worker accepts any step
+    // without label requirements). Deployments use the env var to
+    // segregate fleets — e.g. Cloud Run omits 'sdlc', MacBooks set
+    // DELPHI_WORKER_LABELS=sdlc.
+    const envLabels = process.env.DELPHI_WORKER_LABELS
+      ? process.env.DELPHI_WORKER_LABELS.split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+      : undefined
     this.capabilities = {
       cpuCount: 1,
       memoryMB: Math.round(machineMemMB / workerCount),
       machineCpuCount: cpus().length,
       machineMemoryMB: machineMemMB,
+      labels: envLabels,
       ...config.capabilities,
     }
   }

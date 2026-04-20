@@ -337,6 +337,9 @@ export class WorkflowEngine {
         heartbeatTimeoutMs: stepDef.heartbeatTimeoutMs ?? null,
         iterationCount: 0,
         maxIterations: stepDef.maxIterations ?? null,
+        requiresLabels: stepDef.requiresLabels?.length
+          ? toJson(stepDef.requiresLabels)
+          : null,
         createdAt: now,
         updatedAt: now,
       }
@@ -476,6 +479,9 @@ export class WorkflowEngine {
           heartbeatTimeoutMs: stepDef.heartbeatTimeoutMs ?? null,
           iterationCount: 0,
           maxIterations: stepDef.maxIterations ?? null,
+          requiresLabels: stepDef.requiresLabels?.length
+            ? toJson(stepDef.requiresLabels)
+            : null,
           createdAt: now,
           updatedAt: now,
         }
@@ -750,6 +756,9 @@ export class WorkflowEngine {
           heartbeatTimeoutMs: stepDef.heartbeatTimeoutMs ?? null,
           iterationCount: 0,
           maxIterations: stepDef.maxIterations ?? null,
+          requiresLabels: stepDef.requiresLabels?.length
+            ? toJson(stepDef.requiresLabels)
+            : null,
         }
         localStepRows.push(stepRow)
 
@@ -758,8 +767,12 @@ export class WorkflowEngine {
         //   dependsOn, input, output, error, attempt, maxRetries, startedAt, completedAt,
         //   scheduledAt, lastHeartbeatAt, lastHeartbeatData, heartbeatTimeoutMs,
         //   humanPrompt, humanResponse, humanRespondedBy, humanRespondedAt,
-        //   iterationCount, maxIterations, tokensUsed, costUsd, modelUsed, createdAt, updatedAt
+        //   iterationCount, maxIterations, tokensUsed, costUsd, modelUsed, executedBy,
+        //   requiresLabels, createdAt, updatedAt
         const stepEsc = cached.stepEscapes.get(stepDef.name)!
+        const labelsEsc = stepDef.requiresLabels?.length
+          ? escJson(toJson(stepDef.requiresLabels))
+          : '\\N'
         stepLines.push(
           [
             stepId,
@@ -791,6 +804,7 @@ export class WorkflowEngine {
             '\\N',
             '\\N', // cost fields
             '\\N', // executedBy
+            labelsEsc, // requiresLabels
             now,
             now, // createdAt, updatedAt
           ].join('\t'),
@@ -844,7 +858,7 @@ export class WorkflowEngine {
 
       const stepStream = client.query(
         copyFrom(
-          `COPY ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "executedBy", "createdAt", "updatedAt") FROM STDIN`,
+          `COPY ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "executedBy", "requiresLabels", "createdAt", "updatedAt") FROM STDIN`,
         ),
       )
       stepStream.write(`${stepLines.join('\n')}\n`)
@@ -1791,6 +1805,7 @@ export class WorkflowEngine {
           | undefined,
         heartbeatTimeoutMs: step.heartbeatTimeoutMs ?? undefined,
         scheduleToStartTimeoutMs: stepDef.scheduleToStartTimeoutMs ?? undefined,
+        requiresLabels: stepDef.requiresLabels,
       }
       const iterCount = (step as any).iterationCount ?? 0
       const jobId = `wf-${runId}-${step.stepName}-${step.attempt}-i${iterCount}`
@@ -1841,6 +1856,7 @@ export class WorkflowEngine {
         | undefined,
       heartbeatTimeoutMs: step.heartbeatTimeoutMs ?? undefined,
       scheduleToStartTimeoutMs: stepDef.scheduleToStartTimeoutMs ?? undefined,
+      requiresLabels: stepDef.requiresLabels,
     }
 
     const iterCount = (step as any).iterationCount ?? 0

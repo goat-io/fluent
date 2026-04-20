@@ -85,6 +85,17 @@ export interface StepDefinition {
    * Steps are routed to `workflow_step_light` or `workflow_step_heavy` queues.
    */
   stepWeight?: StepWeight
+  /**
+   * Labels a worker MUST advertise to be eligible to run this step.
+   * AND-matched: a worker is only chosen if its `capabilities.labels`
+   * is a superset of this array. Mirrors GitHub Actions `runs-on`.
+   *
+   * Use for coarse segmentation (e.g. `['sdlc']` so a step never lands
+   * on a generic Cloud Run worker) or fine-grained capability matching
+   * (e.g. `['has-claude', 'has-gh', 'linux']`). Empty / unset = any
+   * worker is eligible.
+   */
+  requiresLabels?: string[]
   condition?: (ctx: StepContext) => boolean | Promise<boolean>
   mapInput?: (upstreamOutputs: Record<string, JsonObject>) => JsonObject
 }
@@ -179,6 +190,12 @@ export interface StepPayload {
   lastHeartbeatData?: JsonObject
   heartbeatTimeoutMs?: number
   scheduleToStartTimeoutMs?: number
+  /**
+   * Labels the runner must advertise (AND-match). Propagated from the
+   * step definition at dispatch time so the WorkerBroker can filter
+   * agents without re-reading the definition from the engine.
+   */
+  requiresLabels?: string[]
 }
 
 export interface StepResult {

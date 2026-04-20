@@ -7,6 +7,7 @@ export function generateAgentScript(
   token: string,
   tenantId: string,
   queues?: string[],
+  labels?: string[],
 ): string {
   return `
 // Goat Agent — self-contained remote worker
@@ -19,6 +20,11 @@ const BROKER = ${JSON.stringify(brokerUrl)};
 const TOKEN = ${JSON.stringify(token)};
 const TENANT = ${JSON.stringify(tenantId)};
 const FORCED_QUEUES = ${queues ? JSON.stringify(queues) : 'null'};  // null = auto-detect
+// Labels the agent advertises for GitHub-Actions-style step routing.
+// Step's requiresLabels must be a subset of these to get assigned.
+// Operator-settable via the \`labels\` arg when generating the token,
+// or at runtime via the AGENTS_LABELS env var (comma-separated).
+const FORCED_LABELS = ${labels && labels.length > 0 ? JSON.stringify(labels) : 'null'};
 
 let agentId = null;
 const secret = crypto.randomBytes(32).toString('hex');
@@ -54,7 +60,20 @@ function detectCapabilities() {
     queues.push('workflow_step_ai');
     if (dockerAvailable) queues.push('workflow_step_sandbox');
   }
-  return { cpuCount, memoryMB, dockerAvailable, gpuAvailable: false, queues };
+  // Label resolution: explicit list passed at token-gen time wins, then
+  // AGENTS_LABELS env var (comma-separated), then a minimal default set
+  // derived from detected capabilities (mirrors GitHub Actions'
+  // automatic labels like self-hosted/linux/x64).
+  let labels;
+  if (FORCED_LABELS) {
+    labels = FORCED_LABELS;
+  } else if (process.env.AGENTS_LABELS) {
+    labels = process.env.AGENTS_LABELS.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  } else {
+    labels = ['self-hosted', process.platform, process.arch];
+    if (dockerAvailable) labels.push('has-docker');
+  }
+  return { cpuCount, memoryMB, dockerAvailable, gpuAvailable: false, queues, labels };
 }
 
 async function executeJob(job) {
