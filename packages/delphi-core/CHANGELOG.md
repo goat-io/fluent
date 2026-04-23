@@ -1,5 +1,11 @@
 # @goatlab/delphi-core
 
+## 0.4.0
+
+### Minor Changes
+
+- Add transactional steps — atomic app writes + step completion in a single PG transaction. Steps marked `transactional: true` receive a `ctx.tx` PoolClient; COMMIT = both app data and step result persisted, ROLLBACK = nothing happened. Stronger than replay-based approaches (no crash window). Flag supported at class level and step() override level.
+
 ## 0.2.0
 
 ### Minor Changes
