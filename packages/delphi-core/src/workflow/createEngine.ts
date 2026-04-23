@@ -196,19 +196,22 @@ export type WorkflowsApi<Ws extends readonly WorkflowLike[]> = {
  * Returned engine: a real `WorkflowEngine` instance + per-workflow proxy
  * properties + the underlying `ingestBuffer` (for shutdown, depth probes).
  */
-export type TypedEngine<Ws extends readonly WorkflowLike[]> = WorkflowEngine &
-  WorkflowsApi<Ws> & {
-    ingestBuffer: IngestBuffer
-    ingestWorker: IngestWorker
-    stepTask: WorkflowStepTask
-    scheduler: SchedulerService
-    agents: {
-      registry: AgentRegistry
-      handlers: BrokerHandlers
-      broker: WorkerBroker
-    }
-    shutdown: () => Promise<void>
+/** Engine service properties — always win over workflow proxy names. */
+interface EngineServices {
+  ingestBuffer: IngestBuffer
+  ingestWorker: IngestWorker
+  stepTask: WorkflowStepTask
+  scheduler: SchedulerService
+  agents: {
+    registry: AgentRegistry
+    handlers: BrokerHandlers
+    broker: WorkerBroker
   }
+  shutdown: () => Promise<void>
+}
+
+export type TypedEngine<Ws extends readonly WorkflowLike[]> = WorkflowEngine &
+  Omit<WorkflowsApi<Ws>, keyof EngineServices> & EngineServices
 
 /**
  * Build a typed engine where every registered workflow is addressable
