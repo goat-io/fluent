@@ -88,3 +88,10 @@ export class HumanInputError extends WorkflowError {
     this.name = 'HumanInputError'
   }
 }
+
+export class InputValidationError extends WorkflowError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'INPUT_VALIDATION_ERROR', details)
+    this.name = 'InputValidationError'
+  }
+}

@@ -4,14 +4,9 @@
 // Uses Postgres FOR UPDATE SKIP LOCKED for safe concurrent fetching.
 //
 
-import { Ids } from '@goatlab/js-utils'
-import type { Kysely } from 'kysely'
-import { sql } from 'kysely'
-import type {
-  Database,
-  WorkflowTask,
-  WorkflowTaskUpdate,
-} from '../entities/Database.js'
+import type { DbClient } from '../db/DbClient.js'
+import { nanoId } from '../db/ids.js'
+import type { WorkflowTask } from '../entities/Database.js'
 import { fromJson, toJson } from '../entities/Database.js'
 
 // Re-export JsonObject from tasks-core for type compatibility with StepContext
@@ -34,11 +29,8 @@ export interface TaskStats {
 }
 
 export class TaskManager {
-  constructor(private readonly db: Kysely<Database>) {}
+  constructor(private readonly db: DbClient) {}
 
-  /**
-   * Create multiple tasks for a workflow step. Returns the task IDs.
-   */
   async createTasks(
     runId: string,
     stepName: string,
@@ -49,64 +41,58 @@ export class TaskManager {
     }
 
     const ids: string[] = []
-    const rows = tasks.map(t => {
-      const id = Ids.nanoId(21)
+    const placeholders: string[] = []
+    const params: any[] = []
+    let idx = 1
+    for (const t of tasks) {
+      const id = nanoId(21)
       ids.push(id)
-      return {
+      placeholders.push(
+        `($${idx},$${idx + 1},$${idx + 2},$${idx + 3},$${idx + 4},$${idx + 5},$${idx + 6},$${idx + 7},$${idx + 8},$${idx + 9})`,
+      )
+      params.push(
         id,
-        workflowRunId: runId,
+        runId,
         stepName,
-        status: 'pending' as const,
-        payload: toJson(t.payload),
-        result: null,
-        error: null,
-        attempt: 0,
-        maxRetries: t.maxRetries ?? 3,
-        priority: t.priority ?? null,
-      }
-    })
+        'pending',
+        toJson(t.payload),
+        null,
+        null,
+        0,
+        t.maxRetries ?? 3,
+        t.priority ?? null,
+      )
+      idx += 10
+    }
 
-    await this.db.insertInto('workflow_tasks').values(rows).execute()
+    await this.db.query(
+      `INSERT INTO workflow_tasks (id, "workflowRunId", "stepName", status, payload, result, error, attempt, "maxRetries", priority) VALUES ${placeholders.join(',')}`,
+      params,
+    )
     return ids
   }
 
-  /**
-   * Get all tasks for a workflow run + step.
-   */
   async getTasks(runId: string, stepName: string): Promise<WorkflowTask[]> {
-    return this.db
-      .selectFrom('workflow_tasks')
-      .selectAll()
-      .where('workflowRunId', '=', runId)
-      .where('stepName', '=', stepName)
-      .orderBy('createdAt', 'asc')
-      .execute()
+    const { rows } = await this.db.query<WorkflowTask>(
+      `SELECT * FROM workflow_tasks WHERE "workflowRunId" = $1 AND "stepName" = $2 ORDER BY "createdAt" ASC`,
+      [runId, stepName],
+    )
+    return rows
   }
 
-  /**
-   * Get a single task by ID.
-   */
   async getTask(taskId: string): Promise<WorkflowTask | null> {
-    const row = await this.db
-      .selectFrom('workflow_tasks')
-      .selectAll()
-      .where('id', '=', taskId)
-      .executeTakeFirst()
-    return row ?? null
+    const { rows } = await this.db.query<WorkflowTask>(
+      `SELECT * FROM workflow_tasks WHERE id = $1`,
+      [taskId],
+    )
+    return rows[0] ?? null
   }
 
-  /**
-   * Get aggregate stats for a workflow run + step.
-   */
   async getTaskStats(runId: string, stepName: string): Promise<TaskStats> {
-    const rows = await this.db
-      .selectFrom('workflow_tasks')
-      .select('status')
-      .select(sql<number>`count(*)::int`.as('count'))
-      .where('workflowRunId', '=', runId)
-      .where('stepName', '=', stepName)
-      .groupBy('status')
-      .execute()
+    const { rows } = await this.db.query<{ status: string; count: number }>(
+      `SELECT status, count(*)::int AS count FROM workflow_tasks WHERE "workflowRunId" = $1 AND "stepName" = $2 GROUP BY status`,
+      [runId, stepName],
+    )
 
     const stats: TaskStats = {
       total: 0,
@@ -133,62 +119,44 @@ export class TaskManager {
 
   // ── Phase 2: Concurrency-safe fetching ────────────────────────────
 
-  /**
-   * Fetch the next pending task using FOR UPDATE SKIP LOCKED.
-   * Returns null when no tasks remain.
-   */
   async fetchNextTask(
     runId: string,
     stepName: string,
   ): Promise<WorkflowTask | null> {
-    const row = await sql<WorkflowTask>`
-      SELECT * FROM workflow_tasks
-      WHERE "workflowRunId" = ${runId}
-        AND "stepName" = ${stepName}
-        AND status = 'pending'
-      ORDER BY priority DESC NULLS LAST, "createdAt" ASC
-      LIMIT 1
-      FOR UPDATE SKIP LOCKED
-    `.execute(this.db)
-
-    return row.rows[0] ?? null
+    const { rows } = await this.db.query<WorkflowTask>(
+      `SELECT * FROM workflow_tasks
+       WHERE "workflowRunId" = $1
+         AND "stepName" = $2
+         AND status = 'pending'
+       ORDER BY priority DESC NULLS LAST, "createdAt" ASC
+       LIMIT 1
+       FOR UPDATE SKIP LOCKED`,
+      [runId, stepName],
+    )
+    return rows[0] ?? null
   }
 
   async markTaskRunning(taskId: string): Promise<void> {
-    await this.db
-      .updateTable('workflow_tasks')
-      .set({ status: 'running', updatedAt: new Date() } as WorkflowTaskUpdate)
-      .where('id', '=', taskId)
-      .execute()
+    await this.db.query(
+      `UPDATE workflow_tasks SET status = $1, "updatedAt" = $2 WHERE id = $3`,
+      ['running', new Date(), taskId],
+    )
   }
 
   async markTaskCompleted(taskId: string, result: JsonObject): Promise<void> {
-    await this.db
-      .updateTable('workflow_tasks')
-      .set({
-        status: 'completed',
-        result: toJson(result),
-        updatedAt: new Date(),
-      } as WorkflowTaskUpdate)
-      .where('id', '=', taskId)
-      .execute()
+    await this.db.query(
+      `UPDATE workflow_tasks SET status = $1, result = $2, "updatedAt" = $3 WHERE id = $4`,
+      ['completed', toJson(result), new Date(), taskId],
+    )
   }
 
   async markTaskFailed(taskId: string, error: string): Promise<void> {
-    await sql`
-      UPDATE workflow_tasks
-      SET status = 'failed',
-          error = ${error},
-          attempt = attempt + 1,
-          "updatedAt" = NOW()
-      WHERE id = ${taskId}
-    `.execute(this.db)
+    await this.db.query(
+      `UPDATE workflow_tasks SET status = 'failed', error = $1, attempt = attempt + 1, "updatedAt" = NOW() WHERE id = $2`,
+      [error, taskId],
+    )
   }
 
-  /**
-   * Retry a failed task: reset to pending if under maxRetries.
-   * Throws if maxRetries exceeded.
-   */
   async retryTask(taskId: string): Promise<void> {
     const task = await this.getTask(taskId)
     if (!task) {
@@ -197,38 +165,25 @@ export class TaskManager {
     if (task.attempt >= task.maxRetries) {
       throw new Error(`Task ${taskId} exceeded maxRetries (${task.maxRetries})`)
     }
-    await this.db
-      .updateTable('workflow_tasks')
-      .set({
-        status: 'pending',
-        error: null,
-        updatedAt: new Date(),
-      } as WorkflowTaskUpdate)
-      .where('id', '=', taskId)
-      .execute()
+    await this.db.query(
+      `UPDATE workflow_tasks SET status = $1, error = $2, "updatedAt" = $3 WHERE id = $4`,
+      ['pending', null, new Date(), taskId],
+    )
   }
 
-  /**
-   * Check if a workflow run has room for more concurrent tasks.
-   */
   async checkTaskConcurrency(
     runId: string,
     maxConcurrent: number,
   ): Promise<boolean> {
-    const result = await this.db
-      .selectFrom('workflow_tasks')
-      .select(sql<number>`count(*)::int`.as('count'))
-      .where('workflowRunId', '=', runId)
-      .where('status', '=', 'running')
-      .executeTakeFirstOrThrow()
-    return Number(result.count) < maxConcurrent
+    const { rows } = await this.db.query<{ count: number }>(
+      `SELECT count(*)::int AS count FROM workflow_tasks WHERE "workflowRunId" = $1 AND status = $2`,
+      [runId, 'running'],
+    )
+    return Number(rows[0]?.count ?? 0) < maxConcurrent
   }
 
   // ── Phase 4: Aggregation ──────────────────────────────────────────
 
-  /**
-   * Get task results for aggregation (reduce phase).
-   */
   async getTaskResults(
     runId: string,
     stepName: string,
@@ -240,13 +195,15 @@ export class TaskManager {
       status: string
     }>
   > {
-    const rows = await this.db
-      .selectFrom('workflow_tasks')
-      .select(['id', 'payload', 'result', 'status'])
-      .where('workflowRunId', '=', runId)
-      .where('stepName', '=', stepName)
-      .orderBy('createdAt', 'asc')
-      .execute()
+    const { rows } = await this.db.query<{
+      id: string
+      payload: string | null
+      result: string | null
+      status: string
+    }>(
+      `SELECT id, payload, result, status FROM workflow_tasks WHERE "workflowRunId" = $1 AND "stepName" = $2 ORDER BY "createdAt" ASC`,
+      [runId, stepName],
+    )
 
     return rows.map(r => ({
       id: r.id,

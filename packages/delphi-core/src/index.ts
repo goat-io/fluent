@@ -21,8 +21,18 @@ export type {
 export { createBrokerHandlers } from './broker/BrokerHandlers.js'
 export type { WorkerBrokerConfig } from './broker/WorkerBroker.js'
 export { WorkerBroker } from './broker/WorkerBroker.js'
+// ── DbClient ─────────────────────────────────────────────────────────
+export type { DbClient } from './db/DbClient.js'
+export { createDbClient, createPool } from './db/DbClient.js'
+// ── ID Generation ────────────────────────────────────────────────────
+export { nanoId } from './db/ids.js'
+export type { AdaptivePollerConfig } from './engine/AdaptivePoller.js'
+export { AdaptivePoller } from './engine/AdaptivePoller.js'
 export type { BatchedJobProcessorConfig } from './engine/BatchedJobProcessor.js'
 export { BatchedJobProcessor } from './engine/BatchedJobProcessor.js'
+// ── Connection Resilience ─────────────────────────────────────────
+export type { DbRetryOptions } from './engine/dbRetry.js'
+export { dbRetry } from './engine/dbRetry.js'
 export type {
   EngineEvent,
   RunCompletedEvent,
@@ -52,6 +62,19 @@ export type { IngestBufferConfig } from './engine/IngestBuffer.js'
 export { IngestBuffer } from './engine/IngestBuffer.js'
 export type { IngestWorkerConfig } from './engine/IngestWorker.js'
 export { IngestWorker } from './engine/IngestWorker.js'
+// ── PG Connector (Postgres-only dispatch) ────────────────────────
+// Backwards-compat aliases (PgQueueDispatcher was renamed to PgConnector)
+export type {
+  PgConnectorConfig,
+  PgConnectorConfig as PgQueueDispatcherConfig,
+} from './engine/PgConnector.js'
+export {
+  PgConnector,
+  PgConnector as PgQueueDispatcher,
+} from './engine/PgConnector.js'
+// ── LISTEN/NOTIFY ─────────────────────────────────────────────────
+export type { NotifyChannel, PgNotifierConfig } from './engine/PgNotifier.js'
+export { PG_NOTIFY_SQL, PgNotifier } from './engine/PgNotifier.js'
 export type {
   RateLimiterBackend,
   RedisClient,
@@ -91,7 +114,7 @@ export type {
 export { WorkflowMetricsCollector } from './engine/WorkflowMetrics.js'
 export type { WriteBufferConfig } from './engine/WriteBuffer.js'
 export { WriteBuffer } from './engine/WriteBuffer.js'
-// ── Database Schema (Kysely) ───────────────────────────────────────
+// ── Database Schema ───────────────────────────────────────────────────
 export type {
   AgentToken,
   AgentTokenTable,
@@ -115,6 +138,8 @@ export type {
   WorkflowStepLog,
   WorkflowStepTable,
   WorkflowStepUpdate,
+  WorkflowStream,
+  WorkflowStreamTable,
   WorkflowTask,
   WorkflowTaskStatus,
   WorkflowTaskTable,
@@ -125,6 +150,7 @@ export {
   DAGValidationError,
   HumanInputError,
   IdempotencyConflictError,
+  InputValidationError,
   InvalidTransitionError,
   NonRetryableError,
   StepExecutionError,
@@ -153,6 +179,8 @@ export type { LinearClient } from './integrations/linear/LinearIntegration.js'
 export { createLinearIntegration } from './integrations/linear/LinearIntegration.js'
 export type { SlackClient } from './integrations/slack/SlackIntegration.js'
 export { createSlackIntegration } from './integrations/slack/SlackIntegration.js'
+// ── Migrations ────────────────────────────────────────────────────
+export { MIGRATIONS, runMigrations } from './migrations/runner.js'
 export type { SchedulerServiceConfig } from './scheduler/SchedulerService.js'
 // ── Scheduler ─────────────────────────────────────────────────────
 export { SchedulerService } from './scheduler/SchedulerService.js'
@@ -178,12 +206,10 @@ export { FunctionStepExecutor } from './steps/FunctionStepExecutor.js'
 export type { StepExecutor } from './steps/StepExecutor.js'
 export { TaskRunnerExecutor } from './steps/TaskRunnerExecutor.js'
 export { WorkflowStepTask } from './tasks/WorkflowStepTask.js'
+export type { ClusterStartConfig } from './worker/clusterStart.js'
+export { clusterStart } from './worker/clusterStart.js'
 // ── Worker Node ───────────────────────────────────────────────────
 export { WorkerNode } from './worker/WorkerNode.js'
-export { WorkerSelfRegistration } from './worker/WorkerRegistration.js'
-export type { WorkerSelfRegistrationConfig } from './worker/WorkerRegistration.js'
-export { clusterStart } from './worker/clusterStart.js'
-export type { ClusterStartConfig } from './worker/clusterStart.js'
 export type {
   QueueDepthProvider,
   WorkerCapabilities,
@@ -192,6 +218,8 @@ export type {
 } from './worker/WorkerNode.types.js'
 export type { WorkerProvisioner } from './worker/WorkerProvisioner.js'
 export { LocalWorkerProvisioner } from './worker/WorkerProvisioner.js'
+export type { WorkerSelfRegistrationConfig } from './worker/WorkerRegistration.js'
+export { WorkerSelfRegistration } from './worker/WorkerRegistration.js'
 export type {
   CreateEngineIngestOptions,
   TypedEngine,

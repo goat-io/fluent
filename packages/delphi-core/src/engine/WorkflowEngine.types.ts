@@ -1,8 +1,7 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
 
 import type { TaskConnector, TaskTracker } from '@goatlab/tasks-core'
-import type { Kysely } from 'kysely'
-import type { Database } from '../entities/Database.js'
+import type { DbClient } from '../db/DbClient.js'
 import type { EventIngestionService } from '../events/EventIngestion.js'
 import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
@@ -33,10 +32,15 @@ export interface BudgetUsed {
 }
 
 export interface WorkflowEngineConfig {
-  db: Kysely<Database>
+  db: DbClient
   /** Raw pg.Pool for COPY FROM bulk inserts (optional, enables startBatchCopy) */
   pgPool?: any
-  connector: TaskConnector<object>
+  /**
+   * Task dispatch connector. When omitted, step dispatch is a no-op —
+   * PgConnector handles dispatch via polling, so the step row in PG
+   * (status='QUEUED') IS the queue. Most workflows don't need Redis.
+   */
+  connector?: TaskConnector<object>
   tracker?: TaskTracker
   executors: Map<string, StepExecutor>
   workflows: Map<string, WorkflowDefinition>
@@ -94,6 +98,8 @@ export interface WorkflowEngineConfig {
   maxConcurrentStepsPerWorkflow?: number
   /** Default budget guardrails for all workflow runs */
   defaultBudget?: WorkflowBudget
+  /** DBOS-parity: application version stamped on new workflow runs */
+  applicationVersion?: string
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void

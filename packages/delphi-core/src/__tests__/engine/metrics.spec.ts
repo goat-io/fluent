@@ -3,14 +3,13 @@
 // Tests for Issue #4: Observability — step/action latency + cost metrics
 //
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowMetricsCollector } from '../../engine/WorkflowMetrics.js'
-import type { Database } from '../../entities/Database.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('WorkflowMetricsCollector', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let metrics: WorkflowMetricsCollector
 
   beforeAll(async () => {

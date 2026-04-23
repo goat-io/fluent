@@ -32,11 +32,12 @@
  *   WORKER_CONCURRENCY=50  BullMQ worker concurrency per queue
  *   DISABLE_LOG_BUFFER=false  Set to 'true' for synchronous log writes
  *   CLUSTER_MODE=auto|off|<N>  Number of cluster workers (default auto = cores-1)
+ *   DISPATCH_MODE=redis|pg    Dispatch backend (default: redis). Set to 'pg' for
+ *                             Postgres-only mode — skips Redis, uses PgConnector.
  */
 import http from 'node:http'
 import cluster from 'node:cluster'
 import os from 'node:os'
-import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
 import { PostgreSqlContainer } from '@testcontainers/postgresql'
 import { RedisContainer } from '@testcontainers/redis'
@@ -46,19 +47,23 @@ import {
   Workflow,
   step,
   createEngine,
+  createDbClient,
   WorkflowStepTask,
   createWorkflowHandlers,
   CREATE_TABLES_SQL,
   EventIngestionService,
   IngestWorker,
+  PgConnector,
+  runMigrations,
 } from '@goatlab/delphi-core'
-import type { Database, JsonObject, TypedStepResult } from '@goatlab/delphi-core'
+import type { DbClient, JsonObject, TypedStepResult } from '@goatlab/delphi-core'
 
 const PORT = parseInt(process.env.PORT ?? '4444', 10)
 const TENANT = 'e2e-ui-tenant'
-const PG_POOL_SIZE = parseInt(process.env.PG_POOL_SIZE ?? '20', 10) // Hatchet: ~20 optimal, too many = lock contention
+const PG_POOL_SIZE = parseInt(process.env.PG_POOL_SIZE ?? '20', 10)
 const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY ?? '50', 10)
 const DISABLE_LOG_BUFFER = process.env.DISABLE_LOG_BUFFER === 'true'
+const DISPATCH_MODE = process.env.DISPATCH_MODE ?? 'redis' // 'redis' | 'pg'
 
 /**
  * Cluster sizing:
@@ -98,16 +103,25 @@ async function startContainers() {
       '-c', 'max_wal_senders=0',
     ])
     .start()
-  console.log('  📦 Starting Redis...')
-  const redisContainer = await new RedisContainer('redis:7-alpine').start()
+  let redisContainer: any = null
+  let redisHost = ''
+  let redisPort = 0
+  if (DISPATCH_MODE !== 'pg') {
+    console.log('  📦 Starting Redis...')
+    redisContainer = await new RedisContainer('redis:7-alpine').start()
+    redisHost = redisContainer.getHost()
+    redisPort = redisContainer.getMappedPort(6379)
+  } else {
+    console.log('  ⚡ PG-only mode — skipping Redis')
+  }
   return {
     pgHost: pgContainer.getHost(),
     pgPort: pgContainer.getMappedPort(5432),
     pgDb: 'agents_e2e_ui',
     pgUser: pgContainer.getUsername(),
     pgPass: pgContainer.getPassword(),
-    redisHost: redisContainer.getHost(),
-    redisPort: redisContainer.getMappedPort(6379),
+    redisHost,
+    redisPort,
     pgContainer,
     redisContainer,
   }
@@ -119,7 +133,7 @@ async function main() {
   console.log(`🚀 [${label}] Starting test backend on pid=${process.pid}`)
   console.log(`   PG pool: ${PG_POOL_SIZE}, Worker concurrency: ${WORKER_CONCURRENCY}, Log buffer: ${!DISABLE_LOG_BUFFER}`)
 
-  // ── Kysely DB ────────────────────────────────────────
+  // ── Database ─────────────────────────────────────────
   const pgPool = new pg.Pool({
     host: process.env.PG_HOST!,
     port: parseInt(process.env.PG_PORT!, 10),
@@ -130,34 +144,36 @@ async function main() {
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
   })
-  const db = new Kysely<Database>({
-    dialect: new PostgresDialect({
-      pool: pgPool,
-    }),
-  })
+  const db = createDbClient(pgPool)
 
   // Only one worker initializes schema; others wait on an advisory lock.
-  // CREATE TYPE/INDEX are not concurrency-safe even with IF NOT EXISTS —
-  // PG raises duplicate_object when two transactions race.
-  await sql.raw(`SELECT pg_advisory_lock(4242)`).execute(db)
+  await db.query('SELECT pg_advisory_lock(4242)')
   try {
     const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(Boolean)
     for (const stmt of statements) {
-      await sql.raw(stmt).execute(db)
+      await db.query(stmt)
     }
+    await runMigrations(db)
   } finally {
-    await sql.raw(`SELECT pg_advisory_unlock(4242)`).execute(db)
+    await db.query('SELECT pg_advisory_unlock(4242)')
   }
-  console.log(`  ✅ [${label}] Database ready`)
+  console.log(`  ✅ [${label}] Database ready (dispatch: ${DISPATCH_MODE})`)
 
-  // ── BullMQ ───────────────────────────────────────────
-  const connector = new BullMQConnector({
-    connection: {
-      host: process.env.REDIS_HOST!,
-      port: parseInt(process.env.REDIS_PORT!, 10),
-      maxRetriesPerRequest: null, // Required for BullMQ workers
-    },
-  })
+  // ── Dispatch connector ──────────────────────────────
+  const connector = DISPATCH_MODE === 'pg'
+    ? new PgConnector({
+        db,
+        pgPool,
+        pollingIntervalMs: 50,
+        maxPollingIntervalMs: 500,
+      })
+    : new BullMQConnector({
+        connection: {
+          host: process.env.REDIS_HOST!,
+          port: parseInt(process.env.REDIS_PORT!, 10),
+          maxRetriesPerRequest: null,
+        },
+      })
 
   // ── Workflow steps (class-based — no string handler refs) ─────
   // Each step declares TInput / TOutput / TName generics. Workflow classes
@@ -165,7 +181,7 @@ async function main() {
   // handler under a namespaced key. This is the same pattern sodium uses
   // for `ShouldQueue` task classes.
 
-  class FastEchoStep extends FunctionStep<JsonObject, { echoed: boolean; step: string; ts: number }, 'work'> {
+  class FastEchoStep extends FunctionStep<JsonObject, { echoed: boolean; step: string; ts: number }> {
     stepName = 'work' as const
     retries = 0
     async handle(_input, _ctx) {
@@ -173,7 +189,7 @@ async function main() {
     }
   }
 
-  class ChargeStep extends FunctionStep<JsonObject, { charged: boolean; ts: number }, 'charge'> {
+  class ChargeStep extends FunctionStep<JsonObject, { charged: boolean; ts: number }> {
     stepName = 'charge' as const
     retries = 0
     async handle(_input, _ctx) {
@@ -181,21 +197,21 @@ async function main() {
     }
   }
 
-  class ChainAStep extends FunctionStep<JsonObject, { chained: boolean; at: 'a'; ts: number }, 'a'> {
+  class ChainAStep extends FunctionStep<JsonObject, { chained: boolean; at: 'a'; ts: number }> {
     stepName = 'a' as const
     retries = 0
     async handle(input) {
       return { output: { chained: true, at: 'a' as const, ts: Date.now() } }
     }
   }
-  class ChainBStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: 'b'; ts: number }, 'b'> {
+  class ChainBStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: 'b'; ts: number }> {
     stepName = 'b' as const
     retries = 0
     async handle(input) {
       return { output: { chained: true, at: 'b' as const, ts: Date.now() } }
     }
   }
-  class ChainCStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: 'c'; ts: number }, 'c'> {
+  class ChainCStep extends FunctionStep<{ from: unknown }, { chained: boolean; at: 'c'; ts: number }> {
     stepName = 'c' as const
     retries = 0
     async handle(input) {
@@ -204,28 +220,28 @@ async function main() {
   }
 
   // Demo pipeline steps — realistic delays + human-in-the-loop
-  class AnalyzeStep extends FunctionStep<JsonObject, { analysis: string; confidence: number; requirements: string[] }, 'analyze'> {
+  class AnalyzeStep extends FunctionStep<JsonObject, { analysis: string; confidence: number; requirements: string[] }> {
     stepName = 'analyze' as const
     async handle(_input) {
       await new Promise(r => setTimeout(r, 500))
       return { output: { analysis: 'Feature looks viable', confidence: 0.9, requirements: ['auth', 'dashboard'] } }
     }
   }
-  class PlanStep extends FunctionStep<{ analysis: unknown }, { tasks: { name: string }[]; approved: boolean }, 'plan'> {
+  class PlanStep extends FunctionStep<{ analysis: unknown }, { tasks: { name: string }[]; approved: boolean }> {
     stepName = 'plan' as const
     async handle(_input) {
       await new Promise(r => setTimeout(r, 300))
       return { output: { tasks: [{ name: 'Create API' }, { name: 'Build UI' }, { name: 'Write tests' }], approved: true } }
     }
   }
-  class ImplementStep extends FunctionStep<{ plan: unknown }, { filesCreated: number; linesOfCode: number; branch: string }, 'implement'> {
+  class ImplementStep extends FunctionStep<{ plan: unknown }, { filesCreated: number; linesOfCode: number; branch: string }> {
     stepName = 'implement' as const
     async handle(_input) {
       await new Promise(r => setTimeout(r, 800))
       return { output: { filesCreated: 5, linesOfCode: 250, branch: 'feat/new-feature' } }
     }
   }
-  class ReviewStep extends FunctionStep<JsonObject, { reviewStarted: boolean }, 'review'> {
+  class ReviewStep extends FunctionStep<JsonObject, { reviewStarted: boolean }> {
     stepName = 'review' as const
     async handle(_input): Promise<TypedStepResult<{ reviewStarted: boolean }>> {
       return {
@@ -237,7 +253,7 @@ async function main() {
       }
     }
   }
-  class DeployStep extends FunctionStep<JsonObject, { deployed: boolean; url: string; version: string }, 'deploy'> {
+  class DeployStep extends FunctionStep<JsonObject, { deployed: boolean; url: string; version: string }> {
     stepName = 'deploy' as const
     async handle(_input) {
       await new Promise(r => setTimeout(r, 400))
@@ -303,8 +319,7 @@ async function main() {
       new FastChainWorkflow(),
       new DemoPipelineWorkflow(),
     ] as const,
-    db,
-    pgPool,
+    database: pgPool,
     connector,
     tenantId: TENANT,
     disableLogBuffering: DISABLE_LOG_BUFFER,

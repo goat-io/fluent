@@ -7,11 +7,10 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createWorkflowHandlers } from '../../api/WorkflowHandlers.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkerNode } from '../../worker/WorkerNode.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -32,7 +31,7 @@ function getGlobalData(): GlobalTestData {
 }
 
 describe('WorkerNode E2E — Real BullMQ + Postgres', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let connector: BullMQConnector
   let engine: WorkflowEngine
   let workerNode: WorkerNode

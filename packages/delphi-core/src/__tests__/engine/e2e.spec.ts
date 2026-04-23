@@ -6,12 +6,11 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { ExternalActionEnforcer } from '../../engine/ExternalActionEnforcer.js'
 import { StepCostTracker } from '../../engine/StepCostTracker.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -62,7 +61,7 @@ async function waitForWorkflowStatus(
 }
 
 describe('E2E: Full BullMQ Worker Flow', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let connector: BullMQConnector
   let executor: FunctionStepExecutor
   let stopWorker: (() => Promise<void>) | null = null

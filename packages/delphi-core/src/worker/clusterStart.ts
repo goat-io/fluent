@@ -24,7 +24,11 @@ export interface ClusterStartConfig {
   /** Function to run in each worker (or in the main process if workers=1). */
   start: () => void | Promise<void>
   /** Called when a worker dies. Default: restart it. */
-  onWorkerExit?: (workerId: number, code: number | null, signal: string | null) => void
+  onWorkerExit?: (
+    workerId: number,
+    code: number | null,
+    signal: string | null,
+  ) => void
 }
 
 export function clusterStart(config: ClusterStartConfig): void {

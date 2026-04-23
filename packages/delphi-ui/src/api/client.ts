@@ -87,6 +87,18 @@ export class AgentsClient {
     await this.post('/workflows/cancel', { runId, tenantId: this.tenantId })
   }
 
+  async retryWorkflow(runId: string): Promise<{ success: true; runId: string }> {
+    return this.post('/workflows/retry', { runId, tenantId: this.tenantId })
+  }
+
+  async cancelAllWorkflows(workflowName: string, status: string[]): Promise<{ cancelled: number }> {
+    return this.post('/workflows/cancel-all', { workflowName, status, tenantId: this.tenantId })
+  }
+
+  async retryAllWorkflows(workflowName: string, status: string[]): Promise<{ retried: number }> {
+    return this.post('/workflows/retry-all', { workflowName, status, tenantId: this.tenantId })
+  }
+
   // ── Steps ──────────────────────────────────────────
 
   async getStepLogs(runId: string, stepName: string): Promise<StepLog[]> {

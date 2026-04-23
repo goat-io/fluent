@@ -27,6 +27,7 @@ export class WorkflowBuilder {
   private _onComplete?: (ctx: StepContext) => Promise<void>
   private _onFail?: (ctx: StepContext, error: Error) => Promise<void>
   private _durability?: WorkflowDurability
+  private _inputSchema?: { parse: (input: unknown) => unknown }
 
   private constructor(name: string) {
     this._name = name
@@ -68,6 +69,11 @@ export class WorkflowBuilder {
    */
   durability(d: WorkflowDurability): this {
     this._durability = d
+    return this
+  }
+
+  inputSchema(schema: { parse: (input: unknown) => unknown }): this {
+    this._inputSchema = schema
     return this
   }
 
@@ -131,6 +137,7 @@ export class WorkflowBuilder {
       onComplete: this._onComplete,
       onFail: this._onFail,
       durability: this._durability,
+      inputSchema: this._inputSchema,
     }
   }
 

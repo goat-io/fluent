@@ -3,10 +3,9 @@
 // Tests for Issue #5: Runtime ExternalAction enforcement
 //
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { ExternalActionEnforcer } from '../../engine/ExternalActionEnforcer.js'
-import type { Database } from '../../entities/Database.js'
 import type {
   StepPayload,
   StepResult,
@@ -14,7 +13,7 @@ import type {
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('ExternalActionEnforcer', () => {
-  let db: Kysely<Database>
+  let db: TestDb
 
   beforeAll(async () => {
     db = await getSharedDb()

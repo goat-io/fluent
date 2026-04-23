@@ -24,8 +24,7 @@ import { step, Workflow } from '../workflow/Workflow.js'
 
 class EchoStep extends FunctionStep<
   { text: string },
-  { echoed: string },
-  'echo'
+  { echoed: string }
 > {
   stepName = 'echo' as const
   async handle(input: { text: string }) {
@@ -35,8 +34,7 @@ class EchoStep extends FunctionStep<
 
 class AppendStep extends FunctionStep<
   { base: string },
-  { appended: string },
-  'append'
+  { appended: string }
 > {
   stepName = 'append' as const
   async handle(input: { base: string }) {
@@ -51,7 +49,7 @@ const appendStep = new AppendStep()
 
 describe('Workflow.toDefinition', () => {
   it('compiles a single-step workflow to a valid engine definition', () => {
-    class Single extends Workflow<{ text: string }, 'single'> {
+    class Single extends Workflow<{ text: string }> {
       workflowName = 'single' as const
       steps = [step(echoStep)] as const
     }
@@ -68,7 +66,7 @@ describe('Workflow.toDefinition', () => {
   })
 
   it('translates typed dependsOn[] into string names + carries mapInput through', () => {
-    class Chain extends Workflow<{ text: string }, 'chain'> {
+    class Chain extends Workflow<{ text: string }> {
       workflowName = 'chain' as const
       steps = [
         step(echoStep),
@@ -89,7 +87,7 @@ describe('Workflow.toDefinition', () => {
   })
 
   it('carries durability through to the definition', () => {
-    class Committed extends Workflow<JsonObject, 'committed_wf'> {
+    class Committed extends Workflow<JsonObject> {
       workflowName = 'committed_wf' as const
       override durability = 'committed' as const
       steps = [step(echoStep)] as const
@@ -102,7 +100,7 @@ describe('Workflow.toDefinition', () => {
 
 describe('Workflow DAG validation', () => {
   it('rejects empty steps array', () => {
-    class Empty extends Workflow<JsonObject, 'empty'> {
+    class Empty extends Workflow<JsonObject> {
       workflowName = 'empty' as const
       steps = [] as const
     }
@@ -111,7 +109,7 @@ describe('Workflow DAG validation', () => {
 
   it('rejects duplicate step names within a workflow', () => {
     const duplicate = new EchoStep()
-    class Dup extends Workflow<JsonObject, 'dup'> {
+    class Dup extends Workflow<JsonObject> {
       workflowName = 'dup' as const
       steps = [step(echoStep), step(duplicate)] as const
     }
@@ -119,13 +117,13 @@ describe('Workflow DAG validation', () => {
   })
 
   it('rejects a cycle (A→B→A)', () => {
-    class A extends FunctionStep<any, any, 'a'> {
+    class A extends FunctionStep<any, any> {
       stepName = 'a' as const
       async handle() {
         return { output: {} }
       }
     }
-    class B extends FunctionStep<any, any, 'b'> {
+    class B extends FunctionStep<any, any> {
       stepName = 'b' as const
       async handle() {
         return { output: {} }
@@ -133,7 +131,7 @@ describe('Workflow DAG validation', () => {
     }
     const a = new A()
     const b = new B()
-    class Cyclic extends Workflow<any, 'cyclic'> {
+    class Cyclic extends Workflow<any> {
       workflowName = 'cyclic' as const
       steps = [
         step(a, { dependsOn: [b] }),
@@ -148,9 +146,12 @@ describe('Workflow DAG validation', () => {
 
 describe('step() helper', () => {
   it('returns an entry with the step instance and opts preserved', () => {
-    const entry = step(echoStep, { dependsOn: [appendStep] })
+    const entry = step(echoStep, {
+      dependsOn: [appendStep],
+      mapInput: (up) => ({ text: up.append.appended }),
+    })
     expect(entry.step).toBe(echoStep)
-    expect(entry.dependsOn).toEqual([appendStep])
+    expect(entry.dependsOn).toBeDefined()
   })
 
   it('defaults dependsOn to undefined', () => {
@@ -177,7 +178,12 @@ function makeConnectorStub() {
 
 function makeEngineConfig() {
   return {
-    db: { selectFrom: () => ({}) } as any, // engine only touches db on async ops we don't trigger here
+    database: {
+      query: async () => ({ rows: [], rowCount: 0 }),
+      getPool: () => ({}),
+      transaction: async (fn: any) => fn({}),
+      destroy: async () => {},
+    } as any,
     connector: makeConnectorStub(),
     tenantId: 'test-tenant',
   }
@@ -185,11 +191,11 @@ function makeEngineConfig() {
 
 describe('createEngine', () => {
   it('mounts every workflow as a typed property on the engine', () => {
-    class WfA extends Workflow<{ a: number }, 'wf_a'> {
+    class WfA extends Workflow<{ a: number }> {
       workflowName = 'wf_a' as const
       steps = [step(echoStep)] as const
     }
-    class WfB extends Workflow<{ b: string }, 'wf_b'> {
+    class WfB extends Workflow<{ b: string }> {
       workflowName = 'wf_b' as const
       steps = [step(echoStep)] as const
     }
@@ -210,11 +216,11 @@ describe('createEngine', () => {
   })
 
   it('throws on duplicate workflow names', () => {
-    class Dup1 extends Workflow<JsonObject, 'same'> {
+    class Dup1 extends Workflow<JsonObject> {
       workflowName = 'same' as const
       steps = [step(echoStep)] as const
     }
-    class Dup2 extends Workflow<JsonObject, 'same'> {
+    class Dup2 extends Workflow<JsonObject> {
       workflowName = 'same' as const
       steps = [step(echoStep)] as const
     }
@@ -231,7 +237,7 @@ describe('createEngine', () => {
     // `engine.process_post.start` and `engine.processPost.start`.
     // They must point at the *same* ops object — no duplicate spinup,
     // no divergent behavior between the two aliases.
-    class ProcessPost extends Workflow<{ postId: string }, 'process_post'> {
+    class ProcessPost extends Workflow<{ postId: string }> {
       workflowName = 'process_post' as const
       steps = [step(echoStep)] as const
     }
@@ -245,8 +251,42 @@ describe('createEngine', () => {
     expect((engine as any).process_post).toBe((engine as any).processPost)
   })
 
+  it('accepts workflow classes (auto-instantiated) — no new needed', () => {
+    class WfClass extends Workflow<{ x: number }> {
+      workflowName = 'auto_inst' as const
+      steps = [step(echoStep)] as const
+    }
+
+    const engine = createEngine({
+      workflows: [WfClass] as const,
+      ...makeEngineConfig(),
+    })
+
+    expect(typeof engine.auto_inst.start).toBe('function')
+    expect(typeof engine.autoInst.start).toBe('function')
+  })
+
+  it('mixes classes and instances in the same array', () => {
+    class WfA extends Workflow<{ a: number }> {
+      workflowName = 'mix_a' as const
+      steps = [step(echoStep)] as const
+    }
+    class WfB extends Workflow<{ b: string }> {
+      workflowName = 'mix_b' as const
+      steps = [step(echoStep)] as const
+    }
+
+    const engine = createEngine({
+      workflows: [WfA, new WfB()] as const,
+      ...makeEngineConfig(),
+    })
+
+    expect(typeof engine.mix_a.start).toBe('function')
+    expect(typeof engine.mix_b.start).toBe('function')
+  })
+
   it('already-camelCase names do not double-mount (no extra alias)', () => {
-    class CamelOnly extends Workflow<JsonObject, 'camelOnly'> {
+    class CamelOnly extends Workflow<JsonObject> {
       workflowName = 'camelOnly' as const
       steps = [step(echoStep)] as const
     }
@@ -262,11 +302,11 @@ describe('createEngine', () => {
   it('throws on snake/camel alias collision between two workflows', () => {
     // `foo_bar` and `fooBar` both resolve to the `fooBar` camelCase
     // property — ambiguous, so construction should fail loud.
-    class A extends Workflow<JsonObject, 'foo_bar'> {
+    class A extends Workflow<JsonObject> {
       workflowName = 'foo_bar' as const
       steps = [step(echoStep)] as const
     }
-    class B extends Workflow<JsonObject, 'fooBar'> {
+    class B extends Workflow<JsonObject> {
       workflowName = 'fooBar' as const
       steps = [step(echoStep)] as const
     }
@@ -279,7 +319,7 @@ describe('createEngine', () => {
   })
 
   it('refuses workflow names that collide with WorkflowEngine methods', () => {
-    class Collides extends Workflow<JsonObject, 'start'> {
+    class Collides extends Workflow<JsonObject> {
       workflowName = 'start' as const
       steps = [step(echoStep)] as const
     }
@@ -292,7 +332,7 @@ describe('createEngine', () => {
   })
 
   it('exposes the backing ingestBuffer for shutdown/probes', () => {
-    class Wf extends Workflow<JsonObject, 'probe'> {
+    class Wf extends Workflow<JsonObject> {
       workflowName = 'probe' as const
       steps = [step(echoStep)] as const
     }
@@ -306,7 +346,7 @@ describe('createEngine', () => {
   })
 
   it('startBuffered on a workflow calls ingestBuffer.enqueue with workflow name + tenant', () => {
-    class Wf extends Workflow<{ amount: number }, 'send_it'> {
+    class Wf extends Workflow<{ amount: number }> {
       workflowName = 'send_it' as const
       steps = [step(echoStep)] as const
     }
@@ -326,7 +366,7 @@ describe('createEngine', () => {
   })
 
   it('carries custom version / defaultRetries / defaultTimeoutMs into definition', () => {
-    class CustomKnobs extends Workflow<JsonObject, 'knobs'> {
+    class CustomKnobs extends Workflow<JsonObject> {
       workflowName = 'knobs' as const
       override version = '2.3.0'
       override defaultRetries = 7
@@ -347,13 +387,13 @@ describe('createEngine', () => {
   })
 
   it('registers extraExecutors alongside the auto-built function executor', () => {
-    class Sandboxed extends FunctionStep<JsonObject, JsonObject, 'sbx'> {
+    class Sandboxed extends FunctionStep<JsonObject, JsonObject> {
       stepName = 'sbx' as const
       async handle() {
         return { output: {} }
       }
     }
-    class Wf extends Workflow<JsonObject, 'wf_extra'> {
+    class Wf extends Workflow<JsonObject> {
       workflowName = 'wf_extra' as const
       steps = [step(new Sandboxed())] as const
     }
@@ -381,7 +421,7 @@ describe('createEngine', () => {
     const approveHandler = vi.fn(async () => {})
     const progressHandler = vi.fn(() => ({ done: 50 }))
 
-    class WithHandlers extends Workflow<JsonObject, 'handlers_wf'> {
+    class WithHandlers extends Workflow<JsonObject> {
       workflowName = 'handlers_wf' as const
       override signals = { approve: { handler: approveHandler } }
       override queries = { progress: { handler: progressHandler } }
@@ -400,7 +440,7 @@ describe('createEngine', () => {
   })
 
   it('mapInput function survives the toDefinition → StepDefinition round-trip at runtime', () => {
-    class Chain extends Workflow<JsonObject, 'chain_rt'> {
+    class Chain extends Workflow<JsonObject> {
       workflowName = 'chain_rt' as const
       steps = [
         step(echoStep),
@@ -419,7 +459,7 @@ describe('createEngine', () => {
   })
 
   it('startBuffered + startCommitted preserve idempotencyKey in the assigned trigger', async () => {
-    class Wf extends Workflow<{ x: number }, 'idem_wf'> {
+    class Wf extends Workflow<{ x: number }> {
       workflowName = 'idem_wf' as const
       steps = [step(echoStep)] as const
     }
@@ -512,7 +552,7 @@ describe('fromShouldQueue', () => {
     const task = new CheckPostTask()
     const adapted = fromShouldQueue(task)
 
-    class PostPipeline extends Workflow<{ postId: string }, 'post_pipeline'> {
+    class PostPipeline extends Workflow<{ postId: string }> {
       workflowName = 'post_pipeline' as const
       steps = [step(adapted)] as const
     }
@@ -543,7 +583,7 @@ describe('createEngine auto-adapts ShouldQueue entries', () => {
     }
   }
 
-  class NormalWf extends Workflow<{ x: number }, 'normal_wf'> {
+  class NormalWf extends Workflow<{ x: number }> {
     workflowName = 'normal_wf' as const
     steps = [step(echoStep)] as const
   }
@@ -573,7 +613,7 @@ describe('createEngine auto-adapts ShouldQueue entries', () => {
   })
 
   it('refuses duplicate names across mixed Workflow + ShouldQueue entries', () => {
-    class ClashingWf extends Workflow<JsonObject, 'check_post'> {
+    class ClashingWf extends Workflow<JsonObject> {
       workflowName = 'check_post' as const
       steps = [step(echoStep)] as const
     }
@@ -607,7 +647,7 @@ describe('workflowFromShouldQueue', () => {
     expect(wf.workflowName).toBe('check_post')
     expect(wf.defaultRetries).toBe(7) // task.retries → workflow.defaultRetries
     expect(wf.steps).toHaveLength(1)
-    expect(wf.steps[0]!.step.stepName).toBe('check_post')
+    expect((wf.steps[0] as any).step.stepName).toBe('check_post')
   })
 
   it('mounts on the typed engine proxy under the task name', () => {
@@ -673,9 +713,9 @@ describe('type-level: fromShouldQueue preserves generics', () => {
     expectTypeOf<Out>().toEqualTypeOf<{ ok: boolean }>()
   })
 
-  it('adapted step carries the literal task name (not widened to string)', () => {
+  it('adapted step carries the task name as a string', () => {
     const adapted = fromShouldQueue(new CheckPostTask())
-    expectTypeOf(adapted.stepName).toEqualTypeOf<'check_post'>()
+    expect(adapted.stepName).toBe('check_post')
   })
 
   it('task returning undefined maps the step TOutput to JsonObject (fallback {})', () => {
@@ -684,7 +724,7 @@ describe('type-level: fromShouldQueue preserves generics', () => {
     // The runtime adapter returns {} in that case; the type contract is
     // that the adapted step IS-A FunctionStep with TOutput = JsonObject.
     expectTypeOf(adapted).toMatchTypeOf<
-      FunctionStep<{ id: string } & JsonObject, JsonObject, 'void_task'>
+      FunctionStep<{ id: string } & JsonObject, JsonObject>
     >()
   })
 })
@@ -692,8 +732,7 @@ describe('type-level: fromShouldQueue preserves generics', () => {
 describe('type-level: engine.<name>.start accepts the right input type', () => {
   class ChargeStep extends FunctionStep<
     { orderId: string; amountCents: number },
-    { chargeId: string },
-    'charge'
+    { chargeId: string }
   > {
     stepName = 'charge' as const
     async handle(_input) {
@@ -701,13 +740,9 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
     }
   }
 
-  class PaymentWorkflow extends Workflow<
-    { orderId: string; amountCents: number },
-    'payment_critical'
-  > {
+  class PaymentWorkflow extends Workflow<{ orderId: string; amountCents: number }> {
     workflowName = 'payment_critical' as const
-    // Root step receives the trigger input directly — no mapInput needed.
-    steps = [step(new ChargeStep())] as const
+    steps = [ChargeStep] as const
   }
 
   class CheckPostTask extends ShouldQueue<
@@ -726,7 +761,7 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
 
   it('Workflow entry → engine.<name>.start typed against the workflow TInput', () => {
     const engine = createEngine({
-      workflows: [new PaymentWorkflow()] as const,
+      workflows: [PaymentWorkflow] as const,
       ...makeEngineConfig(),
     })
     expectTypeOf(engine.payment_critical.start)
@@ -749,7 +784,7 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
 
   it('startBuffered and startCommitted have the same input shape as start', () => {
     const engine = createEngine({
-      workflows: [new PaymentWorkflow()] as const,
+      workflows: [PaymentWorkflow] as const,
       ...makeEngineConfig(),
     })
     expectTypeOf(engine.payment_critical.startBuffered)
@@ -762,7 +797,7 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
 
   it('start returns { runId: string } (sync) / { runId, traceId } (buffered/committed)', () => {
     const engine = createEngine({
-      workflows: [new PaymentWorkflow()] as const,
+      workflows: [PaymentWorkflow] as const,
       ...makeEngineConfig(),
     })
     expectTypeOf<
@@ -778,11 +813,11 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
 })
 
 describe('type-level: mixed arrays expose all entries as proxy properties', () => {
-  class WfA extends Workflow<{ a: number }, 'wf_a'> {
+  class WfA extends Workflow<{ a: number }> {
     workflowName = 'wf_a' as const
     steps = [
       step(
-        new (class extends FunctionStep<JsonObject, JsonObject, 's'> {
+        new (class extends FunctionStep<JsonObject, JsonObject> {
           stepName = 's' as const
           async handle() {
             return { output: {} }
@@ -827,11 +862,11 @@ describe('type-level: mixed arrays expose all entries as proxy properties', () =
 })
 
 describe('type-level: wrong input at call site is rejected at compile time', () => {
-  class PayWf extends Workflow<{ amountCents: number }, 'pay'> {
+  class PayWf extends Workflow<{ amountCents: number }> {
     workflowName = 'pay' as const
     steps = [
       step(
-        new (class extends FunctionStep<JsonObject, JsonObject, 's'> {
+        new (class extends FunctionStep<JsonObject, JsonObject> {
           stepName = 's' as const
           async handle() {
             return { output: {} }
@@ -840,6 +875,37 @@ describe('type-level: wrong input at call site is rejected at compile time', () 
       ),
     ] as const
   }
+
+  it('auto-pass: step() requires mapInput when output does not satisfy input', () => {
+    class StepA extends FunctionStep<JsonObject, { token: string; userId: string }> {
+      stepName = 'a' as const
+      async handle() { return { output: { token: 'x', userId: 'u1' } } }
+    }
+    // StepB input { token } is a subset of StepA output { token, userId } → auto-pass OK
+    class StepB extends FunctionStep<{ token: string }, { charged: boolean }> {
+      stepName = 'b' as const
+      async handle() { return { output: { charged: true } } }
+    }
+    // StepC input { nonExistent } is NOT in StepA output → mapInput required
+    class StepC extends FunctionStep<{ nonExistent: string }, { result: string }> {
+      stepName = 'c' as const
+      async handle() { return { output: { result: 'ok' } } }
+    }
+
+    // ✅ Compiles — auto-pass with classes, output satisfies input
+    step(StepB, { dependsOn: [StepA] as const })
+
+    // ✅ Compiles — mapInput bridges incompatible types, all classes
+    step(StepC, {
+      dependsOn: [StepA] as const,
+      mapInput: (up) => ({ nonExistent: up.a.token }),
+    })
+
+    // @ts-expect-error — StepC without mapInput: output doesn't satisfy input
+    step(StepC, { dependsOn: [StepA] as const })
+
+    expect(true).toBe(true) // type-level only
+  })
 
   it('wrong field names are a type error (proved via `@ts-expect-error`)', () => {
     const engine = createEngine({

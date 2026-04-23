@@ -4,11 +4,10 @@
 // Tests CRUD, FOR UPDATE SKIP LOCKED concurrency, retry lifecycle, and aggregation.
 //
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { TaskManager } from '../../engine/TaskManager.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import type { StepResult } from '../../workflow/WorkflowBuilder.types.js'
@@ -52,7 +51,7 @@ function createMockConnector() {
 }
 
 describe('TaskManager', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let tm: TaskManager
 
   beforeAll(async () => {

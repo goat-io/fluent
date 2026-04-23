@@ -7,28 +7,11 @@ import { fromJson, toJson } from '../entities/Database.js'
 import { EventIngestionService } from '../events/EventIngestion.js'
 import { WebhookVerifier } from '../events/WebhookVerifier.js'
 
-/**
- * Pre-built handler functions for workflow management API endpoints.
- *
- * These are framework-agnostic — plug them into tRPC, Express, Fastify, etc.
- *
- * Usage with tRPC:
- * ```typescript
- * const handlers = createWorkflowHandlers(engine)
- * const router = t.router({
- *   startWorkflow: t.procedure.input(z.object({...})).mutation(({ input }) => handlers.start(input)),
- *   getStatus: t.procedure.input(z.object({...})).query(({ input }) => handlers.getStatus(input)),
- * })
- * ```
- */
 export function createWorkflowHandlers(engine: WorkflowEngine) {
   const metricsCollector = new WorkflowMetricsCollector(engine.db)
   const eventService = new EventIngestionService({ db: engine.db })
 
   return {
-    /**
-     * List workflow runs with optional filters.
-     */
     async listWorkflows(input: {
       tenantId: string
       status?: string[]
@@ -44,9 +27,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       })
     },
 
-    /**
-     * Start a new workflow run.
-     */
     async start(input: {
       workflowName: string
       tenantId: string
@@ -63,9 +43,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       })
     },
 
-    /**
-     * Batch start multiple workflows (Hatchet pattern: single DB round-trip).
-     */
     async startBatch(input: {
       workflows: Array<{
         workflowName: string
@@ -84,9 +61,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       )
     },
 
-    /**
-     * Batch start using COPY FROM (fastest path).
-     */
     async startBatchCopy(input: {
       workflows: Array<{
         workflowName: string
@@ -105,12 +79,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       )
     },
 
-    /**
-     * Get workflow definition with inferred input fields.
-     */
-    /**
-     * List all registered workflow definitions (names + versions).
-     */
     async listDefinitions() {
       const defs: Array<{ name: string; version: string; stepCount: number }> =
         []
@@ -130,12 +98,10 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         throw new Error(`Workflow "${input.workflowName}" not found`)
       }
 
-      // Infer input fields from template variables in step configs
       const inputFields: Array<{ name: string; source: string }> = []
       const seen = new Set<string>()
       for (const step of def.steps) {
         const config = step.executorConfig as Record<string, unknown>
-        // Scan all string values in executorConfig for {{input.field}} patterns
         for (const [key, value] of Object.entries(config)) {
           if (typeof value === 'string') {
             const matches = value.matchAll(/\{\{input\.(\w+)\}\}/g)
@@ -152,11 +118,10 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         }
       }
 
-      // Use declared inputFields from the workflow definition if template
-      // scanning found nothing (common for ShouldQueue-adapted tasks).
-      const finalInputFields = inputFields.length > 0
-        ? inputFields
-        : (def.inputFields ?? []).map(name => ({ name, source: 'declared' }))
+      const finalInputFields =
+        inputFields.length > 0
+          ? inputFields
+          : (def.inputFields ?? []).map(name => ({ name, source: 'declared' }))
 
       return {
         name: def.name,
@@ -170,13 +135,9 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       }
     },
 
-    /**
-     * Get workflow run status with all steps.
-     */
     async getStatus(input: { runId: string; tenantId: string }) {
       const run = await engine.getStatus(input.runId, input.tenantId)
 
-      // Redact sensitive fields from triggerInput and step I/O
       const def = engine.getWorkflows().get(run.workflowName)
       const sensitive = new Set(def?.sensitiveFields ?? [])
       const redact = (obj: any) => {
@@ -196,9 +157,22 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         triggerInput: redact(run.triggerInput),
         output: run.output,
         error: run.error,
-        startedAt: run.startedAt instanceof Date ? run.startedAt.toISOString() : run.startedAt ? String(run.startedAt) : null,
-        completedAt: run.completedAt instanceof Date ? run.completedAt.toISOString() : run.completedAt ? String(run.completedAt) : null,
-        createdAt: run.createdAt instanceof Date ? run.createdAt.toISOString() : String(run.createdAt),
+        startedAt:
+          run.startedAt instanceof Date
+            ? run.startedAt.toISOString()
+            : run.startedAt
+              ? String(run.startedAt)
+              : null,
+        completedAt:
+          run.completedAt instanceof Date
+            ? run.completedAt.toISOString()
+            : run.completedAt
+              ? String(run.completedAt)
+              : null,
+        createdAt:
+          run.createdAt instanceof Date
+            ? run.createdAt.toISOString()
+            : String(run.createdAt),
         traceId: run.traceId ?? null,
         parentRunId: run.parentRunId ?? null,
         budget: run.budget ? fromJson(run.budget as any) : null,
@@ -214,8 +188,18 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
           input: redact(s.input),
           output: s.output,
           error: s.error,
-          startedAt: s.startedAt instanceof Date ? s.startedAt.toISOString() : s.startedAt ? String(s.startedAt) : null,
-          completedAt: s.completedAt instanceof Date ? s.completedAt.toISOString() : s.completedAt ? String(s.completedAt) : null,
+          startedAt:
+            s.startedAt instanceof Date
+              ? s.startedAt.toISOString()
+              : s.startedAt
+                ? String(s.startedAt)
+                : null,
+          completedAt:
+            s.completedAt instanceof Date
+              ? s.completedAt.toISOString()
+              : s.completedAt
+                ? String(s.completedAt)
+                : null,
           humanPrompt: s.humanPrompt,
           humanResponse: s.humanResponse,
           humanRespondedBy: s.humanRespondedBy,
@@ -224,9 +208,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       }
     },
 
-    /**
-     * Submit human input for a waiting step.
-     */
     async submitHumanInput(input: {
       workflowRunId: string
       stepName: string
@@ -244,9 +225,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       return { success: true }
     },
 
-    /**
-     * Send a signal to a running workflow.
-     */
     async signal(input: {
       runId: string
       tenantId: string
@@ -262,9 +240,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       return { success: true }
     },
 
-    /**
-     * Execute a read-only query on a workflow.
-     */
     async query(input: {
       runId: string
       tenantId: string
@@ -273,9 +248,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       return engine.query(input.runId, input.tenantId, input.queryName)
     },
 
-    /**
-     * Cancel a running workflow.
-     */
     async cancel(input: {
       runId: string
       tenantId: string
@@ -284,9 +256,118 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       return { success: true }
     },
 
-    /**
-     * Record a heartbeat from a running step.
-     */
+    async cancelAll(input: {
+      tenantId: string
+      workflowName: string
+      status: string[]
+    }): Promise<{ cancelled: number }> {
+      const now = new Date()
+
+      const statusPlaceholders = input.status
+        .map((_, i) => `$${i + 4}`)
+        .join(',')
+      const { rowCount } = await engine.db.query(
+        `UPDATE workflow_runs SET status = $1, "completedAt" = $2, "updatedAt" = $3 WHERE "tenantId" = $${input.status.length + 4} AND "workflowName" = $${input.status.length + 5} AND status IN (${statusPlaceholders})`,
+        [
+          'CANCELLED',
+          now,
+          now,
+          ...input.status,
+          input.tenantId,
+          input.workflowName,
+        ],
+      )
+
+      await engine.db.query(
+        `UPDATE workflow_steps SET status = $1, "updatedAt" = $2 WHERE "tenantId" = $3 AND status IN ('PENDING', 'QUEUED', 'RUNNING', 'WAITING_HUMAN') AND "workflowRunId" IN (SELECT id FROM workflow_runs WHERE "tenantId" = $3 AND "workflowName" = $4 AND status = 'CANCELLED')`,
+        ['SKIPPED', now, input.tenantId, input.workflowName],
+      )
+
+      return { cancelled: rowCount ?? 0 }
+    },
+
+    async retry(input: {
+      runId: string
+      tenantId: string
+    }): Promise<{ success: true; runId: string }> {
+      await engine.retry(input.runId, input.tenantId)
+      return { success: true, runId: input.runId }
+    },
+
+    async retryAll(input: {
+      tenantId: string
+      workflowName: string
+      status: string[]
+      batchSize?: number
+    }): Promise<{ retried: number }> {
+      const BATCH = input.batchSize ?? 100
+      let retried = 0
+      let cursor: string | null = null
+
+      while (true) {
+        let queryStr = `SELECT id, "createdAt" FROM workflow_runs WHERE "tenantId" = $1 AND "workflowName" = $2 AND status IN (${input.status.map((_, i) => `$${i + 3}`).join(',')}) ORDER BY "createdAt" ASC, id ASC LIMIT $${input.status.length + 3}`
+        const params: any[] = [
+          input.tenantId,
+          input.workflowName,
+          ...input.status,
+          BATCH,
+        ]
+
+        if (cursor) {
+          queryStr = `SELECT id, "createdAt" FROM workflow_runs WHERE "tenantId" = $1 AND "workflowName" = $2 AND status IN (${input.status.map((_, i) => `$${i + 3}`).join(',')}) AND id > $${input.status.length + 3} ORDER BY "createdAt" ASC, id ASC LIMIT $${input.status.length + 4}`
+          params.push(cursor)
+        }
+
+        const { rows: batch } = await engine.db.query<{
+          id: string
+          createdAt: Date
+        }>(queryStr, params)
+        if (batch.length === 0) break
+
+        for (const { id } of batch) {
+          try {
+            await engine.retry(id, input.tenantId)
+            retried++
+          } catch {
+            // Skip runs that can't be retried
+          }
+        }
+
+        cursor = batch[batch.length - 1]!.id
+        if (batch.length < BATCH) break
+      }
+
+      return { retried }
+    },
+
+    async getStepLogs(input: {
+      runId: string
+      stepName: string
+      tenantId: string
+    }): Promise<
+      Array<{ id: string; event: string; data?: unknown; createdAt: string }>
+    > {
+      const { rows } = await engine.db.query<{
+        id: string
+        event: string
+        data: string | null
+        createdAt: Date
+      }>(
+        `SELECT * FROM workflow_step_logs WHERE "stepId" IN (SELECT id FROM workflow_steps WHERE "workflowRunId" = $1 AND "stepName" = $2 AND "tenantId" = $3) ORDER BY "createdAt" ASC`,
+        [input.runId, input.stepName, input.tenantId],
+      )
+
+      return rows.map(r => ({
+        id: r.id,
+        event: r.event,
+        data: r.data ? fromJson(r.data) : undefined,
+        createdAt:
+          r.createdAt instanceof Date
+            ? r.createdAt.toISOString()
+            : String(r.createdAt),
+      }))
+    },
+
     async heartbeat(input: {
       runId: string
       stepName: string
@@ -304,9 +385,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
 
     // ── Event Ingestion ──────────────────────────────────────────
 
-    /**
-     * Ingest an external event. Optionally verify webhook signature.
-     */
     async ingestEvent(input: {
       tenantId: string
       eventType: string
@@ -336,9 +414,6 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       })
     },
 
-    /**
-     * List dead letter events for a tenant.
-     */
     async listDeadLetterEvents(input: {
       tenantId: string
       eventType?: string
@@ -350,23 +425,14 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       })
     },
 
-    /**
-     * Replay a dead letter event.
-     */
     async replayDeadLetterEvent(input: { eventId: string }) {
       return eventService.replayDeadLetter(input.eventId)
     },
 
-    /**
-     * Get detailed metrics for a single workflow run (latency, cost, external actions).
-     */
     async getRunMetrics(input: { runId: string }) {
       return metricsCollector.getRunMetrics(input.runId)
     },
 
-    /**
-     * Get aggregate metrics across workflow runs (avg latency, p50/p95/p99, cost by provider).
-     */
     async getAggregateMetrics(input: {
       tenantId: string
       since?: string
@@ -388,72 +454,62 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       capabilities?: Record<string, unknown>
     }): Promise<{ workerId: string }> {
       const id = randomUUID()
-      await (engine as any).db
-        .insertInto('worker_nodes')
-        .values({
+      await engine.db.query(
+        `INSERT INTO worker_nodes (id, "tenantId", "accountId", name, hostname, capabilities, status, "lastHeartbeatAt", "registeredAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [
           id,
-          tenantId: input.tenantId ?? null,
-          accountId: input.accountId ?? null,
-          name: input.name,
-          hostname: input.hostname ?? null,
-          capabilities: toJson(input.capabilities ?? null),
-          status: 'active',
-          lastHeartbeatAt: new Date(),
-          registeredAt: new Date(),
-        })
-        .execute()
+          input.tenantId ?? null,
+          input.accountId ?? null,
+          input.name,
+          input.hostname ?? null,
+          toJson(input.capabilities ?? null),
+          'active',
+          new Date(),
+          new Date(),
+        ],
+      )
       return { workerId: id }
     },
 
     async workerHeartbeat(input: {
       workerId: string
     }): Promise<{ success: true }> {
-      await (engine as any).db
-        .updateTable('worker_nodes')
-        .set({ lastHeartbeatAt: new Date() })
-        .where('id', '=', input.workerId)
-        .execute()
+      await engine.db.query(
+        `UPDATE worker_nodes SET "lastHeartbeatAt" = $1 WHERE id = $2`,
+        [new Date(), input.workerId],
+      )
       return { success: true }
     },
 
     async updateWorkerQueues(input: { workerId: string; queues: string[] }) {
-      // Update capabilities JSON in worker_nodes, replacing the queues array
-      const row = await (engine as any).db
-        .selectFrom('worker_nodes')
-        .selectAll()
-        .where('id', '=', input.workerId)
-        .executeTakeFirst()
+      const { rows } = await engine.db.query(
+        `SELECT * FROM worker_nodes WHERE id = $1`,
+        [input.workerId],
+      )
+      const row = rows[0] as any
       if (!row) {
         throw new Error('Worker not found')
       }
       const caps = row.capabilities ? JSON.parse(row.capabilities) : {}
       caps.queues = input.queues
-      await (engine as any).db
-        .updateTable('worker_nodes')
-        .set({ capabilities: JSON.stringify(caps) })
-        .where('id', '=', input.workerId)
-        .execute()
+      await engine.db.query(
+        `UPDATE worker_nodes SET capabilities = $1 WHERE id = $2`,
+        [JSON.stringify(caps), input.workerId],
+      )
       return { success: true }
     },
 
     async listWorkers(input: { tenantId: string }) {
-      const rows = await (engine as any).db
-        .selectFrom('worker_nodes')
-        .selectAll()
-        .where((eb: any) =>
-          eb.or([
-            eb('tenantId', '=', input.tenantId),
-            eb('tenantId', 'is', null),
-          ]),
-        )
-        .execute()
+      const { rows } = await engine.db.query(
+        `SELECT * FROM worker_nodes WHERE "tenantId" = $1 OR "tenantId" IS NULL`,
+        [input.tenantId],
+      )
 
-      const STALE_THRESHOLD_MS = 45_000 // 1.5 missed heartbeats (30s each)
+      const STALE_THRESHOLD_MS = 45_000
       const now = Date.now()
 
       return rows
         .map((r: any) => {
-          // Derive real status: if heartbeat is stale, worker is effectively offline
           let status = r.status
           if (status === 'active' && r.lastHeartbeatAt) {
             const lastBeat = new Date(r.lastHeartbeatAt).getTime()
@@ -476,19 +532,10 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         .filter((w: any) => w.status !== 'offline')
     },
 
-    /**
-     * Generate a worker registration token + install command.
-     * Like GitHub Actions runner setup — gives you a one-liner to run on any machine.
-     */
     async generateWorkerToken(input: {
       tenantId: string
       engineUrl: string
       queues?: string[]
-      /**
-       * Labels the issued agent will advertise. Consumed by the
-       * scheduler's AND-match against a step's `requiresLabels`.
-       * See `AgentCapabilities.labels` for semantics.
-       */
       labels?: string[]
     }): Promise<{
       token: string
@@ -497,27 +544,17 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       engineUrl: string
     }> {
       const { randomBytes, createHash } = await import('node:crypto')
-      const { Ids } = await import('@goatlab/js-utils')
       const token = randomBytes(32).toString('hex')
 
-      // Store hashed token in agent_tokens table for broker auth flow
       const tokenHash = createHash('sha256').update(token).digest('hex')
-      const id = Ids.nanoId(21)
+      const id = randomBytes(16).toString('base64url').slice(0, 21)
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-      await (engine as any).db
-        .insertInto('agent_tokens')
-        .values({
-          id,
-          tenantId: input.tenantId,
-          token: tokenHash,
-          used: false,
-          usedBy: null,
-          expiresAt,
-        })
-        .execute()
+      await engine.db.query(
+        `INSERT INTO agent_tokens (id, "tenantId", token, used, "usedBy", "expiresAt") VALUES ($1,$2,$3,$4,$5,$6)`,
+        [id, input.tenantId, tokenHash, false, null, expiresAt],
+      )
 
       const installCommand = `curl -fsSL ${input.engineUrl}/agent/install.sh | bash`
-      // Single command — fetches self-contained agent script from the platform and pipes to node
       const queueParam = input.queues?.length
         ? `&queues=${input.queues.join(',')}`
         : ''
@@ -532,11 +569,10 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
     async deregisterWorker(input: {
       workerId: string
     }): Promise<{ success: true }> {
-      await (engine as any).db
-        .updateTable('worker_nodes')
-        .set({ status: 'offline' })
-        .where('id', '=', input.workerId)
-        .execute()
+      await engine.db.query(
+        `UPDATE worker_nodes SET status = $1 WHERE id = $2`,
+        ['offline', input.workerId],
+      )
       return { success: true }
     },
 

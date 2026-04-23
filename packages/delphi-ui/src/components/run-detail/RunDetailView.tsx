@@ -7,7 +7,7 @@ import { WorkflowDAG } from '@/components/workflow-dag/WorkflowDAG'
 import { RunTimeline } from './RunTimeline'
 import { StepDetailPanel } from '@/components/step-detail/StepDetailPanel'
 import type { AgentsClient } from '@/api/client'
-import type { WorkflowRunDetail, WorkflowStatus } from '@/api/types'
+import type { StepLog, WorkflowRunDetail, WorkflowStatus } from '@/api/types'
 
 export interface RunDetailViewProps {
   client: AgentsClient
@@ -28,7 +28,7 @@ function formatName(name: string): string {
     .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-type Tab = 'overview' | 'input' | 'output'
+type Tab = 'overview' | 'input' | 'output' | 'history'
 
 export function RunDetailView({ client, runId, onBack, onNavigateToRun }: RunDetailViewProps) {
   const [run, setRun] = useState<WorkflowRunDetail | null>(null)
@@ -39,6 +39,9 @@ export function RunDetailView({ client, runId, onBack, onNavigateToRun }: RunDet
   const [confirmRerun, setConfirmRerun] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const [retrying, setRetrying] = useState(false)
+  const [stepLogs, setStepLogs] = useState<Record<string, StepLog[]>>({})
+  const [historyLoaded, setHistoryLoaded] = useState(false)
   const mountedRef = useRef(true)
 
   useEffect(() => {
@@ -185,6 +188,39 @@ export function RunDetailView({ client, runId, onBack, onNavigateToRun }: RunDet
     }
   }, [client, run, rerunning, onBack, onNavigateToRun])
 
+  const handleRetry = useCallback(async () => {
+    if (!run || retrying) return
+    setRetrying(true)
+    try {
+      await client.retryWorkflow(run.id)
+      // Refresh run data
+      const updated = await client.getWorkflow(run.id)
+      if (mountedRef.current) setRun(updated)
+    } finally {
+      if (mountedRef.current) setRetrying(false)
+    }
+  }, [client, run, retrying])
+
+  // Fetch step logs when History tab is activated
+  useEffect(() => {
+    if (activeTab !== 'history' || !run || historyLoaded) return
+    const fetchLogs = async () => {
+      const logs: Record<string, StepLog[]> = {}
+      for (const step of run.steps) {
+        try {
+          logs[step.stepName] = await client.getStepLogs(run.id, step.stepName)
+        } catch {
+          logs[step.stepName] = []
+        }
+      }
+      if (mountedRef.current) {
+        setStepLogs(logs)
+        setHistoryLoaded(true)
+      }
+    }
+    fetchLogs()
+  }, [activeTab, run, historyLoaded, client])
+
   const toggleStep = useCallback(
     (stepName: string) => {
       setSelectedStep(prev => (prev === stepName ? undefined : stepName))
@@ -225,6 +261,7 @@ export function RunDetailView({ client, runId, onBack, onNavigateToRun }: RunDet
     { key: 'overview', label: 'Overview' },
     { key: 'input', label: 'Input' },
     { key: 'output', label: 'Output' },
+    { key: 'history', label: 'History' },
   ]
 
   return (
@@ -280,6 +317,22 @@ export function RunDetailView({ client, runId, onBack, onNavigateToRun }: RunDet
           </div>
 
           <div className="flex items-center gap-2">
+            {isTerminal && run.status !== 'COMPLETED' && (
+              <button
+                type="button"
+                onClick={handleRetry}
+                disabled={retrying}
+                className="bg-blue-600 text-white rounded-lg hover:bg-blue-700 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                {retrying ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                Retry
+              </button>
+            )}
             {isTerminal && !confirmRerun && (
               <button
                 type="button"
@@ -472,6 +525,85 @@ export function RunDetailView({ client, runId, onBack, onNavigateToRun }: RunDet
               ? JSON.stringify(run.output, null, 2)
               : run.error || 'No output data'}
           </pre>
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">
+            Event History
+          </h3>
+          {!historyLoaded ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              Loading history...
+            </div>
+          ) : Object.keys(stepLogs).length === 0 ? (
+            <p className="text-muted-foreground text-sm">No events recorded</p>
+          ) : (
+            <div className="space-y-1">
+              {Object.entries(stepLogs)
+                .flatMap(([stepName, logs]) =>
+                  logs.map(log => ({ ...log, stepName })),
+                )
+                .sort(
+                  (a, b) =>
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime(),
+                )
+                .map(log => (
+                  <div
+                    key={log.id}
+                    className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/50 text-sm border-l-2"
+                    style={{
+                      borderLeftColor:
+                        log.event === 'completed'
+                          ? 'rgb(34 197 94)'
+                          : log.event === 'failed'
+                            ? 'rgb(239 68 68)'
+                            : log.event === 'retried'
+                              ? 'rgb(59 130 246)'
+                              : log.event === 'cancelled'
+                                ? 'rgb(161 161 170)'
+                                : 'rgb(234 179 8)',
+                    }}>
+                    <span className="text-xs text-muted-foreground font-mono w-40 shrink-0">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </span>
+                    <span className="font-medium text-foreground w-32 shrink-0">
+                      {log.stepName.replace(/[_-]/g, ' ')}
+                    </span>
+                    <span
+                      className="font-mono text-xs px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor:
+                          log.event === 'completed'
+                            ? 'rgba(34,197,94,0.1)'
+                            : log.event === 'failed'
+                              ? 'rgba(239,68,68,0.1)'
+                              : log.event === 'retried'
+                                ? 'rgba(59,130,246,0.1)'
+                                : 'rgba(234,179,8,0.1)',
+                        color:
+                          log.event === 'completed'
+                            ? 'rgb(34,197,94)'
+                            : log.event === 'failed'
+                              ? 'rgb(239,68,68)'
+                              : log.event === 'retried'
+                                ? 'rgb(59,130,246)'
+                                : 'rgb(234,179,8)',
+                      }}>
+                      {log.event}
+                    </span>
+                    {log.data && (
+                      <span className="text-xs text-muted-foreground truncate">
+                        {JSON.stringify(log.data)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
 

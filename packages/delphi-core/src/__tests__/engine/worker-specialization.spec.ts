@@ -6,17 +6,16 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('Worker Specialization — Light/Heavy Queue Routing', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let connector: BullMQConnector
 
   beforeAll(async () => {

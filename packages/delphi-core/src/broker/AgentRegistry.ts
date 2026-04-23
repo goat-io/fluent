@@ -3,7 +3,7 @@
 // AgentRegistry — in-memory tracking of remote agents, pending jobs,
 // backpressure, round-robin fairness, sweep for stale agents/timeouts.
 //
-import { Ids } from '@goatlab/js-utils'
+import { nanoId } from '../db/ids.js'
 import type { StepResult } from '../workflow/WorkflowBuilder.types.js'
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ export class AgentRegistry {
     secretHash: string
     maxConcurrent?: number
   }): RegisteredAgent {
-    const id = Ids.nanoId(21)
+    const id = nanoId(21)
     const agent: RegisteredAgent = {
       id,
       tenantId: params.tenantId,
@@ -172,7 +172,7 @@ export class AgentRegistry {
 
     return new Promise<StepResult>((resolve, reject) => {
       const job: PendingJob = {
-        id: Ids.nanoId(21),
+        id: nanoId(21),
         type: params.type,
         queue: params.queue,
         payload: params.payload,

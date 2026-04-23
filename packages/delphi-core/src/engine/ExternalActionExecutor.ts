@@ -2,18 +2,10 @@
 //
 // The consistency layer for ALL side effects that touch the real world.
 //
-// Every external API call — create PR, create issue, send Slack message,
-// deploy to production — MUST go through this. No bypass allowed.
-//
-// This guarantees:
-//   1. Exactly-once execution (idempotency key dedup)
-//   2. Safe retries (completed actions return cached response)
-//   3. Concurrency protection (pending actions block duplicate execution)
-//   4. Full audit trail (request + response + timing)
-//
-import { Ids } from '@goatlab/js-utils'
-import type { Kysely } from 'kysely'
-import type { Database, ExternalAction } from '../entities/Database.js'
+
+import type { DbClient } from '../db/DbClient.js'
+import { nanoId } from '../db/ids.js'
+import type { ExternalAction } from '../entities/Database.js'
 import { fromJson, toJson } from '../entities/Database.js'
 import type { RateLimiterBackend } from './RateLimiterBackend.js'
 import { InMemoryRateLimiter } from './RateLimiterBackend.js'
@@ -21,50 +13,28 @@ import { InMemoryRateLimiter } from './RateLimiterBackend.js'
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface ExternalActionRequest {
-  /** Which workflow run this belongs to */
   workflowRunId: string
-  /** Which step is executing this action */
   stepName: string
-  /** Which attempt of the step */
   attempt: number
-  /** Tenant ID */
   tenantId: string
-  /** External service name: 'github', 'linear', 'slack', etc */
   provider: string
-  /** Action type: 'create_pr', 'create_issue', 'comment', 'deploy', etc */
   actionType: string
-  /**
-   * Idempotency key — must be deterministic for the same logical action.
-   * Default: `{workflowRunId}:{stepName}:{actionType}` but can be overridden
-   * for multiple actions of the same type in one step.
-   */
   idempotencyKey?: string
-  /** The request payload (sent to external API) */
   request: Record<string, unknown>
 }
 
 export interface ExternalActionResponse<T = Record<string, unknown>> {
-  /** The external ID (PR number, issue ID, etc) */
   externalId: string
-  /** The full response from the external API */
   data: T
 }
 
 export interface ExternalActionResult<T = Record<string, unknown>> {
-  /** Whether this was a new execution or a cached result from a previous attempt */
   cached: boolean
-  /** The external ID */
   externalId: string
-  /** The response data */
   data: T
-  /** The action record ID */
   actionId: string
 }
 
-/**
- * The function that actually calls the external API.
- * Only called if no completed/pending action exists for this idempotency key.
- */
 export type ExternalActionFn<T = Record<string, unknown>> = (
   request: Record<string, unknown>,
 ) => Promise<ExternalActionResponse<T>>
@@ -72,11 +42,8 @@ export type ExternalActionFn<T = Record<string, unknown>> = (
 // ── Rate Limiter ───────────────────────────────────────────────────
 
 export interface RateLimitConfig {
-  /** Max requests per window */
   maxRequests: number
-  /** Window size in ms */
   windowMs: number
-  /** Max concurrent external calls per workflow run */
   maxConcurrentPerWorkflow?: number
 }
 
@@ -93,15 +60,9 @@ function hashPayload(payload: Record<string, unknown>): string {
 // ── Executor ───────────────────────────────────────────────────────
 
 export interface ExternalActionExecutorConfig {
-  db: Kysely<Database>
-  /** Rate limits per provider */
+  db: DbClient
   rateLimits?: Record<string, RateLimitConfig>
-  /** Max concurrent external calls per workflow (default: 5) */
   maxConcurrentPerWorkflow?: number
-  /**
-   * Pluggable rate limiter backend. Defaults to InMemoryRateLimiter.
-   * Use RedisRateLimiter for multi-worker deployments.
-   */
   rateLimiterBackend?: RateLimiterBackend
   logger?: {
     info: (...args: unknown[]) => void
@@ -111,29 +72,8 @@ export interface ExternalActionExecutorConfig {
   }
 }
 
-/**
- * ExternalActionExecutor — the gate between your workflows and the real world.
- *
- * Usage:
- * ```typescript
- * const result = await externalActions.execute(
- *   {
- *     workflowRunId, stepName, attempt, tenantId,
- *     provider: 'github',
- *     actionType: 'create_pr',
- *     request: { title: 'My PR', branch: 'feat/x' },
- *   },
- *   async (req) => {
- *     const pr = await github.createPR(req)
- *     return { externalId: pr.id, data: pr }
- *   },
- * )
- *
- * // On retry: returns cached result, does NOT create duplicate PR
- * ```
- */
 export class ExternalActionExecutor {
-  private db: Kysely<Database>
+  private db: DbClient
   private rateLimits: Record<string, RateLimitConfig>
   private maxConcurrentPerWorkflow: number
   private logger: ExternalActionExecutorConfig['logger']
@@ -147,17 +87,6 @@ export class ExternalActionExecutor {
     this.rateLimiter = config.rateLimiterBackend ?? new InMemoryRateLimiter()
   }
 
-  /**
-   * Execute an external action with exactly-once guarantees.
-   *
-   * 1. Check if a completed action exists for this idempotency key → return cached
-   * 2. Check if a pending action exists → throw RetryLater (concurrent execution protection)
-   * 3. Check rate limits → wait if needed
-   * 4. Insert pending action
-   * 5. Execute the function
-   * 6. Update to completed/failed
-   * 7. Return result
-   */
   async execute<T = Record<string, unknown>>(
     req: ExternalActionRequest,
     fn: ExternalActionFn<T>,
@@ -167,11 +96,11 @@ export class ExternalActionExecutor {
       `${req.workflowRunId}:${req.stepName}:${req.actionType}:${hashPayload(req.request)}`
 
     // ── Step 1: Check for existing completed action ──────
-    const existing = await this.db
-      .selectFrom('external_actions')
-      .selectAll()
-      .where('idempotencyKey', '=', idempotencyKey)
-      .executeTakeFirst()
+    const { rows: existingRows } = await this.db.query<ExternalAction>(
+      `SELECT * FROM external_actions WHERE "idempotencyKey" = $1`,
+      [idempotencyKey],
+    )
+    const existing = existingRows[0]
 
     if (existing?.status === 'completed' && existing.response) {
       this.logger?.debug?.(
@@ -185,7 +114,7 @@ export class ExternalActionExecutor {
       }
     }
 
-    // ── Step 1b: Crash recovery — API succeeded but full response wasn't stored ──
+    // ── Step 1b: Crash recovery ──
     if (existing?.status === 'completing' && existing.externalId) {
       this.logger?.debug?.(
         `[ExternalAction] Crash recovery (completing): ${req.provider}/${req.actionType} (key=${idempotencyKey})`,
@@ -200,15 +129,13 @@ export class ExternalActionExecutor {
 
     // ── Step 2: Failed action — delete so we can retry ────
     if (existing?.status === 'failed') {
-      await this.db
-        .deleteFrom('external_actions')
-        .where('id', '=', existing.id)
-        .execute()
+      await this.db.query(`DELETE FROM external_actions WHERE id = $1`, [
+        existing.id,
+      ])
     }
 
     // ── Step 3: Concurrency protection ───────────────────
     if (existing?.status === 'pending') {
-      // Another execution is in progress — check if it's stale (>5 min)
       const createdAt = new Date(existing.createdAt as string).getTime()
       const staleMs = 5 * 60 * 1000
       if (Date.now() - createdAt < staleMs) {
@@ -218,13 +145,10 @@ export class ExternalActionExecutor {
           req.actionType,
         )
       }
-      // Stale pending — delete it so re-insert works (unique key)
-      await this.db
-        .deleteFrom('external_actions')
-        .where('id', '=', existing.id)
-        .execute()
+      await this.db.query(`DELETE FROM external_actions WHERE id = $1`, [
+        existing.id,
+      ])
     }
-    // Don't delete completing actions — they have valid externalIds
 
     // ── Step 3: Rate limiting ────────────────────────────
     const providerLimit = this.rateLimits[req.provider]
@@ -241,45 +165,42 @@ export class ExternalActionExecutor {
     )
 
     // ── Step 4: Insert pending action ────────────────────
-    const actionId = Ids.nanoId(21)
+    const actionId = nanoId(21)
     try {
-      // Look up traceId from the workflow run for lineage
-      const run = await this.db
-        .selectFrom('workflow_runs')
-        .select('traceId')
-        .where('id', '=', req.workflowRunId)
-        .executeTakeFirst()
+      const { rows: runRows } = await this.db.query<{ traceId: string | null }>(
+        `SELECT "traceId" FROM workflow_runs WHERE id = $1`,
+        [req.workflowRunId],
+      )
 
-      await this.db
-        .insertInto('external_actions')
-        .values({
-          id: actionId,
-          workflowRunId: req.workflowRunId,
-          stepName: req.stepName,
-          attempt: req.attempt,
-          tenantId: req.tenantId,
-          provider: req.provider,
-          actionType: req.actionType,
+      await this.db.query(
+        `INSERT INTO external_actions (id, "workflowRunId", "stepName", attempt, "tenantId", provider, "actionType", "idempotencyKey", status, request, "traceId", "createdAt")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [
+          actionId,
+          req.workflowRunId,
+          req.stepName,
+          req.attempt,
+          req.tenantId,
+          req.provider,
+          req.actionType,
           idempotencyKey,
-          status: 'pending',
-          request: toJson(req.request),
-          traceId: run?.traceId ?? null,
-          createdAt: new Date(),
-        })
-        .execute()
+          'pending',
+          toJson(req.request),
+          runRows[0]?.traceId ?? null,
+          new Date(),
+        ],
+      )
     } catch (err: any) {
-      // Unique constraint violation = someone else inserted first
       if (
         err.message?.includes('unique') ||
         err.message?.includes('duplicate') ||
         err.code === '23505'
       ) {
-        // Re-check — might be completed now
-        const recheck = await this.db
-          .selectFrom('external_actions')
-          .selectAll()
-          .where('idempotencyKey', '=', idempotencyKey)
-          .executeTakeFirst()
+        const { rows: recheckRows } = await this.db.query<ExternalAction>(
+          `SELECT * FROM external_actions WHERE "idempotencyKey" = $1`,
+          [idempotencyKey],
+        )
+        const recheck = recheckRows[0]
         if (recheck?.status === 'completed' && recheck.response) {
           return {
             cached: true,
@@ -307,27 +228,17 @@ export class ExternalActionExecutor {
 
       const result = await fn(req.request)
 
-      // ── Step 6a: Immediately persist externalId (crash consistency) ──
-      // If process crashes after this, we know the API call succeeded
-      await this.db
-        .updateTable('external_actions')
-        .set({
-          externalId: result.externalId,
-          status: 'completing',
-        })
-        .where('id', '=', actionId)
-        .execute()
+      // ── Step 6a: Persist externalId (crash consistency) ──
+      await this.db.query(
+        `UPDATE external_actions SET "externalId" = $1, status = $2 WHERE id = $3`,
+        [result.externalId, 'completing', actionId],
+      )
 
       // ── Step 6b: Store full response ───────────────────────
-      await this.db
-        .updateTable('external_actions')
-        .set({
-          status: 'completed',
-          response: toJson(result.data),
-          completedAt: new Date(),
-        })
-        .where('id', '=', actionId)
-        .execute()
+      await this.db.query(
+        `UPDATE external_actions SET status = $1, response = $2, "completedAt" = $3 WHERE id = $4`,
+        ['completed', toJson(result.data), new Date(), actionId],
+      )
 
       await this.rateLimiter.recordRequest(req.provider)
 
@@ -338,16 +249,10 @@ export class ExternalActionExecutor {
         actionId,
       }
     } catch (error: any) {
-      // ── Step 6b: Mark failed ─────────────────────────
-      await this.db
-        .updateTable('external_actions')
-        .set({
-          status: 'failed',
-          error: error.message,
-          completedAt: new Date(),
-        })
-        .where('id', '=', actionId)
-        .execute()
+      await this.db.query(
+        `UPDATE external_actions SET status = $1, error = $2, "completedAt" = $3 WHERE id = $4`,
+        ['failed', error.message, new Date(), actionId],
+      )
 
       this.logger?.error?.(
         `[ExternalAction] Failed: ${req.provider}/${req.actionType}: ${error.message}`,
@@ -358,33 +263,25 @@ export class ExternalActionExecutor {
     }
   }
 
-  /**
-   * Get all external actions for a step execution.
-   */
   async getActionsForStep(
     workflowRunId: string,
     stepName: string,
   ): Promise<ExternalAction[]> {
-    return this.db
-      .selectFrom('external_actions')
-      .selectAll()
-      .where('workflowRunId', '=', workflowRunId)
-      .where('stepName', '=', stepName)
-      .execute()
+    const { rows } = await this.db.query<ExternalAction>(
+      `SELECT * FROM external_actions WHERE "workflowRunId" = $1 AND "stepName" = $2`,
+      [workflowRunId, stepName],
+    )
+    return rows
   }
 
-  /**
-   * Get all external actions for a workflow run.
-   */
   async getActionsForWorkflow(
     workflowRunId: string,
   ): Promise<ExternalAction[]> {
-    return this.db
-      .selectFrom('external_actions')
-      .selectAll()
-      .where('workflowRunId', '=', workflowRunId)
-      .orderBy('createdAt', 'asc')
-      .execute()
+    const { rows } = await this.db.query<ExternalAction>(
+      `SELECT * FROM external_actions WHERE "workflowRunId" = $1 ORDER BY "createdAt" ASC`,
+      [workflowRunId],
+    )
+    return rows
   }
 }
 

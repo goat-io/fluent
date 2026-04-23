@@ -11,12 +11,11 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
 import { WorkflowMetricsCollector } from '../../engine/WorkflowMetrics.js'
-import type { Database } from '../../entities/Database.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
@@ -38,7 +37,7 @@ function getGlobalData(): GlobalTestData {
 }
 
 describe('Load Tests — Real Infrastructure', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let connector: BullMQConnector
   let stopWorker: (() => Promise<void>) | null = null
 

@@ -1,5 +1,5 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
-import { Ids } from '@goatlab/js-utils'
+import { nanoId } from '../db/ids.js'
 
 /** Escape a value for COPY FROM tab-delimited format */
 function esc(v: string | null | undefined): string {
@@ -28,16 +28,12 @@ function escJson(v: string): string {
 const ESC_NEEDED = /[\\\t\n\r]/
 
 import type { JsonObject } from '@goatlab/tasks-core'
-import { type Kysely, sql } from 'kysely'
-import type {
-  Database,
-  WorkflowRun,
-  WorkflowStep,
-} from '../entities/Database.js'
+import type { DbClient } from '../db/DbClient.js'
+import type { WorkflowRun, WorkflowStep } from '../entities/Database.js'
 import { fromJson, toJson } from '../entities/Database.js'
 import {
   HumanInputError,
-  IdempotencyConflictError,
+  InputValidationError,
   NonRetryableError,
   WorkflowError,
   WorkflowNotFoundError,
@@ -79,7 +75,7 @@ type EmittableEvent = DistributiveOmit<EngineEvent, 'emittedAt'>
 
 export class WorkflowEngine {
   readonly config: WorkflowEngineConfig
-  readonly db: Kysely<Database>
+  readonly db: DbClient
 
   /**
    * The consistency layer for ALL external side effects.
@@ -97,6 +93,7 @@ export class WorkflowEngine {
   private logBuffer: WriteBuffer<{
     id: string
     stepId: string
+    workflowRunId: string | null
     tenantId: string
     event: string
     data?: Record<string, unknown>
@@ -136,10 +133,9 @@ export class WorkflowEngine {
   private stepStatusBuffer: StepStatusBuffer | null = null
 
   /**
-   * Optional Postgres schema prefix (e.g. 'agents'). When set, every Kysely
-   * call goes through `db.withSchema(schema)` and raw COPY/SELECT strings
-   * interpolate the prefix. Sub-services (TaskManager, ExternalActions, etc.)
-   * receive the already-scoped db so their own queries get the prefix for free.
+   * Optional Postgres schema prefix (e.g. 'agents'). When set, raw SQL
+   * strings interpolate the prefix. Sub-services (TaskManager, ExternalActions,
+   * etc.) receive the same db so their own queries get the prefix for free.
    */
   private readonly schema?: string
 
@@ -153,15 +149,6 @@ export class WorkflowEngine {
    * Synchronous from the engine's POV — never await this. Errors thrown by
    * the user's hook are caught and logged so a buggy subscriber cannot crash
    * a workflow.
-   *
-   * Design note: every call to this method is preceded by an `await` on the
-   * appropriate buffer/SQL write. That's the contract — don't add an emit
-   * call without verifying the PG write has committed first.
-   */
-  /**
-   * Type-level distributive Omit — preserves discriminated-union narrowing
-   * after stripping `emittedAt`. Without this, TS collapses the union and
-   * complains about variant-specific props (e.g. `status` on RunCompletedEvent).
    */
   private emitEvent(evt: EmittableEvent): void {
     if (!this.config.onEngineEvent) {
@@ -183,10 +170,7 @@ export class WorkflowEngine {
   constructor(config: WorkflowEngineConfig) {
     this.config = config
     this.schema = config.schema
-    // Wrap once at construction so all subsequent this.db.X calls inherit the schema scope
-    this.db = this.schema
-      ? (config.db.withSchema(this.schema) as Kysely<Database>)
-      : config.db
+    this.db = config.db
 
     this.taskManager = new TaskManager(this.db)
 
@@ -247,31 +231,34 @@ export class WorkflowEngine {
       throw new WorkflowNotFoundError(trigger.workflowName)
     }
 
-    if (trigger.idempotencyKey) {
-      const existing = await this.db
-        .selectFrom('workflow_runs')
-        .select('id')
-        .where('idempotencyKey', '=', trigger.idempotencyKey)
-        .where('tenantId', '=', trigger.tenantId)
-        .executeTakeFirst()
-      if (existing) {
-        throw new IdempotencyConflictError(trigger.idempotencyKey, existing.id)
+    // DBOS-parity: input validation (Zod-compatible schema)
+    if (definition.inputSchema) {
+      try {
+        definition.inputSchema.parse(trigger.input)
+      } catch (err: any) {
+        throw new InputValidationError(
+          err.message ?? 'Input validation failed',
+          { workflowName: trigger.workflowName },
+        )
       }
     }
 
-    const runId = Ids.nanoId(21)
+    const runId = nanoId(21)
     const now = new Date()
 
     // Generate traceId if not provided
-    const traceId = trigger.traceId ?? Ids.nanoId(21)
+    const traceId = trigger.traceId ?? nanoId(21)
+
+    // DBOS-parity: delayed execution
+    const isDelayed = (trigger.delaySeconds ?? 0) > 0
 
     const runRow = {
       id: runId,
       tenantId: trigger.tenantId,
       workflowName: trigger.workflowName,
       workflowVersion: definition.version,
-      status: 'RUNNING',
-      startedAt: now,
+      status: isDelayed ? 'DELAYED' : 'RUNNING',
+      startedAt: isDelayed ? null : now,
       definitionSnapshot: toJson({
         name: definition.name,
         version: definition.version,
@@ -305,6 +292,17 @@ export class WorkflowEngine {
         steps: 0,
         taskExecutions: 0,
       }),
+      deadlineEpochMs: definition.defaultTimeoutMs
+        ? String(Date.now() + definition.defaultTimeoutMs)
+        : null,
+      timeoutMs: definition.defaultTimeoutMs
+        ? String(definition.defaultTimeoutMs)
+        : null,
+      forkedFromRunId: null,
+      applicationVersion: this.config.applicationVersion ?? null,
+      delayUntilEpochMs: isDelayed
+        ? String(Date.now() + trigger.delaySeconds! * 1000)
+        : null,
       createdAt: now,
       updatedAt: now,
     }
@@ -322,7 +320,7 @@ export class WorkflowEngine {
       }
 
       return {
-        id: Ids.nanoId(21),
+        id: nanoId(21),
         workflowRunId: runId,
         tenantId: trigger.tenantId,
         stepName: stepDef.name,
@@ -345,10 +343,110 @@ export class WorkflowEngine {
       }
     })
 
-    // Two Kysely inserts (run + steps) — Kysely handles parameterization safely
-    await this.db.insertInto('workflow_runs').values(runRow).execute()
+    // DBOS-parity: INSERT ON CONFLICT for idempotency (single round-trip, no race window)
+    if (trigger.idempotencyKey) {
+      const { rows } = await this.db.query<{ id: string }>(
+        `INSERT INTO ${this.q('workflow_runs')} (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "deadlineEpochMs", "timeoutMs", "forkedFromRunId", "applicationVersion", "delayUntilEpochMs", "startedAt", "completedAt", "createdAt", "updatedAt")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+         ON CONFLICT ("tenantId", "idempotencyKey") DO UPDATE SET "updatedAt" = $22
+         RETURNING id`,
+        [
+          runRow.id,
+          runRow.tenantId,
+          runRow.workflowName,
+          runRow.workflowVersion,
+          runRow.status,
+          runRow.definitionSnapshot,
+          runRow.triggerInput,
+          runRow.idempotencyKey,
+          runRow.traceId,
+          runRow.parentRunId,
+          runRow.originEventId,
+          runRow.budget,
+          runRow.budgetUsed,
+          runRow.deadlineEpochMs,
+          runRow.timeoutMs,
+          runRow.forkedFromRunId,
+          runRow.applicationVersion,
+          runRow.delayUntilEpochMs,
+          runRow.startedAt,
+          null,
+          runRow.createdAt,
+          runRow.updatedAt,
+        ],
+      )
+
+      // If ON CONFLICT hit, returned id differs from our generated runId
+      if (rows[0] && rows[0].id !== runId) {
+        return { runId: rows[0].id }
+      }
+    } else {
+      await this.db.query(
+        `INSERT INTO ${this.q('workflow_runs')} (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "deadlineEpochMs", "timeoutMs", "forkedFromRunId", "applicationVersion", "delayUntilEpochMs", "startedAt", "completedAt", "createdAt", "updatedAt")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+        [
+          runRow.id,
+          runRow.tenantId,
+          runRow.workflowName,
+          runRow.workflowVersion,
+          runRow.status,
+          runRow.definitionSnapshot,
+          runRow.triggerInput,
+          runRow.idempotencyKey,
+          runRow.traceId,
+          runRow.parentRunId,
+          runRow.originEventId,
+          runRow.budget,
+          runRow.budgetUsed,
+          runRow.deadlineEpochMs,
+          runRow.timeoutMs,
+          runRow.forkedFromRunId,
+          runRow.applicationVersion,
+          runRow.delayUntilEpochMs,
+          runRow.startedAt,
+          null,
+          runRow.createdAt,
+          runRow.updatedAt,
+        ],
+      )
+    }
+
     if (stepRows.length > 0) {
-      await this.db.insertInto('workflow_steps').values(stepRows).execute()
+      // Build multi-row INSERT for steps
+      const stepCols = `(id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, "scheduledAt", attempt, "maxRetries", "heartbeatTimeoutMs", "iterationCount", "maxIterations", "requiresLabels", "createdAt", "updatedAt")`
+      const stepPlaceholders: string[] = []
+      const stepParams: any[] = []
+      let idx = 1
+      for (const sr of stepRows) {
+        stepPlaceholders.push(
+          `($${idx},$${idx + 1},$${idx + 2},$${idx + 3},$${idx + 4},$${idx + 5},$${idx + 6},$${idx + 7},$${idx + 8},$${idx + 9},$${idx + 10},$${idx + 11},$${idx + 12},$${idx + 13},$${idx + 14},$${idx + 15},$${idx + 16},$${idx + 17})`,
+        )
+        stepParams.push(
+          sr.id,
+          sr.workflowRunId,
+          sr.tenantId,
+          sr.stepName,
+          sr.status,
+          sr.executorType,
+          sr.executorConfig,
+          sr.dependsOn,
+          sr.input,
+          sr.scheduledAt,
+          sr.attempt,
+          sr.maxRetries,
+          sr.heartbeatTimeoutMs,
+          sr.iterationCount,
+          sr.maxIterations,
+          sr.requiresLabels,
+          sr.createdAt,
+          sr.updatedAt,
+        )
+        idx += 18
+      }
+      await this.db.query(
+        `INSERT INTO ${this.q('workflow_steps')} ${stepCols} VALUES ${stepPlaceholders.join(',')}`,
+        stepParams,
+      )
     }
 
     // PG row exists. Cache traceId and emit run.started before dispatching.
@@ -364,18 +462,21 @@ export class WorkflowEngine {
       })
     }
 
-    // Dispatch root steps to BullMQ (rows are in DB now)
-    for (const stepDef of definition.steps) {
-      if (!rootNames.has(stepDef.name)) {
-        continue
+    // DBOS-parity: skip dispatch for delayed workflows — they start via transitionDelayedWorkflows()
+    if (!isDelayed) {
+      // Dispatch root steps to BullMQ (rows are in DB now)
+      for (const stepDef of definition.steps) {
+        if (!rootNames.has(stepDef.name)) {
+          continue
+        }
+        const stepRow = stepRows.find(r => r.stepName === stepDef.name)!
+        await this.dispatchStep(
+          runId,
+          trigger.tenantId,
+          stepRow as any,
+          definition,
+        )
       }
-      const stepRow = stepRows.find(r => r.stepName === stepDef.name)!
-      await this.dispatchStep(
-        runId,
-        trigger.tenantId,
-        stepRow as any,
-        definition,
-      )
     }
 
     return { runId }
@@ -407,7 +508,7 @@ export class WorkflowEngine {
         throw new WorkflowNotFoundError(trigger.workflowName)
       }
 
-      const runId = trigger.runId ?? Ids.nanoId(21)
+      const runId = trigger.runId ?? nanoId(21)
       const now = new Date()
       const rootNames = new Set(
         definition.steps.filter(s => !s.dependsOn?.length).map(s => s.name),
@@ -443,7 +544,7 @@ export class WorkflowEngine {
         }),
         triggerInput: toJson(trigger.input),
         idempotencyKey: trigger.idempotencyKey ?? null,
-        traceId: trigger.traceId ?? Ids.nanoId(21),
+        traceId: trigger.traceId ?? nanoId(21),
         parentRunId: trigger.parentRunId ?? null,
         originEventId: trigger.originEventId ?? null,
         budget: toJson(this.config.defaultBudget ?? null),
@@ -464,7 +565,7 @@ export class WorkflowEngine {
           input = stepDef.mapInput({})
         }
         return {
-          id: Ids.nanoId(21),
+          id: nanoId(21),
           workflowRunId: runId,
           tenantId: trigger.tenantId,
           stepName: stepDef.name,
@@ -495,14 +596,78 @@ export class WorkflowEngine {
       return this.startBatchCopy(triggers)
     }
 
-    // Batch INSERT fallback
-    await this.db
-      .insertInto('workflow_runs')
-      .values(results.map(r => r.runRow))
-      .execute()
+    // Batch INSERT fallback — build multi-row INSERTs
+    {
+      const runCols = `(id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "startedAt", "createdAt", "updatedAt")`
+      const runPlaceholders: string[] = []
+      const runParams: any[] = []
+      let idx = 1
+      for (const { runRow } of results) {
+        runPlaceholders.push(
+          `($${idx},$${idx + 1},$${idx + 2},$${idx + 3},$${idx + 4},$${idx + 5},$${idx + 6},$${idx + 7},$${idx + 8},$${idx + 9},$${idx + 10},$${idx + 11},$${idx + 12},$${idx + 13},$${idx + 14},$${idx + 15})`,
+        )
+        runParams.push(
+          runRow.id,
+          runRow.tenantId,
+          runRow.workflowName,
+          runRow.workflowVersion,
+          runRow.status,
+          runRow.definitionSnapshot,
+          runRow.triggerInput,
+          runRow.idempotencyKey,
+          runRow.traceId,
+          runRow.parentRunId,
+          runRow.originEventId,
+          runRow.budget,
+          runRow.budgetUsed,
+          runRow.startedAt,
+          runRow.createdAt,
+          runRow.updatedAt,
+        )
+        idx += 16
+      }
+      await this.db.query(
+        `INSERT INTO ${this.q('workflow_runs')} ${runCols} VALUES ${runPlaceholders.join(',')}`,
+        runParams,
+      )
+    }
+
     const allStepRows = results.flatMap(r => r.stepRows)
     if (allStepRows.length > 0) {
-      await this.db.insertInto('workflow_steps').values(allStepRows).execute()
+      const stepCols = `(id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, "scheduledAt", attempt, "maxRetries", "heartbeatTimeoutMs", "iterationCount", "maxIterations", "requiresLabels", "createdAt", "updatedAt")`
+      const stepPlaceholders: string[] = []
+      const stepParams: any[] = []
+      let idx = 1
+      for (const sr of allStepRows) {
+        stepPlaceholders.push(
+          `($${idx},$${idx + 1},$${idx + 2},$${idx + 3},$${idx + 4},$${idx + 5},$${idx + 6},$${idx + 7},$${idx + 8},$${idx + 9},$${idx + 10},$${idx + 11},$${idx + 12},$${idx + 13},$${idx + 14},$${idx + 15},$${idx + 16},$${idx + 17})`,
+        )
+        stepParams.push(
+          sr.id,
+          sr.workflowRunId,
+          sr.tenantId,
+          sr.stepName,
+          sr.status,
+          sr.executorType,
+          sr.executorConfig,
+          sr.dependsOn,
+          sr.input,
+          sr.scheduledAt,
+          sr.attempt,
+          sr.maxRetries,
+          sr.heartbeatTimeoutMs,
+          sr.iterationCount,
+          sr.maxIterations,
+          sr.requiresLabels,
+          sr.createdAt,
+          sr.updatedAt,
+        )
+        idx += 18
+      }
+      await this.db.query(
+        `INSERT INTO ${this.q('workflow_steps')} ${stepCols} VALUES ${stepPlaceholders.join(',')}`,
+        stepParams,
+      )
     }
 
     // PG rows exist — emit run.started events before dispatching root steps
@@ -547,26 +712,6 @@ export class WorkflowEngine {
   /**
    * Bulk start workflows using COPY FROM (Hatchet's fastest path).
    * Requires pgPool in engine config. Falls back to startBatch() if not available.
-   *
-   * COPY FROM bypasses the INSERT planner and uses optimized buffer/lock handling.
-   * Hatchet reports 63-92k writes/sec with this approach.
-   *
-   * @param opts.synchronousCommit  When true, the COPY transaction uses
-   *   synchronous_commit=ON — COMMIT blocks until the WAL is fsync'd to disk.
-   *   REQUIRED for workflows with durability='committed': otherwise the HTTP
-   *   200 can race ahead of the actual disk flush and a crash would lose the
-   *   "committed" row. Default false preserves the batched-ingest fast path
-   *   (IngestWorker → COPY) where HTTP has already returned — losing a few
-   *   in-flight rows is the explicit tradeoff of that path.
-   *
-   * @param opts.checkIdempotency  When true, pre-fetch existing rows by
-   *   (tenantId, idempotencyKey) and dedupe both against PG and within the
-   *   current batch (first-wins). Deduped triggers receive the original
-   *   runId in the result and skip both the COPY and the step dispatch —
-   *   no duplicate run, no duplicate side-effects. REQUIRED for committed
-   *   payment-style flows where double-submit would charge twice. Default
-   *   false preserves buffered fast-path behavior (no extra SELECT
-   *   roundtrip per batch).
    */
   async startBatchCopy(
     triggers: WorkflowTriggerInput[],
@@ -576,16 +721,12 @@ export class WorkflowEngine {
       return this.startBatch(triggers)
     }
 
-    // Idempotency pre-check: one SELECT per tenant collecting all existing
-    // (tenantId, idempotencyKey) → runId mappings. Cheap (indexed) and runs
-    // BEFORE the COPY transaction so we can short-circuit dupes entirely.
-    const existingByKey = new Map<string, string>() // "tenantId|key" → runId
+    // Idempotency pre-check
+    const existingByKey = new Map<string, string>()
     if (opts?.checkIdempotency) {
       const keysByTenant = new Map<string, Set<string>>()
       for (const t of triggers) {
-        if (!t.idempotencyKey) {
-          continue
-        }
+        if (!t.idempotencyKey) continue
         let set = keysByTenant.get(t.tenantId)
         if (!set) {
           set = new Set()
@@ -594,12 +735,15 @@ export class WorkflowEngine {
         set.add(t.idempotencyKey)
       }
       for (const [tenantId, keys] of keysByTenant) {
-        const rows = await this.db
-          .selectFrom('workflow_runs')
-          .select(['id', 'idempotencyKey'])
-          .where('tenantId', '=', tenantId)
-          .where('idempotencyKey', 'in', [...keys])
-          .execute()
+        const keysArr = [...keys]
+        const placeholders = keysArr.map((_, i) => `$${i + 2}`).join(',')
+        const { rows } = await this.db.query<{
+          id: string
+          idempotencyKey: string
+        }>(
+          `SELECT id, "idempotencyKey" FROM ${this.q('workflow_runs')} WHERE "tenantId" = $1 AND "idempotencyKey" IN (${placeholders})`,
+          [tenantId, ...keysArr],
+        )
         for (const r of rows) {
           if (r.idempotencyKey) {
             existingByKey.set(`${tenantId}|${r.idempotencyKey}`, r.id)
@@ -608,10 +752,8 @@ export class WorkflowEngine {
       }
     }
 
-    // Parallel output array — index-aligned with triggers so deduped slots
-    // can be filled without disturbing the COPY/dispatch order of the rest.
     const finalRunIds: string[] = new Array(triggers.length)
-    const seenInBatch = new Map<string, string>() // first-wins within this flush
+    const seenInBatch = new Map<string, string>()
     const results: Array<{
       runId: string
       stepRows: any[]
@@ -622,8 +764,7 @@ export class WorkflowEngine {
     const runLines: string[] = []
     const stepLines: string[] = []
 
-    // Lazy-init per-engine constants — same on every row, no reason to
-    // re-stringify+escape for each trigger.
+    // Lazy-init per-engine constants
     if (this.cachedBudgetEsc === null) {
       this.cachedBudgetEsc = esc(toJson(this.config.defaultBudget ?? null))
       this.cachedBudgetUsedEsc = esc(
@@ -640,8 +781,6 @@ export class WorkflowEngine {
         throw new WorkflowNotFoundError(trigger.workflowName)
       }
 
-      // Dedupe against PG and within-batch. First occurrence in the batch
-      // wins so a flurry of identical-key retries collapses to one COPY.
       if (opts?.checkIdempotency && trigger.idempotencyKey) {
         const k = `${trigger.tenantId}|${trigger.idempotencyKey}`
         const dedupedTo = existingByKey.get(k) ?? seenInBatch.get(k)
@@ -651,7 +790,7 @@ export class WorkflowEngine {
         }
       }
 
-      const runId = trigger.runId ?? Ids.nanoId(21)
+      const runId = trigger.runId ?? nanoId(21)
       finalRunIds[i] = runId
       if (opts?.checkIdempotency && trigger.idempotencyKey) {
         seenInBatch.set(`${trigger.tenantId}|${trigger.idempotencyKey}`, runId)
@@ -699,16 +838,12 @@ export class WorkflowEngine {
         cached = { snapshot, snapshotEsc: esc(snapshot), stepEscapes }
         this.snapshotCache.set(cacheKey, cached)
       }
-      const _snapshot = cached.snapshot
       const snapshotEsc = cached.snapshotEsc
 
       const triggerInput = toJson(trigger.input)
       const idempKey = trigger.idempotencyKey ?? '\\N'
 
-      // Tab-delimited COPY line for workflow_runs
-      // Columns: id, tenantId, workflowName, workflowVersion, status, definitionSnapshot,
-      //   triggerInput, idempotencyKey, traceId, parentRunId, originEventId, budget, budgetUsed, startedAt, completedAt, createdAt, updatedAt
-      const traceId = trigger.traceId ?? Ids.nanoId(21)
+      const traceId = trigger.traceId ?? nanoId(21)
       runLines.push(
         [
           runId,
@@ -739,7 +874,7 @@ export class WorkflowEngine {
           input = stepDef.mapInput({})
         }
 
-        const stepId = Ids.nanoId(21)
+        const stepId = nanoId(21)
         const stepRow = {
           id: stepId,
           workflowRunId: runId,
@@ -762,13 +897,6 @@ export class WorkflowEngine {
         }
         localStepRows.push(stepRow)
 
-        // Tab-delimited COPY line for workflow_steps
-        // Columns: id, workflowRunId, tenantId, stepName, status, executorType, executorConfig,
-        //   dependsOn, input, output, error, attempt, maxRetries, startedAt, completedAt,
-        //   scheduledAt, lastHeartbeatAt, lastHeartbeatData, heartbeatTimeoutMs,
-        //   humanPrompt, humanResponse, humanRespondedBy, humanRespondedAt,
-        //   iterationCount, maxIterations, tokensUsed, costUsd, modelUsed, executedBy,
-        //   requiresLabels, createdAt, updatedAt
         const stepEsc = cached.stepEscapes.get(stepDef.name)!
         const labelsEsc = stepDef.requiresLabels?.length
           ? escJson(toJson(stepDef.requiresLabels))
@@ -783,30 +911,30 @@ export class WorkflowEngine {
             stepDef.executorType,
             stepEsc.executorConfigEsc,
             stepEsc.dependsOnEsc,
-            isRoot ? escJson(toJson(input)) : '\\N', // input
-            '\\N', // output
-            '\\N', // error
-            0, // attempt
-            stepDef.retries ?? definition.defaultRetries, // maxRetries
-            '\\N', // startedAt
-            '\\N', // completedAt
-            isRoot ? now : '\\N', // scheduledAt
-            '\\N', // lastHeartbeatAt
-            '\\N', // lastHeartbeatData
-            stepDef.heartbeatTimeoutMs ?? '\\N', // heartbeatTimeoutMs
+            isRoot ? escJson(toJson(input)) : '\\N',
+            '\\N',
+            '\\N',
+            0,
+            stepDef.retries ?? definition.defaultRetries,
+            '\\N',
+            '\\N',
+            isRoot ? now : '\\N',
+            '\\N',
+            '\\N',
+            stepDef.heartbeatTimeoutMs ?? '\\N',
             '\\N',
             '\\N',
             '\\N',
-            '\\N', // human fields
-            0, // iterationCount
-            stepDef.maxIterations ?? '\\N', // maxIterations
+            '\\N',
+            0,
+            stepDef.maxIterations ?? '\\N',
             '\\N',
             '\\N',
-            '\\N', // cost fields
-            '\\N', // executedBy
-            labelsEsc, // requiresLabels
+            '\\N',
+            '\\N',
+            labelsEsc,
             now,
-            now, // createdAt, updatedAt
+            now,
           ].join('\t'),
         )
       }
@@ -820,24 +948,14 @@ export class WorkflowEngine {
       })
     }
 
-    // Short-circuit: every trigger was deduplicated by idempotency. No new
-    // rows to COPY, no new steps to dispatch — original runs already have
-    // their own state machine running. Return the resolved runIds.
     if (runLines.length === 0) {
       return finalRunIds.map(id => ({ runId: id }))
     }
 
     // Execute COPY FROM for both tables in one atomic transaction.
-    // Sequential on the same client — a Postgres session can only hold one
-    // COPY stream at a time. FK from workflow_steps → workflow_runs requires
-    // atomic commit of both tables, so splitting is not safe.
     const client = await this.config.pgPool.connect()
     const tBegin = performance.now()
     try {
-      // Combine BEGIN + SET LOCAL into one roundtrip (saves ~15-40ms per flush
-      // under the Docker VM and ~2-5ms on native PG).
-      // synchronous_commit honors opts.synchronousCommit — callers serving
-      // durability='committed' workflows pass true so COMMIT blocks on fsync.
       const commitMode = opts?.synchronousCommit ? 'ON' : 'OFF'
       await client.query(`BEGIN; SET LOCAL synchronous_commit = ${commitMode};`)
       const tAfterBegin = performance.now()
@@ -902,7 +1020,7 @@ export class WorkflowEngine {
       }
     }
 
-    // Dispatch root steps in bulk (one addBulk per target queue)
+    // Dispatch root steps in bulk
     const dispatchItems: Array<{
       runId: string
       tenantId: string
@@ -923,10 +1041,6 @@ export class WorkflowEngine {
     }
     await this.dispatchStepsBulk(dispatchItems)
 
-    // finalRunIds is index-aligned with the input triggers — slots filled by
-    // the dedup short-circuit hold the original runId; everything else holds
-    // the freshly-COPY'd runId. results-derived dispatch only covered the
-    // freshly-COPY'd subset, which is correct.
     return finalRunIds.map(id => ({ runId: id }))
   }
 
@@ -943,9 +1057,6 @@ export class WorkflowEngine {
       return
     }
 
-    // Hot-path batched UPDATE when the buffer is wired (pgPool present and
-    // batching not disabled). The returned promise resolves only after the
-    // batched UPDATE commits — preserving BullMQ ack semantics.
     if (this.stepStatusBuffer) {
       await this.stepStatusBuffer.enqueue({
         stepId: step.id,
@@ -954,12 +1065,20 @@ export class WorkflowEngine {
         executedBy: workerIdentity,
       })
     } else {
-      await this.updateStepStatus(step.id, step.status, 'RUNNING', workerIdentity)
+      await this.updateStepStatus(
+        step.id,
+        step.status,
+        'RUNNING',
+        workerIdentity,
+      )
     }
-    await this.logStepEvent(step.id, tenantId, 'started', workerIdentity ? { workerIdentity } : undefined)
+    await this.logStepEvent(
+      step.id,
+      tenantId,
+      'started',
+      workerIdentity ? { workerIdentity } : undefined,
+    )
 
-    // Event fires AFTER PG commit (await above). Subscribers can immediately
-    // SELECT this step and see status=RUNNING.
     if (this.config.onEngineEvent) {
       const traceId = await this.resolveTraceId(runId, tenantId)
       this.emitEvent({
@@ -975,8 +1094,6 @@ export class WorkflowEngine {
 
   /**
    * In-memory cache of runId → traceId, populated on first lookup.
-   * Avoids re-SELECTing the run for every event when onEngineEvent is wired.
-   * Evicted on run completion (run.completed event firing).
    */
   private traceIdCache = new Map<string, string>()
 
@@ -988,15 +1105,12 @@ export class WorkflowEngine {
     if (traceId) {
       return traceId
     }
-    const row = await this.db
-      .selectFrom('workflow_runs')
-      .select('traceId')
-      .where('id', '=', runId)
-      .where('tenantId', '=', tenantId)
-      .executeTakeFirst()
-    traceId = row?.traceId ?? ''
+    const { rows } = await this.db.query<{ traceId: string | null }>(
+      `SELECT "traceId" FROM ${this.q('workflow_runs')} WHERE id = $1 AND "tenantId" = $2`,
+      [runId, tenantId],
+    )
+    traceId = rows[0]?.traceId ?? ''
     this.traceIdCache.set(runId, traceId)
-    // Soft cap — protect against unbounded growth in long-lived processes
     if (this.traceIdCache.size > 5000) {
       const firstKey = this.traceIdCache.keys().next().value
       if (firstKey) {
@@ -1018,7 +1132,6 @@ export class WorkflowEngine {
     const definition = await this.getDefinitionForRun(runId)
 
     if (result.waitForHuman) {
-      // HITL transition — single buffered UPDATE sets status + output + humanPrompt
       if (
         this.stepStatusBuffer &&
         canStepTransition(step.status as StepStatus, 'WAITING_HUMAN')
@@ -1031,20 +1144,19 @@ export class WorkflowEngine {
         })
       } else {
         await this.updateStepStatus(step.id, step.status, 'WAITING_HUMAN')
-        await this.db
-          .updateTable('workflow_steps')
-          .set({
-            output: toJson(result.output),
-            humanPrompt: toJson(result.waitForHuman),
-            updatedAt: new Date(),
-          })
-          .where('id', '=', step.id)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET output = $1, "humanPrompt" = $2, "updatedAt" = $3 WHERE id = $4`,
+          [
+            toJson(result.output),
+            toJson(result.waitForHuman),
+            new Date(),
+            step.id,
+          ],
+        )
       }
       await this.logStepEvent(step.id, tenantId, 'human_requested', {
         prompt: result.waitForHuman.prompt,
       })
-      // PG row now has status=WAITING_HUMAN + output + humanPrompt
       if (this.config.onEngineEvent) {
         const traceId = await this.resolveTraceId(runId, tenantId)
         this.emitEvent({
@@ -1058,8 +1170,6 @@ export class WorkflowEngine {
         })
       }
     } else {
-      // HOT PATH: single buffered UPDATE collapses status + output + completedAt
-      // into one row of one batched statement.
       if (
         this.stepStatusBuffer &&
         canStepTransition(step.status as StepStatus, 'COMPLETED')
@@ -1072,20 +1182,14 @@ export class WorkflowEngine {
         })
       } else {
         await this.updateStepStatus(step.id, step.status, 'COMPLETED')
-        await this.db
-          .updateTable('workflow_steps')
-          .set({
-            output: toJson(result.output),
-            completedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where('id', '=', step.id)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET output = $1, "completedAt" = $2, "updatedAt" = $3 WHERE id = $4`,
+          [toJson(result.output), new Date(), new Date(), step.id],
+        )
       }
       await this.logStepEvent(step.id, tenantId, 'completed', {
         outputKeys: Object.keys(result.output),
       })
-      // PG row now has status=COMPLETED + output + completedAt
       if (this.config.onEngineEvent) {
         const traceId = await this.resolveTraceId(runId, tenantId)
         this.emitEvent({
@@ -1106,21 +1210,13 @@ export class WorkflowEngine {
         this.config.logger?.warn(
           `Budget exceeded for run ${runId}: ${budgetExceeded}`,
         )
-        // Mark run as failed due to budget
-        await this.db
-          .updateTable('workflow_runs')
-          .set({
-            status: 'FAILED',
-            error: budgetExceeded,
-            completedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where('id', '=', runId)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_runs')} SET status = $1, error = $2, "completedAt" = $3, "updatedAt" = $4 WHERE id = $5`,
+          ['FAILED', budgetExceeded, new Date(), new Date(), runId],
+        )
         return
       }
 
-      // Track token/cost from step output _usage field
       const usage = result.output?._usage as Record<string, unknown> | undefined
       if (usage) {
         if (typeof usage.tokens === 'number') {
@@ -1133,16 +1229,10 @@ export class WorkflowEngine {
             this.config.logger?.warn(
               `Budget exceeded for run ${runId}: ${tokenExceeded}`,
             )
-            await this.db
-              .updateTable('workflow_runs')
-              .set({
-                status: 'FAILED',
-                error: tokenExceeded,
-                completedAt: new Date(),
-                updatedAt: new Date(),
-              })
-              .where('id', '=', runId)
-              .execute()
+            await this.db.query(
+              `UPDATE ${this.q('workflow_runs')} SET status = $1, error = $2, "completedAt" = $3, "updatedAt" = $4 WHERE id = $5`,
+              ['FAILED', tokenExceeded, new Date(), new Date(), runId],
+            )
             return
           }
         }
@@ -1158,15 +1248,15 @@ export class WorkflowEngine {
         s => s.name === result.nextStep,
       )
       if (!targetStepDef) {
-        await this.db
-          .updateTable('workflow_steps')
-          .set({
-            status: 'FAILED',
-            error: `nextStep target "${result.nextStep}" does not exist in workflow "${definition.name}"`,
-            updatedAt: new Date(),
-          })
-          .where('id', '=', step.id)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET status = $1, error = $2, "updatedAt" = $3 WHERE id = $4`,
+          [
+            'FAILED',
+            `nextStep target "${result.nextStep}" does not exist in workflow "${definition.name}"`,
+            new Date(),
+            step.id,
+          ],
+        )
         await this.advanceWorkflow(runId, tenantId, definition)
         return
       }
@@ -1176,33 +1266,32 @@ export class WorkflowEngine {
       const maxIter = (targetStep as any).maxIterations ?? 100
 
       if (currentIteration >= maxIter) {
-        await this.db
-          .updateTable('workflow_steps')
-          .set({
-            status: 'FAILED',
-            error: `Step "${result.nextStep}" exceeded max iterations (${maxIter})`,
-            updatedAt: new Date(),
-          })
-          .where('id', '=', step.id)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET status = $1, error = $2, "updatedAt" = $3 WHERE id = $4`,
+          [
+            'FAILED',
+            `Step "${result.nextStep}" exceeded max iterations (${maxIter})`,
+            new Date(),
+            step.id,
+          ],
+        )
         await this.advanceWorkflow(runId, tenantId, definition)
         return
       }
 
-      // Reset target step to PENDING (bypass normal transition — runtime redirect)
-      await this.db
-        .updateTable('workflow_steps')
-        .set({
-          status: 'PENDING',
-          output: null,
-          error: null,
-          completedAt: null,
-          startedAt: null,
-          iterationCount: currentIteration + 1,
-          updatedAt: new Date(),
-        })
-        .where('id', '=', targetStep.id)
-        .execute()
+      await this.db.query(
+        `UPDATE ${this.q('workflow_steps')} SET status = $1, output = $2, error = $3, "completedAt" = $4, "startedAt" = $5, "iterationCount" = $6, "updatedAt" = $7 WHERE id = $8`,
+        [
+          'PENDING',
+          null,
+          null,
+          null,
+          null,
+          currentIteration + 1,
+          new Date(),
+          targetStep.id,
+        ],
+      )
 
       await this.dispatchReadySteps(runId, tenantId, definition)
       return
@@ -1226,27 +1315,17 @@ export class WorkflowEngine {
     const canRetry = !isNonRetryable && step.attempt < step.maxRetries
 
     if (canRetry) {
-      // Retry path keeps multi-column UPDATE on the sync path: `attempt` and
-      // `startedAt=null` aren't carried by StepStatusBuffer's column set.
-      // (Retry rate is low under normal load — buffering this isn't load-bearing.)
       await this.updateStepStatus(step.id, step.status, 'QUEUED')
-      await this.db
-        .updateTable('workflow_steps')
-        .set({
-          attempt: step.attempt + 1,
-          error: error.message,
-          startedAt: null,
-          updatedAt: new Date(),
-        })
-        .where('id', '=', step.id)
-        .execute()
+      await this.db.query(
+        `UPDATE ${this.q('workflow_steps')} SET attempt = $1, error = $2, "startedAt" = $3, "updatedAt" = $4 WHERE id = $5`,
+        [step.attempt + 1, error.message, null, new Date(), step.id],
+      )
       await this.logStepEvent(step.id, tenantId, 'retried', {
         attempt: step.attempt + 1,
         error: error.message,
       })
       await this.dispatchStep(runId, tenantId, step, definition)
     } else {
-      // FAILED terminal — single buffered UPDATE for status + error + completedAt
       if (
         this.stepStatusBuffer &&
         canStepTransition(step.status as StepStatus, 'FAILED')
@@ -1259,22 +1338,16 @@ export class WorkflowEngine {
         })
       } else {
         await this.updateStepStatus(step.id, step.status, 'FAILED')
-        await this.db
-          .updateTable('workflow_steps')
-          .set({
-            error: error.message,
-            completedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where('id', '=', step.id)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET error = $1, "completedAt" = $2, "updatedAt" = $3 WHERE id = $4`,
+          [error.message, new Date(), new Date(), step.id],
+        )
       }
       await this.logStepEvent(step.id, tenantId, 'failed', {
         attempt: step.attempt,
         error: error.message,
         nonRetryable: isNonRetryable,
       })
-      // PG row now has status=FAILED. Emit terminal step event.
       if (this.config.onEngineEvent) {
         const traceId = await this.resolveTraceId(runId, tenantId)
         this.emitEvent({
@@ -1311,30 +1384,26 @@ export class WorkflowEngine {
 
     const definition = await this.getDefinitionForRun(input.workflowRunId)
 
-    await this.db
-      .updateTable('workflow_steps')
-      .set({
-        humanResponse: toJson(input.data),
-        humanRespondedBy: input.respondedBy ?? null,
-        humanRespondedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where('id', '=', step.id)
-      .execute()
+    await this.db.query(
+      `UPDATE ${this.q('workflow_steps')} SET "humanResponse" = $1, "humanRespondedBy" = $2, "humanRespondedAt" = $3, "updatedAt" = $4 WHERE id = $5`,
+      [
+        toJson(input.data),
+        input.respondedBy ?? null,
+        new Date(),
+        new Date(),
+        step.id,
+      ],
+    )
 
     await this.logStepEvent(step.id, input.tenantId, 'human_responded', {
       respondedBy: input.respondedBy,
     })
 
     await this.updateStepStatus(step.id, step.status, 'COMPLETED')
-    await this.db
-      .updateTable('workflow_steps')
-      .set({
-        completedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where('id', '=', step.id)
-      .execute()
+    await this.db.query(
+      `UPDATE ${this.q('workflow_steps')} SET "completedAt" = $1, "updatedAt" = $2 WHERE id = $3`,
+      [new Date(), new Date(), step.id],
+    )
 
     await this.advanceWorkflow(input.workflowRunId, input.tenantId, definition)
   }
@@ -1349,12 +1418,10 @@ export class WorkflowEngine {
 
     await this.updateRunStatus(runId, 'CANCELLED')
 
-    const steps = await this.db
-      .selectFrom('workflow_steps')
-      .selectAll()
-      .where('workflowRunId', '=', runId)
-      .where('tenantId', '=', tenantId)
-      .execute()
+    const { rows: steps } = await this.db.query<WorkflowStep>(
+      `SELECT * FROM ${this.q('workflow_steps')} WHERE "workflowRunId" = $1 AND "tenantId" = $2`,
+      [runId, tenantId],
+    )
 
     for (const step of steps) {
       if (
@@ -1362,14 +1429,89 @@ export class WorkflowEngine {
         step.status === 'QUEUED' ||
         step.status === 'WAITING_HUMAN'
       ) {
-        await this.db
-          .updateTable('workflow_steps')
-          .set({ status: 'SKIPPED', updatedAt: new Date() })
-          .where('id', '=', step.id)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET status = $1, "updatedAt" = $2 WHERE id = $3`,
+          ['SKIPPED', new Date(), step.id],
+        )
         await this.logStepEvent(step.id, tenantId, 'cancelled')
       }
     }
+  }
+
+  // ── Retry ──────────────────────────────────────────────────────
+
+  async retry(runId: string, tenantId: string): Promise<void> {
+    const run = await this.getRun(runId, tenantId)
+    if (run.status === 'COMPLETED') {
+      throw new Error(`Cannot retry completed run ${runId}`)
+    }
+
+    const definition = this.config.workflows.get(run.workflowName)
+    if (!definition) {
+      throw new Error(`Workflow "${run.workflowName}" not found in engine`)
+    }
+
+    await this.db.query(
+      `UPDATE ${this.q('workflow_runs')} SET status = $1, error = $2, "startedAt" = $3, "completedAt" = $4, "updatedAt" = $5 WHERE id = $6`,
+      ['RUNNING', null, new Date(), null, new Date(), runId],
+    )
+
+    const { rows: steps } = await this.db.query<WorkflowStep>(
+      `SELECT * FROM ${this.q('workflow_steps')} WHERE "workflowRunId" = $1 AND "tenantId" = $2`,
+      [runId, tenantId],
+    )
+
+    const rootNames = new Set(
+      definition.steps.filter(s => !s.dependsOn?.length).map(s => s.name),
+    )
+    const stepsToDispatch: typeof steps = []
+
+    for (const step of steps) {
+      if (step.status === 'COMPLETED') continue
+
+      const isRoot = rootNames.has(step.stepName)
+      const shouldDispatch =
+        isRoot ||
+        definition.steps
+          .find(s => s.name === step.stepName)
+          ?.dependsOn?.every(
+            dep => steps.find(s => s.stepName === dep)?.status === 'COMPLETED',
+          )
+
+      await this.db.query(
+        `UPDATE ${this.q('workflow_steps')} SET status = $1, error = $2, output = $3, "startedAt" = $4, "completedAt" = $5, "scheduledAt" = $6, attempt = $7, "updatedAt" = $8 WHERE id = $9`,
+        [
+          shouldDispatch ? 'QUEUED' : 'PENDING',
+          null,
+          null,
+          null,
+          null,
+          shouldDispatch ? new Date() : null,
+          step.attempt + 1,
+          new Date(),
+          step.id,
+        ],
+      )
+
+      await this.logStepEvent(step.id, tenantId, 'retried')
+
+      if (shouldDispatch) {
+        stepsToDispatch.push({
+          ...step,
+          attempt: step.attempt + 1,
+          status: 'QUEUED',
+        })
+      }
+    }
+
+    await this.dispatchStepsBulk(
+      stepsToDispatch.map(step => ({
+        runId,
+        tenantId,
+        step: step as any,
+        definition,
+      })),
+    )
   }
 
   // ── Query ──────────────────────────────────────────────────────
@@ -1385,50 +1527,70 @@ export class WorkflowEngine {
   ): Promise<
     Array<WorkflowRun & { stepCount: number; completedStepCount: number }>
   > {
-    let query = this.db
-      .selectFrom('workflow_runs')
-      .selectAll()
-      .where('tenantId', '=', tenantId)
-      .orderBy('createdAt', 'desc')
+    let whereClause = `"tenantId" = $1`
+    const params: any[] = [tenantId]
+    let paramIdx = 2
 
     if (filters?.status?.length) {
-      query = query.where('status', 'in', filters.status)
+      const placeholders = filters.status
+        .map((_, i) => `$${paramIdx + i}`)
+        .join(',')
+      whereClause += ` AND status IN (${placeholders})`
+      params.push(...filters.status)
+      paramIdx += filters.status.length
     }
     if (filters?.workflowName) {
-      query = query.where('workflowName', '=', filters.workflowName)
+      whereClause += ` AND "workflowName" = $${paramIdx}`
+      params.push(filters.workflowName)
+      paramIdx++
     }
+
+    let queryStr = `SELECT * FROM ${this.q('workflow_runs')} WHERE ${whereClause} ORDER BY "createdAt" DESC`
     if (filters?.limit) {
-      query = query.limit(filters.limit)
+      queryStr += ` LIMIT $${paramIdx}`
+      params.push(filters.limit)
+      paramIdx++
     }
     if (filters?.offset) {
-      query = query.offset(filters.offset)
+      queryStr += ` OFFSET $${paramIdx}`
+      params.push(filters.offset)
+      paramIdx++
     }
 
-    const runs = await query.execute()
+    const { rows: runs } = await this.db.query<WorkflowRun>(queryStr, params)
 
-    // Batch-fetch step counts
-    const results = await Promise.all(
-      runs.map(async run => {
-        const steps = await this.db
-          .selectFrom('workflow_steps')
-          .select(['status'])
-          .where('workflowRunId', '=', run.id)
-          .execute()
-        return {
-          ...run,
-          triggerInput: run.triggerInput
-            ? (fromJson(run.triggerInput) as any)
-            : null,
-          output: run.output ? (fromJson(run.output) as any) : null,
-          stepCount: steps.length,
-          completedStepCount: steps.filter(
-            s => s.status === 'COMPLETED' || s.status === 'SKIPPED',
-          ).length,
-        }
-      }),
+    if (runs.length === 0) {
+      return []
+    }
+
+    // DBOS-parity: single aggregate query replaces N+1 per-run step lookups
+    const runIds = runs.map(r => r.id)
+    const idPlaceholders = runIds.map((_, i) => `$${i + 1}`).join(',')
+    const { rows: stepCounts } = await this.db.query<{
+      workflowRunId: string
+      stepCount: number
+      completedStepCount: number
+    }>(
+      `SELECT "workflowRunId", count(*)::int AS "stepCount", count(*) FILTER (WHERE status IN ('COMPLETED', 'SKIPPED'))::int AS "completedStepCount" FROM ${this.q('workflow_steps')} WHERE "workflowRunId" IN (${idPlaceholders}) GROUP BY "workflowRunId"`,
+      runIds,
     )
 
-    return results
+    const countMap = new Map(
+      stepCounts.map(r => [
+        r.workflowRunId,
+        { stepCount: r.stepCount, completedStepCount: r.completedStepCount },
+      ]),
+    )
+
+    return runs.map(run => ({
+      ...run,
+      triggerInput: run.triggerInput
+        ? (fromJson(run.triggerInput) as any)
+        : null,
+      output: run.output ? (fromJson(run.output) as any) : null,
+      stepCount: countMap.get(run.id)?.stepCount ?? 0,
+      completedStepCount: countMap.get(run.id)?.completedStepCount ?? 0,
+    }))
   }
 
   async getStatus(
@@ -1436,13 +1598,10 @@ export class WorkflowEngine {
     tenantId: string,
   ): Promise<WorkflowRun & { steps: WorkflowStep[] }> {
     const run = await this.getRun(runId, tenantId)
-    const steps = await this.db
-      .selectFrom('workflow_steps')
-      .selectAll()
-      .where('workflowRunId', '=', runId)
-      .where('tenantId', '=', tenantId)
-      .execute()
-    // Hydrate JSON fields for external consumers
+    const { rows: steps } = await this.db.query<WorkflowStep>(
+      `SELECT * FROM ${this.q('workflow_steps')} WHERE "workflowRunId" = $1 AND "tenantId" = $2`,
+      [runId, tenantId],
+    )
     return {
       ...run,
       triggerInput: run.triggerInput
@@ -1474,32 +1633,30 @@ export class WorkflowEngine {
 
   // ── Trace ──────────────────────────────────────────────────────
 
-  /**
-   * Get full trace lineage: all runs, events, and external actions sharing a traceId.
-   */
   async getTrace(traceId: string): Promise<{
     runs: WorkflowRun[]
     events: import('../entities/Database.js').WorkflowEvent[]
     actions: import('../entities/Database.js').ExternalAction[]
   }> {
-    const [runs, events, actions] = await Promise.all([
-      this.db
-        .selectFrom('workflow_runs')
-        .selectAll()
-        .where('traceId', '=', traceId)
-        .execute(),
-      this.db
-        .selectFrom('workflow_events')
-        .selectAll()
-        .where('traceId', '=', traceId)
-        .execute(),
-      this.db
-        .selectFrom('external_actions')
-        .selectAll()
-        .where('traceId', '=', traceId)
-        .execute(),
+    const [runsRes, eventsRes, actionsRes] = await Promise.all([
+      this.db.query<WorkflowRun>(
+        `SELECT * FROM ${this.q('workflow_runs')} WHERE "traceId" = $1`,
+        [traceId],
+      ),
+      this.db.query<import('../entities/Database.js').WorkflowEvent>(
+        `SELECT * FROM ${this.q('workflow_events')} WHERE "traceId" = $1`,
+        [traceId],
+      ),
+      this.db.query<import('../entities/Database.js').ExternalAction>(
+        `SELECT * FROM ${this.q('external_actions')} WHERE "traceId" = $1`,
+        [traceId],
+      ),
     ])
-    return { runs, events, actions }
+    return {
+      runs: runsRes.rows,
+      events: eventsRes.rows,
+      actions: actionsRes.rows,
+    }
   }
 
   // ── Heartbeat ──────────────────────────────────────────────────
@@ -1511,15 +1668,10 @@ export class WorkflowEngine {
     data?: Record<string, unknown>,
   ): Promise<void> {
     const step = await this.getStep(runId, stepName, tenantId)
-    await this.db
-      .updateTable('workflow_steps')
-      .set({
-        lastHeartbeatAt: new Date(),
-        lastHeartbeatData: toJson(data ?? null),
-        updatedAt: new Date(),
-      })
-      .where('id', '=', step.id)
-      .execute()
+    await this.db.query(
+      `UPDATE ${this.q('workflow_steps')} SET "lastHeartbeatAt" = $1, "lastHeartbeatData" = $2, "updatedAt" = $3 WHERE id = $4`,
+      [new Date(), toJson(data ?? null), new Date(), step.id],
+    )
     await this.logStepEvent(step.id, tenantId, 'heartbeat', data)
   }
 
@@ -1534,30 +1686,20 @@ export class WorkflowEngine {
     const run = await this.getRun(runId, tenantId)
     const definition = this.config.workflows.get(run.workflowName)
 
-    await this.db
-      .insertInto('workflow_signals')
-      .values({
-        id: Ids.nanoId(21),
-        workflowRunId: runId,
-        tenantId,
-        signalName,
-        data: toJson(data)!,
-        createdAt: new Date(),
-      })
-      .execute()
+    await this.db.query(
+      `INSERT INTO ${this.q('workflow_signals')} (id, "workflowRunId", "tenantId", "signalName", data, "createdAt") VALUES ($1,$2,$3,$4,$5,$6)`,
+      [nanoId(21), runId, tenantId, signalName, toJson(data)!, new Date()],
+    )
 
     if (definition?.signals?.[signalName]) {
       const steps = await this.findSteps(runId, tenantId)
       const ctx = this.buildStepContext(run, steps)
       await definition.signals[signalName].handler(ctx, data as any)
 
-      await this.db
-        .updateTable('workflow_signals')
-        .set({ processedAt: new Date() })
-        .where('workflowRunId', '=', runId)
-        .where('signalName', '=', signalName)
-        .where('processedAt', 'is', null)
-        .execute()
+      await this.db.query(
+        `UPDATE ${this.q('workflow_signals')} SET "processedAt" = $1 WHERE "workflowRunId" = $2 AND "signalName" = $3 AND "processedAt" IS NULL`,
+        [new Date(), runId, signalName],
+      )
     }
 
     if (run.status === 'WAITING_HUMAN' && definition) {
@@ -1606,24 +1748,16 @@ export class WorkflowEngine {
       newStatus !== run.status &&
       canWorkflowTransition(run.status as WorkflowStatus, newStatus)
     ) {
-      await this.updateRunStatus(runId, newStatus)
-
       if (newStatus === 'COMPLETED') {
         const mergedOutput = this.mergeStepOutputs(steps)
-        await this.db
-          .updateTable('workflow_runs')
-          .set({
-            completedAt: new Date(),
-            output: toJson(mergedOutput),
-            updatedAt: new Date(),
-          })
-          .where('id', '=', runId)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_runs')} SET status = $1, "completedAt" = $2, output = $3, "updatedAt" = $4 WHERE id = $5`,
+          [newStatus, new Date(), toJson(mergedOutput), new Date(), runId],
+        )
         if (definition.onComplete) {
           const ctx = this.buildStepContext(run, steps)
           await definition.onComplete(ctx)
         }
-        // PG row now has status=COMPLETED. Emit terminal event.
         this.emitEvent({
           type: 'run.completed',
           tenantId,
@@ -1632,26 +1766,20 @@ export class WorkflowEngine {
           status: 'COMPLETED',
           output: mergedOutput,
         })
-        this.traceIdCache.delete(runId) // free the cache entry
+        this.traceIdCache.delete(runId)
       } else if (newStatus === 'FAILED') {
         const failedStep = steps.find(s => s.status === 'FAILED')
         const errorMsg = failedStep?.error ?? 'Unknown error'
-        await this.db
-          .updateTable('workflow_runs')
-          .set({
-            completedAt: new Date(),
-            error: errorMsg,
-            updatedAt: new Date(),
-          })
-          .where('id', '=', runId)
-          .execute()
+        await this.db.query(
+          `UPDATE ${this.q('workflow_runs')} SET status = $1, "completedAt" = $2, error = $3, "updatedAt" = $4 WHERE id = $5`,
+          [newStatus, new Date(), errorMsg, new Date(), runId],
+        )
         if (definition.onFail) {
           const ctx = this.buildStepContext(run, steps)
           await definition.onFail(ctx, new Error(errorMsg))
         }
-        // PG row now has status=FAILED. Emit terminal event.
         this.emitEvent({
-          type: 'run.completed', // shared event type for terminal states
+          type: 'run.completed',
           tenantId,
           runId,
           traceId: run.traceId ?? '',
@@ -1659,6 +1787,8 @@ export class WorkflowEngine {
           error: errorMsg,
         })
         this.traceIdCache.delete(runId)
+      } else {
+        await this.updateRunStatus(runId, newStatus)
       }
     }
 
@@ -1681,20 +1811,16 @@ export class WorkflowEngine {
     const readyNames = getReadySteps(definition.steps, statuses)
 
     for (const name of readyNames) {
-      // Per-workflow concurrency fairness: check before each dispatch
       if (this.config.maxConcurrentStepsPerWorkflow) {
-        const activeCount = await this.db
-          .selectFrom('workflow_steps')
-          .select(sql`count(*)`.as('count'))
-          .where('workflowRunId', '=', runId)
-          .where('status', 'in', ['QUEUED', 'RUNNING'])
-          .executeTakeFirst()
-
+        const { rows: countRows } = await this.db.query<{ count: number }>(
+          `SELECT count(*)::int AS count FROM ${this.q('workflow_steps')} WHERE "workflowRunId" = $1 AND status IN ('QUEUED', 'RUNNING')`,
+          [runId],
+        )
         if (
-          Number(activeCount?.count ?? 0) >=
+          Number(countRows[0]?.count ?? 0) >=
           this.config.maxConcurrentStepsPerWorkflow
         ) {
-          return // Don't dispatch more steps — at concurrency limit
+          return
         }
       }
       const stepDef = definition.steps.find(s => s.name === name)!
@@ -1705,11 +1831,10 @@ export class WorkflowEngine {
         const ctx = this.buildStepContext(run, steps)
         const shouldRun = await stepDef.condition(ctx)
         if (!shouldRun) {
-          await this.db
-            .updateTable('workflow_steps')
-            .set({ status: 'SKIPPED', updatedAt: new Date() })
-            .where('id', '=', stepRow.id)
-            .execute()
+          await this.db.query(
+            `UPDATE ${this.q('workflow_steps')} SET status = $1, "updatedAt" = $2 WHERE id = $3`,
+            ['SKIPPED', new Date(), stepRow.id],
+          )
           await this.logStepEvent(stepRow.id, tenantId, 'skipped')
           await this.advanceWorkflow(runId, tenantId, definition)
           return
@@ -1718,6 +1843,7 @@ export class WorkflowEngine {
 
       let input: JsonObject = {}
       if (stepDef.mapInput) {
+        // Explicit mapping — call user-provided transform
         const completedOutputs: Record<string, JsonObject> = {}
         for (const s of steps) {
           if (s.status === 'COMPLETED' && s.output) {
@@ -1728,40 +1854,47 @@ export class WorkflowEngine {
         completedOutputs.__trigger = (fromJson(run.triggerInput) ??
           {}) as JsonObject
         input = stepDef.mapInput(completedOutputs)
+      } else if (stepDef.dependsOn?.length) {
+        // Auto-pass: pipe upstream output(s) into this step's input.
+        // Single dep → pass output directly (structural typing handles partial match).
+        // Multiple deps → merge keyed by step name: { step_a: outputA, step_b: outputB }.
+        if (stepDef.dependsOn.length === 1) {
+          const depStep = steps.find(s => s.stepName === stepDef.dependsOn![0])
+          input = depStep?.output ? (fromJson(depStep.output) as JsonObject) : {}
+        } else {
+          const merged: JsonObject = {}
+          for (const depName of stepDef.dependsOn) {
+            const depStep = steps.find(s => s.stepName === depName)
+            if (depStep?.output) {
+              (merged as any)[depName] = fromJson(depStep.output) as JsonObject
+            }
+          }
+          input = merged
+        }
       } else {
+        // Root step — gets trigger input
         const run = await this.getRun(runId, tenantId)
         input = (fromJson(run.triggerInput) ?? {}) as JsonObject
       }
 
-      await this.db
-        .updateTable('workflow_steps')
-        .set({
-          input: toJson(input),
-          scheduledAt: new Date(),
-          status: 'QUEUED',
-          updatedAt: new Date(),
-        })
-        .where('id', '=', stepRow.id)
-        .execute()
+      await this.db.query(
+        `UPDATE ${this.q('workflow_steps')} SET input = $1, "scheduledAt" = $2, status = $3, "updatedAt" = $4 WHERE id = $5`,
+        [toJson(input), new Date(), 'QUEUED', new Date(), stepRow.id],
+      )
       await this.logStepEvent(stepRow.id, tenantId, 'queued')
 
       // Re-fetch after update for dispatch
-      const freshStep = await this.db
-        .selectFrom('workflow_steps')
-        .selectAll()
-        .where('id', '=', stepRow.id)
-        .executeTakeFirst()
+      const { rows: freshRows } = await this.db.query<WorkflowStep>(
+        `SELECT * FROM ${this.q('workflow_steps')} WHERE id = $1`,
+        [stepRow.id],
+      )
+      const freshStep = freshRows[0]
       if (freshStep) {
         await this.dispatchStep(runId, tenantId, freshStep, definition)
       }
     }
   }
 
-  /**
-   * Bulk-dispatch step jobs in one round-trip per target queue.
-   * Uses BullMQ's addBulk (one Redis LUA call per queue) when available;
-   * otherwise falls back to the per-step loop for non-BullMQ connectors.
-   */
   private async dispatchStepsBulk(
     items: Array<{
       runId: string
@@ -1781,9 +1914,6 @@ export class WorkflowEngine {
       sandbox: 'workflow_step_sandbox',
     }
 
-    // Build the bulk job list (TaskConnector.bulkQueue shape — backend-agnostic).
-    // Grouping by queue happens inside the adapter (BullMQ groups by taskName
-    // for one addBulk per queue; other backends can fan-out however they want).
     const jobs: Array<{
       uniqueTaskName: string
       taskName: string
@@ -1820,14 +1950,15 @@ export class WorkflowEngine {
       })
     }
 
-    // Backend-agnostic: TaskConnector.bulkQueue (one Lua/HTTP roundtrip per
-    // target queue when the adapter implements it natively).
+    if (!this.config.connector) {
+      return
+    }
+
     if (typeof this.config.connector.bulkQueue === 'function') {
       await this.config.connector.bulkQueue(jobs)
       return
     }
 
-    // Fallback for connectors without bulkQueue — per-step queue() in parallel
     await Promise.all(
       items.map(it =>
         this.dispatchStep(it.runId, it.tenantId, it.step, it.definition),
@@ -1870,6 +2001,10 @@ export class WorkflowEngine {
     const queueName =
       QUEUE_MAP[stepDef.stepWeight ?? 'light'] ?? 'workflow_step_light'
 
+    if (!this.config.connector) {
+      return
+    }
+
     await this.config.connector.queue({
       uniqueTaskName: jobId,
       taskName: queueName,
@@ -1883,15 +2018,17 @@ export class WorkflowEngine {
     runId: string,
     status: WorkflowStatus | string,
   ): Promise<void> {
-    const set: Record<string, unknown> = { status, updatedAt: new Date() }
     if (status === 'RUNNING') {
-      set.startedAt = new Date()
+      await this.db.query(
+        `UPDATE ${this.q('workflow_runs')} SET status = $1, "startedAt" = $2, "updatedAt" = $3 WHERE id = $4`,
+        [status, new Date(), new Date(), runId],
+      )
+    } else {
+      await this.db.query(
+        `UPDATE ${this.q('workflow_runs')} SET status = $1, "updatedAt" = $2 WHERE id = $3`,
+        [status, new Date(), runId],
+      )
     }
-    await this.db
-      .updateTable('workflow_runs')
-      .set(set)
-      .where('id', '=', runId)
-      .execute()
   }
 
   private async updateStepStatus(
@@ -1901,60 +2038,62 @@ export class WorkflowEngine {
     workerIdentity?: string,
   ): Promise<void> {
     if (canStepTransition(currentStatus as StepStatus, newStatus)) {
-      const set: Record<string, unknown> = {
-        status: newStatus,
-        updatedAt: new Date(),
-      }
       if (newStatus === 'RUNNING') {
-        set.startedAt = new Date()
-        if (workerIdentity) {
-          set.executedBy = workerIdentity
-        }
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET status = $1, "startedAt" = $2, "updatedAt" = $3${workerIdentity ? ', "executedBy" = $5' : ''} WHERE id = $4`,
+          workerIdentity
+            ? [newStatus, new Date(), new Date(), stepId, workerIdentity]
+            : [newStatus, new Date(), new Date(), stepId],
+        )
+      } else {
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET status = $1, "updatedAt" = $2 WHERE id = $3`,
+          [newStatus, new Date(), stepId],
+        )
       }
-      await this.db
-        .updateTable('workflow_steps')
-        .set(set)
-        .where('id', '=', stepId)
-        .execute()
     }
   }
 
-  private async logStepEvent(
+  async logStepEvent(
     stepId: string,
     tenantId: string,
     event: string,
     data?: Record<string, unknown>,
+    workflowRunId?: string,
   ): Promise<void> {
-    const entry = { id: Ids.nanoId(21), stepId, tenantId, event, data }
+    const entry = {
+      id: nanoId(21),
+      stepId,
+      workflowRunId: workflowRunId ?? null,
+      tenantId,
+      event,
+      data,
+    }
 
-    // Synchronous path when buffering is disabled (debugging, low-volume use)
     if (this.config.disableLogBuffering || !this.logBuffer) {
-      await this.db
-        .insertInto('workflow_step_logs')
-        .values({
-          id: entry.id,
-          stepId: entry.stepId,
-          tenantId: entry.tenantId,
-          event: entry.event,
-          data: toJson(entry.data ?? null),
-          createdAt: new Date(),
-        })
-        .execute()
+      await this.db.query(
+        `INSERT INTO ${this.q('workflow_step_logs')} (id, "stepId", "workflowRunId", "tenantId", event, data, "createdAt") VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          entry.id,
+          entry.stepId,
+          entry.workflowRunId,
+          entry.tenantId,
+          entry.event,
+          toJson(entry.data ?? null),
+          new Date(),
+        ],
+      )
       return
     }
 
     this.logBuffer.enqueue(entry)
   }
 
-  /**
-   * Batched log writer used by the WriteBuffer flushFn.
-   * COPY FROM if pgPool is available; falls back to a single batched INSERT
-   * otherwise. On failure WriteBuffer re-prepends the items for retry.
-   */
   private async writeLogBatch(
     batch: Array<{
       id: string
       stepId: string
+      workflowRunId: string | null
       tenantId: string
       event: string
       data?: Record<string, unknown>
@@ -1971,6 +2110,7 @@ export class WorkflowEngine {
           [
             e.id,
             e.stepId,
+            e.workflowRunId ?? '\\N',
             e.tenantId,
             e.event,
             esc(toJson(e.data ?? null)),
@@ -1984,7 +2124,7 @@ export class WorkflowEngine {
         const { from: copyFrom } = await import('pg-copy-streams')
         const stream = client.query(
           copyFrom(
-            `COPY ${this.q('workflow_step_logs')} (id, "stepId", "tenantId", event, data, "createdAt") FROM STDIN`,
+            `COPY ${this.q('workflow_step_logs')} (id, "stepId", "workflowRunId", "tenantId", event, data, "createdAt") FROM STDIN`,
           ),
         )
         stream.write(lines)
@@ -1999,52 +2139,41 @@ export class WorkflowEngine {
       return
     }
 
-    await this.db
-      .insertInto('workflow_step_logs')
-      .values(
-        batch.map(e => ({
-          id: e.id,
-          stepId: e.stepId,
-          tenantId: e.tenantId,
-          event: e.event,
-          data: toJson(e.data ?? null),
-          createdAt: new Date(),
-        })),
+    // Fallback: multi-row INSERT
+    const cols = `(id, "stepId", "workflowRunId", "tenantId", event, data, "createdAt")`
+    const placeholders: string[] = []
+    const params: any[] = []
+    let idx = 1
+    for (const e of batch) {
+      placeholders.push(
+        `($${idx},$${idx + 1},$${idx + 2},$${idx + 3},$${idx + 4},$${idx + 5},$${idx + 6})`,
       )
-      .execute()
+      params.push(
+        e.id,
+        e.stepId,
+        e.workflowRunId,
+        e.tenantId,
+        e.event,
+        toJson(e.data ?? null),
+        new Date(),
+      )
+      idx += 7
+    }
+    await this.db.query(
+      `INSERT INTO ${this.q('workflow_step_logs')} ${cols} VALUES ${placeholders.join(',')}`,
+      params,
+    )
   }
 
-  /**
-   * DESIGN: Step-status batching is the next big win (~1.5–2× completion
-   * throughput per Hatchet's pattern), but it requires changes to BullMQ ack
-   * semantics: the per-job promise must wait for the buffered UPDATE to
-   * commit before resolving, otherwise crashes between ack and flush would
-   * silently lose COMPLETED state.
-   *
-   * Sketch:
-   *   - StepStatusBuffer: WriteBuffer<{stepId, status, output?, error?, completedAt}>
-   *   - flushFn issues a single `UPDATE workflow_steps SET status=v.status,
-   *       output=v.output, completed_at=v.ts FROM (VALUES ...) AS v WHERE id = v.id`
-   *   - WorkflowStepTask.handle awaits flushFn completion before returning
-   *     (so BullMQ only acks after PG commit)
-   *   - Same atomic-batch + re-prepend semantics as IngestWorker
-   *
-   * Tracked as a follow-up; not implemented in this commit because the
-   * change to ack semantics needs careful integration testing across all
-   * step paths (markRunning, onCompleted, onFailed, retry, HITL).
-   */
-
   private async getRun(runId: string, tenantId: string): Promise<WorkflowRun> {
-    const run = await this.db
-      .selectFrom('workflow_runs')
-      .selectAll()
-      .where('id', '=', runId)
-      .where('tenantId', '=', tenantId)
-      .executeTakeFirst()
-    if (!run) {
+    const { rows } = await this.db.query<WorkflowRun>(
+      `SELECT * FROM ${this.q('workflow_runs')} WHERE id = $1 AND "tenantId" = $2`,
+      [runId, tenantId],
+    )
+    if (!rows[0]) {
       throw new WorkflowRunNotFoundError(runId)
     }
-    return run
+    return rows[0]
   }
 
   private async getStep(
@@ -2052,93 +2181,93 @@ export class WorkflowEngine {
     stepName: string,
     tenantId: string,
   ): Promise<WorkflowStep> {
-    const step = await this.db
-      .selectFrom('workflow_steps')
-      .selectAll()
-      .where('workflowRunId', '=', runId)
-      .where('stepName', '=', stepName)
-      .where('tenantId', '=', tenantId)
-      .executeTakeFirst()
-    if (!step) {
+    const { rows } = await this.db.query<WorkflowStep>(
+      `SELECT * FROM ${this.q('workflow_steps')} WHERE "workflowRunId" = $1 AND "stepName" = $2 AND "tenantId" = $3`,
+      [runId, stepName, tenantId],
+    )
+    if (!rows[0]) {
       throw new WorkflowRunNotFoundError(
         `Step "${stepName}" in run "${runId}" not found`,
       )
     }
-    return step
+    return rows[0]
   }
 
   private async findSteps(
     runId: string,
     tenantId: string,
   ): Promise<WorkflowStep[]> {
-    return this.db
-      .selectFrom('workflow_steps')
-      .selectAll()
-      .where('workflowRunId', '=', runId)
-      .where('tenantId', '=', tenantId)
-      .execute()
+    const { rows } = await this.db.query<WorkflowStep>(
+      `SELECT * FROM ${this.q('workflow_steps')} WHERE "workflowRunId" = $1 AND "tenantId" = $2`,
+      [runId, tenantId],
+    )
+    return rows
   }
 
   private async getDefinitionForRun(
     runId: string,
   ): Promise<WorkflowDefinition> {
-    const run = await this.db
-      .selectFrom('workflow_runs')
-      .select('workflowName')
-      .where('id', '=', runId)
-      .executeTakeFirst()
-    if (!run) {
+    const { rows } = await this.db.query<{ workflowName: string }>(
+      `SELECT "workflowName" FROM ${this.q('workflow_runs')} WHERE id = $1`,
+      [runId],
+    )
+    if (!rows[0]) {
       throw new WorkflowRunNotFoundError(runId)
     }
-    const def = this.config.workflows.get(run.workflowName)
+    const def = this.config.workflows.get(rows[0].workflowName)
     if (!def) {
-      throw new WorkflowNotFoundError(run.workflowName)
+      throw new WorkflowNotFoundError(rows[0].workflowName)
     }
     return def
   }
 
   // ── Budget Guardrails ─────────────────────────────────────────
 
-  /**
-   * Increment budget usage and check limits. Returns the reason if budget is exceeded, null otherwise.
-   */
   async incrementBudgetUsage(
     runId: string,
     field: keyof BudgetUsed,
     amount: number = 1,
   ): Promise<string | null> {
-    const run = await this.db
-      .selectFrom('workflow_runs')
-      .select(['budget', 'budgetUsed'])
-      .where('id', '=', runId)
-      .executeTakeFirst()
+    const { rows } = await this.db.query<{
+      budget: string | null
+      budgetUsed: string | null
+    }>(
+      `UPDATE ${this.q('workflow_runs')}
+       SET "budgetUsed" = (
+         SELECT jsonb_set(
+           COALESCE("budgetUsed"::jsonb, '{"tokens":0,"costUsd":0,"steps":0,"taskExecutions":0}'::jsonb),
+           '{${field}}',
+           to_jsonb(
+             COALESCE(
+               (COALESCE("budgetUsed"::jsonb, '{"tokens":0,"costUsd":0,"steps":0,"taskExecutions":0}'::jsonb) ->> '${field}')::numeric,
+               0
+             ) + $1
+           )
+         )::text
+       ),
+       "updatedAt" = NOW()
+       WHERE id = $2
+       RETURNING budget, "budgetUsed"`,
+      [amount, runId],
+    )
 
-    if (!run) {
+    const row = rows[0]
+    if (!row) {
       return null
     }
 
-    const budget = fromJson<WorkflowBudget>(run.budget)
-    const used = fromJson<BudgetUsed>(run.budgetUsed) ?? {
+    const budget = fromJson<WorkflowBudget>(row.budget)
+    const used = fromJson<BudgetUsed>(row.budgetUsed) ?? {
       tokens: 0,
       costUsd: 0,
       steps: 0,
       taskExecutions: 0,
     }
 
-    used[field] = (used[field] ?? 0) + amount
-
-    // Persist updated usage
-    await this.db
-      .updateTable('workflow_runs')
-      .set({ budgetUsed: toJson(used), updatedAt: new Date() })
-      .where('id', '=', runId)
-      .execute()
-
     if (!budget) {
       return null
     }
 
-    // Check limits (>= because reaching the limit means it's exceeded)
     if (budget.maxTokens && used.tokens >= budget.maxTokens) {
       return `Token budget exceeded: ${used.tokens}/${budget.maxTokens}`
     }
@@ -2158,18 +2287,17 @@ export class WorkflowEngine {
     return null
   }
 
-  /**
-   * Get the current budget usage for a workflow run.
-   */
   async getBudgetUsage(
     runId: string,
   ): Promise<{ budget: WorkflowBudget | null; used: BudgetUsed }> {
-    const run = await this.db
-      .selectFrom('workflow_runs')
-      .select(['budget', 'budgetUsed'])
-      .where('id', '=', runId)
-      .executeTakeFirst()
-
+    const { rows } = await this.db.query<{
+      budget: string | null
+      budgetUsed: string | null
+    }>(
+      `SELECT budget, "budgetUsed" FROM ${this.q('workflow_runs')} WHERE id = $1`,
+      [runId],
+    )
+    const run = rows[0]
     return {
       budget: run ? fromJson<WorkflowBudget>(run.budget) : null,
       used: run
@@ -2198,14 +2326,9 @@ export class WorkflowEngine {
       tenantId: run.tenantId,
       completedOutputs,
       triggerInput: (fromJson(run.triggerInput) ?? {}) as JsonObject,
-      // tasks are populated lazily via getTaskResults() when needed
     }
   }
 
-  /**
-   * Build a StepContext with task results from upstream steps populated.
-   * Used by aggregation steps that need to access fan-out results.
-   */
   async buildStepContextWithTasks(
     run: WorkflowRun,
     steps: WorkflowStep[],
@@ -2221,7 +2344,6 @@ export class WorkflowEngine {
       }>
     > = {}
 
-    // Populate task results for all completed steps that used task_runner
     for (const s of steps) {
       if (s.status === 'COMPLETED' && s.executorType === 'task_runner') {
         tasks[s.stepName] = await this.taskManager.getTaskResults(
@@ -2245,5 +2367,354 @@ export class WorkflowEngine {
       }
     }
     return merged
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // DBOS-parity v2 features
+  // ══════════════════════════════════════════════════════════════════
+
+  // ── 1. Durable Sleep ──────────────────────────────────────────────
+
+  async durableSleep(
+    runId: string,
+    stepName: string,
+    tenantId: string,
+    durationMs: number,
+  ): Promise<void> {
+    const step = await this.getStep(runId, stepName, tenantId)
+    const deadlineEpochMs = Date.now() + durationMs
+
+    await this.db.query(
+      `UPDATE ${this.q('workflow_steps')} SET status = $1, "deadlineEpochMs" = $2, "updatedAt" = $3 WHERE id = $4`,
+      ['SLEEPING', String(deadlineEpochMs), new Date(), step.id],
+    )
+
+    const remaining = deadlineEpochMs - Date.now()
+    if (remaining > 0) {
+      await new Promise<void>(resolve => setTimeout(resolve, remaining))
+    }
+
+    await this.db.query(
+      `UPDATE ${this.q('workflow_steps')} SET status = $1, "updatedAt" = $2 WHERE id = $3 AND status = $4`,
+      ['RUNNING', new Date(), step.id, 'SLEEPING'],
+    )
+  }
+
+  async resumeDurableSleep(
+    runId: string,
+    stepName: string,
+    tenantId: string,
+  ): Promise<void> {
+    const step = await this.getStep(runId, stepName, tenantId)
+    if (step.status !== 'SLEEPING' || !step.deadlineEpochMs) {
+      return
+    }
+
+    const remaining = Number(step.deadlineEpochMs) - Date.now()
+    if (remaining > 0) {
+      await new Promise<void>(resolve => setTimeout(resolve, remaining))
+    }
+
+    await this.db.query(
+      `UPDATE ${this.q('workflow_steps')} SET status = $1, "updatedAt" = $2 WHERE id = $3 AND status = $4`,
+      ['RUNNING', new Date(), step.id, 'SLEEPING'],
+    )
+  }
+
+  // ── 2. Timeout Enforcement ─────────────────────────────────────────
+
+  async sweepTimedOutSteps(): Promise<number> {
+    const { rows } = await this.db.query<{ id: string }>(
+      `UPDATE ${this.q('workflow_steps')}
+       SET status = 'FAILED',
+           error = 'Heartbeat timeout exceeded',
+           "completedAt" = NOW(),
+           "updatedAt" = NOW()
+       WHERE id IN (
+         SELECT id FROM ${this.q('workflow_steps')}
+         WHERE status = 'RUNNING'
+           AND "heartbeatTimeoutMs" IS NOT NULL
+           AND "lastHeartbeatAt" IS NOT NULL
+           AND EXTRACT(EPOCH FROM (NOW() - "lastHeartbeatAt")) * 1000 > "heartbeatTimeoutMs"
+       )
+       RETURNING id`,
+    )
+    return rows.length
+  }
+
+  async sweepTimedOutWorkflows(): Promise<number> {
+    const now = String(Date.now())
+    const { rowCount } = await this.db.query(
+      `UPDATE ${this.q('workflow_runs')}
+       SET status = 'FAILED',
+           error = 'Workflow timeout exceeded',
+           "completedAt" = NOW(),
+           "updatedAt" = NOW()
+       WHERE status = 'RUNNING'
+         AND "deadlineEpochMs" IS NOT NULL
+         AND "deadlineEpochMs"::BIGINT <= $1::BIGINT`,
+      [now],
+    )
+    return rowCount ?? 0
+  }
+
+  // ── 3. Workflow Forking ───────────────────────────────────────────
+
+  async forkWorkflow(
+    runId: string,
+    tenantId: string,
+    fromStepName: string,
+  ): Promise<{ runId: string }> {
+    const run = await this.getRun(runId, tenantId)
+    const steps = await this.findSteps(runId, tenantId)
+    const definition = this.config.workflows.get(run.workflowName)
+    if (!definition) {
+      throw new WorkflowNotFoundError(run.workflowName)
+    }
+
+    const newRunId = nanoId(21)
+    const now = new Date()
+
+    await this.db.query(
+      `INSERT INTO ${this.q('workflow_runs')} (id, "tenantId", "workflowName", "workflowVersion", status, "definitionSnapshot", "triggerInput", "idempotencyKey", "traceId", "parentRunId", "originEventId", budget, "budgetUsed", "forkedFromRunId", "applicationVersion", "deadlineEpochMs", "timeoutMs", "delayUntilEpochMs", "startedAt", "createdAt", "updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+      [
+        newRunId,
+        tenantId,
+        run.workflowName,
+        run.workflowVersion,
+        'RUNNING',
+        run.definitionSnapshot,
+        run.triggerInput,
+        null,
+        nanoId(21),
+        null,
+        null,
+        run.budget,
+        toJson({ tokens: 0, costUsd: 0, steps: 0, taskExecutions: 0 }),
+        runId,
+        (run as any).applicationVersion ?? null,
+        null,
+        null,
+        null,
+        now,
+        now,
+        now,
+      ],
+    )
+
+    const completedStepNames = new Set<string>()
+    for (const step of steps) {
+      if (step.status === 'COMPLETED') {
+        completedStepNames.add(step.stepName)
+      }
+      if (step.stepName === fromStepName) {
+        break
+      }
+    }
+
+    for (const stepDef of definition.steps) {
+      const originalStep = steps.find(s => s.stepName === stepDef.name)
+      const isCompleted = completedStepNames.has(stepDef.name)
+
+      await this.db.query(
+        `INSERT INTO ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "heartbeatTimeoutMs", "iterationCount", "maxIterations", "requiresLabels", "deadlineEpochMs", "startedAt", "completedAt", "createdAt", "updatedAt")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+        [
+          nanoId(21),
+          newRunId,
+          tenantId,
+          stepDef.name,
+          isCompleted ? 'COMPLETED' : 'PENDING',
+          stepDef.executorType,
+          toJson(stepDef.executorConfig),
+          toJson(stepDef.dependsOn ?? []),
+          originalStep?.input ?? null,
+          isCompleted ? (originalStep?.output ?? null) : null,
+          null,
+          0,
+          stepDef.retries ?? definition.defaultRetries,
+          stepDef.heartbeatTimeoutMs ?? null,
+          0,
+          stepDef.maxIterations ?? null,
+          stepDef.requiresLabels?.length
+            ? toJson(stepDef.requiresLabels)
+            : null,
+          null,
+          isCompleted ? (originalStep?.startedAt ?? null) : null,
+          isCompleted ? (originalStep?.completedAt ?? null) : null,
+          now,
+          now,
+        ],
+      )
+    }
+
+    return { runId: newRunId }
+  }
+
+  // ── 5. Workflow Streaming ─────────────────────────────────────────
+
+  static readonly STREAM_CLOSED_SENTINEL = '__DELPHI_STREAM_CLOSED__'
+
+  async writeStream(runId: string, key: string, value: string): Promise<void> {
+    const { rows: maxRows } = await this.db.query<{ maxOffset: number }>(
+      `SELECT COALESCE(MAX("offset"), -1) AS "maxOffset" FROM ${this.q('workflow_streams')} WHERE "workflowRunId" = $1 AND key = $2`,
+      [runId, key],
+    )
+    const nextOffset = (maxRows[0]?.maxOffset ?? -1) + 1
+
+    await this.db.query(
+      `INSERT INTO ${this.q('workflow_streams')} (id, "workflowRunId", key, "offset", value) VALUES ($1,$2,$3,$4,$5)`,
+      [nanoId(21), runId, key, nextOffset, value],
+    )
+  }
+
+  async readStream(
+    runId: string,
+    key: string,
+    fromOffset = 0,
+  ): Promise<{ values: string[]; closed: boolean }> {
+    const { rows } = await this.db.query<{ value: string; offset: number }>(
+      `SELECT value, "offset" FROM ${this.q('workflow_streams')} WHERE "workflowRunId" = $1 AND key = $2 AND "offset" >= $3 ORDER BY "offset" ASC`,
+      [runId, key, fromOffset],
+    )
+
+    const values: string[] = []
+    let closed = false
+    for (const row of rows) {
+      if (row.value === WorkflowEngine.STREAM_CLOSED_SENTINEL) {
+        closed = true
+        break
+      }
+      values.push(row.value)
+    }
+    return { values, closed }
+  }
+
+  async closeStream(runId: string, key: string): Promise<void> {
+    await this.writeStream(runId, key, WorkflowEngine.STREAM_CLOSED_SENTINEL)
+  }
+
+  // ── 6. Version-Aware Dispatch ─────────────────────────────────────
+
+  async recoverPendingWorkflows(applicationVersion: string): Promise<string[]> {
+    const { rows } = await this.db.query<{ id: string }>(
+      `SELECT id FROM ${this.q('workflow_runs')} WHERE "applicationVersion" = $1 AND status IN ('RUNNING', 'PENDING')`,
+      [applicationVersion],
+    )
+    return rows.map(r => r.id)
+  }
+
+  // ── 7. Instant Delayed Execution ──────────────────────────────────
+
+  async transitionDelayedWorkflows(): Promise<number> {
+    const now = String(Date.now())
+    const { rowCount } = await this.db.query(
+      `UPDATE ${this.q('workflow_runs')}
+       SET status = 'RUNNING',
+           "startedAt" = NOW(),
+           "updatedAt" = NOW()
+       WHERE status = 'DELAYED'
+         AND "delayUntilEpochMs" IS NOT NULL
+         AND "delayUntilEpochMs"::BIGINT <= $1::BIGINT`,
+      [now],
+    )
+    return rowCount ?? 0
+  }
+
+  // ── 9. Queue Partitioning ─────────────────────────────────────
+
+  async createPartitionedTasks(
+    runId: string,
+    stepName: string,
+    tasks: Array<{ payload: Record<string, unknown>; partitionKey?: string }>,
+  ): Promise<string[]> {
+    if (tasks.length === 0) {
+      return []
+    }
+    const ids: string[] = []
+    for (const t of tasks) {
+      const id = nanoId(21)
+      ids.push(id)
+      await this.db.query(
+        `INSERT INTO ${this.q('workflow_tasks')} (id, "workflowRunId", "stepName", status, payload, result, error, attempt, "maxRetries", priority, "queuePartitionKey")
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [
+          id,
+          runId,
+          stepName,
+          'pending',
+          toJson(t.payload),
+          null,
+          null,
+          0,
+          3,
+          null,
+          t.partitionKey ?? null,
+        ],
+      )
+    }
+    return ids
+  }
+
+  async fetchNextPartitionedTask(
+    runId: string,
+    stepName: string,
+    partitionKey?: string,
+  ): Promise<import('../entities/Database.js').WorkflowTask | null> {
+    if (partitionKey) {
+      const { rows } = await this.db.query<
+        import('../entities/Database.js').WorkflowTask
+      >(
+        `SELECT * FROM ${this.q('workflow_tasks')}
+         WHERE "workflowRunId" = $1
+           AND "stepName" = $2
+           AND status = 'pending'
+           AND "queuePartitionKey" = $3
+         ORDER BY priority DESC NULLS LAST, "createdAt" ASC
+         LIMIT 1
+         FOR UPDATE SKIP LOCKED`,
+        [runId, stepName, partitionKey],
+      )
+      return rows[0] ?? null
+    }
+    return this.taskManager.fetchNextTask(runId, stepName)
+  }
+
+  // ── 10. Dual-Mode GC ─────────────────────────────────────────────
+
+  async gc(opts: {
+    retentionDays?: number
+    maxRows?: number
+  }): Promise<number> {
+    let cutoffDate: Date | null = null
+
+    if (opts.retentionDays != null) {
+      cutoffDate = new Date(Date.now() - opts.retentionDays * 86_400_000)
+    }
+
+    if (opts.maxRows != null) {
+      const { rows } = await this.db.query<{ createdAt: string }>(
+        `SELECT "createdAt" FROM ${this.q('workflow_runs')} ORDER BY "createdAt" DESC OFFSET $1 LIMIT 1`,
+        [opts.maxRows],
+      )
+      if (rows[0]) {
+        const maxRowsCutoff = new Date(rows[0].createdAt as string)
+        if (!cutoffDate || maxRowsCutoff > cutoffDate) {
+          cutoffDate = maxRowsCutoff
+        }
+      }
+    }
+
+    if (!cutoffDate) {
+      return 0
+    }
+
+    const { rowCount } = await this.db.query(
+      `DELETE FROM ${this.q('workflow_runs')} WHERE status IN ('COMPLETED', 'FAILED', 'CANCELLED') AND "createdAt" <= $1`,
+      [cutoffDate],
+    )
+
+    return rowCount ?? 0
   }
 }

@@ -2,8 +2,12 @@
 //
 // Observability: step latency, external action latency, cost-per-step metrics.
 //
-import type { Kysely } from 'kysely'
-import type { Database } from '../entities/Database.js'
+import type { DbClient } from '../db/DbClient.js'
+import type {
+  ExternalAction,
+  WorkflowRun,
+  WorkflowStep,
+} from '../entities/Database.js'
 
 // ── Metric Types ──────────────────────────────────────────────────
 
@@ -11,20 +15,13 @@ export interface StepLatencyMetrics {
   stepName: string
   executorType: string
   status: string
-  /** ms from step creation to queued */
   queueLatencyMs: number | null
-  /** ms from queued to running (schedule-to-start) */
   scheduleToStartMs: number | null
-  /** ms from running to completed/failed (execution time) */
   executionMs: number | null
-  /** ms from creation to completion (total) */
   totalMs: number | null
   attempt: number
-  /** Token usage (if tracked by StepCostTracker) */
   tokensUsed: number | null
-  /** Cost in USD (if tracked) */
   costUsd: number | null
-  /** Model used (if tracked) */
   modelUsed: string | null
 }
 
@@ -32,7 +29,6 @@ export interface ExternalActionMetrics {
   provider: string
   actionType: string
   status: string
-  /** ms from creation to completion */
   latencyMs: number | null
   cached: boolean
 }
@@ -41,62 +37,49 @@ export interface WorkflowRunMetrics {
   workflowRunId: string
   workflowName: string
   status: string
-  /** ms from start to completion */
   totalMs: number | null
   stepCount: number
   completedStepCount: number
   failedStepCount: number
-  /** Total tokens used across all steps */
   totalTokens: number
-  /** Total cost in USD across all steps */
   totalCostUsd: number
   steps: StepLatencyMetrics[]
   externalActions: ExternalActionMetrics[]
 }
 
 export interface AggregateMetrics {
-  /** Average step execution time per executor type */
   avgExecutionMsByExecutor: Record<string, number>
-  /** Average external action latency per provider */
   avgActionLatencyByProvider: Record<string, number>
-  /** Total actions per provider */
   actionCountByProvider: Record<string, number>
-  /** p50/p95/p99 step execution times */
   stepExecutionPercentiles: { p50: number; p95: number; p99: number } | null
 }
 
 // ── Collector ─────────────────────────────────────────────────────
 
 export class WorkflowMetricsCollector {
-  constructor(private db: Kysely<Database>) {}
+  constructor(private db: DbClient) {}
 
-  /**
-   * Get detailed metrics for a single workflow run.
-   */
   async getRunMetrics(
     workflowRunId: string,
   ): Promise<WorkflowRunMetrics | null> {
-    const run = await this.db
-      .selectFrom('workflow_runs')
-      .selectAll()
-      .where('id', '=', workflowRunId)
-      .executeTakeFirst()
-
+    const { rows: runRows } = await this.db.query<WorkflowRun>(
+      `SELECT * FROM workflow_runs WHERE id = $1`,
+      [workflowRunId],
+    )
+    const run = runRows[0]
     if (!run) {
       return null
     }
 
-    const steps = await this.db
-      .selectFrom('workflow_steps')
-      .selectAll()
-      .where('workflowRunId', '=', workflowRunId)
-      .execute()
+    const { rows: steps } = await this.db.query<WorkflowStep>(
+      `SELECT * FROM workflow_steps WHERE "workflowRunId" = $1`,
+      [workflowRunId],
+    )
 
-    const actions = await this.db
-      .selectFrom('external_actions')
-      .selectAll()
-      .where('workflowRunId', '=', workflowRunId)
-      .execute()
+    const { rows: actions } = await this.db.query<ExternalAction>(
+      `SELECT * FROM external_actions WHERE "workflowRunId" = $1`,
+      [workflowRunId],
+    )
 
     const stepMetrics: StepLatencyMetrics[] = steps.map(s => {
       const created = toMs(s.createdAt)
@@ -124,7 +107,7 @@ export class WorkflowMetricsCollector {
       actionType: a.actionType,
       status: a.status,
       latencyMs: diffMs(toMs(a.createdAt), toMs(a.completedAt)),
-      cached: false, // cached responses don't create DB rows
+      cached: false,
     }))
 
     const runStart = toMs(run.startedAt)
@@ -154,38 +137,40 @@ export class WorkflowMetricsCollector {
     }
   }
 
-  /**
-   * Get aggregate metrics across multiple workflow runs.
-   */
   async getAggregateMetrics(
     tenantId: string,
     opts?: { since?: Date; workflowName?: string },
   ): Promise<AggregateMetrics> {
-    let stepsQuery = this.db
-      .selectFrom('workflow_steps')
-      .selectAll()
-      .where('tenantId', '=', tenantId)
-      .where('status', 'in', ['COMPLETED', 'FAILED'])
+    let stepsQuery = `SELECT * FROM workflow_steps WHERE "tenantId" = $1 AND status IN ('COMPLETED', 'FAILED')`
+    const stepsParams: any[] = [tenantId]
+    let paramIdx = 2
 
     if (opts?.since) {
-      stepsQuery = stepsQuery.where('completedAt', '>=', opts.since)
+      stepsQuery += ` AND "completedAt" >= $${paramIdx}`
+      stepsParams.push(opts.since)
+      paramIdx++
     }
 
-    const steps = await stepsQuery.execute()
+    const { rows: steps } = await this.db.query<WorkflowStep>(
+      stepsQuery,
+      stepsParams,
+    )
 
-    let actionsQuery = this.db
-      .selectFrom('external_actions')
-      .selectAll()
-      .where('tenantId', '=', tenantId)
-      .where('status', '=', 'completed')
+    let actionsQuery = `SELECT * FROM external_actions WHERE "tenantId" = $1 AND status = 'completed'`
+    const actionsParams: any[] = [tenantId]
+    let actionsParamIdx = 2
 
     if (opts?.since) {
-      actionsQuery = actionsQuery.where('completedAt', '>=', opts.since)
+      actionsQuery += ` AND "completedAt" >= $${actionsParamIdx}`
+      actionsParams.push(opts.since)
+      actionsParamIdx++
     }
 
-    const actions = await actionsQuery.execute()
+    const { rows: actions } = await this.db.query<ExternalAction>(
+      actionsQuery,
+      actionsParams,
+    )
 
-    // Aggregate step execution times by executor type
     const execByType: Record<string, number[]> = {}
     const allExecTimes: number[] = []
 
@@ -209,7 +194,6 @@ export class WorkflowMetricsCollector {
       )
     }
 
-    // Aggregate action latency by provider
     const latencyByProvider: Record<string, number[]> = {}
     const countByProvider: Record<string, number> = {}
 
@@ -231,7 +215,6 @@ export class WorkflowMetricsCollector {
       )
     }
 
-    // Percentiles
     let stepExecutionPercentiles: {
       p50: number
       p95: number

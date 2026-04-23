@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/delphi-ui",
-  "version": "0.1.4",
+  "version": "0.1.10",
   "description": "Workflow dashboard for the Goat agent ecosystem",
   "type": "module",
   "main": "dist/index.js",

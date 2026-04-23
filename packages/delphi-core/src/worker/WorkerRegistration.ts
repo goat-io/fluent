@@ -1,40 +1,28 @@
-import { hostname, cpus, totalmem } from 'os'
-import { randomUUID } from 'crypto'
 import cluster from 'node:cluster'
-import type { Kysely } from 'kysely'
-import type { Database } from '../entities/Database.js'
+import { randomUUID } from 'crypto'
+import { cpus, hostname, totalmem } from 'os'
+import type { DbClient } from '../db/DbClient.js'
 import { toJson } from '../entities/Database.js'
 
 export interface WorkerSelfRegistrationConfig {
-  db: Kysely<Database>
-  /** Worker name. Defaults to hostname:pid */
+  db: DbClient
   name?: string
-  /** Tenant scope. null = global (serves all tenants) */
   tenantId?: string | null
-  /** Account scope. null = not account-scoped */
   accountId?: string | null
-  /** Heartbeat interval in ms. Default: 30000 */
   heartbeatMs?: number
-  /** Worker capabilities. Omitted fields auto-detected. */
   capabilities?: {
     cpuCount?: number
     memoryMB?: number
     gpuAvailable?: boolean
     dockerAvailable?: boolean
     queues?: string[]
-    /**
-     * Labels this worker advertises for GitHub-Actions-style step
-     * routing. AND-matched against a step's `requiresLabels`. Auto-
-     * falls back to `process.env.DELPHI_WORKER_LABELS` (comma-separated)
-     * if not explicitly provided.
-     */
     labels?: string[]
     [key: string]: unknown
   }
 }
 
 export class WorkerSelfRegistration {
-  private readonly db: Kysely<Database>
+  private readonly db: DbClient
   private readonly workerName: string
   private readonly tenantId: string | null
   private readonly accountId: string | null
@@ -49,21 +37,15 @@ export class WorkerSelfRegistration {
     const clusterSuffix = cluster.isWorker
       ? `:w${process.env.DELPHI_WORKER_INDEX ?? cluster.worker?.id ?? ''}`
       : ''
-    this.workerName = config.name ?? `${hostname()}:${process.pid}${clusterSuffix}`
+    this.workerName =
+      config.name ?? `${hostname()}:${process.pid}${clusterSuffix}`
     this.tenantId = config.tenantId ?? null
     this.accountId = config.accountId ?? null
     this.heartbeatMs = config.heartbeatMs ?? 30_000
 
-    // Auto-detect capabilities for this process.
-    // Each cluster fork gets 1 CPU core and an equal share of machine RAM.
-    // Node cluster forks don't share memory — each has its own V8 heap.
-    const workerCount = parseInt(process.env.DELPHI_WORKER_COUNT || '1', 10) || 1
+    const workerCount =
+      Number.parseInt(process.env.DELPHI_WORKER_COUNT || '1', 10) || 1
     const machineMemMB = Math.round(totalmem() / 1024 / 1024)
-    // Labels: explicit config wins; else DELPHI_WORKER_LABELS env var
-    // (comma-separated); else undefined (worker accepts any step
-    // without label requirements). Deployments use the env var to
-    // segregate fleets — e.g. Cloud Run omits 'sdlc', MacBooks set
-    // DELPHI_WORKER_LABELS=sdlc.
     const envLabels = process.env.DELPHI_WORKER_LABELS
       ? process.env.DELPHI_WORKER_LABELS.split(',')
           .map(s => s.trim())
@@ -79,36 +61,32 @@ export class WorkerSelfRegistration {
     }
   }
 
-  /** Register this worker and start heartbeat. */
   async register(): Promise<string> {
     const id = randomUUID()
 
-    // Clean up stale workers from the same hostname (previous restarts/crashes)
     try {
-      await this.db
-        .updateTable('worker_nodes')
-        .set({ status: 'offline' })
-        .where('hostname', '=', hostname())
-        .where('status', '=', 'active')
-        .execute()
+      await this.db.query(
+        `UPDATE worker_nodes SET status = $1 WHERE hostname = $2 AND status = $3`,
+        ['offline', hostname(), 'active'],
+      )
     } catch {
-      // Non-critical — old entries will expire via heartbeat timeout
+      // Non-critical
     }
 
-    await this.db
-      .insertInto('worker_nodes')
-      .values({
+    await this.db.query(
+      `INSERT INTO worker_nodes (id, "tenantId", "accountId", name, hostname, capabilities, status, "lastHeartbeatAt", "registeredAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
         id,
-        tenantId: this.tenantId,
-        accountId: this.accountId,
-        name: this.workerName,
-        hostname: hostname(),
-        capabilities: toJson(this.capabilities),
-        status: 'active',
-        lastHeartbeatAt: new Date(),
-        registeredAt: new Date(),
-      })
-      .execute()
+        this.tenantId,
+        this.accountId,
+        this.workerName,
+        hostname(),
+        toJson(this.capabilities),
+        'active',
+        new Date(),
+        new Date(),
+      ],
+    )
 
     this.workerId = id
 
@@ -119,17 +97,14 @@ export class WorkerSelfRegistration {
     return id
   }
 
-  /** Send a heartbeat to keep the worker alive. */
   async heartbeat(): Promise<void> {
     if (!this.workerId) return
-    await this.db
-      .updateTable('worker_nodes')
-      .set({ lastHeartbeatAt: new Date() })
-      .where('id', '=', this.workerId)
-      .execute()
+    await this.db.query(
+      `UPDATE worker_nodes SET "lastHeartbeatAt" = $1 WHERE id = $2`,
+      [new Date(), this.workerId],
+    )
   }
 
-  /** Mark worker offline and stop heartbeat. */
   async deregister(): Promise<void> {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer)
@@ -138,21 +113,19 @@ export class WorkerSelfRegistration {
 
     if (this.workerId) {
       await this.db
-        .updateTable('worker_nodes')
-        .set({ status: 'offline' })
-        .where('id', '=', this.workerId)
-        .execute()
+        .query(`UPDATE worker_nodes SET status = $1 WHERE id = $2`, [
+          'offline',
+          this.workerId,
+        ])
         .catch(() => {})
       this.workerId = null
     }
   }
 
-  /** Get the registered worker ID, or null if not registered. */
   getId(): string | null {
     return this.workerId
   }
 
-  /** Get the worker name. */
   getName(): string {
     return this.workerName
   }

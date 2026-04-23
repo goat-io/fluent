@@ -4,10 +4,8 @@
 // database schema. Catches column order drift that would cause silent data corruption.
 //
 
-import type { Kysely } from 'kysely'
-import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { Database } from '../../entities/Database.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { getSharedDb, releaseSharedDb } from './shared.js'
 
 // Extract the COPY column lists from the engine source (hardcoded here to match)
@@ -68,7 +66,7 @@ const COPY_STEPS_COLUMNS = [
 const RUNS_INTENTIONALLY_OMITTED = ['output', 'error']
 
 describe('COPY FROM Column Validation', () => {
-  let db: Kysely<Database>
+  let db: TestDb
 
   beforeAll(async () => {
     db = await getSharedDb()
@@ -79,11 +77,11 @@ describe('COPY FROM Column Validation', () => {
   })
 
   it('workflow_runs COPY columns are a valid subset of actual table columns', async () => {
-    const result = await sql<{ column_name: string }>`
+    const result = await db.query<{ column_name: string }>(`
       SELECT column_name FROM information_schema.columns
       WHERE table_name = 'workflow_runs'
       ORDER BY ordinal_position
-    `.execute(db)
+    `)
 
     const actualColumns = result.rows.map(r => r.column_name)
 
@@ -101,11 +99,11 @@ describe('COPY FROM Column Validation', () => {
   })
 
   it('workflow_steps COPY columns match all actual table columns', async () => {
-    const result = await sql<{ column_name: string }>`
+    const result = await db.query<{ column_name: string }>(`
       SELECT column_name FROM information_schema.columns
       WHERE table_name = 'workflow_steps'
       ORDER BY ordinal_position
-    `.execute(db)
+    `)
 
     const actualColumns = result.rows.map(r => r.column_name)
 

@@ -14,16 +14,18 @@ const WORKFLOW_TRANSITIONS: Record<WorkflowStatus, WorkflowStatus[]> = {
   COMPLETED: [],
   FAILED: [],
   CANCELLED: [],
+  DELAYED: ['RUNNING', 'CANCELLED'],
 }
 
 const STEP_TRANSITIONS: Record<StepStatus, StepStatus[]> = {
   PENDING: ['QUEUED', 'SKIPPED'],
   QUEUED: ['RUNNING', 'FAILED'],
-  RUNNING: ['COMPLETED', 'FAILED', 'WAITING_HUMAN'],
+  RUNNING: ['COMPLETED', 'FAILED', 'WAITING_HUMAN', 'SLEEPING'],
   COMPLETED: [],
   FAILED: ['QUEUED'], // retry
   SKIPPED: [],
   WAITING_HUMAN: ['QUEUED', 'COMPLETED'], // resume after human input, or complete directly
+  SLEEPING: ['RUNNING', 'COMPLETED', 'FAILED'], // wake from durable sleep
 }
 
 // ── Transition Checks ──────────────────────────────────────────────
@@ -67,7 +69,10 @@ export function deriveWorkflowStatus(
 
   const hasFailed = steps.some(s => s.status === 'FAILED')
   const hasActive = steps.some(
-    s => s.status === 'QUEUED' || s.status === 'RUNNING',
+    s =>
+      s.status === 'QUEUED' ||
+      s.status === 'RUNNING' ||
+      s.status === 'SLEEPING',
   )
 
   if (hasFailed && !hasActive) {

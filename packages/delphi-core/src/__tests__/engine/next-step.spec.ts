@@ -3,10 +3,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -94,7 +93,7 @@ async function waitForWorkflowStatus(
 }
 
 describe('nextStep Runtime Transitions', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let executor: FunctionStepExecutor
 
   beforeAll(async () => {
@@ -128,13 +127,18 @@ describe('nextStep Runtime Transitions', () => {
 
   async function executeStep(engine: WorkflowEngine, job: any) {
     const payload = job.taskBody as StepPayload
-    await db
-      .updateTable('workflow_steps')
-      .set({ status: 'RUNNING', startedAt: new Date(), updatedAt: new Date() })
-      .where('workflowRunId', '=', payload.workflowRunId)
-      .where('stepName', '=', payload.stepName)
-      .where('status', 'in', ['QUEUED', 'PENDING'])
-      .execute()
+    await db.query(
+      'UPDATE workflow_steps SET status = $1, "startedAt" = $2, "updatedAt" = $3 WHERE "workflowRunId" = $4 AND "stepName" = $5 AND status IN ($6, $7)',
+      [
+        'RUNNING',
+        new Date(),
+        new Date(),
+        payload.workflowRunId,
+        payload.stepName,
+        'QUEUED',
+        'PENDING',
+      ],
+    )
 
     const exec = engine.getExecutor(payload.executorType)!
     try {

@@ -1,9 +1,8 @@
 // npx vitest run src/__tests__/engine/integrations.spec.ts
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
-import type { Database } from '../../entities/Database.js'
 import type { GitHubClient } from '../../integrations/github/GitHubIntegration.js'
 import { createGitHubIntegration } from '../../integrations/github/GitHubIntegration.js'
 import { IntegrationRegistry } from '../../integrations/IntegrationRegistry.js'
@@ -15,7 +14,7 @@ import type { StepExecutionContext } from '../../workflow/WorkflowBuilder.types.
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('Integrations', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let executor: ExternalActionExecutor
 
   beforeAll(async () => {

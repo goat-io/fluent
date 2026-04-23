@@ -4,11 +4,9 @@
 // Tests cron scheduling, idempotency, tick lifecycle, and trigger-to-workflow flow.
 //
 
-import type { Kysely } from 'kysely'
-import { sql } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'
 import { SchedulerService } from '../../scheduler/SchedulerService.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
@@ -57,7 +55,7 @@ function createMockConnector() {
 }
 
 describe('SchedulerService', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let eventIngestion: EventIngestionService
   let scheduler: SchedulerService
 
@@ -71,7 +69,7 @@ describe('SchedulerService', () => {
 
   beforeEach(async () => {
     await truncateAll(db)
-    await sql`TRUNCATE TABLE workflow_schedules CASCADE`.execute(db)
+    await db.query(`TRUNCATE TABLE workflow_schedules CASCADE`)
 
     eventIngestion = new EventIngestionService({ db, skipAutoProcess: true })
     scheduler = new SchedulerService({

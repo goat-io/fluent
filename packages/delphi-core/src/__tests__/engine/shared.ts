@@ -1,10 +1,13 @@
-// Shared Kysely database for all engine integration tests
+// Shared DbClient database for all engine integration tests
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
-import type { Database } from '../../entities/Database.js'
+import type { DbClient } from '../../db/DbClient.js'
+import { createDbClient } from '../../db/DbClient.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
+import { wrapTestDb } from '../../db/TestQueryBuilder.js'
 import { CREATE_TABLES_SQL } from '../../entities/Database.js'
+import { runMigrations } from '../../migrations/runner.js'
 
 interface GlobalTestData {
   redis: { host: string; port: number }
@@ -23,11 +26,11 @@ function getGlobalData(): GlobalTestData {
   )
 }
 
-let sharedDb: Kysely<Database> | null = null
-let initPromise: Promise<Kysely<Database>> | null = null
+let sharedDb: TestDb | null = null
+let initPromise: Promise<TestDb> | null = null
 let refCount = 0
 
-export async function getSharedDb(): Promise<Kysely<Database>> {
+export async function getSharedDb(): Promise<TestDb> {
   refCount++
   if (sharedDb) {
     return sharedDb
@@ -36,26 +39,27 @@ export async function getSharedDb(): Promise<Kysely<Database>> {
   if (!initPromise) {
     initPromise = (async () => {
       const data = getGlobalData()
-      const db = new Kysely<Database>({
-        dialect: new PostgresDialect({
-          pool: new pg.Pool({
-            host: data.postgres.host,
-            port: data.postgres.port,
-            database: data.postgres.database,
-            user: data.postgres.username,
-            password: data.postgres.password,
-            max: 10,
-          }),
-        }),
+      const pool = new pg.Pool({
+        host: data.postgres.host,
+        port: data.postgres.port,
+        database: data.postgres.database,
+        user: data.postgres.username,
+        password: data.postgres.password,
+        max: 10,
       })
+      const raw = createDbClient(pool)
+      const db = wrapTestDb(raw)
 
       // Create tables
       const statements = CREATE_TABLES_SQL.split(';')
         .map(s => s.trim())
         .filter(Boolean)
       for (const stmt of statements) {
-        await sql.raw(stmt).execute(db)
+        await db.query(stmt)
       }
+
+      // Run migrations (indexes, FK constraints, stored functions)
+      await runMigrations(db)
 
       sharedDb = db
       return db
@@ -74,8 +78,8 @@ export async function releaseSharedDb(): Promise<void> {
   }
 }
 
-export async function truncateAll(db: Kysely<Database>): Promise<void> {
-  await sql`TRUNCATE TABLE agent_tokens, workflow_schedules, workflow_tasks, workflow_event_subscriptions, workflow_events, workflow_step_logs, workflow_signals, workflow_steps, workflow_runs CASCADE`.execute(
-    db,
+export async function truncateAll(db: DbClient): Promise<void> {
+  await db.query(
+    'TRUNCATE TABLE agent_tokens, workflow_schedules, workflow_tasks, workflow_event_subscriptions, workflow_events, workflow_step_logs, workflow_signals, workflow_streams, workflow_steps, workflow_runs CASCADE',
   )
 }

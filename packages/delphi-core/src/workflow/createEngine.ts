@@ -12,12 +12,23 @@
 //
 // npx vitest run src/__tests__/workflow.spec.ts
 
-import type { JsonObject, SnakeToCamelCase } from '@goatlab/tasks-core'
+import type {
+  JsonObject,
+  SnakeToCamelCase,
+  TaskConnector,
+} from '@goatlab/tasks-core'
 import { ShouldQueue, snakeToCamelCase } from '@goatlab/tasks-core'
+import type { Pool } from 'pg'
+import type { DbClient } from '../db/DbClient.js'
+import { createDbClient, createPool } from '../db/DbClient.js'
 import { IngestBuffer } from '../engine/IngestBuffer.js'
+import { PgConnector } from '../engine/PgConnector.js'
+import { EventIngestionService } from '../events/EventIngestion.js'
+import { SchedulerService } from '../scheduler/SchedulerService.js'
 import { WorkflowEngine } from '../engine/WorkflowEngine.js'
 import type { WorkflowEngineConfig } from '../engine/WorkflowEngine.types.js'
 import { FunctionStepExecutor } from '../steps/FunctionStepExecutor.js'
+import { Step } from './Step.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
 import { workflowFromShouldQueue } from './fromShouldQueue.js'
 import { Workflow } from './Workflow.js'
@@ -100,6 +111,15 @@ export interface WorkflowOps<TInput extends object> {
     data: Record<string, unknown>,
     respondedBy?: string,
   ): Promise<void>
+
+  /** Schedule this workflow to run on a cron expression. Optionally pass default input for each run. Returns the schedule ID. */
+  schedule(cronExpression: string, input?: TInput): Promise<string>
+
+  /** Remove a schedule by ID. */
+  unschedule(scheduleId: string): Promise<void>
+
+  /** List active schedules for this workflow. */
+  listSchedules(): Promise<Array<{ id: string; cronExpression: string; nextRunAt: string | Date; lastRunAt: string | Date | null }>>
 }
 
 /**
@@ -109,30 +129,36 @@ export interface WorkflowOps<TInput extends object> {
  * construction time, so "a task is a one-step workflow" holds at the API
  * boundary without the caller writing a wrapping call.
  */
-export type WorkflowLike = Workflow<any, any> | ShouldQueue<any, any, any>
+/** A workflow class (auto-instantiated) or instance */
+export type WorkflowLike =
+  | Workflow<any>
+  | ShouldQueue<any, any, any>
+  | (new () => Workflow<any>)
+  | (new () => ShouldQueue<any, any, any>)
+
+/** Extract the input type from a WorkflowLike entry. */
+type InputOf<W> = W extends new () => Workflow<infer TInput>
+  ? TInput
+  : W extends new () => ShouldQueue<infer TInput, any, any>
+    ? TInput
+    : W extends Workflow<infer TInput>
+      ? TInput
+      : W extends ShouldQueue<infer TInput, any, any>
+        ? TInput
+        : never
 
 /**
- * Extract the input type from a WorkflowLike entry.
- *
- * Historically this intersected the ShouldQueue input with `JsonObject`,
- * but that made sensible task input shapes (ones with optional fields
- * typed as `T | undefined`) unassignable — `JsonObject` excludes
- * `undefined`. The BullMQ transport already serializes missing keys as
- * absent, so the constraint was cosmetic. We now pass TInput straight
- * through.
+ * Extract the literal workflow name from a WorkflowLike entry.
+ * Inferred from the `workflowName` property (declared `as const`),
+ * NOT from a generic parameter — no duplication needed.
  */
-type InputOf<W> = W extends Workflow<infer TInput, any>
-  ? TInput
-  : W extends ShouldQueue<infer TInput, any, any>
-    ? TInput
-    : never
-
-/** Extract the literal-name type from a WorkflowLike entry. */
-type NameOf<W> = W extends Workflow<any, infer TName>
-  ? TName
-  : W extends ShouldQueue<any, any, infer TName>
-    ? TName
-    : never
+type NameOf<W> = W extends new () => { workflowName: infer N extends string }
+  ? N
+  : W extends { workflowName: infer N extends string }
+    ? N
+    : W extends ShouldQueue<any, any, infer TName>
+      ? TName
+      : never
 
 /**
  * Mapped type — turns a tuple of workflow-likes into
@@ -157,8 +183,11 @@ export type WorkflowsApi<Ws extends readonly WorkflowLike[]> = {
  * Returned engine: a real `WorkflowEngine` instance + per-workflow proxy
  * properties + the underlying `ingestBuffer` (for shutdown, depth probes).
  */
-export type TypedEngine<Ws extends readonly WorkflowLike[]> = WorkflowEngine &
-  WorkflowsApi<Ws> & { ingestBuffer: IngestBuffer }
+export type TypedEngine<Ws extends readonly WorkflowLike[]> =
+  WorkflowEngine & WorkflowsApi<Ws> & {
+    ingestBuffer: IngestBuffer
+    scheduler: SchedulerService
+  }
 
 /**
  * Build a typed engine where every registered workflow is addressable
@@ -170,33 +199,99 @@ export type TypedEngine<Ws extends readonly WorkflowLike[]> = WorkflowEngine &
  * call site gets the same typed proxy either way.
  *
  * @example
- *   // Mix Delphi Workflows and tasks-core ShouldQueues freely:
+ *   // Postgres only (default — no Redis needed):
  *   const engine = createEngine({
- *     workflows: [paymentWorkflow, checkPostTask, onboardingWorkflow] as const,
- *     db, pgPool, connector, tenantId: 'default',
+ *     database: 'postgresql://user:pass@localhost:5432/mydb',
+ *     workflows: [paymentWorkflow, onboardingWorkflow] as const,
+ *     tenantId: 'default',
+ *   })
+ *
+ *   // With Redis for high throughput:
+ *   const engine = createEngine({
+ *     database: existingPgPool,
+ *     redis: existingRedisConnection,
+ *     workflows: [paymentWorkflow] as const,
+ *     tenantId: 'default',
  *   })
  *
  *   await engine.payment_critical.startCommitted({ orderId, amountCents, customerId })
- *   await engine.check_post.start({ postId })              // from a ShouldQueue
  *   await engine.payment_critical.signal(runId, 'approved', { reviewer: 'alice' })
  */
 export function createEngine<const Ws extends readonly WorkflowLike[]>(
-  config: Omit<WorkflowEngineConfig, 'workflows' | 'executors'> & {
+  config: Omit<
+    WorkflowEngineConfig,
+    'workflows' | 'executors' | 'connector' | 'db' | 'pgPool'
+  > & {
+    /**
+     * Postgres connection. Accepts:
+     * - Connection string: `'postgresql://user:pass@localhost:5432/mydb'`
+     * - Existing pg.Pool: share your backend's pool (no duplicate connections)
+     * - Existing DbClient: for advanced scenarios
+     */
+    database: string | Pool | DbClient
     workflows: Ws
+    /**
+     * Optional Redis connection for high-throughput dispatch.
+     * When provided, step dispatch goes through Redis (via BullMQ internally).
+     * When omitted, Postgres handles dispatch (~500 steps/s).
+     *
+     * Accepts an existing ioredis instance (shares your backend's connection)
+     * or a connection config object.
+     */
+    redis?: { host: string; port: number; [key: string]: unknown } | unknown
     /** Extra executors keyed by `executorType` for non-function steps. */
     extraExecutors?: Map<string, StepExecutor>
     /** IngestBuffer overrides. */
     ingest?: CreateEngineIngestOptions
+    /**
+     * Postgres dispatch tuning (ignored when `redis` is provided).
+     * Controls polling behavior in Postgres-only mode.
+     */
+    dispatch?: {
+      /** Base polling interval in ms. Default: 500 */
+      pollingIntervalMs?: number
+      /** Max polling interval in ms (adaptive backoff ceiling). Default: 30_000 */
+      maxPollingIntervalMs?: number
+    }
   },
 ): TypedEngine<Ws> {
-  // 0. Normalize: adapt any bare ShouldQueue entries into single-step
-  //    Workflow instances. After this pass, the rest of the function only
-  //    deals with Workflow instances — simpler downstream code.
-  const workflows: Workflow<any, any>[] = config.workflows.map(entry =>
-    entry instanceof ShouldQueue
-      ? workflowFromShouldQueue(entry as ShouldQueue<any, any, any>)
-      : (entry as Workflow<any, any>),
-  )
+  // 0. Resolve database connection: string → Pool → DbClient.
+  //    Never creates a pool if the user hands one in.
+  let db: DbClient
+  let pgPool: Pool
+  const input = config.database
+  if (typeof input === 'string') {
+    // Connection string — create a new pool
+    pgPool = createPool(input)
+    db = createDbClient(pgPool)
+  } else if ('query' in input && 'getPool' in input) {
+    // Already a DbClient
+    db = input as DbClient
+    pgPool = db.getPool()
+  } else {
+    // Raw pg.Pool — wrap it, share it
+    pgPool = input as Pool
+    db = createDbClient(pgPool)
+  }
+
+  // 0b. Normalize: auto-instantiate classes, adapt ShouldQueues.
+  //     After this pass, the rest of the function only deals with
+  //     Workflow instances — simpler downstream code.
+  const workflows: Workflow<any>[] = config.workflows.map(entry => {
+    // Class reference → instantiate
+    if (typeof entry === 'function') {
+      const instance = new (entry as new () => any)()
+      return instance instanceof ShouldQueue
+        ? workflowFromShouldQueue(instance)
+        : instance
+    }
+    // ShouldQueue instance → adapt
+    if (entry instanceof ShouldQueue) {
+      return workflowFromShouldQueue(entry as ShouldQueue<any, any, any>)
+    }
+    // Workflow instance → use as-is
+    return entry as Workflow<any>
+  })
 
   // 1. Compile every workflow to its engine definition.
   //    Duplicate names would silently overwrite each other in the engine's
@@ -216,17 +311,43 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
   //    `executorConfig.handler`. Users never call `executor.register()`.
   const functionExecutor = new FunctionStepExecutor()
   for (const wf of workflows) {
-    for (const entry of wf.steps) {
+    for (const raw of wf.steps) {
+      // Normalize: class → instance → StepEntry
+      const entry = typeof raw === 'function'
+        ? { step: new (raw as new () => any)() }
+        : raw instanceof Step
+          ? { step: raw }
+          : raw
       const key = `${wf.workflowName}.${entry.step.stepName}`
-      // Closure captures `entry` per iteration — `for..of` gives each
-      // iteration its own binding so the right step instance fires.
       functionExecutor.register(key, async (payload, ctx) => {
         return entry.step.handle(payload.input as JsonObject, ctx as any) as any
       })
     }
   }
 
-  // 3. Build the engine.
+  // 3. Resolve dispatch: redis > postgres-only (default).
+  //    BullMQ is loaded dynamically so it stays an optional dependency.
+  let connector: TaskConnector<object>
+  if (config.redis) {
+    try {
+      const { BullMQConnector } = require('@goatlab/tasks-adapter-bullmq')
+      connector = new BullMQConnector({ connection: config.redis })
+    } catch {
+      throw new Error(
+        'createEngine: `redis` was provided but @goatlab/tasks-adapter-bullmq is not installed. ' +
+          'Install it with: pnpm add @goatlab/tasks-adapter-bullmq',
+      )
+    }
+  } else {
+    connector = new PgConnector({
+      db,
+      pgPool,
+      pollingIntervalMs: config.dispatch?.pollingIntervalMs,
+      maxPollingIntervalMs: config.dispatch?.maxPollingIntervalMs,
+    })
+  }
+
+  // 4. Build the engine.
   const executors = new Map<string, StepExecutor>([
     ['function', functionExecutor],
   ])
@@ -235,15 +356,24 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
       executors.set(k, v)
     }
   }
+  const {
+    database: _database,
+    redis: _redis,
+    dispatch: _dispatch,
+    ...restConfig
+  } = config as any
   const engine = new WorkflowEngine({
-    ...config,
+    ...restConfig,
+    db,
+    pgPool,
+    connector,
     workflows: definitions,
     executors,
   })
 
-  // 4. Build the IngestBuffer — required for startBuffered / startCommitted.
+  // 5. Build the IngestBuffer — required for startBuffered / startCommitted.
   const ingestBuffer = new IngestBuffer({
-    connector: config.connector,
+    connector,
     taskName: 'workflow_ingest',
     engine,
     flushThreshold: config.ingest?.flushThreshold ?? 200,
@@ -255,7 +385,17 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
       config.ingest?.committedMaxConcurrentFlushes ?? 4,
   })
 
-  // 5. Mount per-workflow proxy properties on the engine.
+  // 6. Build the SchedulerService — shared across all workflows.
+  const eventIngestion = (config as any).eventIngestion ?? new EventIngestionService({ db })
+  eventIngestion.setEngine?.(engine)
+  const scheduler = new SchedulerService({
+    db,
+    eventIngestion,
+    tenantId: config.tenantId,
+    pollIntervalMs: 60_000,
+  })
+
+  // 7. Mount per-workflow proxy properties on the engine.
   //    Refuse names that would shadow real engine methods — payment flows
   //    rarely want to be called "start", but better to fail at construction
   //    than to silently break engine.start() for everyone.
@@ -318,6 +458,21 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
           data: data as JsonObject,
           respondedBy,
         }),
+      schedule: (cronExpression, input) =>
+        scheduler.createSchedule(tenantId, wf.workflowName, cronExpression, input as Record<string, unknown>),
+      unschedule: (scheduleId) =>
+        scheduler.deleteSchedule(scheduleId),
+      listSchedules: async () => {
+        const all = await scheduler.listSchedules(tenantId)
+        return all
+          .filter(s => s.workflowName === wf.workflowName)
+          .map(s => ({
+            id: s.id,
+            cronExpression: s.cronExpression,
+            nextRunAt: s.nextRunAt,
+            lastRunAt: s.lastRunAt,
+          }))
+      },
     }
     // Mount under the raw workflow name AND its camelCase alias so
     // call sites can use either convention freely:
@@ -352,5 +507,6 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
   }
 
   ;(engine as unknown as Record<string, unknown>).ingestBuffer = ingestBuffer
+  ;(engine as unknown as Record<string, unknown>).scheduler = scheduler
   return engine as TypedEngine<Ws>
 }

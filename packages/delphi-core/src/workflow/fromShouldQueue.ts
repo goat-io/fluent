@@ -43,7 +43,7 @@ type StepOutputOf<TResult extends OutputType> = TResult extends JsonObject
  *   import { checkPostTask } from '@/api/posts/tasks/checkPosts.task'
  *   const checkPostStep = fromShouldQueue(checkPostTask)
  *
- *   class PostPipeline extends Workflow<{ postId: string }, 'post_pipeline'> {
+ *   class PostPipeline extends Workflow<{ postId: string }> {
  *     workflowName = 'post_pipeline' as const
  *     steps = [
  *       step(checkPostStep),
@@ -57,13 +57,12 @@ export function fromShouldQueue<
   TName extends string,
 >(
   task: ShouldQueue<TInput, TResult, TName>,
-): FunctionStep<TInput & JsonObject, StepOutputOf<TResult>, TName> {
+): FunctionStep<TInput & JsonObject, StepOutputOf<TResult>> {
   class AdaptedStep extends FunctionStep<
     TInput & JsonObject,
-    StepOutputOf<TResult>,
-    TName
+    StepOutputOf<TResult>
   > {
-    readonly stepName = task.taskName
+    readonly stepName = task.taskName as TName
     override readonly retries = task.retries
 
     async handle(input: TInput & JsonObject) {
@@ -101,18 +100,19 @@ export function workflowFromShouldQueue<
   TName extends string,
 >(
   task: ShouldQueue<TInput, TResult, TName>,
-): Workflow<TInput & JsonObject, TName> {
+): Workflow<TInput & JsonObject> {
   const adapted = fromShouldQueue(task)
 
-  class TaskWorkflow extends Workflow<TInput & JsonObject, TName> {
-    readonly workflowName = task.taskName
+  class TaskWorkflow extends Workflow<TInput & JsonObject> {
+    readonly workflowName = task.taskName as TName
     override readonly defaultRetries = task.retries
     readonly steps = [step(adapted)] as const
-    override readonly inputFields =
-      (task as unknown as { inputFields?: readonly string[] }).inputFields
-    override readonly sensitiveFields =
-      (task as unknown as { sensitiveFields?: readonly string[] })
-        .sensitiveFields
+    override readonly inputFields = (
+      task as unknown as { inputFields?: readonly string[] }
+    ).inputFields
+    override readonly sensitiveFields = (
+      task as unknown as { sensitiveFields?: readonly string[] }
+    ).sensitiveFields
   }
 
   return new TaskWorkflow()

@@ -1,9 +1,8 @@
 // npx vitest run src/__tests__/engine/queue-expansion.spec.ts
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import type {
@@ -14,7 +13,7 @@ import type {
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('Queue Expansion (4 queue types)', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let executor: FunctionStepExecutor
 
   beforeAll(async () => {

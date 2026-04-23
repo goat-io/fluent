@@ -3,13 +3,7 @@
 // StepInterceptor that extracts token usage and cost from step outputs
 // and persists them to the workflow_steps table.
 //
-// Step executors that produce LLM outputs should include cost data in their
-// output under a `_usage` key:
-//
-//   { response: "...", _usage: { tokens: 1500, costUsd: 0.003, model: "gpt-4o" } }
-//
-import type { Kysely } from 'kysely'
-import type { Database } from '../entities/Database.js'
+import type { DbClient } from '../db/DbClient.js'
 import type {
   StepInterceptor,
   StepPayload,
@@ -17,16 +11,8 @@ import type {
 } from '../workflow/WorkflowBuilder.types.js'
 
 export interface StepCostTrackerConfig {
-  db: Kysely<Database>
-  /**
-   * Custom key in step output to extract usage from.
-   * Default: '_usage'
-   */
+  db: DbClient
   usageKey?: string
-  /**
-   * Pricing table: model name → cost per 1K tokens.
-   * Used as fallback when step output doesn't include costUsd.
-   */
   pricing?: Record<string, number>
   logger?: {
     debug: (...args: unknown[]) => void
@@ -41,12 +27,8 @@ export interface StepUsage {
   model?: string
 }
 
-/**
- * StepInterceptor that extracts cost data from step outputs and persists to DB.
- * Install via: `interceptors: [new StepCostTracker({ db })]`
- */
 export class StepCostTracker implements StepInterceptor {
-  private db: Kysely<Database>
+  private db: DbClient
   private usageKey: string
   private pricing: Record<string, number>
   private logger: StepCostTrackerConfig['logger']
@@ -81,18 +63,17 @@ export class StepCostTracker implements StepInterceptor {
       costUsd = (tokens / 1000) * this.pricing[model]
     }
 
-    // Persist to DB
-    await this.db
-      .updateTable('workflow_steps')
-      .set({
-        tokensUsed: tokens,
-        costUsd: costUsd !== null ? String(costUsd) : null,
-        modelUsed: model,
-        updatedAt: new Date(),
-      })
-      .where('workflowRunId', '=', payload.workflowRunId)
-      .where('stepName', '=', payload.stepName)
-      .execute()
+    await this.db.query(
+      `UPDATE workflow_steps SET "tokensUsed" = $1, "costUsd" = $2, "modelUsed" = $3, "updatedAt" = $4 WHERE "workflowRunId" = $5 AND "stepName" = $6`,
+      [
+        tokens,
+        costUsd !== null ? String(costUsd) : null,
+        model,
+        new Date(),
+        payload.workflowRunId,
+        payload.stepName,
+      ],
+    )
 
     this.logger?.debug?.(
       `[StepCostTracker] ${payload.stepName}: ${tokens} tokens, $${costUsd ?? '?'} (${model ?? 'unknown'})`,

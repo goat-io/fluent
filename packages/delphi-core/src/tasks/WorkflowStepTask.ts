@@ -1,8 +1,8 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
 
-import { hostname } from 'os'
 import type { JsonObject } from '@goatlab/tasks-core'
 import { ShouldQueue } from '@goatlab/tasks-core'
+import { hostname } from 'os'
 import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
 import type {
   StepExecutionContext,

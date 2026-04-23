@@ -5,8 +5,8 @@
 //
 // npx vitest run src/__tests__/engine/ingest-buffer.spec.ts
 
-import { Ids } from '@goatlab/js-utils'
 import type { TaskConnector } from '@goatlab/tasks-core'
+import { nanoId } from '../db/ids.js'
 import type { WorkflowTriggerInput } from '../workflow/WorkflowBuilder.types.js'
 import { BatchedJobProcessor } from './BatchedJobProcessor.js'
 import type { WorkflowEngine } from './WorkflowEngine.js'
@@ -166,10 +166,10 @@ export class IngestBuffer {
         'IngestBuffer is shutting down; not accepting new triggers',
       )
     }
-    const runId = trigger.runId ?? Ids.nanoId(21)
+    const runId = trigger.runId ?? nanoId(21)
     // Assign traceId at the HTTP boundary so callers can correlate distributed
     // spans before the COPY FROM commits. Mirrors the engine's own default.
-    const traceId = trigger.traceId ?? Ids.nanoId(21)
+    const traceId = trigger.traceId ?? nanoId(21)
     this.buffer.push({ runId, trigger: { ...trigger, runId, traceId } })
 
     if (this.buffer.length >= this.flushThreshold) {
@@ -200,8 +200,8 @@ export class IngestBuffer {
         'enqueueCommitted requires IngestBuffer to be constructed with { engine }',
       )
     }
-    const runId = trigger.runId ?? Ids.nanoId(21)
-    const traceId = trigger.traceId ?? Ids.nanoId(21)
+    const runId = trigger.runId ?? nanoId(21)
+    const traceId = trigger.traceId ?? nanoId(21)
     return this.committedProcessor.enqueue({
       trigger: { ...trigger, runId, traceId },
       traceId,

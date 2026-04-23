@@ -4,10 +4,9 @@
 // real executeStep pattern. Tests the full planner→task_runner fan-out flow.
 //
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { TaskRunnerExecutor } from '../../steps/TaskRunnerExecutor.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -56,7 +55,7 @@ function createMockConnector() {
 }
 
 describe('TaskRunnerExecutor — Engine Integration', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let fnExecutor: FunctionStepExecutor
   let taskRunnerExecutor: TaskRunnerExecutor
 
@@ -99,13 +98,17 @@ describe('TaskRunnerExecutor — Engine Integration', () => {
   /** Simulate what BullMQ worker does: mark RUNNING, execute, call engine callback */
   async function executeStep(engine: WorkflowEngine, job: any) {
     const payload = job.taskBody as StepPayload
-    await db
-      .updateTable('workflow_steps')
-      .set({ status: 'RUNNING', startedAt: new Date(), updatedAt: new Date() })
-      .where('workflowRunId', '=', payload.workflowRunId)
-      .where('stepName', '=', payload.stepName)
-      .where('status', '=', 'QUEUED')
-      .execute()
+    await db.query(
+      'UPDATE workflow_steps SET status = $1, "startedAt" = $2, "updatedAt" = $3 WHERE "workflowRunId" = $4 AND "stepName" = $5 AND status = $6',
+      [
+        'RUNNING',
+        new Date(),
+        new Date(),
+        payload.workflowRunId,
+        payload.stepName,
+        'QUEUED',
+      ],
+    )
 
     const exec = engine.getExecutor(payload.executorType)!
     const context: StepExecutionContext = {

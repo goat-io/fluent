@@ -37,10 +37,9 @@ export interface TypedStepResult<TOutput extends JsonObject>
 export abstract class Step<
   TInput extends JsonObject = JsonObject,
   TOutput extends JsonObject = JsonObject,
-  TName extends string = string,
 > {
-  /** Stable identifier used in the DAG and for queue routing. Must be unique within a workflow. */
-  abstract readonly stepName: TName
+  /** Stable identifier used in the DAG and for queue routing. Must be unique within a workflow. Declare with `as const`. */
+  abstract readonly stepName: string
   /** Which engine executor handles this step (e.g. 'function', 'sandbox'). */
   abstract readonly executorType: string
 
@@ -70,7 +69,8 @@ export abstract class Step<
   // generics back out of an instance.
   declare readonly _input: TInput
   declare readonly _output: TOutput
-  declare readonly _name: TName
+  /** Inferred from `stepName` property via `as const` — no need for a TName generic. */
+  get _name(): this['stepName'] { return this.stepName }
 }
 
 /**
@@ -82,8 +82,7 @@ export abstract class Step<
  * @example
  *   export class ChargeCardStep extends FunctionStep<
  *     { amountCents: number; customerId: string },
- *     { chargeId: string },
- *     'charge_card'
+ *     { chargeId: string }
  *   > {
  *     stepName = 'charge_card' as const
  *     retries = 2
@@ -93,12 +92,10 @@ export abstract class Step<
  *       return { output: { chargeId: charge.id } }
  *     }
  *   }
- *   export const chargeCardStep = new ChargeCardStep()
  */
 export abstract class FunctionStep<
   TInput extends JsonObject = JsonObject,
   TOutput extends JsonObject = JsonObject,
-  TName extends string = string,
-> extends Step<TInput, TOutput, TName> {
+> extends Step<TInput, TOutput> {
   readonly executorType = 'function' as const
 }

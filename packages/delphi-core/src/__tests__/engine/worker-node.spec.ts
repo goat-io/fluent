@@ -1,11 +1,9 @@
 // npx vitest run src/__tests__/engine/worker-node.spec.ts
 
-import type { Kysely } from 'kysely'
-import { sql } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createWorkflowHandlers } from '../../api/WorkflowHandlers.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkerNode } from '../../worker/WorkerNode.js'
 import type { WorkerCapabilities } from '../../worker/WorkerNode.types.js'
@@ -282,7 +280,7 @@ describe('LocalWorkerProvisioner', () => {
 // ── Integration: Worker registration via handlers (needs testcontainers) ──
 
 describe('Worker registration roundtrip (DB)', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let engine: WorkflowEngine
 
   function createMockConnector() {
@@ -351,7 +349,7 @@ describe('Worker registration roundtrip (DB)', () => {
   beforeEach(async () => {
     // Clean worker_nodes table
     try {
-      await sql`DELETE FROM worker_nodes`.execute(db)
+      await db.query(`DELETE FROM worker_nodes`)
     } catch {
       // Table might not exist yet on first run — ignore
     }

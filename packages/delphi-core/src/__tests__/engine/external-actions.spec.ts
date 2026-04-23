@@ -1,16 +1,15 @@
 // npx vitest run src/__tests__/engine/external-actions.spec.ts
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import {
   ExternalActionExecutor,
   ExternalActionPendingError,
 } from '../../engine/ExternalActionExecutor.js'
-import type { Database } from '../../entities/Database.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('ExternalActionExecutor', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let executor: ExternalActionExecutor
 
   beforeAll(async () => {

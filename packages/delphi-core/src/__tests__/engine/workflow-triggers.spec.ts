@@ -1,9 +1,8 @@
 // npx vitest run src/__tests__/engine/workflow-triggers.spec.ts
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -51,7 +50,7 @@ function createMockConnector() {
 }
 
 describe('Workflow Triggers', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let executor: FunctionStepExecutor
 
   beforeAll(async () => {

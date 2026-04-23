@@ -23,14 +23,16 @@ import {
   RedisContainer,
   type StartedRedisContainer,
 } from '@testcontainers/redis'
-import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createDbClient } from '../../db/DbClient.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
+import { wrapTestDb } from '../../db/TestQueryBuilder.js'
 import type { EngineEvent } from '../../engine/EngineEvent.types.js'
 import { IngestBuffer } from '../../engine/IngestBuffer.js'
 import { IngestWorker } from '../../engine/IngestWorker.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { CREATE_TABLES_SQL, type Database } from '../../entities/Database.js'
+import { CREATE_TABLES_SQL } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -47,7 +49,7 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
   let pgContainer: StartedPostgreSqlContainer
   let redisContainer: StartedRedisContainer
   let pgPool: pg.Pool
-  let db: Kysely<Database>
+  let db: TestDb
   let connector: BullMQConnector
   // Re-exported as an ESM-friendly const — lives in the value namespace only.
   let broker: InstanceType<typeof RedisRealtimeBroker>
@@ -94,13 +96,11 @@ describe('full-stack composition (engine + dispatch v2 + event hook + broker)', 
       password: pgContainer.getPassword(),
       max: 10,
     })
-    db = new Kysely<Database>({
-      dialect: new PostgresDialect({ pool: pgPool }),
-    })
+    db = wrapTestDb(createDbClient(pgPool))
     for (const s of CREATE_TABLES_SQL.split(';')
       .map(s => s.trim())
       .filter(Boolean)) {
-      await sql.raw(s).execute(db)
+      await db.query(s)
     }
 
     connector = new BullMQConnector({

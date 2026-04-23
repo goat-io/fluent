@@ -5,13 +5,11 @@
 // → execution → result reporting → DB verification.
 //
 
-import type { Kysely } from 'kysely'
-import { sql } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { AgentRegistry } from '../../broker/AgentRegistry.js'
 import { createBrokerHandlers } from '../../broker/BrokerHandlers.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import type {
@@ -59,7 +57,7 @@ function createMockConnector() {
 }
 
 describe('Broker E2E — Full Agent Lifecycle', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let registry: AgentRegistry
   let handlers: ReturnType<typeof createBrokerHandlers>
   let fnExecutor: FunctionStepExecutor
@@ -75,7 +73,7 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
   beforeEach(async () => {
     await truncateAll(db)
-    await sql`TRUNCATE TABLE agent_tokens CASCADE`.execute(db)
+    await db.query(`TRUNCATE TABLE agent_tokens CASCADE`)
 
     registry = new AgentRegistry({
       maxPendingJobs: 100,

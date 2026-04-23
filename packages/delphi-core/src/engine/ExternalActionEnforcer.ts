@@ -1,11 +1,9 @@
 // npx vitest run src/__tests__/engine/enforcement.spec.ts
 //
 // Runtime enforcement that detects steps producing outputs with external IDs
-// but not going through ExternalActionExecutor. This is a safety net, not a
-// hard block — it logs warnings (or throws in strict mode) when bypasses are detected.
+// but not going through ExternalActionExecutor.
 //
-import type { Kysely } from 'kysely'
-import type { Database } from '../entities/Database.js'
+import type { DbClient } from '../db/DbClient.js'
 import type {
   StepInterceptor,
   StepPayload,
@@ -13,15 +11,9 @@ import type {
 } from '../workflow/WorkflowBuilder.types.js'
 
 export interface ExternalActionEnforcerConfig {
-  db: Kysely<Database>
-  /**
-   * In strict mode, throws an error if a step with external-facing executorType
-   * completes without any ExternalAction records. In non-strict mode, logs a warning.
-   */
+  db: DbClient
   strict?: boolean
-  /** Executor types that MUST use ExternalAction (default: all except 'function') */
   enforcedExecutorTypes?: string[]
-  /** Step names to skip enforcement for (e.g., pure-compute steps) */
   exemptSteps?: string[]
   logger?: {
     warn: (...args: unknown[]) => void
@@ -29,13 +21,9 @@ export interface ExternalActionEnforcerConfig {
   }
 }
 
-/**
- * StepInterceptor that verifies external actions were used.
- * Install via engine config: `interceptors: [new ExternalActionEnforcer(config)]`
- */
 export class ExternalActionEnforcer implements StepInterceptor {
   private config: ExternalActionEnforcerConfig
-  private db: Kysely<Database>
+  private db: DbClient
 
   constructor(config: ExternalActionEnforcerConfig) {
     this.config = config
@@ -46,12 +34,10 @@ export class ExternalActionEnforcer implements StepInterceptor {
     payload: StepPayload,
     result: StepResult,
   ): Promise<StepResult> {
-    // Skip exempt steps
     if (this.config.exemptSteps?.includes(payload.stepName)) {
       return result
     }
 
-    // Only enforce on specified executor types
     const enforcedTypes = this.config.enforcedExecutorTypes ?? [
       'sandbox',
       'ai',
@@ -62,16 +48,12 @@ export class ExternalActionEnforcer implements StepInterceptor {
       return result
     }
 
-    // Check if any ExternalAction records exist for this step execution
-    const actions = await this.db
-      .selectFrom('external_actions')
-      .select('id')
-      .where('workflowRunId', '=', payload.workflowRunId)
-      .where('stepName', '=', payload.stepName)
-      .where('attempt', '=', payload.attempt)
-      .executeTakeFirst()
+    const { rows } = await this.db.query<{ id: string }>(
+      `SELECT id FROM external_actions WHERE "workflowRunId" = $1 AND "stepName" = $2 AND attempt = $3 LIMIT 1`,
+      [payload.workflowRunId, payload.stepName, payload.attempt],
+    )
 
-    if (!actions) {
+    if (rows.length === 0) {
       const msg =
         `[ExternalActionEnforcer] Step "${payload.stepName}" (type: ${payload.executorType}) ` +
         `completed without any ExternalAction records. External calls should go through ` +

@@ -10,6 +10,7 @@ export type WorkflowStatus =
   | 'COMPLETED'
   | 'FAILED'
   | 'CANCELLED'
+  | 'DELAYED'
 
 export type StepStatus =
   | 'PENDING'
@@ -19,6 +20,7 @@ export type StepStatus =
   | 'FAILED'
   | 'SKIPPED'
   | 'WAITING_HUMAN'
+  | 'SLEEPING'
 
 // ── Step Context ───────────────────────────────────────────────────
 
@@ -146,6 +148,8 @@ export interface WorkflowDefinition {
   inputFields?: readonly string[]
   /** Fields containing PII — redacted in API responses. */
   sensitiveFields?: readonly string[]
+  /** DBOS-parity: optional input validation schema (Zod-compatible) */
+  inputSchema?: { parse: (input: unknown) => unknown }
 }
 
 // ── Workflow Triggers ──────────────────────────────────────────────
@@ -176,6 +180,8 @@ export interface WorkflowTriggerInput {
   originEventId?: string
   /** Pre-assigned run ID (for queue-first ingestion — caller owns the ID). Auto-generated if not provided. */
   runId?: string
+  /** DBOS-parity: delay workflow start by this many seconds */
+  delaySeconds?: number
 }
 
 export interface StepPayload {

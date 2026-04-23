@@ -60,9 +60,13 @@ export interface AgentsRouterConfig {
 		startBatchCopy?: boolean; // POST /start-batch-copy
 		status?: boolean; // POST /status
 		cancel?: boolean; // POST /cancel
+		cancelAll?: boolean; // POST /cancel-all
+		retry?: boolean; // POST /retry
+		retryAll?: boolean; // POST /retry-all
 		humanInput?: boolean; // POST /human-input
 		signal?: boolean; // POST /signal
 		query?: boolean; // POST /query
+		stepLogs?: boolean; // POST /step-logs
 		ingestEvent?: boolean; // POST /ingest-event
 		listWorkflows?: boolean; // GET  /
 		health?: boolean; // GET  /health
@@ -232,6 +236,46 @@ export function agentsRouter(config: AgentsRouterConfig): Router {
 			wrap(async ({ engine, tenantId }, req) => {
 				const handlers = createWorkflowHandlers(engine);
 				return handlers.cancel({ ...(req.body ?? {}), tenantId });
+			}),
+		);
+	}
+
+	if (enabled("cancelAll")) {
+		r.post(
+			"/cancel-all",
+			wrap(async ({ engine, tenantId }, req) => {
+				const handlers = createWorkflowHandlers(engine);
+				return handlers.cancelAll({ ...(req.body ?? {}), tenantId });
+			}),
+		);
+	}
+
+	if (enabled("retry")) {
+		r.post(
+			"/retry",
+			wrap(async ({ engine, tenantId }, req) => {
+				const handlers = createWorkflowHandlers(engine);
+				return handlers.retry({ ...(req.body ?? {}), tenantId });
+			}),
+		);
+	}
+
+	if (enabled("retryAll")) {
+		r.post(
+			"/retry-all",
+			wrap(async ({ engine, tenantId }, req) => {
+				const handlers = createWorkflowHandlers(engine);
+				return handlers.retryAll({ ...(req.body ?? {}), tenantId });
+			}),
+		);
+	}
+
+	if (enabled("stepLogs")) {
+		r.post(
+			"/step-logs",
+			wrap(async ({ engine, tenantId }, req) => {
+				const handlers = createWorkflowHandlers(engine);
+				return handlers.getStepLogs({ ...(req.body ?? {}), tenantId });
 			}),
 		);
 	}

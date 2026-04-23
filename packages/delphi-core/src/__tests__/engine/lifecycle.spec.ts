@@ -1,13 +1,9 @@
 // npx vitest run src/__tests__/engine/lifecycle.spec.ts
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
-import {
-  HumanInputError,
-  IdempotencyConflictError,
-} from '../../errors/WorkflowErrors.js'
+import { HumanInputError } from '../../errors/WorkflowErrors.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
 import type {
@@ -54,7 +50,7 @@ function createMockConnector() {
 }
 
 describe('WorkflowEngine Lifecycle', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let executor: FunctionStepExecutor
 
   beforeAll(async () => {
@@ -114,13 +110,17 @@ describe('WorkflowEngine Lifecycle', () => {
   async function executeStep(engine: WorkflowEngine, job: any) {
     const payload = job.taskBody as StepPayload
     // Mark step as RUNNING (normally the worker does this)
-    await db
-      .updateTable('workflow_steps')
-      .set({ status: 'RUNNING', startedAt: new Date(), updatedAt: new Date() })
-      .where('workflowRunId', '=', payload.workflowRunId)
-      .where('stepName', '=', payload.stepName)
-      .where('status', '=', 'QUEUED')
-      .execute()
+    await db.query(
+      'UPDATE workflow_steps SET status = $1, "startedAt" = $2, "updatedAt" = $3 WHERE "workflowRunId" = $4 AND "stepName" = $5 AND status = $6',
+      [
+        'RUNNING',
+        new Date(),
+        new Date(),
+        payload.workflowRunId,
+        payload.stepName,
+        'QUEUED',
+      ],
+    )
 
     const exec = engine.getExecutor(payload.executorType)!
     try {
@@ -453,7 +453,7 @@ describe('WorkflowEngine Lifecycle', () => {
   })
 
   describe('idempotency', () => {
-    it('rejects duplicate trigger', async () => {
+    it('returns existing run for duplicate idempotencyKey (upsert)', async () => {
       const wf = WorkflowBuilder.create('idemp')
         .step('a', {
           executorType: 'function',
@@ -462,20 +462,20 @@ describe('WorkflowEngine Lifecycle', () => {
         .build()
       const { engine } = createEngine([wf])
 
-      await engine.start({
+      const result1 = await engine.start({
         workflowName: 'idemp',
         tenantId: 'test-tenant',
         input: {},
         idempotencyKey: 'key-1',
       })
-      await expect(
-        engine.start({
-          workflowName: 'idemp',
-          tenantId: 'test-tenant',
-          input: {},
-          idempotencyKey: 'key-1',
-        }),
-      ).rejects.toThrow(IdempotencyConflictError)
+      const result2 = await engine.start({
+        workflowName: 'idemp',
+        tenantId: 'test-tenant',
+        input: {},
+        idempotencyKey: 'key-1',
+      })
+      // DBOS-parity: returns existing run instead of throwing
+      expect(result2.runId).toBe(result1.runId)
     })
 
     it('allows different keys', async () => {

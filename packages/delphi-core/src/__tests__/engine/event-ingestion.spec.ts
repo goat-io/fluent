@@ -1,7 +1,6 @@
 // npx vitest run src/__tests__/engine/event-ingestion.spec.ts
 
 import { createHmac } from 'node:crypto'
-import type { Kysely } from 'kysely'
 import {
   afterAll,
   beforeAll,
@@ -11,13 +10,13 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { Database } from '../../entities/Database.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'
 import { WebhookVerifier } from '../../events/WebhookVerifier.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('EventIngestionService', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let service: EventIngestionService
 
   beforeAll(async () => {

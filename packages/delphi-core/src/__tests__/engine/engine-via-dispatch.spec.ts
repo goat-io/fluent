@@ -28,13 +28,15 @@ import {
   RedisContainer,
   type StartedRedisContainer,
 } from '@testcontainers/redis'
-import { Kysely, PostgresDialect, sql } from 'kysely'
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createDbClient } from '../../db/DbClient.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
+import { wrapTestDb } from '../../db/TestQueryBuilder.js'
 import { IngestBuffer } from '../../engine/IngestBuffer.js'
 import { IngestWorker } from '../../engine/IngestWorker.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import { CREATE_TABLES_SQL, type Database } from '../../entities/Database.js'
+import { CREATE_TABLES_SQL } from '../../entities/Database.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
@@ -47,7 +49,7 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
   let pgContainer: StartedPostgreSqlContainer
   let redisContainer: StartedRedisContainer
   let pgPool: pg.Pool
-  let db: Kysely<Database>
+  let db: TestDb
   let connector: BullMQConnector
   let engine: WorkflowEngine
   let ingestBuffer: IngestBuffer
@@ -117,13 +119,11 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
       password: pgContainer.getPassword(),
       max: 10,
     })
-    db = new Kysely<Database>({
-      dialect: new PostgresDialect({ pool: pgPool }),
-    })
+    db = wrapTestDb(createDbClient(pgPool))
     for (const stmt of CREATE_TABLES_SQL.split(';')
       .map(s => s.trim())
       .filter(Boolean)) {
-      await sql.raw(stmt).execute(db)
+      await db.query(stmt)
     }
 
     connector = new BullMQConnector({

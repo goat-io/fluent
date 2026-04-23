@@ -6,14 +6,13 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import Redis from 'ioredis'
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { ExternalActionExecutor } from '../../engine/ExternalActionExecutor.js'
 import {
   InMemoryRateLimiter,
   RedisRateLimiter,
 } from '../../engine/RateLimiterBackend.js'
-import type { Database } from '../../entities/Database.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('RateLimiterBackend', () => {
@@ -132,7 +131,7 @@ describe('RateLimiterBackend', () => {
   // ── Integration: ExternalActionExecutor with Redis backend ─────
 
   describe('ExternalActionExecutor with RedisRateLimiter', () => {
-    let db: Kysely<Database>
+    let db: TestDb
     let redis: Redis
 
     beforeAll(async () => {

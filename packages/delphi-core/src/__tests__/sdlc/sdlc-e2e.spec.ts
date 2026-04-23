@@ -2,10 +2,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BullMQConnector } from '@goatlab/tasks-adapter-bullmq'
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { WorkflowEngine } from '../../engine/WorkflowEngine.js'
-import type { Database } from '../../entities/Database.js'
 import { WorkflowStepTask } from '../../tasks/WorkflowStepTask.js'
 import type { StepPayload } from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from '../engine/shared.js'
@@ -62,7 +61,7 @@ async function waitForStatus(
 }
 
 describe('SDLC Multi-Agent Workflow — Full E2E', () => {
-  let db: Kysely<Database>
+  let db: TestDb
   let connector: BullMQConnector
   let stopWorker: (() => Promise<void>) | null = null
 

@@ -1,11 +1,11 @@
 // Event Ingestion Service — idempotent event storage, dead-letter queue, subscriptions
 // npx vitest run src/__tests__/engine/event-ingestion.spec.ts
 
-import { Ids } from '@goatlab/js-utils'
 import type { JsonObject } from '@goatlab/tasks-core'
-import type { Kysely } from 'kysely'
+import type { DbClient } from '../db/DbClient.js'
+import { nanoId } from '../db/ids.js'
 import type { WorkflowEngine } from '../engine/WorkflowEngine.js'
-import type { Database, WorkflowEvent } from '../entities/Database.js'
+import type { WorkflowEvent } from '../entities/Database.js'
 import { fromJson, toJson } from '../entities/Database.js'
 import type {
   EventSubscription,
@@ -13,15 +13,14 @@ import type {
 } from './EventIngestion.types.js'
 
 export interface EventIngestionConfig {
-  db: Kysely<Database>
+  db: DbClient
   maxRetries?: number
-  /** Skip auto-processing after ingest (for high-throughput ingestion without triggers) */
   skipAutoProcess?: boolean
   logger?: { info: (...args: any[]) => void; error: (...args: any[]) => void }
 }
 
 export class EventIngestionService {
-  private db: Kysely<Database>
+  private db: DbClient
   private maxRetries: number
   private skipAutoProcess: boolean
   private logger?: EventIngestionConfig['logger']
@@ -34,64 +33,52 @@ export class EventIngestionService {
     this.logger = config.logger
   }
 
-  /** Wire to the workflow engine for trigger-based workflow starts */
   setEngine(engine: WorkflowEngine): void {
     this.engine = engine
   }
 
-  /**
-   * Ingest an event idempotently.
-   * If a duplicate idempotencyKey is found, returns the existing event ID.
-   */
   async ingest(
     event: IncomingEvent,
   ): Promise<{ eventId: string; duplicate: boolean; skipped?: boolean }> {
-    const eventId = Ids.nanoId(21)
+    const eventId = nanoId(21)
 
-    // If there's an idempotency key, check for existing first
     if (event.idempotencyKey) {
-      const existing = await this.db
-        .selectFrom('workflow_events')
-        .select('id')
-        .where('idempotencyKey', '=', event.idempotencyKey)
-        .executeTakeFirst()
-
-      if (existing) {
+      const { rows } = await this.db.query<{ id: string }>(
+        `SELECT id FROM workflow_events WHERE "idempotencyKey" = $1`,
+        [event.idempotencyKey],
+      )
+      if (rows[0]) {
         this.logger?.info(
           `Duplicate event idempotencyKey=${event.idempotencyKey}`,
         )
-        return { eventId: existing.id, duplicate: true }
+        return { eventId: rows[0].id, duplicate: true }
       }
     }
 
     try {
       // ── Ordering check: skip stale events ──────────────────
       if (event.entityKey && event.sequenceNumber !== undefined) {
-        const newer = await this.db
-          .selectFrom('workflow_events')
-          .select('id')
-          .where('entityKey', '=', event.entityKey)
-          .where('sequenceNumber', '>', event.sequenceNumber)
-          .where('status', 'in', ['processed', 'completing'])
-          .executeTakeFirst()
+        const { rows: newerRows } = await this.db.query<{ id: string }>(
+          `SELECT id FROM workflow_events WHERE "entityKey" = $1 AND "sequenceNumber" > $2 AND status IN ('processed', 'completing') LIMIT 1`,
+          [event.entityKey, event.sequenceNumber],
+        )
 
-        if (newer) {
-          // A newer event for this entity was already processed — skip
-          await this.db
-            .insertInto('workflow_events')
-            .values({
-              id: eventId,
-              tenantId: event.tenantId,
-              eventType: event.eventType,
-              source: event.source,
-              payload: toJson(event.payload),
-              idempotencyKey: event.idempotencyKey ?? null,
-              entityKey: event.entityKey,
-              sequenceNumber: event.sequenceNumber,
-              traceId: event.traceId ?? null,
-              status: 'skipped_stale',
-            })
-            .execute()
+        if (newerRows[0]) {
+          await this.db.query(
+            `INSERT INTO workflow_events (id, "tenantId", "eventType", source, payload, "idempotencyKey", "entityKey", "sequenceNumber", "traceId", status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+            [
+              eventId,
+              event.tenantId,
+              event.eventType,
+              event.source,
+              toJson(event.payload),
+              event.idempotencyKey ?? null,
+              event.entityKey,
+              event.sequenceNumber,
+              event.traceId ?? null,
+              'skipped_stale',
+            ],
+          )
 
           this.logger?.info(
             `Skipped stale event: ${event.eventType} entity=${event.entityKey} seq=${event.sequenceNumber} (newer exists)`,
@@ -100,71 +87,59 @@ export class EventIngestionService {
         }
       }
 
-      await this.db
-        .insertInto('workflow_events')
-        .values({
-          id: eventId,
-          tenantId: event.tenantId,
-          eventType: event.eventType,
-          source: event.source,
-          payload: toJson(event.payload),
-          idempotencyKey: event.idempotencyKey ?? null,
-          entityKey: event.entityKey ?? null,
-          sequenceNumber: event.sequenceNumber ?? null,
-          traceId: event.traceId ?? null,
-          status: 'pending',
-        })
-        .execute()
+      await this.db.query(
+        `INSERT INTO workflow_events (id, "tenantId", "eventType", source, payload, "idempotencyKey", "entityKey", "sequenceNumber", "traceId", status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          eventId,
+          event.tenantId,
+          event.eventType,
+          event.source,
+          toJson(event.payload),
+          event.idempotencyKey ?? null,
+          event.entityKey ?? null,
+          event.sequenceNumber ?? null,
+          event.traceId ?? null,
+          'pending',
+        ],
+      )
 
-      // Auto-process for trigger matching (skippable for high-throughput ingestion)
       if (!this.skipAutoProcess) {
         await this.processEvent(eventId)
       }
       return { eventId, duplicate: false }
     } catch (err: any) {
-      // Handle race condition: unique constraint violation on idempotencyKey
       if (
         event.idempotencyKey &&
         (err.code === '23505' ||
           err.message?.includes('unique') ||
           err.message?.includes('UNIQUE'))
       ) {
-        const existing = await this.db
-          .selectFrom('workflow_events')
-          .select('id')
-          .where('idempotencyKey', '=', event.idempotencyKey)
-          .executeTakeFirst()
-        if (existing) {
-          return { eventId: existing.id, duplicate: true }
+        const { rows } = await this.db.query<{ id: string }>(
+          `SELECT id FROM workflow_events WHERE "idempotencyKey" = $1`,
+          [event.idempotencyKey],
+        )
+        if (rows[0]) {
+          return { eventId: rows[0].id, duplicate: true }
         }
       }
       throw err
     }
   }
 
-  /**
-   * Process an event: find matching subscriptions and mark as processed.
-   * (Phase 3 will add workflow triggering here.)
-   */
   async processEvent(eventId: string): Promise<void> {
-    const event = await this.db
-      .selectFrom('workflow_events')
-      .selectAll()
-      .where('id', '=', eventId)
-      .executeTakeFirst()
-
+    const { rows: eventRows } = await this.db.query<WorkflowEvent>(
+      `SELECT * FROM workflow_events WHERE id = $1`,
+      [eventId],
+    )
+    const event = eventRows[0]
     if (!event) {
       throw new Error(`Event not found: ${eventId}`)
     }
 
-    // Find matching subscriptions
-    const _subscriptions = await this.db
-      .selectFrom('workflow_event_subscriptions')
-      .selectAll()
-      .where('tenantId', '=', event.tenantId)
-      .where('eventType', '=', event.eventType)
-      .where('active', '=', true)
-      .execute()
+    const { rows: _subscriptions } = await this.db.query(
+      `SELECT * FROM workflow_event_subscriptions WHERE "tenantId" = $1 AND "eventType" = $2 AND active = true`,
+      [event.tenantId, event.eventType],
+    )
 
     // Trigger workflows that have matching event triggers
     if (this.engine) {
@@ -175,17 +150,14 @@ export class EventIngestionService {
             trigger.type === 'event' &&
             trigger.eventType === event.eventType
           ) {
-            // Apply filter if defined
             if (trigger.filter && !trigger.filter(payload)) {
               continue
             }
 
-            // Map input if defined
             const input = trigger.mapTriggerInput
               ? trigger.mapTriggerInput(payload)
               : payload
 
-            // Use event idempotencyKey to prevent duplicate workflow starts
             const wfIdempotencyKey = event.idempotencyKey
               ? `trigger:${name}:${event.idempotencyKey}`
               : undefined
@@ -201,7 +173,6 @@ export class EventIngestionService {
                 `Triggered workflow ${name} from event ${event.eventType}`,
               )
             } catch (err: any) {
-              // Swallow idempotency conflicts (duplicate events)
               if (err.name !== 'IdempotencyConflictError') {
                 throw err
               }
@@ -211,7 +182,7 @@ export class EventIngestionService {
       }
     }
 
-    // Handle human.response events — bridge to submitHumanInput
+    // Handle human.response events
     if (event.eventType === 'human.response' && this.engine) {
       const hrPayload = fromJson<JsonObject>(event.payload) ?? {}
       const { workflowRunId, stepName, data, respondedBy } = hrPayload as any
@@ -226,114 +197,86 @@ export class EventIngestionService {
       }
     }
 
-    await this.db
-      .updateTable('workflow_events')
-      .set({ status: 'processed', processedAt: new Date() })
-      .where('id', '=', eventId)
-      .execute()
+    await this.db.query(
+      `UPDATE workflow_events SET status = $1, "processedAt" = $2 WHERE id = $3`,
+      ['processed', new Date(), eventId],
+    )
   }
 
-  /**
-   * Mark an event as failed.
-   */
   async markFailed(eventId: string, error: string): Promise<void> {
-    await this.db
-      .updateTable('workflow_events')
-      .set({ status: 'failed', error })
-      .where('id', '=', eventId)
-      .execute()
+    await this.db.query(
+      `UPDATE workflow_events SET status = $1, error = $2 WHERE id = $3`,
+      ['failed', error, eventId],
+    )
   }
 
-  /**
-   * Mark an event as dead letter (permanently failed).
-   */
   async markDeadLetter(eventId: string, error: string): Promise<void> {
-    await this.db
-      .updateTable('workflow_events')
-      .set({ status: 'dead_letter', error })
-      .where('id', '=', eventId)
-      .execute()
+    await this.db.query(
+      `UPDATE workflow_events SET status = $1, error = $2 WHERE id = $3`,
+      ['dead_letter', error, eventId],
+    )
   }
 
-  /**
-   * List dead letter events for a tenant.
-   */
   async listDeadLetters(
     tenantId: string,
     opts?: { eventType?: string; limit?: number },
   ): Promise<WorkflowEvent[]> {
-    let query = this.db
-      .selectFrom('workflow_events')
-      .selectAll()
-      .where('tenantId', '=', tenantId)
-      .where('status', '=', 'dead_letter')
+    let queryStr = `SELECT * FROM workflow_events WHERE "tenantId" = $1 AND status = 'dead_letter'`
+    const params: any[] = [tenantId]
+    let paramIdx = 2
 
     if (opts?.eventType) {
-      query = query.where('eventType', '=', opts.eventType)
+      queryStr += ` AND "eventType" = $${paramIdx}`
+      params.push(opts.eventType)
+      paramIdx++
     }
 
-    return query
-      .orderBy('createdAt', 'desc')
-      .limit(opts?.limit ?? 100)
-      .execute()
+    queryStr += ` ORDER BY "createdAt" DESC LIMIT $${paramIdx}`
+    params.push(opts?.limit ?? 100)
+
+    const { rows } = await this.db.query<WorkflowEvent>(queryStr, params)
+    return rows
   }
 
-  /**
-   * Replay a dead-letter event by resetting its status to pending.
-   */
   async replayDeadLetter(eventId: string): Promise<{ eventId: string }> {
-    await this.db
-      .updateTable('workflow_events')
-      .set({ status: 'pending', error: null, processedAt: null })
-      .where('id', '=', eventId)
-      .where('status', '=', 'dead_letter')
-      .execute()
-
+    await this.db.query(
+      `UPDATE workflow_events SET status = $1, error = $2, "processedAt" = $3 WHERE id = $4 AND status = 'dead_letter'`,
+      ['pending', null, null, eventId],
+    )
     return { eventId }
   }
 
-  /**
-   * Subscribe a workflow to an event type.
-   */
   async subscribe(
     tenantId: string,
     eventType: string,
     workflowName: string,
     filter?: Record<string, unknown>,
   ): Promise<string> {
-    const id = Ids.nanoId(21)
-
-    await this.db
-      .insertInto('workflow_event_subscriptions')
-      .values({
+    const id = nanoId(21)
+    await this.db.query(
+      `INSERT INTO workflow_event_subscriptions (id, "tenantId", "eventType", "workflowName", "filterExpression", active) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [
         id,
         tenantId,
         eventType,
         workflowName,
-        filterExpression: filter ? toJson(filter) : null,
-        active: true,
-      })
-      .execute()
-
+        filter ? toJson(filter) : null,
+        true,
+      ],
+    )
     return id
   }
 
-  /**
-   * Get active subscriptions for a tenant + event type.
-   */
   async getSubscriptions(
     tenantId: string,
     eventType: string,
   ): Promise<EventSubscription[]> {
-    const rows = await this.db
-      .selectFrom('workflow_event_subscriptions')
-      .selectAll()
-      .where('tenantId', '=', tenantId)
-      .where('eventType', '=', eventType)
-      .where('active', '=', true)
-      .execute()
+    const { rows } = await this.db.query(
+      `SELECT * FROM workflow_event_subscriptions WHERE "tenantId" = $1 AND "eventType" = $2 AND active = true`,
+      [tenantId, eventType],
+    )
 
-    return rows.map(r => ({
+    return rows.map((r: any) => ({
       id: r.id,
       tenantId: r.tenantId,
       eventType: r.eventType,
@@ -346,21 +289,11 @@ export class EventIngestionService {
     }))
   }
 
-  /**
-   * Get the latest processed sequence number for an entity.
-   * Returns null if no events have been processed for this entity.
-   */
   async getLatestSequence(entityKey: string): Promise<number | null> {
-    const row = await this.db
-      .selectFrom('workflow_events')
-      .select('sequenceNumber')
-      .where('entityKey', '=', entityKey)
-      .where('status', 'in', ['processed', 'completing'])
-      .where('sequenceNumber', 'is not', null)
-      .orderBy('sequenceNumber', 'desc')
-      .limit(1)
-      .executeTakeFirst()
-
-    return row?.sequenceNumber ?? null
+    const { rows } = await this.db.query<{ sequenceNumber: number | null }>(
+      `SELECT "sequenceNumber" FROM workflow_events WHERE "entityKey" = $1 AND status IN ('processed', 'completing') AND "sequenceNumber" IS NOT NULL ORDER BY "sequenceNumber" DESC LIMIT 1`,
+      [entityKey],
+    )
+    return rows[0]?.sequenceNumber ?? null
   }
 }

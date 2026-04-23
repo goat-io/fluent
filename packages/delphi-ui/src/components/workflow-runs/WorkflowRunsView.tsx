@@ -50,6 +50,8 @@ export function WorkflowRunsView({
   const [triggering, setTriggering] = useState(false)
   const [triggerError, setTriggerError] = useState<string | null>(null)
   const [inputFields, setInputFields] = useState<Array<{ name: string; source: string }>>([])
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({})
+  const [bulkLoading, setBulkLoading] = useState<string | null>(null)
   const mountedRef = useRef(true)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -81,32 +83,29 @@ export function WorkflowRunsView({
     })
   }, [client, workflowName, allRuns])
 
+  const fetchRuns = useCallback(() => {
+    client
+      .listWorkflows({ limit: 500 })
+      .then(data => {
+        if (mountedRef.current) {
+          setAllRuns(data.filter(r => r.workflowName === workflowName))
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (mountedRef.current) setLoading(false)
+      })
+  }, [client, workflowName])
+
   useEffect(() => {
     mountedRef.current = true
-    let timer: ReturnType<typeof setTimeout>
-
-    const fetchRuns = () => {
-      client
-        .listWorkflows({ limit: 500 })
-        .then(data => {
-          if (mountedRef.current) {
-            setAllRuns(data.filter(r => r.workflowName === workflowName))
-            setLoading(false)
-          }
-        })
-        .catch(() => {
-          if (mountedRef.current) setLoading(false)
-        })
-    }
-
     fetchRuns()
-    timer = setInterval(fetchRuns, 5000)
-
+    const timer = setInterval(fetchRuns, 5000)
     return () => {
       mountedRef.current = false
       clearInterval(timer)
     }
-  }, [client, workflowName])
+  }, [fetchRuns])
 
   // Reset visible count when filters change
   useEffect(() => {
@@ -139,6 +138,49 @@ export function WorkflowRunsView({
   )
 
   const hasMore = visibleCount < filteredRuns.length
+
+  const handleCancelRun = useCallback(async (runId: string) => {
+    setActionLoading(prev => ({ ...prev, [runId]: true }))
+    try {
+      await client.cancelWorkflow(runId)
+      fetchRuns()
+    } catch {
+      // silently fail, next poll will show real state
+    } finally {
+      setActionLoading(prev => ({ ...prev, [runId]: false }))
+    }
+  }, [client, fetchRuns])
+
+  const handleRetryRun = useCallback(async (runId: string) => {
+    setActionLoading(prev => ({ ...prev, [runId]: true }))
+    try {
+      await client.retryWorkflow(runId)
+      fetchRuns()
+    } catch {
+      // silently fail
+    } finally {
+      setActionLoading(prev => ({ ...prev, [runId]: false }))
+    }
+  }, [client, fetchRuns])
+
+  const [confirmAction, setConfirmAction] = useState<'cancel-all' | 'retry-all' | null>(null)
+
+  const executeBulkAction = useCallback(async (action: 'cancel-all' | 'retry-all') => {
+    setBulkLoading(action)
+    setConfirmAction(null)
+    try {
+      if (action === 'cancel-all') {
+        await client.cancelAllWorkflows(workflowName, ['RUNNING'])
+      } else {
+        await client.retryAllWorkflows(workflowName, ['CANCELLED'])
+      }
+      fetchRuns()
+    } catch {
+      // silently fail
+    } finally {
+      setBulkLoading(null)
+    }
+  }, [client, workflowName, fetchRuns])
 
   // Infinite scroll via IntersectionObserver
   useEffect(() => {
@@ -190,17 +232,72 @@ export function WorkflowRunsView({
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowTrigger(!showTrigger)}
-          className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Trigger Run
-        </button>
+        <div className="flex items-center gap-2">
+          {(statusCounts['RUNNING'] ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => setConfirmAction('cancel-all')}
+              disabled={!!bulkLoading}
+              className="border border-border text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted transition-colors flex items-center gap-1.5 disabled:opacity-50">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              {bulkLoading === 'cancel-all' ? 'Cancelling...' : `Cancel All Running (${statusCounts['RUNNING']})`}
+            </button>
+          )}
+          {(statusCounts['CANCELLED'] ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => setConfirmAction('retry-all')}
+              disabled={!!bulkLoading}
+              className="border border-border text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted transition-colors flex items-center gap-1.5 disabled:opacity-50">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {bulkLoading === 'retry-all' ? 'Retrying...' : `Retry All Cancelled (${statusCounts['CANCELLED']})`}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowTrigger(!showTrigger)}
+            className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Trigger Run
+          </button>
+        </div>
       </div>
+
+      {/* Inline confirmation banner */}
+      {confirmAction && (
+        <div className="mb-4 flex items-center justify-between bg-muted/50 border border-border rounded-xl px-5 py-3">
+          <span className="text-sm text-foreground">
+            {confirmAction === 'cancel-all'
+              ? `Cancel all ${statusCounts['RUNNING'] ?? 0} running workflows?`
+              : `Retry all ${statusCounts['CANCELLED'] ?? 0} cancelled workflows?`}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmAction(null)}
+              className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => executeBulkAction(confirmAction)}
+              className={`text-sm font-medium text-white px-3 py-1.5 rounded-lg transition-colors ${
+                confirmAction === 'cancel-all'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}>
+              {confirmAction === 'cancel-all' ? 'Yes, cancel all' : 'Yes, retry all'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Trigger Run Panel */}
       {showTrigger && (
@@ -290,13 +387,14 @@ export function WorkflowRunsView({
           <div
             className="grid items-center px-6 py-3.5 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wider"
             style={{
-              gridTemplateColumns: '1fr 140px 120px 100px 120px',
+              gridTemplateColumns: '1fr 140px 120px 100px 120px 80px',
             }}>
             <span>Run ID</span>
             <span>Status</span>
             <span>Steps</span>
             <span>Duration</span>
             <span className="text-right">Started</span>
+            <span className="text-right">Actions</span>
           </div>
 
           {/* Rows */}
@@ -306,7 +404,7 @@ export function WorkflowRunsView({
               onClick={() => onSelectRun(run.id)}
               className="grid items-center px-6 py-4 border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors"
               style={{
-                gridTemplateColumns: '1fr 140px 120px 100px 120px',
+                gridTemplateColumns: '1fr 140px 120px 100px 120px 80px',
               }}>
               <span className="flex items-center gap-1.5 min-w-0 pr-4">
                 <span className="text-sm text-foreground font-mono truncate">
@@ -362,6 +460,40 @@ export function WorkflowRunsView({
               </span>
               <span className="text-xs text-muted-foreground text-right">
                 <RelativeTime date={run.startedAt ?? run.createdAt} />
+              </span>
+              <span className="flex items-center justify-end gap-1">
+                {(run.status === 'RUNNING' || run.status === 'FAILED') && (
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); handleCancelRun(run.id) }}
+                    disabled={!!actionLoading[run.id]}
+                    className="text-muted-foreground hover:text-red-400 p-1 rounded transition-colors disabled:opacity-50"
+                    title="Cancel run">
+                    {actionLoading[run.id] ? (
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border border-current border-t-transparent" />
+                    ) : (
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+                {(run.status === 'CANCELLED' || run.status === 'FAILED') && (
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); handleRetryRun(run.id) }}
+                    disabled={!!actionLoading[run.id]}
+                    className="text-muted-foreground hover:text-blue-400 p-1 rounded transition-colors disabled:opacity-50"
+                    title="Retry run">
+                    {actionLoading[run.id] ? (
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border border-current border-t-transparent" />
+                    ) : (
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                  </button>
+                )}
               </span>
             </div>
           ))}

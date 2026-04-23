@@ -68,7 +68,7 @@ async function main() {
 
     // Note: for a standalone worker, you need AGENTS_POSTGRES_URL set too
     // This CLI is a starting point — production deployments would extend this
-    const { Kysely, PostgresDialect } = await import('kysely')
+    const { createDbClient } = await import('../db/DbClient.js')
     const pg = await import('pg')
 
     const pgUrl = process.env.AGENTS_POSTGRES_URL
@@ -77,11 +77,8 @@ async function main() {
       process.exit(1)
     }
 
-    const db = new Kysely<any>({
-      dialect: new PostgresDialect({
-        pool: new pg.default.Pool({ connectionString: pgUrl, max: 5 }),
-      }),
-    })
+    const pool = new pg.default.Pool({ connectionString: pgUrl, max: 5 })
+    const db = createDbClient(pool)
 
     const engine = new WorkflowEngine({
       db,

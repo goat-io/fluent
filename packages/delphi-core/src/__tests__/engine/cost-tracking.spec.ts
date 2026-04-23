@@ -3,11 +3,10 @@
 // Tests for cost-per-step tracking via StepCostTracker interceptor
 //
 
-import type { Kysely } from 'kysely'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { StepCostTracker } from '../../engine/StepCostTracker.js'
 import { WorkflowMetricsCollector } from '../../engine/WorkflowMetrics.js'
-import type { Database } from '../../entities/Database.js'
 import type {
   StepPayload,
   StepResult,
@@ -15,7 +14,7 @@ import type {
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 describe('StepCostTracker', () => {
-  let db: Kysely<Database>
+  let db: TestDb
 
   beforeAll(async () => {
     db = await getSharedDb()
