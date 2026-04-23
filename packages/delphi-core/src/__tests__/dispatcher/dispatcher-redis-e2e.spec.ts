@@ -17,7 +17,13 @@ function getGlobalData() {
     readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
   ) as {
     redis: { host: string; port: number }
-    postgres: { host: string; port: number; database: string; username: string; password: string }
+    postgres: {
+      host: string
+      port: number
+      database: string
+      username: string
+      password: string
+    }
   }
 }
 
@@ -31,15 +37,24 @@ describe('dispatcher Redis hint transport', { timeout: 30_000 }, () => {
 
   beforeAll(async () => {
     // Intercept fetch to capture hint HTTP POSTs (no real HTTP server needed)
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string, opts: any) => {
-      const headers = opts?.headers ?? {}
-      const body = opts?.body ? JSON.parse(opts.body) : {}
-      received.push({ tenantId: headers['X-Tenant-ID'] || body.tenantId, queueName: body.queueName })
-      return { ok: true, status: 202, text: async () => 'ok' } as Response
-    })
+    globalThis.fetch = vi
+      .fn()
+      .mockImplementation(async (_url: string, opts: any) => {
+        const headers = opts?.headers ?? {}
+        const body = opts?.body ? JSON.parse(opts.body) : {}
+        received.push({
+          tenantId: headers['X-Tenant-ID'] || body.tenantId,
+          queueName: body.queueName,
+        })
+        return { ok: true, status: 202, text: async () => 'ok' } as Response
+      })
 
     dispatcher = createDispatcher({
-      redis: { host: data.redis.host, port: data.redis.port, maxRetriesPerRequest: null },
+      redis: {
+        host: data.redis.host,
+        port: data.redis.port,
+        maxRetriesPerRequest: null,
+      },
       dispatchUrl: 'http://localhost:9999/dispatch/worker',
       resolveTenant: vi.fn().mockResolvedValue({} as any),
       listTenants: vi.fn().mockResolvedValue([]),

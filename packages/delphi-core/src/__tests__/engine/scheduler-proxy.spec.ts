@@ -5,15 +5,9 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { TestDb } from '../../db/TestQueryBuilder.js'
-import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
 import { createEngine } from '../../workflow/createEngine.js'
 import { FunctionStep } from '../../workflow/Step.js'
 import { step, Workflow } from '../../workflow/Workflow.js'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import type {
-  StepPayload,
-  StepResult,
-} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 // Step + Workflow using the new single-generic pattern

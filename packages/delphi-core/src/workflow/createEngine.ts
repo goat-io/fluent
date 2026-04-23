@@ -223,7 +223,8 @@ interface EngineServices {
 }
 
 export type TypedEngine<Ws extends readonly WorkflowLike[]> = WorkflowEngine &
-  Omit<WorkflowsApi<Ws>, keyof EngineServices> & EngineServices
+  Omit<WorkflowsApi<Ws>, keyof EngineServices> &
+  EngineServices
 
 /**
  * Build a typed engine where every registered workflow is addressable
@@ -264,7 +265,15 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
      * - Existing pg.Pool: share your backend's pool (no duplicate connections)
      * - Existing DbClient: for advanced scenarios
      */
-    database: string | Pool | DbClient | { query: (...args: any[]) => any; connect: (...args: any[]) => any; end: (...args: any[]) => any }
+    database:
+      | string
+      | Pool
+      | DbClient
+      | {
+          query: (...args: any[]) => any
+          connect: (...args: any[]) => any
+          end: (...args: any[]) => any
+        }
     workflows: Ws
     /**
      * Optional Redis connection for high-throughput dispatch.
@@ -412,15 +421,16 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
       maxPollingIntervalMs: config.dispatch?.maxPollingIntervalMs,
       tenantId: config.tenantId,
       // When dispatcher is present, fire hints after step inserts
-      onAfterQueue: dispatcherRef && config.tenantId
-        ? (params) => {
-            void dispatcherRef.fireHint({
-              tenantId: config.tenantId!,
-              queueName: params.queueName,
-              jobId: params.jobId.replaceAll(':', '_'),
-            })
-          }
-        : undefined,
+      onAfterQueue:
+        dispatcherRef && config.tenantId
+          ? params => {
+              void dispatcherRef.fireHint({
+                tenantId: config.tenantId!,
+                queueName: params.queueName,
+                jobId: params.jobId.replaceAll(':', '_'),
+              })
+            }
+          : undefined,
     })
   }
 

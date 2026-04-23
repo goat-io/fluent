@@ -731,7 +731,9 @@ export class WorkflowEngine {
     if (opts?.checkIdempotency) {
       const keysByTenant = new Map<string, Set<string>>()
       for (const t of triggers) {
-        if (!t.idempotencyKey) continue
+        if (!t.idempotencyKey) {
+          continue
+        }
         let set = keysByTenant.get(t.tenantId)
         if (!set) {
           set = new Set()
@@ -1126,10 +1128,7 @@ export class WorkflowEngine {
   }
 
   /** Public alias for resolveTraceId — used by WorkflowStepTask for transactional post-commit events. */
-  async resolveTraceIdPublic(
-    runId: string,
-    tenantId: string,
-  ): Promise<string> {
+  async resolveTraceIdPublic(runId: string, tenantId: string): Promise<string> {
     return this.resolveTraceId(runId, tenantId)
   }
 
@@ -1590,7 +1589,9 @@ export class WorkflowEngine {
     const stepsToDispatch: typeof steps = []
 
     for (const step of steps) {
-      if (step.status === 'COMPLETED') continue
+      if (step.status === 'COMPLETED') {
+        continue
+      }
 
       const isRoot = rootNames.has(step.stepName)
       const shouldDispatch =

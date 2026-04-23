@@ -3,7 +3,10 @@
 // Responds 202 immediately (Cloud Run scaling), then asynchronously resolves
 // the tenant engine and drains work via processIncomingDispatch().
 
-import type { ResolvedTenantEngine, ResolveTenantFn } from './dispatcher.types.js'
+import type {
+  ResolvedTenantEngine,
+  ResolveTenantFn,
+} from './dispatcher.types.js'
 
 const DEFAULT_QUEUE_NAMES = new Set([
   'workflow_ingest',
@@ -42,9 +45,7 @@ export function createDispatchHandler(
     // and can scale based on incoming request volume.
     res.status(202).json({ accepted: true, tenantId })
 
-    const hint = req.body as
-      | { queueName?: string; jobId?: string }
-      | undefined
+    const hint = req.body as { queueName?: string; jobId?: string } | undefined
 
     // Fire-and-forget background processing
     void (async () => {

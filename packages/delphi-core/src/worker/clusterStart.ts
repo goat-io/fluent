@@ -16,7 +16,7 @@
  * When workers=1 (default), no forking — calls start() directly.
  */
 import cluster from 'node:cluster'
-import { cpus } from 'os'
+import { cpus } from 'node:os'
 
 export interface ClusterStartConfig {
   /** Number of worker processes. 'auto' = os.cpus().length. Default: 1 (no fork). */

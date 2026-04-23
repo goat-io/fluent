@@ -249,7 +249,7 @@ describe('PgConnector Load Test', () => {
     const N = 50
 
     const startTimes = new Map<string, number>()
-    const start = Date.now()
+    const _start = Date.now()
 
     const runIds: string[] = []
     for (let i = 0; i < N; i++) {

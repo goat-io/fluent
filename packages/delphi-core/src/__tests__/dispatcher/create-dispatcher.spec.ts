@@ -68,9 +68,7 @@ describe('createDispatcher', () => {
 
   it('fireHint sanitizes colons in jobId', async () => {
     const mockDb = makeMockDb()
-    const dispatcher = createDispatcher(
-      makeBaseConfig({ database: mockDb }),
-    )
+    const dispatcher = createDispatcher(makeBaseConfig({ database: mockDb }))
 
     // fireHint eventually calls PgHintTransport.fireHint which INSERTs.
     // The PG transport stores jobId as-is (colon sanitization is Redis-only

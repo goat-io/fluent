@@ -196,7 +196,9 @@ export class PgConnector implements TaskConnector<object> {
 
     while (Date.now() < deadline) {
       const claimed = await this.claimSteps(batchSize)
-      if (claimed.length === 0) break
+      if (claimed.length === 0) {
+        break
+      }
 
       // Process in chunks capped by concurrency
       for (let off = 0; off < claimed.length; off += concurrency) {
@@ -376,7 +378,9 @@ export class PgConnector implements TaskConnector<object> {
   }
 
   private async claimSteps(limit: number) {
-    if (limit <= 0) return []
+    if (limit <= 0) {
+      return []
+    }
 
     let tenantFilter = ''
     const params: any[] = [limit]
@@ -450,7 +454,9 @@ export class PgConnector implements TaskConnector<object> {
   }
 
   private async selfTestListenNotify(): Promise<boolean> {
-    if (!this.pgPool) return false
+    if (!this.pgPool) {
+      return false
+    }
 
     const testChannel = 'delphi_dispatch_selftest'
     const testPayload = `test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -491,7 +497,9 @@ export class PgConnector implements TaskConnector<object> {
   private notifyTimer: ReturnType<typeof setTimeout> | null = null
 
   private notifyDebounced(): void {
-    if (this.notifyTimer || !this.pgPool) return
+    if (this.notifyTimer || !this.pgPool) {
+      return
+    }
     this.notifyTimer = setTimeout(() => {
       this.notifyTimer = null
       this.notify('wake').catch(() => {})
@@ -499,7 +507,9 @@ export class PgConnector implements TaskConnector<object> {
   }
 
   private async notify(payload: string): Promise<void> {
-    if (!this.pgPool) return
+    if (!this.pgPool) {
+      return
+    }
     let client: PoolClient | undefined
     try {
       client = await this.pgPool.connect()
@@ -523,23 +533,35 @@ export class PgConnector implements TaskConnector<object> {
     iteration: number
   } | null {
     const prefix = 'wf-'
-    if (!jobId.startsWith(prefix)) return null
+    if (!jobId.startsWith(prefix)) {
+      return null
+    }
 
     const rest = jobId.slice(prefix.length)
     const iIdx = rest.lastIndexOf('-i')
-    if (iIdx < 0) return null
+    if (iIdx < 0) {
+      return null
+    }
     const iteration = Number.parseInt(rest.slice(iIdx + 2), 10)
-    if (isNaN(iteration)) return null
+    if (Number.isNaN(iteration)) {
+      return null
+    }
 
     const beforeI = rest.slice(0, iIdx)
     const attemptIdx = beforeI.lastIndexOf('-')
-    if (attemptIdx < 0) return null
+    if (attemptIdx < 0) {
+      return null
+    }
     const attempt = Number.parseInt(beforeI.slice(attemptIdx + 1), 10)
-    if (isNaN(attempt)) return null
+    if (Number.isNaN(attempt)) {
+      return null
+    }
 
     const beforeAttempt = beforeI.slice(0, attemptIdx)
     const lastDash = beforeAttempt.lastIndexOf('-')
-    if (lastDash < 0) return null
+    if (lastDash < 0) {
+      return null
+    }
     const runId = beforeAttempt.slice(0, lastDash)
     const stepName = beforeAttempt.slice(lastDash + 1)
 

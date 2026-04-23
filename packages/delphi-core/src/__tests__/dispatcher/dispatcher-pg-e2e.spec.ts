@@ -8,9 +8,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import pg from 'pg'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { createDbClient } from '../../db/DbClient.js'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { DbClient } from '../../db/DbClient.js'
+import { createDbClient } from '../../db/DbClient.js'
 import { PgHintTransport } from '../../dispatcher/PgHintTransport.js'
 
 function getGlobalData() {
@@ -18,7 +18,13 @@ function getGlobalData() {
     readFileSync(join(__dirname, '..', '..', '..', 'tempData.json'), 'utf-8'),
   ) as {
     redis: { host: string; port: number }
-    postgres: { host: string; port: number; database: string; username: string; password: string }
+    postgres: {
+      host: string
+      port: number
+      database: string
+      username: string
+      password: string
+    }
   }
 }
 
@@ -27,11 +33,19 @@ describe('PgHintTransport integration', { timeout: 30_000 }, () => {
   let pool: pg.Pool
   let db: DbClient
   let transport: PgHintTransport
-  const received: Array<{ tenantId: string; queueName: string; jobId: string }> = []
+  const received: Array<{
+    tenantId: string
+    queueName: string
+    jobId: string
+  }> = []
 
   beforeAll(async () => {
     // Create a dedicated DB for this test
-    const admin = new pg.Pool({ ...data.postgres, user: data.postgres.username, max: 2 })
+    const admin = new pg.Pool({
+      ...data.postgres,
+      user: data.postgres.username,
+      max: 2,
+    })
     await admin.query(`CREATE DATABASE "pg_hint_test"`).catch(() => {})
     await admin.end()
 

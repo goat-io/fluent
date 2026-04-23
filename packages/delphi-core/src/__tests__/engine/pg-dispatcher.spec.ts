@@ -491,7 +491,7 @@ describe('PgConnector E2E', () => {
     expect(finalStatus).toBe('COMPLETED')
 
     // Each step should have been called exactly once
-    for (const [key, count] of callCounts) {
+    for (const [_key, count] of callCounts) {
       expect(count).toBe(1)
     }
   })

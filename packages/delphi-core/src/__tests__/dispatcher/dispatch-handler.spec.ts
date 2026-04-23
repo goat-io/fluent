@@ -301,11 +301,13 @@ describe('createDispatchHandler', () => {
     const engineA = makeMockEngine()
     const engineB = makeMockEngine()
 
-    const resolveTenant = vi.fn().mockImplementation(async (tenantId: string) => {
-      // Simulate slight resolution delay
-      await new Promise(r => setTimeout(r, 10))
-      return tenantId === 'tenant-a' ? engineA : engineB
-    })
+    const resolveTenant = vi
+      .fn()
+      .mockImplementation(async (tenantId: string) => {
+        // Simulate slight resolution delay
+        await new Promise(r => setTimeout(r, 10))
+        return tenantId === 'tenant-a' ? engineA : engineB
+      })
 
     const handler = createDispatchHandler({
       resolveTenant,

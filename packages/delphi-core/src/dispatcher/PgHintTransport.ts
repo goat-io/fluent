@@ -72,7 +72,9 @@ export class PgHintTransport {
   }
 
   private async ensureTable(): Promise<void> {
-    if (this.migrated) return
+    if (this.migrated) {
+      return
+    }
     await this.db.query(CREATE_HINTS_TABLE)
     await this.db.query(CREATE_HINTS_INDEX)
     this.migrated = true
@@ -129,7 +131,9 @@ export class PgHintTransport {
           )
           try {
             this.notifyClient?.release()
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
           this.notifyClient = null
         })
         await this.notifyClient.query(`LISTEN ${HINT_CHANNEL}`)
@@ -155,7 +159,9 @@ export class PgHintTransport {
     if (this.notifyClient) {
       try {
         await this.notifyClient.query(`UNLISTEN ${HINT_CHANNEL}`)
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       this.notifyClient.release()
       this.notifyClient = null
     }
@@ -222,7 +228,9 @@ export class PgHintTransport {
       RETURNING dh.id, dh."tenantId", dh."queueName", dh."jobId"`,
     )
 
-    if (rows.length === 0) return 0
+    if (rows.length === 0) {
+      return 0
+    }
 
     const settled = await Promise.allSettled(
       rows.map(hint =>

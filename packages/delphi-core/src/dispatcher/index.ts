@@ -1,3 +1,5 @@
+export { createDispatcher } from './createDispatcher.js'
+export { createDispatchHandler } from './DispatchHandler.js'
 export type {
   Dispatcher,
   DispatcherConfig,
@@ -5,7 +7,5 @@ export type {
   ResolvedTenantEngine,
   ResolveTenantFn,
 } from './dispatcher.types.js'
-export { createDispatcher } from './createDispatcher.js'
-export { createDispatchHandler } from './DispatchHandler.js'
 export { PgHintTransport } from './PgHintTransport.js'
 export { ScheduleSyncer } from './ScheduleSyncer.js'

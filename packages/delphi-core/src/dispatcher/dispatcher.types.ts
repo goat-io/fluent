@@ -140,5 +140,7 @@ export interface Dispatcher {
    * Sync schedules across all tenants by reading workflow.schedule declarations.
    * Iterates listTenants(), resolves each engine, upserts schedules.
    */
-  syncSchedules(environment?: string): Promise<{ totalJobs: number; tenantCount: number }>
+  syncSchedules(
+    environment?: string,
+  ): Promise<{ totalJobs: number; tenantCount: number }>
 }

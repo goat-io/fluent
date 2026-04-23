@@ -7,7 +7,6 @@
 import { describe, expect, it } from 'vitest'
 import { Step } from '../../workflow/Step.js'
 import { step, Workflow } from '../../workflow/Workflow.js'
-import type { JsonObject, StepExecutionContext } from '@goatlab/tasks-core'
 
 // ── Test fixtures ────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ describe('Workflow schedule property', () => {
         input: { x: 42 },
         environments: ['production'],
         tenants: ['acme'],
-      } as const
+      }
 
       steps = [step(testStep)] as const
     }

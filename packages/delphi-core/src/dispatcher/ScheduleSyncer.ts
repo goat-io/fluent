@@ -45,13 +45,12 @@ export class ScheduleSyncer {
         const definitions = engine.getWorkflowDefinitions?.() ?? []
 
         for (const wf of definitions) {
-          if (!wf.schedule) continue
+          if (!wf.schedule) {
+            continue
+          }
 
           // Filter by tenant
-          if (
-            wf.schedule.tenants &&
-            !wf.schedule.tenants.includes(tenantId)
-          ) {
+          if (wf.schedule.tenants && !wf.schedule.tenants.includes(tenantId)) {
             continue
           }
 

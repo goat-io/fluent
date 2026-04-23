@@ -5,8 +5,8 @@
 // No testcontainers needed; engines and callbacks are fully mocked.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ScheduleSyncer } from '../../dispatcher/ScheduleSyncer.js'
 import type { ResolvedTenantEngine } from '../../dispatcher/dispatcher.types.js'
+import { ScheduleSyncer } from '../../dispatcher/ScheduleSyncer.js'
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -57,9 +57,7 @@ describe('ScheduleSyncer', () => {
   it('iterates all tenants from listTenants()', async () => {
     const engine = makeMockEngine()
     const resolveTenant = vi.fn().mockResolvedValue(engine)
-    const listTenants = vi
-      .fn()
-      .mockResolvedValue(['t1', 't2', 't3'])
+    const listTenants = vi.fn().mockResolvedValue(['t1', 't2', 't3'])
 
     const syncer = new ScheduleSyncer({
       listTenants,
@@ -203,7 +201,9 @@ describe('ScheduleSyncer', () => {
     ])
 
     const resolveTenant = vi.fn().mockImplementation(async (tid: string) => {
-      if (tid === 'bad-tenant') throw new Error('DB connection refused')
+      if (tid === 'bad-tenant') {
+        throw new Error('DB connection refused')
+      }
       return engineGood
     })
 
@@ -235,9 +235,7 @@ describe('ScheduleSyncer', () => {
     ])
 
     const resolveTenant = vi.fn().mockResolvedValue(engine)
-    const listTenants = vi
-      .fn()
-      .mockResolvedValue(['t1', 't2'])
+    const listTenants = vi.fn().mockResolvedValue(['t1', 't2'])
 
     const syncer = new ScheduleSyncer({
       listTenants,
@@ -268,10 +266,7 @@ describe('ScheduleSyncer', () => {
   })
 
   it('handles workflows with no schedules', async () => {
-    const engine = makeMockEngine([
-      { name: 'wf_a' },
-      { name: 'wf_b' },
-    ])
+    const engine = makeMockEngine([{ name: 'wf_a' }, { name: 'wf_b' }])
 
     const resolveTenant = vi.fn().mockResolvedValue(engine)
     const listTenants = vi.fn().mockResolvedValue(['t1'])

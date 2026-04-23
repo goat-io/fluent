@@ -141,10 +141,14 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
       const def = engine.getWorkflows().get(run.workflowName)
       const sensitive = new Set(def?.sensitiveFields ?? [])
       const redact = (obj: any) => {
-        if (!obj || sensitive.size === 0) return obj
+        if (!obj || sensitive.size === 0) {
+          return obj
+        }
         const result = { ...obj }
         for (const key of sensitive) {
-          if (key in result) result[key] = '[REDACTED]'
+          if (key in result) {
+            result[key] = '[REDACTED]'
+          }
         }
         return result
       }
@@ -322,7 +326,9 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
           id: string
           createdAt: Date
         }>(queryStr, params)
-        if (batch.length === 0) break
+        if (batch.length === 0) {
+          break
+        }
 
         for (const { id } of batch) {
           try {
@@ -334,7 +340,9 @@ export function createWorkflowHandlers(engine: WorkflowEngine) {
         }
 
         cursor = batch[batch.length - 1]!.id
-        if (batch.length < BATCH) break
+        if (batch.length < BATCH) {
+          break
+        }
       }
 
       return { retried }

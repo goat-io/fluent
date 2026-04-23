@@ -232,7 +232,9 @@ export class AgentRegistry {
       if (job.requiresLabels && job.requiresLabels.length > 0) {
         const agentLabels = agent.capabilities.labels ?? []
         const missing = job.requiresLabels.some(l => !agentLabels.includes(l))
-        if (missing) continue
+        if (missing) {
+          continue
+        }
       }
 
       // Tenant match

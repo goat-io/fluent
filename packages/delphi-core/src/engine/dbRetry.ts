@@ -41,19 +41,26 @@ export interface DbRetryOptions {
 }
 
 function isRetryableError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false
+  if (!(err instanceof Error)) {
+    return false
+  }
 
   const e = err as any
 
   // Check PostgreSQL SQLSTATE code
   if (typeof e.code === 'string') {
     // Check full code
-    if (PG_RETRYABLE_CODES.has(e.code)) return true
-    // Check SQLSTATE class (first 2 chars)
-    if (e.code.length === 5 && PG_RETRYABLE_CLASSES.has(e.code.slice(0, 2)))
+    if (PG_RETRYABLE_CODES.has(e.code)) {
       return true
+    }
+    // Check SQLSTATE class (first 2 chars)
+    if (e.code.length === 5 && PG_RETRYABLE_CLASSES.has(e.code.slice(0, 2))) {
+      return true
+    }
     // Check Node.js error codes
-    if (NODE_RETRYABLE_CODES.has(e.code)) return true
+    if (NODE_RETRYABLE_CODES.has(e.code)) {
+      return true
+    }
   }
 
   // Check error message for connection-related keywords

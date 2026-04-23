@@ -157,7 +157,15 @@ export class SchedulerService {
          input = EXCLUDED.input,
          "nextRunAt" = EXCLUDED."nextRunAt",
          active = true`,
-      [id, tenantId, workflowName, cronExpression, toJson(input ?? null), nextRunAt, null],
+      [
+        id,
+        tenantId,
+        workflowName,
+        cronExpression,
+        toJson(input ?? null),
+        nextRunAt,
+        null,
+      ],
     )
 
     return id

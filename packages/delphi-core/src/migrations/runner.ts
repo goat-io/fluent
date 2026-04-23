@@ -130,9 +130,7 @@ export const MIGRATIONS: Migration[] = [
     version: 7,
     description:
       'Widen workflow_schedules.id to VARCHAR(255) for deterministic upsert IDs',
-    sql: [
-      `ALTER TABLE workflow_schedules ALTER COLUMN id TYPE VARCHAR(255)`,
-    ],
+    sql: [`ALTER TABLE workflow_schedules ALTER COLUMN id TYPE VARCHAR(255)`],
   },
 ]
 
@@ -155,7 +153,9 @@ export async function runMigrations(db: DbClient): Promise<number> {
 
   let applied = 0
   for (const migration of MIGRATIONS) {
-    if (migration.version <= currentVersion) continue
+    if (migration.version <= currentVersion) {
+      continue
+    }
 
     for (const statement of migration.sql) {
       try {

@@ -5,7 +5,7 @@
 // resolution, soft-delete reactivation, nextRunAt computation, idempotency,
 // and backward compatibility with the existing createSchedule (random ID) path.
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { TestDb } from '../../db/TestQueryBuilder.js'
 import type { WorkflowSchedule } from '../../entities/Database.js'
 import { EventIngestionService } from '../../events/EventIngestion.js'

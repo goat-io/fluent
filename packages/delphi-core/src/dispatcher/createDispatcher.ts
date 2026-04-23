@@ -8,8 +8,8 @@
 // The hint transport is independent of each tenant's dispatch backend —
 // tenants can use BullMQ or PgConnector regardless of hint transport.
 
-import type { Dispatcher, DispatcherConfig } from './dispatcher.types.js'
 import { createDispatchHandler } from './DispatchHandler.js'
+import type { Dispatcher, DispatcherConfig } from './dispatcher.types.js'
 import { PgHintTransport } from './PgHintTransport.js'
 import { ScheduleSyncer } from './ScheduleSyncer.js'
 
@@ -46,10 +46,8 @@ export function createDispatcher(config: DispatcherConfig): Dispatcher {
     let BullMQConnector: any
     let createHintRegistry: any
     try {
-      BullMQConnector =
-        require('@goatlab/tasks-adapter-bullmq').BullMQConnector
-      createHintRegistry =
-        require('@goatlab/tasks-core').createHintRegistry
+      BullMQConnector = require('@goatlab/tasks-adapter-bullmq').BullMQConnector
+      createHintRegistry = require('@goatlab/tasks-core').createHintRegistry
     } catch {
       throw new Error(
         'createDispatcher (Redis mode): @goatlab/tasks-adapter-bullmq is required. ' +
@@ -87,7 +85,9 @@ export function createDispatcher(config: DispatcherConfig): Dispatcher {
         })
       },
       async start() {
-        if (listenHandle) return
+        if (listenHandle) {
+          return
+        }
         listenHandle = await registry.listen({ dispatchHints: true })
         config.logger?.info('[Dispatcher] Redis hint listener started')
       },
@@ -98,7 +98,9 @@ export function createDispatcher(config: DispatcherConfig): Dispatcher {
         }
         try {
           await dispatchConnector.close?.()
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         config.logger?.info('[Dispatcher] Redis hint listener stopped')
       },
       isRunning() {

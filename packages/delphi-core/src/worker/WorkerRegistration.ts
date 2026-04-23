@@ -1,6 +1,6 @@
 import cluster from 'node:cluster'
-import { randomUUID } from 'crypto'
-import { cpus, hostname, totalmem } from 'os'
+import { randomUUID } from 'node:crypto'
+import { cpus, hostname, totalmem } from 'node:os'
 import type { DbClient } from '../db/DbClient.js'
 import { toJson } from '../entities/Database.js'
 
@@ -98,7 +98,9 @@ export class WorkerSelfRegistration {
   }
 
   async heartbeat(): Promise<void> {
-    if (!this.workerId) return
+    if (!this.workerId) {
+      return
+    }
     await this.db.query(
       `UPDATE worker_nodes SET "lastHeartbeatAt" = $1 WHERE id = $2`,
       [new Date(), this.workerId],

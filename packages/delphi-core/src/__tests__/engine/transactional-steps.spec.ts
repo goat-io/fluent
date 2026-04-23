@@ -290,6 +290,9 @@ describe('Transactional Steps', () => {
       > {
         stepName = 'check_tx' as const
         transactional = true as const
+        async handle() {
+          return { output: { checked: true } }
+        }
       }
 
       class OverrideWorkflow extends Workflow<{ checked?: boolean }> {
@@ -331,6 +334,9 @@ describe('Transactional Steps', () => {
       class TxByDefault extends FunctionStep<{ x?: number }, { y: number }> {
         stepName = 'auto_tx' as const
         transactional = true as const
+        async handle() {
+          return { output: { y: 1 } }
+        }
       }
 
       class AutoTxWorkflow extends Workflow<{ x?: number }> {

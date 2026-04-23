@@ -92,7 +92,7 @@ describe('DBOS-parity v2', () => {
     )
     executor.register(
       'finalize',
-      async (payload: StepPayload): Promise<StepResult> => {
+      async (_payload: StepPayload): Promise<StepResult> => {
         return { output: { finalized: true } }
       },
     )
@@ -168,7 +168,7 @@ describe('DBOS-parity v2', () => {
       })
 
       // Execute step_a to RUNNING state
-      const job = queuedJobs[0]!
+      const _job = queuedJobs[0]!
       await db
         .updateTable('workflow_steps')
         .set({
@@ -299,7 +299,7 @@ describe('DBOS-parity v2', () => {
         })
         .build()
 
-      const { engine, queuedJobs } = createEngine([wf])
+      const { engine } = createEngine([wf])
       const { runId } = await engine.start({
         workflowName: 'step-timeout-test',
         tenantId: 'test-tenant',
@@ -800,9 +800,13 @@ describe('DBOS-parity v2', () => {
 
       for (let i = 0; i < 100; i++) {
         const op = Math.random()
-        if (op < 0.33) poller.onContention()
-        else if (op < 0.66) poller.onSuccess()
-        else poller.onIdle()
+        if (op < 0.33) {
+          poller.onContention()
+        } else if (op < 0.66) {
+          poller.onSuccess()
+        } else {
+          poller.onIdle()
+        }
 
         const interval = poller.getIntervalMs()
         expect(interval).toBeGreaterThanOrEqual(50)
@@ -891,7 +895,7 @@ describe('DBOS-parity v2', () => {
         })
         .build()
 
-      const { engine, queuedJobs } = createEngine([wf])
+      const { engine } = createEngine([wf])
 
       // Create 10 runs and complete them
       const runIds: string[] = []

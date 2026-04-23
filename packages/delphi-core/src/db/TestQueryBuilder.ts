@@ -16,7 +16,7 @@ function quoteCol(col: string): string {
   return /[A-Z]/.test(col) ? `"${col}"` : col
 }
 
-function placeholders(start: number, count: number): string {
+function _placeholders(start: number, count: number): string {
   return Array.from({ length: count }, (_, i) => `$${start + i}`).join(', ')
 }
 
@@ -102,19 +102,21 @@ class SelectBuilder<T = any> {
 
   async executeTakeFirst(): Promise<T | undefined> {
     const { text, params } = this.buildQuery()
-    const { rows } = await this.db.query<T>(text + ' LIMIT 1', params)
+    const { rows } = await this.db.query<T>(`${text} LIMIT 1`, params)
     return rows[0]
   }
 
   async executeTakeFirstOrThrow(): Promise<T> {
     const result = await this.executeTakeFirst()
-    if (!result) throw new Error(`No row found in ${this.table}`)
+    if (!result) {
+      throw new Error(`No row found in ${this.table}`)
+    }
     return result
   }
 }
 
 // ── Insert Builder ──────────────────────────────────────────────
-class InsertBuilder<T = any> {
+class InsertBuilder<_T = any> {
   private table: string
   private db: DbClient
   private rows: Row[] = []
@@ -130,7 +132,9 @@ class InsertBuilder<T = any> {
   }
 
   async execute(): Promise<void> {
-    if (this.rows.length === 0) return
+    if (this.rows.length === 0) {
+      return
+    }
 
     for (const row of this.rows) {
       const keys = Object.keys(row)
@@ -173,7 +177,9 @@ class UpdateBuilder {
 
   async execute(): Promise<void> {
     const keys = Object.keys(this.setData)
-    if (keys.length === 0) return
+    if (keys.length === 0) {
+      return
+    }
 
     let idx = 1
     const setClauses = keys.map(k => `${quoteCol(k)} = $${idx++}`).join(', ')
@@ -235,7 +241,7 @@ class DeleteBuilder {
 
 // ── Fn helper ───────────────────────────────────────────────────
 class FnHelper {
-  count<T = number>(col: string) {
+  count<_T = number>(col: string) {
     return {
       as: (alias: string) => `count(${quoteCol(col)})::int as ${alias}`,
     }
