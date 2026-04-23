@@ -274,6 +274,115 @@ await engine.daily_report.unschedule(scheduleId)
 engine.scheduler.start()
 ```
 
+### Cross-tenant dispatch
+
+When a single backend serves multiple tenants (each with its own database), the dispatcher coordinates work across all tenants with O(1) persistent connections — no matter how many tenants you have.
+
+**The problem:** Traditional BullMQ requires one persistent Worker per tenant per queue. At 100 tenants × 5 queues = 500 Redis connections. Doesn't scale.
+
+**The solution:** A lightweight hint-based dispatch system. One listener catches all hints, fires HTTP requests to drain each tenant's queue on demand. Connections are ephemeral, created per dispatch cycle and closed immediately.
+
+```
+Job enqueued → onAfterQueue fires hint → single listener → HTTP POST → resolveTenant → drain queue → done
+```
+
+#### Two APIs, two lifecycles
+
+**`createDispatcher()`** — process-level singleton (one per backend):
+
+```ts
+import { createDispatcher } from '@goatlab/delphi-core'
+
+const dispatcher = createDispatcher({
+  // Hint transport: Redis (BullMQ) or Postgres (LISTEN/NOTIFY)
+  redis: platformRedisConnection,
+  // OR: database: platformDbClient,
+
+  // Where dispatch HTTP endpoint lives (external URL for Cloud Run scaling)
+  dispatchUrl: 'https://api.myapp.com/dispatch/worker',
+
+  // Consumer provides tenant resolution (DI boundary)
+  resolveTenant: async (tenantId) => {
+    return getEngineForTenant(tenantId) // your DI / container logic
+  },
+  listTenants: async () => getTenantIds(),
+})
+```
+
+**`createEngine({ dispatcher })`** — per-tenant, wires hints automatically:
+
+```ts
+// Each tenant's engine auto-fires hints through the dispatcher
+const engine = createEngine({
+  database: tenantPool,
+  workflows: [PaymentWorkflow, OnboardingWorkflow] as const,
+  tenantId: 'tenant-abc',
+  redis: tenantRedisConnection, // or omit for PG-only
+  dispatcher,                   // wires onAfterQueue automatically
+})
+```
+
+#### Dispatch handler
+
+Mount on your HTTP server — responds 202 immediately, processes in background:
+
+```ts
+app.post('/dispatch/worker', dispatcher.handler)
+```
+
+#### Startup sequence
+
+```ts
+// 1. Start HTTP server
+app.listen(port)
+
+// 2. Start dispatcher (AFTER server is accepting requests)
+await dispatcher.start()
+
+// 3. Sync cron schedules across all tenants
+await dispatcher.syncSchedules('prod')
+
+// Shutdown
+await dispatcher.stop()
+```
+
+#### Declarative cron schedules
+
+Instead of centralized job config arrays, declare schedules on workflows:
+
+```ts
+class DailyReportWorkflow extends Workflow<{ region: string }> {
+  workflowName = 'daily_report' as const
+  schedule = {
+    pattern: '0 9 * * *',                    // cron expression
+    input: { region: 'us-east' },             // default input per run
+    environments: ['prod'],                   // only in production
+    tenants: ['platform'],                    // only for specific tenants
+  }
+  steps = [step(GenerateReportStep)] as const
+}
+```
+
+`dispatcher.syncSchedules()` reads these declarations and registers them across all tenants.
+
+#### Hint transport options
+
+| Transport | Config | When to use |
+|-----------|--------|-------------|
+| **Redis** | `redis: connection` | You already have Redis. Lower latency (~1ms). |
+| **Postgres** | `database: dbClient` | No Redis in your stack. Uses LISTEN/NOTIFY + polling. |
+
+Both transports are independent of each tenant's dispatch backend — a tenant can use PgConnector while hints travel through Redis, or vice versa.
+
+#### When to use the dispatcher
+
+| Setup | Use dispatcher? |
+|-------|----------------|
+| Single tenant, single process | No — `createEngine()` alone is enough |
+| Single tenant, multiple processes | No — PgConnector's `FOR UPDATE SKIP LOCKED` handles it |
+| **Multi-tenant, shared backend** | **Yes** — avoids O(N×M) persistent connections |
+| **Multi-tenant, Cloud Run** | **Yes** — HTTP dispatch triggers auto-scaling |
+
 ### Signals & events
 - `engine.signal(runId, signalName, data)` — signal a running workflow
 - `EventIngestionService` — idempotent event ingest with ordering, trigger matching, stale-event skipping
@@ -417,6 +526,9 @@ npx vitest run src/__tests__/engine/dbos-parity.spec.ts      # DBOS-parity featu
 | `ExternalActionExecutor` | Exactly-once external side effects |
 | `EventIngestionService` | Event ingest + trigger matching |
 | `SchedulerService` | Cron-based recurring workflow triggers (multi-pod safe) |
+| `createDispatcher` | Cross-tenant dispatch singleton (hint queue + HTTP handler) |
+| `createDispatchHandler` | Express-compatible dispatch endpoint (202 + background drain) |
+| `PgHintTransport` | Postgres-based hint transport (alternative to Redis) |
 | `PgNotifier` | LISTEN/NOTIFY with auto-detection |
 | `dbRetry` | Connection-resilient retry decorator |
 | `runMigrations` | Schema migration runner |
@@ -442,7 +554,7 @@ delphi-core stands on the shoulders of several excellent projects:
 
 - **Postgres-only by default** — no Redis, no external orchestrator, no message broker. One peer dependency: `pg`.
 - **Typed class API** — compile-time safety on inputs, outputs, and dependencies. No string handler keys.
-- **Multi-tenant** — `tenantId` on every table, scoped queries, per-tenant isolation.
+- **Multi-tenant** — `tenantId` on every table, scoped queries, per-tenant isolation. Built-in cross-tenant dispatch with O(1) connections.
 - **AI-native** — budget guardrails, label-based worker routing, Claude Code executor, skill registry.
 - **Flexible dispatch** — Postgres handles ~5k req/s. Add Redis with one config line for more.
 
