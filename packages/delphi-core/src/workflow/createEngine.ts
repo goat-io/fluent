@@ -187,12 +187,19 @@ type NameOf<W> = W extends new () => { workflowName: infer N extends string }
 /** Exclude wide `string` — only keep literal string types to prevent index signature pollution. */
 type LiteralOnly<T extends string> = string extends T ? never : T
 
+/**
+ * Iterate by tuple INDEX, not by `Ws[number]` union. This ensures one
+ * `any` entry in the tuple doesn't collapse the entire union and wipe
+ * out all workflow names/types. Each slot is evaluated independently.
+ */
 export type WorkflowsApi<Ws extends readonly WorkflowLike[]> = {
-  [W in Ws[number] as LiteralOnly<NameOf<W>>]: WorkflowOps<InputOf<W>>
+  [K in keyof Ws as K extends `${number}`
+    ? LiteralOnly<NameOf<Ws[K]>>
+    : never]: WorkflowOps<InputOf<Ws[K]>>
 } & {
-  [W in Ws[number] as LiteralOnly<SnakeToCamelCase<NameOf<W> & string>>]: WorkflowOps<
-    InputOf<W>
-  >
+  [K in keyof Ws as K extends `${number}`
+    ? LiteralOnly<SnakeToCamelCase<NameOf<Ws[K]> & string>>
+    : never]: WorkflowOps<InputOf<Ws[K]>>
 }
 
 /**
