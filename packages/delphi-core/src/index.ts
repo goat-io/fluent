@@ -184,6 +184,18 @@ export { MIGRATIONS, runMigrations } from './migrations/runner.js'
 export type { SchedulerServiceConfig } from './scheduler/SchedulerService.js'
 // ── Scheduler ─────────────────────────────────────────────────────
 export { SchedulerService } from './scheduler/SchedulerService.js'
+// ── Dispatcher (cross-tenant dispatch) ───────────────────────────
+export type {
+  Dispatcher,
+  DispatcherConfig,
+  ListTenantsFn,
+  ResolvedTenantEngine,
+  ResolveTenantFn,
+} from './dispatcher/index.js'
+export { createDispatcher } from './dispatcher/index.js'
+export { createDispatchHandler } from './dispatcher/index.js'
+export { PgHintTransport } from './dispatcher/index.js'
+export { ScheduleSyncer } from './dispatcher/index.js'
 export { codeExecutionSkill } from './skills/builtin/CodeExecutionSkill.js'
 export { webSearchSkill } from './skills/builtin/WebSearchSkill.js'
 export type { Skill, ToolDefinition } from './skills/Skill.js'

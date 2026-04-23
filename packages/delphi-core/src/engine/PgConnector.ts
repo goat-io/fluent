@@ -15,6 +15,11 @@ export interface PgConnectorConfig {
   pollingIntervalMs?: number
   maxPollingIntervalMs?: number
   tenantId?: string
+  /** Callback fired after a step is queued. Used by dispatcher for cross-tenant hints. */
+  onAfterQueue?: (params: {
+    queueName: string
+    jobId: string
+  }) => void | Promise<void>
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void
@@ -31,6 +36,7 @@ export class PgConnector implements TaskConnector<object> {
   private readonly pgPool?: Pool
   private readonly basePollingMs: number
   private readonly maxPollingMs: number
+  private readonly onAfterQueueCb?: PgConnectorConfig['onAfterQueue']
   private readonly logger?: PgConnectorConfig['logger']
 
   constructor(config: PgConnectorConfig) {
@@ -39,6 +45,7 @@ export class PgConnector implements TaskConnector<object> {
     this.basePollingMs = config.pollingIntervalMs ?? 500
     this.maxPollingMs = config.maxPollingIntervalMs ?? 30_000
     this.tenantId = config.tenantId
+    this.onAfterQueueCb = config.onAfterQueue
     this.logger = config.logger
   }
 
@@ -52,6 +59,19 @@ export class PgConnector implements TaskConnector<object> {
     // Fire-and-forget NOTIFY — don't block the caller waiting for a PG pool connection.
     // The poll loop will pick up the step regardless; NOTIFY just reduces latency.
     this.notifyDebounced()
+
+    // Fire dispatch hint for cross-tenant routing (if dispatcher is wired).
+    if (this.onAfterQueueCb) {
+      try {
+        void this.onAfterQueueCb({
+          queueName: params.taskName,
+          jobId: params.uniqueTaskName,
+        })
+      } catch {
+        // Non-fatal — job is already queued in PG.
+      }
+    }
+
     return {
       id: params.uniqueTaskName,
       name: params.taskName,
@@ -154,8 +174,60 @@ export class PgConnector implements TaskConnector<object> {
       pollingIntervalMs: this.basePollingMs,
       maxPollingIntervalMs: this.maxPollingMs,
       tenantId,
+      onAfterQueue: this.onAfterQueueCb,
       logger: this.logger,
     })
+  }
+
+  async processIncomingDispatch(params: {
+    handleTask: (queueName: string, data: unknown) => Promise<unknown>
+    timeBudgetMs?: number
+    validQueueNames?: Set<string>
+    batchSize?: number
+    concurrency?: number
+    hint?: { tenantId?: string; queueName?: string; jobId?: string }
+  }): Promise<{ processed: number; failed: number }> {
+    const timeBudget = params.timeBudgetMs ?? 120_000
+    const batchSize = Math.max(1, params.batchSize ?? 50)
+    const concurrency = Math.max(1, params.concurrency ?? batchSize)
+    const deadline = Date.now() + timeBudget
+    let processed = 0
+    let failed = 0
+
+    while (Date.now() < deadline) {
+      const claimed = await this.claimSteps(batchSize)
+      if (claimed.length === 0) break
+
+      // Process in chunks capped by concurrency
+      for (let off = 0; off < claimed.length; off += concurrency) {
+        const chunk = claimed.slice(off, off + concurrency)
+        const settled = await Promise.allSettled(
+          chunk.map(step => {
+            const payload = this.stepRowToPayload(step)
+            // Route to the correct queue name based on step weight
+            const queueName =
+              step.executorType === 'sandbox'
+                ? 'workflow_step_sandbox'
+                : 'workflow_step_light'
+            return params.handleTask(queueName, payload)
+          }),
+        )
+
+        for (const result of settled) {
+          if (result.status === 'fulfilled') {
+            processed++
+          } else {
+            failed++
+            this.logger?.warn?.(
+              '[PgConnector] processIncomingDispatch handler error:',
+              (result.reason as Error)?.message,
+            )
+          }
+        }
+      }
+    }
+
+    return { processed, failed }
   }
 
   async listen(params: {

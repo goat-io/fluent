@@ -168,6 +168,22 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
     | (new () => Step<any, any>)
   )[]
 
+  /**
+   * Optional cron schedule for automatic recurring execution.
+   * When declared, `dispatcher.syncSchedules()` registers this
+   * as a repeatable job for each tenant.
+   */
+  readonly schedule?: {
+    /** Cron expression (5-field standard) */
+    pattern: string
+    /** Default input for each scheduled run */
+    input?: TInput
+    /** Only run in specific environments (checked by consumer) */
+    environments?: string[]
+    /** Only run for specific tenant IDs (e.g., platform-only jobs) */
+    tenants?: string[]
+  }
+
   readonly triggers?: WorkflowTrigger[]
   readonly signals?: Record<string, SignalHandler>
   readonly queries?: Record<string, QueryHandler>
@@ -248,6 +264,14 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
       durability: this.durability,
       inputFields: this.inputFields,
       sensitiveFields: this.sensitiveFields,
+      schedule: this.schedule
+        ? {
+            pattern: this.schedule.pattern,
+            input: this.schedule.input,
+            environments: this.schedule.environments,
+            tenants: this.schedule.tenants,
+          }
+        : undefined,
     }
   }
 

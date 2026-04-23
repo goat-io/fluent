@@ -205,6 +205,8 @@ interface EngineServices {
   ingestWorker: IngestWorker
   stepTask: WorkflowStepTask
   scheduler: SchedulerService
+  /** The underlying dispatch connector (BullMQ or PgConnector). */
+  connector: import('@goatlab/tasks-core').TaskConnector<object>
   agents: {
     registry: AgentRegistry
     handlers: BrokerHandlers
@@ -280,6 +282,15 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
       /** Max polling interval in ms (adaptive backoff ceiling). Default: 30_000 */
       maxPollingIntervalMs?: number
     }
+    /**
+     * Optional cross-tenant dispatcher (process-level singleton).
+     * When provided, the engine automatically wires `onAfterQueue` to fire
+     * dispatch hints through the dispatcher, and creates the BullMQ connector
+     * with tenant-prefixed keys.
+     *
+     * Created via `createDispatcher()` in main.ts.
+     */
+    dispatcher?: import('../dispatcher/dispatcher.types.js').Dispatcher
   },
 ): TypedEngine<Ws> {
   // 0. Resolve database connection: string → Pool → DbClient.
@@ -355,11 +366,31 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
 
   // 3. Resolve dispatch: redis > postgres-only (default).
   //    BullMQ is loaded dynamically so it stays an optional dependency.
+  //    When a dispatcher is provided, onAfterQueue is wired to fire hints.
   let connector: TaskConnector<object>
+  const dispatcherRef = config.dispatcher
   if (config.redis) {
     try {
       const { BullMQConnector } = require('@goatlab/tasks-adapter-bullmq')
-      connector = new BullMQConnector({ connection: config.redis })
+      const bullmqOpts: Record<string, unknown> = {
+        connection: config.redis,
+      }
+      // When dispatcher is present, use tenant-prefixed keys and wire onAfterQueue
+      if (dispatcherRef && config.tenantId) {
+        bullmqOpts.prefix = `{tenant:${config.tenantId}:bull}`
+        bullmqOpts.tenantId = config.tenantId
+        bullmqOpts.onAfterQueue = async (params: {
+          queueName: string
+          jobId: string
+        }) => {
+          await dispatcherRef.fireHint({
+            tenantId: config.tenantId!,
+            queueName: params.queueName,
+            jobId: params.jobId.replaceAll(':', '_'),
+          })
+        }
+      }
+      connector = new BullMQConnector(bullmqOpts)
     } catch {
       throw new Error(
         'createEngine: `redis` was provided but @goatlab/tasks-adapter-bullmq is not installed. ' +
@@ -372,6 +403,17 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
       pgPool,
       pollingIntervalMs: config.dispatch?.pollingIntervalMs,
       maxPollingIntervalMs: config.dispatch?.maxPollingIntervalMs,
+      tenantId: config.tenantId,
+      // When dispatcher is present, fire hints after step inserts
+      onAfterQueue: dispatcherRef && config.tenantId
+        ? (params) => {
+            void dispatcherRef.fireHint({
+              tenantId: config.tenantId!,
+              queueName: params.queueName,
+              jobId: params.jobId.replaceAll(':', '_'),
+            })
+          }
+        : undefined,
     })
   }
 
@@ -388,6 +430,7 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
     database: _database,
     redis: _redis,
     dispatch: _dispatch,
+    dispatcher: _dispatcher,
     ...restConfig
   } = config as any
   const engine = new WorkflowEngine({
@@ -568,13 +611,16 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
   })
   const workerBroker = new WorkerBroker({ engine, registry: agentRegistry })
 
-  // 11. Unified shutdown.
+  // 11. Unified shutdown — closes ALL resources including the connector.
   const shutdown = async () => {
     scheduler.stop()
     agentRegistry.stopSweep()
     await workerBroker.stop().catch(() => {})
     await ingestBuffer.shutdown().catch(() => {})
     await engine.shutdown().catch(() => {})
+    // Close the dispatch connector (BullMQ closes ioredis connections,
+    // PgConnector is a no-op). Without this, Redis connections leak.
+    await (connector as any)?.close?.().catch(() => {})
   }
 
   // Mount services on the engine proxy.
@@ -588,6 +634,8 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
     handlers: brokerHandlers,
     broker: workerBroker,
   }
+  proxy.connector = connector
+  proxy.getWorkflowDefinitions = () => [...definitions.values()]
   proxy.shutdown = shutdown
 
   return engine as TypedEngine<Ws>

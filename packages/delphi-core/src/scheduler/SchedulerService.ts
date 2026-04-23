@@ -139,6 +139,30 @@ export class SchedulerService {
     return id
   }
 
+  async upsertSchedule(
+    tenantId: string,
+    workflowName: string,
+    cronExpression: string,
+    input?: Record<string, unknown>,
+  ): Promise<string> {
+    const id = `sched:${tenantId}:${workflowName}`
+    const interval = CronExpressionParser.parse(cronExpression)
+    const nextRunAt = interval.next().toDate()
+
+    await this.db.query(
+      `INSERT INTO workflow_schedules (id, "tenantId", "workflowName", "cronExpression", input, "nextRunAt", "lastRunAt", active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+       ON CONFLICT (id) DO UPDATE SET
+         "cronExpression" = EXCLUDED."cronExpression",
+         input = EXCLUDED.input,
+         "nextRunAt" = EXCLUDED."nextRunAt",
+         active = true`,
+      [id, tenantId, workflowName, cronExpression, toJson(input ?? null), nextRunAt, null],
+    )
+
+    return id
+  }
+
   async deleteSchedule(scheduleId: string): Promise<void> {
     await this.db.query(
       `UPDATE workflow_schedules SET active = $1 WHERE id = $2`,

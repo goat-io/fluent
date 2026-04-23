@@ -150,6 +150,13 @@ export interface WorkflowDefinition {
   sensitiveFields?: readonly string[]
   /** DBOS-parity: optional input validation schema (Zod-compatible) */
   inputSchema?: { parse: (input: unknown) => unknown }
+  /** Cron schedule for automatic recurring execution via dispatcher. */
+  schedule?: {
+    pattern: string
+    input?: unknown
+    environments?: string[]
+    tenants?: string[]
+  }
 }
 
 // ── Workflow Triggers ──────────────────────────────────────────────

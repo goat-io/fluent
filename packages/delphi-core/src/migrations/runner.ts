@@ -126,6 +126,14 @@ export const MIGRATIONS: Migration[] = [
       'Add input column to workflow_schedules for scheduled workflow input',
     sql: [`ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS input TEXT`],
   },
+  {
+    version: 7,
+    description:
+      'Widen workflow_schedules.id to VARCHAR(255) for deterministic upsert IDs',
+    sql: [
+      `ALTER TABLE workflow_schedules ALTER COLUMN id TYPE VARCHAR(255)`,
+    ],
+  },
 ]
 
 /**

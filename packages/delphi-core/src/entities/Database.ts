@@ -582,7 +582,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_status_priority ON workflow_tasks(status, p
 CREATE INDEX IF NOT EXISTS idx_tasks_partition ON workflow_tasks("queuePartitionKey", status) WHERE "queuePartitionKey" IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS workflow_schedules (
-  id VARCHAR(36) PRIMARY KEY,
+  id VARCHAR(255) PRIMARY KEY,
   "tenantId" VARCHAR(255) NOT NULL,
   "workflowName" VARCHAR(255) NOT NULL,
   "cronExpression" VARCHAR(100) NOT NULL,
