@@ -28,10 +28,13 @@ import type {
 export type StepRef = Step<any, any> | (new () => Step<any, any>)
 
 /** Unwrap a StepRef to get the instance type. */
-type Resolve<T> =
-  T extends new () => infer S
-    ? S extends Step<any, any> ? S : never
-    : T extends Step<any, any> ? T : never
+type Resolve<T> = T extends new () => infer S
+  ? S extends Step<any, any>
+    ? S
+    : never
+  : T extends Step<any, any>
+    ? T
+    : never
 
 /**
  * Mapped output bag for a step's upstream dependencies — keys are the
@@ -109,14 +112,21 @@ export function step<
   const TDeps extends readonly StepRef[] = readonly [],
 >(
   s: TStep | (new () => TStep),
-  opts?: { dependsOn?: TDeps; condition?: StepEntry<TStep, TDeps>['condition'] } & AutoPassOpts<TStep, TDeps>,
+  opts?: {
+    dependsOn?: TDeps
+    condition?: StepEntry<TStep, TDeps>['condition']
+  } & AutoPassOpts<TStep, TDeps>,
 ): StepEntry<TStep, TDeps> {
   const instance = typeof s === 'function' ? new (s as new () => TStep)() : s
   // Resolve dependsOn classes to instances (for stepName access at runtime)
   const resolvedDeps = opts?.dependsOn?.map((d: StepRef) =>
     typeof d === 'function' ? new (d as new () => Step<any, any>)() : d,
   )
-  return { step: instance, ...opts, ...(resolvedDeps ? { dependsOn: resolvedDeps } : {}) } as StepEntry<TStep, TDeps>
+  return {
+    step: instance,
+    ...opts,
+    ...(resolvedDeps ? { dependsOn: resolvedDeps } : {}),
+  } as StepEntry<TStep, TDeps>
 }
 
 /**
@@ -176,7 +186,10 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
    */
   /** Normalize a steps array entry into a StepEntry. */
   private normalizeEntry(
-    entry: StepEntry<Step<any, any>, readonly StepRef[]> | Step<any, any> | (new () => Step<any, any>),
+    entry:
+      | StepEntry<Step<any, any>, readonly StepRef[]>
+      | Step<any, any>
+      | (new () => Step<any, any>),
   ): StepEntry<Step<any, any>, readonly StepRef[]> {
     // Class reference → instantiate and wrap
     if (typeof entry === 'function') {

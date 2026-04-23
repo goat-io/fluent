@@ -98,9 +98,7 @@ export function workflowFromShouldQueue<
   TInput extends InputType,
   TResult extends OutputType,
   TName extends string,
->(
-  task: ShouldQueue<TInput, TResult, TName>,
-): Workflow<TInput & JsonObject> {
+>(task: ShouldQueue<TInput, TResult, TName>): Workflow<TInput & JsonObject> {
   const adapted = fromShouldQueue(task)
 
   class TaskWorkflow extends Workflow<TInput & JsonObject> {

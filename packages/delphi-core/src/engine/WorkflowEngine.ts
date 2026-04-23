@@ -1860,13 +1860,15 @@ export class WorkflowEngine {
         // Multiple deps → merge keyed by step name: { step_a: outputA, step_b: outputB }.
         if (stepDef.dependsOn.length === 1) {
           const depStep = steps.find(s => s.stepName === stepDef.dependsOn![0])
-          input = depStep?.output ? (fromJson(depStep.output) as JsonObject) : {}
+          input = depStep?.output
+            ? (fromJson(depStep.output) as JsonObject)
+            : {}
         } else {
           const merged: JsonObject = {}
           for (const depName of stepDef.dependsOn) {
             const depStep = steps.find(s => s.stepName === depName)
             if (depStep?.output) {
-              (merged as any)[depName] = fromJson(depStep.output) as JsonObject
+              ;(merged as any)[depName] = fromJson(depStep.output) as JsonObject
             }
           }
           input = merged

@@ -70,7 +70,9 @@ export abstract class Step<
   declare readonly _input: TInput
   declare readonly _output: TOutput
   /** Inferred from `stepName` property via `as const` — no need for a TName generic. */
-  get _name(): this['stepName'] { return this.stepName }
+  get _name(): this['stepName'] {
+    return this.stepName
+  }
 }
 
 /**

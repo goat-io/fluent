@@ -124,7 +124,16 @@ export class SchedulerService {
 
     await this.db.query(
       `INSERT INTO workflow_schedules (id, "tenantId", "workflowName", "cronExpression", input, "nextRunAt", "lastRunAt", active) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [id, tenantId, workflowName, cronExpression, toJson(input ?? null), nextRunAt, null, true],
+      [
+        id,
+        tenantId,
+        workflowName,
+        cronExpression,
+        toJson(input ?? null),
+        nextRunAt,
+        null,
+        true,
+      ],
     )
 
     return id

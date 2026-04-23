@@ -3,14 +3,17 @@
 // Tests for engine.<workflow>.schedule() / unschedule() / listSchedules()
 // — the integrated cron scheduling API via the typed proxy.
 
-import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
-import { Workflow, step } from '../../workflow/Workflow.js'
-import { FunctionStep } from '../../workflow/Step.js'
-import { createEngine } from '../../workflow/createEngine.js'
-import type { StepPayload, StepResult } from '../../workflow/WorkflowBuilder.types.js'
+import type { TestDb } from '../../db/TestQueryBuilder.js'
 import { FunctionStepExecutor } from '../../steps/FunctionStepExecutor.js'
+import { createEngine } from '../../workflow/createEngine.js'
+import { FunctionStep } from '../../workflow/Step.js'
+import { step, Workflow } from '../../workflow/Workflow.js'
+import { WorkflowBuilder } from '../../workflow/WorkflowBuilder.js'
+import type {
+  StepPayload,
+  StepResult,
+} from '../../workflow/WorkflowBuilder.types.js'
 import { getSharedDb, releaseSharedDb, truncateAll } from './shared.js'
 
 // Step + Workflow using the new single-generic pattern
@@ -148,7 +151,8 @@ describe('engine.<workflow>.schedule() integration', () => {
 
     // Capture old nextRunAt
     const { rows: before } = await db.query(
-      `SELECT "nextRunAt" FROM workflow_schedules WHERE id = $1`, [id],
+      `SELECT "nextRunAt" FROM workflow_schedules WHERE id = $1`,
+      [id],
     )
     const oldNext = new Date(before[0].nextRunAt).getTime()
 
@@ -156,7 +160,8 @@ describe('engine.<workflow>.schedule() integration', () => {
 
     // Verify lastRunAt was set and nextRunAt advanced
     const { rows } = await db.query(
-      `SELECT "nextRunAt", "lastRunAt" FROM workflow_schedules WHERE id = $1`, [id],
+      `SELECT "nextRunAt", "lastRunAt" FROM workflow_schedules WHERE id = $1`,
+      [id],
     )
     expect(rows[0]).toBeDefined()
     expect(rows[0].lastRunAt).not.toBeNull()

@@ -19,18 +19,24 @@ import type {
 } from '@goatlab/tasks-core'
 import { ShouldQueue, snakeToCamelCase } from '@goatlab/tasks-core'
 import type { Pool } from 'pg'
+import { AgentRegistry } from '../broker/AgentRegistry.js'
+import type { BrokerHandlers } from '../broker/BrokerHandlers.js'
+import { createBrokerHandlers } from '../broker/BrokerHandlers.js'
+import { WorkerBroker } from '../broker/WorkerBroker.js'
 import type { DbClient } from '../db/DbClient.js'
 import { createDbClient, createPool } from '../db/DbClient.js'
 import { IngestBuffer } from '../engine/IngestBuffer.js'
+import { IngestWorker } from '../engine/IngestWorker.js'
 import { PgConnector } from '../engine/PgConnector.js'
-import { EventIngestionService } from '../events/EventIngestion.js'
-import { SchedulerService } from '../scheduler/SchedulerService.js'
 import { WorkflowEngine } from '../engine/WorkflowEngine.js'
 import type { WorkflowEngineConfig } from '../engine/WorkflowEngine.types.js'
+import { EventIngestionService } from '../events/EventIngestion.js'
+import { SchedulerService } from '../scheduler/SchedulerService.js'
 import { FunctionStepExecutor } from '../steps/FunctionStepExecutor.js'
-import { Step } from './Step.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
+import { WorkflowStepTask } from '../tasks/WorkflowStepTask.js'
 import { workflowFromShouldQueue } from './fromShouldQueue.js'
+import { Step } from './Step.js'
 import { Workflow } from './Workflow.js'
 
 /**
@@ -119,7 +125,14 @@ export interface WorkflowOps<TInput extends object> {
   unschedule(scheduleId: string): Promise<void>
 
   /** List active schedules for this workflow. */
-  listSchedules(): Promise<Array<{ id: string; cronExpression: string; nextRunAt: string | Date; lastRunAt: string | Date | null }>>
+  listSchedules(): Promise<
+    Array<{
+      id: string
+      cronExpression: string
+      nextRunAt: string | Date
+      lastRunAt: string | Date | null
+    }>
+  >
 }
 
 /**
@@ -183,10 +196,18 @@ export type WorkflowsApi<Ws extends readonly WorkflowLike[]> = {
  * Returned engine: a real `WorkflowEngine` instance + per-workflow proxy
  * properties + the underlying `ingestBuffer` (for shutdown, depth probes).
  */
-export type TypedEngine<Ws extends readonly WorkflowLike[]> =
-  WorkflowEngine & WorkflowsApi<Ws> & {
+export type TypedEngine<Ws extends readonly WorkflowLike[]> = WorkflowEngine &
+  WorkflowsApi<Ws> & {
     ingestBuffer: IngestBuffer
+    ingestWorker: IngestWorker
+    stepTask: WorkflowStepTask
     scheduler: SchedulerService
+    agents: {
+      registry: AgentRegistry
+      handlers: BrokerHandlers
+      broker: WorkerBroker
+    }
+    shutdown: () => Promise<void>
   }
 
 /**
@@ -313,11 +334,12 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
   for (const wf of workflows) {
     for (const raw of wf.steps) {
       // Normalize: class → instance → StepEntry
-      const entry = typeof raw === 'function'
-        ? { step: new (raw as new () => any)() }
-        : raw instanceof Step
-          ? { step: raw }
-          : raw
+      const entry =
+        typeof raw === 'function'
+          ? { step: new (raw as new () => any)() }
+          : raw instanceof Step
+            ? { step: raw }
+            : raw
       const key = `${wf.workflowName}.${entry.step.stepName}`
       functionExecutor.register(key, async (payload, ctx) => {
         return entry.step.handle(payload.input as JsonObject, ctx as any) as any
@@ -386,7 +408,8 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
   })
 
   // 6. Build the SchedulerService — shared across all workflows.
-  const eventIngestion = (config as any).eventIngestion ?? new EventIngestionService({ db })
+  const eventIngestion =
+    (config as any).eventIngestion ?? new EventIngestionService({ db })
   eventIngestion.setEngine?.(engine)
   const scheduler = new SchedulerService({
     db,
@@ -459,9 +482,13 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
           respondedBy,
         }),
       schedule: (cronExpression, input) =>
-        scheduler.createSchedule(tenantId, wf.workflowName, cronExpression, input as Record<string, unknown>),
-      unschedule: (scheduleId) =>
-        scheduler.deleteSchedule(scheduleId),
+        scheduler.createSchedule(
+          tenantId,
+          wf.workflowName,
+          cronExpression,
+          input as Record<string, unknown>,
+        ),
+      unschedule: scheduleId => scheduler.deleteSchedule(scheduleId),
       listSchedules: async () => {
         const all = await scheduler.listSchedules(tenantId)
         return all
@@ -506,7 +533,56 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
     }
   }
 
-  ;(engine as unknown as Record<string, unknown>).ingestBuffer = ingestBuffer
-  ;(engine as unknown as Record<string, unknown>).scheduler = scheduler
+  // 8. Build IngestWorker — drains buffered triggers into PG via COPY FROM.
+  const ingestWorker = new IngestWorker({
+    engine,
+    flushThreshold: config.ingest?.flushThreshold ?? 200,
+    flushIntervalMs: config.ingest?.flushIntervalMs ?? 20,
+    maxConcurrentFlushes: config.ingest?.committedMaxConcurrentFlushes ?? 8,
+    logger: (config as any).logger,
+  })
+
+  // 9. Build WorkflowStepTask — bridges dispatch → engine step execution.
+  const stepTask = new WorkflowStepTask(engine)
+  if (connector) {
+    stepTask.setConnector(connector)
+  }
+
+  // 10. Build agent broker (registry + handlers + worker broker).
+  const agentRegistry = new AgentRegistry({
+    maxPendingJobs: 1000,
+    sweepIntervalMs: 10_000,
+    agentStaleAfterMs: 90_000,
+    defaultJobTimeoutMs: 60 * 60 * 1000,
+  })
+  const brokerHandlers = createBrokerHandlers({
+    db,
+    registry: agentRegistry,
+    logger: (config as any).logger,
+  })
+  const workerBroker = new WorkerBroker({ engine, registry: agentRegistry })
+
+  // 11. Unified shutdown.
+  const shutdown = async () => {
+    scheduler.stop()
+    agentRegistry.stopSweep()
+    await workerBroker.stop().catch(() => {})
+    await ingestBuffer.shutdown().catch(() => {})
+    await engine.shutdown().catch(() => {})
+  }
+
+  // Mount services on the engine proxy.
+  const proxy = engine as unknown as Record<string, unknown>
+  proxy.ingestBuffer = ingestBuffer
+  proxy.ingestWorker = ingestWorker
+  proxy.stepTask = stepTask
+  proxy.scheduler = scheduler
+  proxy.agents = {
+    registry: agentRegistry,
+    handlers: brokerHandlers,
+    broker: workerBroker,
+  }
+  proxy.shutdown = shutdown
+
   return engine as TypedEngine<Ws>
 }

@@ -122,10 +122,9 @@ export const MIGRATIONS: Migration[] = [
   },
   {
     version: 6,
-    description: 'Add input column to workflow_schedules for scheduled workflow input',
-    sql: [
-      `ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS input TEXT`,
-    ],
+    description:
+      'Add input column to workflow_schedules for scheduled workflow input',
+    sql: [`ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS input TEXT`],
   },
 ]
 

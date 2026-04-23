@@ -22,20 +22,14 @@ import { step, Workflow } from '../workflow/Workflow.js'
 
 // ── Test fixtures ─────────────────────────────────────────────────
 
-class EchoStep extends FunctionStep<
-  { text: string },
-  { echoed: string }
-> {
+class EchoStep extends FunctionStep<{ text: string }, { echoed: string }> {
   stepName = 'echo' as const
   async handle(input: { text: string }) {
     return { output: { echoed: input.text.toUpperCase() } }
   }
 }
 
-class AppendStep extends FunctionStep<
-  { base: string },
-  { appended: string }
-> {
+class AppendStep extends FunctionStep<{ base: string }, { appended: string }> {
   stepName = 'append' as const
   async handle(input: { base: string }) {
     return { output: { appended: `${input.base}!` } }
@@ -148,7 +142,7 @@ describe('step() helper', () => {
   it('returns an entry with the step instance and opts preserved', () => {
     const entry = step(echoStep, {
       dependsOn: [appendStep],
-      mapInput: (up) => ({ text: up.append.appended }),
+      mapInput: up => ({ text: up.append.appended }),
     })
     expect(entry.step).toBe(echoStep)
     expect(entry.dependsOn).toBeDefined()
@@ -740,7 +734,10 @@ describe('type-level: engine.<name>.start accepts the right input type', () => {
     }
   }
 
-  class PaymentWorkflow extends Workflow<{ orderId: string; amountCents: number }> {
+  class PaymentWorkflow extends Workflow<{
+    orderId: string
+    amountCents: number
+  }> {
     workflowName = 'payment_critical' as const
     steps = [ChargeStep] as const
   }
@@ -877,19 +874,31 @@ describe('type-level: wrong input at call site is rejected at compile time', () 
   }
 
   it('auto-pass: step() requires mapInput when output does not satisfy input', () => {
-    class StepA extends FunctionStep<JsonObject, { token: string; userId: string }> {
+    class StepA extends FunctionStep<
+      JsonObject,
+      { token: string; userId: string }
+    > {
       stepName = 'a' as const
-      async handle() { return { output: { token: 'x', userId: 'u1' } } }
+      async handle() {
+        return { output: { token: 'x', userId: 'u1' } }
+      }
     }
     // StepB input { token } is a subset of StepA output { token, userId } → auto-pass OK
     class StepB extends FunctionStep<{ token: string }, { charged: boolean }> {
       stepName = 'b' as const
-      async handle() { return { output: { charged: true } } }
+      async handle() {
+        return { output: { charged: true } }
+      }
     }
     // StepC input { nonExistent } is NOT in StepA output → mapInput required
-    class StepC extends FunctionStep<{ nonExistent: string }, { result: string }> {
+    class StepC extends FunctionStep<
+      { nonExistent: string },
+      { result: string }
+    > {
       stepName = 'c' as const
-      async handle() { return { output: { result: 'ok' } } }
+      async handle() {
+        return { output: { result: 'ok' } }
+      }
     }
 
     // ✅ Compiles — auto-pass with classes, output satisfies input
@@ -898,7 +907,7 @@ describe('type-level: wrong input at call site is rejected at compile time', () 
     // ✅ Compiles — mapInput bridges incompatible types, all classes
     step(StepC, {
       dependsOn: [StepA] as const,
-      mapInput: (up) => ({ nonExistent: up.a.token }),
+      mapInput: up => ({ nonExistent: up.a.token }),
     })
 
     // @ts-expect-error — StepC without mapInput: output doesn't satisfy input

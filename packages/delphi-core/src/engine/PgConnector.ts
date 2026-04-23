@@ -444,9 +444,7 @@ export class PgConnector implements TaskConnector<object> {
     }
   }
 
-  static parseJobId(
-    jobId: string,
-  ): {
+  static parseJobId(jobId: string): {
     runId: string
     stepName: string
     attempt: number
