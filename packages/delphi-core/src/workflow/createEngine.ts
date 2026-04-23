@@ -220,7 +220,7 @@ export type TypedEngine<Ws extends readonly WorkflowLike[]> =
 export function createEngine<const Ws extends readonly WorkflowLike[]>(
   config: Omit<
     WorkflowEngineConfig,
-    'workflows' | 'executors' | 'connector' | 'db' | 'pgPool'
+    'workflows' | 'executors' | 'db' | 'pgPool'
   > & {
     /**
      * Postgres connection. Accepts:
