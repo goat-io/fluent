@@ -184,10 +184,13 @@ type NameOf<W> = W extends new () => { workflowName: infer N extends string }
  * If a workflow name has no underscores/dashes, the two keys collapse
  * to one — no overlap, no duplicates.
  */
+/** Exclude wide `string` — only keep literal string types to prevent index signature pollution. */
+type LiteralOnly<T extends string> = string extends T ? never : T
+
 export type WorkflowsApi<Ws extends readonly WorkflowLike[]> = {
-  [W in Ws[number] as NameOf<W>]: WorkflowOps<InputOf<W>>
+  [W in Ws[number] as LiteralOnly<NameOf<W>>]: WorkflowOps<InputOf<W>>
 } & {
-  [W in Ws[number] as SnakeToCamelCase<NameOf<W> & string>]: WorkflowOps<
+  [W in Ws[number] as LiteralOnly<SnakeToCamelCase<NameOf<W> & string>>]: WorkflowOps<
     InputOf<W>
   >
 }
