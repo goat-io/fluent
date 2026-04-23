@@ -87,16 +87,32 @@ export class AgentsClient {
     await this.post('/workflows/cancel', { runId, tenantId: this.tenantId })
   }
 
-  async retryWorkflow(runId: string): Promise<{ success: true; runId: string }> {
+  async retryWorkflow(
+    runId: string,
+  ): Promise<{ success: true; runId: string }> {
     return this.post('/workflows/retry', { runId, tenantId: this.tenantId })
   }
 
-  async cancelAllWorkflows(workflowName: string, status: string[]): Promise<{ cancelled: number }> {
-    return this.post('/workflows/cancel-all', { workflowName, status, tenantId: this.tenantId })
+  async cancelAllWorkflows(
+    workflowName: string,
+    status: string[],
+  ): Promise<{ cancelled: number }> {
+    return this.post('/workflows/cancel-all', {
+      workflowName,
+      status,
+      tenantId: this.tenantId,
+    })
   }
 
-  async retryAllWorkflows(workflowName: string, status: string[]): Promise<{ retried: number }> {
-    return this.post('/workflows/retry-all', { workflowName, status, tenantId: this.tenantId })
+  async retryAllWorkflows(
+    workflowName: string,
+    status: string[],
+  ): Promise<{ retried: number }> {
+    return this.post('/workflows/retry-all', {
+      workflowName,
+      status,
+      tenantId: this.tenantId,
+    })
   }
 
   // ── Steps ──────────────────────────────────────────
@@ -114,7 +130,10 @@ export class AgentsClient {
    * Each row is a fan-out unit of work (e.g. one LLM call in an
    * agreement cycle). Powers the <AgreementCycle> visualisation.
    */
-  async getStepTasks(runId: string, stepName?: string): Promise<WorkflowTask[]> {
+  async getStepTasks(
+    runId: string,
+    stepName?: string,
+  ): Promise<WorkflowTask[]> {
     return this.post('/workflows/tasks', {
       runId,
       stepName,
