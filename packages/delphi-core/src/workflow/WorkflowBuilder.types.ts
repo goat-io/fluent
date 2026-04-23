@@ -45,6 +45,7 @@ export interface StepContext {
 // Passed to StepExecutor.execute() so handlers can access engine services.
 // The externalActions field is the ONLY sanctioned way to call external APIs.
 
+import type { PoolClient } from 'pg'
 import type { ExternalActionExecutor } from '../engine/ExternalActionExecutor.js'
 import type { TaskManager } from '../engine/TaskManager.js'
 import type { IntegrationRegistry } from '../integrations/IntegrationRegistry.js'
@@ -62,6 +63,12 @@ export interface StepExecutionContext {
     field: string,
     amount?: number,
   ) => Promise<string | null>
+  /**
+   * Postgres transaction client — only present when the step is `transactional`.
+   * All queries through `ctx.tx` participate in the same transaction that
+   * records step completion. COMMIT = atomic; ROLLBACK on error = nothing happened.
+   */
+  tx?: PoolClient
 }
 
 // ── Step Definition ────────────────────────────────────────────────
@@ -98,6 +105,11 @@ export interface StepDefinition {
    * worker is eligible.
    */
   requiresLabels?: string[]
+  /**
+   * When true, step execution + result recording happen in a single PG
+   * transaction. App writes via `ctx.tx` are atomic with step completion.
+   */
+  transactional?: boolean
   condition?: (ctx: StepContext) => boolean | Promise<boolean>
   mapInput?: (upstreamOutputs: Record<string, JsonObject>) => JsonObject
 }
@@ -209,6 +221,8 @@ export interface StepPayload {
    * agents without re-reading the definition from the engine.
    */
   requiresLabels?: string[]
+  /** When true, execution + result recording happen in one PG transaction. */
+  transactional?: boolean
 }
 
 export interface StepResult {

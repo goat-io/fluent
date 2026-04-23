@@ -242,6 +242,69 @@ class PaymentWorkflow extends Workflow<{ amount: number }> {
 ### External actions (exactly-once)
 `engine.externalActions.run({...})` wraps calls to external systems (GitHub, Linear, Stripe) with idempotency dedup, rate limiting, and audit trail. Safe to retry.
 
+### Transactional steps
+
+When a step is marked `transactional`, the engine wraps the step handler and the result recording in a single Postgres transaction. App writes via `ctx.tx` are atomic with step completion — COMMIT means both happened, ROLLBACK means neither did.
+
+```ts
+class CreateOrderStep extends FunctionStep<
+  { productId: string; qty: number },
+  { orderId: string }
+> {
+  stepName = 'create_order' as const
+  transactional = true  // class-level default
+
+  async handle(input, ctx: StepExecutionContext) {
+    // ctx.tx is a pg PoolClient inside the same transaction
+    const { rows } = await ctx.tx!.query(
+      'INSERT INTO orders (product_id, qty) VALUES ($1, $2) RETURNING id',
+      [input.productId, input.qty],
+    )
+    return { output: { orderId: rows[0].id } }
+  }
+}
+```
+
+The `transactional` flag can be set at two levels, with `step()` overriding the class:
+
+```ts
+// Class-level: this step is always transactional
+class LedgerStep extends FunctionStep<...> {
+  transactional = true
+}
+
+// step()-level: override per workflow wiring
+steps = [
+  step(LedgerStep, { transactional: false }),  // override class default
+  step(NotifyStep, { transactional: true }),    // make non-transactional step transactional
+]
+```
+
+Precedence: `step()` flag > class flag > `false`.
+
+**Constraints:** transactional steps must be short-lived DB operations (the transaction stays open for the entire handler execution). Not suitable for external HTTP calls, AI steps, or anything that takes seconds — those should use the default path with `externalActions` for idempotency.
+
+#### Durability × transactional: three independent axes
+
+Workflow `durability` (buffered/committed) and step `transactional` are orthogonal:
+
+| Concept | What it controls | Layer |
+|---|---|---|
+| **buffered** | How the workflow *starts* — HTTP returns before PG COMMIT | Ingestion |
+| **committed** | How the workflow *starts* — HTTP returns after PG fsync | Ingestion |
+| **transactional** | How a *step executes* — app writes + step result in one PG tx | Execution |
+
+They compose naturally:
+
+| Workflow durability | Step transactional | Behavior |
+|---|---|---|
+| buffered + normal | Default. Fast start, separate execution. |
+| buffered + transactional | Start is async (could be lost in crash window), but once the step runs, app writes + completion are atomic. |
+| committed + normal | Start is durable (fsync'd), but step execution and recording are separate operations. |
+| committed + transactional | **Strongest.** Start is durable, step execution is atomic. Zero gaps. |
+
+Use `committed + transactional` for financial flows where both "trigger accepted" and "step executed" must be all-or-nothing. Use `buffered + transactional` for high-volume events where ingestion loss is acceptable but processing must be atomic.
+
 ### Human-in-the-loop
 A step returning `{ waitForHuman: { prompt, schema } }` transitions to `WAITING_HUMAN`. Resume via `engine.submitHumanInput(...)`.
 
@@ -549,6 +612,7 @@ delphi-core stands on the shoulders of several excellent projects:
 | [Hatchet](https://github.com/hatchet-dev/hatchet) | `COPY FROM` bulk inserts for high-throughput ingestion. Buffered vs committed durability. Worker-side fan-out pattern. |
 | [Temporal](https://temporal.io) | DAG-based workflow definitions. Step-level retry/timeout. Human-in-the-loop approval gates. Signals and queries. Workflows as code, not YAML. |
 | [Inngest](https://github.com/inngest/inngest) | Event-driven workflow triggers. Idempotent event ingestion with sequence ordering. Step functions as the programming model. |
+| [PgQue](https://github.com/NikolayS/pgque) | Postgres-native event queue (reimplements Skype's PgQ in pure PL/pgSQL). Avoids `SKIP LOCKED` dead-tuple bloat via snapshot-based batching + three-table TRUNCATE rotation — zero VACUUM pressure by construction. Worth watching as an alternative queue primitive if dead-tuple accumulation becomes a concern at sustained high throughput. |
 
 ### How delphi-core differs
 

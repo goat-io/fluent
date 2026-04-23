@@ -61,6 +61,11 @@ export interface StepEntry<
   readonly mapInput?: (upstream: StepOutputs<TDeps>) => TStep['_input']
   /** Skip this step at runtime if condition returns false. */
   readonly condition?: (ctx: StepContext) => boolean | Promise<boolean>
+  /**
+   * Override the step class's `transactional` flag for this specific wiring.
+   * When true, step execution + result recording happen in one PG transaction.
+   */
+  readonly transactional?: boolean
 }
 
 /**
@@ -115,6 +120,8 @@ export function step<
   opts?: {
     dependsOn?: TDeps
     condition?: StepEntry<TStep, TDeps>['condition']
+    /** Override the step class's transactional flag for this wiring. */
+    transactional?: boolean
   } & AutoPassOpts<TStep, TDeps>,
 ): StepEntry<TStep, TDeps> {
   const instance = typeof s === 'function' ? new (s as new () => TStep)() : s
@@ -243,6 +250,8 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
       requiresHumanApproval: entry.step.requiresHumanApproval,
       maxIterations: entry.step.maxIterations,
       requiresLabels: entry.step.requiresLabels,
+      // step() flag > class flag > undefined
+      transactional: entry.transactional ?? entry.step.transactional,
       condition: entry.condition,
       // mapInput is typed against the upstream's StepOutputs<TDeps> at
       // definition time but the engine treats it as JsonObject → JsonObject.

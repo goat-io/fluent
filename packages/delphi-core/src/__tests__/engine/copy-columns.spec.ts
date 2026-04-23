@@ -58,12 +58,23 @@ const COPY_STEPS_COLUMNS = [
   'tokensUsed',
   'costUsd',
   'modelUsed',
+  'executedBy',
+  'requiresLabels',
+  'deadlineEpochMs',
   'createdAt',
   'updatedAt',
 ]
 
 // Columns intentionally omitted from COPY (NULL defaults at creation time)
-const RUNS_INTENTIONALLY_OMITTED = ['output', 'error']
+const RUNS_INTENTIONALLY_OMITTED = [
+  'output',
+  'error',
+  'deadlineEpochMs',
+  'timeoutMs',
+  'forkedFromRunId',
+  'applicationVersion',
+  'delayUntilEpochMs',
+]
 
 describe('COPY FROM Column Validation', () => {
   let db: TestDb
@@ -122,7 +133,7 @@ describe('COPY FROM Column Validation', () => {
     expect(COPY_RUNS_COLUMNS).toHaveLength(17)
   })
 
-  it('workflow_steps COPY column count matches data value count (30)', () => {
-    expect(COPY_STEPS_COLUMNS).toHaveLength(30)
+  it('workflow_steps COPY column count matches data value count (33)', () => {
+    expect(COPY_STEPS_COLUMNS).toHaveLength(33)
   })
 })

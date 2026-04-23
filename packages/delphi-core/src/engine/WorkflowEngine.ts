@@ -144,6 +144,11 @@ export class WorkflowEngine {
     return this.schema ? `${this.schema}.${table}` : table
   }
 
+  /** Public alias of `q()` — used by WorkflowStepTask for transactional SQL. */
+  qualifiedTable(table: string): string {
+    return this.q(table)
+  }
+
   /**
    * Fire an engine event AFTER its corresponding PG write has committed.
    * Synchronous from the engine's POV — never await this. Errors thrown by
@@ -1120,6 +1125,14 @@ export class WorkflowEngine {
     return traceId
   }
 
+  /** Public alias for resolveTraceId — used by WorkflowStepTask for transactional post-commit events. */
+  async resolveTraceIdPublic(
+    runId: string,
+    tenantId: string,
+  ): Promise<string> {
+    return this.resolveTraceId(runId, tenantId)
+  }
+
   // ── Step Completion ────────────────────────────────────────────
 
   async onStepCompleted(
@@ -1243,6 +1256,116 @@ export class WorkflowEngine {
     }
 
     // ── nextStep: runtime redirect (loop without DAG cycle) ──────
+    if (result.nextStep) {
+      const targetStepDef = definition.steps.find(
+        s => s.name === result.nextStep,
+      )
+      if (!targetStepDef) {
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET status = $1, error = $2, "updatedAt" = $3 WHERE id = $4`,
+          [
+            'FAILED',
+            `nextStep target "${result.nextStep}" does not exist in workflow "${definition.name}"`,
+            new Date(),
+            step.id,
+          ],
+        )
+        await this.advanceWorkflow(runId, tenantId, definition)
+        return
+      }
+
+      const targetStep = await this.getStep(runId, result.nextStep, tenantId)
+      const currentIteration = (targetStep as any).iterationCount ?? 0
+      const maxIter = (targetStep as any).maxIterations ?? 100
+
+      if (currentIteration >= maxIter) {
+        await this.db.query(
+          `UPDATE ${this.q('workflow_steps')} SET status = $1, error = $2, "updatedAt" = $3 WHERE id = $4`,
+          [
+            'FAILED',
+            `Step "${result.nextStep}" exceeded max iterations (${maxIter})`,
+            new Date(),
+            step.id,
+          ],
+        )
+        await this.advanceWorkflow(runId, tenantId, definition)
+        return
+      }
+
+      await this.db.query(
+        `UPDATE ${this.q('workflow_steps')} SET status = $1, output = $2, error = $3, "completedAt" = $4, "startedAt" = $5, "iterationCount" = $6, "updatedAt" = $7 WHERE id = $8`,
+        [
+          'PENDING',
+          null,
+          null,
+          null,
+          null,
+          currentIteration + 1,
+          new Date(),
+          targetStep.id,
+        ],
+      )
+
+      await this.dispatchReadySteps(runId, tenantId, definition)
+      return
+    }
+
+    await this.advanceWorkflow(runId, tenantId, definition)
+  }
+
+  /**
+   * Post-commit work for transactional steps: budget enforcement,
+   * nextStep loops, and DAG advancement. Called by WorkflowStepTask
+   * AFTER the transactional COMMIT so these operations run outside
+   * the step's transaction boundary.
+   */
+  async postStepCompleted(
+    runId: string,
+    stepName: string,
+    tenantId: string,
+    result: StepResult,
+  ): Promise<void> {
+    const step = await this.getStep(runId, stepName, tenantId)
+    const definition = await this.getDefinitionForRun(runId)
+
+    // Budget enforcement
+    const budgetExceeded = await this.incrementBudgetUsage(runId, 'steps')
+    if (budgetExceeded) {
+      this.config.logger?.warn(
+        `Budget exceeded for run ${runId}: ${budgetExceeded}`,
+      )
+      await this.db.query(
+        `UPDATE ${this.q('workflow_runs')} SET status = $1, error = $2, "completedAt" = $3, "updatedAt" = $4 WHERE id = $5`,
+        ['FAILED', budgetExceeded, new Date(), new Date(), runId],
+      )
+      return
+    }
+
+    const usage = result.output?._usage as Record<string, unknown> | undefined
+    if (usage) {
+      if (typeof usage.tokens === 'number') {
+        const tokenExceeded = await this.incrementBudgetUsage(
+          runId,
+          'tokens',
+          usage.tokens,
+        )
+        if (tokenExceeded) {
+          this.config.logger?.warn(
+            `Budget exceeded for run ${runId}: ${tokenExceeded}`,
+          )
+          await this.db.query(
+            `UPDATE ${this.q('workflow_runs')} SET status = $1, error = $2, "completedAt" = $3, "updatedAt" = $4 WHERE id = $5`,
+            ['FAILED', tokenExceeded, new Date(), new Date(), runId],
+          )
+          return
+        }
+      }
+      if (typeof usage.costUsd === 'number') {
+        await this.incrementBudgetUsage(runId, 'costUsd', usage.costUsd)
+      }
+    }
+
+    // nextStep runtime redirect
     if (result.nextStep) {
       const targetStepDef = definition.steps.find(
         s => s.name === result.nextStep,
@@ -1938,6 +2061,7 @@ export class WorkflowEngine {
         heartbeatTimeoutMs: step.heartbeatTimeoutMs ?? undefined,
         scheduleToStartTimeoutMs: stepDef.scheduleToStartTimeoutMs ?? undefined,
         requiresLabels: stepDef.requiresLabels,
+        transactional: stepDef.transactional,
       }
       const iterCount = (step as any).iterationCount ?? 0
       const jobId = `wf-${runId}-${step.stepName}-${step.attempt}-i${iterCount}`
@@ -1990,6 +2114,7 @@ export class WorkflowEngine {
       heartbeatTimeoutMs: step.heartbeatTimeoutMs ?? undefined,
       scheduleToStartTimeoutMs: stepDef.scheduleToStartTimeoutMs ?? undefined,
       requiresLabels: stepDef.requiresLabels,
+      transactional: stepDef.transactional,
     }
 
     const iterCount = (step as any).iterationCount ?? 0

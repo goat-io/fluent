@@ -57,6 +57,17 @@ export abstract class Step<
    * GitHub Actions `runs-on`. See `StepDefinition.requiresLabels`.
    */
   readonly requiresLabels?: string[]
+  /**
+   * When true, the step's `handle()` receives a `ctx.tx` (pg PoolClient)
+   * and the engine records the step result in the SAME Postgres transaction.
+   * COMMIT = app writes + step completion are atomic. ROLLBACK = nothing happened.
+   *
+   * Only valid for FunctionStep (inline execution). External/AI steps can't
+   * participate in a PG transaction.
+   *
+   * Can be overridden per-workflow via `step(MyStep, { transactional: true })`.
+   */
+  readonly transactional?: boolean
 
   /** The work itself. Receives the typed input + engine services context. */
   abstract handle(
