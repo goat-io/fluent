@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./delphi-ai.png" alt="delphi-ai" width="100%" />
+</p>
+
 # @goatlab/delphi-ai
 
 Multi-provider LLM adapter and multi-agent consensus layer for the Goat workflow engine. Unifies OpenAI, Anthropic, Google, and Ollama behind a single interface, with structured tool-call loops integrated into `@goatlab/delphi-core` workflows.
@@ -6,10 +10,11 @@ Multi-provider LLM adapter and multi-agent consensus layer for the Goat workflow
 
 A thin, opinionated layer on top of the Vercel AI SDK that:
 
-- Provides a uniform `AIAdapter` across OpenAI, Anthropic, Google, and Ollama
-- Runs tool-call loops that dispatch to workflow `skills`
-- Supports multi-agent consensus (vote-or-merge across N models)
+- Provides a uniform `LLMAdapter` across OpenAI, Anthropic, Google, and Ollama
+- Runs tool-call loops that dispatch to workflow skills (typed functions the LLM can invoke)
+- Supports multi-agent consensus via `AgreementOrchestrator` (propose → critique → vote → commit)
 - Exposes token/cost accounting so `@goatlab/delphi-core` budgets can enforce limits
+- Includes circuit breakers and retry-with-backoff for resilient LLM calls
 
 ## Install
 
@@ -24,87 +29,168 @@ Set provider API keys as environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API
 ## Quick start
 
 ```ts
-import { createAIAdapter } from '@goatlab/delphi-ai'
+import { LLMAdapter } from '@goatlab/delphi-ai'
 
-const ai = createAIAdapter({ provider: 'anthropic', model: 'claude-sonnet-4-6' })
+const adapter = new LLMAdapter()
 
-const result = await ai.generate({
-  system: 'You are a concise assistant.',
-  messages: [{ role: 'user', content: 'Summarize the concept of eventual consistency.' }],
-})
-console.log(result.text, result.usage)
-```
-
-## Tool-call loop with skills
-
-Skills are typed functions that the LLM can invoke. The adapter runs the classic call-loop until the model emits a final answer.
-
-```ts
-import { z } from 'zod'
-import { createAIAdapter } from '@goatlab/delphi-ai'
-
-const skills = {
-  searchDocs: {
-    description: 'Search internal docs',
-    parameters: z.object({ query: z.string() }),
-    handler: async ({ query }) => ({ results: await myDocsSearch(query) }),
-  },
-}
-
-const ai = createAIAdapter({ provider: 'openai', model: 'gpt-4o', skills })
-
-const out = await ai.runToolLoop({
-  system: 'Answer using the searchDocs skill when you need specifics.',
-  messages: [{ role: 'user', content: 'How do I enable queue-first ingestion?' }],
-  maxSteps: 6,
-})
-```
-
-The loop persists each tool invocation through `@goatlab/delphi-core`'s external-action machinery when wired to a running workflow — making tool calls exactly-once, replayable, and budget-aware.
-
-## Multi-agent consensus
-
-Run N models on the same prompt and combine outputs via voting or LLM-summarized merge:
-
-```ts
-import { consensus } from '@goatlab/delphi-ai'
-
-const result = await consensus({
-  agents: [
-    { provider: 'openai',    model: 'gpt-4o'          },
-    { provider: 'anthropic', model: 'claude-sonnet-4-6' },
-    { provider: 'google',    model: 'gemini-2.5-pro'    },
+const result = await adapter.chat({
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-6',
+  messages: [
+    { role: 'system', content: 'You are a concise assistant.' },
+    { role: 'user', content: 'Summarize the concept of eventual consistency.' },
   ],
-  prompt: 'Draft three options for the email subject line.',
-  strategy: 'merge', // or 'vote'
 })
+console.log(result.content, result.usage)
 ```
 
-Useful when you want model-diversity robustness or cross-model agreement as a quality signal.
+### Model presets
+
+```ts
+// Use a named preset instead of specifying provider + model
+const result = await adapter.chatFromPreset('fast', [
+  { role: 'user', content: 'Quick summary of CAP theorem.' },
+])
+```
 
 ## Integration with `@goatlab/delphi-core`
 
-Register as a step executor so workflow steps can call LLMs directly with full state persistence, retries, and budget enforcement:
+Register as a step executor via `createEngine` so workflow steps can call LLMs with full state persistence, retries, and budget enforcement:
 
 ```ts
+import { createEngine, Workflow, step } from '@goatlab/delphi-core'
 import { AIStepExecutor } from '@goatlab/delphi-ai'
 
-engine.registerExecutor('ai', new AIStepExecutor({ defaultProvider: 'anthropic' }))
+// Define a step that uses the AI executor
+class SummarizeStep extends Step<{ text: string }, { summary: string }> {
+  stepName = 'summarize' as const
+  executorType = 'ai'  // routes to AIStepExecutor
+}
 
-// In a workflow:
-WorkflowBuilder.create('summarize')
-  .step('summarize', {
-    executorType: 'ai',
-    executorConfig: {
-      model: 'claude-sonnet-4-6',
-      prompt: 'Summarize: {{input.text}}',
-    },
-    stepWeight: 'ai',   // routes to workflow_step_ai queue
-  })
-  .build()
+// Wire into the engine
+const engine = createEngine({
+  database: process.env.DATABASE_URL,
+  workflows: [SummarizeWorkflow] as const,
+  tenantId: 'default',
+  extraExecutors: new Map([['ai', new AIStepExecutor()]]),
+})
 ```
 
-Token and cost usage are reported back via `StepResult.usage` and deducted from the run's `budgetUsed.tokens` / `costUsd`.
+The `executorConfig` on the step controls the LLM call:
+
+```ts
+class SummarizeWorkflow extends Workflow<{ text: string }> {
+  workflowName = 'summarize' as const
+  steps = [
+    step(new SummarizeStep(), {
+      // executorConfig passed to AIStepExecutor.execute()
+    }),
+  ] as const
+}
+```
+
+When used inside a workflow step:
+- Token and cost usage are reported via `StepResult.usage` and deducted from the run's budget
+- Tool calls go through `@goatlab/delphi-core`'s external-action machinery (exactly-once, replayable)
+- The step weight `'ai'` routes to the `workflow_step_ai` queue for worker specialization
+
+## Tool-call loop with skills
+
+Skills are typed functions that the LLM can invoke. The `AIStepExecutor` runs the classic call-loop until the model emits a final answer (no more tool calls).
+
+```ts
+import { SkillRegistry } from '@goatlab/delphi-core'
+import { AIStepExecutor } from '@goatlab/delphi-ai'
+
+const skills = new SkillRegistry()
+skills.register({
+  name: 'searchDocs',
+  description: 'Search internal documentation',
+  parameters: { type: 'object', properties: { query: { type: 'string' } } },
+  execute: async ({ query }) => ({ results: await myDocsSearch(query) }),
+})
+
+const executor = new AIStepExecutor({ skills })
+```
+
+The executor runs inside a workflow step. Each tool invocation is persisted through delphi-core's external-action machinery — making tool calls exactly-once, replayable, and budget-aware.
+
+## Multi-agent consensus
+
+Run N agents through a structured agreement protocol — propose, critique, vote, and converge:
+
+```ts
+import { AgreementOrchestrator, AgentRole } from '@goatlab/delphi-ai'
+
+const orchestrator = new AgreementOrchestrator(
+  {
+    sessionId: 'review-123',
+    maxTurns: 5,
+    maxDurationMs: 60_000,
+    tokenBudgetPerTurn: 5000,
+    minConsensusScore: 0.7,
+    conflictResolution: 'majority',
+  },
+  [
+    { id: 'gpt4', role: AgentRole.PROPOSER, weight: 1, execute: gpt4Agent },
+    { id: 'claude', role: AgentRole.REVIEWER, weight: 1, execute: claudeAgent },
+    { id: 'gemini', role: AgentRole.REVIEWER, weight: 1, execute: geminiAgent },
+  ],
+)
+
+const result = await orchestrator.runAgreement('Draft three options for the email subject line.')
+// result.consensus.method: 'unanimous' | 'majority' | 'arbiter' | 'timeout'
+// result.consensus.score: 0.0 - 1.0
+// result.auditTrail: full message history
+```
+
+### Agreement protocol
+
+The protocol follows a state machine: `PROPOSE → CRITIQUE → CONVERGE → COMMIT | ABORT`
+
+| Phase | What happens |
+|-------|-------------|
+| **Propose** | Proposer agent generates initial content with confidence score |
+| **Critique** | All reviewer agents critique in parallel — approve, refine, or reject |
+| **Converge** | Weighted votes collected, consensus score calculated |
+| **Commit/Abort** | If score >= threshold → commit. Otherwise loop back to propose (refine). Abort on timeout, max turns, or risk guard trip. |
+
+### Risk guard
+
+The `RiskGuard` provides safety rails during multi-agent deliberation:
+- Token budget enforcement per turn
+- Circuit breaker per agent (max errors before trip)
+- Cyclical argument detection (identical proposals = stuck loop)
+
+The `AgreementStepExecutor` wires the orchestrator into delphi-core as `executorType: 'agreement'`, so consensus runs as a workflow step with full durability.
+
+## Resilience
+
+### Circuit breaker
+
+Per-provider circuit breaker prevents cascading failures:
+
+```ts
+import { CircuitBreaker } from '@goatlab/delphi-ai'
+
+const breaker = new CircuitBreaker({
+  failureThreshold: 5,     // open after 5 failures
+  resetTimeoutMs: 30_000,  // try again after 30s
+})
+```
+
+### Retry with backoff
+
+Retryable errors (rate limits, transient failures) are automatically retried with exponential backoff:
+
+```ts
+import { retryWithBackoff } from '@goatlab/delphi-ai'
+
+const result = await retryWithBackoff(
+  () => adapter.chat({ ... }),
+  { maxRetries: 3, initialDelayMs: 1000 },
+)
+```
 
 ## Testing
 
@@ -116,10 +202,15 @@ pnpm test   # 63 tests, no containers needed — providers are mocked at the SDK
 
 | Export | Purpose |
 |---|---|
-| `createAIAdapter(config)` | Construct a provider-agnostic adapter |
-| `AIStepExecutor` | Plug into `@goatlab/delphi-core` as `executorType: 'ai'` |
-| `consensus({ agents, prompt, strategy })` | Multi-model consensus |
-| `defineSkill(schema, handler)` | Typed tool definition |
+| `LLMAdapter` | Provider-agnostic chat interface (OpenAI, Anthropic, Google, Ollama) |
+| `AIStepExecutor` | Plug into delphi-core as `executorType: 'ai'` |
+| `AgreementStepExecutor` | Plug into delphi-core as `executorType: 'agreement'` |
+| `AgreementOrchestrator` | Multi-agent consensus orchestration |
+| `AgentRole`, `AgreementState` | Protocol enums (proposer/reviewer/arbiter, propose/critique/converge/commit) |
+| `ModelSelector`, `MODEL_PRESETS` | Model resolution and named presets |
+| `CircuitBreaker` | Per-provider failure isolation |
+| `retryWithBackoff` | Exponential retry for transient LLM errors |
+| `RiskGuard` | Safety guardrails for multi-agent sessions |
 
 ## License
 
