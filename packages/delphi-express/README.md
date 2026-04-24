@@ -147,13 +147,13 @@ import type { Request } from 'express'
 
 // Step + Workflow classes are shared across tenants — same business logic,
 // tenant isolation happens at the engine/PG-schema layer.
-class GreetStep extends FunctionStep<{ name: string }, { hi: string }, 'greet'> {
+class GreetStep extends FunctionStep<{ name: string }, { hi: string }> {
   stepName = 'greet' as const
   async handle(input) { return { output: { hi: `hello ${input.name}` } } }
 }
 const greetStep = new GreetStep()
 
-class GreetWorkflow extends Workflow<{ name: string }, 'greet_flow'> {
+class GreetWorkflow extends Workflow<{ name: string }> {
   workflowName = 'greet_flow' as const
   steps = [step(greetStep)] as const
 }
