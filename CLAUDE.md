@@ -70,7 +70,7 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 
 ### Agent Workflow System
 
-- **delphi-core** - Distributed workflow engine (Kysely/Postgres 18, BullMQ 4-queue, DAG+nextStep loops, HITL, ExternalAction exactly-once, event ingestion, integrations, skills, worker nodes, COPY FROM bulk inserts)
+- **delphi-core** - Distributed workflow engine (Postgres-only by default, optional BullMQ, DAG+nextStep loops, HITL, ExternalAction exactly-once, event ingestion, cross-tenant dispatch via createDispatcher, transactional steps, worker nodes, COPY FROM bulk inserts)
 - **delphi-ai** - Multi-provider LLM adapter (OpenAI/Anthropic/Google/Ollama) + multi-agent consensus + AI tool-call loop with skills
 - **delphi-langgraph** - LangGraph StateGraph executor with Postgres checkpointing
 - **delphi-sandbox** - Docker sandboxed execution (NetworkMode:none default, allowedDomains iptables, DinD)
@@ -88,10 +88,16 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - `cd packages/delphi-ui && npx playwright test e2e/workflow-editor.spec.ts` - Run visual editor E2E tests (12 tests)
 - `k6 run packages/delphi-core/loadtest/k6-workflow.js` - Run k6 load tests (requires test server running)
 
-#### Important: delphi-core uses Kysely (not TypeORM)
+#### Important: delphi-core uses raw SQL (no ORM)
 - Schema defined in `packages/delphi-core/src/entities/Database.ts` as plain TS interfaces
 - No decorators, no reflection, no `reflect-metadata` needed
 - JSON fields stored as TEXT with `toJson()`/`fromJson()` helpers
+- Always rebuild (`npx tsc -p tsconfig.build.json`) before running tests in downstream packages
+
+#### Publishing delphi-core
+- **ALWAYS use `pnpm publish --no-git-checks`** — never `npm publish` (leaks `workspace:*` in deps)
+- Always `rm -rf dist` before building for publish
+- Use `npx tsc -p tsconfig.build.json` for clean build (excludes tests)
 - Always rebuild (`npx tsc`) before running tests in downstream packages
 
 ### Additional Packages
