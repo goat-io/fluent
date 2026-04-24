@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./delphi-ai.png" alt="delphi-ai" width="100%" />
+  <img src="./delphi-ai.jpg" alt="delphi-ai" width="100%" />
 </p>
 
 # @goatlab/delphi-ai
