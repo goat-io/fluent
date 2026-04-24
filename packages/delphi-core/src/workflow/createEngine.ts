@@ -391,10 +391,14 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
       const bullmqOpts: Record<string, unknown> = {
         connection: config.redis,
       }
-      // When dispatcher is present, use tenant-prefixed keys and wire onAfterQueue
-      if (dispatcherRef && config.tenantId) {
+      // Always use tenant-prefixed keys when tenantId is provided —
+      // Redis ACL scopes keys per tenant, so bare `bull:` prefix is denied.
+      if (config.tenantId) {
         bullmqOpts.prefix = `{tenant:${config.tenantId}:bull}`
         bullmqOpts.tenantId = config.tenantId
+      }
+      // When dispatcher is present, wire onAfterQueue to fire cross-tenant hints
+      if (dispatcherRef && config.tenantId) {
         bullmqOpts.onAfterQueue = async (params: {
           queueName: string
           jobId: string

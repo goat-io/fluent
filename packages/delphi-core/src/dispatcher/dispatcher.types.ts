@@ -86,6 +86,20 @@ export interface DispatcherConfig {
    */
   validQueueNames?: Set<string>
 
+  /**
+   * Optional context wrapper for step execution. When provided, the entire
+   * dispatch processing (resolve + step execution) runs inside this wrapper.
+   *
+   * Use this when your DI framework requires AsyncLocalStorage or similar
+   * scoping — e.g., `wrapExecution: (tenantId, fn) => withContainer(fn, tenantId)`.
+   *
+   * When omitted, steps run in the same context as the HTTP handler.
+   */
+  wrapExecution?: (
+    tenantId: string,
+    fn: () => Promise<{ processed: number; failed: number }>,
+  ) => Promise<{ processed: number; failed: number }>
+
   /** Time budget for processing a dispatch batch (ms). Default: 120_000 */
   timeBudgetMs?: number
 

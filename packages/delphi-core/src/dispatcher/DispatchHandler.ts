@@ -20,6 +20,10 @@ export interface DispatchHandlerConfig {
   resolveTenant: ResolveTenantFn
   validQueueNames?: Set<string>
   timeBudgetMs?: number
+  wrapExecution?: (
+    tenantId: string,
+    fn: () => Promise<{ processed: number; failed: number }>,
+  ) => Promise<{ processed: number; failed: number }>
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void
@@ -48,45 +52,47 @@ export function createDispatchHandler(
     const hint = req.body as { queueName?: string; jobId?: string } | undefined
 
     // Fire-and-forget background processing
-    void (async () => {
-      let engine: ResolvedTenantEngine
-      try {
-        engine = await config.resolveTenant(tenantId)
-      } catch (error) {
-        config.logger?.error(
-          `[Dispatch] Failed to resolve tenant ${tenantId}:`,
-          error instanceof Error ? error.message : String(error),
-        )
-        return
-      }
+    const processDispatch = async (): Promise<{
+      processed: number
+      failed: number
+    }> => {
+      const engine = await config.resolveTenant(tenantId)
 
       const connector = engine.connector
       if (!connector?.processIncomingDispatch) {
         config.logger?.error(
           `[Dispatch] No processIncomingDispatch on connector for tenant=${tenantId}`,
         )
-        return
+        return { processed: 0, failed: 0 }
       }
 
+      return connector.processIncomingDispatch({
+        handleTask: async (queueName: string, data: unknown) => {
+          if (queueName === 'workflow_ingest') {
+            return engine.ingestWorker.handleJob(data)
+          }
+          if (queueName.startsWith('workflow_step_')) {
+            return engine.stepTask.handle(data)
+          }
+          throw new Error(
+            `[Dispatch] Unknown queue "${queueName}" for tenant=${tenantId}`,
+          )
+        },
+        timeBudgetMs: timeBudget,
+        validQueueNames: validQueues,
+        hint: hint
+          ? { tenantId, queueName: hint.queueName, jobId: hint.jobId }
+          : undefined,
+      })
+    }
+
+    void (async () => {
       try {
-        const result = await connector.processIncomingDispatch({
-          handleTask: async (queueName: string, data: unknown) => {
-            if (queueName === 'workflow_ingest') {
-              return engine.ingestWorker.handleJob(data)
-            }
-            if (queueName.startsWith('workflow_step_')) {
-              return engine.stepTask.handle(data)
-            }
-            throw new Error(
-              `[Dispatch] Unknown queue "${queueName}" for tenant=${tenantId}`,
-            )
-          },
-          timeBudgetMs: timeBudget,
-          validQueueNames: validQueues,
-          hint: hint
-            ? { tenantId, queueName: hint.queueName, jobId: hint.jobId }
-            : undefined,
-        })
+        const execute = config.wrapExecution
+          ? () => config.wrapExecution!(tenantId, processDispatch)
+          : processDispatch
+
+        const result = await execute()
 
         config.logger?.info(
           `[Dispatch] tenant=${tenantId} processed=${result.processed} failed=${result.failed}`,

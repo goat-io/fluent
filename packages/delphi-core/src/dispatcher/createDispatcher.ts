@@ -151,6 +151,7 @@ export function createDispatcher(config: DispatcherConfig): Dispatcher {
     resolveTenant: config.resolveTenant,
     validQueueNames: config.validQueueNames,
     timeBudgetMs: config.timeBudgetMs,
+    wrapExecution: config.wrapExecution,
     logger: config.logger,
   })
 
