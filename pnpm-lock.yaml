@@ -274,24 +274,18 @@ importers:
 
   packages/delphi-core:
     dependencies:
-      '@goatlab/js-utils':
-        specifier: workspace:*
-        version: link:../js-utils
       '@goatlab/tasks-core':
         specifier: workspace:*
         version: link:../tasks-core
       cron-parser:
         specifier: ^5.5.0
         version: 5.5.0
-      kysely:
-        specifier: ^0.27.6
-        version: 0.27.6
+      pg:
+        specifier: ^8.0.0
+        version: 8.20.0
       pg-copy-streams:
         specifier: ^7.0.0
         version: 7.0.0
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.1.3
@@ -317,9 +311,6 @@ importers:
       '@types/node':
         specifier: ^22.10.7
         version: 22.19.17
-      pg:
-        specifier: ^8.20.0
-        version: 8.20.0
       testcontainers:
         specifier: ^11.0.3
         version: 11.4.0

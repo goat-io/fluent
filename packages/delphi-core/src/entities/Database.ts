@@ -98,6 +98,8 @@ export interface WorkflowStepTable {
    * `StepDefinition.requiresLabels`.
    */
   requiresLabels: string | null
+  /** Epoch ms until which a retrying step should wait before being re-claimed */
+  retryAfterMs: string | number | null
   /** DBOS-parity: epoch ms deadline for durable sleep */
   deadlineEpochMs: string | number | null
   createdAt: Generated<Date | string>
@@ -121,6 +123,9 @@ export type StepLogEvent =
   | 'human_responded'
   | 'heartbeat'
   | 'cancelled'
+  | 'rollback_started'
+  | 'rollback_completed'
+  | 'rollback_failed'
 
 export interface WorkflowStepLogTable {
   id: string
@@ -302,10 +307,16 @@ export interface WorkflowScheduleTable {
   tenantId: string
   workflowName: string
   cronExpression: string
+  /** IANA timezone identifier for cron evaluation (e.g., 'America/New_York'). Default: 'UTC'. */
+  timezone: string
+  /** Fire immediately on first sync/startup, then follow the cron pattern. */
+  runOnInit: boolean
   /** Default input for each scheduled run (JSON) */
   input: string | null
-  nextRunAt: Date | string
-  lastRunAt: Date | string | null
+  /** Next run time as epoch milliseconds (avoids timezone issues) */
+  nextRunAtEpochMs: number | string
+  /** Last run time as epoch milliseconds */
+  lastRunAtEpochMs: number | string | null
   active: boolean
   createdAt: Generated<Date | string>
 }
@@ -409,10 +420,10 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
   "forkedFromRunId" VARCHAR(36),
   "applicationVersion" VARCHAR(100),
   "delayUntilEpochMs" BIGINT,
-  "startedAt" TIMESTAMP,
-  "completedAt" TIMESTAMP,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "startedAt" TIMESTAMPTZ,
+  "completedAt" TIMESTAMPTZ,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- Tenant-scoped idempotency: two tenants can legitimately use the
   -- same idempotencyKey without colliding. Within a tenant, the
   -- constraint + pre-SELECT dedupe in startBatchCopy guarantee at
@@ -434,16 +445,16 @@ CREATE TABLE IF NOT EXISTS workflow_steps (
   error TEXT,
   attempt INTEGER NOT NULL DEFAULT 0,
   "maxRetries" INTEGER NOT NULL DEFAULT 3,
-  "startedAt" TIMESTAMP,
-  "completedAt" TIMESTAMP,
-  "scheduledAt" TIMESTAMP,
-  "lastHeartbeatAt" TIMESTAMP,
+  "startedAt" TIMESTAMPTZ,
+  "completedAt" TIMESTAMPTZ,
+  "scheduledAt" TIMESTAMPTZ,
+  "lastHeartbeatAt" TIMESTAMPTZ,
   "lastHeartbeatData" TEXT,
   "heartbeatTimeoutMs" INTEGER,
   "humanPrompt" TEXT,
   "humanResponse" TEXT,
   "humanRespondedBy" VARCHAR(255),
-  "humanRespondedAt" TIMESTAMP,
+  "humanRespondedAt" TIMESTAMPTZ,
   "iterationCount" INTEGER DEFAULT 0,
   "maxIterations" INTEGER,
   "tokensUsed" INTEGER,
@@ -451,9 +462,10 @@ CREATE TABLE IF NOT EXISTS workflow_steps (
   "modelUsed" VARCHAR(100),
   "executedBy" VARCHAR(255),
   "requiresLabels" TEXT,
+  "retryAfterMs" BIGINT,
   "deadlineEpochMs" BIGINT,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE("workflowRunId", "stepName")
 );
 
@@ -464,7 +476,7 @@ CREATE TABLE IF NOT EXISTS workflow_step_logs (
   "tenantId" VARCHAR(255) NOT NULL,
   event VARCHAR(30) NOT NULL,
   data TEXT,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS workflow_signals (
@@ -473,8 +485,8 @@ CREATE TABLE IF NOT EXISTS workflow_signals (
   "tenantId" VARCHAR(255) NOT NULL,
   "signalName" VARCHAR(255) NOT NULL,
   data TEXT NOT NULL,
-  "processedAt" TIMESTAMP,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "processedAt" TIMESTAMPTZ,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS external_actions (
@@ -492,8 +504,8 @@ CREATE TABLE IF NOT EXISTS external_actions (
   response TEXT,
   error TEXT,
   "traceId" VARCHAR(36),
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "completedAt" TIMESTAMP,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "completedAt" TIMESTAMPTZ,
   UNIQUE("tenantId", "idempotencyKey")
 );
 
@@ -517,8 +529,8 @@ CREATE TABLE IF NOT EXISTS workflow_events (
   "traceId" VARCHAR(36),
   status VARCHAR(20) NOT NULL DEFAULT 'pending',
   error TEXT,
-  "processedAt" TIMESTAMP,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "processedAt" TIMESTAMPTZ,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE("tenantId", "idempotencyKey")
 );
 CREATE INDEX IF NOT EXISTS idx_events_tenant_type ON workflow_events("tenantId", "eventType", status);
@@ -531,7 +543,7 @@ CREATE TABLE IF NOT EXISTS workflow_event_subscriptions (
   "workflowName" VARCHAR(255) NOT NULL,
   "filterExpression" TEXT,
   active BOOLEAN NOT NULL DEFAULT true,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_event_subs_tenant_type ON workflow_event_subscriptions("tenantId", "eventType", active);
 
@@ -544,9 +556,9 @@ CREATE TABLE IF NOT EXISTS worker_nodes (
   capabilities TEXT,
   "secretHash" VARCHAR(255),
   status VARCHAR(20) NOT NULL DEFAULT 'active',
-  "lastHeartbeatAt" TIMESTAMP,
-  "registeredAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "lastHeartbeatAt" TIMESTAMPTZ,
+  "registeredAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_workers_tenant_status ON worker_nodes("tenantId", status);
 
@@ -557,8 +569,8 @@ CREATE TABLE IF NOT EXISTS workflow_definitions (
   version VARCHAR(50) NOT NULL,
   definition TEXT NOT NULL,
   "createdBy" VARCHAR(255),
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_definitions_tenant_name ON workflow_definitions("tenantId", name);
 
@@ -574,8 +586,8 @@ CREATE TABLE IF NOT EXISTS workflow_tasks (
   "maxRetries" INTEGER NOT NULL DEFAULT 3,
   priority INTEGER,
   "queuePartitionKey" VARCHAR(255),
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_run_step ON workflow_tasks("workflowRunId", "stepName", status);
 CREATE INDEX IF NOT EXISTS idx_tasks_status_priority ON workflow_tasks(status, priority DESC NULLS LAST);
@@ -586,13 +598,15 @@ CREATE TABLE IF NOT EXISTS workflow_schedules (
   "tenantId" VARCHAR(255) NOT NULL,
   "workflowName" VARCHAR(255) NOT NULL,
   "cronExpression" VARCHAR(100) NOT NULL,
+  timezone VARCHAR(100) NOT NULL DEFAULT 'UTC',
+  "runOnInit" BOOLEAN NOT NULL DEFAULT false,
   input TEXT,
-  "nextRunAt" TIMESTAMP NOT NULL,
-  "lastRunAt" TIMESTAMP,
+  "nextRunAtEpochMs" BIGINT NOT NULL,
+  "lastRunAtEpochMs" BIGINT,
   active BOOLEAN NOT NULL DEFAULT true,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_schedules_next ON workflow_schedules(active, "nextRunAt");
+CREATE INDEX IF NOT EXISTS idx_schedules_next_epoch ON workflow_schedules(active, "nextRunAtEpochMs");
 
 CREATE TABLE IF NOT EXISTS agent_tokens (
   id VARCHAR(36) PRIMARY KEY,
@@ -600,8 +614,8 @@ CREATE TABLE IF NOT EXISTS agent_tokens (
   token VARCHAR(255) NOT NULL UNIQUE,
   used BOOLEAN NOT NULL DEFAULT FALSE,
   "usedBy" VARCHAR(36),
-  "expiresAt" TIMESTAMP,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "expiresAt" TIMESTAMPTZ,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_token ON agent_tokens(token);
 
@@ -618,10 +632,41 @@ CREATE TABLE IF NOT EXISTS workflow_streams (
   key VARCHAR(255) NOT NULL,
   "offset" INTEGER NOT NULL,
   value TEXT NOT NULL,
-  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_streams_run_key ON workflow_streams("workflowRunId", key, "offset");
 
 CREATE INDEX IF NOT EXISTS idx_runs_delayed ON workflow_runs(status, "delayUntilEpochMs")
   WHERE status = 'DELAYED';
+
+-- v0.5.0: retry backoff — column for existing tables (CREATE TABLE already includes it for new installs)
+ALTER TABLE workflow_steps ADD COLUMN IF NOT EXISTS "retryAfterMs" BIGINT;
+
+-- v0.5.0: timezone-aware scheduling + runOnInit
+ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS timezone VARCHAR(100) NOT NULL DEFAULT 'UTC';
+ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS "runOnInit" BOOLEAN NOT NULL DEFAULT false;
+
+-- v0.5.0: TIMESTAMP → TIMESTAMPTZ (stores absolute instants, immune to server tz changes)
+-- Postgres converts losslessly by assuming existing values are in the current server timezone.
+ALTER TABLE workflow_runs ALTER COLUMN "startedAt" TYPE TIMESTAMPTZ USING "startedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_runs ALTER COLUMN "completedAt" TYPE TIMESTAMPTZ USING "completedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_runs ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ USING "createdAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_runs ALTER COLUMN "updatedAt" TYPE TIMESTAMPTZ USING "updatedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_steps ALTER COLUMN "startedAt" TYPE TIMESTAMPTZ USING "startedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_steps ALTER COLUMN "completedAt" TYPE TIMESTAMPTZ USING "completedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_steps ALTER COLUMN "scheduledAt" TYPE TIMESTAMPTZ USING "scheduledAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_steps ALTER COLUMN "lastHeartbeatAt" TYPE TIMESTAMPTZ USING "lastHeartbeatAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_steps ALTER COLUMN "humanRespondedAt" TYPE TIMESTAMPTZ USING "humanRespondedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_steps ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ USING "createdAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_steps ALTER COLUMN "updatedAt" TYPE TIMESTAMPTZ USING "updatedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_step_logs ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ USING "createdAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_signals ALTER COLUMN "processedAt" TYPE TIMESTAMPTZ USING "processedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_signals ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ USING "createdAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE external_actions ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ USING "createdAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE external_actions ALTER COLUMN "completedAt" TYPE TIMESTAMPTZ USING "completedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_events ALTER COLUMN "processedAt" TYPE TIMESTAMPTZ USING "processedAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE workflow_events ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ USING "createdAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE worker_nodes ALTER COLUMN "lastHeartbeatAt" TYPE TIMESTAMPTZ USING "lastHeartbeatAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE worker_nodes ALTER COLUMN "registeredAt" TYPE TIMESTAMPTZ USING "registeredAt" AT TIME ZONE current_setting('TIMEZONE');
+ALTER TABLE worker_nodes ALTER COLUMN "createdAt" TYPE TIMESTAMPTZ USING "createdAt" AT TIME ZONE current_setting('TIMEZONE');
 `

@@ -44,9 +44,11 @@ import {
   canWorkflowTransition,
   deriveWorkflowStatus,
   getReadySteps,
+  topologicalSort,
 } from '../state/WorkflowStateMachine.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
 import type {
+  BackoffConfig,
   HumanInput,
   StepContext,
   StepPayload,
@@ -66,6 +68,37 @@ import type {
   WorkflowEngineConfig,
 } from './WorkflowEngine.types.js'
 import { WriteBuffer } from './WriteBuffer.js'
+
+/**
+ * Compute epoch-ms timestamp after which a retrying step should be re-claimed.
+ * Returns null when no backoff is configured (immediate retry).
+ */
+export function computeRetryDelay(
+  backoff: BackoffConfig | undefined,
+  attempt: number,
+): number | null {
+  if (!backoff) {
+    return null
+  }
+
+  const delayMs = backoff.delayMs ?? 1000
+  const maxDelayMs = backoff.maxDelayMs ?? 60_000
+  const multiplier = backoff.multiplier ?? 2
+
+  let baseDelay: number
+  if (backoff.type === 'fixed') {
+    baseDelay = delayMs
+  } else {
+    // exponential: delay * multiplier^attempt, capped at maxDelayMs
+    baseDelay = Math.min(delayMs * multiplier ** attempt, maxDelayMs)
+  }
+
+  // Add jitter: ±25% to avoid thundering herd
+  const jitter = baseDelay * 0.25 * (2 * Math.random() - 1)
+  const finalDelay = Math.max(0, Math.round(baseDelay + jitter))
+
+  return Date.now() + finalDelay
+}
 
 /** Distributive Omit — preserves discriminated union after removing `emittedAt`. */
 type DistributiveOmit<T, K extends keyof any> = T extends unknown
@@ -270,6 +303,7 @@ export class WorkflowEngine {
         defaultRetries: definition.defaultRetries,
         defaultTimeoutMs: definition.defaultTimeoutMs,
         failFast: definition.failFast,
+        durability: definition.durability,
         triggers: definition.triggers,
         steps: definition.steps.map(s => ({
           name: s.name,
@@ -277,12 +311,15 @@ export class WorkflowEngine {
           executorType: s.executorType,
           executorConfig: s.executorConfig,
           retries: s.retries,
+          backoff: s.backoff,
           timeoutMs: s.timeoutMs,
           heartbeatTimeoutMs: s.heartbeatTimeoutMs,
           scheduleToStartTimeoutMs: s.scheduleToStartTimeoutMs,
           requiresHumanApproval: s.requiresHumanApproval,
           stepWeight: s.stepWeight,
           maxIterations: s.maxIterations,
+          requiresLabels: s.requiresLabels,
+          transactional: s.transactional,
         })),
       }),
       triggerInput: toJson(trigger.input),
@@ -539,12 +576,15 @@ export class WorkflowEngine {
             executorType: s.executorType,
             executorConfig: s.executorConfig,
             retries: s.retries,
+            backoff: s.backoff,
             timeoutMs: s.timeoutMs,
             heartbeatTimeoutMs: s.heartbeatTimeoutMs,
             scheduleToStartTimeoutMs: s.scheduleToStartTimeoutMs,
             requiresHumanApproval: s.requiresHumanApproval,
             stepWeight: s.stepWeight,
             maxIterations: s.maxIterations,
+            requiresLabels: s.requiresLabels,
+            transactional: s.transactional,
           })),
         }),
         triggerInput: toJson(trigger.input),
@@ -824,12 +864,15 @@ export class WorkflowEngine {
             executorType: s.executorType,
             executorConfig: s.executorConfig,
             retries: s.retries,
+            backoff: s.backoff,
             timeoutMs: s.timeoutMs,
             heartbeatTimeoutMs: s.heartbeatTimeoutMs,
             scheduleToStartTimeoutMs: s.scheduleToStartTimeoutMs,
             requiresHumanApproval: s.requiresHumanApproval,
             stepWeight: s.stepWeight,
             maxIterations: s.maxIterations,
+            requiresLabels: s.requiresLabels,
+            transactional: s.transactional,
           })),
         })
         const stepEscapes = new Map<
@@ -940,6 +983,8 @@ export class WorkflowEngine {
             '\\N',
             '\\N',
             labelsEsc,
+            '\\N', // retryAfterMs
+            '\\N', // deadlineEpochMs
             now,
             now,
           ].join('\t'),
@@ -983,7 +1028,7 @@ export class WorkflowEngine {
 
       const stepStream = client.query(
         copyFrom(
-          `COPY ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "executedBy", "requiresLabels", "createdAt", "updatedAt") FROM STDIN`,
+          `COPY ${this.q('workflow_steps')} (id, "workflowRunId", "tenantId", "stepName", status, "executorType", "executorConfig", "dependsOn", input, output, error, attempt, "maxRetries", "startedAt", "completedAt", "scheduledAt", "lastHeartbeatAt", "lastHeartbeatData", "heartbeatTimeoutMs", "humanPrompt", "humanResponse", "humanRespondedBy", "humanRespondedAt", "iterationCount", "maxIterations", "tokensUsed", "costUsd", "modelUsed", "executedBy", "requiresLabels", "retryAfterMs", "deadlineEpochMs", "createdAt", "updatedAt") FROM STDIN`,
         ),
       )
       stepStream.write(`${stepLines.join('\n')}\n`)
@@ -1103,6 +1148,8 @@ export class WorkflowEngine {
    * In-memory cache of runId → traceId, populated on first lookup.
    */
   private traceIdCache = new Map<string, string>()
+  /** Deserialized definition snapshots merged with live callbacks, keyed by runId. */
+  private definitionForRunCache = new Map<string, WorkflowDefinition>()
 
   private async resolveTraceId(
     runId: string,
@@ -1437,16 +1484,34 @@ export class WorkflowEngine {
     const canRetry = !isNonRetryable && step.attempt < step.maxRetries
 
     if (canRetry) {
+      const stepDef = definition.steps.find(s => s.name === stepName)
+      const backoff = stepDef?.backoff
+      const retryAfterMs = computeRetryDelay(backoff, step.attempt)
+
       await this.updateStepStatus(step.id, step.status, 'QUEUED')
       await this.db.query(
-        `UPDATE ${this.q('workflow_steps')} SET attempt = $1, error = $2, "startedAt" = $3, "updatedAt" = $4 WHERE id = $5`,
-        [step.attempt + 1, error.message, null, new Date(), step.id],
+        `UPDATE ${this.q('workflow_steps')} SET attempt = $1, error = $2, "startedAt" = $3, "updatedAt" = $4, "retryAfterMs" = $5 WHERE id = $6`,
+        [
+          step.attempt + 1,
+          error.message,
+          null,
+          new Date(),
+          retryAfterMs,
+          step.id,
+        ],
       )
       await this.logStepEvent(step.id, tenantId, 'retried', {
         attempt: step.attempt + 1,
         error: error.message,
+        ...(retryAfterMs
+          ? { retryAfterMs, delayMs: retryAfterMs - Date.now() }
+          : {}),
       })
-      await this.dispatchStep(runId, tenantId, step, definition)
+      // When no backoff, dispatch immediately (original behavior).
+      // With backoff, the PgConnector poll will pick it up after retryAfterMs.
+      if (!retryAfterMs) {
+        await this.dispatchStep(runId, tenantId, step, definition)
+      }
     } else {
       if (
         this.stepStatusBuffer &&
@@ -1891,6 +1956,7 @@ export class WorkflowEngine {
           output: mergedOutput,
         })
         this.traceIdCache.delete(runId)
+        this.definitionForRunCache.delete(runId)
       } else if (newStatus === 'FAILED') {
         const failedStep = steps.find(s => s.status === 'FAILED')
         const errorMsg = failedStep?.error ?? 'Unknown error'
@@ -1898,6 +1964,9 @@ export class WorkflowEngine {
           `UPDATE ${this.q('workflow_runs')} SET status = $1, "completedAt" = $2, error = $3, "updatedAt" = $4 WHERE id = $5`,
           [newStatus, new Date(), errorMsg, new Date(), runId],
         )
+        // Saga rollback: compensate completed steps in reverse topological order.
+        // History is append-only — step status stays COMPLETED, rollback is logged as events.
+        await this.executeRollbacks(runId, tenantId, definition, steps)
         if (definition.onFail) {
           const ctx = this.buildStepContext(run, steps)
           await definition.onFail(ctx, new Error(errorMsg))
@@ -1911,6 +1980,7 @@ export class WorkflowEngine {
           error: errorMsg,
         })
         this.traceIdCache.delete(runId)
+        this.definitionForRunCache.delete(runId)
       } else {
         await this.updateRunStatus(runId, newStatus)
       }
@@ -2335,18 +2405,159 @@ export class WorkflowEngine {
   private async getDefinitionForRun(
     runId: string,
   ): Promise<WorkflowDefinition> {
-    const { rows } = await this.db.query<{ workflowName: string }>(
-      `SELECT "workflowName" FROM ${this.q('workflow_runs')} WHERE id = $1`,
+    const cached = this.definitionForRunCache.get(runId)
+    if (cached) {
+      return cached
+    }
+
+    const { rows } = await this.db.query<{
+      workflowName: string
+      definitionSnapshot: string | null
+    }>(
+      `SELECT "workflowName", "definitionSnapshot" FROM ${this.q('workflow_runs')} WHERE id = $1`,
       [runId],
     )
     if (!rows[0]) {
       throw new WorkflowRunNotFoundError(runId)
     }
-    const def = this.config.workflows.get(rows[0].workflowName)
-    if (!def) {
-      throw new WorkflowNotFoundError(rows[0].workflowName)
+
+    const liveDef = this.config.workflows.get(rows[0].workflowName)
+    const snapshot = fromJson<WorkflowDefinition>(rows[0].definitionSnapshot)
+
+    // If no snapshot (legacy runs before snapshots existed), fall back to live.
+    if (!snapshot) {
+      if (!liveDef) {
+        throw new WorkflowNotFoundError(rows[0].workflowName)
+      }
+      return liveDef
     }
-    return def
+
+    // Merge: snapshot provides frozen structure (step topology, retries, config);
+    // live registry provides non-serializable callbacks (condition, mapInput,
+    // onComplete, onFail). If the workflow was removed from the registry, we
+    // use the snapshot alone (callbacks will be undefined — steps still run,
+    // just without conditional logic or input mapping).
+    const liveStepMap = new Map((liveDef?.steps ?? []).map(s => [s.name, s]))
+    const mergedSteps = snapshot.steps.map(snapshotStep => {
+      const liveStep = liveStepMap.get(snapshotStep.name)
+      return {
+        ...snapshotStep,
+        // Non-serializable callbacks from live code (if step still exists)
+        condition: liveStep?.condition,
+        mapInput: liveStep?.mapInput,
+      }
+    })
+
+    const merged: WorkflowDefinition = {
+      ...snapshot,
+      steps: mergedSteps,
+      // Non-serializable workflow-level callbacks
+      onComplete: liveDef?.onComplete,
+      onFail: liveDef?.onFail,
+      onRollbackFailed: liveDef?.onRollbackFailed,
+      signals: liveDef?.signals,
+      queries: liveDef?.queries,
+      inputSchema: liveDef?.inputSchema,
+    }
+
+    this.definitionForRunCache.set(runId, merged)
+    return merged
+  }
+
+  // ── Saga Rollback ───────────────────────────────────────────
+
+  /**
+   * Execute rollback handlers for completed steps in reverse topological order.
+   * Append-only: step status stays COMPLETED; rollback is logged as events.
+   * Best-effort: if a rollback throws, log the error and continue with remaining.
+   */
+  private async executeRollbacks(
+    runId: string,
+    tenantId: string,
+    definition: WorkflowDefinition,
+    steps: WorkflowStep[],
+  ): Promise<void> {
+    if (!this.config.rollbackHandlers?.size) {
+      return
+    }
+
+    // Completed steps that have rollback handlers
+    const completedSteps = steps.filter(s => s.status === 'COMPLETED')
+    if (completedSteps.length === 0) {
+      return
+    }
+
+    // Reverse topological order: last-to-complete first
+    const topoOrder = topologicalSort(definition.steps)
+    const completedNames = new Set(completedSteps.map(s => s.stepName))
+    const rollbackOrder = topoOrder
+      .filter(name => completedNames.has(name))
+      .reverse()
+
+    for (const stepName of rollbackOrder) {
+      const step = completedSteps.find(s => s.stepName === stepName)!
+      const handlerKey = `${definition.name}.${stepName}`
+      const handler = this.config.rollbackHandlers.get(handlerKey)
+      if (!handler) {
+        continue
+      }
+
+      await this.logStepEvent(
+        step.id,
+        tenantId,
+        'rollback_started',
+        {
+          stepName,
+        },
+        runId,
+      )
+
+      try {
+        const input = (fromJson(step.input) ?? {}) as Record<string, unknown>
+        const output = (fromJson(step.output) ?? {}) as Record<string, unknown>
+        await handler(input, output)
+
+        await this.logStepEvent(
+          step.id,
+          tenantId,
+          'rollback_completed',
+          {
+            stepName,
+          },
+          runId,
+        )
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        await this.logStepEvent(
+          step.id,
+          tenantId,
+          'rollback_failed',
+          {
+            stepName,
+            error: errorMsg,
+          },
+          runId,
+        )
+        this.config.logger?.warn?.(
+          `[WorkflowEngine] Rollback failed for step ${stepName} in run ${runId}:`,
+          errorMsg,
+        )
+        // Notify the workflow's onRollbackFailed callback for alerting/escalation
+        if (definition.onRollbackFailed) {
+          try {
+            await definition.onRollbackFailed({
+              stepName,
+              rollbackError:
+                err instanceof Error ? err : new Error(String(err)),
+              workflowRunId: runId,
+              tenantId,
+            })
+          } catch {
+            // onRollbackFailed itself must not break the rollback chain
+          }
+        }
+      }
+    }
   }
 
   // ── Budget Guardrails ─────────────────────────────────────────
@@ -2563,7 +2774,7 @@ export class WorkflowEngine {
          WHERE status = 'RUNNING'
            AND "heartbeatTimeoutMs" IS NOT NULL
            AND "lastHeartbeatAt" IS NOT NULL
-           AND EXTRACT(EPOCH FROM (NOW() - "lastHeartbeatAt")) * 1000 > "heartbeatTimeoutMs"
+           AND (EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM "lastHeartbeatAt")) * 1000 > "heartbeatTimeoutMs"
        )
        RETURNING id`,
     )
@@ -2595,10 +2806,7 @@ export class WorkflowEngine {
   ): Promise<{ runId: string }> {
     const run = await this.getRun(runId, tenantId)
     const steps = await this.findSteps(runId, tenantId)
-    const definition = this.config.workflows.get(run.workflowName)
-    if (!definition) {
-      throw new WorkflowNotFoundError(run.workflowName)
-    }
+    const definition = await this.getDefinitionForRun(runId)
 
     const newRunId = nanoId(21)
     const now = new Date()

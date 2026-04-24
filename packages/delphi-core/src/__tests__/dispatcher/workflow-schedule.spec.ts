@@ -28,7 +28,7 @@ describe('Workflow schedule property', () => {
     class ScheduledWorkflow extends Workflow<{ x: number }> {
       workflowName = 'scheduled_wf' as const
       schedule = {
-        pattern: '0 6 * * *',
+        cron: '0 6 * * *',
         input: { x: 42 },
         environments: ['production'],
         tenants: ['acme'],
@@ -41,7 +41,7 @@ describe('Workflow schedule property', () => {
 
     expect(def.schedule).toBeDefined()
     expect(def.schedule).toEqual({
-      pattern: '0 6 * * *',
+      cron: '0 6 * * *',
       input: { x: 42 },
       environments: ['production'],
       tenants: ['acme'],
@@ -62,21 +62,21 @@ describe('Workflow schedule property', () => {
   it('includes schedule.pattern in definition', () => {
     class PatternOnly extends Workflow<{ x: number }> {
       workflowName = 'pattern_only' as const
-      schedule = { pattern: '*/15 * * * *' }
+      schedule = { cron: '*/15 * * * *' }
       steps = [step(testStep)] as const
     }
 
     const def = new PatternOnly().toDefinition()
 
     expect(def.schedule).toBeDefined()
-    expect(def.schedule!.pattern).toBe('*/15 * * * *')
+    expect(def.schedule!.cron).toBe('*/15 * * * *')
   })
 
   it('includes schedule.input in definition', () => {
     class WithInput extends Workflow<{ x: number }> {
       workflowName = 'with_input' as const
       schedule = {
-        pattern: '0 0 * * *',
+        cron: '0 0 * * *',
         input: { x: 99 },
       }
       steps = [step(testStep)] as const
@@ -91,7 +91,7 @@ describe('Workflow schedule property', () => {
     class WithEnvs extends Workflow<{ x: number }> {
       workflowName = 'with_envs' as const
       schedule = {
-        pattern: '0 3 * * 0',
+        cron: '0 3 * * 0',
         environments: ['staging', 'production'],
       }
       steps = [step(testStep)] as const
@@ -106,7 +106,7 @@ describe('Workflow schedule property', () => {
     class WithTenants extends Workflow<{ x: number }> {
       workflowName = 'with_tenants' as const
       schedule = {
-        pattern: '0 12 * * 1-5',
+        cron: '0 12 * * 1-5',
         tenants: ['tenant-a', 'tenant-b'],
       }
       steps = [step(testStep)] as const

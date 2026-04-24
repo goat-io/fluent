@@ -32,6 +32,7 @@ import { WorkflowEngine } from '../engine/WorkflowEngine.js'
 import type { WorkflowEngineConfig } from '../engine/WorkflowEngine.types.js'
 import { EventIngestionService } from '../events/EventIngestion.js'
 import { SchedulerService } from '../scheduler/SchedulerService.js'
+import type { IANATimezone } from '../scheduler/timezones.js'
 import { FunctionStepExecutor } from '../steps/FunctionStepExecutor.js'
 import type { StepExecutor } from '../steps/StepExecutor.js'
 import { WorkflowStepTask } from '../tasks/WorkflowStepTask.js'
@@ -118,8 +119,13 @@ export interface WorkflowOps<TInput extends object> {
     respondedBy?: string,
   ): Promise<void>
 
-  /** Schedule this workflow to run on a cron expression. Optionally pass default input for each run. Returns the schedule ID. */
-  schedule(cronExpression: string, input?: TInput): Promise<string>
+  /** Schedule this workflow to run on a cron expression. Returns the schedule ID. */
+  schedule(opts: {
+    cron: string
+    input?: TInput
+    timezone?: IANATimezone
+    runOnInit?: boolean
+  }): Promise<string>
 
   /** Remove a schedule by ID. */
   unschedule(scheduleId: string): Promise<void>
@@ -380,6 +386,32 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
     }
   }
 
+  // 2b. Auto-register rollback handlers for steps that define rollback().
+  const rollbackHandlers = new Map<
+    string,
+    (
+      input: Record<string, unknown>,
+      output: Record<string, unknown>,
+    ) => Promise<void>
+  >()
+  for (const wf of workflows) {
+    for (const raw of wf.steps) {
+      const entry =
+        typeof raw === 'function'
+          ? { step: new (raw as new () => any)() }
+          : raw instanceof Step
+            ? { step: raw }
+            : raw
+      if (entry.step.rollback) {
+        const key = `${wf.workflowName}.${entry.step.stepName}`
+        const stepInstance = entry.step
+        rollbackHandlers.set(key, async (input, output) => {
+          await stepInstance.rollback!(input as any, output as any, {} as any)
+        })
+      }
+    }
+  }
+
   // 3. Resolve dispatch: redis > postgres-only (default).
   //    BullMQ is loaded dynamically so it stays an optional dependency.
   //    When a dispatcher is provided, onAfterQueue is wired to fire hints.
@@ -461,6 +493,7 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
     connector,
     workflows: definitions,
     executors,
+    rollbackHandlers: rollbackHandlers.size > 0 ? rollbackHandlers : undefined,
   })
 
   // 5. Build the IngestBuffer — required for startBuffered / startCommitted.
@@ -484,6 +517,7 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
   const scheduler = new SchedulerService({
     db,
     eventIngestion,
+    engine,
     tenantId: config.tenantId,
     pollIntervalMs: 60_000,
   })
@@ -551,12 +585,13 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
           data: data as JsonObject,
           respondedBy,
         }),
-      schedule: (cronExpression, input) =>
+      schedule: opts =>
         scheduler.createSchedule(
           tenantId,
           wf.workflowName,
-          cronExpression,
-          input as Record<string, unknown>,
+          opts.cron,
+          opts.input as Record<string, unknown> | undefined,
+          { timezone: opts.timezone, runOnInit: opts.runOnInit },
         ),
       unschedule: scheduleId => scheduler.deleteSchedule(scheduleId),
       listSchedules: async () => {
@@ -566,8 +601,10 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
           .map(s => ({
             id: s.id,
             cronExpression: s.cronExpression,
-            nextRunAt: s.nextRunAt,
-            lastRunAt: s.lastRunAt,
+            nextRunAt: new Date(Number(s.nextRunAtEpochMs)).toISOString(),
+            lastRunAt: s.lastRunAtEpochMs
+              ? new Date(Number(s.lastRunAtEpochMs)).toISOString()
+              : null,
           }))
       },
     }

@@ -66,15 +66,18 @@ export class ScheduleSyncer {
           await engine.scheduler.upsertSchedule(
             tenantId,
             wf.name,
-            wf.schedule.pattern,
+            wf.schedule.cron,
             (wf.schedule.input as Record<string, unknown>) ?? undefined,
+            {
+              timezone: wf.schedule.timezone,
+              runOnInit: wf.schedule.runOnInit,
+            },
           )
           totalJobs++
         }
       } catch (err) {
         this.config.logger?.error(
-          `[ScheduleSyncer] Failed for tenant ${tenantId}:`,
-          err instanceof Error ? err.message : String(err),
+          `[ScheduleSyncer] Failed for tenant ${tenantId}: ${err instanceof Error ? err.message : String(err)}`,
         )
       }
     }

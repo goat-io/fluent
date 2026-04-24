@@ -410,13 +410,14 @@ export class PgConnector implements TaskConnector<object> {
           status = 'QUEUED'
           OR (status = 'RUNNING' AND "startedAt" IS NULL)
         )
+        AND ("retryAfterMs" IS NULL OR "retryAfterMs" <= (extract(epoch from now()) * 1000)::BIGINT)
         ${tenantFilter}
         ORDER BY "scheduledAt" ASC NULLS LAST, "createdAt" ASC
         LIMIT $1
         FOR UPDATE SKIP LOCKED
       )
       UPDATE workflow_steps ws
-      SET status = 'RUNNING', "startedAt" = NOW(), "updatedAt" = NOW()
+      SET status = 'RUNNING', "startedAt" = NOW(), "updatedAt" = NOW(), "retryAfterMs" = NULL
       FROM claimed
       WHERE ws.id = claimed.id
       RETURNING ws.id, ws."workflowRunId", ws."tenantId", ws."stepName",

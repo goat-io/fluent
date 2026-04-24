@@ -32,13 +32,16 @@ export interface ResolvedTenantEngine {
       workflowName: string,
       cronExpression: string,
       input?: Record<string, unknown>,
+      opts?: { timezone?: string; runOnInit?: boolean },
     ) => Promise<string>
   }
   /** Workflow definitions registered on this engine. */
   getWorkflowDefinitions?: () => Array<{
     name: string
     schedule?: {
-      pattern: string
+      cron: string
+      timezone?: string
+      runOnInit?: boolean
       input?: unknown
       environments?: string[]
       tenants?: string[]

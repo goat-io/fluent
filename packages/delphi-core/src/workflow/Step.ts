@@ -12,6 +12,7 @@
 
 import type { JsonObject } from '@goatlab/tasks-core'
 import type {
+  BackoffConfig,
   StepExecutionContext,
   StepResult,
   StepWeight,
@@ -45,6 +46,11 @@ export abstract class Step<
 
   // ── Optional behavior knobs (override in subclass) ────────────────
   readonly retries?: number
+  /**
+   * Retry backoff configuration. When set, failed steps wait before retrying.
+   * Default (unset): immediate retry.
+   */
+  readonly backoff?: BackoffConfig
   readonly timeoutMs?: number
   readonly heartbeatTimeoutMs?: number
   readonly scheduleToStartTimeoutMs?: number
@@ -74,6 +80,21 @@ export abstract class Step<
     input: TInput,
     ctx: StepExecutionContext,
   ): Promise<TypedStepResult<TOutput>>
+
+  /**
+   * Reverse action — called when the workflow fails terminally and this step
+   * had already completed. Receives the original input and the output that
+   * `handle()` returned, so you can undo side effects (refund a charge,
+   * unreserve inventory, revoke an API key, etc.).
+   *
+   * Rollbacks run in reverse topological order across all completed steps.
+   * If a rollback throws, the error is logged and remaining rollbacks continue.
+   */
+  rollback?(
+    input: TInput,
+    output: TOutput,
+    ctx: StepExecutionContext,
+  ): Promise<void>
 
   // Phantom type witnesses — never accessed at runtime; exist solely so
   // upstream type machinery (StepOutputs, WorkflowOps) can pluck the

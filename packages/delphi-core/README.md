@@ -305,6 +305,58 @@ They compose naturally:
 
 Use `committed + transactional` for financial flows where both "trigger accepted" and "step executed" must be all-or-nothing. Use `buffered + transactional` for high-volume events where ingestion loss is acceptable but processing must be atomic.
 
+### Retry backoff
+
+By default, failed steps retry immediately. For steps calling external APIs (rate-limited endpoints, push notifications, social APIs), configure backoff to avoid hammering a failing service:
+
+```ts
+class PushNotifyStep extends FunctionStep<{ userId: string }, { sent: boolean }> {
+  stepName = 'push_notify' as const
+  retries = 5
+  backoff = { type: 'exponential' as const, delayMs: 1000, maxDelayMs: 60_000 }
+
+  async handle(input) {
+    await expo.sendPushNotification(input.userId)
+    return { output: { sent: true } }
+  }
+}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `type` | — | `'exponential'` (doubles each attempt) or `'fixed'` (constant delay) |
+| `delayMs` | 1000 | Base delay before first retry |
+| `maxDelayMs` | 60000 | Cap for exponential growth |
+| `multiplier` | 2 | Exponential multiplier per attempt |
+
+Delays include ±25% jitter to prevent thundering herd. Under the hood, `retryAfterMs` is stored on the step row — the PgConnector poll skips steps whose retry time hasn't arrived yet. No extra polling loop or scheduler needed.
+
+### Saga rollback
+
+When a workflow fails terminally, you often need to undo side effects from steps that already completed — refund a charge, unreserve inventory, revoke an API key. Define a `rollback()` method on any step:
+
+```ts
+class ChargeCardStep extends FunctionStep<
+  { customerId: string; amount: number },
+  { chargeId: string }
+> {
+  stepName = 'charge_card' as const
+
+  async handle(input) {
+    const charge = await stripe.charges.create({ amount: input.amount, customer: input.customerId })
+    return { output: { chargeId: charge.id } }
+  }
+
+  async rollback(input, output) {
+    await stripe.refunds.create({ charge: output.chargeId })
+  }
+}
+```
+
+When the workflow transitions to FAILED (a downstream step exhausted its retries), the engine automatically calls `rollback()` on all completed steps that define it, in **reverse topological order** — last-completed first.
+
+**History is append-only.** Step statuses stay `COMPLETED` — the engine never rewrites history. Rollback actions are logged as `rollback_started`, `rollback_completed`, or `rollback_failed` events in `workflow_step_logs`. If a rollback itself throws, the error is logged and remaining rollbacks continue (best-effort).
+
 ### Human-in-the-loop
 A step returning `{ waitForHuman: { prompt, schema } }` transitions to `WAITING_HUMAN`. Resume via `engine.submitHumanInput(...)`.
 
@@ -314,6 +366,11 @@ A step returning `{ waitForHuman: { prompt, schema } }` transitions to `WAITING_
 ### Workflow forking
 `engine.forkWorkflow(runId, tenantId, fromStepName)` creates a new run preserving completed step outputs up to the fork point. Enables retry-from-failure and A/B testing.
 
+### Workflow versioning
+In-flight workflows are frozen to their original definition. When you deploy new code that changes a workflow's steps, retries, or config, running workflows continue with the definition they started with — no mid-flight surprises.
+
+The engine stores a `definitionSnapshot` at workflow start. On step completion/failure, `getDefinitionForRun()` deserializes the snapshot instead of reading the live registry. Non-serializable callbacks (`condition`, `mapInput`, `onComplete`, `onFail`) are merged from the live registry if the workflow still exists, so code changes to those callbacks take effect immediately.
+
 ### Workflow streaming
 `engine.writeStream(runId, key, value)` appends to a durable, offset-based stream. Consumers read via `engine.readStream(runId, key, fromOffset)`. Close with `engine.closeStream(runId, key)`.
 
@@ -321,11 +378,23 @@ A step returning `{ waitForHuman: { prompt, schema } }` transitions to `WAITING_
 Start workflows in the future: `engine.start({ ..., delaySeconds: 60 })`. The run enters `DELAYED` status and auto-transitions to `RUNNING` when the delay expires.
 
 ### Cron scheduling
-Schedule recurring workflows directly from the typed engine proxy. Multi-pod safe — uses `FOR UPDATE SKIP LOCKED` so only one instance fires each schedule.
+Schedule recurring workflows directly from the typed engine proxy. Multi-pod safe — uses `FOR UPDATE SKIP LOCKED` so only one instance fires each schedule. Timezone-aware — DST transitions handled automatically.
 
 ```ts
-// Schedule a workflow to run every day at 9am, with default input
-await engine.daily_report.schedule('0 9 * * *', { region: 'us-east' })
+// Schedule a workflow to run every day at 9am New York time
+await engine.daily_report.schedule({
+  cron: '0 9 * * *',
+  timezone: 'America/New_York',  // IANA timezone — DST-aware
+  input: { region: 'us-east' },
+})
+
+// Fire immediately on deploy, then follow the cron
+await engine.daily_report.schedule({
+  cron: '0 9 * * *',
+  timezone: 'America/New_York',
+  runOnInit: true,
+  input: { region: 'us-east' },
+})
 
 // List active schedules
 const schedules = await engine.daily_report.listSchedules()
@@ -417,7 +486,9 @@ Instead of centralized job config arrays, declare schedules on workflows:
 class DailyReportWorkflow extends Workflow<{ region: string }> {
   workflowName = 'daily_report' as const
   schedule = {
-    pattern: '0 9 * * *',                    // cron expression
+    cron: '0 9 * * *',                       // cron expression
+    timezone: 'America/New_York',             // IANA timezone (default: 'UTC')
+    runOnInit: true,                          // fire on first deploy
     input: { region: 'us-east' },             // default input per run
     environments: ['prod'],                   // only in production
     tenants: ['platform'],                    // only for specific tenants
@@ -426,7 +497,7 @@ class DailyReportWorkflow extends Workflow<{ region: string }> {
 }
 ```
 
-`dispatcher.syncSchedules()` reads these declarations and registers them across all tenants.
+`dispatcher.syncSchedules()` reads these declarations and registers them across all tenants. The `timezone` field accepts any IANA timezone identifier (`America/New_York`, `Europe/Stockholm`, etc.) with full autocomplete support via the `IANATimezone` type.
 
 #### Hint transport options
 
@@ -593,6 +664,9 @@ npx vitest run src/__tests__/engine/dbos-parity.spec.ts      # DBOS-parity featu
 | `createDispatchHandler` | Express-compatible dispatch endpoint (202 + background drain) |
 | `PgHintTransport` | Postgres-based hint transport (alternative to Redis) |
 | `PgNotifier` | LISTEN/NOTIFY with auto-detection |
+| `computeRetryDelay` | Backoff delay calculator (exponential/fixed with jitter) |
+| `IANATimezone` | Type-safe IANA timezone identifiers with autocomplete |
+| `BackoffConfig` | Retry backoff configuration type (exponential/fixed) |
 | `dbRetry` | Connection-resilient retry decorator |
 | `runMigrations` | Schema migration runner |
 | `AdaptivePoller` | Dynamic polling interval with backoff |
@@ -600,7 +674,7 @@ npx vitest run src/__tests__/engine/dbos-parity.spec.ts      # DBOS-parity featu
 
 ## Schema
 
-Plain TypeScript interfaces in `src/entities/Database.ts`. No ORM, no decorators, no `reflect-metadata`. All queries are parameterized SQL via `pg.Pool`. JSON columns stored as `TEXT` with `toJson()` / `fromJson()` helpers.
+Plain TypeScript interfaces in `src/entities/Database.ts`. No ORM, no decorators, no `reflect-metadata`. All queries are parameterized SQL via `pg.Pool`. JSON columns stored as `TEXT` with `toJson()` / `fromJson()` helpers. All timestamp columns use `TIMESTAMPTZ` (not plain `TIMESTAMP`) — stores absolute instants, immune to server timezone changes. Time-critical fields (deadlines, delays, retry backoff) use `BIGINT` epoch milliseconds for comparison safety.
 
 ## Inspiration
 

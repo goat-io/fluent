@@ -70,13 +70,13 @@ const chainA = new ChainAStep();
 const chainB = new ChainBStep();
 const chainC = new ChainCStep();
 
-class FastSingleWorkflow extends Workflow<JsonObject, "fast_single"> {
+class FastSingleWorkflow extends Workflow<JsonObject> {
 	workflowName = "fast_single" as const;
 	override defaultRetries = 0;
 	steps = [step(echoStep)] as const;
 }
 
-class FastChainWorkflow extends Workflow<JsonObject, "fast_chain"> {
+class FastChainWorkflow extends Workflow<JsonObject> {
 	workflowName = "fast_chain" as const;
 	override defaultRetries = 0;
 	steps = [

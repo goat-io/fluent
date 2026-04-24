@@ -54,7 +54,9 @@ describe('engine.<workflow>.schedule() integration', () => {
   it('schedule() creates a cron schedule and returns an ID', async () => {
     const engine = makeEngine()
 
-    const scheduleId = await engine.schedulable.schedule('*/5 * * * *')
+    const scheduleId = await engine.schedulable.schedule({
+      cron: '*/5 * * * *',
+    })
 
     expect(scheduleId).toBeDefined()
     expect(typeof scheduleId).toBe('string')
@@ -64,8 +66,8 @@ describe('engine.<workflow>.schedule() integration', () => {
   it('listSchedules() returns active schedules for the workflow', async () => {
     const engine = makeEngine()
 
-    await engine.schedulable.schedule('*/5 * * * *')
-    await engine.schedulable.schedule('0 9 * * *')
+    await engine.schedulable.schedule({ cron: '*/5 * * * *' })
+    await engine.schedulable.schedule({ cron: '0 9 * * *' })
 
     const schedules = await engine.schedulable.listSchedules()
 
@@ -78,8 +80,8 @@ describe('engine.<workflow>.schedule() integration', () => {
   it('listSchedules() only returns schedules for the specific workflow', async () => {
     const engine = makeEngine()
 
-    await engine.schedulable.schedule('*/5 * * * *')
-    await engine.other_wf.schedule('0 12 * * *')
+    await engine.schedulable.schedule({ cron: '*/5 * * * *' })
+    await engine.other_wf.schedule({ cron: '0 12 * * *' })
 
     const schedulableSchedules = await engine.schedulable.listSchedules()
     const otherSchedules = await engine.other_wf.listSchedules()
@@ -94,7 +96,7 @@ describe('engine.<workflow>.schedule() integration', () => {
   it('unschedule() deactivates a schedule', async () => {
     const engine = makeEngine()
 
-    const id = await engine.schedulable.schedule('*/5 * * * *')
+    const id = await engine.schedulable.schedule({ cron: '*/5 * * * *' })
     await engine.schedulable.unschedule(id)
 
     const schedules = await engine.schedulable.listSchedules()
@@ -113,52 +115,55 @@ describe('engine.<workflow>.schedule() integration', () => {
   it('scheduler.tick() fires due schedules', async () => {
     const engine = makeEngine()
 
-    // Create a schedule with nextRunAt in the past (use PG's NOW to avoid clock skew)
+    // Create a schedule with nextRunAtEpochMs in the past
+    const pastEpochMs = Date.now() - 2 * 60 * 1000
     await db.query(
-      `INSERT INTO workflow_schedules (id, "tenantId", "workflowName", "cronExpression", "nextRunAt", active)
-       VALUES ($1, $2, $3, $4, NOW() - interval '2 minutes', $5)`,
-      ['sched-1', 'sched-tenant', 'schedulable', '*/5 * * * *', true],
+      `INSERT INTO workflow_schedules (id, "tenantId", "workflowName", "cronExpression", "nextRunAtEpochMs", active)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        'sched-1',
+        'sched-tenant',
+        'schedulable',
+        '*/5 * * * *',
+        pastEpochMs,
+        true,
+      ],
     )
 
     const emitted = await engine.scheduler.tick()
     expect(emitted).toBe(1)
 
-    // Verify an event was ingested
+    // Verify a workflow run was started (engine.start() path)
     const { rows } = await db.query(
-      `SELECT * FROM workflow_events WHERE "tenantId" = $1 AND "eventType" = $2`,
-      ['sched-tenant', 'cron.trigger'],
+      `SELECT * FROM workflow_runs WHERE "tenantId" = $1 AND "workflowName" = $2`,
+      ['sched-tenant', 'schedulable'],
     )
     expect(rows.length).toBe(1)
-    expect(JSON.parse(rows[0].payload).workflowName).toBe('schedulable')
   })
 
-  it('schedule + tick + verify nextRunAt advances and lastRunAt is set', async () => {
+  it('schedule + tick + verify nextRunAtEpochMs advances and lastRunAtEpochMs is set', async () => {
     const engine = makeEngine()
 
-    const id = await engine.schedulable.schedule('* * * * *') // every minute
+    const id = await engine.schedulable.schedule({ cron: '* * * * *' }) // every minute
 
-    // Set nextRunAt to past using PG time (avoids Docker clock skew)
+    // Set nextRunAtEpochMs to past
+    const pastMs = Date.now() - 2 * 60 * 1000
     await db.query(
-      `UPDATE workflow_schedules SET "nextRunAt" = NOW() - interval '2 minutes' WHERE id = $1`,
-      [id],
+      `UPDATE workflow_schedules SET "nextRunAtEpochMs" = $1 WHERE id = $2`,
+      [pastMs, id],
     )
 
-    // Capture old nextRunAt
-    const { rows: before } = await db.query(
-      `SELECT "nextRunAt" FROM workflow_schedules WHERE id = $1`,
-      [id],
-    )
-    const oldNext = new Date(before[0].nextRunAt).getTime()
+    const oldNext = pastMs
 
     await engine.scheduler.tick()
 
-    // Verify lastRunAt was set and nextRunAt advanced
+    // Verify lastRunAtEpochMs was set and nextRunAtEpochMs advanced
     const { rows } = await db.query(
-      `SELECT "nextRunAt", "lastRunAt" FROM workflow_schedules WHERE id = $1`,
+      `SELECT "nextRunAtEpochMs", "lastRunAtEpochMs" FROM workflow_schedules WHERE id = $1`,
       [id],
     )
     expect(rows[0]).toBeDefined()
-    expect(rows[0].lastRunAt).not.toBeNull()
-    expect(new Date(rows[0].nextRunAt).getTime()).toBeGreaterThan(oldNext)
+    expect(rows[0].lastRunAtEpochMs).not.toBeNull()
+    expect(Number(rows[0].nextRunAtEpochMs)).toBeGreaterThan(oldNext)
   })
 })

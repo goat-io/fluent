@@ -268,8 +268,11 @@ describe('createDispatchHandler', () => {
     await tick()
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to resolve tenant'),
-      expect.stringContaining('Tenant DB unreachable'),
+      '[Dispatch] Request failed',
+      expect.objectContaining({
+        error: 'Tenant DB unreachable',
+        tenantId: 'tenant-a',
+      }),
     )
   })
 

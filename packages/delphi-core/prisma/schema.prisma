@@ -1,0 +1,298 @@
+// Delphi agents engine — Prisma schema for workflow runtime state.
+//
+// Lives in the default `public` schema alongside your app's other tables
+// (no `previewFeatures = ["multiSchema"]` needed). The engine queries
+// these tables by their physical snake_case names; the Prisma client
+// exposes them under the same names for inspection / ad-hoc reads.
+//
+// Source: @goatlab/delphi-core@0.5.0
+// Docs: https://www.npmjs.com/package/@goatlab/delphi-core
+//
+// IMPORTANT: This file is a reference for consumers who use Prisma.
+// delphi-core itself uses raw SQL (no ORM). If you use Prisma alongside
+// delphi-core, add these models to your schema so Prisma is aware of
+// the tables. The engine manages schema creation via CREATE_TABLES_SQL
+// and ALTER TABLE migrations in Database.ts.
+
+model workflow_runs {
+  id                 String    @id @db.VarChar(36)
+  tenantId           String    @db.VarChar(255)
+  workflowName       String    @db.VarChar(255)
+  workflowVersion    String    @db.VarChar(50)
+  status             String    @db.VarChar(20)
+  definitionSnapshot String?
+  triggerInput       String?
+  output             String?
+  error              String?
+  idempotencyKey     String?   @db.VarChar(255)
+  traceId            String?   @db.VarChar(36)
+  parentRunId        String?   @db.VarChar(36)
+  originEventId      String?   @db.VarChar(36)
+  budget             String?
+  budgetUsed         String?
+  /// DBOS-parity: absolute deadline (epoch ms) for timeout enforcement
+  deadlineEpochMs    BigInt?
+  /// DBOS-parity: configured timeout duration in ms
+  timeoutMs          BigInt?
+  /// DBOS-parity: source run ID when this run was forked
+  forkedFromRunId    String?   @db.VarChar(36)
+  /// DBOS-parity: application version for version-aware dispatch/recovery
+  applicationVersion String?   @db.VarChar(100)
+  /// DBOS-parity: delayed execution — epoch ms when DELAYED→RUNNING
+  delayUntilEpochMs  BigInt?
+  startedAt          DateTime? @db.Timestamptz()
+  completedAt        DateTime? @db.Timestamptz()
+  createdAt          DateTime  @default(now()) @db.Timestamptz()
+  updatedAt          DateTime  @default(now()) @db.Timestamptz()
+
+  steps            workflow_steps[]
+  signals          workflow_signals[]
+  external_actions external_actions[]
+  workflow_tasks   workflow_tasks[]
+  step_logs        workflow_step_logs[]
+  streams          workflow_streams[]
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, status])
+  @@index([tenantId, workflowName])
+  @@index([traceId])
+  @@index([createdAt])
+  @@index([status, delayUntilEpochMs])
+}
+
+model workflow_steps {
+  id                 String    @id @db.VarChar(36)
+  workflowRunId      String    @db.VarChar(36)
+  tenantId           String    @db.VarChar(255)
+  stepName           String    @db.VarChar(255)
+  status             String    @db.VarChar(20)
+  executorType       String    @db.VarChar(100)
+  executorConfig     String?
+  dependsOn          String?
+  input              String?
+  output             String?
+  error              String?
+  attempt            Int       @default(0)
+  maxRetries         Int       @default(3)
+  startedAt          DateTime? @db.Timestamptz()
+  completedAt        DateTime? @db.Timestamptz()
+  scheduledAt        DateTime? @db.Timestamptz()
+  lastHeartbeatAt    DateTime? @db.Timestamptz()
+  lastHeartbeatData  String?
+  heartbeatTimeoutMs Int?
+  humanPrompt        String?
+  humanResponse      String?
+  humanRespondedBy   String?   @db.VarChar(255)
+  humanRespondedAt   DateTime? @db.Timestamptz()
+  iterationCount     Int?      @default(0)
+  maxIterations      Int?
+  tokensUsed         Int?
+  costUsd            String?   @db.VarChar(20)
+  modelUsed          String?   @db.VarChar(100)
+  executedBy         String?   @db.VarChar(255)
+  /// JSON array of labels a worker must advertise (AND-match) to run
+  /// this step. Mirrors GitHub Actions `runs-on`. When null/empty any
+  /// worker on the step's queue is eligible.
+  requiresLabels     String?
+  /// Epoch ms until which a retrying step should wait before being re-claimed.
+  /// Set by retry backoff (exponential/fixed). PgConnector.claimSteps() filters by this.
+  retryAfterMs       BigInt?
+  /// DBOS-parity: absolute deadline for durable sleep / timeout
+  deadlineEpochMs    BigInt?
+  createdAt          DateTime  @default(now()) @db.Timestamptz()
+  updatedAt          DateTime  @default(now()) @db.Timestamptz()
+
+  run workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowRunId, stepName])
+  @@index([tenantId, status])
+  // Note: SQL also has a partial index idx_steps_active on (workflowRunId, status)
+  // WHERE status IN ('PENDING','QUEUED','RUNNING','WAITING_HUMAN')
+  // Prisma can't express partial indexes — create manually if needed.
+}
+
+model workflow_step_logs {
+  id            String    @id @db.VarChar(36)
+  stepId        String    @db.VarChar(36)
+  /// FK to workflow_runs for CASCADE deletion (DBOS-parity: log retention)
+  workflowRunId String?   @db.VarChar(36)
+  tenantId      String    @db.VarChar(255)
+  /// Event types: queued, started, completed, failed, retried, skipped,
+  /// human_requested, human_responded, heartbeat, cancelled,
+  /// rollback_started, rollback_completed, rollback_failed
+  event         String    @db.VarChar(30)
+  data          String?
+  createdAt     DateTime  @default(now()) @db.Timestamptz()
+
+  run workflow_runs? @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, stepId])
+}
+
+model workflow_signals {
+  id            String    @id @db.VarChar(36)
+  workflowRunId String    @db.VarChar(36)
+  tenantId      String    @db.VarChar(255)
+  signalName    String    @db.VarChar(255)
+  data          String
+  processedAt   DateTime? @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @db.Timestamptz()
+
+  run workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, signalName, processedAt])
+}
+
+model external_actions {
+  id             String    @id @db.VarChar(36)
+  workflowRunId  String    @db.VarChar(36)
+  stepName       String    @db.VarChar(255)
+  attempt        Int
+  tenantId       String    @db.VarChar(255)
+  provider       String    @db.VarChar(100)
+  actionType     String    @db.VarChar(100)
+  idempotencyKey String    @db.VarChar(500)
+  status         String    @default("pending") @db.VarChar(20)
+  externalId     String?   @db.VarChar(500)
+  request        String?
+  response       String?
+  error          String?
+  traceId        String?   @db.VarChar(36)
+  createdAt      DateTime  @default(now()) @db.Timestamptz()
+  completedAt    DateTime? @db.Timestamptz()
+
+  run workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([idempotencyKey])
+  @@index([workflowRunId, stepName, attempt])
+}
+
+model workflow_events {
+  id             String    @id @db.VarChar(36)
+  tenantId       String    @db.VarChar(255)
+  eventType      String    @db.VarChar(255)
+  source         String    @db.VarChar(255)
+  payload        String?
+  idempotencyKey String?   @db.VarChar(500)
+  entityKey      String?   @db.VarChar(500)
+  sequenceNumber Int?
+  traceId        String?   @db.VarChar(36)
+  status         String    @default("pending") @db.VarChar(20)
+  error          String?
+  processedAt    DateTime? @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @db.Timestamptz()
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, eventType, status])
+  @@index([entityKey, sequenceNumber])
+}
+
+model workflow_event_subscriptions {
+  id               String   @id @db.VarChar(36)
+  tenantId         String   @db.VarChar(255)
+  eventType        String   @db.VarChar(255)
+  workflowName     String   @db.VarChar(255)
+  filterExpression String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz()
+
+  @@index([tenantId, eventType, active])
+}
+
+model worker_nodes {
+  id              String    @id @db.VarChar(36)
+  tenantId        String?   @db.VarChar(255)
+  accountId       String?   @db.VarChar(255)
+  name            String    @db.VarChar(255)
+  hostname        String?   @db.VarChar(255)
+  capabilities    String?
+  secretHash      String?   @db.VarChar(255)
+  status          String    @default("active") @db.VarChar(20)
+  lastHeartbeatAt DateTime? @db.Timestamptz()
+  registeredAt    DateTime  @default(now()) @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @db.Timestamptz()
+
+  @@index([tenantId, status])
+}
+
+model workflow_definitions {
+  id         String   @id @db.VarChar(36)
+  tenantId   String   @db.VarChar(255)
+  name       String   @db.VarChar(255)
+  version    String   @db.VarChar(50)
+  definition String
+  createdBy  String?  @db.VarChar(255)
+  createdAt  DateTime @default(now()) @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @db.Timestamptz()
+
+  @@index([tenantId, name])
+}
+
+model workflow_tasks {
+  id                String   @id @db.VarChar(36)
+  workflowRunId     String   @db.VarChar(36)
+  stepName          String   @db.VarChar(255)
+  status            String   @default("pending") @db.VarChar(20)
+  payload           String?
+  result            String?
+  error             String?
+  attempt           Int      @default(0)
+  maxRetries        Int      @default(3)
+  priority          Int?
+  /// DBOS-parity: partition key for per-tenant/per-resource queue isolation
+  queuePartitionKey String?  @db.VarChar(255)
+  createdAt         DateTime @default(now()) @db.Timestamptz()
+  updatedAt         DateTime @default(now()) @db.Timestamptz()
+
+  run workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, stepName, status])
+  @@index([status, priority(sort: Desc)])
+  @@index([queuePartitionKey, status])
+}
+
+model workflow_schedules {
+  id               String   @id @db.VarChar(255)
+  tenantId         String   @db.VarChar(255)
+  workflowName     String   @db.VarChar(255)
+  cronExpression   String   @db.VarChar(100)
+  /// IANA timezone identifier (e.g., 'America/New_York'). Default: 'UTC'.
+  timezone         String   @default("UTC") @db.VarChar(100)
+  /// Fire immediately on first sync/startup, then follow the cron pattern.
+  runOnInit        Boolean  @default(false)
+  /// Default input for each scheduled run (JSON)
+  input            String?
+  /// Next run time as epoch milliseconds (timezone-safe)
+  nextRunAtEpochMs BigInt
+  /// Last run time as epoch milliseconds
+  lastRunAtEpochMs BigInt?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz()
+
+  @@index([active, nextRunAtEpochMs])
+}
+
+model agent_tokens {
+  id        String    @id @db.VarChar(36)
+  tenantId  String    @db.VarChar(255)
+  token     String    @unique @db.VarChar(255)
+  used      Boolean   @default(false)
+  usedBy    String?   @db.VarChar(36)
+  expiresAt DateTime? @db.Timestamptz()
+  createdAt DateTime  @default(now()) @db.Timestamptz()
+}
+
+/// DBOS-parity: durable, offset-based workflow streaming
+model workflow_streams {
+  id            String   @id @db.VarChar(36)
+  workflowRunId String   @db.VarChar(36)
+  key           String   @db.VarChar(255)
+  offset        Int
+  value         String
+  createdAt     DateTime @default(now()) @db.Timestamptz()
+
+  run workflow_runs @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, key, offset])
+}

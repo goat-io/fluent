@@ -1,6 +1,6 @@
 {
   "name": "@goatlab/delphi-ai",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Multi-provider AI adapter and multi-agent consensus for the Goat agent ecosystem",
   "homepage": "https://docs.goatlab.io",
   "main": "dist/index.js",

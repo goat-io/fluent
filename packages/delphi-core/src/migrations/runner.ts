@@ -132,6 +132,35 @@ export const MIGRATIONS: Migration[] = [
       'Widen workflow_schedules.id to VARCHAR(255) for deterministic upsert IDs',
     sql: [`ALTER TABLE workflow_schedules ALTER COLUMN id TYPE VARCHAR(255)`],
   },
+  {
+    version: 8,
+    description:
+      'Migrate workflow_schedules from TIMESTAMP to epoch ms (BIGINT) to avoid timezone issues',
+    sql: [
+      // Add new epoch columns (idempotent)
+      `ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS "nextRunAtEpochMs" BIGINT`,
+      `ALTER TABLE workflow_schedules ADD COLUMN IF NOT EXISTS "lastRunAtEpochMs" BIGINT`,
+      // Migrate existing data: TIMESTAMP -> epoch ms (only if old columns still exist)
+      `DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'workflow_schedules' AND column_name = 'nextRunAt') THEN
+          UPDATE workflow_schedules SET "nextRunAtEpochMs" = EXTRACT(EPOCH FROM "nextRunAt") * 1000 WHERE "nextRunAtEpochMs" IS NULL AND "nextRunAt" IS NOT NULL;
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'workflow_schedules' AND column_name = 'lastRunAt') THEN
+          UPDATE workflow_schedules SET "lastRunAtEpochMs" = EXTRACT(EPOCH FROM "lastRunAt") * 1000 WHERE "lastRunAtEpochMs" IS NULL AND "lastRunAt" IS NOT NULL;
+        END IF;
+      END $$`,
+      // Default any remaining NULLs (fresh tables have no data to migrate)
+      `UPDATE workflow_schedules SET "nextRunAtEpochMs" = 0 WHERE "nextRunAtEpochMs" IS NULL`,
+      // Make nextRunAtEpochMs NOT NULL
+      `ALTER TABLE workflow_schedules ALTER COLUMN "nextRunAtEpochMs" SET NOT NULL`,
+      // Drop old columns
+      `ALTER TABLE workflow_schedules DROP COLUMN IF EXISTS "nextRunAt"`,
+      `ALTER TABLE workflow_schedules DROP COLUMN IF EXISTS "lastRunAt"`,
+      // Drop old index, create new one
+      `DROP INDEX IF EXISTS idx_schedules_next`,
+      `CREATE INDEX IF NOT EXISTS idx_schedules_next_epoch ON workflow_schedules(active, "nextRunAtEpochMs")`,
+    ],
+  },
 ]
 
 /**

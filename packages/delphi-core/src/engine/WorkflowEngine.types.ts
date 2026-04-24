@@ -100,6 +100,18 @@ export interface WorkflowEngineConfig {
   defaultBudget?: WorkflowBudget
   /** DBOS-parity: application version stamped on new workflow runs */
   applicationVersion?: string
+  /**
+   * Rollback handlers for saga-style compensation. Keyed by
+   * `<workflowName>.<stepName>` — same namespace as step handlers.
+   * Registered automatically by `createEngine` when a Step has `rollback()`.
+   */
+  rollbackHandlers?: Map<
+    string,
+    (
+      input: Record<string, unknown>,
+      output: Record<string, unknown>,
+    ) => Promise<void>
+  >
   logger?: {
     info: (...args: unknown[]) => void
     warn: (...args: unknown[]) => void

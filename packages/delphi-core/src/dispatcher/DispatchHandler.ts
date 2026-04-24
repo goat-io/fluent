@@ -3,10 +3,7 @@
 // Responds 202 immediately (Cloud Run scaling), then asynchronously resolves
 // the tenant engine and drains work via processIncomingDispatch().
 
-import type {
-  ResolvedTenantEngine,
-  ResolveTenantFn,
-} from './dispatcher.types.js'
+import type { ResolveTenantFn } from './dispatcher.types.js'
 
 const DEFAULT_QUEUE_NAMES = new Set([
   'workflow_ingest',

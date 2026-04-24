@@ -14,7 +14,9 @@ function makeMockEngine(
   workflows: Array<{
     name: string
     schedule?: {
-      pattern: string
+      cron: string
+      timezone?: string
+      runOnInit?: boolean
       input?: unknown
       environments?: string[]
       tenants?: string[]
@@ -75,7 +77,7 @@ describe('ScheduleSyncer', () => {
 
   it('reads schedule from workflow definitions (1 with schedule, 1 without)', async () => {
     const engine = makeMockEngine([
-      { name: 'wf_with_schedule', schedule: { pattern: '0 6 * * *' } },
+      { name: 'wf_with_schedule', schedule: { cron: '0 6 * * *' } },
       { name: 'wf_without_schedule' },
     ])
 
@@ -98,7 +100,7 @@ describe('ScheduleSyncer', () => {
       {
         name: 'daily_report',
         schedule: {
-          pattern: '0 8 * * *',
+          cron: '0 8 * * *',
           input: { format: 'pdf' },
         },
       },
@@ -119,6 +121,7 @@ describe('ScheduleSyncer', () => {
       'daily_report',
       '0 8 * * *',
       { format: 'pdf' },
+      { timezone: undefined, runOnInit: undefined },
     )
   })
 
@@ -127,7 +130,7 @@ describe('ScheduleSyncer', () => {
       {
         name: 'platform_only',
         schedule: {
-          pattern: '0 0 * * *',
+          cron: '0 0 * * *',
           tenants: ['platform-admin'],
         },
       },
@@ -152,6 +155,7 @@ describe('ScheduleSyncer', () => {
       'platform_only',
       '0 0 * * *',
       undefined,
+      { timezone: undefined, runOnInit: undefined },
     )
     expect(result.totalJobs).toBe(1)
   })
@@ -161,14 +165,14 @@ describe('ScheduleSyncer', () => {
       {
         name: 'prod_only',
         schedule: {
-          pattern: '0 3 * * *',
+          cron: '0 3 * * *',
           environments: ['production'],
         },
       },
       {
         name: 'any_env',
         schedule: {
-          pattern: '*/5 * * * *',
+          cron: '*/5 * * * *',
         },
       },
     ])
@@ -191,13 +195,14 @@ describe('ScheduleSyncer', () => {
       'any_env',
       '*/5 * * * *',
       undefined,
+      { timezone: undefined, runOnInit: undefined },
     )
     expect(result.totalJobs).toBe(1)
   })
 
   it('skips tenant on resolveTenant failure — others still processed, error logged', async () => {
     const engineGood = makeMockEngine([
-      { name: 'wf_a', schedule: { pattern: '0 1 * * *' } },
+      { name: 'wf_a', schedule: { cron: '0 1 * * *' } },
     ])
 
     const resolveTenant = vi.fn().mockImplementation(async (tid: string) => {
@@ -222,15 +227,14 @@ describe('ScheduleSyncer', () => {
     expect(result.totalJobs).toBe(2)
     expect(result.tenantCount).toBe(3)
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('bad-tenant'),
-      expect.stringContaining('DB connection refused'),
+      expect.stringContaining('bad-tenant: DB connection refused'),
     )
   })
 
   it('returns correct totals', async () => {
     const engine = makeMockEngine([
-      { name: 'wf1', schedule: { pattern: '0 1 * * *' } },
-      { name: 'wf2', schedule: { pattern: '0 2 * * *' } },
+      { name: 'wf1', schedule: { cron: '0 1 * * *' } },
+      { name: 'wf2', schedule: { cron: '0 2 * * *' } },
       { name: 'wf3' }, // no schedule
     ])
 

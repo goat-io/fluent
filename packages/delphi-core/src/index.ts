@@ -112,7 +112,7 @@ export { StepStatusBuffer } from './engine/StepStatusBuffer.js'
 export type { JsonObject, TaskInput, TaskStats } from './engine/TaskManager.js'
 // ── Task Manager ──────────────────────────────────────────────────
 export { TaskManager } from './engine/TaskManager.js'
-export { WorkflowEngine } from './engine/WorkflowEngine.js'
+export { computeRetryDelay, WorkflowEngine } from './engine/WorkflowEngine.js'
 export type {
   BudgetUsed,
   WorkflowBudget,
@@ -198,6 +198,7 @@ export { MIGRATIONS, runMigrations } from './migrations/runner.js'
 export type { SchedulerServiceConfig } from './scheduler/SchedulerService.js'
 // ── Scheduler ─────────────────────────────────────────────────────
 export { SchedulerService } from './scheduler/SchedulerService.js'
+export type { IANATimezone } from './scheduler/timezones.js'
 export { codeExecutionSkill } from './skills/builtin/CodeExecutionSkill.js'
 export { webSearchSkill } from './skills/builtin/WebSearchSkill.js'
 export type { Skill, ToolDefinition } from './skills/Skill.js'
@@ -255,6 +256,7 @@ export { step, Workflow } from './workflow/Workflow.js'
 export { WorkflowBuilder } from './workflow/WorkflowBuilder.js'
 // ── Types ──────────────────────────────────────────────────────────
 export type {
+  BackoffConfig,
   HumanInput,
   QueryHandler,
   SignalHandler,

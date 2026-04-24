@@ -60,6 +60,7 @@ const COPY_STEPS_COLUMNS = [
   'modelUsed',
   'executedBy',
   'requiresLabels',
+  'retryAfterMs',
   'deadlineEpochMs',
   'createdAt',
   'updatedAt',
@@ -134,6 +135,6 @@ describe('COPY FROM Column Validation', () => {
   })
 
   it('workflow_steps COPY column count matches data value count (33)', () => {
-    expect(COPY_STEPS_COLUMNS).toHaveLength(33)
+    expect(COPY_STEPS_COLUMNS).toHaveLength(34)
   })
 })

@@ -564,10 +564,16 @@ describe('Broker E2E — Full Agent Lifecycle', () => {
 
       registry.getNextJob(agentId)
 
+      // Attach rejection handler BEFORE triggering deregister to avoid
+      // unhandled promise rejection between deregister and the assertion.
+      const rejection = resultPromise.catch((e: Error) => e)
+
       await handlers.deregister({ agentId, secret: 'sec' })
 
       expect(registry.getAgent(agentId)).toBeNull()
-      await expect(resultPromise).rejects.toThrow('deregistered')
+      const error = (await rejection) as Error
+      expect(error).toBeInstanceOf(Error)
+      expect(error.message).toContain('deregistered')
     })
   })
 

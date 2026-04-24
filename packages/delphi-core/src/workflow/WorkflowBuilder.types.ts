@@ -1,5 +1,6 @@
 // npx vitest run src/__tests__/state-machine.spec.ts
 import type { JsonObject, JsonValue } from '@goatlab/tasks-core'
+import type { IANATimezone } from '../scheduler/timezones.js'
 
 // ── Workflow Status ────────────────────────────────────────────────
 
@@ -75,6 +76,17 @@ export interface StepExecutionContext {
 
 export type StepWeight = 'light' | 'heavy' | 'ai' | 'sandbox'
 
+export interface BackoffConfig {
+  /** Backoff strategy. 'exponential' doubles delay each attempt; 'fixed' uses constant delay. */
+  type: 'exponential' | 'fixed'
+  /** Initial delay in ms before first retry (default: 1000). */
+  delayMs?: number
+  /** Maximum delay in ms (default: 60000). Only applies to 'exponential'. */
+  maxDelayMs?: number
+  /** Multiplier for exponential backoff (default: 2). */
+  multiplier?: number
+}
+
 export interface StepDefinition {
   name: string
   dependsOn?: string[]
@@ -105,6 +117,16 @@ export interface StepDefinition {
    * worker is eligible.
    */
   requiresLabels?: string[]
+  /**
+   * Retry backoff configuration. When set, failed steps wait before retrying
+   * instead of being re-queued immediately.
+   *
+   * - `type: 'exponential'` — delay doubles each attempt (with jitter)
+   * - `type: 'fixed'` — constant delay between retries
+   *
+   * Default (unset): immediate retry (no delay).
+   */
+  backoff?: BackoffConfig
   /**
    * When true, step execution + result recording happen in a single PG
    * transaction. App writes via `ctx.tx` are atomic with step completion.
@@ -154,6 +176,18 @@ export interface WorkflowDefinition {
   queries?: Record<string, QueryHandler>
   onComplete?: (ctx: StepContext) => Promise<void>
   onFail?: (ctx: StepContext, error: Error) => Promise<void>
+  /**
+   * Called when a step's rollback fails during saga compensation.
+   * Use for alerting, escalation, or manual intervention queues.
+   * Receives the step name, the original error that caused the workflow to fail,
+   * and the rollback error.
+   */
+  onRollbackFailed?: (ctx: {
+    stepName: string
+    rollbackError: Error
+    workflowRunId: string
+    tenantId: string
+  }) => Promise<void> | void
   /** Ingestion durability guarantee. Default: 'buffered'. */
   durability?: WorkflowDurability
   /** Declared input field names for runtime introspection (trigger forms). */
@@ -164,7 +198,11 @@ export interface WorkflowDefinition {
   inputSchema?: { parse: (input: unknown) => unknown }
   /** Cron schedule for automatic recurring execution via dispatcher. */
   schedule?: {
-    pattern: string
+    cron: string
+    /** IANA timezone identifier (e.g., 'America/New_York'). Default: 'UTC'. */
+    timezone?: IANATimezone
+    /** Fire immediately on first sync/startup, then follow the cron pattern. Default: false. */
+    runOnInit?: boolean
     input?: unknown
     environments?: string[]
     tenants?: string[]

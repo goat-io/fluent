@@ -12,6 +12,7 @@
 
 import type { JsonObject } from '@goatlab/tasks-core'
 import { DAGValidationError } from '../errors/WorkflowErrors.js'
+import type { IANATimezone } from '../scheduler/timezones.js'
 import { topologicalSort } from '../state/WorkflowStateMachine.js'
 import { Step } from './Step.js'
 import type {
@@ -182,7 +183,11 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
    */
   readonly schedule?: {
     /** Cron expression (5-field standard) */
-    pattern: string
+    cron: string
+    /** IANA timezone identifier (e.g., 'America/New_York'). Default: 'UTC'. */
+    timezone?: IANATimezone
+    /** Fire immediately on first sync/startup, then follow the cron. Default: false. */
+    runOnInit?: boolean
     /** Default input for each scheduled run */
     input?: TInput
     /** Only run in specific environments (checked by consumer) */
@@ -196,6 +201,12 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
   readonly queries?: Record<string, QueryHandler>
   readonly onComplete?: (ctx: StepContext) => Promise<void>
   readonly onFail?: (ctx: StepContext, error: Error) => Promise<void>
+  readonly onRollbackFailed?: (ctx: {
+    stepName: string
+    rollbackError: Error
+    workflowRunId: string
+    tenantId: string
+  }) => Promise<void> | void
 
   // Phantom type witness for the createEngine proxy.
   declare readonly _input: TInput
@@ -243,6 +254,7 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
       },
       dependsOn: entry.dependsOn?.map(d => resolveRef(d).stepName),
       retries: entry.step.retries,
+      backoff: entry.step.backoff,
       timeoutMs: entry.step.timeoutMs,
       heartbeatTimeoutMs: entry.step.heartbeatTimeoutMs,
       scheduleToStartTimeoutMs: entry.step.scheduleToStartTimeoutMs,
@@ -270,12 +282,15 @@ export abstract class Workflow<TInput extends JsonObject = JsonObject> {
       queries: this.queries,
       onComplete: this.onComplete,
       onFail: this.onFail,
+      onRollbackFailed: this.onRollbackFailed,
       durability: this.durability,
       inputFields: this.inputFields,
       sensitiveFields: this.sensitiveFields,
       schedule: this.schedule
         ? {
-            pattern: this.schedule.pattern,
+            cron: this.schedule.cron,
+            timezone: this.schedule.timezone,
+            runOnInit: this.schedule.runOnInit,
             input: this.schedule.input,
             environments: this.schedule.environments,
             tenants: this.schedule.tenants,

@@ -54,40 +54,55 @@ Internalize sodium's cross-tenant dispatch pattern into `@goatlab/delphi-core` a
 
 ## Open Issues / TODOs
 
-### 1. Test files reference old `*Task` names
-~15 unit test files still reference `.taskName`, `.postUrl`, `getUniqueTaskName()` — old ShouldQueue properties. Tests will fail until updated.
-- **Why not fixed**: Focused on production code correctness. Test updates are mechanical.
-- **Fix**: grep for `taskName` in `*.test.ts` / `*.spec.ts` files, replace with `workflowName`, remove `postUrl` assertions.
+### 1. ~~Test files reference old `*Task` names~~ ✅ NOT AN ISSUE
+Investigation revealed `taskName` and `postUrl` are **correct interface properties**, not old ShouldQueue remnants:
+- `taskName` is part of `TaskConnector.queue()` contract — used by all 4 connector implementations (PG, BullMQ, Hatchet, GCP) for queue routing. Mock connectors in tests correctly implement this interface.
+- `postUrl` is in the interface but unused by all implementations (dead param, could be deprecated but not urgent).
+- `fromShouldQueue` tests correctly use `taskName`/`postUrl` as ShouldQueue properties to test the adapter bridge.
+- All 571 tests pass. No renames needed.
 
-### 2. `delphi.integration.test.ts` uses two-generic Workflow
-`Workflow<{ msg: string }, 'integration_test_flow'>` — Workflow only has 1 generic. Second generic silently resolves to `any`.
-- **Why it matters**: Causes `any` in the test's engine type (but isolated to test file).
-- **Fix**: Remove second generic from all Workflow declarations in that test file.
+### 2. ~~`delphi.integration.test.ts` uses two-generic Workflow~~ ✅ FIXED
+Fixed 8 two-generic `Workflow<Input, Name>` declarations across delphi-ui/test-server, delphi-express/example, delphi-bun/example. Removed the spurious second generic that silently collapsed to `any`.
 
 ### 3. Model files still in old `tasks/` directories
-`postTasks.model.ts`, `accountTasks.model.ts`, `commentTasks.model.ts`, etc. stayed in `tasks/` when workflow files moved to `workflows/`. Relative imports use `../tasks/model`.
-- **Why not moved**: Would require updating imports in both workflow files and test files. Low priority.
-- **Fix**: Move to `workflows/` dir, update relative imports.
+These files (`postTasks.model.ts`, `accountTasks.model.ts`, etc.) are in the sodium repo, not in this fluent monorepo. Only `WorkflowStepTask.ts` exists in `tasks/` here, but that's a bridge class and its location is correct.
+- **Status**: N/A for this repo.
 
-### 4. Retry backoff not implemented
-Steps retry immediately after failure. No exponential backoff, no jitter. External API steps (Expo push, social APIs) hit rate limits on immediate retry.
-- **5 Whys**: Steps fail → retry immediately → hit rate limit again → fail again → all retries exhausted. Root: no backoff strategy in step retry logic.
-- **Where**: `WorkflowEngine.ts` retry logic, `WorkflowStepTask.ts` step failure handling.
+### 4. ~~Retry backoff not implemented~~ ✅ IMPLEMENTED
+Added exponential and fixed retry backoff with jitter to delphi-core:
+- `BackoffConfig` type: `{ type: 'exponential' | 'fixed', delayMs?, maxDelayMs?, multiplier? }`
+- `backoff` property on `Step` class and `StepDefinition` interface
+- `computeRetryDelay()` — calculates epoch-ms timestamp with jitter (±25%)
+- `retryAfterMs` BIGINT column on `workflow_steps` (DB schema + ALTER for existing installs)
+- `PgConnector.claimSteps()` filters by `retryAfterMs <= now` — no new polling loop needed
+- `WorkflowEngine.onStepFailed()` sets `retryAfterMs` on retry when backoff configured; skips immediate `dispatchStep()`
+- 8 new tests (6 unit + 2 integration) in `retry-backoff.spec.ts`, all passing
+- Usage: `readonly backoff = { type: 'exponential', delayMs: 1000, maxDelayMs: 60000 }` on any Step subclass
 
-### 5. No fan-out/fan-in pattern
-No first-class "for each item, run step" pattern. CrossPost loops through social accounts in a single step. NotifyDispatch loops through recipients.
-- **5 Whys**: Want per-provider isolation → need separate step per provider → no way to dynamically create steps → must use a loop in one step → one failure retries everything.
-- **Where**: Would need dynamic step generation or child workflow spawning in `WorkflowEngine.ts`.
+### 5. Fan-out/fan-in — TaskManager already exists, needs documentation
+`TaskManager` + `TaskRunnerExecutor` already provide fan-out/fan-in within a step: `createTasks()` fans out, the executor processes items with concurrency control + budget checks, then returns aggregated results.
+- **Pattern**: Planner step → `ctx.taskManager.createTasks(runId, 'execute', items)` → TaskRunner step processes in parallel → Summarizer step.
+- **What's missing**: Documentation in README, and sodium's CrossPost/NotifyDispatch aren't using it yet.
+- **Status**: Infrastructure exists. Needs docs + migration of sodium workflows.
 
-### 6. No compensation/saga pattern
-If step 3 fails in a DAG, steps 1-2 results persist. No automatic rollback chain.
-- **5 Whys**: Payment charged (step 1) → email fails (step 2) → want to refund → no compensation handler → manual intervention needed.
-- **Where**: Would need `onCompensate` callback on Step class, reverse DAG traversal in `WorkflowEngine.ts`.
+### 6. ~~No compensation/saga pattern~~ ✅ IMPLEMENTED
+Saga-style rollback via `rollback()` method on Step class:
+- `rollback(input, output, ctx)` — optional method called when workflow fails terminally
+- Runs on all COMPLETED steps with `rollback` defined, in reverse topological order
+- **Append-only history**: step status stays COMPLETED; rollback logged as `rollback_started/completed/failed` events
+- Best-effort: if one rollback throws, remaining continue
+- `rollbackHandlers` map registered by `createEngine` from step instances
+- `onRollbackFailed` callback on workflow for alerting/escalation when a rollback throws
+- 5 new tests in `saga-rollback.spec.ts` (structural, failure chain, no-op, realistic e-commerce, alerting)
 
-### 7. Workflow versioning is a no-op
-`workflowVersion` field exists but nothing uses it. In-flight workflows get the new definition on restart.
-- **5 Whys**: Deploy new code → definition changes → running workflow picks up new step list → step might not exist → crash.
-- **Where**: `WorkflowEngine.ts` workflow start/resume logic.
+### 7. ~~Workflow versioning is a no-op~~ ✅ FIXED
+`getDefinitionForRun()` now deserializes the stored `definitionSnapshot` instead of reading from the live registry. In-flight workflows keep their original step topology/retries/config across deployments.
+- **Merge strategy**: Snapshot provides frozen structure (steps, retries, backoff, executorConfig). Live registry provides non-serializable callbacks (`condition`, `mapInput`, `onComplete`, `onFail`, `signals`, `queries`). If workflow removed from registry, snapshot alone is used (callbacks are undefined — steps still run).
+- **Cache**: Deserialized definitions cached per runId, evicted on run completion/failure.
+- **Snapshot now includes**: `backoff`, `transactional`, `requiresLabels`, `durability` (were missing before).
+- **Legacy fallback**: Runs with NULL `definitionSnapshot` (pre-snapshot era) fall back to live registry.
+- **`forkWorkflow`** also fixed — uses `getDefinitionForRun()` instead of live registry.
+- 4 new tests in `workflow-versioning.spec.ts`, all passing.
 
 ## Key Files
 
@@ -107,6 +122,9 @@ If step 3 fails in a DAG, steps 1-2 results persist. No automatic rollback chain
 | `src/workflow/Workflow.ts` | Base class — schedule property, transactional flag |
 | `src/scheduler/SchedulerService.ts` | Cron triggers + upsertSchedule |
 | `src/__tests__/dispatcher/type-safety.spec.ts` | Type-level tests for `any` isolation |
+| `src/__tests__/engine/retry-backoff.spec.ts` | Retry backoff unit + integration tests (8 tests) |
+| `src/__tests__/engine/workflow-versioning.spec.ts` | Workflow versioning tests (4 tests) |
+| `src/__tests__/engine/saga-rollback.spec.ts` | Saga rollback tests (3 tests) |
 
 ### sodium backend
 
@@ -136,10 +154,10 @@ If step 3 fails in a DAG, steps 1-2 results persist. No automatic rollback chain
 
 ## Possible Next Focus Points
 
-1. **Retry backoff** — Add `backoff: { type: 'exponential', delay: 1000, maxDelay: 60000 }` to Step class. Most impactful for sodium (Expo push rate limits).
+1. ~~**Retry backoff**~~ ✅ Done — `backoff` property on Step class with exponential/fixed strategies.
 2. **Fan-out/fan-in** — First-class `step.forEach()` pattern. Dynamic child step creation per item. CrossPost and NotifyDispatch would benefit immediately.
-3. **Compensation/saga** — `onCompensate` callback on Step for automatic rollback chains. Critical for payment flows.
+3. ~~**Compensation/saga**~~ ✅ Done — `rollback()` method on Step class. Append-only history, reverse topological order.
 4. **Testing utilities** — `testWorkflow(MyWorkflow, input)` in-memory executor. Currently requires real PG + testcontainers.
 5. **Observability** — Auto-emit OpenTelemetry spans per step. Step duration, queue depth, failure rate metrics.
-6. **Workflow versioning** — Pin running workflows to their definition version. Temporal-style task queue per version.
+6. ~~**Workflow versioning**~~ ✅ Done — `getDefinitionForRun()` uses stored snapshot. In-flight workflows frozen to original definition.
 7. **Dead letter / replay** — DLQ for failed-after-max-retries steps. "Retry from step X" API.

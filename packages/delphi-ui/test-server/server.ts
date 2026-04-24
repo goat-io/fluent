@@ -270,7 +270,7 @@ async function main() {
 
   // ── Workflows (class-based) ──────────────────────────
 
-  class FastSingleWorkflow extends Workflow<JsonObject, 'fast_single'> {
+  class FastSingleWorkflow extends Workflow<JsonObject> {
     workflowName = 'fast_single' as const
     override defaultRetries = 0
     steps = [step(fastEchoStep)] as const
@@ -278,14 +278,14 @@ async function main() {
 
   // Payment-critical: durability='committed' — HTTP blocks until PG COMMIT.
   // Used by loadtest/k6-workflow-committed.js to measure the committed path.
-  class PaymentCriticalWorkflow extends Workflow<{ amountCents?: number; ts?: number }, 'payment_critical'> {
+  class PaymentCriticalWorkflow extends Workflow<{ amountCents?: number; ts?: number }> {
     workflowName = 'payment_critical' as const
     override durability = 'committed' as const
     override defaultRetries = 0
     steps = [step(chargeStep)] as const
   }
 
-  class FastChainWorkflow extends Workflow<JsonObject, 'fast_chain'> {
+  class FastChainWorkflow extends Workflow<JsonObject> {
     workflowName = 'fast_chain' as const
     override defaultRetries = 0
     steps = [
@@ -296,7 +296,7 @@ async function main() {
   }
 
   // Demo pipeline (realistic delays + human-in-the-loop)
-  class DemoPipelineWorkflow extends Workflow<JsonObject, 'demo_pipeline'> {
+  class DemoPipelineWorkflow extends Workflow<JsonObject> {
     workflowName = 'demo_pipeline' as const
     override defaultRetries = 2
     steps = [

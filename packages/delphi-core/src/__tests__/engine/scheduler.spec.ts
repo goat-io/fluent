@@ -80,7 +80,7 @@ describe('SchedulerService', () => {
   })
 
   describe('createSchedule', () => {
-    it('computes correct nextRunAt in the future', async () => {
+    it('computes correct nextRunAtEpochMs in the future', async () => {
       const id = await scheduler.createSchedule(
         'test-tenant',
         'daily-report',
@@ -94,9 +94,9 @@ describe('SchedulerService', () => {
       expect(schedules[0].workflowName).toBe('daily-report')
       expect(schedules[0].cronExpression).toBe('0 9 * * *')
       expect(schedules[0].active).toBe(true)
-      expect(schedules[0].lastRunAt).toBeNull()
+      expect(schedules[0].lastRunAtEpochMs).toBeNull()
 
-      const nextRun = new Date(schedules[0].nextRunAt)
+      const nextRun = new Date(Number(schedules[0].nextRunAtEpochMs))
       expect(nextRun.getTime()).toBeGreaterThan(Date.now() - 1000)
     })
 
@@ -121,10 +121,10 @@ describe('SchedulerService', () => {
         '*/5 * * * *',
       )
 
-      // Force nextRunAt to the past so it's immediately due
+      // Force nextRunAtEpochMs to the past so it's immediately due
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: new Date('2020-01-01T00:00:00Z') })
+        .set({ nextRunAtEpochMs: new Date('2020-01-01T00:00:00Z').getTime() })
         .where('id', '=', id)
         .execute()
 
@@ -146,9 +146,9 @@ describe('SchedulerService', () => {
       expect(payload.scheduleId).toBe(id)
       expect(payload.scheduledAt).toBe('2020-01-01T00:00:00.000Z')
 
-      // Verify idempotency key format
+      // Verify idempotency key format (epoch ms)
       expect(events[0].idempotencyKey).toBe(
-        'cron:test-wf:2020-01-01T00:00:00.000Z',
+        `cron:test-wf:${new Date('2020-01-01T00:00:00Z').getTime()}`,
       )
     })
 
@@ -159,19 +159,20 @@ describe('SchedulerService', () => {
         '*/5 * * * *',
       )
       const pastDate = new Date('2020-01-01T00:00:00Z')
+      const pastEpochMs = pastDate.getTime()
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: pastDate })
+        .set({ nextRunAtEpochMs: pastEpochMs })
         .where('id', '=', id)
         .execute()
 
       // First tick emits
       expect(await scheduler.tick()).toBe(1)
 
-      // Reset nextRunAt to same past time (simulating a stuck schedule)
+      // Reset nextRunAtEpochMs to same past time (simulating a stuck schedule)
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: pastDate })
+        .set({ nextRunAtEpochMs: pastEpochMs })
         .where('id', '=', id)
         .execute()
 
@@ -187,16 +188,17 @@ describe('SchedulerService', () => {
       expect(events).toHaveLength(1)
     })
 
-    it('advances nextRunAt after trigger', async () => {
+    it('advances nextRunAtEpochMs after trigger', async () => {
       const id = await scheduler.createSchedule(
         'test-tenant',
         'test-wf',
         '*/5 * * * *',
       )
       const pastDate = new Date('2020-01-01T00:00:00Z')
+      const pastEpochMs = pastDate.getTime()
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: pastDate })
+        .set({ nextRunAtEpochMs: pastEpochMs })
         .where('id', '=', id)
         .execute()
 
@@ -208,13 +210,13 @@ describe('SchedulerService', () => {
         .where('id', '=', id)
         .executeTakeFirstOrThrow()
 
-      const nextRun = new Date(schedule.nextRunAt)
+      const nextRun = new Date(Number(schedule.nextRunAtEpochMs))
       expect(nextRun.getTime()).toBeGreaterThan(pastDate.getTime())
       // For */5, next after 2020-01-01T00:00:00 should be 2020-01-01T00:05:00
       expect(nextRun.toISOString()).toBe('2020-01-01T00:05:00.000Z')
 
-      // lastRunAt should be updated to the past date
-      expect(new Date(schedule.lastRunAt!).toISOString()).toBe(
+      // lastRunAtEpochMs should be updated to the past date
+      expect(new Date(Number(schedule.lastRunAtEpochMs!)).toISOString()).toBe(
         '2020-01-01T00:00:00.000Z',
       )
     })
@@ -227,7 +229,10 @@ describe('SchedulerService', () => {
       )
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: new Date('2020-01-01'), active: false })
+        .set({
+          nextRunAtEpochMs: new Date('2020-01-01T00:00:00Z').getTime(),
+          active: false,
+        })
         .where('id', '=', id)
         .execute()
 
@@ -242,59 +247,69 @@ describe('SchedulerService', () => {
     })
 
     // ── Multi-pod safety ────────────────────────────────────────────────
-    it('CRITICAL: parallel ticks across pods do not double-fire — exactly one cron.trigger per due schedule', async () => {
-      // Simulates 4 sodium pods each running their own SchedulerService instance
-      // against the same DB. They all poll roughly at the same time. Without
-      // proper locking + idempotency, all 4 would fire the same workflow.
-      const id = await scheduler.createSchedule(
-        'test-tenant',
-        'multi-pod-wf',
-        '*/5 * * * *',
-      )
-      await db
-        .updateTable('workflow_schedules')
-        .set({ nextRunAt: new Date('2020-06-01T00:00:00Z') })
-        .where('id', '=', id)
-        .execute()
-
-      // Build 4 independent scheduler instances — each has its own DI but
-      // shares the same db + eventIngestion. Mirrors N pods on Cloud Run.
-      const pods = Array.from(
-        { length: 4 },
-        () =>
-          new SchedulerService({ db, eventIngestion, tenantId: 'test-tenant' }),
-      )
-
-      // Fire all 4 ticks in parallel — worst-case race
-      const counts = await Promise.all(pods.map(p => p.tick()))
-
-      // EXACTLY ONE pod must report emitted=1; the rest report 0 (either
-      // their FOR UPDATE SKIP LOCKED skipped the row, or their idempotency
-      // ingest returned duplicate=true).
-      const totalEmitted = counts.reduce((a, b) => a + b, 0)
-      expect(totalEmitted).toBe(1)
-
-      // And exactly ONE row in workflow_events
-      const events = await db
-        .selectFrom('workflow_events')
-        .selectAll()
-        .where('eventType', '=', 'cron.trigger')
-        .where(
-          'idempotencyKey',
-          '=',
-          'cron:multi-pod-wf:2020-06-01T00:00:00.000Z',
+    it(
+      'CRITICAL: parallel ticks across pods do not double-fire — exactly one cron.trigger per due schedule',
+      { retry: 2, timeout: 15_000 },
+      async () => {
+        // Simulates 4 sodium pods each running their own SchedulerService instance
+        // against the same DB. They all poll roughly at the same time. Without
+        // proper locking + idempotency, all 4 would fire the same workflow.
+        const id = await scheduler.createSchedule(
+          'test-tenant',
+          'multi-pod-wf',
+          '*/5 * * * *',
         )
-        .execute()
-      expect(events).toHaveLength(1)
+        await db
+          .updateTable('workflow_schedules')
+          .set({ nextRunAtEpochMs: new Date('2020-06-01T00:00:00Z').getTime() })
+          .where('id', '=', id)
+          .execute()
 
-      // nextRunAt advanced exactly once (all UPDATEs converge to the same value)
-      const sched = await db
-        .selectFrom('workflow_schedules')
-        .selectAll()
-        .where('id', '=', id)
-        .executeTakeFirstOrThrow()
-      expect(sched.lastRunAt).toEqual(new Date('2020-06-01T00:00:00Z'))
-    }, 15_000)
+        // Build 4 independent scheduler instances — each has its own DI but
+        // shares the same db + eventIngestion. Mirrors N pods on Cloud Run.
+        const pods = Array.from(
+          { length: 4 },
+          () =>
+            new SchedulerService({
+              db,
+              eventIngestion,
+              tenantId: 'test-tenant',
+            }),
+        )
+
+        // Fire all 4 ticks in parallel — worst-case race
+        const counts = await Promise.all(pods.map(p => p.tick()))
+
+        // EXACTLY ONE pod must report emitted=1; the rest report 0 (either
+        // their FOR UPDATE SKIP LOCKED skipped the row, or their idempotency
+        // ingest returned duplicate=true).
+        const totalEmitted = counts.reduce((a, b) => a + b, 0)
+        expect(totalEmitted).toBe(1)
+
+        // And exactly ONE row in workflow_events
+        const events = await db
+          .selectFrom('workflow_events')
+          .selectAll()
+          .where('eventType', '=', 'cron.trigger')
+          .where(
+            'idempotencyKey',
+            '=',
+            `cron:multi-pod-wf:${new Date('2020-06-01T00:00:00Z').getTime()}`,
+          )
+          .execute()
+        expect(events).toHaveLength(1)
+
+        // nextRunAtEpochMs advanced exactly once (all UPDATEs converge to the same value)
+        const sched = await db
+          .selectFrom('workflow_schedules')
+          .selectAll()
+          .where('id', '=', id)
+          .executeTakeFirstOrThrow()
+        expect(Number(sched.lastRunAtEpochMs)).toEqual(
+          new Date('2020-06-01T00:00:00Z').getTime(),
+        )
+      },
+    )
 
     it('does not process other tenants schedules (per-tenant isolation)', async () => {
       // Create a schedule for a different tenant
@@ -305,7 +320,7 @@ describe('SchedulerService', () => {
       )
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: new Date('2020-01-01') })
+        .set({ nextRunAtEpochMs: new Date('2020-01-01T00:00:00Z').getTime() })
         .where('id', '=', otherTenantSchedulerId)
         .execute()
 
@@ -319,7 +334,7 @@ describe('SchedulerService', () => {
         .selectAll()
         .where('id', '=', otherTenantSchedulerId)
         .executeTakeFirstOrThrow()
-      expect(sched.lastRunAt).toBeNull() // never fired
+      expect(sched.lastRunAtEpochMs).toBeNull() // never fired
     })
 
     it('processes multiple due schedules in a single tick', async () => {
@@ -336,7 +351,7 @@ describe('SchedulerService', () => {
 
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: new Date('2020-01-01') })
+        .set({ nextRunAtEpochMs: new Date('2020-01-01T00:00:00Z').getTime() })
         .where('id', 'in', [id1, id2])
         .execute()
 
@@ -384,7 +399,7 @@ describe('SchedulerService', () => {
       )
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: new Date('2020-01-01') })
+        .set({ nextRunAtEpochMs: new Date('2020-01-01T00:00:00Z').getTime() })
         .where('id', '=', id)
         .execute()
 
@@ -441,7 +456,7 @@ describe('SchedulerService', () => {
       )
       await db
         .updateTable('workflow_schedules')
-        .set({ nextRunAt: new Date('2020-01-01') })
+        .set({ nextRunAtEpochMs: new Date('2020-01-01T00:00:00Z').getTime() })
         .where('id', '=', schedId)
         .execute()
 

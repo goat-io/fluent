@@ -2,7 +2,7 @@
 //
 // Integration tests for SchedulerService.upsertSchedule() — real Postgres
 // via testcontainers. Verifies deterministic ID generation, conflict
-// resolution, soft-delete reactivation, nextRunAt computation, idempotency,
+// resolution, soft-delete reactivation, nextRunAtEpochMs computation, idempotency,
 // and backward compatibility with the existing createSchedule (random ID) path.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -72,7 +72,7 @@ describe('SchedulerService.upsertSchedule', () => {
       '0 2 * * *',
     )
 
-    // Capture the first nextRunAt
+    // Capture the first nextRunAtEpochMs
     const { rows: before } = await db.query<WorkflowSchedule>(
       `SELECT * FROM workflow_schedules WHERE id = $1`,
       [id1],
@@ -98,8 +98,8 @@ describe('SchedulerService.upsertSchedule', () => {
     expect(after).toHaveLength(1)
     expect(after[0].cronExpression).toBe('30 3 * * *')
 
-    // nextRunAt should have been recomputed for the new cron expression
-    const newNextRun = new Date(after[0].nextRunAt)
+    // nextRunAtEpochMs should have been recomputed for the new cron expression
+    const newNextRun = new Date(Number(after[0].nextRunAtEpochMs))
     expect(newNextRun.getTime()).toBeGreaterThan(Date.now() - 1000)
   })
 
@@ -137,7 +137,7 @@ describe('SchedulerService.upsertSchedule', () => {
     expect(reactivated[0].active).toBe(true)
   })
 
-  it('computes correct nextRunAt', async () => {
+  it('computes correct nextRunAtEpochMs', async () => {
     // Use a cron expression with predictable next run: every 5 minutes
     const id = await scheduler.upsertSchedule(
       TENANT,
@@ -151,10 +151,10 @@ describe('SchedulerService.upsertSchedule', () => {
     )
     expect(rows).toHaveLength(1)
 
-    const nextRun = new Date(rows[0].nextRunAt)
+    const nextRun = new Date(Number(rows[0].nextRunAtEpochMs))
     const now = new Date()
 
-    // nextRunAt should be in the future (within a reasonable window)
+    // nextRunAtEpochMs should be in the future (within a reasonable window)
     expect(nextRun.getTime()).toBeGreaterThan(now.getTime() - 1000)
     // Should be within 5 minutes from now (since cron is */5)
     expect(nextRun.getTime()).toBeLessThanOrEqual(
