@@ -352,13 +352,20 @@ export function getExpressTrpcApp(config: ExpressTrpcAppConfigInput): {
   })
 
   if (features?.openApiDocs) {
-    initOpenApiDocs({
-      app,
-      appName,
-      appVersion,
-      trpcRouter,
-      baseUrl: baseUrl || `http://localhost:${port}`,
-    })
+    try {
+      initOpenApiDocs({
+        app,
+        appName,
+        appVersion,
+        trpcRouter,
+        baseUrl: baseUrl || `http://localhost:${port}`,
+      })
+    } catch (err) {
+      console.warn(
+        '[OpenAPI] Swagger docs generation failed (non-fatal):',
+        err instanceof Error ? err.message : String(err),
+      )
+    }
 
     // Apply the OpenAPI Express middleware only when OpenAPI docs are enabled
     app.use(

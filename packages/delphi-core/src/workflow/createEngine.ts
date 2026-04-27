@@ -72,7 +72,11 @@ export interface WorkflowOps<TInput extends object> {
    */
   start(
     input: TInput,
-    opts?: { idempotencyKey?: string; traceId?: string },
+    opts?: {
+      idempotencyKey?: string
+      traceId?: string
+      delaySeconds?: number
+    },
   ): Promise<{ runId: string }>
 
   /**
@@ -556,6 +560,7 @@ export function createEngine<const Ws extends readonly WorkflowLike[]>(
           input,
           idempotencyKey: opts?.idempotencyKey,
           traceId: opts?.traceId,
+          delaySeconds: opts?.delaySeconds,
         }),
       startBuffered: (input, opts) =>
         ingestBuffer.enqueue({

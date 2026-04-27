@@ -12,9 +12,10 @@ export function getTrpc<
   ExtendedContext = Record<string, unknown>,
 >(params?: {
   /** Extend authenticated context with additional data (e.g., account context) */
-  extendAuthenticatedContext?: (
-    user: DecodedUserToken,
-  ) => ExtendedAuthenticatedContext
+  extendAuthenticatedContext?: (params: {
+    user: DecodedUserToken
+    ctx: TrpcContext
+  }) => ExtendedAuthenticatedContext
   /** Extend base context (runs for all requests) - use for tenant services, etc. */
   extendContext?: (ctx: TrpcContext) => Promise<ExtendedContext>
   /** Custom error formatter for tRPC errors */
@@ -69,9 +70,10 @@ export function getTrpc<
     }
 
     const extra = ctx.user
-      ? (extendAuthenticatedContext(
-          ctx.user?.decodedToken,
-        ) as ExtendedAuthenticatedContext)
+      ? (extendAuthenticatedContext({
+          user: ctx.user.decodedToken,
+          ctx,
+        }) as ExtendedAuthenticatedContext)
       : undefined
 
     return await next({
@@ -101,9 +103,10 @@ export function getTrpc<
       })
     }
 
-    const extra = extendAuthenticatedContext(
-      ctx.user!.decodedToken,
-    ) as ExtendedAuthenticatedContext
+    const extra = extendAuthenticatedContext({
+      user: ctx.user!.decodedToken,
+      ctx,
+    }) as ExtendedAuthenticatedContext
 
     // Explicitly type the new context as TrpcContext & T
     return await next({

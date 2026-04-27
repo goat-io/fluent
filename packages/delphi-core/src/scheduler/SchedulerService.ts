@@ -154,6 +154,17 @@ export class SchedulerService {
       }
     })
 
+    // Sweep delayed workflows that are due for execution
+    if (this.engine) {
+      try {
+        await (this.engine as any).processDelayedWorkflows()
+      } catch (err: any) {
+        this.logger?.error(
+          `Delayed workflow sweep error: ${err instanceof Error ? err.message : String(err)}`,
+        )
+      }
+    }
+
     return emitted
   }
 

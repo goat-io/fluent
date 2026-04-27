@@ -2941,21 +2941,56 @@ export class WorkflowEngine {
     return rows.map(r => r.id)
   }
 
-  // ── 7. Instant Delayed Execution ──────────────────────────────────
+  // ── 7. Delayed Workflow Execution ──────────────────────────────────
 
-  async transitionDelayedWorkflows(): Promise<number> {
+  /**
+   * Transitions due delayed workflows to RUNNING and dispatches their root steps.
+   * Called by the SchedulerService tick on each poll interval.
+   */
+  async processDelayedWorkflows(): Promise<number> {
     const now = String(Date.now())
-    const { rowCount } = await this.db.query(
+    const { rows } = await this.db.query<{
+      id: string
+      tenantId: string
+      definitionSnapshot: string
+    }>(
       `UPDATE ${this.q('workflow_runs')}
        SET status = 'RUNNING',
            "startedAt" = NOW(),
            "updatedAt" = NOW()
        WHERE status = 'DELAYED'
          AND "delayUntilEpochMs" IS NOT NULL
-         AND "delayUntilEpochMs"::BIGINT <= $1::BIGINT`,
+         AND "delayUntilEpochMs"::BIGINT <= $1::BIGINT
+       RETURNING id, "tenantId", "definitionSnapshot"`,
       [now],
     )
-    return rowCount ?? 0
+    if (!rows.length) return 0
+
+    for (const run of rows) {
+      const definition = fromJson(
+        run.definitionSnapshot,
+      ) as WorkflowDefinition
+      const rootNames = new Set(
+        definition.steps
+          .filter(s => !s.dependsOn?.length)
+          .map(s => s.name),
+      )
+      const { rows: steps } = await this.db.query<WorkflowStep>(
+        `SELECT * FROM ${this.q('workflow_steps')}
+         WHERE "workflowRunId" = $1 AND status = 'QUEUED'`,
+        [run.id],
+      )
+      const rootSteps = steps.filter(s => rootNames.has(s.stepName))
+      await this.dispatchStepsBulk(
+        rootSteps.map(step => ({
+          runId: run.id,
+          tenantId: run.tenantId,
+          step,
+          definition,
+        })),
+      )
+    }
+    return rows.length
   }
 
   // ── 9. Queue Partitioning ─────────────────────────────────────

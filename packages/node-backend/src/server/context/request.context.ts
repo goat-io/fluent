@@ -39,6 +39,8 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
     ''
 
   const xTenantId = (request.headers['x-tenant-id'] as string) || ''
+  const actingAccountId =
+    (request.headers['x-acting-account-id'] as string) || undefined
 
   return {
     user:
@@ -52,6 +54,7 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
     url: request.url,
     method: request.method,
     xTenantId,
+    actingAccountId,
     origin: request.get('origin'),
     ip,
     async getLocation(): Promise<LocationOutput> {

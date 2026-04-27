@@ -620,9 +620,9 @@ describe('DBOS-parity v2', () => {
     })
   })
 
-  // ── 7. Instant Delayed Execution ──────────────────────────────────
+  // ── 7. Delayed Workflow Execution ──────────────────────────────────
 
-  describe('instant delayed execution', () => {
+  describe('delayed workflow execution', () => {
     it('starts workflow with DELAYED status when delaySeconds is set', async () => {
       const wf = WorkflowBuilder.create('delayed')
         .step('step_a', {
@@ -651,7 +651,7 @@ describe('DBOS-parity v2', () => {
       expect(queuedJobs).toHaveLength(0)
     })
 
-    it('transitionDelayedWorkflows moves past-due workflows to RUNNING', async () => {
+    it('processDelayedWorkflows transitions and dispatches past-due workflows', async () => {
       const wf = WorkflowBuilder.create('delayed-transition')
         .step('step_a', {
           executorType: 'function',
@@ -659,13 +659,16 @@ describe('DBOS-parity v2', () => {
         })
         .build()
 
-      const { engine } = createEngine([wf])
+      const { engine, queuedJobs } = createEngine([wf])
       const { runId } = await engine.start({
         workflowName: 'delayed-transition',
         tenantId: 'test-tenant',
         input: {},
         delaySeconds: 1,
       })
+
+      // Should not have dispatched yet
+      expect(queuedJobs).toHaveLength(0)
 
       // Manually set the delay to the past
       await db
@@ -677,7 +680,7 @@ describe('DBOS-parity v2', () => {
         .where('id', '=', runId)
         .execute()
 
-      const transitioned = await engine.transitionDelayedWorkflows()
+      const transitioned = await engine.processDelayedWorkflows()
       expect(transitioned).toBe(1)
 
       const run = await db
@@ -687,6 +690,9 @@ describe('DBOS-parity v2', () => {
         .executeTakeFirst()
 
       expect(run!.status).toBe('RUNNING')
+      // Root steps should now be dispatched
+      expect(queuedJobs.length).toBeGreaterThan(0)
+      expect(queuedJobs[0].taskName).toBe('workflow_step_light')
     })
 
     it('does NOT transition workflows whose delay has not passed', async () => {
@@ -697,7 +703,7 @@ describe('DBOS-parity v2', () => {
         })
         .build()
 
-      const { engine } = createEngine([wf])
+      const { engine, queuedJobs } = createEngine([wf])
       const { runId } = await engine.start({
         workflowName: 'not-yet-delayed',
         tenantId: 'test-tenant',
@@ -705,8 +711,9 @@ describe('DBOS-parity v2', () => {
         delaySeconds: 3600,
       })
 
-      const transitioned = await engine.transitionDelayedWorkflows()
+      const transitioned = await engine.processDelayedWorkflows()
       expect(transitioned).toBe(0)
+      expect(queuedJobs).toHaveLength(0)
 
       const run = await db
         .selectFrom('workflow_runs')
@@ -715,6 +722,43 @@ describe('DBOS-parity v2', () => {
         .executeTakeFirst()
 
       expect(run!.status).toBe('DELAYED')
+    })
+
+    it('idempotency deduplicates delayed workflows', async () => {
+      const wf = WorkflowBuilder.create('delayed-idempotent')
+        .step('step_a', {
+          executorType: 'function',
+          executorConfig: { handler: 'echo' },
+        })
+        .build()
+
+      const { engine } = createEngine([wf])
+      const first = await engine.start({
+        workflowName: 'delayed-idempotent',
+        tenantId: 'test-tenant',
+        input: {},
+        delaySeconds: 3600,
+        idempotencyKey: 'deferred:test:1',
+      })
+
+      // Second start with same key returns same run (deduplication)
+      const second = await engine.start({
+        workflowName: 'delayed-idempotent',
+        tenantId: 'test-tenant',
+        input: {},
+        delaySeconds: 3600,
+        idempotencyKey: 'deferred:test:1',
+      })
+
+      expect(second.runId).toBe(first.runId)
+
+      // Only one run should exist
+      const runs = await db
+        .selectFrom('workflow_runs')
+        .selectAll()
+        .where('idempotencyKey', '=', 'deferred:test:1')
+        .execute()
+      expect(runs).toHaveLength(1)
     })
   })
 

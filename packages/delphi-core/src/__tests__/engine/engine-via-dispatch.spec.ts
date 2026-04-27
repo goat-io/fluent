@@ -313,4 +313,79 @@ describe('engine-via-dispatch (integration — sodium-shape consumer)', () => {
       .execute()
     expect(completed).toHaveLength(N)
   }, 90_000)
+
+  // ── Delayed workflows via dispatch ─────────────────────────────
+
+  it('delayed workflow is not dispatched until delay passes', async () => {
+    const { runId } = await engine.start({
+      workflowName: 'wf_single',
+      tenantId: 'test-tenant',
+      input: { delayed: true },
+      delaySeconds: 3600, // 1 hour in the future
+    })
+
+    // Drain — nothing should be processed (workflow is DELAYED)
+    const result = await drainAllQueues(3_000)
+    expect(result.processed).toBe(0)
+
+    const run = await db
+      .selectFrom('workflow_runs')
+      .selectAll()
+      .where('id', '=', runId)
+      .executeTakeFirst()
+    expect(run!.status).toBe('DELAYED')
+  })
+
+  it('processDelayedWorkflows + dispatch executes delayed step end-to-end', async () => {
+    const { runId } = await engine.start({
+      workflowName: 'wf_single',
+      tenantId: 'test-tenant',
+      input: { delayed_e2e: true },
+      delaySeconds: 1,
+    })
+
+    // Set delay to the past so processDelayedWorkflows picks it up
+    await db
+      .updateTable('workflow_runs')
+      .set({
+        delayUntilEpochMs: String(Date.now() - 1000),
+        updatedAt: new Date(),
+      })
+      .where('id', '=', runId)
+      .execute()
+
+    // Process delayed workflows — transitions to RUNNING and dispatches steps
+    const transitioned = await engine.processDelayedWorkflows()
+    expect(transitioned).toBe(1)
+
+    // Now drain — the dispatched step should execute
+    await drainAllQueues(10_000)
+
+    const run = await db
+      .selectFrom('workflow_runs')
+      .selectAll()
+      .where('id', '=', runId)
+      .executeTakeFirst()
+    expect(run!.status).toBe('COMPLETED')
+  })
+
+  it('idempotent delayed start returns same run via BullMQ connector', async () => {
+    const first = await engine.start({
+      workflowName: 'wf_single',
+      tenantId: 'test-tenant',
+      input: { idem: 1 },
+      delaySeconds: 3600,
+      idempotencyKey: 'dispatch-delayed-idem-1',
+    })
+
+    const second = await engine.start({
+      workflowName: 'wf_single',
+      tenantId: 'test-tenant',
+      input: { idem: 2 },
+      delaySeconds: 3600,
+      idempotencyKey: 'dispatch-delayed-idem-1',
+    })
+
+    expect(second.runId).toBe(first.runId)
+  })
 })
