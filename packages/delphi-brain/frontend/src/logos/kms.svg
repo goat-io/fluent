@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <rect x="26" y="28" width="28" height="20" rx="3" fill="none" stroke="#DD344C" stroke-width="2.5"/>
+  <circle cx="40" cy="38" r="4" fill="#DD344C"/>
+  <path d="M40 42v4" stroke="#DD344C" stroke-width="2.5"/>
+  <path d="M32 28v-4a8 8 0 0116 0v4" fill="none" stroke="#DD344C" stroke-width="2.5"/>
+  <text x="40" y="68" text-anchor="middle" fill="#DD344C" font-size="10" font-weight="bold" font-family="sans-serif">KMS</text>
+</svg>

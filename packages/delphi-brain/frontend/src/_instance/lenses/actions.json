@@ -1,0 +1,21 @@
+{
+  "name": "actions",
+  "label": "Actions",
+  "kinds": ["action"],
+  "defaultMode": "dashboard",
+  "modes": ["dashboard", "table"],
+  "filters": [
+    {"field": "status", "type": "select"},
+    {"field": "owner", "type": "select"},
+    {"field": "type", "type": "select"}
+  ],
+  "columns": [
+    {"field": "name", "label": "Action", "primary": true},
+    {"field": "status", "label": "Status"},
+    {"field": "owner", "label": "Owner"},
+    {"field": "due", "label": "Due"},
+    {"field": "target", "label": "Target"}
+  ],
+  "description": "Open work items across the wiki — what was decided, what's in progress, what's blocked. Phase 8 of brain-llm-wiki-evolution-plan.md.",
+  "ownership": "shared"
+}

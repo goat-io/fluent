@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/action.schema.json",
+  "title": "kind: action",
+  "description": "A concrete thing to do that the wiki tracks. Cross-cuts kinds — an action can target any catalog entry. Phase 8 workflow primitive: turns documentation into a cockpit.",
+  "type": "object",
+  "required": ["name", "kind", "description", "status"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "action"},
+    "description": {"type": "string"},
+    "type":        {"type": "string", "description": "Free string; lint promotes to enum once values stabilize. Seeds: cost-cut, migration, ticket, decision, dashboard-watch, follow-up, experiment-launch."},
+    "target":      {"type": "string", "description": "Catalog entry name OR external-system id this action affects (e.g. 'nat-0dd49xxx' or 'jira-ticket:CRE-1234')"},
+    "status":      {"type": "string", "enum": ["proposed", "in-progress", "blocked", "done", "superseded"], "description": "Shared base lifecycle per §8 Q4 = c; sub-state lives in `subStatus`"},
+    "subStatus":   {"type": "string", "description": "Optional per-kind extension (free string; promoted later)"},
+    "owner":       {"type": "string", "description": "Team or person responsible"},
+    "due":         {"type": "string", "format": "date", "description": "ISO 8601"},
+    "source":      {"type": "string", "description": "Wiki page that justifies this action (path:line)"},
+    "result":      {"type": "string", "description": "Outcome — filled in when status=done"},
+    "blockedBy":   {"type": "array", "items": {"type": "string"}, "description": "Other action names this depends on"},
+    "tags":        {"type": "array", "items": {"type": "string"}},
+    "system":      {"type": "string"},
+    "layer":       {"type": "string", "enum": ["device", "edge", "domain", "platform", "data", "cross-cutting", "r-and-d", "business"]},
+    "dependsOn":   {"type": "array", "items": {"type": "object"}},
+    "relations":   {"type": "array", "items": {"type": "object"}}
+  }
+}

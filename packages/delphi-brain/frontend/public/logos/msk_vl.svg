@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>404 - Page Not Found - Vector Logo Zone</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!--<link href="/css/bootstrap.css" rel="stylesheet" type="text/css" />-->
+	<link rel="stylesheet" href="/css/bootstrap.min.css" />
+	<link href="/css/fontawesome-all.min.css" rel="stylesheet" type="text/css" />
+	<meta name="theme-color" content="#2c3e50" />
+	<meta name="robots" content="noindex" />
+	<noscript>
+		<style>
+			.scriptonly {
+				display: none !important;
+			}
+		</style>
+	</noscript>
+	<style>
+
+	/* faded border around logos in lists */
+	.logo-container img {
+		box-shadow: 0 0 5px #1d1d1d;
+		border: solid #ccc 1px;
+		margin: 6px;
+	}
+
+	.card-footer {
+		background-color: inherit;
+		border-top: 0;
+	}
+
+	.navbar-brand {
+		font-weight: bold;
+	}
+
+	.nav-link {
+		font-weight: bold;
+	}
+	.navbar-dark .navbar-nav .nav-link {
+		color: white;
+	}
+
+	.navbar-logo { height:31px;margin-top:-8px;padding-top:8px;padding-right:8px; }
+
+	h1 {
+		margin-top: 21px;
+	}
+
+	/* optional padding on visual inventory */
+	.padded { padding: 5px; }
+	.maxsize { max-width: 120px; max-height: 120px; }
+	.ar21 { height: 60px; width: 120px; }
+
+	/* hide outline on a clicked tab */
+	.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
+		outline: 0;
+	}
+
+	/* external nav links on logo pages */
+	.icon-link {
+	color: #888;
+	margin-top: 10px;
+	margin-right: 5px;
+	padding: 8px;
+	}
+
+	/* shareing buttons on logo pages */
+	.sharelogo {
+		margin: 6px;
+		width: 32px;
+	}
+
+	/* search buttons */
+	.searchlogo {
+		margin: 6px;
+		width: 32px;
+	}
+
+	/* seems like a Bootstrap bug (or incompatibility with FontAwesome) */
+	.carousel-control { padding-top: 25%; }
+
+	/* bootswatch ugliness */
+	.alert-info a { color: white; text-decoration: underline; }
+
+	/* share buttons need plain backgrounds */
+	.btn-share {
+	background-color: #fff;
+	border-color: #ccc;
+	border-width: 1px;
+	padding: 4px 4px 0 4px;
+	margin-left: 5px;
+	}
+	.preview-color {
+		height: 30px;
+		width: 45px;
+		display: inline-block;
+		border: 1px solid #a2a2a2;
+		border-radius: 4px;
+		vertical-align: middle;
+		margin-left: 10px;
+	}
+
+	.social-footer {
+		margin-left: 8px;
+		margin-right: 8px;
+		vertical-align:middle;
+		width:20px;
+	}
+	.copy2tip { display: none; }
+
+	a {
+		/* WAVE doesn't like bootstrap default #007bff */
+		color: #003bbf;
+	}
+
+
+	</style>
+	<script src="/js/jquery-3.3.1.min.js"></script>
+	<script src="/js/popper.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script><meta name="referrer" content="unsafe-url" />
+
+
+</head>
+<body>
+<nav class="navbar navbar-expand-sm navbar-dark navbar-static-top d-print-none" style="background-color:#1d8286;">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/" title="Vector Logo Zone"><img src="/images/about/vlzlogo-white.svg" alt="Vector Logo Zone Logo" class="navbar-logo" /></a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+    <div class="navbar-collapse collapse navbar-right" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item"><a class="nav-link" href="/about.html">About</a></li>
+            <li class="nav-item"><a class="nav-link" href="/logos/index.html">A&#8209;Z</a></li>
+            <li class="nav-item"><a class="nav-link" href="/support/index.html">FAQ</a></li>
+            <li class="nav-item"><a class="nav-link" href="https://github.com/VectorLogoZone/vectorlogozone/blob/main/CONTRIBUTING.md">Contribute</a></li>
+            <li class="nav-item"><a class="nav-link" href="/report/index.html">Reports</a></li>
+            <li class="nav-item"><a class="nav-link" href="/index.html" title="Search"><svg alt="search" style="width: 1em; height: 1em; vertical-align:-.125em;" aria-hidden="true" data-prefix="fas" data-icon="search" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z"></path></svg><span class="d-none">Search</span></a></li>
+        </ul>
+    </div><!--/.navbar-collapse -->
+</nav>
+
+	<div class="container">
+		<div class="row">
+			<div class="col">
+				<h1>404 - Page Not Found</h1>
+				<p>The page you requested could not be found!</p>
+
+			</div><!--/col-->
+		</div><!--/row--><hr/><footer class="d-print-none">
+	<p class="small text-muted text-center">
+        Follow:
+        <a href="https://logo-of-the-day.vectorlogo.zone/" title="Logo of the day"><img alt="Logo of the day" src="https://logo-of-the-day.vectorlogo.zone/favicon.svg" class="social-footer"/></a>
+        <a href="https://www.github.com/VectorLogoZone/vectorlogozone" title="Fork VectorLogoZone on Github"><img alt="Github" src="/logos/github/github-tile.svg" class="social-footer"/></a>
+        | <a href="https://validator.w3.org/check/referer">Validate HTML</a>
+    </p>
+</footer>
+</div><!--/container--><!-- Google Analytics -->
+<script>
+    var dnt = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+    if (dnt != "1" && dnt != "yes") {
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-328425-25', 'auto');
+        ga('set', 'anonymizeIp', true);
+        ga('send', 'pageview');
+    } else {
+        console.debug("Respecting Do-Not-Track, not loading analytics. See https://www.paulfurley.com/google-analytics-dnt/");
+    }
+</script>
+<!-- End Google Analytics --></body>
+</html>

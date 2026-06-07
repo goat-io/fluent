@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <circle cx="40" cy="34" r="14" fill="none" stroke="#FF9900" stroke-width="2"/>
+  <path d="M40 20l4 10h-8zM40 48l4-10h-8zM26 34l10 4v-8zM54 34l-10 4v-8z" fill="#FF9900" opacity=".8"/>
+  <text x="40" y="68" text-anchor="middle" fill="#FF9900" font-size="10" font-weight="bold" font-family="sans-serif">EKS</text>
+</svg>

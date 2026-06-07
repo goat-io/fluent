@@ -1,0 +1,18 @@
+{
+  "name": "@goatlab/delphi-brain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Delphi Brain — generic, company-agnostic reasoning engine: git-versioned knowledge base + hybrid FTS5/RAG search + self-evolution skills. Backend (Go) + frontend (React). Adapts to any company via brain.config.json and the _instance/ seam.",
+  "license": "MIT",
+  "scripts": {
+    "setup": "make setup",
+    "serve": "make serve",
+    "serve:chat": "make serve-chat",
+    "brain:build": "make build",
+    "index": "make index",
+    "stats": "make stats"
+  },
+  "comments": {
+    "why-no-build-test-lint": "This is a polyglot package (Go CLI + npm-island React UI). It intentionally does NOT expose `build`/`test`/`lint` scripts so it stays out of the monorepo's default `turbo run build|test|lint` pipelines (which assume a TS/pnpm toolchain). Build it explicitly with `pnpm --filter @goatlab/delphi-brain brain:build` or `cd packages/delphi-brain && make serve-chat`. Requires Go 1.24+, CGO, and (for chat/RAG) Ollama."
+  }
+}

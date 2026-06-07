@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <ellipse cx="28" cy="30" rx="12" ry="6" fill="none" stroke="#3B48CC" stroke-width="2"/>
+  <path d="M16 30v14c0 3.3 5.4 6 12 6s12-2.7 12-6V30" fill="none" stroke="#3B48CC" stroke-width="1.5" opacity=".6"/>
+  <ellipse cx="52" cy="30" rx="12" ry="6" fill="none" stroke="#3B48CC" stroke-width="2" opacity=".5"/>
+  <path d="M40 30v14c0 3.3 5.4 6 12 6s12-2.7 12-6V30" fill="none" stroke="#3B48CC" stroke-width="1.5" opacity=".3"/>
+  <path d="M34 33l6 0" stroke="#FF9900" stroke-width="2" stroke-dasharray="2 2"/>
+  <text x="40" y="68" text-anchor="middle" fill="#3B48CC" font-size="6" font-weight="bold" font-family="sans-serif">Aurora Global</text>
+</svg>

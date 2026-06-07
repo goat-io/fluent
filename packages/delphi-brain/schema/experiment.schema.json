@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/experiment.schema.json",
+  "title": "kind: experiment",
+  "description": "A hypothesis-driven trial. Distinct from action (an action is execution; an experiment tests an unknown). Phase 8 workflow primitive.",
+  "type": "object",
+  "required": ["name", "kind", "description", "status", "hypothesis"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "experiment"},
+    "description": {"type": "string"},
+    "hypothesis":  {"type": "string", "description": "What we expect to learn"},
+    "method":      {"type": "string", "description": "How the experiment is run"},
+    "status":      {"type": "string", "enum": ["proposed", "in-progress", "blocked", "done", "superseded"]},
+    "subStatus":   {"type": "string", "description": "Optional: running, concluded, abandoned"},
+    "owner":       {"type": "string"},
+    "due":         {"type": "string", "format": "date"},
+    "source":      {"type": "string", "description": "Wiki page that motivates the experiment"},
+    "result":      {"type": "string", "description": "Finding — filled in when status=done"},
+    "learnings":   {"type": "array", "items": {"type": "string"}},
+    "tags":        {"type": "array", "items": {"type": "string"}},
+    "system":      {"type": "string"},
+    "layer":       {"type": "string"},
+    "dependsOn":   {"type": "array", "items": {"type": "object"}},
+    "relations":   {"type": "array", "items": {"type": "object"}}
+  }
+}

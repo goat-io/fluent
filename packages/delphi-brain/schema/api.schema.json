@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/api.schema.json",
+  "title": "kind: api",
+  "description": "A named API surface — produced by a repo (or resolved from a consumer reference).",
+  "type": "object",
+  "required": ["name", "kind", "description"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "api"},
+    "description": {"type": "string"},
+    "producer":    {"type": "string", "description": "catalog entry that produces this API (usually a kind: repo)"},
+    "protocol":    {"type": "string", "description": "http | graphql | grpc | jms | mqtt | …"},
+    "openapi":     {"type": "string", "description": "relative path to an OpenAPI 3.1 file"},
+    "operations":  {"type": "array", "items": {"type": "object"}}
+  }
+}

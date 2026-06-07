@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/system.schema.json",
+  "title": "kind: system",
+  "description": "A logical system (C4 Level 1 box). Aggregates catalog entries that share the same `system` value.",
+  "type": "object",
+  "required": ["name", "kind", "description", "layer"],
+  "additionalProperties": true,
+  "properties": {
+    "name":         {"type": "string", "description": "id — must match the `system` field used by member entries"},
+    "kind":         {"const": "system"},
+    "displayName":  {"type": "string"},
+    "description":  {"type": "string"},
+    "layer":        {"type": "string", "enum": ["device", "edge", "domain", "platform", "data", "cross-cutting", "r-and-d", "business"]},
+    "ownerTeam":    {"type": "string"},
+    "boundary":     {"type": "string"},
+    "c4Kind":       {"type": "string", "enum": ["system", "external_system"]},
+    "externalActors": {"type": "array", "items": {"type": "string"}},
+    "entryPoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind":      {"type": "string"},
+          "protocol":  {"type": "string"},
+          "port":      {"type": "integer"},
+          "purpose":   {"type": "string"},
+          "exposedBy": {"type": "string"}
+        }
+      }
+    }
+  }
+}

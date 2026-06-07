@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/service.schema.json",
+  "title": "kind: service",
+  "description": "Software the company deploys but did not write (no own source repo). Keycloak, MongoDB, Artemis, …",
+  "type": "object",
+  "required": ["name", "kind", "description"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "service"},
+    "description": {"type": "string"},
+    "system":      {"type": "string"},
+    "layer":       {"type": "string"},
+    "vendor":      {"type": "string"},
+    "version":     {"type": "string"},
+    "category":    {"type": "string", "description": "database | cache | message-broker | search | …"},
+    "deployedBy":  {"type": "array", "items": {"type": "string"}, "description": "repos that deploy/operate this service"},
+    "runsOn":      {"type": "string"},
+    "dependsOn":   {"type": "array", "items": {"$ref": "_shared/dependency.schema.json"}}
+  }
+}

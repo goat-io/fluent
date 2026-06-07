@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/_shared/frontmatter.schema.json",
+  "title": "Brain markdown frontmatter",
+  "description": "YAML frontmatter required on every .md file Brain indexes.",
+  "type": "object",
+  "required": ["name", "description", "last-updated", "owner", "status"],
+  "additionalProperties": true,
+  "properties": {
+    "name":         {"type": "string"},
+    "description":  {"type": "string"},
+    "last-updated": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "owner":        {"type": "string"},
+    "status":       {"type": "string", "enum": ["draft", "active", "deprecated", "archived"]}
+  }
+}

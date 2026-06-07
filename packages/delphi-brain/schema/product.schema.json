@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/product.schema.json",
+  "title": "kind: product",
+  "description": "Customer-facing physical or digital product. May compose multiple repos.",
+  "type": "object",
+  "required": ["name", "kind", "description"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "product"},
+    "displayName": {"type": "string"},
+    "description": {"type": "string"},
+    "layer":       {"const": "device"},
+    "system":      {"type": "string"},
+    "componentRepos": {"type": "array", "items": {"type": "string"}, "description": "catalog/repos/<name> entries that make up this product"},
+    "links":       {"type": "array", "items": {"type": "object", "required": ["title", "url"]}}
+  }
+}

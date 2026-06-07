@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <circle cx="40" cy="34" r="16" fill="none" stroke="#8C4FFF" stroke-width="2.5"/>
+  <path d="M32 28l8 6 8-6M32 34l8 6 8-6M32 40l8 6 8-6" fill="none" stroke="#8C4FFF" stroke-width="1.5" opacity=".7"/>
+  <text x="40" y="70" text-anchor="middle" fill="#8C4FFF" font-size="9" font-weight="bold" font-family="sans-serif">NLB</text>
+</svg>

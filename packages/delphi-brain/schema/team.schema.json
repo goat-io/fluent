@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/team.schema.json",
+  "title": "kind: team",
+  "description": "R&D org unit. Owns repos via `repoTeamMatch[]` until the stitcher derives ownership inversely.",
+  "type": "object",
+  "required": ["name", "kind", "description"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "team"},
+    "displayName": {"type": "string"},
+    "description": {"type": "string"},
+    "layer":       {"const": "r-and-d"},
+    "repoTeamMatch": {"type": "array", "items": {"type": "string"}, "description": "team-name strings to match against repo `team` fields"}
+  }
+}

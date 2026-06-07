@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <path d="M25 20h30l5 5v30l-5 5H25l-5-5V25z" fill="#3F8624" opacity=".85"/>
+  <text x="40" y="46" text-anchor="middle" fill="white" font-size="16" font-weight="bold" font-family="sans-serif">S3</text>
+  <text x="40" y="70" text-anchor="middle" fill="#56B83B" font-size="8" font-family="sans-serif">Storage</text>
+</svg>

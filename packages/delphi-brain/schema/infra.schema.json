@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/infra.schema.json",
+  "title": "kind: infra",
+  "description": "Cloud or managed-service primitive (AWS EKS, RDS, S3; GCP Firestore; on-premise …).",
+  "type": "object",
+  "required": ["name", "kind", "description", "provider", "service"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "infra"},
+    "description": {"type": "string"},
+    "provider":    {"type": "string", "description": "aws | gcp | azure | on-premise"},
+    "service":     {"type": "string", "description": "eks | rds | s3 | firestore | …"},
+    "managed":     {"type": "boolean"},
+    "region":      {"type": "string"},
+    "system":      {"type": "string"},
+    "layer":       {"type": "string"},
+    "dependsOn":   {"type": "array", "items": {"$ref": "_shared/dependency.schema.json"}}
+  }
+}

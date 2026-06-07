@@ -75,6 +75,13 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - **delphi-langgraph** - LangGraph StateGraph executor with Postgres checkpointing
 - **delphi-sandbox** - Docker sandboxed execution (NetworkMode:none default, allowedDomains iptables, DinD)
 - **delphi-ui** - Vite+React+ReactFlow workflow dashboard (SSE, visual editor, metrics, worker monitoring)
+- **delphi-brain** - Generic, company-agnostic reasoning engine: git-versioned knowledge base + hybrid FTS5/RAG search + self-evolution skills. **Polyglot package** (Go CLI backend + React frontend). Company identity lives behind `brain.config.json` + `frontend/src/_instance/`. No dependency on delphi-core (the future `delphi-governance` bridge will wire Decisions→Workflows).
+
+#### Important: delphi-brain is polyglot (Go + React), built via `make` not turbo
+- Requires **Go 1.24+ with CGO** (sqlite_fts5) and **Node**; **Ollama** optional (chat/RAG). It is intentionally kept OUT of the `turbo run build|test|lint` pipelines and exposes no `build`/`test`/`lint` npm scripts.
+- Build/run: `cd packages/delphi-brain && make build` (or `make serve` / `make serve-chat`), or `pnpm --filter @goatlab/delphi-brain brain:build`.
+- Config seam: copy `brain.config.example.json` → `brain.config.json`. The CLI serves it at `GET /api/config` so the React UI de-hardcodes too. Paths/identity are env- and config-driven (`BRAIN_ROOT`, `BRAIN_DB`, `BRAIN_ORG`, `BRAIN_*_DIR`).
+- The built binary (`cli/brain`), `node_modules/`, `dist/`, and `brain.db` are gitignored — never commit them.
 
 #### Agent Package Commands
 

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/external.schema.json",
+  "title": "kind: external",
+  "description": "Third-party / partner system the company integrates with (Stripe, Sentry, a partner API …).",
+  "type": "object",
+  "required": ["name", "kind", "description", "vendor"],
+  "additionalProperties": true,
+  "properties": {
+    "name":             {"type": "string"},
+    "kind":             {"const": "external"},
+    "description":      {"type": "string"},
+    "vendor":           {"type": "string"},
+    "category":         {"type": "string"},
+    "integrationMethod":{"type": "string", "description": "rest-api | sftp | webhook | sdk | …"},
+    "contractType":     {"type": "string", "description": "saas | open-source | partner-agreement | regulatory"},
+    "system":           {"type": "string"},
+    "layer":            {"type": "string"}
+  }
+}

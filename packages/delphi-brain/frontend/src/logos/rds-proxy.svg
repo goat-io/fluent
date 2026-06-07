@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="12" fill="#232F3E"/>
+  <circle cx="28" cy="36" r="10" fill="none" stroke="#3B48CC" stroke-width="2"/>
+  <circle cx="52" cy="36" r="10" fill="none" stroke="#3B48CC" stroke-width="2" opacity=".5"/>
+  <path d="M38 36h4" stroke="#FF9900" stroke-width="2.5" stroke-dasharray="2 2"/>
+  <path d="M18 36h-4M62 36h4" stroke="#3B48CC" stroke-width="1.5" opacity=".4"/>
+  <text x="40" y="66" text-anchor="middle" fill="#3B48CC" font-size="7" font-weight="bold" font-family="sans-serif">RDS Proxy</text>
+</svg>

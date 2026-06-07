@@ -1,0 +1,203 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * Markdown rendering — typographic scale + spacing for DocumentShell.
+ *
+ * Applied to .markdown-doc (the wrapper rendered by DocumentShell for
+ * `kind: 'markdown'` documents). Also covers .print-doc so PDF export
+ * inherits the same look.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.markdown-doc {
+  --doc-text: var(--text);
+  --doc-heading: var(--text-heading);
+  --doc-muted: var(--text-muted);
+  --doc-border: var(--border);
+  --doc-accent: var(--accent, #0EA5E9);
+  --doc-code-bg: color-mix(in srgb, var(--surface) 60%, transparent);
+  --doc-quote-bg: color-mix(in srgb, var(--surface) 50%, transparent);
+
+  color: var(--doc-text);
+  font-size: 15px;
+  line-height: 1.65;
+  font-family: var(--font-sans);
+  word-wrap: break-word;
+}
+
+/* ── Headings ─────────────────────────────────────────────── */
+
+.markdown-doc h1,
+.markdown-doc h2,
+.markdown-doc h3,
+.markdown-doc h4,
+.markdown-doc h5,
+.markdown-doc h6 {
+  color: var(--doc-heading);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 1.6em 0 0.6em;
+  scroll-margin-top: 60px;
+}
+.markdown-doc > :first-child { margin-top: 0; }
+
+.markdown-doc h1 {
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid var(--doc-border);
+  padding-bottom: 0.4em;
+  margin-top: 0;
+}
+.markdown-doc h2 {
+  font-size: 22px;
+  margin-top: 2em;
+  border-bottom: 1px solid var(--doc-border);
+  padding-bottom: 0.3em;
+}
+.markdown-doc h3 { font-size: 17px; }
+.markdown-doc h4 { font-size: 15px; }
+.markdown-doc h5,
+.markdown-doc h6 { font-size: 14px; color: var(--doc-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── Paragraphs & inline ─────────────────────────────────── */
+
+.markdown-doc p {
+  margin: 0 0 1em;
+}
+.markdown-doc strong { color: var(--doc-heading); font-weight: 700; }
+.markdown-doc em { font-style: italic; }
+.markdown-doc a {
+  color: var(--doc-accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--doc-accent) 35%, transparent);
+}
+.markdown-doc a:hover {
+  border-bottom-color: var(--doc-accent);
+}
+
+/* ── Lists ────────────────────────────────────────────────── */
+
+.markdown-doc ul,
+.markdown-doc ol {
+  margin: 0 0 1em;
+  padding-left: 1.6em;
+}
+.markdown-doc li {
+  margin: 0.35em 0;
+}
+.markdown-doc li > p {
+  margin: 0 0 0.4em;
+}
+.markdown-doc li > ul,
+.markdown-doc li > ol {
+  margin: 0.3em 0 0.5em;
+}
+.markdown-doc li::marker {
+  color: var(--doc-muted);
+}
+
+/* Task-list checkboxes */
+.markdown-doc input[type="checkbox"] {
+  margin-right: 0.5em;
+  accent-color: var(--doc-accent);
+}
+
+/* ── Blockquotes ──────────────────────────────────────────── */
+
+.markdown-doc blockquote {
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  border-left: 3px solid var(--doc-accent);
+  background: var(--doc-quote-bg);
+  color: var(--doc-text);
+  border-radius: 0 6px 6px 0;
+}
+.markdown-doc blockquote > :first-child { margin-top: 0; }
+.markdown-doc blockquote > :last-child  { margin-bottom: 0; }
+
+/* ── Code ─────────────────────────────────────────────────── */
+
+.markdown-doc code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--doc-code-bg);
+  border: 1px solid var(--doc-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--doc-heading);
+}
+.markdown-doc pre {
+  margin: 1.2em 0;
+  padding: 14px 16px;
+  background: var(--doc-code-bg);
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.markdown-doc pre > code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: var(--doc-text);
+}
+
+/* ── Tables ──────────────────────────────────────────────── */
+
+.markdown-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 13px;
+  border: 1px solid var(--doc-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.markdown-doc thead {
+  background: var(--surface);
+}
+.markdown-doc th,
+.markdown-doc td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--doc-border);
+  vertical-align: top;
+}
+.markdown-doc th {
+  font-weight: 600;
+  color: var(--doc-heading);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.markdown-doc tr:last-child td { border-bottom: none; }
+.markdown-doc tbody tr:hover { background: color-mix(in srgb, var(--surface) 50%, transparent); }
+
+/* ── Horizontal rule ─────────────────────────────────────── */
+
+.markdown-doc hr {
+  border: none;
+  border-top: 1px solid var(--doc-border);
+  margin: 2em 0;
+}
+
+/* ── Images ──────────────────────────────────────────────── */
+
+.markdown-doc img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 1em 0;
+}
+
+/* ── KBD ─────────────────────────────────────────────────── */
+
+.markdown-doc kbd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  padding: 2px 6px;
+  border: 1px solid var(--doc-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--doc-heading);
+}
