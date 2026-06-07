@@ -27,8 +27,35 @@ Brain (git, judgment)            delphi-governance              delphi-core (pg,
 | `CompileRegistry` | `Action.type` → `{ workflowName, mapInput }` |
 | `WorkflowStarter` (`fromEngine`) | structural adapter to a delphi-core `createEngine()` result |
 | `DecisionExecutor` | guard → compile → start; `execute(action)` / `executePending(brain)` |
+| `PerspectiveReviewer` | run N perspectives over a Decision → a tradeoff matrix (concurrent, fault-tolerant) |
+| `ReviewDecider` (`DefaultReviewDecider`) | map the matrix → `approved` / `rejected` / `needs_human` (constitution decides) |
 | `createOutcomeSubscriber` | the Measure seam — an `onEngineEvent` handler |
-| `createGovernance` | wires it all together (`.tick()`, `.onEngineEvent`) |
+| `createGovernance` | wires it all together (`.reviewDecision()`, `.tick()`, `.onEngineEvent`) |
+
+## Perspectives (Propose → Review → Decide)
+
+Perspectives replace roles. Before a Decision is approved, run it past a set of reusable reasoning lenses (Finance, Security, Customer, …). The goal is **visibility into tradeoffs, not consensus** — the `ReviewDecider` (the constitution's rules) makes the call; the perspectives inform it. A single `reject` escalates to a human rather than being silently outvoted, and the full matrix always rides along on the result.
+
+```ts
+const governance = createGovernance({
+  brain, starter: fromEngine(engine),
+  review: {
+    // back the evaluator with @goatlab/delphi-ai (LLMAdapter / AgreementOrchestrator)
+    evaluator: async ({ decision, perspective, context }) => llmReview(decision, perspective, context),
+    // optional: pull Brain RAG context per perspective
+    loadContext: ({ perspective }) => brainSearch(perspective.name),
+  },
+})
+
+const { outcome, matrix, score } = await governance.reviewDecision(decision, [
+  { name: 'finance', weight: 2 },
+  { name: 'customer' },
+  { name: 'security' },
+])
+// outcome: 'approved' | 'rejected' | 'needs_human'  — then flip the decision + let .tick() execute it
+```
+
+The `evaluator` is structural (a function), so this package stays independent of delphi-ai — wire an LLM-backed reviewer at the edge.
 
 ## Usage
 
@@ -74,4 +101,4 @@ No Docker or Postgres needed — the suite uses `InMemoryBrainClient` and a fake
 
 ## Status
 
-First slice: the Decision→Workflow compiler + Constitution gate + Outcome subscriber, fully unit-tested. Not yet built: richer `HttpBrainClient` write-back (the Brain REST API is read-mostly today; outcomes route through `onOutcome`), Perspectives/multi-agent review (will compose `@goatlab/delphi-ai`'s `AgreementOrchestrator`), and constitution conflict-resolution rules.
+Built and unit-tested: the Decision→Workflow compiler, Constitution gate, Outcome subscriber, and the Perspective review layer (reviewer + tradeoff matrix + decider). Not yet built: an LLM-backed `PerspectiveEvaluator` adapter over `@goatlab/delphi-ai` (the evaluator is structural today), richer `HttpBrainClient` write-back (the Brain REST API is read-mostly; outcomes route through `onOutcome`), and constitution conflict-resolution rules (priority ordering when constraints collide).

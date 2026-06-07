@@ -10,7 +10,18 @@ import {
   type OutcomeRecorder,
   type RunCompletedEventLike,
 } from './OutcomeSubscriber.js'
-import type { ExecuteResult } from './types.js'
+import type {
+  Perspective,
+  PerspectiveEvaluator,
+  ReviewContextLoader,
+} from './Perspective.js'
+import { PerspectiveReviewer } from './PerspectiveReviewer.js'
+import {
+  DefaultReviewDecider,
+  type ReviewDecider,
+  type ReviewDecision,
+} from './ReviewDecider.js'
+import type { Decision, ExecuteResult } from './types.js'
 import type { WorkflowStarter } from './WorkflowStarter.js'
 
 export interface CreateGovernanceOptions {
@@ -26,6 +37,17 @@ export interface CreateGovernanceOptions {
   outcomeRecorder?: OutcomeRecorder
   /** Pass through to DecisionExecutor (default true). */
   requireHumanGate?: boolean
+  /**
+   * Optional perspective-review wiring (Propose → Review → Decide). Enables
+   * `governance.reviewDecision(...)`. The evaluator is the per-perspective
+   * reasoning fn (back it with @goatlab/delphi-ai); decider defaults to a
+   * weighted-approval DefaultReviewDecider.
+   */
+  review?: {
+    evaluator: PerspectiveEvaluator
+    decider?: ReviewDecider
+    loadContext?: ReviewContextLoader
+  }
   /** Clock injection (tests). */
   now?: () => string
 }
@@ -44,6 +66,15 @@ export interface Governance {
   onEngineEvent: (
     evt: { type: string } & Partial<RunCompletedEventLike>,
   ) => void
+  /**
+   * Run multi-perspective review on a proposed Decision (Propose → Review →
+   * Decide). Returns the tradeoff matrix + the constitution's outcome. Throws if
+   * `review` was not configured. Perspectives inform; the decider decides.
+   */
+  reviewDecision(
+    decision: Decision,
+    perspectives: Perspective[],
+  ): Promise<ReviewDecision>
 }
 
 /**
@@ -77,6 +108,14 @@ export function createGovernance(opts: CreateGovernanceOptions): Governance {
     now: opts.now,
   })
 
+  const reviewer = opts.review
+    ? new PerspectiveReviewer({
+        evaluator: opts.review.evaluator,
+        loadContext: opts.review.loadContext,
+      })
+    : undefined
+  const decider = opts.review?.decider ?? new DefaultReviewDecider()
+
   return {
     brain: opts.brain,
     registry,
@@ -84,5 +123,14 @@ export function createGovernance(opts: CreateGovernanceOptions): Governance {
     executor,
     tick: () => executor.executePending(opts.brain),
     onEngineEvent,
+    async reviewDecision(decision, perspectives) {
+      if (!reviewer) {
+        throw new Error(
+          'createGovernance: `review` was not configured — cannot reviewDecision().',
+        )
+      }
+      const matrix = await reviewer.review(decision, perspectives)
+      return decider.decide(matrix, perspectives)
+    },
   }
 }

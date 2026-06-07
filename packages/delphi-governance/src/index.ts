@@ -34,6 +34,24 @@ export type {
   RunCompletedEventLike,
 } from './OutcomeSubscriber.js'
 export { createOutcomeSubscriber } from './OutcomeSubscriber.js'
+// ── Perspectives (Propose → Review → Decide) ────────────────────────
+export type {
+  Perspective,
+  PerspectiveEvaluator,
+  PerspectiveVerdict,
+  ReviewAssessment,
+  ReviewContextLoader,
+  ReviewMatrix,
+} from './Perspective.js'
+export type { PerspectiveReviewerDeps } from './PerspectiveReviewer.js'
+export { PerspectiveReviewer } from './PerspectiveReviewer.js'
+export type {
+  DefaultReviewDeciderOptions,
+  ReviewDecider,
+  ReviewDecision,
+  ReviewOutcome,
+} from './ReviewDecider.js'
+export { DefaultReviewDecider } from './ReviewDecider.js'
 // ── Domain types ────────────────────────────────────────────────────
 export type {
   Action,
