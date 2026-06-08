@@ -11,6 +11,12 @@ pnpm example:self-improve
 Requires **Docker** (it spins a throwaway `postgres:16` and removes it on exit).
 Set `DATABASE_URL` to use your own Postgres instead.
 
+**Review uses real reasoning with no API key.** If the `claude` CLI is installed
+and authenticated, the perspective review runs through `claude -p` (your Claude
+subscription) — producing genuine, perspective-specific critiques. Set
+`DELPHI_HEURISTIC=1` (or run without the CLI) to use the deterministic offline
+evaluator instead.
+
 ## What it does
 
 ```

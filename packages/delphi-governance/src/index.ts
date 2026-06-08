@@ -10,6 +10,8 @@
 // ── Brain client (judgment plane) ───────────────────────────────────
 export type { BrainClient, HttpBrainClientOptions } from './BrainClient.js'
 export { HttpBrainClient, InMemoryBrainClient } from './BrainClient.js'
+export type { ClaudeCodeChatOptions } from './ClaudeCodeChat.js'
+export { claudeCodeAvailable, createClaudeCodeChat } from './ClaudeCodeChat.js'
 // ── Compile registry (Action.type → workflow) ───────────────────────
 export type { CompileRule } from './CompileRegistry.js'
 export { CompileRegistry } from './CompileRegistry.js'

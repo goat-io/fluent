@@ -25,12 +25,16 @@ import {
   WorkflowStepTask,
 } from '@goatlab/delphi-core'
 import {
+  claudeCodeAvailable,
   CompileRegistry,
+  createClaudeCodeChat,
   createGovernance,
+  createLLMPerspectiveEvaluator,
   fromEngine,
   type Governance,
   heuristicPerspectiveEvaluator,
   InMemoryBrainClient,
+  type PerspectiveEvaluator,
   STANDARD_PERSPECTIVES,
 } from '../src/index.js'
 import type { Action, Decision } from '../src/index.js'
@@ -225,11 +229,20 @@ async function main() {
     .register('document', { workflowName: 'documentPackage', mapInput: a => ({ packageDir: a.target as string, name: basename(a.target as string) }) })
     .register('assess', { workflowName: 'assessPackage', mapInput: a => ({ packageDir: a.target as string, name: basename(a.target as string) }) })
 
+  // Real perspective review via `claude -p` (Claude subscription, no API key) —
+  // falls back to the offline heuristic if the CLI isn't available, or when
+  // DELPHI_HEURISTIC=1 is set (faster, deterministic).
+  const useClaude = claudeCodeAvailable() && !process.env.DELPHI_HEURISTIC
+  const evaluator: PerspectiveEvaluator = useClaude
+    ? createLLMPerspectiveEvaluator(createClaudeCodeChat({ model: 'sonnet' }))
+    : heuristicPerspectiveEvaluator()
+  console.log(`  Review mode: ${useClaude ? 'claude -p (real LLM, no API key)' : 'heuristic (offline)'}\n`)
+
   governance = createGovernance({
     brain,
     starter: fromEngine(engine as unknown as Record<string, unknown>),
     registry,
-    review: { evaluator: heuristicPerspectiveEvaluator() },
+    review: { evaluator },
   })
 
   // REVIEW — perspectives weigh in on the decision (tradeoffs, not consensus).
@@ -242,6 +255,9 @@ async function main() {
   if (review.outcome === 'rejected') {
     console.log('  Decision rejected by review — stopping.')
     teardown()
+  }
+  if (review.outcome === 'needs_human') {
+    console.log('  ⚠️  Review escalated to a human (constitution gate). Proceeding anyway for the demo.\n')
   }
 
   // EXECUTE — compile each approved action into an exactly-once workflow run.

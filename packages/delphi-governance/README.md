@@ -28,6 +28,7 @@ Brain (git, judgment)            delphi-governance              delphi-core (pg,
 | `WorkflowStarter` (`fromEngine`) | structural adapter to a delphi-core `createEngine()` result |
 | `DecisionExecutor` | guard → compile → start; `execute(action)` / `executePending(brain)` |
 | `PerspectiveReviewer` | run N perspectives over a Decision → a tradeoff matrix (concurrent, fault-tolerant) |
+| `createClaudeCodeChat` / `claudeCodeAvailable` | a `ChatLike` backed by the `claude -p` CLI — real LLM review with **no API key** (uses your Claude subscription) |
 | `ReviewDecider` (`DefaultReviewDecider`) | map the matrix → `approved` / `rejected` / `needs_human` (constitution decides) |
 | `createOutcomeSubscriber` | the Measure seam — an `onEngineEvent` handler |
 | `createGovernance` | wires it all together (`.reviewDecision()`, `.tick()`, `.onEngineEvent`) |
@@ -55,7 +56,15 @@ const { outcome, matrix, score } = await governance.reviewDecision(decision, [
 // outcome: 'approved' | 'rejected' | 'needs_human'  — then flip the decision + let .tick() execute it
 ```
 
-The `evaluator` is structural (a function), so this package stays independent of delphi-ai — wire an LLM-backed reviewer at the edge.
+The `evaluator` is structural (a function), so this package stays independent of delphi-ai — wire an LLM-backed reviewer at the edge. The easiest real reviewer needs **no API key**:
+
+```ts
+import { createClaudeCodeChat, createLLMPerspectiveEvaluator, claudeCodeAvailable } from '@goatlab/delphi-governance'
+
+const evaluator = claudeCodeAvailable()
+  ? createLLMPerspectiveEvaluator(createClaudeCodeChat({ model: 'sonnet' })) // uses `claude -p`
+  : heuristicPerspectiveEvaluator()                                          // offline fallback
+```
 
 ## Usage
 
