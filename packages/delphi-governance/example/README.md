@@ -11,11 +11,19 @@ pnpm example:self-improve
 Requires **Docker** (it spins a throwaway `postgres:16` and removes it on exit).
 Set `DATABASE_URL` to use your own Postgres instead.
 
-**Review uses real reasoning with no API key.** If the `claude` CLI is installed
-and authenticated, the perspective review runs through `claude -p` (your Claude
-subscription) — producing genuine, perspective-specific critiques. Set
-`DELPHI_HEURISTIC=1` (or run without the CLI) to use the deterministic offline
-evaluator instead.
+**Real reasoning, no API key.** If the `claude` CLI is installed and
+authenticated, both the perspective review AND the documentation/assessment
+workflows run through `claude -p` (your Claude subscription) — producing genuine,
+code-grounded architectural narratives and critical, honestly-scored
+assessments (it reads each package's README, exports, and file tree).
+
+Knobs:
+- `DELPHI_HEURISTIC=1` — skip the CLI, use the deterministic offline evaluator/templates.
+- `DELPHI_MODEL=haiku|sonnet|opus` — analysis model (default `sonnet`). `haiku` is much faster.
+- `DELPHI_CONCURRENCY=N` — parallel `claude -p` workers (default 5).
+
+With `sonnet` this makes ~25 model calls and takes several minutes; a `claude`
+failure on any step falls back to a template so the step still completes.
 
 ## What it does
 
