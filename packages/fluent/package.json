@@ -67,7 +67,7 @@
     "turbo": "^2.5.5",
     "typescript": "^5.8.3",
     "unplugin-swc": "^1.5.5",
-    "vitest": "^3.1.1"
+    "vitest": "^4.1.0"
   },
   "engines": {
     "node": ">=14.16.0"
