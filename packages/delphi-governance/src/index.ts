@@ -43,6 +43,17 @@ export type {
   ReviewContextLoader,
   ReviewMatrix,
 } from './Perspective.js'
+export type {
+  ChatLike,
+  HeuristicEvaluatorOptions,
+  HeuristicSignal,
+  LLMPerspectiveEvaluatorOptions,
+} from './PerspectiveEvaluators.js'
+export {
+  createLLMPerspectiveEvaluator,
+  heuristicPerspectiveEvaluator,
+  STANDARD_PERSPECTIVES,
+} from './PerspectiveEvaluators.js'
 export type { PerspectiveReviewerDeps } from './PerspectiveReviewer.js'
 export { PerspectiveReviewer } from './PerspectiveReviewer.js'
 export type {
