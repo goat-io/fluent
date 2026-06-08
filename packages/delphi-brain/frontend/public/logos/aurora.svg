@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <ellipse cx="40" cy="28" rx="20" ry="8" fill="#3B48CC" opacity=".8"/>
+  <path d="M20 28v24c0 4.4 9 8 20 8s20-3.6 20-8V28" fill="none" stroke="#3B48CC" stroke-width="2.5" opacity=".8"/>
+  <path d="M20 40c0 4.4 9 8 20 8s20-3.6 20-8" fill="none" stroke="#3B48CC" stroke-width="2" opacity=".5"/>
+  <text x="40" y="72" text-anchor="middle" fill="#6B7FF7" font-size="8" font-weight="bold" font-family="sans-serif">Aurora</text>
+</svg>

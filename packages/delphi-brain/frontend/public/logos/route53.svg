@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <circle cx="40" cy="36" r="18" fill="none" stroke="#8C4FFF" stroke-width="2.5"/>
+  <path d="M30 30l10 6 10-6" fill="none" stroke="#8C4FFF" stroke-width="2"/>
+  <path d="M40 36v12" stroke="#8C4FFF" stroke-width="2"/>
+  <text x="40" y="70" text-anchor="middle" fill="#8C4FFF" font-size="8" font-weight="bold" font-family="sans-serif">Route 53</text>
+</svg>

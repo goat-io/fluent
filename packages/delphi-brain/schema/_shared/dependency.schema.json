@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/_shared/dependency.schema.json",
+  "title": "Dependency",
+  "description": "A single outbound edge from a catalog entry to another entry.",
+  "type": "object",
+  "required": ["target", "kind"],
+  "additionalProperties": false,
+  "properties": {
+    "target":   {"type": "string", "description": "name of the depended-upon catalog entry"},
+    "kind":     {"type": "string", "enum": ["repo", "service", "infra", "external", "api", "product", "system", "team", "data-asset"]},
+    "protocol": {"type": "string", "description": "HTTPS, gRPC, JMS, AMQP, …"},
+    "port":     {"type": "integer", "minimum": 1, "maximum": 65535},
+    "purpose":  {"type": "string"},
+    "instance": {"type": "string", "description": "named environment / cluster for multi-instance services"}
+  }
+}

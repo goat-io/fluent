@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/signal.schema.json",
+  "title": "kind: signal",
+  "description": "Something noticed but not yet acted on. Lives between observation and action. Phase 8 workflow primitive — Brain's notebook for 'we should look at this'.",
+  "type": "object",
+  "required": ["name", "kind", "description", "status"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "signal"},
+    "description": {"type": "string"},
+    "severity":    {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+    "source":      {"type": "string", "description": "Where the signal came from (telemetry event, chat, audit, customer report)"},
+    "status":      {"type": "string", "enum": ["proposed", "in-progress", "blocked", "done", "superseded"], "description": "Shared base — sub-states like 'noticed', 'acknowledged', 'converted-to-action' live in subStatus"},
+    "subStatus":   {"type": "string"},
+    "owner":       {"type": "string"},
+    "lastSeen":    {"type": "string", "format": "date-time"},
+    "followUps":   {"type": "array", "items": {"type": "string"}, "description": "Action names this signal spawned"},
+    "tags":        {"type": "array", "items": {"type": "string"}},
+    "system":      {"type": "string"},
+    "layer":       {"type": "string"},
+    "dependsOn":   {"type": "array", "items": {"type": "object"}},
+    "relations":   {"type": "array", "items": {"type": "object"}}
+  }
+}

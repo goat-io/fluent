@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <circle cx="40" cy="34" r="15" fill="none" stroke="#E7157B" stroke-width="2"/>
+  <path d="M32 40l5-8 5 5 6-12" fill="none" stroke="#E7157B" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="40" y="68" text-anchor="middle" fill="#E7157B" font-size="7" font-weight="bold" font-family="sans-serif">CloudWatch</text>
+</svg>

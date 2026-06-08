@@ -1,0 +1,19 @@
+{
+  "name": "signals",
+  "label": "Signals",
+  "kinds": ["signal"],
+  "defaultMode": "table",
+  "modes": ["table", "dashboard"],
+  "filters": [
+    {"field": "severity", "type": "select"},
+    {"field": "status", "type": "select"}
+  ],
+  "columns": [
+    {"field": "name", "label": "Signal", "primary": true},
+    {"field": "severity", "label": "Severity"},
+    {"field": "status", "label": "Status"},
+    {"field": "lastSeen", "label": "Last seen"}
+  ],
+  "description": "Things noticed but not yet acted on. Phase 8 of brain-llm-wiki-evolution-plan.md.",
+  "ownership": "shared"
+}

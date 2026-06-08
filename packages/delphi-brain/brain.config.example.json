@@ -1,0 +1,31 @@
+{
+  "$comment": "Delphi Brain instance config — the company-agnostic seam. Copy to brain.config.json and fill in. The CLI reads this at startup and serves it at GET /api/config so the frontend de-hardcodes too. Replaces every place a company identity used to be baked into generic code (chat system prompt, source links, branding, default org).",
+
+  "org": {
+    "name": "Example Co",
+    "description": "One or two sentences describing what the company does and what matters most (used to ground the chat assistant's answers).",
+    "sourceBaseUrl": "https://github.com/example-co",
+    "catalogRepoUrl": "https://github.com/example-co/brain/blob/main/catalog"
+  },
+
+  "github": {
+    "defaultOrg": "example-co"
+  },
+
+  "chat": {
+    "assistantName": "Brain",
+    "model": "qwen3:4b",
+    "systemPromptTemplate": "You are {{assistantName}}, {{org.name}}'s knowledge assistant. {{org.description}} Answer using the retrieved context. Cite the catalog/narrative path for every claim. If the context does not contain the answer, say so rather than guessing."
+  },
+
+  "embed": {
+    "model": "nomic-embed-text"
+  },
+
+  "branding": {
+    "shortName": "Brain",
+    "tagline": "Brain — company reasoning engine",
+    "logoUrl": "/brain-logo.svg",
+    "palette": {}
+  }
+}

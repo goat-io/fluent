@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <rect width="80" height="80" rx="8" fill="#1A1A2E"/>
+  <rect x="16" y="20" width="48" height="32" rx="4" fill="none" stroke="#FF9900" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="40" y="40" text-anchor="middle" fill="#FF9900" font-size="9" font-weight="bold" font-family="sans-serif">eu-west-1</text>
+  <text x="40" y="52" text-anchor="middle" fill="#FF9900" font-size="7" font-family="sans-serif" opacity=".7">Standby</text>
+  <text x="40" y="68" text-anchor="middle" fill="#FF9900" font-size="7" font-weight="bold" font-family="sans-serif">DR Region</text>
+</svg>

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/decision.schema.json",
+  "title": "kind: decision",
+  "description": "Structured architecture/business decision record (ADR/BDR). Formalizes the existing free-form narratives/decisions/ content with options + choice + consequences. Phase 8.",
+  "type": "object",
+  "required": ["name", "kind", "description", "status"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "decision"},
+    "description": {"type": "string"},
+    "status":      {"type": "string", "enum": ["proposed", "approved", "rejected", "superseded", "deprecated"]},
+    "context":     {"type": "string", "description": "Why this decision needs to be made"},
+    "options":     {"type": "array", "items": {"type": "object", "properties": {"label": {"type": "string"}, "pros": {"type": "array", "items": {"type": "string"}}, "cons": {"type": "array", "items": {"type": "string"}}}}},
+    "choice":      {"type": "string", "description": "Which option was picked"},
+    "consequences":{"type": "string", "description": "What changes as a result"},
+    "decidedBy":   {"type": "string", "description": "Who or which forum"},
+    "decidedOn":   {"type": "string", "format": "date"},
+    "supersedes":  {"type": "array", "items": {"type": "string"}, "description": "Previous decision names this replaces"},
+    "tags":        {"type": "array", "items": {"type": "string"}},
+    "system":      {"type": "string"},
+    "layer":       {"type": "string"},
+    "dependsOn":   {"type": "array", "items": {"type": "object"}},
+    "relations":   {"type": "array", "items": {"type": "object"}}
+  }
+}

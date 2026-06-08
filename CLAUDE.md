@@ -75,6 +75,14 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - **delphi-langgraph** - LangGraph StateGraph executor with Postgres checkpointing
 - **delphi-sandbox** - Docker sandboxed execution (NetworkMode:none default, allowedDomains iptables, DinD)
 - **delphi-ui** - Vite+React+ReactFlow workflow dashboard (SSE, visual editor, metrics, worker monitoring)
+- **delphi-brain** - Generic, company-agnostic reasoning engine: git-versioned knowledge base + hybrid FTS5/RAG search + self-evolution skills. **Polyglot package** (Go CLI backend + React frontend). Company identity lives behind `brain.config.json` + `frontend/src/_instance/`. No dependency on delphi-core.
+- **delphi-governance** - Governance bridge: compiles approved Brain Decisions/Actions into delphi-core workflow runs (guard → compile → start exactly-once), then records Outcomes back via the `run.completed` engine event. Also Perspectives (Propose→Review→Decide): `PerspectiveReviewer` runs reasoning lenses over a Decision → tradeoff matrix → `ReviewDecider` (constitution decides, escalates objections to a human). Independent of delphi-core AND delphi-ai at compile time (binds structurally via `fromEngine()` / a `PerspectiveEvaluator` fn; delphi-core is an optional peer). `idempotencyKey=action.name`, deterministic `traceId=decision:<name>` for stateless outcome mapping. Pure TS, no Docker/PG to test.
+
+#### Important: delphi-brain is polyglot (Go + React), built via `make` not turbo
+- Requires **Go 1.24+ with CGO** (sqlite_fts5) and **Node**; **Ollama** optional (chat/RAG). It is intentionally kept OUT of the `turbo run build|test|lint` pipelines and exposes no `build`/`test`/`lint` npm scripts.
+- Build/run: `cd packages/delphi-brain && make build` (or `make serve` / `make serve-chat`), or `pnpm --filter @goatlab/delphi-brain brain:build`.
+- Config seam: copy `brain.config.example.json` → `brain.config.json`. The CLI serves it at `GET /api/config` so the React UI de-hardcodes too. Paths/identity are env- and config-driven (`BRAIN_ROOT`, `BRAIN_DB`, `BRAIN_ORG`, `BRAIN_*_DIR`).
+- The built binary (`cli/brain`), `node_modules/`, `dist/`, and `brain.db` are gitignored — never commit them.
 
 #### Agent Package Commands
 
@@ -83,6 +91,8 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - `cd packages/delphi-ai && pnpm test` - Run AI layer tests (63 tests, no containers needed)
 - `cd packages/delphi-sandbox && pnpm test:unit` - Run sandbox unit tests (no Docker)
 - `cd packages/delphi-sandbox && pnpm test:integration` - Run Docker integration tests (needs Docker daemon)
+- `cd packages/delphi-governance && pnpm test` - Run governance tests (26 tests, pure TS, no Docker)
+- `cd packages/delphi-governance && pnpm example:self-improve` - Run the self-hosting loop on THIS repo (needs Docker; spins throwaway Postgres, reviews+documents+assesses every delphi package via the real engine, writes example/output/)
 - `cd packages/delphi-ui && pnpm dev` - Start dashboard dev server
 - `cd packages/delphi-ui && npx tsx example/start.ts` - Start full example (Postgres+Redis+BullMQ+API+3 demo workflows+worker registration)
 - `cd packages/delphi-ui && npx playwright test e2e/workflow-editor.spec.ts` - Run visual editor E2E tests (12 tests)

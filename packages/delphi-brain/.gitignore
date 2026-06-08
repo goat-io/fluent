@@ -1,0 +1,20 @@
+# Built Go binary
+/cli/brain
+
+# Instance state (not framework)
+/brain.config.json
+/brain.db
+/brain.db-wal
+/brain.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Node / build output
+node_modules/
+dist/
+.vite/
+
+# Telemetry instance data (framework ships only the dir)
+/telemetry/events.jsonl
+/telemetry/rollup.sqlite

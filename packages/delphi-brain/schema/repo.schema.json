@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://delphi.goat.io/brain/schema/repo.schema.json",
+  "title": "kind: repo",
+  "description": "Catalog entry for one source-code repository. Lives at catalog/repos/<name>/catalog-info.json.",
+  "type": "object",
+  "required": ["name", "kind", "description"],
+  "additionalProperties": true,
+  "properties": {
+    "name":        {"type": "string"},
+    "kind":        {"const": "repo"},
+    "description": {"type": "string"},
+
+    "system":      {"type": "string", "description": "id of a kind:system entry under catalog/systems/"},
+    "layer":       {"type": "string", "enum": ["device", "edge", "domain", "platform", "data", "cross-cutting", "r-and-d", "business"]},
+
+    "domain":      {"type": "string"},
+    "type":        {"type": "string"},
+    "lifecycle":   {"type": "string", "enum": ["production", "prototype", "sunset", "dead", "unknown"]},
+    "team":        {"type": "string"},
+
+    "language":    {"type": "array", "items": {"type": "string"}},
+    "tags":        {"type": "array", "items": {"type": "string"}},
+
+    "dependsOn":    {"type": "array", "items": {"$ref": "_shared/dependency.schema.json"}},
+    "providesApis": {"type": "array", "items": {"type": "string"}},
+    "consumesApis": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"type": "string"},
+          {"type": "object", "required": ["target", "kind"], "properties": {
+            "target":    {"type": "string"},
+            "kind":      {"const": "api"},
+            "operation": {"type": "string"}
+          }}
+        ]
+      }
+    },
+
+    "links": {"type": "array", "items": {"type": "object", "required": ["title", "url"]}}
+  }
+}

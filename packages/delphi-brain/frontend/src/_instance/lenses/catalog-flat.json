@@ -1,0 +1,27 @@
+{
+  "name": "catalog-flat",
+  "label": "Catalog (flat)",
+  "kinds": ["repo", "service", "infra", "external", "product", "team", "api", "system"],
+  "defaultMode": "table",
+  "modes": ["table", "dashboard", "graph"],
+  "filters": [
+    {"field": "kind", "type": "select"},
+    {"field": "layer", "type": "select"},
+    {"field": "system", "type": "select"},
+    {"field": "domain", "type": "select"},
+    {"field": "lifecycle", "type": "select"}
+  ],
+  "columns": [
+    {"field": "name", "label": "Name", "primary": true},
+    {"field": "kind", "label": "Kind"},
+    {"field": "system", "label": "System"},
+    {"field": "layer", "label": "Layer"},
+    {"field": "lifecycle", "label": "Lifecycle"}
+  ],
+  "graph": {
+    "rootKinds": ["system"],
+    "edgeFields": ["dependsOn"]
+  },
+  "description": "Existing flat catalog view — used as a reference implementation of the lens manifest spec.",
+  "ownership": "shared"
+}

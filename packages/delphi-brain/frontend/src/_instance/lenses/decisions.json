@@ -1,0 +1,19 @@
+{
+  "name": "decisions",
+  "label": "Decisions",
+  "kinds": ["decision"],
+  "defaultMode": "table",
+  "modes": ["table", "dashboard"],
+  "filters": [
+    {"field": "status", "type": "select"},
+    {"field": "decidedBy", "type": "select"}
+  ],
+  "columns": [
+    {"field": "name", "label": "Decision", "primary": true},
+    {"field": "status", "label": "Status"},
+    {"field": "decidedOn", "label": "Decided"},
+    {"field": "decidedBy", "label": "By"}
+  ],
+  "description": "Structured architecture/business decision records. Phase 8 of brain-llm-wiki-evolution-plan.md.",
+  "ownership": "shared"
+}

@@ -1,0 +1,121 @@
+{
+  "kinds": [
+    {
+      "kind": "action",
+      "title": "kind: action",
+      "description": "A concrete thing to do that the wiki tracks. Cross-cuts kinds — an action can target any catalog entry. Phase 8 workflow primitive: turns documentation into a cockpit.",
+      "schemaPath": "brain/schema/action.schema.json",
+      "examplesPath": "catalog/actions",
+      "entryCount": 5,
+      "lastModified": "2026-05-13T15:25:12.415877561Z"
+    },
+    {
+      "kind": "api",
+      "title": "kind: api",
+      "description": "A named API surface — produced by a repo (or resolved from a consumer reference).",
+      "schemaPath": "brain/schema/api.schema.json",
+      "examplesPath": "catalog/apis",
+      "entryCount": 61,
+      "lastModified": "2026-05-12T21:15:48.209504582Z"
+    },
+    {
+      "kind": "decision",
+      "title": "kind: decision",
+      "description": "Structured architecture/business decision record (ADR/BDR). Formalizes the existing free-form narratives/decisions/ content with options + choice + consequences. Phase 8.",
+      "schemaPath": "brain/schema/decision.schema.json",
+      "examplesPath": "catalog/decisions",
+      "entryCount": 1,
+      "lastModified": "2026-05-13T15:25:31.005730252Z"
+    },
+    {
+      "kind": "experiment",
+      "title": "kind: experiment",
+      "description": "A hypothesis-driven trial. Distinct from action (an action is execution; an experiment tests an unknown). Phase 8 workflow primitive.",
+      "schemaPath": "brain/schema/experiment.schema.json",
+      "entryCount": 0,
+      "lastModified": "2026-05-13T15:25:18.181354724Z"
+    },
+    {
+      "kind": "external",
+      "title": "kind: external",
+      "description": "Third-party / partner system the company integrates with (Stripe, Sentry, a partner API …).",
+      "schemaPath": "brain/schema/external.schema.json",
+      "examplesPath": "catalog/external",
+      "entryCount": 37,
+      "lastModified": "2026-05-12T21:15:48.212303216Z"
+    },
+    {
+      "kind": "infra",
+      "title": "kind: infra",
+      "description": "Cloud or managed-service primitive (AWS EKS, RDS, S3; GCP Firestore; on-premise …).",
+      "schemaPath": "brain/schema/infra.schema.json",
+      "examplesPath": "catalog/infra",
+      "entryCount": 34,
+      "lastModified": "2026-05-12T21:15:48.210502267Z"
+    },
+    {
+      "kind": "product",
+      "title": "kind: product",
+      "description": "Customer-facing physical or digital product. May compose multiple repos.",
+      "schemaPath": "brain/schema/product.schema.json",
+      "examplesPath": "catalog/products",
+      "entryCount": 11,
+      "lastModified": "2026-05-12T21:15:48.210042009Z"
+    },
+    {
+      "kind": "repo",
+      "title": "kind: repo",
+      "description": "Catalog entry for one source-code repository. Lives at catalog/repos/\u003cname\u003e/catalog-info.json.",
+      "schemaPath": "brain/schema/repo.schema.json",
+      "examplesPath": "catalog/repos",
+      "entryCount": 173,
+      "lastModified": "2026-05-12T21:15:48.211510035Z"
+    },
+    {
+      "kind": "service",
+      "title": "kind: service",
+      "description": "Software the company deploys but did not write (no own source repo). Keycloak, MongoDB, Artemis, …",
+      "schemaPath": "brain/schema/service.schema.json",
+      "examplesPath": "catalog/services",
+      "entryCount": 16,
+      "lastModified": "2026-05-12T21:15:48.21095315Z"
+    },
+    {
+      "kind": "signal",
+      "title": "kind: signal",
+      "description": "Something noticed but not yet acted on. Lives between observation and action. Phase 8 workflow primitive — Brain's notebook for 'we should look at this'.",
+      "schemaPath": "brain/schema/signal.schema.json",
+      "entryCount": 0,
+      "lastModified": "2026-05-13T15:25:24.672717384Z"
+    },
+    {
+      "kind": "system",
+      "title": "kind: system",
+      "description": "A logical system (C4 Level 1 box). Aggregates catalog entries that share the same `system` value.",
+      "schemaPath": "brain/schema/system.schema.json",
+      "examplesPath": "catalog/systems",
+      "entryCount": 15,
+      "lastModified": "2026-05-12T21:15:48.211871917Z"
+    },
+    {
+      "kind": "team",
+      "title": "kind: team",
+      "description": "R\u0026D org unit. Owns repos via `repoTeamMatch[]` until the stitcher derives ownership inversely.",
+      "schemaPath": "brain/schema/team.schema.json",
+      "examplesPath": "catalog/teams",
+      "entryCount": 4,
+      "lastModified": "2026-05-12T21:15:48.212745641Z"
+    },
+    {
+      "kind": "telemetry-event",
+      "title": "kind: telemetry-event",
+      "description": "One observation of something happening in Brain — skill completion, chat query, lint finding, schema validation event, edge-pattern detection, query-gap. Substrate for /brain-evolve.",
+      "schemaPath": "brain/schema/telemetry-event.schema.json",
+      "entryCount": 0,
+      "lastModified": "2026-05-13T15:14:40.77296273Z"
+    }
+  ],
+  "generatedAt": "2026-05-25T12:49:41.340193Z",
+  "maxMtime": "2026-05-13T15:25:31.005730252Z",
+  "schemaDir": "brain/schema"
+}
