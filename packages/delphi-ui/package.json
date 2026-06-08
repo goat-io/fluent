@@ -56,7 +56,7 @@
     "@testcontainers/postgresql": "^11.0.3",
     "@testcontainers/redis": "^11.0.3",
     "testcontainers": "^11.0.3",
-    "kysely": "^0.27.6",
+    "kysely": "^0.28.17",
     "pg": "^8.13.0",
     "tsx": "catalog:"
   }

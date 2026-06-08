@@ -41,7 +41,7 @@
     "@testcontainers/redis": "^11.0.3",
     "@types/dockerode": "^3.3.34",
     "@types/node": "^22.10.7",
-    "kysely": "^0.27.6",
+    "kysely": "^0.28.17",
     "pg": "^8.13.0",
     "testcontainers": "^11.0.3",
     "vitest": "^3.1.1"
