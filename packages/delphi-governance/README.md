@@ -99,6 +99,16 @@ pnpm build   # tsc → dist
 
 No Docker or Postgres needed — the suite uses `InMemoryBrainClient` and a fake engine.
 
+## Self-hosting demo
+
+[`example/self-improve.ts`](example/README.md) runs the **whole loop on this repo** — Delphi reviewing, documenting, and assessing its own packages through the real delphi-core engine on Postgres:
+
+```bash
+pnpm example:self-improve   # needs Docker; spins a throwaway Postgres
+```
+
+Observe → Review (perspectives) → Execute (compile each Action into an exactly-once workflow run) → Measure (Outcome back to the Brain) → writes generated docs + assessments + a loop log to `example/output/`.
+
 ## Status
 
-Built and unit-tested: the Decision→Workflow compiler, Constitution gate, Outcome subscriber, and the Perspective review layer (reviewer + tradeoff matrix + decider). Not yet built: an LLM-backed `PerspectiveEvaluator` adapter over `@goatlab/delphi-ai` (the evaluator is structural today), richer `HttpBrainClient` write-back (the Brain REST API is read-mostly; outcomes route through `onOutcome`), and constitution conflict-resolution rules (priority ordering when constraints collide).
+Built, unit-tested, and demonstrated end-to-end on this repo: the Decision→Workflow compiler, Constitution gate, Outcome subscriber, Perspective review (reviewer + tradeoff matrix + decider), LLM + heuristic evaluators, and a self-hosting runner against a live delphi-core engine. Not yet built: an LLM-backed evaluator adapter packaged over `@goatlab/delphi-ai` (the evaluator is structural today — wire `LLMAdapter.chat` into `createLLMPerspectiveEvaluator`), richer `HttpBrainClient` write-back (the Brain REST API is read-mostly; outcomes route through `onOutcome`), and constitution conflict-resolution rules (priority ordering when constraints collide).

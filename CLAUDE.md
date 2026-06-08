@@ -91,6 +91,8 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - `cd packages/delphi-ai && pnpm test` - Run AI layer tests (63 tests, no containers needed)
 - `cd packages/delphi-sandbox && pnpm test:unit` - Run sandbox unit tests (no Docker)
 - `cd packages/delphi-sandbox && pnpm test:integration` - Run Docker integration tests (needs Docker daemon)
+- `cd packages/delphi-governance && pnpm test` - Run governance tests (26 tests, pure TS, no Docker)
+- `cd packages/delphi-governance && pnpm example:self-improve` - Run the self-hosting loop on THIS repo (needs Docker; spins throwaway Postgres, reviews+documents+assesses every delphi package via the real engine, writes example/output/)
 - `cd packages/delphi-ui && pnpm dev` - Start dashboard dev server
 - `cd packages/delphi-ui && npx tsx example/start.ts` - Start full example (Postgres+Redis+BullMQ+API+3 demo workflows+worker registration)
 - `cd packages/delphi-ui && npx playwright test e2e/workflow-editor.spec.ts` - Run visual editor E2E tests (12 tests)
