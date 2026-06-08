@@ -19,7 +19,13 @@ Review    perspective review of the decision         (tradeoffs → approved)
 Execute   compile each Action → a delphi-core run     (exactly-once, real engine)
 Measure   run.completed → Outcome back to the Brain   (20/20 COMPLETED)
 Document  the workflows WRITE generated docs          (example/output/)
+Remember  index the self-docs into the Delphi Brain   (queryable institutional memory)
 ```
+
+The final **Remember** phase shells out to the built Delphi Brain binary
+(`packages/delphi-brain/cli/brain`, FTS5 — no Ollama needed) to index the
+generated docs, so the Brain now *knows about its own packages* and they're
+searchable. If the binary isn't built, that phase is skipped gracefully.
 
 It wires every layer for real:
 

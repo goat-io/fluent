@@ -9,6 +9,7 @@
 //   Document  — the workflows WRITE generated docs + assessments to disk
 //
 // i.e. Delphi self-assesses, self-documents, and records what it learned.
+import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -274,7 +275,42 @@ async function main() {
   ].join('\n')
   writeFileSync(join(OUT_DIR, 'log.md'), log)
   console.log(`  📝 wrote generated docs + assessments + log to:\n     ${OUT_DIR}\n`)
-  console.log('  ✅ self-hosting loop complete: reviewed → executed → documented → measured → learned.\n')
+
+  // CONNECT BRAIN — ingest the self-generated docs into the Delphi Brain so
+  // institutional memory grows and becomes queryable. This closes the loop:
+  // Delphi documented itself → the Brain now knows about its own packages.
+  console.log('  ── Connect Brain (index self-docs into institutional memory) ──')
+  try {
+    const brainBin = join(HERE, '..', '..', 'delphi-brain', 'cli', 'brain')
+    if (!exists(brainBin)) {
+      throw new Error('brain binary not built — run: cd packages/delphi-brain && make build')
+    }
+    writeFileSync(
+      join(OUT_DIR, 'brain.config.json'),
+      JSON.stringify(
+        { org: { name: 'Goat Fluent / Delphi', description: 'The Delphi agent OS monorepo, documenting itself.' } },
+        null,
+        2,
+      ),
+    )
+    const env = {
+      ...process.env,
+      BRAIN_ROOT: OUT_DIR,
+      BRAIN_DB: join(OUT_DIR, 'brain.db'),
+      BRAIN_SCHEMA_DIR: join(HERE, '..', '..', 'delphi-brain', 'schema'),
+    }
+    const brain = (args: string[]) => execFileSync(brainBin, args, { env, encoding: 'utf8' }).trim()
+    brain(['index', '--root', OUT_DIR])
+    const docCount = brain(['query', 'SELECT count(*) AS documents FROM documents']).replace(/\s+/g, ' ')
+    const sample = brain(['query', "SELECT path FROM documents WHERE path LIKE '%assessments%' LIMIT 3"])
+    console.log(`    Brain indexed self-docs → ${docCount}`)
+    console.log(`    now queryable, e.g. assessments:\n${sample.split('\n').map(l => `      ${l}`).join('\n')}`)
+    console.log('    🧠 institutional memory updated — the Brain knows about its own packages.\n')
+  } catch (err) {
+    console.log(`    (skipped Brain indexing: ${(err as Error).message})\n`)
+  }
+
+  console.log('  ✅ self-hosting loop complete: reviewed → executed → documented → measured → learned → remembered.\n')
 
   teardown()
 
