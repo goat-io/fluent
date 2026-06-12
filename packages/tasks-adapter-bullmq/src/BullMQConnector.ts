@@ -934,6 +934,14 @@ export class BullMQConnector implements TaskConnector<object> {
               processed++
             } else {
               failed++
+              // Surface the handler failure — without this the error is only
+              // stored in the job's failedReason and operators see opaque
+              // `failed=N` counters with no way to diagnose retry storms.
+              const err = (results[i] as { ok: false; error: Error }).error
+              // eslint-disable-next-line no-console
+              console.warn(
+                `[BullMQConnector] processIncomingDispatch: handler failed for job ${jobs[i]!.id} (${jobs[i]!.name}) on ${queueName} (attempt ${jobs[i]!.attemptsMade}): ${err.message}`,
+              )
             }
           }
         }
