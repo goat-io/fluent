@@ -1,5 +1,11 @@
 # 0.5.20
 
+## 1.6.4
+
+### Patch Changes
+
+- ca95e25: Measure memory monitor heap pressure against the V8 heap size limit instead of the currently allocated heap total to avoid false high-memory alerts.
+
 ## 1.6.0
 
 ### Minor Changes
