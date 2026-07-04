@@ -10,6 +10,17 @@ describe('runScript', () => {
   let processListeners: Map<string, Array<(...args: any[]) => any>>
   let exitSpy: any
 
+  const getLatestProcessListener = (event: string) => {
+    const listeners = processListeners.get(event) || []
+    const listener = listeners.findLast(
+      candidate => typeof candidate === 'function',
+    )
+
+    expect(listener).toBeDefined()
+
+    return listener!
+  }
+
   beforeEach(() => {
     // Mock logger
     mockLogger = {
@@ -171,11 +182,8 @@ describe('runScript', () => {
       await new Promise(resolve => setImmediate(resolve))
 
       // Simulate uncaught exception
-      const uncaughtListeners = processListeners.get('uncaughtException') || []
-      expect(uncaughtListeners.length).toBeGreaterThan(0)
-
       const testError = new Error('Uncaught error')
-      uncaughtListeners[0](testError)
+      getLatestProcessListener('uncaughtException')(testError)
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'uncaughtException:',
@@ -196,12 +204,8 @@ describe('runScript', () => {
       await new Promise(resolve => setImmediate(resolve))
 
       // Simulate unhandled rejection
-      const unhandledListeners =
-        processListeners.get('unhandledRejection') || []
-      expect(unhandledListeners.length).toBeGreaterThan(0)
-
       const testError = new Error('Unhandled rejection')
-      unhandledListeners[0](testError)
+      getLatestProcessListener('unhandledRejection')(testError)
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         'unhandledRejection:',
@@ -239,9 +243,8 @@ describe('runScript', () => {
 
       await new Promise(resolve => setImmediate(resolve))
 
-      const uncaughtListeners = processListeners.get('uncaughtException') || []
       const testError = new Error('Uncaught')
-      uncaughtListeners[0](testError)
+      getLatestProcessListener('uncaughtException')(testError)
 
       expect(onError).toHaveBeenCalledWith(testError)
     })
@@ -259,9 +262,7 @@ describe('runScript', () => {
       await new Promise(resolve => setImmediate(resolve))
 
       // Simulate SIGINT
-      const sigintListeners = processListeners.get('SIGINT') || []
-      expect(sigintListeners.length).toBeGreaterThan(0)
-      sigintListeners[0]()
+      getLatestProcessListener('SIGINT')()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
         'Received SIGINT, shutting down…',
@@ -279,8 +280,7 @@ describe('runScript', () => {
 
       await new Promise(resolve => setImmediate(resolve))
 
-      const sigtermListeners = processListeners.get('SIGTERM') || []
-      sigtermListeners[0]()
+      getLatestProcessListener('SIGTERM')()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
         'Received SIGTERM, shutting down…',
@@ -298,8 +298,7 @@ describe('runScript', () => {
 
       await new Promise(resolve => setImmediate(resolve))
 
-      const sighupListeners = processListeners.get('SIGHUP') || []
-      sighupListeners[0]()
+      getLatestProcessListener('SIGHUP')()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
         'Received SIGHUP, shutting down…',
@@ -317,8 +316,7 @@ describe('runScript', () => {
 
       await new Promise(resolve => setImmediate(resolve))
 
-      const sigintListeners = processListeners.get('SIGINT') || []
-      sigintListeners[0]()
+      getLatestProcessListener('SIGINT')()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
         'Received SIGINT, shutting down…',
@@ -367,11 +365,11 @@ describe('runScript', () => {
       await new Promise(resolve => setImmediate(resolve))
 
       // Trigger multiple exit conditions
-      const sigintListeners = processListeners.get('SIGINT') || []
-      const sigtermListeners = processListeners.get('SIGTERM') || []
+      const sigintListener = getLatestProcessListener('SIGINT')
+      const sigtermListener = getLatestProcessListener('SIGTERM')
 
-      sigintListeners[0]()
-      sigtermListeners[0]()
+      sigintListener()
+      sigtermListener()
 
       // Should only exit once
       expect(exitSpy).toHaveBeenCalledTimes(1)
@@ -424,8 +422,7 @@ describe('runScript', () => {
 
       await new Promise(resolve => setImmediate(resolve))
 
-      const sigintListeners = processListeners.get('SIGINT') || []
-      sigintListeners[0]()
+      getLatestProcessListener('SIGINT')()
 
       expect(onExit).toHaveBeenCalledWith(0)
     })
@@ -523,8 +520,7 @@ describe('runScript', () => {
 
       await new Promise(resolve => setImmediate(resolve))
 
-      const sigintListeners = processListeners.get('SIGINT') || []
-      sigintListeners[0]()
+      getLatestProcessListener('SIGINT')()
 
       expect(mockLogger.log).toHaveBeenCalledWith(
         expect.stringMatching(/^Script completed in \d+ms$/),
