@@ -1,10 +1,97 @@
-import { describe, expect, it } from 'vitest'
 // pnpm test Http.spec.ts
 
+import { createServer, type Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Http } from './Http'
 
-const client = Http.getClient({
-  prefixUrl: 'https://api.github.com',
+let server: Server
+let baseUrl: string
+let client: ReturnType<typeof Http.getClient>
+
+beforeAll(async () => {
+  server = createServer((req, res) => {
+    const url = new URL(req.url || '/', 'http://localhost')
+
+    if (url.pathname === '/repos/octocat/Hello-World') {
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ name: 'Hello-World' }))
+      return
+    }
+
+    if (url.pathname === '/repos/octocat/does-not-exist') {
+      res.statusCode = 404
+      res.end('Not found')
+      return
+    }
+
+    if (url.pathname === '/slow') {
+      setTimeout(() => {
+        res.end('ok')
+      }, 500)
+      return
+    }
+
+    if (url.pathname === '/headers') {
+      res.setHeader('content-type', 'application/json')
+      res.end(
+        JSON.stringify({
+          headers: {
+            'X-Test-Header': req.headers['x-test-header'],
+          },
+        }),
+      )
+      return
+    }
+
+    if (url.pathname === '/post' && req.method === 'POST') {
+      let body = ''
+      req.on('data', chunk => {
+        body += chunk
+      })
+      req.on('end', () => {
+        res.setHeader('content-type', 'application/json')
+        res.end(JSON.stringify({ json: JSON.parse(body) }))
+      })
+      return
+    }
+
+    if (url.pathname === '/get') {
+      res.setHeader('content-type', 'application/json')
+      res.end(
+        JSON.stringify({
+          args: Object.fromEntries(url.searchParams.entries()),
+        }),
+      )
+      return
+    }
+
+    res.statusCode = 404
+    res.end('Not found')
+  })
+
+  await new Promise<void>(resolve => {
+    server.listen(0, '127.0.0.1', resolve)
+  })
+
+  const address = server.address() as AddressInfo
+  baseUrl = `http://127.0.0.1:${address.port}`
+  client = Http.getClient({
+    prefixUrl: baseUrl,
+  })
+})
+
+afterAll(async () => {
+  await new Promise<void>((resolve, reject) => {
+    server.close(error => {
+      if (error) {
+        reject(error)
+        return
+      }
+
+      resolve()
+    })
+  })
 })
 
 describe(' Http.getClient', () => {
@@ -46,12 +133,12 @@ describe(' Http.getClient', () => {
 
   it('should respect timeout option', async () => {
     const slowClient = Http.getClient({
-      prefixUrl: 'https://httpstat.us',
+      prefixUrl: baseUrl,
       timeout: 100,
     })
     expect.assertions(1)
     try {
-      await slowClient.get('200?sleep=500').text()
+      await slowClient.get('slow').text()
     } catch (err: any) {
       // Node.js 22+ throws TypeError instead of TimeoutError on fetch abort
       expect(err.name).toMatch(/TimeoutError|TypeError/)
@@ -60,7 +147,7 @@ describe(' Http.getClient', () => {
 
   it('should allow custom headers', async () => {
     const customClient = Http.getClient({
-      prefixUrl: 'https://httpbin.org',
+      prefixUrl: baseUrl,
     })
     const res = await customClient
       .get('headers', {
@@ -72,7 +159,7 @@ describe(' Http.getClient', () => {
 
   it('should send POST requests with JSON body', async () => {
     const postClient = Http.getClient({
-      prefixUrl: 'https://httpbin.org',
+      prefixUrl: baseUrl,
     })
     const data = { foo: 'bar' }
     const res = await postClient.post('post', { json: data }).json<any>()
@@ -81,7 +168,7 @@ describe(' Http.getClient', () => {
 
   it('should send query parameters', async () => {
     const queryClient = Http.getClient({
-      prefixUrl: 'https://httpbin.org',
+      prefixUrl: baseUrl,
     })
     const res = await queryClient.get('get?hello=world').json<any>()
     expect(res.args.hello).toBe('world')
