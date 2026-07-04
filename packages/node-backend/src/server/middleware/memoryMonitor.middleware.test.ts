@@ -1,5 +1,6 @@
 // npx vitest run ./src/server/middleware/memoryMonitor.middleware.test.ts
 
+import { getHeapStatistics } from 'node:v8'
 import type { NextFunction, Request, Response } from 'express'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -125,10 +126,11 @@ describe('Memory Monitor Middleware', () => {
     it('should log warning when memory exceeds warning threshold', () => {
       // Mock high memory usage
       const originalMemoryUsage = process.memoryUsage
+      const heapSizeLimit = getHeapStatistics().heap_size_limit
       process.memoryUsage = vi.fn().mockReturnValue({
-        heapUsed: 900 * 1024 * 1024, // 900MB
-        heapTotal: 1000 * 1024 * 1024, // 1000MB (90% used)
-        rss: 1200 * 1024 * 1024,
+        heapUsed: heapSizeLimit * 0.9,
+        heapTotal: heapSizeLimit,
+        rss: heapSizeLimit,
         external: 50 * 1024 * 1024,
         arrayBuffers: 10 * 1024 * 1024,
       })
@@ -150,10 +152,11 @@ describe('Memory Monitor Middleware', () => {
     it('should log error when memory exceeds critical threshold', () => {
       // Mock very high memory usage
       const originalMemoryUsage = process.memoryUsage
+      const heapSizeLimit = getHeapStatistics().heap_size_limit
       process.memoryUsage = vi.fn().mockReturnValue({
-        heapUsed: 960 * 1024 * 1024, // 960MB
-        heapTotal: 1000 * 1024 * 1024, // 1000MB (96% used)
-        rss: 1200 * 1024 * 1024,
+        heapUsed: heapSizeLimit * 0.96,
+        heapTotal: heapSizeLimit,
+        rss: heapSizeLimit,
         external: 50 * 1024 * 1024,
         arrayBuffers: 10 * 1024 * 1024,
       })
@@ -167,6 +170,34 @@ describe('Memory Monitor Middleware', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('CRITICAL: Memory usage at 96.0%'),
+      )
+
+      process.memoryUsage = originalMemoryUsage
+    })
+
+    it('should not alert when allocated heap is tight but heap limit has headroom', () => {
+      const originalMemoryUsage = process.memoryUsage
+      process.memoryUsage = vi.fn().mockReturnValue({
+        heapUsed: 90 * 1024 * 1024,
+        heapTotal: 100 * 1024 * 1024, // 90% of allocated heap, 9% of limit
+        rss: 200 * 1024 * 1024,
+        external: 50 * 1024 * 1024,
+        arrayBuffers: 10 * 1024 * 1024,
+      })
+
+      const middleware = memoryMonitorMiddleware({
+        logger: mockLogger,
+        warningThreshold: 85,
+        criticalThreshold: 95,
+      })
+
+      middleware(mockReq as Request, mockRes as Response, mockNext)
+
+      expect(mockLogger.warn).not.toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: Memory usage'),
+      )
+      expect(mockLogger.error).not.toHaveBeenCalledWith(
+        expect.stringContaining('CRITICAL: Memory usage'),
       )
 
       process.memoryUsage = originalMemoryUsage
@@ -197,10 +228,11 @@ describe('Memory Monitor Middleware', () => {
 
       // Mock critical memory usage
       const originalMemoryUsage = process.memoryUsage
+      const heapSizeLimit = getHeapStatistics().heap_size_limit
       process.memoryUsage = vi.fn().mockReturnValue({
-        heapUsed: 960 * 1024 * 1024, // 960MB
-        heapTotal: 1000 * 1024 * 1024, // 1000MB (96% used)
-        rss: 1200 * 1024 * 1024,
+        heapUsed: heapSizeLimit * 0.96,
+        heapTotal: heapSizeLimit,
+        rss: heapSizeLimit,
         external: 50 * 1024 * 1024,
         arrayBuffers: 10 * 1024 * 1024,
       })
@@ -261,6 +293,7 @@ describe('Memory Monitor Middleware', () => {
       expect(metrics).toBeDefined()
       expect(metrics).toHaveProperty('heapUsedMB')
       expect(metrics).toHaveProperty('heapTotalMB')
+      expect(metrics).toHaveProperty('heapLimitMB')
       expect(metrics).toHaveProperty('heapUsedPercentage')
       expect(metrics).toHaveProperty('rssMB')
       expect(metrics).toHaveProperty('timestamp')

@@ -1,5 +1,6 @@
 // npx vitest run ./src/server/middleware/memoryMonitor.middleware.test.ts
 
+import { getHeapStatistics } from 'node:v8'
 import { CommonLogger } from '@goatlab/js-utils'
 import type { NextFunction, Request, Response } from 'express'
 
@@ -17,6 +18,7 @@ type MemoryState = 'normal' | 'warning' | 'critical'
 interface MemoryMetrics {
   heapUsedMB: number
   heapTotalMB: number
+  heapLimitMB: number
   heapUsedPercentage: number
   rssMB: number
   timestamp: number
@@ -54,14 +56,17 @@ class MemoryMonitor {
 
   private getMemoryMetrics(): MemoryMetrics {
     const memUsage = process.memoryUsage()
+    const heapSizeLimit = getHeapStatistics().heap_size_limit
     const heapUsedMB = memUsage.heapUsed / (1024 * 1024)
     const heapTotalMB = memUsage.heapTotal / (1024 * 1024)
-    const heapUsedPercentage = (memUsage.heapUsed / memUsage.heapTotal) * 100
+    const heapLimitMB = heapSizeLimit / (1024 * 1024)
+    const heapUsedPercentage = (memUsage.heapUsed / heapSizeLimit) * 100
     const rssMB = memUsage.rss / (1024 * 1024)
 
     return {
       heapUsedMB,
       heapTotalMB,
+      heapLimitMB,
       heapUsedPercentage,
       rssMB,
       timestamp: Date.now(),
@@ -69,7 +74,7 @@ class MemoryMonitor {
   }
 
   private formatMemoryMetrics(metrics: MemoryMetrics): string {
-    return `Heap: ${metrics.heapUsedMB.toFixed(2)}/${metrics.heapTotalMB.toFixed(2)}MB (${metrics.heapUsedPercentage.toFixed(1)}%) | RSS: ${metrics.rssMB.toFixed(2)}MB`
+    return `Heap: ${metrics.heapUsedMB.toFixed(2)}/${metrics.heapLimitMB.toFixed(2)}MB limit (${metrics.heapUsedPercentage.toFixed(1)}%, allocated ${metrics.heapTotalMB.toFixed(2)}MB) | RSS: ${metrics.rssMB.toFixed(2)}MB`
   }
 
   private checkMemoryUsage(metrics: MemoryMetrics): void {
