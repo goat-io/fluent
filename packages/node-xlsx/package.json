@@ -37,7 +37,7 @@
     "ts-node": "catalog:",
     "turbo": "^1.1.10",
     "typescript": "^5.0.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.6"
   },
   "files": [
     "dist"
