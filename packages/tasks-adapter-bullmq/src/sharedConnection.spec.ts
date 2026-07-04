@@ -52,10 +52,28 @@ const TENANT_IDS = [
 ] as const
 
 /** Count connected Redis clients via CLIENT LIST */
-async function countClients(redis: IORedis): Promise<number> {
+async function countClients(
+  redis: IORedis,
+  connectionNamePrefix?: string,
+): Promise<number> {
   const list = await redis.client('LIST')
-  return (list as string).split('\n').filter(l => l.trim()).length
+  const clients = (list as string).split('\n').filter(l => l.trim())
+
+  if (!connectionNamePrefix) {
+    return clients.length
+  }
+
+  return clients.filter(client =>
+    client.split(' ').some(field => field === `name=${connectionNamePrefix}`),
+  ).length
 }
+
+const connection = (name: string) => ({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  maxRetriesPerRequest: null,
+  connectionName: name,
+})
 
 describe('Multi-Tenant Shared Connection', () => {
   let monitor: IORedis
@@ -74,14 +92,11 @@ describe('Multi-Tenant Shared Connection', () => {
   })
 
   it('10 tenants x 8 queues = 80 Queue instances should use O(1) connections', async () => {
-    const clientsBefore = await countClients(monitor)
+    const connectionName = `${TEST_RUN}:platform`
+    const clientsBefore = await countClients(monitor, connectionName)
 
     const platform = new BullMQConnector({
-      connection: {
-        host: REDIS_HOST,
-        port: REDIS_PORT,
-        maxRetriesPerRequest: null,
-      },
+      connection: connection(connectionName),
       prefix: `${TEST_RUN}:platform`,
     })
 
@@ -101,7 +116,7 @@ describe('Multi-Tenant Shared Connection', () => {
     }
 
     await new Promise(r => setTimeout(r, 500))
-    const clientsAfter = await countClients(monitor)
+    const clientsAfter = await countClients(monitor, connectionName)
     const newConns = clientsAfter - clientsBefore
 
     console.log(
@@ -129,11 +144,7 @@ describe('Multi-Tenant Shared Connection', () => {
 
   it('processIncomingDispatch respects tenant isolation', async () => {
     const platform = new BullMQConnector({
-      connection: {
-        host: REDIS_HOST,
-        port: REDIS_PORT,
-        maxRetriesPerRequest: null,
-      },
+      connection: connection(`${TEST_RUN}:isolation`),
       prefix: `${TEST_RUN}:isolation`,
     })
 
@@ -173,14 +184,11 @@ describe('Multi-Tenant Shared Connection', () => {
   }, 15_000)
 
   it('full dispatch cycle: 5 tenants x 3 queues, enqueue + process', async () => {
-    const clientsBefore = await countClients(monitor)
+    const connectionName = `${TEST_RUN}:fullcycle`
+    const clientsBefore = await countClients(monitor, connectionName)
 
     const platform = new BullMQConnector({
-      connection: {
-        host: REDIS_HOST,
-        port: REDIS_PORT,
-        maxRetriesPerRequest: null,
-      },
+      connection: connection(connectionName),
       prefix: `${TEST_RUN}:fullcycle`,
     })
 
@@ -216,7 +224,7 @@ describe('Multi-Tenant Shared Connection', () => {
 
     // Connections still O(1)
     await new Promise(r => setTimeout(r, 300))
-    const clientsAfter = await countClients(monitor)
+    const clientsAfter = await countClients(monitor, connectionName)
     const newConns = clientsAfter - clientsBefore
 
     console.log(
@@ -232,14 +240,11 @@ describe('Multi-Tenant Shared Connection', () => {
   }, 30_000)
 
   it('empty dispatch across 8 queues uses shared connection', async () => {
-    const clientsBefore = await countClients(monitor)
+    const connectionName = `${TEST_RUN}:empty`
+    const clientsBefore = await countClients(monitor, connectionName)
 
     const platform = new BullMQConnector({
-      connection: {
-        host: REDIS_HOST,
-        port: REDIS_PORT,
-        maxRetriesPerRequest: null,
-      },
+      connection: connection(connectionName),
       prefix: `${TEST_RUN}:empty`,
     })
 
@@ -255,7 +260,7 @@ describe('Multi-Tenant Shared Connection', () => {
     expect(result.failed).toBe(0)
 
     await new Promise(r => setTimeout(r, 200))
-    const clientsAfter = await countClients(monitor)
+    const clientsAfter = await countClients(monitor, connectionName)
     const newConns = clientsAfter - clientsBefore
 
     console.log(`[Empty Dispatch] 8 queues scanned → ${newConns} connections`)
