@@ -798,9 +798,15 @@ export class BullMQConnector implements TaskConnector<object> {
   }): Promise<{ processed: number; failed: number }> {
     const { handleTask, timeBudgetMs = 25_000, validQueueNames, hint } = params
     const batchSize = Math.max(1, params.batchSize ?? 50)
+    // Default concurrency is deliberately DECOUPLED from batchSize: handlers
+    // run in the caller's process (usually the API server). With the old
+    // `?? batchSize` default, a hint flood meant N concurrent dispatch calls
+    // x 50 concurrent handlers EACH on one Node event loop — starving every
+    // in-flight HTTP request (sodium prod p99 incident, 2026-07-09). Pull
+    // wide (batchSize), execute narrow (concurrency).
     const concurrency = Math.max(
       1,
-      Math.min(params.concurrency ?? batchSize, batchSize),
+      Math.min(params.concurrency ?? 10, batchSize),
     )
     const deadline = Date.now() + timeBudgetMs
     let processed = 0
@@ -831,6 +837,15 @@ export class BullMQConnector implements TaskConnector<object> {
         connection: this.getSharedConnection(),
         prefix: this._prefix,
         autorun: false,
+        // Locks acquired via manual getNextJob are NEVER renewed (renewal is
+        // the processing loop's job, and there is none in autorun:false mode).
+        // With BullMQ's default 30s lockDuration, any handler slower than 30s
+        // -- or whose ack is delayed by event-loop pressure -- loses its lock:
+        // moveToCompleted throws, the job strands in `active` until an
+        // external reaper deletes it, and the workflow watchdog re-enqueues
+        // it (duplicate execution; sodium prod OTP-email delays, 2026-07-09).
+        // The lock must outlive the whole dispatch cycle.
+        lockDuration: timeBudgetMs + 60_000,
       })
 
       try {
