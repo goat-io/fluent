@@ -94,7 +94,7 @@ rsa==4.7  # Updated from 3.4.2
 s3transfer==0.3.3  # Updated from 0.1.13
 semantic-version==2.8.4  # Updated from 2.5.0
 Send2Trash==1.5.0
-soupsieve==2.0  # Updated from 1.7.3
+soupsieve==2.8.4  # Updated from 1.7.3
 termcolor==1.1.0
 terminado==0.8.3  # Updated from 0.8.1
 testpath==0.4.4  # Updated from 0.4.2
