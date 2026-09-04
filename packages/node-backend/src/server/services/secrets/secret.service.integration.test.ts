@@ -14,8 +14,81 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from 'vitest'
 import { SecretService } from './secret.service'
+
+describe('FILE cache expiry without Vault', () => {
+  it('should cleanup expired cache entries', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'secret-cache-test-'),
+    )
+    const TENANT_1_KEY = 'tenant1-encryption-key-32-chars!!'
+    let now = 1_000_000
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => now)
+    // Create multiple services with short TTL
+    const services: Array<{
+      service: SecretService<{ TEST: string }>
+      filePath: string
+    }> = []
+    try {
+      for (let i = 0; i < 5; i++) {
+        const filePath = path.join(tempDir, `cache-test-${i}.json`)
+        const secrets = Security.encryptObject(
+          { TEST: `value-${i}` },
+          TENANT_1_KEY,
+        )
+        await fs.writeFile(filePath, JSON.stringify(secrets))
+
+        const service = new SecretService<{ TEST: string }>({
+          provider: 'FILE',
+          location: filePath,
+          encryptionKey: TENANT_1_KEY,
+          cacheTTL: 100 * (i + 1), // Different TTLs
+        })
+
+        services.push({ service, filePath })
+        await service.loadSecretsFromFileAsync()
+      }
+
+      // Advance cache time only; encryption/file IO and runner scheduling must
+      // not accidentally expire the entries that this test expects to retain.
+      now += 350
+
+      // Cleanup expired entries
+      SecretService.cleanupExpiredCache()
+
+      // Load again from services with different TTLs
+      for (let i = 0; i < services.length; i++) {
+        const { service, filePath } = services[i]
+
+        // Update file to detect cache hits
+        const updatedSecrets = Security.encryptObject(
+          { TEST: `updated-${i}` },
+          TENANT_1_KEY,
+        )
+        await fs.writeFile(filePath, JSON.stringify(updatedSecrets))
+
+        const result = await service.loadSecretsFromFileAsync()
+
+        if (i < 3) {
+          // These should have expired and show updated value
+          expect(result.TEST).toBe(`updated-${i}`)
+        } else {
+          // These should still be cached
+          expect(result.TEST).toBe(`value-${i}`)
+        }
+      }
+    } finally {
+      clock.mockRestore()
+      // Dispose every created service even if loading or an assertion fails.
+      for (const { service } of services) {
+        service.dispose()
+      }
+      await fs.rm(tempDir, { recursive: true, force: true })
+    }
+  })
+})
 
 interface TestSecrets {
   API_KEY: string
@@ -781,68 +854,6 @@ describe('SecretService Integration Tests', () => {
       expect(() => service.getSecretSync('API_KEY')).toThrow(
         'Secrets not preloaded. Call preload() before using synchronous methods.',
       )
-    })
-  })
-
-  describe('Cache Management Tests', () => {
-    it('should cleanup expired cache entries', async () => {
-      // Create multiple services with short TTL
-      const services: Array<{
-        service: SecretService<{ TEST: string }>
-        filePath: string
-      }> = []
-      for (let i = 0; i < 5; i++) {
-        const filePath = path.join(tempDir, `cache-test-${i}.json`)
-        const secrets = Security.encryptObject(
-          { TEST: `value-${i}` },
-          TENANT_1_KEY,
-        )
-        await fs.writeFile(filePath, JSON.stringify(secrets))
-
-        const service = new SecretService<{ TEST: string }>({
-          provider: 'FILE',
-          location: filePath,
-          encryptionKey: TENANT_1_KEY,
-          cacheTTL: 100 * (i + 1), // Different TTLs
-        })
-
-        await service.loadSecretsFromFileAsync()
-        services.push({ service, filePath })
-      }
-
-      // Wait for some caches to expire
-      await new Promise(resolve => setTimeout(resolve, 350))
-
-      // Cleanup expired entries
-      SecretService.cleanupExpiredCache()
-
-      // Load again from services with different TTLs
-      for (let i = 0; i < services.length; i++) {
-        const { service, filePath } = services[i]
-
-        // Update file to detect cache hits
-        const updatedSecrets = Security.encryptObject(
-          { TEST: `updated-${i}` },
-          TENANT_1_KEY,
-        )
-        await fs.writeFile(filePath, JSON.stringify(updatedSecrets))
-
-        const result = await service.loadSecretsFromFileAsync()
-
-        if (i < 3) {
-          // These should have expired and show updated value
-          expect(result.TEST).toBe(`updated-${i}`)
-        } else {
-          // These should still be cached
-          expect(result.TEST).toBe(`value-${i}`)
-        }
-      }
-
-      // Clean up
-      for (const { service, filePath } of services) {
-        service.dispose()
-        await fs.unlink(filePath)
-      }
     })
   })
 
