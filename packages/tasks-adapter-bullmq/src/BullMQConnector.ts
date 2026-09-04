@@ -590,52 +590,69 @@ export class BullMQConnector implements TaskConnector<object> {
 
     const results: Omit<TaskStatus, 'payload'>[] = new Array(jobs.length)
     const now = new Date().toISOString()
+    let failed = false
+    let firstFailure: unknown
 
-    await Promise.all(
-      Array.from(byQueue.entries()).map(async ([queueName, bucket]) => {
-        const queue = this.getQueue(queueName)
-        const bulk = bucket.map(({ job }) => ({
-          name: queueName,
-          data: job.taskBody,
-          opts: {
-            jobId: job.uniqueTaskName,
-            ...this.defaultJobOptions,
-            ...(job.opts ?? {}),
-          },
-        }))
-        const enqueued = await queue.addBulk(bulk)
-
-        for (let i = 0; i < bucket.length; i++) {
-          const { idx } = bucket[i]!
-          const j = enqueued[i]!
-          results[idx] = {
-            id: `${queueName}:${j.id}`,
+    await Promise.allSettled(
+      Array.from(byQueue.entries())
+        .map(async ([queueName, bucket]) => {
+          const queue = this.getQueue(queueName)
+          const bulk = bucket.map(({ job }) => ({
             name: queueName,
-            output: '',
-            attempts: 0,
-            status: 'QUEUED',
-            created: now,
-            nextRun: null,
-            nextRunMinutes: null,
-          }
-        }
+            data: job.taskBody,
+            opts: {
+              jobId: job.uniqueTaskName,
+              ...this.defaultJobOptions,
+              ...(job.opts ?? {}),
+            },
+          }))
+          const enqueued = await queue.addBulk(bulk)
 
-        // Fire onAfterQueue per job so dispatch hints stay accurate
-        if (this.onAfterQueue && this._tenantId) {
           for (let i = 0; i < bucket.length; i++) {
-            try {
-              await this.onAfterQueue({
-                tenantId: this._tenantId,
-                queueName,
-                jobId: results[bucket[i]!.idx]!.id,
-              })
-            } catch {
-              /* non-fatal */
+            const { idx } = bucket[i]!
+            const j = enqueued[i]!
+            results[idx] = {
+              id: `${queueName}:${j.id}`,
+              name: queueName,
+              output: '',
+              attempts: 0,
+              status: 'QUEUED',
+              created: now,
+              nextRun: null,
+              nextRunMinutes: null,
             }
           }
-        }
-      }),
+
+          // Fire onAfterQueue per job so dispatch hints stay accurate
+          if (this.onAfterQueue && this._tenantId) {
+            for (let i = 0; i < bucket.length; i++) {
+              try {
+                await this.onAfterQueue({
+                  tenantId: this._tenantId,
+                  queueName,
+                  jobId: results[bucket[i]!.idx]!.id,
+                })
+              } catch {
+                /* non-fatal */
+              }
+            }
+          }
+        })
+        .map(operation =>
+          operation.catch(error => {
+            // Observe failures as they arrive, but retain ownership of every
+            // accepted bucket (including its dispatch hooks) until settlement.
+            if (!failed) {
+              failed = true
+              firstFailure = error
+            }
+            throw error
+          }),
+        ),
     )
+    if (failed) {
+      throw firstFailure
+    }
     return results
   }
 
