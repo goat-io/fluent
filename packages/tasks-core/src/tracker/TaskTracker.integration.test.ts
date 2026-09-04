@@ -9,6 +9,7 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from 'vitest'
 import {
   type RedisClient,
@@ -137,23 +138,24 @@ describe('TaskTracker with Redis Integration Tests', () => {
         received.push({ ...state })
       })
 
-      // Give subscription time to set up
-      await new Promise(resolve => setTimeout(resolve, 100))
+      try {
+        // Publish already joins subscription readiness; creation receipts order
+        // persistence before updates. Delivery on the subscriber is asynchronous.
+        await tracker.start(taskId, 'tenant-1', 'Starting...')
+        await tracker.progress(taskId, 'tenant-1', 50, 'Halfway')
+        await tracker.complete(taskId, 'tenant-1', { done: true })
 
-      // Update task
-      await tracker.start(taskId, 'tenant-1', 'Starting...')
-      await tracker.progress(taskId, 'tenant-1', 50, 'Halfway')
-      await tracker.complete(taskId, 'tenant-1', { done: true })
-
-      // Wait for messages
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      // Verify we received updates
-      expect(received.length).toBeGreaterThan(0)
-      expect(received.some(s => s.status === 'RUNNING')).toBe(true)
-      expect(received.some(s => s.status === 'COMPLETED')).toBe(true)
-
-      unsubscribe()
+        await vi.waitFor(
+          () => {
+            expect(received.length).toBeGreaterThan(0)
+            expect(received.some(s => s.status === 'RUNNING')).toBe(true)
+            expect(received.some(s => s.status === 'COMPLETED')).toBe(true)
+          },
+          { timeout: 5000, interval: 20 },
+        )
+      } finally {
+        unsubscribe()
+      }
     })
 
     it('should isolate Pub/Sub by tenant', async () => {

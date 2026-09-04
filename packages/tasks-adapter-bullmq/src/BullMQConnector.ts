@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
 import { Ids, Memo } from '@goatlab/js-utils'
 import type {
   ShouldQueue,
@@ -9,6 +11,15 @@ import type {
 import type { ConnectionOptions, JobsOptions } from 'bullmq'
 import { type Job, Queue, Worker } from 'bullmq'
 import type { Cluster, Redis, RedisOptions } from 'ioredis'
+import type {
+  DispatchJob,
+  DispatchOutcome,
+  DispatchParameters,
+  DispatchResult,
+  ListenerOutcome,
+  ListenerWorker,
+  OwnedDispatch,
+} from './BullMQConnector.types.js'
 
 // Default configuration constants
 const DEFAULT_HOST = 'localhost'
@@ -91,6 +102,10 @@ export class BullMQConnector implements TaskConnector<object> {
   private readonly defaultJobOptions: JobsOptions
   private readonly queues: Map<string, Queue> = new Map()
   private readonly workers: Map<string, Worker> = new Map()
+  private readonly dispatches = new Set<OwnedDispatch>()
+  private dispatchFenced = false
+  private dispatchFailureOrder = 0
+  private closePromise?: Promise<void>
   private readonly _tenantId?: string
   private readonly _prefix: string
   private readonly config: BullMQConnectorConfig
@@ -372,7 +387,37 @@ export class BullMQConnector implements TaskConnector<object> {
    * Stops all workers and closes all queue connections.
    * Also disconnects the shared ioredis client if one was created.
    */
-  async close(): Promise<void> {
+  close(): Promise<void> {
+    if (this.closePromise) {
+      return this.closePromise
+    }
+    this.dispatchFenced = true
+    const admitted = [...this.dispatches]
+    // Publish the exact promise before any reentrant resource callbacks.
+    this.closePromise = Promise.resolve().then(async () => {
+      // Outcomes are observed, non-rejecting records. Joining them includes
+      // handler, renewal, ACK and temporary-worker cleanup settlement.
+      const outcomes = await Promise.all(admitted.map(record => record.outcome))
+      let failure: DispatchOutcome = { ok: true }
+      for (const outcome of outcomes) {
+        if (
+          outcome.ok === false &&
+          (failure.ok === true || outcome.order < failure.order)
+        ) {
+          failure = outcome
+        }
+      }
+      if (failure.ok === false) {
+        throw failure.error
+      }
+      // This is only a dispatch barrier. Legacy workers, escaped producers
+      // and shared-client children are not yet globally owned by this phase.
+      await this.closeResources()
+    })
+    return this.closePromise
+  }
+
+  private async closeResources(): Promise<void> {
     const closePromises: Promise<void>[] = []
 
     for (const worker of this.workers.values()) {
@@ -545,52 +590,69 @@ export class BullMQConnector implements TaskConnector<object> {
 
     const results: Omit<TaskStatus, 'payload'>[] = new Array(jobs.length)
     const now = new Date().toISOString()
+    let failed = false
+    let firstFailure: unknown
 
-    await Promise.all(
-      Array.from(byQueue.entries()).map(async ([queueName, bucket]) => {
-        const queue = this.getQueue(queueName)
-        const bulk = bucket.map(({ job }) => ({
-          name: queueName,
-          data: job.taskBody,
-          opts: {
-            jobId: job.uniqueTaskName,
-            ...this.defaultJobOptions,
-            ...(job.opts ?? {}),
-          },
-        }))
-        const enqueued = await queue.addBulk(bulk)
-
-        for (let i = 0; i < bucket.length; i++) {
-          const { idx } = bucket[i]!
-          const j = enqueued[i]!
-          results[idx] = {
-            id: `${queueName}:${j.id}`,
+    await Promise.allSettled(
+      Array.from(byQueue.entries())
+        .map(async ([queueName, bucket]) => {
+          const queue = this.getQueue(queueName)
+          const bulk = bucket.map(({ job }) => ({
             name: queueName,
-            output: '',
-            attempts: 0,
-            status: 'QUEUED',
-            created: now,
-            nextRun: null,
-            nextRunMinutes: null,
-          }
-        }
+            data: job.taskBody,
+            opts: {
+              jobId: job.uniqueTaskName,
+              ...this.defaultJobOptions,
+              ...(job.opts ?? {}),
+            },
+          }))
+          const enqueued = await queue.addBulk(bulk)
 
-        // Fire onAfterQueue per job so dispatch hints stay accurate
-        if (this.onAfterQueue && this._tenantId) {
           for (let i = 0; i < bucket.length; i++) {
-            try {
-              await this.onAfterQueue({
-                tenantId: this._tenantId,
-                queueName,
-                jobId: results[bucket[i]!.idx]!.id,
-              })
-            } catch {
-              /* non-fatal */
+            const { idx } = bucket[i]!
+            const j = enqueued[i]!
+            results[idx] = {
+              id: `${queueName}:${j.id}`,
+              name: queueName,
+              output: '',
+              attempts: 0,
+              status: 'QUEUED',
+              created: now,
+              nextRun: null,
+              nextRunMinutes: null,
             }
           }
-        }
-      }),
+
+          // Fire onAfterQueue per job so dispatch hints stay accurate
+          if (this.onAfterQueue && this._tenantId) {
+            for (let i = 0; i < bucket.length; i++) {
+              try {
+                await this.onAfterQueue({
+                  tenantId: this._tenantId,
+                  queueName,
+                  jobId: results[bucket[i]!.idx]!.id,
+                })
+              } catch {
+                /* non-fatal */
+              }
+            }
+          }
+        })
+        .map(operation =>
+          operation.catch(error => {
+            // Observe failures as they arrive, but retain ownership of every
+            // accepted bucket (including its dispatch hooks) until settlement.
+            if (!failed) {
+              failed = true
+              firstFailure = error
+            }
+            throw error
+          }),
+        ),
     )
+    if (failed) {
+      throw firstFailure
+    }
     return results
   }
 
@@ -726,7 +788,21 @@ export class BullMQConnector implements TaskConnector<object> {
     defaultConcurrency?: number
   }): Promise<{ stop: () => Promise<void>; isRunning: () => boolean }> {
     const { tasks, defaultConcurrency = DEFAULT_CONCURRENCY } = params
-    const workers: Worker[] = []
+    const workers: ListenerWorker[] = []
+    let running = true
+    let failure: ListenerOutcome = { ok: true }
+    let stopPromise: Promise<void> | undefined
+    const recordFailure = (error: unknown): void => {
+      running = false
+      if (failure.ok) {
+        failure = { ok: false, error }
+      }
+    }
+    const throwIfFailed = (): void => {
+      if (failure.ok === false) {
+        throw failure.error
+      }
+    }
 
     for (const task of tasks) {
       const concurrency = task.concurrency ?? defaultConcurrency
@@ -738,25 +814,79 @@ export class BullMQConnector implements TaskConnector<object> {
           connection: this.connectionOptions,
           concurrency,
           prefix: this._prefix,
+          autorun: false,
         },
       )
       this.workers.set(workerKey, worker)
-      workers.push(worker)
+      // Observe startup immediately, including synchronous throws. Retain the
+      // run outcome: pause may finish before BullMQ installs its main loop.
+      const run = (async () => worker.run())().then<
+        ListenerOutcome,
+        ListenerOutcome
+      >(
+        () => ({ ok: true }),
+        error => {
+          recordFailure(error)
+          return { ok: false, error }
+        },
+      )
+      workers.push({ key: workerKey, worker, run })
     }
 
     // Give workers time to connect to Redis
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    let running = true
     return {
-      stop: async () => {
-        await Promise.all(workers.map(w => w.close()))
-        for (const task of tasks) {
-          this.workers.delete(`${this._prefix}:${task.taskName}`)
+      stop: () => {
+        if (stopPromise) {
+          return stopPromise
         }
         running = false
+        // Install memoized ownership before invoking reentrant callbacks.
+        stopPromise = Promise.resolve().then(async () => {
+          const pauses = workers.map(async ({ worker }) => {
+            try {
+              await worker.pause(false)
+            } catch (error) {
+              recordFailure(error)
+            }
+          })
+          await Promise.allSettled([
+            ...pauses,
+            ...workers.map(record => record.run),
+          ])
+          throwIfFailed()
+
+          const closes = workers.map(async ({ worker }) => {
+            // BullMQ can emit a cleanup error and still fulfill close().
+            const onError = (error: unknown) => recordFailure(error)
+            try {
+              worker.on('error', onError)
+              try {
+                await worker.close()
+              } catch (error) {
+                // Preserve this earlier error if removing the listener fails.
+                recordFailure(error)
+              } finally {
+                worker.removeListener('error', onError)
+              }
+            } catch (error) {
+              // Registration and removal are owned cleanup work too.
+              recordFailure(error)
+            }
+          })
+          await Promise.allSettled(closes)
+          throwIfFailed()
+          for (const { key, worker } of workers) {
+            if (this.workers.get(key) === worker) {
+              this.workers.delete(key)
+            }
+          }
+        })
+        return stopPromise
       },
-      isRunning: () => running && workers.every(w => !w.closing),
+      isRunning: () =>
+        running && workers.every(({ worker }) => !worker.closing),
     }
   }
 
@@ -783,19 +913,42 @@ export class BullMQConnector implements TaskConnector<object> {
    *  - Per-job try/catch — one handler failure doesn't abort the batch
    *  - moveToCompleted/Failed signature unchanged
    */
-  async processIncomingDispatch(params: {
-    handleTask: (queueName: string, data: unknown) => Promise<unknown>
-    timeBudgetMs?: number
-    validQueueNames?: Set<string>
-    batchSize?: number
-    concurrency?: number
-    hint?: {
-      tenantId?: string
-      queueName?: string
-      jobId?: string
-      data?: unknown
+  processIncomingDispatch(params: DispatchParameters): Promise<DispatchResult> {
+    if (this.dispatchFenced) {
+      return Promise.reject(new Error('Manual dispatch admission is closed'))
     }
-  }): Promise<{ processed: number; failed: number }> {
+    let resolve!: (result: DispatchResult) => void
+    let reject!: (error: unknown) => void
+    const result = new Promise<DispatchResult>((yes, no) => {
+      resolve = yes
+      reject = no
+    })
+    const record: OwnedDispatch = {
+      outcome: result.then<DispatchOutcome, DispatchOutcome>(
+        () => {
+          this.dispatches.delete(record)
+          return { ok: true }
+        },
+        error => {
+          this.dispatches.delete(record)
+          const order = this.dispatchFailureOrder
+          this.dispatchFailureOrder = order + 1
+          return { ok: false, error, order }
+        },
+      ),
+    }
+    this.dispatches.add(record)
+    // Register and observe ownership before reading a parameter getter,
+    // constructing a Worker, or invoking user code.
+    void Promise.resolve()
+      .then(() => this.runIncomingDispatch(params))
+      .then(resolve, reject)
+    return result
+  }
+
+  private async runIncomingDispatch(
+    params: DispatchParameters,
+  ): Promise<DispatchResult> {
     const { handleTask, timeBudgetMs = 25_000, validQueueNames, hint } = params
     const batchSize = Math.max(1, params.batchSize ?? 50)
     const concurrency = Math.max(
@@ -805,6 +958,22 @@ export class BullMQConnector implements TaskConnector<object> {
     const deadline = Date.now() + timeBudgetMs
     let processed = 0
     let failed = 0
+    const token = randomUUID()
+    let failure: ListenerOutcome = { ok: true }
+    let nextFailureOrder = 0
+    let firstFailureOrder = Number.POSITIVE_INFINITY
+    const hasFailed = () => failure.ok === false
+    const throwIfFailed = () => {
+      if (failure.ok === false) {
+        throw failure.error
+      }
+    }
+    const capture = (error: unknown, order = nextFailureOrder++) => {
+      if (order < firstFailureOrder) {
+        firstFailureOrder = order
+        failure = { ok: false, error }
+      }
+    }
 
     // Determine which queues to drain (unchanged from v1)
     const queueNames = validQueueNames
@@ -823,7 +992,7 @@ export class BullMQConnector implements TaskConnector<object> {
     }
 
     for (const queueName of queueNames) {
-      if (Date.now() >= deadline) {
+      if (Date.now() >= deadline || hasFailed()) {
         break
       }
 
@@ -833,6 +1002,56 @@ export class BullMQConnector implements TaskConnector<object> {
         autorun: false,
       })
 
+      const owned = new Set<DispatchJob>()
+      const duration = tempWorker.opts.lockDuration!
+      const own = (job: Job): DispatchJob => {
+        const record: DispatchJob = {
+          job,
+          chain: Promise.resolve(),
+          acknowledging: false,
+          terminal: false,
+          uncertain: false,
+        }
+        owned.add(record)
+        let nextRenewalAt = performance.now() + duration / 2
+        const schedule = () => {
+          if (record.terminal || record.uncertain) {
+            return
+          }
+          record.timer = setTimeout(
+            () => {
+              record.chain = record.chain
+                .then(async () => {
+                  if (record.terminal || record.uncertain) {
+                    return
+                  }
+                  // Count latency against this interval, rather than adding it
+                  // to every renewal period. Never overlap renewal requests.
+                  nextRenewalAt = performance.now() + duration / 2
+                  const renewed = await job.extendLock(token, duration)
+                  if (renewed !== 1) {
+                    throw new Error('Manual dispatch lock renewal failed')
+                  }
+                })
+                .catch(error => {
+                  if (record.acknowledging) {
+                    // An atomic ACK may have committed before its response.
+                    // Only its successful outcome can dismiss these observations.
+                    record.provisional ??= { error, order: nextFailureOrder++ }
+                  } else {
+                    record.uncertain = true
+                    capture(error)
+                  }
+                })
+                .then(schedule)
+            },
+            Math.max(0, nextRenewalAt - performance.now()),
+          )
+        }
+        schedule()
+        return record
+      }
+
       try {
         // Wait for the Worker's ioredis connection to be ready before
         // calling getNextJob — otherwise it hangs or silently returns null
@@ -840,7 +1059,7 @@ export class BullMQConnector implements TaskConnector<object> {
         // (Existing fix from v1; just as critical for parallel calls.)
         await tempWorker.waitUntilReady()
 
-        while (Date.now() < deadline) {
+        while (Date.now() < deadline && !hasFailed()) {
           // ── PARALLEL PULL ─────────────────────────────────────────
           // Issue `batchSize` getNextJob calls in parallel. Each returns
           // a Job or null. We filter nulls — that's how we know the queue
@@ -848,14 +1067,23 @@ export class BullMQConnector implements TaskConnector<object> {
           //
           // Note: BullMQ's getNextJob is atomic (Lua script), so multiple
           // parallel calls won't return the same job to two callers.
-          const pulled = await Promise.all(
+          const pulled = await Promise.allSettled(
             Array.from({ length: batchSize }, () =>
-              tempWorker.getNextJob('dispatch'),
+              Promise.resolve()
+                .then(() => tempWorker.getNextJob(token))
+                .then(job => (job ? own(job) : undefined))
+                .catch(error => {
+                  capture(error)
+                  throw error
+                }),
             ),
           )
-          const jobs = pulled.filter(
-            (j): j is NonNullable<typeof j> => j != null,
-          )
+          const jobs: DispatchJob[] = []
+          for (const result of pulled) {
+            if (result.status === 'fulfilled' && result.value) {
+              jobs.push(result.value)
+            }
+          }
           if (jobs.length === 0) {
             break // queue empty
           }
@@ -875,20 +1103,35 @@ export class BullMQConnector implements TaskConnector<object> {
           for (let off = 0; off < jobs.length; off += concurrency) {
             const chunk = jobs.slice(off, off + concurrency)
             const settled = await Promise.allSettled(
-              chunk.map(j => handleTask(queueName, j.data)),
+              chunk.map(record =>
+                Promise.resolve().then(() => {
+                  // A queued job must not begin side effects after losing its
+                  // lease. Already-running handlers are still joined.
+                  if (record.uncertain) {
+                    return
+                  }
+                  return handleTask(queueName, record.job.data)
+                }),
+              ),
             )
             for (let i = 0; i < settled.length; i++) {
               const r = settled[i]!
-              results[off + i] =
-                r.status === 'fulfilled'
-                  ? { ok: true, value: r.value }
-                  : {
-                      ok: false,
-                      error:
-                        r.reason instanceof Error
-                          ? r.reason
-                          : new Error(String(r.reason)),
-                    }
+              if (r.status === 'fulfilled') {
+                results[off + i] = { ok: true, value: r.value }
+              } else {
+                let error: Error
+                try {
+                  error =
+                    r.reason instanceof Error
+                      ? r.reason
+                      : new Error(String(r.reason))
+                } catch {
+                  error = new Error(
+                    'Task handler failed with an unprintable rejection',
+                  )
+                }
+                results[off + i] = { ok: false, error }
+              }
             }
           }
 
@@ -900,56 +1143,73 @@ export class BullMQConnector implements TaskConnector<object> {
           // Promise.allSettled here too — if one ack fails (e.g. PG hiccup
           // in sodium's task handler that already wrote to PG before the
           // handler returned), we don't want to lose track of the others.
-          const ackResults = await Promise.allSettled(
-            jobs.map((j, i): Promise<unknown> => {
+          await Promise.allSettled(
+            jobs.map(async (record, i) => {
               const r = results[i]!
-              if (r.ok === true) {
-                return j.moveToCompleted(
-                  r.value,
-                  j.token || '0',
-                  false,
-                ) as Promise<unknown>
+              // Join pre-ACK renewal first; that failure cannot be dismissed by
+              // a later ACK. Keep renewal independent while ACK is in flight.
+              await record.chain
+              if (record.uncertain) {
+                return
               }
-              return j.moveToFailed(
-                r.error,
-                j.token || '0',
-                false,
-              ) as Promise<unknown>
+              record.acknowledging = true
+              try {
+                await Promise.resolve().then(async () => {
+                  if (r.ok === true) {
+                    await record.job.moveToCompleted(r.value, token, false)
+                    processed++
+                  } else {
+                    await record.job.moveToFailed(r.error, token, false)
+                    failed++
+                  }
+                  record.terminal = true
+                  if (r.ok === false) {
+                    try {
+                      const job = record.job
+                      console.warn(
+                        `[BullMQConnector] processIncomingDispatch: handler failed for job ${job.id} (${job.name}) on ${queueName} (attempt ${job.attemptsMade}): ${r.error.message}`,
+                      )
+                    } catch {
+                      // Diagnostics cannot undo an acknowledged transition or
+                      // strand other accepted jobs.
+                    }
+                  }
+                })
+              } catch (error) {
+                record.uncertain = true
+                capture(error)
+              } finally {
+                clearTimeout(record.timer)
+                await record.chain
+                if (!record.terminal && record.provisional) {
+                  capture(record.provisional.error, record.provisional.order)
+                }
+                if (record.terminal) {
+                  owned.delete(record)
+                }
+              }
             }),
           )
-
-          // Tally — count ack success, not handler success, since a job
-          // whose handler succeeded but whose ack failed will be retried
-          // by BullMQ's stalled-job recovery (correct behaviour).
-          for (let i = 0; i < jobs.length; i++) {
-            if (ackResults[i]!.status === 'rejected') {
-              // Ack failed — log via stderr (no logger here) and skip tally
-              // BullMQ stalled-job recovery will redeliver
-              // eslint-disable-next-line no-console
-              console.error(
-                `[BullMQConnector] processIncomingDispatch: ack failed for job ${jobs[i]!.id} on ${queueName}`,
-                (ackResults[i] as PromiseRejectedResult).reason,
-              )
-            } else if (results[i]!.ok) {
-              processed++
-            } else {
-              failed++
-              // Surface the handler failure — without this the error is only
-              // stored in the job's failedReason and operators see opaque
-              // `failed=N` counters with no way to diagnose retry storms.
-              const err = (results[i] as { ok: false; error: Error }).error
-              // eslint-disable-next-line no-console
-              console.warn(
-                `[BullMQConnector] processIncomingDispatch: handler failed for job ${jobs[i]!.id} (${jobs[i]!.name}) on ${queueName} (attempt ${jobs[i]!.attemptsMade}): ${err.message}`,
-              )
-            }
-          }
         }
+      } catch (error) {
+        capture(error)
       } finally {
-        await tempWorker.close()
+        for (const record of owned) {
+          // Prevent a pending renewal from scheduling another timer during
+          // exceptional cleanup, after the handler/ACK joins above.
+          record.uncertain = !record.terminal
+          clearTimeout(record.timer)
+        }
+        await Promise.allSettled([...owned].map(record => record.chain))
+        try {
+          await tempWorker.close()
+        } catch (error) {
+          capture(error)
+        }
       }
     }
 
+    throwIfFailed()
     return { processed, failed }
   }
 }

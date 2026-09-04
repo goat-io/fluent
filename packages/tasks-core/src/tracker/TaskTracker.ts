@@ -27,6 +27,7 @@
 
 import { Ids } from '@goatlab/js-utils'
 import { IngestBuffer } from './buffer/IngestBuffer'
+import type { CreationReceipt, TrackerOutcome } from './TaskTracker.types'
 import type {
   CreateTrackedTaskOptions,
   ListByOwnerOptions,
@@ -43,6 +44,14 @@ export class TaskTracker {
   private readonly config: TaskTrackerConfig
   private readonly buffer: IngestBuffer<TrackedTaskState>
   private _isShutdown = false
+  private readonly receipts = new WeakMap<TrackedTaskState, CreationReceipt>()
+  private readonly pendingCreates = new Map<
+    string,
+    Map<string, Set<CreationReceipt>>
+  >()
+  private readonly operations = new Set<Promise<TrackerOutcome>>()
+  private failureOrder = 0
+  private shutdownPromise?: Promise<void>
 
   constructor(
     connector: TaskTrackerConnector,
@@ -59,11 +68,140 @@ export class TaskTracker {
     }
 
     // Initialize buffer with connector's batch create
-    this.buffer = new IngestBuffer(tasks => this.connector.createBatch(tasks), {
+    this.buffer = new IngestBuffer(tasks => this.persistCreates(tasks), {
       flushIntervalMs: this.config.flushIntervalMs,
       flushThreshold: this.config.flushThreshold,
       maxConcurrent: this.config.maxConcurrentFlushes,
       strategy: this.config.bufferStrategy,
+    })
+  }
+
+  private failure(error: unknown): TrackerOutcome {
+    const order = this.failureOrder
+    this.failureOrder = order + 1
+    return { ok: false, error, order }
+  }
+
+  private own<T>(callback: () => Promise<T>): Promise<T> {
+    let resolve!: (value: T | PromiseLike<T>) => void
+    let reject!: (error: unknown) => void
+    const result = new Promise<T>((yes, no) => {
+      resolve = yes
+      reject = no
+    })
+    const outcome = result.then(
+      () => {
+        this.operations.delete(outcome)
+        return { ok: true } as const
+      },
+      error => {
+        this.operations.delete(outcome)
+        return this.failure(error)
+      },
+    )
+    this.operations.add(outcome)
+    // Registration precedes getters and callbacks, including reentrant shutdown.
+    try {
+      resolve(callback())
+    } catch (error) {
+      reject(error)
+    }
+    return result
+  }
+
+  private receiptFor(state: TrackedTaskState): CreationReceipt {
+    let settle!: (outcome: TrackerOutcome) => void
+    const outcome = new Promise<TrackerOutcome>(resolve => {
+      settle = resolve
+    })
+    const receipt = { outcome, settle, settled: false }
+    this.receipts.set(state, receipt)
+    let tenant = this.pendingCreates.get(state.tenantId)
+    if (!tenant) {
+      tenant = new Map()
+      this.pendingCreates.set(state.tenantId, tenant)
+    }
+    let task = tenant.get(state.id)
+    if (!task) {
+      task = new Set()
+      tenant.set(state.id, task)
+    }
+    task.add(receipt)
+    return receipt
+  }
+
+  private settleReceipt(
+    receipt: CreationReceipt,
+    outcome: TrackerOutcome,
+  ): void {
+    if (!receipt.settled) {
+      receipt.settled = true
+      receipt.settle(outcome)
+    }
+  }
+
+  private async persistCreates(states: TrackedTaskState[]): Promise<void> {
+    try {
+      await this.connector.createBatch(states)
+    } catch (error) {
+      const failure = this.failure(error)
+      for (const state of states) {
+        const receipt = this.receipts.get(state)
+        if (receipt) {
+          this.settleReceipt(receipt, failure)
+        }
+      }
+      // The buffer owns its existing requeue policy. Failed receipts remain
+      // visible until this exact state is successfully persisted by a retry.
+      throw error
+    }
+    for (const state of states) {
+      const receipt = this.receipts.get(state)
+      if (!receipt) {
+        continue
+      }
+      this.settleReceipt(receipt, { ok: true })
+      const tenant = this.pendingCreates.get(state.tenantId)
+      const task = tenant?.get(state.id)
+      task?.delete(receipt)
+      if (task?.size === 0) {
+        tenant?.delete(state.id)
+      }
+      if (tenant?.size === 0) {
+        this.pendingCreates.delete(state.tenantId)
+      }
+      this.receipts.delete(state)
+    }
+  }
+
+  private async join(
+    outcomes: Iterable<Promise<TrackerOutcome>>,
+  ): Promise<void> {
+    const results = await Promise.all(outcomes)
+    let first: Extract<TrackerOutcome, { ok: false }> | undefined
+    for (const result of results) {
+      if (result.ok === false && (!first || result.order < first.order)) {
+        first = result
+      }
+    }
+    if (first) {
+      throw first.error
+    }
+  }
+
+  private mutate(
+    taskId: string,
+    tenantId: string,
+    updates: () => Partial<TrackedTaskState>,
+  ): Promise<void> {
+    if (this._isShutdown) {
+      return Promise.resolve()
+    }
+    const receipts = [...(this.pendingCreates.get(tenantId)?.get(taskId) ?? [])]
+    return this.own(async () => {
+      await this.join(receipts.map(receipt => receipt.outcome))
+      await this.connector.update(taskId, tenantId, updates())
+      await this.publishUpdate(taskId, tenantId)
     })
   }
 
@@ -90,45 +228,54 @@ export class TaskTracker {
       throw new Error('TaskTracker is shutdown')
     }
 
-    let taskId: string
-    let tenant: string
-    let taskName: string
-    let taskMessage: string | undefined
-    let taskOwnerId: string | undefined
+    return this.own(async () => {
+      let taskId: string
+      let tenant: string
+      let taskName: string
+      let taskMessage: string | undefined
+      let taskOwnerId: string | undefined
 
-    if (typeof taskIdOrOptions === 'object') {
-      taskId = taskIdOrOptions.id ?? Ids.nanoId()
-      tenant = taskIdOrOptions.tenantId
-      taskName = taskIdOrOptions.name
-      taskMessage = taskIdOrOptions.message
-      taskOwnerId = taskIdOrOptions.ownerId
-    } else {
-      taskId = taskIdOrOptions
-      tenant = tenantId!
-      taskName = name!
-      taskMessage = message
-    }
+      if (typeof taskIdOrOptions === 'object') {
+        taskId = taskIdOrOptions.id ?? Ids.nanoId()
+        tenant = taskIdOrOptions.tenantId
+        taskName = taskIdOrOptions.name
+        taskMessage = taskIdOrOptions.message
+        taskOwnerId = taskIdOrOptions.ownerId
+      } else {
+        taskId = taskIdOrOptions
+        tenant = tenantId!
+        taskName = name!
+        taskMessage = message
+      }
 
-    const now = Date.now()
-    const state: TrackedTaskState = {
-      id: taskId,
-      tenantId: tenant,
-      name: taskName,
-      status: 'QUEUED',
-      progress: 0,
-      message: taskMessage,
-      ownerId: taskOwnerId,
-      createdAt: now,
-      updatedAt: now,
-    }
+      const now = Date.now()
+      const state: TrackedTaskState = {
+        id: taskId,
+        tenantId: tenant,
+        name: taskName,
+        status: 'QUEUED',
+        progress: 0,
+        message: taskMessage,
+        ownerId: taskOwnerId,
+        createdAt: now,
+        updatedAt: now,
+      }
 
-    // Add to buffer (batched write)
-    await this.buffer.add(state)
+      // Add to buffer (batched write)
+      const receipt = this.receiptFor(state)
+      try {
+        await this.buffer.add(state)
+      } catch (error) {
+        // Do not drop ownership if add failed after accepting/requeueing state.
+        this.settleReceipt(receipt, this.failure(error))
+        throw error
+      }
 
-    // Publish immediately for real-time updates
-    await this.connector.publish(tenant, taskId, state)
+      // Publish immediately for real-time updates
+      await this.connector.publish(tenant, taskId, state)
 
-    return taskId
+      return taskId
+    })
   }
 
   /**
@@ -139,19 +286,14 @@ export class TaskTracker {
     tenantId: string,
     message?: string,
   ): Promise<void> {
-    if (this._isShutdown) {
-      return
-    }
-
-    const updates: Partial<TrackedTaskState> = {
-      status: 'RUNNING',
-      progress: 0,
-      message,
-      updatedAt: Date.now(),
-    }
-
-    await this.connector.update(taskId, tenantId, updates)
-    await this.publishUpdate(taskId, tenantId)
+    return this.mutate(taskId, tenantId, () => {
+      return {
+        status: 'RUNNING',
+        progress: 0,
+        message,
+        updatedAt: Date.now(),
+      }
+    })
   }
 
   /**
@@ -179,27 +321,22 @@ export class TaskTracker {
     progressOrOptions: number | ProgressOptions,
     message?: string,
   ): Promise<void> {
-    if (this._isShutdown) {
-      return
-    }
+    return this.mutate(taskId, tenantId, () => {
+      const progressValue =
+        typeof progressOrOptions === 'number'
+          ? progressOrOptions
+          : progressOrOptions.progress
+      const messageValue =
+        typeof progressOrOptions === 'number'
+          ? message
+          : progressOrOptions.message
 
-    const progressValue =
-      typeof progressOrOptions === 'number'
-        ? progressOrOptions
-        : progressOrOptions.progress
-    const messageValue =
-      typeof progressOrOptions === 'number'
-        ? message
-        : progressOrOptions.message
-
-    const updates: Partial<TrackedTaskState> = {
-      progress: Math.min(100, Math.max(0, progressValue)),
-      message: messageValue,
-      updatedAt: Date.now(),
-    }
-
-    await this.connector.update(taskId, tenantId, updates)
-    await this.publishUpdate(taskId, tenantId)
+      return {
+        progress: Math.min(100, Math.max(0, progressValue)),
+        message: messageValue,
+        updatedAt: Date.now(),
+      }
+    })
   }
 
   /**
@@ -214,21 +351,16 @@ export class TaskTracker {
     tenantId: string,
     result?: unknown,
   ): Promise<void> {
-    if (this._isShutdown) {
-      return
-    }
-
-    const now = Date.now()
-    const updates: Partial<TrackedTaskState> = {
-      status: 'COMPLETED',
-      progress: 100,
-      result,
-      completedAt: now,
-      updatedAt: now,
-    }
-
-    await this.connector.update(taskId, tenantId, updates)
-    await this.publishUpdate(taskId, tenantId)
+    return this.mutate(taskId, tenantId, () => {
+      const now = Date.now()
+      return {
+        status: 'COMPLETED',
+        progress: 100,
+        result,
+        completedAt: now,
+        updatedAt: now,
+      }
+    })
   }
 
   /**
@@ -243,22 +375,17 @@ export class TaskTracker {
     tenantId: string,
     error: string | Error,
   ): Promise<void> {
-    if (this._isShutdown) {
-      return
-    }
+    return this.mutate(taskId, tenantId, () => {
+      const now = Date.now()
+      const errorMessage = error instanceof Error ? error.message : error
 
-    const now = Date.now()
-    const errorMessage = error instanceof Error ? error.message : error
-
-    const updates: Partial<TrackedTaskState> = {
-      status: 'FAILED',
-      error: errorMessage,
-      completedAt: now,
-      updatedAt: now,
-    }
-
-    await this.connector.update(taskId, tenantId, updates)
-    await this.publishUpdate(taskId, tenantId)
+      return {
+        status: 'FAILED',
+        error: errorMessage,
+        completedAt: now,
+        updatedAt: now,
+      }
+    })
   }
 
   /**
@@ -269,20 +396,15 @@ export class TaskTracker {
     tenantId: string,
     reason?: string,
   ): Promise<void> {
-    if (this._isShutdown) {
-      return
-    }
-
-    const now = Date.now()
-    const updates: Partial<TrackedTaskState> = {
-      status: 'CANCELLED',
-      message: reason,
-      completedAt: now,
-      updatedAt: now,
-    }
-
-    await this.connector.update(taskId, tenantId, updates)
-    await this.publishUpdate(taskId, tenantId)
+    return this.mutate(taskId, tenantId, () => {
+      const now = Date.now()
+      return {
+        status: 'CANCELLED',
+        message: reason,
+        completedAt: now,
+        updatedAt: now,
+      }
+    })
   }
 
   /**
@@ -360,18 +482,38 @@ export class TaskTracker {
    * Gracefully shutdown the tracker.
    * Drains the buffer to ensure no data loss.
    */
-  async shutdown(): Promise<void> {
-    if (this._isShutdown) {
-      return
+  shutdown(): Promise<void> {
+    if (this.shutdownPromise) {
+      return this.shutdownPromise
     }
     this._isShutdown = true
-
-    // Drain the buffer
-    await this.buffer.drain()
-
-    // Close connector if supported
-    if (this.connector.close) {
-      await this.connector.close()
-    }
+    const accepted = [...this.operations]
+    // Install the shared result before invoking drain/connector callbacks.
+    this.shutdownPromise = Promise.resolve().then(async () => {
+      const drain = Promise.resolve()
+        .then(() => this.buffer.drain())
+        .then(
+          () => ({ ok: true }) as const,
+          error => {
+            const failure = this.failure(error)
+            // A terminal drain failure may precede batch processing. Release
+            // every accepted waiter with failure, never invented persistence.
+            for (const tenant of this.pendingCreates.values()) {
+              for (const task of tenant.values()) {
+                for (const receipt of task) {
+                  this.settleReceipt(receipt, failure)
+                }
+              }
+            }
+            return failure
+          },
+        )
+      await drain
+      await this.join([...accepted, drain])
+      if (this.connector.close) {
+        await this.connector.close()
+      }
+    })
+    return this.shutdownPromise
   }
 }
