@@ -9,6 +9,10 @@ import type {
 import type { ConnectionOptions, JobsOptions } from 'bullmq'
 import { type Job, Queue, Worker } from 'bullmq'
 import type { Cluster, Redis, RedisOptions } from 'ioredis'
+import type {
+  ListenerOutcome,
+  ListenerWorker,
+} from './BullMQConnector.types.js'
 
 // Default configuration constants
 const DEFAULT_HOST = 'localhost'
@@ -726,7 +730,21 @@ export class BullMQConnector implements TaskConnector<object> {
     defaultConcurrency?: number
   }): Promise<{ stop: () => Promise<void>; isRunning: () => boolean }> {
     const { tasks, defaultConcurrency = DEFAULT_CONCURRENCY } = params
-    const workers: Worker[] = []
+    const workers: ListenerWorker[] = []
+    let running = true
+    let failure: ListenerOutcome = { ok: true }
+    let stopPromise: Promise<void> | undefined
+    const recordFailure = (error: unknown): void => {
+      running = false
+      if (failure.ok) {
+        failure = { ok: false, error }
+      }
+    }
+    const throwIfFailed = (): void => {
+      if (failure.ok === false) {
+        throw failure.error
+      }
+    }
 
     for (const task of tasks) {
       const concurrency = task.concurrency ?? defaultConcurrency
@@ -738,25 +756,79 @@ export class BullMQConnector implements TaskConnector<object> {
           connection: this.connectionOptions,
           concurrency,
           prefix: this._prefix,
+          autorun: false,
         },
       )
       this.workers.set(workerKey, worker)
-      workers.push(worker)
+      // Observe startup immediately, including synchronous throws. Retain the
+      // run outcome: pause may finish before BullMQ installs its main loop.
+      const run = (async () => worker.run())().then<
+        ListenerOutcome,
+        ListenerOutcome
+      >(
+        () => ({ ok: true }),
+        error => {
+          recordFailure(error)
+          return { ok: false, error }
+        },
+      )
+      workers.push({ key: workerKey, worker, run })
     }
 
     // Give workers time to connect to Redis
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    let running = true
     return {
-      stop: async () => {
-        await Promise.all(workers.map(w => w.close()))
-        for (const task of tasks) {
-          this.workers.delete(`${this._prefix}:${task.taskName}`)
+      stop: () => {
+        if (stopPromise) {
+          return stopPromise
         }
         running = false
+        // Install memoized ownership before invoking reentrant callbacks.
+        stopPromise = Promise.resolve().then(async () => {
+          const pauses = workers.map(async ({ worker }) => {
+            try {
+              await worker.pause(false)
+            } catch (error) {
+              recordFailure(error)
+            }
+          })
+          await Promise.allSettled([
+            ...pauses,
+            ...workers.map(record => record.run),
+          ])
+          throwIfFailed()
+
+          const closes = workers.map(async ({ worker }) => {
+            // BullMQ can emit a cleanup error and still fulfill close().
+            const onError = (error: unknown) => recordFailure(error)
+            try {
+              worker.on('error', onError)
+              try {
+                await worker.close()
+              } catch (error) {
+                // Preserve this earlier error if removing the listener fails.
+                recordFailure(error)
+              } finally {
+                worker.removeListener('error', onError)
+              }
+            } catch (error) {
+              // Registration and removal are owned cleanup work too.
+              recordFailure(error)
+            }
+          })
+          await Promise.allSettled(closes)
+          throwIfFailed()
+          for (const { key, worker } of workers) {
+            if (this.workers.get(key) === worker) {
+              this.workers.delete(key)
+            }
+          }
+        })
+        return stopPromise
       },
-      isRunning: () => running && workers.every(w => !w.closing),
+      isRunning: () =>
+        running && workers.every(({ worker }) => !worker.closing),
     }
   }
 
