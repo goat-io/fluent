@@ -17,3 +17,30 @@ export interface DispatchJob {
   uncertain: boolean
   provisional?: { error: unknown; order: number }
 }
+
+export interface DispatchParameters {
+  handleTask: (queueName: string, data: unknown) => Promise<unknown>
+  timeBudgetMs?: number
+  validQueueNames?: Set<string>
+  batchSize?: number
+  concurrency?: number
+  hint?: {
+    tenantId?: string
+    queueName?: string
+    jobId?: string
+    data?: unknown
+  }
+}
+
+export interface DispatchResult {
+  processed: number
+  failed: number
+}
+
+export type DispatchOutcome =
+  | { ok: true }
+  | { ok: false; error: unknown; order: number }
+
+export interface OwnedDispatch {
+  outcome: Promise<DispatchOutcome>
+}

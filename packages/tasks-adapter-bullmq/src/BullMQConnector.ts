@@ -13,8 +13,12 @@ import { type Job, Queue, Worker } from 'bullmq'
 import type { Cluster, Redis, RedisOptions } from 'ioredis'
 import type {
   DispatchJob,
+  DispatchOutcome,
+  DispatchParameters,
+  DispatchResult,
   ListenerOutcome,
   ListenerWorker,
+  OwnedDispatch,
 } from './BullMQConnector.types.js'
 
 // Default configuration constants
@@ -98,6 +102,10 @@ export class BullMQConnector implements TaskConnector<object> {
   private readonly defaultJobOptions: JobsOptions
   private readonly queues: Map<string, Queue> = new Map()
   private readonly workers: Map<string, Worker> = new Map()
+  private readonly dispatches = new Set<OwnedDispatch>()
+  private dispatchFenced = false
+  private dispatchFailureOrder = 0
+  private closePromise?: Promise<void>
   private readonly _tenantId?: string
   private readonly _prefix: string
   private readonly config: BullMQConnectorConfig
@@ -379,7 +387,37 @@ export class BullMQConnector implements TaskConnector<object> {
    * Stops all workers and closes all queue connections.
    * Also disconnects the shared ioredis client if one was created.
    */
-  async close(): Promise<void> {
+  close(): Promise<void> {
+    if (this.closePromise) {
+      return this.closePromise
+    }
+    this.dispatchFenced = true
+    const admitted = [...this.dispatches]
+    // Publish the exact promise before any reentrant resource callbacks.
+    this.closePromise = Promise.resolve().then(async () => {
+      // Outcomes are observed, non-rejecting records. Joining them includes
+      // handler, renewal, ACK and temporary-worker cleanup settlement.
+      const outcomes = await Promise.all(admitted.map(record => record.outcome))
+      let failure: DispatchOutcome = { ok: true }
+      for (const outcome of outcomes) {
+        if (
+          outcome.ok === false &&
+          (failure.ok === true || outcome.order < failure.order)
+        ) {
+          failure = outcome
+        }
+      }
+      if (failure.ok === false) {
+        throw failure.error
+      }
+      // This is only a dispatch barrier. Legacy workers, escaped producers
+      // and shared-client children are not yet globally owned by this phase.
+      await this.closeResources()
+    })
+    return this.closePromise
+  }
+
+  private async closeResources(): Promise<void> {
     const closePromises: Promise<void>[] = []
 
     for (const worker of this.workers.values()) {
@@ -858,19 +896,42 @@ export class BullMQConnector implements TaskConnector<object> {
    *  - Per-job try/catch — one handler failure doesn't abort the batch
    *  - moveToCompleted/Failed signature unchanged
    */
-  async processIncomingDispatch(params: {
-    handleTask: (queueName: string, data: unknown) => Promise<unknown>
-    timeBudgetMs?: number
-    validQueueNames?: Set<string>
-    batchSize?: number
-    concurrency?: number
-    hint?: {
-      tenantId?: string
-      queueName?: string
-      jobId?: string
-      data?: unknown
+  processIncomingDispatch(params: DispatchParameters): Promise<DispatchResult> {
+    if (this.dispatchFenced) {
+      return Promise.reject(new Error('Manual dispatch admission is closed'))
     }
-  }): Promise<{ processed: number; failed: number }> {
+    let resolve!: (result: DispatchResult) => void
+    let reject!: (error: unknown) => void
+    const result = new Promise<DispatchResult>((yes, no) => {
+      resolve = yes
+      reject = no
+    })
+    const record: OwnedDispatch = {
+      outcome: result.then<DispatchOutcome, DispatchOutcome>(
+        () => {
+          this.dispatches.delete(record)
+          return { ok: true }
+        },
+        error => {
+          this.dispatches.delete(record)
+          const order = this.dispatchFailureOrder
+          this.dispatchFailureOrder = order + 1
+          return { ok: false, error, order }
+        },
+      ),
+    }
+    this.dispatches.add(record)
+    // Register and observe ownership before reading a parameter getter,
+    // constructing a Worker, or invoking user code.
+    void Promise.resolve()
+      .then(() => this.runIncomingDispatch(params))
+      .then(resolve, reject)
+    return result
+  }
+
+  private async runIncomingDispatch(
+    params: DispatchParameters,
+  ): Promise<DispatchResult> {
     const { handleTask, timeBudgetMs = 25_000, validQueueNames, hint } = params
     const batchSize = Math.max(1, params.batchSize ?? 50)
     const concurrency = Math.max(
