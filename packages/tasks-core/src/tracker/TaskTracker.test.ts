@@ -1,6 +1,365 @@
+// pnpm exec vitest run src/tracker/TaskTracker.test.ts
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { IngestBuffer } from './buffer/IngestBuffer'
 import { InMemoryTaskTrackerConnector } from './connectors/InMemoryConnector'
 import { TaskTracker } from './TaskTracker'
+
+function deferred<T = void>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes
+    reject = no
+  })
+  return { promise, resolve, reject }
+}
+function observe<T>(promise: Promise<T>) {
+  let settled = false
+  const result = promise.then(
+    value => {
+      settled = true
+      return { ok: true as const, value }
+    },
+    error => {
+      settled = true
+      return { ok: false as const, error }
+    },
+  )
+  return { result, settled: () => settled }
+}
+
+describe('TaskTracker accepted creation ownership', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+  function fixture(threshold = 10) {
+    const connector = new InMemoryTaskTrackerConnector()
+    const tracker = new TaskTracker(connector, {
+      flushThreshold: threshold,
+      flushIntervalMs: 1,
+      bufferStrategy: 'STATIC',
+    })
+    return { connector, tracker }
+  }
+  it.each([new Error('early drain failure'), undefined])(
+    'rejects pending creation waiters if drain fails before processing: %s',
+    async error => {
+      const { connector, tracker } = fixture()
+      await tracker.create('task', 'tenant', 'example')
+      const update = vi.spyOn(connector, 'update')
+      const close = vi.spyOn(connector, 'close')
+      const mutation = observe(tracker.complete('task', 'tenant'))
+      vi.spyOn(IngestBuffer.prototype, 'drain').mockImplementationOnce(() => {
+        throw error
+      })
+      const stop = observe(tracker.shutdown())
+      await vi.advanceTimersByTimeAsync(0)
+      const settledWithoutAnotherFlush = stop.settled()
+      // Release the old implementation's waiter so RED has no leaked promise.
+      await vi.advanceTimersByTimeAsync(1)
+      const mutationResult = await mutation.result
+      expect(await stop.result).toEqual({ ok: false, error })
+      expect(settledWithoutAnotherFlush).toBe(true)
+      expect(mutationResult).toEqual({ ok: false, error })
+      expect(update).not.toHaveBeenCalled()
+      expect(close).not.toHaveBeenCalled()
+    },
+  )
+  it.each(['start', 'progress', 'complete', 'fail', 'cancel'] as const)(
+    'waits for accepted create before %s and cannot be overwritten by late persistence',
+    async method => {
+      const { connector, tracker } = fixture()
+      const held = deferred()
+      const original = connector.createBatch.bind(connector)
+      vi.spyOn(connector, 'createBatch').mockImplementation(async states => {
+        await held.promise
+        await original(states)
+      })
+      const update = vi.spyOn(connector, 'update')
+      await tracker.create('task', 'tenant', 'example')
+      await vi.advanceTimersByTimeAsync(1)
+      const operation = observe(
+        method === 'progress'
+          ? tracker.progress('task', 'tenant', { progress: 50 })
+          : method === 'fail'
+            ? tracker.fail('task', 'tenant', 'failure')
+            : tracker[method]('task', 'tenant'),
+      )
+      await vi.advanceTimersByTimeAsync(0)
+      const premature = operation.settled()
+      const earlyUpdates = update.mock.calls.length
+      held.resolve()
+      await operation.result
+      await vi.advanceTimersByTimeAsync(20)
+      await tracker.shutdown()
+      expect(premature).toBe(false)
+      expect(earlyUpdates).toBe(0)
+      const state = await connector.get('task', 'tenant')
+      expect(method === 'progress' ? state?.progress : state?.status).toBe(
+        {
+          start: 'RUNNING',
+          progress: 50,
+          complete: 'COMPLETED',
+          fail: 'FAILED',
+          cancel: 'CANCELLED',
+        }[method],
+      )
+    },
+  )
+  it('joins every duplicate-ID receipt while unrelated tenants and IDs proceed', async () => {
+    const { connector, tracker } = fixture(1)
+    const first = deferred()
+    const second = deferred()
+    const original = connector.createBatch.bind(connector)
+    vi.spyOn(connector, 'createBatch')
+      .mockImplementationOnce(async states => {
+        await first.promise
+        await original(states)
+      })
+      .mockImplementationOnce(async states => {
+        await second.promise
+        await original(states)
+      })
+    const a = tracker.create('same', 'tenant', 'first')
+    const b = tracker.create('same', 'tenant', 'second')
+    const operation = observe(tracker.complete('same', 'tenant'))
+    await tracker.create('other', 'tenant', 'other')
+    await tracker.complete('other', 'tenant')
+    await tracker.create('same', 'other-tenant', 'other')
+    await tracker.complete('same', 'other-tenant')
+    second.resolve()
+    await b
+    await vi.advanceTimersByTimeAsync(0)
+    const premature = operation.settled()
+    first.resolve()
+    await a
+    await operation.result
+    await tracker.shutdown()
+    expect(premature).toBe(false)
+    expect((await connector.get('same', 'tenant'))?.status).toBe('COMPLETED')
+    expect((await connector.get('other', 'tenant'))?.status).toBe('COMPLETED')
+    expect((await connector.get('same', 'other-tenant'))?.status).toBe(
+      'COMPLETED',
+    )
+  })
+  it.each([new Error('persistence failed'), undefined])(
+    'rejects failed receipts, but successful automatic retry permits future calls: %s',
+    async error => {
+      const { connector, tracker } = fixture(1)
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      vi.spyOn(connector, 'createBatch').mockRejectedValueOnce(error)
+      const update = vi.spyOn(connector, 'update')
+      await tracker.create('task', 'tenant', 'example')
+      const failed = await observe(tracker.start('task', 'tenant')).result
+      const earlyUpdates = update.mock.calls.length
+      await tracker.create('retry-trigger', 'tenant', 'retry')
+      await tracker.complete('task', 'tenant')
+      await tracker.shutdown()
+      expect(failed).toEqual({ ok: false, error })
+      expect(earlyUpdates).toBe(0)
+      expect((await connector.get('task', 'tenant'))?.status).toBe('COMPLETED')
+    },
+  )
+  it('owns a create initial publish and a mutation publish through shared shutdown', async () => {
+    const { connector, tracker } = fixture(1)
+    const held = deferred()
+    vi.spyOn(connector, 'publish').mockImplementation(() => held.promise)
+    const close = vi.spyOn(connector, 'close')
+    const creation = tracker.create('task', 'tenant', 'example')
+    const mutation = tracker.complete('task', 'tenant')
+    const stopping = tracker.shutdown()
+    const same = tracker.shutdown()
+    const watched = observe(stopping)
+    await vi.advanceTimersByTimeAsync(20)
+    const earlyClose = close.mock.calls.length
+    const premature = watched.settled()
+    held.resolve()
+    await Promise.all([creation, mutation, stopping])
+    expect(same).toBe(stopping)
+    expect(premature).toBe(false)
+    expect(earlyClose).toBe(0)
+    expect(close).toHaveBeenCalledOnce()
+  })
+  it('registers create before input getter reenters shutdown', async () => {
+    const { connector, tracker } = fixture()
+    const held = deferred()
+    let reentrant: Promise<void> | undefined
+    vi.spyOn(connector, 'publish').mockImplementation(() => held.promise)
+    const close = vi.spyOn(connector, 'close')
+    const creation = observe(
+      tracker.create({
+        get id(): string {
+          reentrant = tracker.shutdown()
+          return 'task'
+        },
+        tenantId: 'tenant',
+        name: 'example',
+      }),
+    )
+    const stopping = tracker.shutdown()
+    await vi.advanceTimersByTimeAsync(20)
+    const earlyClose = close.mock.calls.length
+    held.resolve()
+    const created = await creation.result
+    await stopping
+    expect(created.ok).toBe(true)
+    expect(reentrant).toBe(stopping)
+    expect(earlyClose).toBe(0)
+    expect((await connector.get('task', 'tenant'))?.name).toBe('example')
+  })
+  it('retains resources on drain failure and joins an accepted held publish', async () => {
+    const { connector, tracker } = fixture()
+    const error = new Error('drain failure')
+    const held = deferred()
+    vi.spyOn(connector, 'createBatch').mockRejectedValue(error)
+    vi.spyOn(connector, 'publish').mockImplementation(() => held.promise)
+    const close = vi.spyOn(connector, 'close')
+    const creation = tracker.create('task', 'tenant', 'example')
+    const mutation = observe(tracker.complete('task', 'tenant'))
+    const stopping = observe(tracker.shutdown())
+    await vi.advanceTimersByTimeAsync(0)
+    const premature = stopping.settled()
+    held.resolve()
+    await creation
+    expect(await mutation.result).toEqual({ ok: false, error })
+    expect(await stopping.result).toEqual({ ok: false, error })
+    expect(premature).toBe(false)
+    expect(close).not.toHaveBeenCalled()
+  })
+  it('preserves the first observed duplicate receipt failure including undefined and joins the held sibling', async () => {
+    const { connector, tracker } = fixture(1)
+    const first = deferred()
+    const second = deferred()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(connector, 'createBatch')
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise)
+    const update = vi.spyOn(connector, 'update')
+    const a = tracker.create('task', 'tenant', 'first')
+    const b = tracker.create('task', 'tenant', 'second')
+    const waiting = observe(tracker.complete('task', 'tenant'))
+    second.reject(undefined)
+    await b
+    await vi.advanceTimersByTimeAsync(0)
+    const premature = waiting.settled()
+    first.reject(new Error('later'))
+    await a
+    expect(await waiting.result).toEqual({ ok: false, error: undefined })
+    expect(premature).toBe(false)
+    expect(update).not.toHaveBeenCalled()
+    // Existing buffer retry on drain persists the same objects, not new jobs.
+    await tracker.shutdown()
+  })
+  it('owns a throwing input getter and held sibling publish through failed shutdown', async () => {
+    const { connector, tracker } = fixture(1)
+    const held = deferred()
+    vi.spyOn(connector, 'publish').mockImplementation(() => held.promise)
+    const close = vi.spyOn(connector, 'close')
+    const sibling = tracker.create('sibling', 'tenant', 'example')
+    let reentrant: Promise<void> | undefined
+    const error = new Error('getter')
+    const creation = observe(
+      tracker.create({
+        get id(): string {
+          reentrant = tracker.shutdown()
+          throw error
+        },
+        tenantId: 'tenant',
+        name: 'example',
+      }),
+    )
+    const stopping = observe(tracker.shutdown())
+    await vi.advanceTimersByTimeAsync(20)
+    const premature = stopping.settled()
+    held.resolve()
+    await sibling
+    expect(await creation.result).toEqual({ ok: false, error })
+    expect(await stopping.result).toEqual({ ok: false, error })
+    expect(reentrant).toBe(tracker.shutdown())
+    expect(premature).toBe(false)
+    expect(close).not.toHaveBeenCalled()
+  })
+  it('captures synchronous createBatch failure before reentrant mutation and permits a later successful retry', async () => {
+    const { connector, tracker } = fixture(1)
+    const error = new Error('sync batch')
+    let reentrant: ReturnType<typeof observe<void>> | undefined
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(connector, 'createBatch').mockImplementationOnce(() => {
+      reentrant = observe(tracker.start('task', 'tenant'))
+      throw error
+    })
+    const update = vi.spyOn(connector, 'update')
+    await tracker.create('task', 'tenant', 'example')
+    expect(await reentrant?.result).toEqual({ ok: false, error })
+    expect(update).not.toHaveBeenCalled()
+    await tracker.create('retry', 'tenant', 'retry')
+    await tracker.start('task', 'tenant')
+    await tracker.shutdown()
+  })
+  it('joins held mutation publication even when another accepted mutation fails synchronously', async () => {
+    const { connector, tracker } = fixture(1)
+    await tracker.create('a', 'tenant', 'a')
+    await tracker.create('b', 'tenant', 'b')
+    const held = deferred()
+    vi.spyOn(connector, 'publish').mockImplementation(() => held.promise)
+    vi.spyOn(connector, 'update').mockImplementationOnce(() => {
+      throw undefined
+    })
+    const close = vi.spyOn(connector, 'close')
+    const failed = observe(tracker.complete('a', 'tenant'))
+    const sibling = tracker.complete('b', 'tenant')
+    const stopping = observe(tracker.shutdown())
+    await vi.advanceTimersByTimeAsync(0)
+    const premature = stopping.settled()
+    held.resolve()
+    await sibling
+    expect(await failed.result).toEqual({ ok: false, error: undefined })
+    expect(await stopping.result).toEqual({ ok: false, error: undefined })
+    expect(premature).toBe(false)
+    expect(close).not.toHaveBeenCalled()
+  })
+  it('fences later creates before getters and preserves later mutation no-ops', async () => {
+    const { connector, tracker } = fixture()
+    await tracker.shutdown()
+    const getter = vi.fn(() => 'task')
+    const update = vi.spyOn(connector, 'update')
+    await expect(
+      tracker.create({
+        get id() {
+          return getter()
+        },
+        tenantId: 'tenant',
+        name: 'example',
+      }),
+    ).rejects.toThrow('shutdown')
+    await tracker.progress('task', 'tenant', {
+      get progress(): number {
+        throw new Error('must not read')
+      },
+    })
+    expect(getter).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+  })
+  it('retains resources and memoizes shutdown when an accepted create publication rejects with undefined', async () => {
+    const { connector, tracker } = fixture(1)
+    const held = deferred()
+    vi.spyOn(connector, 'publish').mockImplementation(() => held.promise)
+    const close = vi.spyOn(connector, 'close')
+    const creation = observe(tracker.create('task', 'tenant', 'example'))
+    const stop = tracker.shutdown()
+    const stopping = observe(stop)
+    await vi.advanceTimersByTimeAsync(20)
+    expect(stopping.settled()).toBe(false)
+    held.reject(undefined)
+    expect(await creation.result).toEqual({ ok: false, error: undefined })
+    expect(await stopping.result).toEqual({ ok: false, error: undefined })
+    expect(tracker.shutdown()).toBe(stop)
+    expect(close).not.toHaveBeenCalled()
+  })
+})
 
 describe('TaskTracker', () => {
   let connector: InMemoryTaskTrackerConnector
