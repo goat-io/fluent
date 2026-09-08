@@ -7,6 +7,10 @@ import 'linkify-plugin-mention'
 import 'linkify-plugin-ticket'
 import { Opts } from 'linkifyjs'
 import sanitizeHtml from 'sanitize-html'
+import {
+  normalizeContentHtml,
+  parseListNumber,
+} from './normalizeContentHtml.js'
 
 const isEmptyHTML = (html: string) => {
   let isEmpty = true
@@ -87,6 +91,10 @@ export class HtmlProcessor {
     return isEmptyHTML(html)
   }
 
+  static normalizeContentHtml(content: string): string {
+    return normalizeContentHtml(content)
+  }
+
   static extractTextFromHTML(html: string): string {
     let textContent = ''
 
@@ -130,21 +138,41 @@ export class HtmlProcessor {
   getParsedHtml() {
     linkifyRegisterKeywords(this.keywords)
 
-    const sanitized = sanitizeHtml(this.html, {
-      allowedTags: ['b', 'i', 'em', 'strong', 'a', 'p', 'div', 'br'],
+    const sanitized = sanitizeHtml(normalizeContentHtml(this.html), {
+      allowedTags: [
+        'b',
+        'i',
+        'em',
+        'strong',
+        'a',
+        'p',
+        'div',
+        'br',
+        'ul',
+        'ol',
+        'li',
+      ],
       allowedAttributes: {
         a: ['href'],
         div: ['style'],
+        ol: ['start'],
+        li: ['value'],
       },
       transformTags: {
-        br: (_tagname, _attr) => {
-          return {
-            tagName: 'div',
-            attribs: {
-              style: 'display:flex; margin:5px 0;',
-            },
-          }
-        },
+        ol: (tagName, attribs) => ({
+          tagName,
+          attribs:
+            parseListNumber(attribs.start) !== undefined
+              ? { start: attribs.start! }
+              : {},
+        }),
+        li: (tagName, attribs) => ({
+          tagName,
+          attribs:
+            parseListNumber(attribs.value) !== undefined
+              ? { value: attribs.value! }
+              : {},
+        }),
       },
     })
     return linkifyHtml(sanitized, this.parsingOptions)
