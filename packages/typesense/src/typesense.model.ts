@@ -130,6 +130,8 @@ export interface TypesenseDocumentGeneric {
 // https://typesense.org/docs/27.0/api/search.html#query-parameters
 export interface TypesenseQuery {
   q: string
+  /** Comma-separated field:direction pairs used to order search results. */
+  sort_by?: string
   /**
    * String[] should be separated by comma
    */
