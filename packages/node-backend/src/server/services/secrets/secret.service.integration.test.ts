@@ -14,6 +14,7 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from 'vitest'
 import { SecretService } from './secret.service'
 
@@ -785,7 +786,14 @@ describe('SecretService Integration Tests', () => {
   })
 
   describe('Cache Management Tests', () => {
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
     it('should cleanup expired cache entries', async () => {
+      // Control cache age without faking timers used by async file IO.
+      const cacheCreatedAt = Date.now()
+      const clock = vi.spyOn(Date, 'now').mockReturnValue(cacheCreatedAt)
       // Create multiple services with short TTL
       const services: Array<{
         service: SecretService<{ TEST: string }>
@@ -810,8 +818,8 @@ describe('SecretService Integration Tests', () => {
         services.push({ service, filePath })
       }
 
-      // Wait for some caches to expire
-      await new Promise(resolve => setTimeout(resolve, 350))
+      // Expire only the 100/200/300ms entries, regardless of CI IO latency.
+      clock.mockReturnValue(cacheCreatedAt + 350)
 
       // Cleanup expired entries
       SecretService.cleanupExpiredCache()

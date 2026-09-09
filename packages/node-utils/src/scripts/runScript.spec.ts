@@ -9,6 +9,13 @@ describe('runScript', () => {
   let originalExit: typeof process.exit
   let processListeners: Map<string, Array<(...args: any[]) => any>>
   let exitSpy: any
+  let finishPendingScripts: Array<() => void>
+
+  // Handler assertions own script completion; elapsed time must not remove listeners.
+  const keepScriptRunning = () =>
+    new Promise<void>(resolve => {
+      finishPendingScripts.push(resolve)
+    })
 
   const getLatestProcessListener = (event: string) => {
     const listeners = processListeners.get(event) || []
@@ -22,13 +29,12 @@ describe('runScript', () => {
   }
 
   beforeEach(() => {
+    finishPendingScripts = []
     // Mock logger
     mockLogger = {
       log: vi.fn(),
       error: vi.fn(),
       warn: vi.fn(),
-      info: vi.fn(),
-      debug: vi.fn(),
     }
 
     // Mock process.exit
@@ -76,7 +82,13 @@ describe('runScript', () => {
     )
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Settle every script before restoring process.exit or starting another test.
+    for (const finish of finishPendingScripts) {
+      finish()
+    }
+    await new Promise(resolve => setImmediate(resolve))
+    vi.useRealTimers()
     // Restore process.exit
     process.exit = originalExit
 
@@ -92,7 +104,7 @@ describe('runScript', () => {
     realRemoveAllListeners('SIGHUP')
 
     processListeners.clear()
-    vi.clearAllMocks()
+    vi.restoreAllMocks()
   })
 
   describe('normal execution', () => {
@@ -171,14 +183,11 @@ describe('runScript', () => {
     })
 
     test('should handle uncaught exceptions', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
-        },
-        { logger: mockLogger },
-      )
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      runScript(keepScriptRunning, { logger: mockLogger })
 
-      // Wait for setup
+      // Reproduce a delayed event-loop turn without completing the owned script.
+      await vi.advanceTimersByTimeAsync(10)
       await new Promise(resolve => setImmediate(resolve))
 
       // Simulate uncaught exception
@@ -193,12 +202,7 @@ describe('runScript', () => {
     })
 
     test('should handle unhandled rejections', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
-        },
-        { logger: mockLogger },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger })
 
       // Wait for setup
       await new Promise(resolve => setImmediate(resolve))
@@ -234,12 +238,7 @@ describe('runScript', () => {
     test('should call onError callback on uncaught exception', async () => {
       const onError = vi.fn()
 
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
-        },
-        { logger: mockLogger, onError },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger, onError })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -252,12 +251,7 @@ describe('runScript', () => {
 
   describe('signal handling', () => {
     test('should handle SIGINT signal', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        },
-        { logger: mockLogger },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -271,12 +265,7 @@ describe('runScript', () => {
     })
 
     test('should handle SIGTERM signal', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        },
-        { logger: mockLogger },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -289,12 +278,7 @@ describe('runScript', () => {
     })
 
     test('should handle SIGHUP signal', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        },
-        { logger: mockLogger },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -307,12 +291,7 @@ describe('runScript', () => {
     })
 
     test('should not exit on signal when noExit is true', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        },
-        { logger: mockLogger, noExit: true },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger, noExit: true })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -355,12 +334,7 @@ describe('runScript', () => {
     })
 
     test('should prevent multiple exits', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
-        },
-        { logger: mockLogger },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -413,12 +387,7 @@ describe('runScript', () => {
     test('should call onExit on signal', async () => {
       const onExit = vi.fn()
 
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        },
-        { logger: mockLogger, onExit },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger, onExit })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -463,12 +432,7 @@ describe('runScript', () => {
     })
 
     test('should register signal handlers only once per signal', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        },
-        { logger: mockLogger },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger })
 
       await new Promise(resolve => setImmediate(resolve))
 
@@ -511,12 +475,7 @@ describe('runScript', () => {
     })
 
     test('should log duration on signal', async () => {
-      runScript(
-        async () => {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        },
-        { logger: mockLogger },
-      )
+      runScript(keepScriptRunning, { logger: mockLogger })
 
       await new Promise(resolve => setImmediate(resolve))
 

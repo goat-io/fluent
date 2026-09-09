@@ -4,7 +4,7 @@
   "name": "@goatlab/typesense",
   "description": "Modern TypeScript wrapper for Typesense search engine API",
   "author": "ignacio.cabrera@goatlab.io",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -18,7 +18,8 @@
     "predev": "rimraf dist",
     "prestart": "rimraf dist",
     "serve": "tsc -w",
-    "test": "vitest run --reporter=verbose",
+    "test": "pnpm test:types && vitest run --reporter=verbose",
+    "test:types": "tsc --noEmit --skipLibCheck --esModuleInterop --target ES2022 --moduleResolution node src/tests/sort-query.test.ts",
     "test:ui": "vitest --ui",
     "test:watch": "vitest",
     "update:packages": "npm-check-updates -u && yarn"

@@ -1,5 +1,11 @@
 # @goatlab/typesense
 
+## 0.1.8
+
+### Patch Changes
+
+- eb3c57c: Expose the supported sort_by search parameter in the public TypesenseQuery type.
+
 ## 0.1.7
 
 ### Patch Changes
