@@ -1,3 +1,5 @@
+
+
 <!-- PROJECT SHIELDS -->
 
 [![Stargazers][stars-shield]][stars-url]
@@ -8,7 +10,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <a href="https://github.com/github_username/repo">
+  <a href="https://github.com/goat-io/fluent">
        <img src="https://docs.goatlab.io/logo.png" alt="Logo" width="150" height="150">
   </a>
 
@@ -155,10 +157,7 @@ import { z } from 'zod'
 // Define your schema
 const UserSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  email: z.string().email(),
-  age: z.number().optional()
-})
+  name: z.string(), name: z.string(), email: z.string().email(), age: z.number().optional()})
 
 // Create a repository
 class UserRepository extends TypeOrmConnector<User> {
