@@ -19,10 +19,14 @@ export interface RequestLoggerOptions {
    */
   suppressedPaths?: string[]
 
-  /** Omit routine 200–399 responses below 1000ms before formatting.
-   * Errors, slow responses and throwing predicates retain their logs.
+  /** Omit 200–399 responses before formatting using a success-log predicate.
+   * By default only responses below 1000ms are eligible. Errors and throwing
+   * predicates retain their logs; sampleSlowSuccesses also permits slow successes.
    */
   shouldLogSuccess?: (req: Request, statusCode: number, durationMs: number) => boolean
+
+  /** Include slow successful responses in predicate sampling; false by default. */
+  sampleSlowSuccesses?: boolean
 
   /**
    * Extract trace context from the request for structured logging.
@@ -239,7 +243,11 @@ export const expressRequestLogger = (
       }
     }
 
-    if (statusCode >= 200 && statusCode < 400 && durationInMilliseconds < 1000) {
+    if (
+      statusCode >= 200 &&
+      statusCode < 400 &&
+      (durationInMilliseconds < 1000 || options?.sampleSlowSuccesses === true)
+    ) {
       try {
         if (options?.shouldLogSuccess?.(request, statusCode, durationInMilliseconds) === false) return
       } catch {
