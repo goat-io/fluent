@@ -157,3 +157,7 @@ z.record(z.unknown())
 z.record(z.string(), z.unknown())
 ```
 
+
+## Published declaration checks
+
+Before publishing a package consumed by a strict TypeScript app, check its emitted declarations with a strict consumer compile. Inferred Zod return types built without `strictNullChecks` can expand into optional fields. Preserve schema type aliases explicitly at API boundaries, including required email/user identifiers; a package build alone does not prove consumer compatibility. Complete this check before requesting npm approval or publishing an immutable version.

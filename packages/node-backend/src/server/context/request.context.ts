@@ -44,8 +44,8 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
 
   const user: {
     decodedToken: DecodedUserToken
-    email?: string
-    userId?: string
+    email: DecodedUserToken['email']
+    userId: DecodedUserToken['uid']
   } | undefined =
     token && 'email' in token
       ? {
