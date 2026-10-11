@@ -19,6 +19,11 @@ export interface RequestLoggerOptions {
    */
   suppressedPaths?: string[]
 
+  /** Omit routine 200–399 responses below 1000ms before formatting.
+   * Errors, slow responses and throwing predicates retain their logs.
+   */
+  shouldLogSuccess?: (req: Request, statusCode: number, durationMs: number) => boolean
+
   /**
    * Extract trace context from the request for structured logging.
    * Returns trace/span IDs for Cloud Logging correlation.
@@ -215,7 +220,6 @@ export const expressRequestLogger = (
   getLogPrefix?: RequestLogPrefixFn,
   options?: RequestLoggerOptions,
 ): void => {
-  const formattedDate = getCurrentTimeFormatted()
   const start = process.hrtime()
 
   response.on('finish', () => {
@@ -235,6 +239,14 @@ export const expressRequestLogger = (
       }
     }
 
+    if (statusCode >= 200 && statusCode < 400 && durationInMilliseconds < 1000) {
+      try {
+        if (options?.shouldLogSuccess?.(request, statusCode, durationInMilliseconds) === false) return
+      } catch {
+        // Sampling failures must retain the request log.
+      }
+    }
+
     const prefix = getLogPrefix?.(request)
 
     // Build trace context for structured logging
@@ -251,7 +263,7 @@ export const expressRequestLogger = (
 
     logBatchRequests({
       prefix,
-      date: formattedDate,
+      date: getCurrentTimeFormatted(),
       method,
       url: originalUrl,
       statusCode,
