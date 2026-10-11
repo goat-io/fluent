@@ -40,7 +40,6 @@ export function getTrpc<
   const extendedMiddleware = t.middleware(async ({ ctx, next }) => {
     return await next({
       ctx: {
-        ...ctx,
         extended: await extendContext(ctx),
       },
     })
@@ -78,7 +77,6 @@ export function getTrpc<
 
     return await next({
       ctx: {
-        ...ctx,
         isLoggedIn,
         user: ctx.user ? ctx.user : undefined,
         authenticated: extra,
@@ -111,7 +109,6 @@ export function getTrpc<
     // Explicitly type the new context as TrpcContext & T
     return await next({
       ctx: {
-        ...ctx,
         user: ctx.user!,
         authenticated: extra,
       },
