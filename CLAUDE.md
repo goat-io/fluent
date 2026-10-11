@@ -115,7 +115,7 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 - **formio-utils** - Form.io form parsing and validation
 - **uploads** - File upload handlers (S3, GCP, Azure)
 - **queue-core** - Queue/job processing abstractions
-- **tasks-\*** - Task processing adapters (GCP Cloud Tasks, Hatchet)
+- **tasks-core and tasks-adapter-\*** - Migrated to [Goatlab Delphi](https://github.com/goat-io/delphi/tree/main/packages); make task-stack source changes and publish there. Published `@goatlab/*` package names remain unchanged.
 
 ### Development Dependencies
 

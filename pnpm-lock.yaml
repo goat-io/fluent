@@ -1420,289 +1420,6 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@18.19.120)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.20.3)(yaml@2.8.0)
 
-  packages/tasks-adapter-bullmq:
-    dependencies:
-      '@goatlab/js-utils':
-        specifier: workspace:*
-        version: link:../js-utils
-      '@goatlab/node-utils':
-        specifier: workspace:*
-        version: link:../node-utils
-      '@goatlab/tasks-core':
-        specifier: workspace:*
-        version: link:../tasks-core
-      bullmq:
-        specifier: ^5.65.1
-        version: 5.65.1
-      ioredis:
-        specifier: ^5.6.1
-        version: 5.8.2
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
-    devDependencies:
-      '@biomejs/biome':
-        specifier: ^2.1.3
-        version: 2.1.3
-      '@goatlab/biome':
-        specifier: workspace:*
-        version: link:../biome
-      '@goatlab/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@testcontainers/redis':
-        specifier: ^11.0.3
-        version: 11.4.0
-      '@types/jest':
-        specifier: ^27.4.1
-        version: 27.5.2
-      '@types/node':
-        specifier: ^17.0.23
-        version: 17.0.45
-      dotenv:
-        specifier: ^16.5.0
-        version: 16.6.1
-      dotenv-cli:
-        specifier: ^5.1.0
-        version: 5.1.0
-      jest:
-        specifier: 'catalog:'
-        version: 29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5))
-      jest-environment-node:
-        specifier: ^27.5.1
-        version: 27.5.1
-      pretty-quick:
-        specifier: ^3.1.3
-        version: 3.3.1(prettier@3.6.2)
-      testcontainers:
-        specifier: ^11.0.3
-        version: 11.4.0
-      ts-jest:
-        specifier: 'catalog:'
-        version: 29.4.0(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)))(typescript@4.9.5)
-      ts-node:
-        specifier: 'catalog:'
-        version: 10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)
-      turbo:
-        specifier: ^1.1.10
-        version: 1.13.4
-      typescript:
-        specifier: ^4.6.3
-        version: 4.9.5
-      vitest:
-        specifier: ^3.1.1
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@17.0.45)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.20.3)(yaml@2.8.0)
-
-  packages/tasks-adapter-gcp:
-    dependencies:
-      '@goatlab/js-utils':
-        specifier: workspace:*
-        version: link:../js-utils
-      '@goatlab/node-utils':
-        specifier: workspace:*
-        version: link:../node-utils
-      '@goatlab/tasks-core':
-        specifier: workspace:*
-        version: link:../tasks-core
-      '@google-cloud/tasks':
-        specifier: ^6.1.0
-        version: 6.2.0
-    devDependencies:
-      '@biomejs/biome':
-        specifier: ^2.1.3
-        version: 2.1.3
-      '@goatlab/biome':
-        specifier: workspace:*
-        version: link:../biome
-      '@goatlab/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@testcontainers/kafka':
-        specifier: ^10.24.2
-        version: 10.28.0
-      '@testcontainers/rabbitmq':
-        specifier: ^10.24.2
-        version: 10.28.0
-      '@types/amqplib':
-        specifier: ^0.8.2
-        version: 0.8.2
-      '@types/jest':
-        specifier: ^27.4.1
-        version: 27.5.2
-      '@types/node':
-        specifier: ^17.0.23
-        version: 17.0.45
-      dotenv:
-        specifier: ^16.5.0
-        version: 16.6.1
-      dotenv-cli:
-        specifier: ^5.1.0
-        version: 5.1.0
-      google-gax:
-        specifier: ^5.0.0
-        version: 5.0.1
-      jest:
-        specifier: 'catalog:'
-        version: 29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5))
-      jest-environment-node:
-        specifier: ^27.5.1
-        version: 27.5.1
-      pretty-quick:
-        specifier: ^3.1.3
-        version: 3.3.1(prettier@3.6.2)
-      ts-jest:
-        specifier: 'catalog:'
-        version: 29.4.0(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)))(typescript@4.9.5)
-      ts-node:
-        specifier: 'catalog:'
-        version: 10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)
-      turbo:
-        specifier: ^1.1.10
-        version: 1.13.4
-      typescript:
-        specifier: ^4.6.3
-        version: 4.9.5
-      vitest:
-        specifier: ^3.1.1
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@17.0.45)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.20.3)(yaml@2.8.0)
-
-  packages/tasks-adapter-hatchet:
-    dependencies:
-      '@goatlab/js-utils':
-        specifier: workspace:*
-        version: link:../js-utils
-      '@goatlab/node-utils':
-        specifier: workspace:*
-        version: link:../node-utils
-      '@goatlab/tasks-core':
-        specifier: workspace:*
-        version: link:../tasks-core
-      '@hatchet-dev/typescript-sdk':
-        specifier: ^1.10.3
-        version: 1.10.3
-    devDependencies:
-      '@biomejs/biome':
-        specifier: ^2.1.3
-        version: 2.1.3
-      '@goatlab/biome':
-        specifier: workspace:*
-        version: link:../biome
-      '@goatlab/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@testcontainers/postgresql':
-        specifier: ^11.0.3
-        version: 11.4.0
-      '@types/jest':
-        specifier: ^27.4.1
-        version: 27.5.2
-      '@types/node':
-        specifier: ^17.0.23
-        version: 17.0.45
-      dotenv:
-        specifier: ^16.5.0
-        version: 16.6.1
-      dotenv-cli:
-        specifier: ^5.1.0
-        version: 5.1.0
-      jest:
-        specifier: 'catalog:'
-        version: 29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5))
-      jest-environment-node:
-        specifier: ^27.5.1
-        version: 27.5.1
-      pretty-quick:
-        specifier: ^3.1.3
-        version: 3.3.1(prettier@3.6.2)
-      testcontainers:
-        specifier: ^11.0.3
-        version: 11.4.0
-      ts-jest:
-        specifier: 'catalog:'
-        version: 29.4.0(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)))(typescript@4.9.5)
-      ts-node:
-        specifier: 'catalog:'
-        version: 10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)
-      turbo:
-        specifier: ^1.1.10
-        version: 1.13.4
-      typescript:
-        specifier: ^4.6.3
-        version: 4.9.5
-      vitest:
-        specifier: ^3.1.1
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@17.0.45)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.20.3)(yaml@2.8.0)
-
-  packages/tasks-core:
-    dependencies:
-      '@goatlab/js-utils':
-        specifier: workspace:*
-        version: link:../js-utils
-    devDependencies:
-      '@biomejs/biome':
-        specifier: ^2.1.3
-        version: 2.1.3
-      '@goatlab/biome':
-        specifier: workspace:*
-        version: link:../biome
-      '@goatlab/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      '@testcontainers/kafka':
-        specifier: ^10.24.2
-        version: 10.28.0
-      '@testcontainers/mysql':
-        specifier: ^11.0.3
-        version: 11.4.0
-      '@testcontainers/rabbitmq':
-        specifier: ^10.24.2
-        version: 10.28.0
-      '@testcontainers/redis':
-        specifier: ^11.0.3
-        version: 11.4.0
-      '@types/amqplib':
-        specifier: ^0.8.2
-        version: 0.8.2
-      '@types/jest':
-        specifier: ^27.4.1
-        version: 27.5.2
-      '@types/node':
-        specifier: ^17.0.23
-        version: 17.0.45
-      dotenv-cli:
-        specifier: ^5.1.0
-        version: 5.1.0
-      ioredis:
-        specifier: ^5.6.1
-        version: 5.8.2
-      jest:
-        specifier: 'catalog:'
-        version: 29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5))
-      jest-environment-node:
-        specifier: ^27.5.1
-        version: 27.5.1
-      pretty-quick:
-        specifier: ^3.1.3
-        version: 3.3.1(prettier@3.6.2)
-      testcontainers:
-        specifier: ^11.0.3
-        version: 11.4.0
-      ts-jest:
-        specifier: 'catalog:'
-        version: 29.4.0(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@17.0.45)(ts-node@10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)))(typescript@4.9.5)
-      ts-node:
-        specifier: 'catalog:'
-        version: 10.9.2(@swc/core@1.13.2)(@types/node@17.0.45)(typescript@4.9.5)
-      turbo:
-        specifier: ^1.1.10
-        version: 1.13.4
-      typescript:
-        specifier: ^4.6.3
-        version: 4.9.5
-      vitest:
-        specifier: ^3.1.1
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@17.0.45)(@vitest/ui@3.2.4)(happy-dom@18.0.1)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.20.3)(yaml@2.8.0)
-
   packages/trpc-benchmarks:
     dependencies:
       '@prisma/client':
@@ -2377,9 +2094,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@bufbuild/protobuf@2.6.2':
-    resolution: {integrity: sha512-vLu7SRY84CV/Dd+NUdgtidn2hS5hSMUC1vDBY0VcviTdgRYkU43vIz3vIFbmx14cX1r+mM7WjzE5Fl1fGEM0RQ==}
-
   '@changesets/apply-release-plan@7.0.12':
     resolution: {integrity: sha512-EaET7As5CeuhTzvXTQCRZeBUcisoYPDDcXvgTE/2jmmypKp0RC7LxKj/yzqeh/1qFTZI7oDGFcL1PHRuQuketQ==}
 
@@ -2509,11 +2223,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -3023,10 +2737,6 @@ packages:
     resolution: {integrity: sha512-78nNAY7iiZ4O/BouWMWTD/oSF2YtYgYB3GZirn0To6eBOugjXVoK+GXgUXOl+HlqbAOyHxAVXOlsj3snfbQ1dw==}
     engines: {node: '>=12'}
 
-  '@google-cloud/tasks@6.2.0':
-    resolution: {integrity: sha512-LHnmkhaMWoVTU7mYMtlNy++Gva2273vATiHYbmxN4QJ8cHXcFHynYByZvCxUqW/ehANheQZ5d/JVS8Q21Gui8w==}
-    engines: {node: '>=18'}
-
   '@grpc/grpc-js@1.13.4':
     resolution: {integrity: sha512-GsFaMXCkMqkKIvwCQjCrwH+GHbPKBjhwo/8ZuUkWHqbI73Kky9I+pQltrlT0+MWpedCoosda53lgjYfyEPgxBg==}
     engines: {node: '>=12.10.0'}
@@ -3042,9 +2752,6 @@ packages:
 
   '@hapi/bourne@3.0.0':
     resolution: {integrity: sha512-Waj1cwPXJDucOib4a3bAISsKJVb15MKi9IvmTI/7ssVEm6sywXGjVJDhl6/umt1pK1ZS7PacXU3A1PmFKHEZ2w==}
-
-  '@hatchet-dev/typescript-sdk@1.10.3':
-    resolution: {integrity: sha512-sCPH+HiyqXt+T4+8nOrv94a6b6ExHyLh1VNDkgJiGU+QXr/g6lL1kqoOzq3m1H6lf3OuHyYA3o2G0h45BQhYIQ==}
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -3383,36 +3090,6 @@ packages:
 
   '@mongodb-js/saslprep@1.3.0':
     resolution: {integrity: sha512-zlayKCsIjYb7/IdfqxorK5+xUMyi4vOKcFy10wKJYc63NSdKI8mNME+uJqfatkPmOSMMUiojrL58IePKBm3gvQ==}
-
-  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3':
-    resolution: {integrity: sha512-QZHtlVgbAdy2zAqNA9Gu1UpIuI8Xvsd1v8ic6B2pZmeFnFcMWiPLfWXh7TVw4eGEZ/C9TH281KwhVoeQUKbyjw==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3':
-    resolution: {integrity: sha512-mdzd3AVzYKuUmiWOQ8GNhl64/IoFGol569zNRdkLReh6LRLHOXxU4U8eq0JwaD8iFHdVGqSy4IjFL4reoWCDFw==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.3':
-    resolution: {integrity: sha512-YxQL+ax0XqBJDZiKimS2XQaf+2wDGVa1enVRGzEvLLVFeqa5kx2bWbtcSXgsxjQB7nRqqIGFIcLteF/sHeVtQg==}
-    cpu: [arm64]
-    os: [linux]
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3':
-    resolution: {integrity: sha512-fg0uy/dG/nZEXfYilKoRe7yALaNmHoYeIoJuJ7KJ+YyU2bvY8vPv27f7UKhGRpY6euFYqEVhxCFZgAUNQBM3nw==}
-    cpu: [arm]
-    os: [linux]
-
-  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.3':
-    resolution: {integrity: sha512-cvwNfbP07pKUfq1uH+S6KJ7dT9K8WOE4ZiAcsrSes+UY55E/0jLYc+vq+DO7jlmqRb5zAggExKm0H7O/CBaesg==}
-    cpu: [x64]
-    os: [linux]
-
-  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
-    resolution: {integrity: sha512-x0fWaQtYp4E6sktbsdAqnehxDgEc/VwM7uLsRCYWaiGu0ykYdZPiS8zCWdnjHwyiumousxfBm4SO31eXqwEZhQ==}
-    cpu: [x64]
-    os: [win32]
 
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
@@ -4211,6 +3888,7 @@ packages:
 
   '@stamp/it@1.1.0':
     resolution: {integrity: sha512-xhNHGQwPwSPm96yHpkU7DGWiKfiqhZueOvqpv8P6U0eWRVgz3bbthf9nGqjyynUmQC8S7Qekfp6IWniPHwivbg==}
+    deprecated: Use 'stampit' instead as smaller, faster, more featureful, simpler, TypeScript type-aware drop-in replacement
 
   '@stamp/privatize@1.0.3':
     resolution: {integrity: sha512-hOeYzbO4+LoURnmByY5Z5Zs2lATjv5I4vEKlZ/rXms2xO+Y5ld8AqT2iqWUmQ/l4z8pw/0v+dxGQGxXf4zxR9w==}
@@ -4849,9 +4527,6 @@ packages:
     resolution: {integrity: sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg==}
     engines: {node: ^18.17.0 || >=20.5.0}
 
-  abort-controller-x@0.4.3:
-    resolution: {integrity: sha512-VtUwTNU8fpMwvWGn4xE93ywbogTYsuT+AUxAXOeelbXuQVIwNmC5YLeho9sH4vZ4ITW8414TTAOG1nW6uIVHCA==}
-
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
     engines: {node: '>=6.5'}
@@ -5188,9 +4863,6 @@ packages:
   axios@0.26.1:
     resolution: {integrity: sha512-fPwcX4EvnSHuInCMItEhAGnaSEXRBjtzh9fOtsE6E1G6p7vl7edEeZe11QHf18+6+9gR5PbKV/sGKNaD8YaMeA==}
 
-  axios@1.11.0:
-    resolution: {integrity: sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==}
-
   azure-storage@2.10.7:
     resolution: {integrity: sha512-4oeFGtn3Ziw/fGs/zkoIpKKtygnCVIcZwzJ7UQzKTxhkGQqVCByOFbYqMGYR3L+wOsunX9lNfD0jc51SQuKSSA==}
     engines: {node: '>= 0.8.26'}
@@ -5309,9 +4981,6 @@ packages:
 
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
-
-  bintrees@1.0.2:
-    resolution: {integrity: sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==}
 
   bl@1.2.3:
     resolution: {integrity: sha512-pvcNpa0UU69UT341rO6AYy4FVAIkUHuZXRIWbq+zHnsVcRzDDjIAhGuuYoi0d//cwIwtt4pkpKycWEfjdV+vww==}
@@ -5436,9 +5105,6 @@ packages:
   builtin-modules@1.1.1:
     resolution: {integrity: sha512-wxXCdllwGhI2kCC0MnvTGYTMvnVZTvqgypkiTI8Pa5tcz2i6VqsqwYGgqwXji+4RgCzms6EajE4IxiUH6HH8nQ==}
     engines: {node: '>=0.10.0'}
-
-  bullmq@5.65.1:
-    resolution: {integrity: sha512-QgDAzX1G9L5IRy4Orva5CfQTXZT+5K+OfO/kbPrAqN+pmL9LJekCzxijXehlm/u2eXfWPfWvIdJJIqiuz3WJSg==}
 
   bun-types@1.3.12:
     resolution: {integrity: sha512-HqOLj5PoFajAQciOMRiIZGNoKxDJSr6qigAttOX40vJuSp6DN/CxWp9s3C1Xwm4oH7ybueITwiaOcWXoYVoRkA==}
@@ -5998,10 +5664,6 @@ packages:
   create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
 
-  cron-parser@4.9.0:
-    resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
-    engines: {node: '>=12.0.0'}
-
   cron@4.3.2:
     resolution: {integrity: sha512-JxBBnf5zRz+NhW9XcP16gwUKAKIimy2G0QCCQu8kk5XwM4aCGwMt+nntouAfXF9A57965XzB6hitBlJAz5Ts6w==}
     engines: {node: '>=18.x'}
@@ -6056,10 +5718,6 @@ packages:
   data-uri-to-buffer@3.0.1:
     resolution: {integrity: sha512-WboRycPNsVw3B3TL559F7kuBUM4d8CgMEvk6xEJlOp7OBPjt6G7z8WMWlD2rOFZLk6OYfFIUGsCOWzcQH9K2og==}
     engines: {node: '>= 6'}
-
-  data-uri-to-buffer@4.0.1:
-    resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
-    engines: {node: '>= 12'}
 
   data-uri-to-buffer@5.0.1:
     resolution: {integrity: sha512-a9l6T1qqDogvvnw0nKlfZzqsyikEBZBClF39V3TFoKhDtGBqHu2HkuomJc02j5zft8zrUaXEuoicLeW54RkzPg==}
@@ -6973,10 +6631,6 @@ packages:
   fecha@4.2.3:
     resolution: {integrity: sha512-OP2IUU6HeYKJi3i0z4A19kHMQoLVs4Hc+DPqqxI2h/DPZHTm/vjsfC6P0b4jCMy14XizLBqvndQ+UilD7707Jw==}
 
-  fetch-blob@3.2.0:
-    resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
-    engines: {node: ^12.20 || >= 14.13}
-
   fetch-cookie@2.2.0:
     resolution: {integrity: sha512-h9AgfjURuCgA2+2ISl8GbavpUdR+WGAM2McW/ovn4tVccegp8ZqCKWSBR8uRdM8dDNlx5WdKRWxBYUwteLDCNQ==}
 
@@ -7109,10 +6763,6 @@ packages:
     resolution: {integrity: sha512-KrGhL9Q4zjj0kiUt5OO4Mr/A/jlI2jDYs5eHBpYHPcBEVSiipAvn2Ko2HnPe20rmcuuvMHNdZFp+4IlGTMF0Ow==}
     engines: {node: '>= 6'}
 
-  formdata-polyfill@4.0.10:
-    resolution: {integrity: sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==}
-    engines: {node: '>=12.20.0'}
-
   formidable@3.5.4:
     resolution: {integrity: sha512-YikH+7CUTOtP44ZTnUhR7Ic2UASBPOqmaRkRKxRbywPTe5VxF7RRCck4af9wutiZ/QKM5nME9Bie2fFaPz5Gug==}
     engines: {node: '>=14.0.0'}
@@ -7217,10 +6867,6 @@ packages:
     resolution: {integrity: sha512-95hVgBRgEIRQQQHIbnxBXeHbW4TqFk4ZDJW7wmVtvYar72FdhRIo1UGOLS2eRAKCPEdPBWu+M7+A33D9CdX9rA==}
     engines: {node: '>=12'}
 
-  gaxios@7.1.1:
-    resolution: {integrity: sha512-Odju3uBUJyVCkW64nLD4wKLhbh93bh6vIg/ZIXkWiLPBrdgtc65+tls/qml+un3pr6JqYVFDZbbmLDQT68rTOQ==}
-    engines: {node: '>=18'}
-
   gcp-metadata@0.6.3:
     resolution: {integrity: sha512-MSmczZctbz91AxCvqp9GHBoZOSbJKAICV7Ow/AIWSJZRrRchUd5NL1b2P4OfP+4m490BEUPhhARfpHdqCxuCvg==}
     engines: {node: '>=4'}
@@ -7228,10 +6874,6 @@ packages:
   gcp-metadata@5.3.0:
     resolution: {integrity: sha512-FNTkdNEnBdlqF2oatizolQqNANMrcqJt6AAYt99B3y1aLLC8Hc5IOBb+ZnnzllodEEf6xMBp6wRcBbc16fa65w==}
     engines: {node: '>=12'}
-
-  gcp-metadata@7.0.1:
-    resolution: {integrity: sha512-UcO3kefx6dCcZkgcTGgVOTFb7b1LlQ02hY1omMjjrrBzkajRMCFgYOjs7J71WqnuG1k2b+9ppGL7FsOfhZMQKQ==}
-    engines: {node: '>=18'}
 
   gcs-resumable-upload@0.10.2:
     resolution: {integrity: sha512-sXonJFdrLHhIsE+uOtKrmlP/jwnks2GYPrhZaVGnDpggOXMXgSy06xY/G045TdMd22VubAsrk1YWgrjGn5Fexw==}
@@ -7368,10 +7010,6 @@ packages:
     resolution: {integrity: sha512-jYiWC8NA9n9OtQM7ANn0Tk464do9yhKEtaJ72pKcaBiEwn4LwcGYIYOfwtfsSm3aur/ed3tlSxbmg24IAT6gAg==}
     engines: {node: '>=4'}
 
-  google-auth-library@10.2.0:
-    resolution: {integrity: sha512-gy/0hRx8+Ye0HlUm3GrfpR4lbmJQ6bJ7F44DmN7GtMxxzWSojLzx0Bhv/hj7Wlj7a2On0FcT8jrz8Y1c1nxCyg==}
-    engines: {node: '>=18'}
-
   google-auth-library@8.9.0:
     resolution: {integrity: sha512-f7aQCJODJFmYWN6PeNKzgvy9LI2tYmXnzpNDHEjG5sDNPgGb2FXQyTBnXeSH+PAtpKESFD+LmHw3Ox3mN7e1Fg==}
     engines: {node: '>=12'}
@@ -7384,14 +7022,6 @@ packages:
     resolution: {integrity: sha512-g/lcUjGcB6DSw2HxgEmCDOrI/CByOwqRvsuUvNalHUK2iPPPlmAIpbMbl62u0YufGMr8zgE3JL7th6dCb1Ry+w==}
     engines: {node: '>=12'}
     hasBin: true
-
-  google-gax@5.0.1:
-    resolution: {integrity: sha512-I8fTFXvIG8tYpiDxDXwCXoFsTVsvHJ2GA7DToH+eaRccU8r3nqPMFghVb2GdHSVcu4pq9ScRyB2S1BjO+vsa1Q==}
-    engines: {node: '>=18'}
-
-  google-logging-utils@1.1.1:
-    resolution: {integrity: sha512-rcX58I7nqpu4mbKztFeOAObbomBbHU2oIb/d3tJfF3dizGSApqtSwYJigGCooHdnMyQBIw8BrWyK96w3YXgr6A==}
-    engines: {node: '>=14'}
 
   google-p12-pem@1.0.5:
     resolution: {integrity: sha512-50rTrqYPTPPwlu9TNl/HkJbBENEpbRzTOVLFJ4YWM86njZgXHFy+FP+tLRSd9m132Li9Dqi27Z3KIWDEv5y+EA==}
@@ -7438,10 +7068,6 @@ packages:
   gtoken@6.1.2:
     resolution: {integrity: sha512-4ccGpzz7YAr7lxrT2neugmXQ3hP9ho2gcaityLVkiUecAiwiy60Ii8gRbZeOsXV19fYaRjgBSshs8kXw+NKCPQ==}
     engines: {node: '>=12.0.0'}
-
-  gtoken@8.0.0:
-    resolution: {integrity: sha512-+CqsMbHPiSTdtSO14O51eMNlrp9N79gmeqmXeouJOhfucAedHw9noVe/n5uJk3tbKE6a+6ZCQg3RPhVhHByAIw==}
-    engines: {node: '>=18'}
 
   h3@1.15.1:
     resolution: {integrity: sha512-+ORaOBttdUm1E2Uu/obAyCguiI7MbBvsLTndc3gyK3zU+SYLoZXlyCP9Xgy0gikkGufFLTZXCXD6+4BsufnmHA==}
@@ -9397,13 +9023,6 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  msgpackr-extract@3.0.3:
-    resolution: {integrity: sha512-P0efT1C9jIdVRefqjzOQ9Xml57zpOXnIuS+csaB4MdZbTdmGDLo8XhzBG1N7aO11gKDDkJvBLULeFTo46wwreA==}
-    hasBin: true
-
-  msgpackr@1.11.5:
-    resolution: {integrity: sha512-UjkUHN0yqp9RWKy0Lplhh+wlpdt9oQBYgULZOiFhV3VclSF1JnSQWZ5r9gORQlNYaUKQoR8itv7g7z1xDDuACA==}
-
   multer-azure-blob-storage@1.2.0:
     resolution: {integrity: sha512-jFxXMRqpeHPx4COOcgmLr4bd2qIGIRieanoEc9IcNZs5QPiZ+M4rD+21oUE8h3qdF5UyJwRbskZkYsmY3W+KMg==}
 
@@ -9492,12 +9111,6 @@ packages:
   next-tick@1.1.0:
     resolution: {integrity: sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==}
 
-  nice-grpc-common@2.0.2:
-    resolution: {integrity: sha512-7RNWbls5kAL1QVUOXvBsv1uO0wPQK3lHv+cY1gwkTzirnG1Nop4cBJZubpgziNbaVc/bl9QJcyvsf/NQxa3rjQ==}
-
-  nice-grpc@2.1.12:
-    resolution: {integrity: sha512-J1n4Wg+D3IhRhGQb+iqh2OpiM0GzTve/kf2lnlW4S+xczmIEd0aHUDV1OsJ5a3q8GSTqJf+s4Rgg1M8uJltarw==}
-
   nice-try@1.0.5:
     resolution: {integrity: sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==}
 
@@ -9508,20 +9121,12 @@ packages:
     resolution: {integrity: sha512-OhYaY5sDsIka7H7AtijtI9jwGYLyl29eQn/W623DiN/MIv5sUqc4g7BIDThX+gb7di9f6xK02nkp8sdfFWZLTg==}
     engines: {node: '>=10'}
 
-  node-abort-controller@3.1.1:
-    resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
-
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
   node-addon-api@8.5.0:
     resolution: {integrity: sha512-/bRZty2mXUIFY/xU5HLvveNHlswNJej+RnxBjOMkidWfwZzgTbPG1E3K5TOxRLOR+5hX7bSofy8yf1hZevMS8A==}
     engines: {node: ^18 || ^20 || >= 21}
-
-  node-domexception@1.0.0:
-    resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
-    engines: {node: '>=10.5.0'}
-    deprecated: Use your platform's native DOMException instead
 
   node-fetch@2.6.13:
     resolution: {integrity: sha512-StxNAxh15zr77QvvkmveSQ8uCQ4+v5FkvNTj0OESmiHu+VRi/gXArXtkWMElOsOUNLtUEvI4yS+rdtOHZTwlQA==}
@@ -9550,10 +9155,6 @@ packages:
       encoding:
         optional: true
 
-  node-fetch@3.3.2:
-    resolution: {integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-
   node-forge@0.10.0:
     resolution: {integrity: sha512-PPmu8eEeG9saEUvI97fm4OYxXVB6bFvyNTyiUOBichBpFG8A1Ljw3bY62+5oOjDEMHRnd0Y7HQ+x7uzxOzC6JA==}
     engines: {node: '>= 6.0.0'}
@@ -9561,10 +9162,6 @@ packages:
   node-forge@1.3.1:
     resolution: {integrity: sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==}
     engines: {node: '>= 6.13.0'}
-
-  node-gyp-build-optional-packages@5.2.2:
-    resolution: {integrity: sha512-s+w+rBWnpTMwSFbaE0UXsRlg7hU4FjekKU4eyAih5T8nJuNZT1nNsskXpxmeqSK9UzkBl6UgRlnKc8hz8IEqOw==}
-    hasBin: true
 
   node-gyp-build@4.8.4:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
@@ -10304,10 +9901,6 @@ packages:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
     engines: {node: '>=0.4.0'}
 
-  prom-client@15.1.3:
-    resolution: {integrity: sha512-6ZiOBfCywsD4k1BN9IX0uZhF+tJkV8q8llP64G5Hajs4JOeVLPCwpPVcpXy3BwYiUGgyJzsJJQeOIv7+hDSq8g==}
-    engines: {node: ^16 || ^18 || >=20}
-
   promise-inflight@1.0.1:
     resolution: {integrity: sha512-6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==}
     peerDependencies:
@@ -10341,10 +9934,6 @@ packages:
   proto3-json-serializer@1.1.1:
     resolution: {integrity: sha512-AwAuY4g9nxx0u52DnSMkqqgyLHaW/XaPLtaAo3y/ZCfeaQB/g4YDH4kb8Wc/mWzWvu0YjOznVnfn373MVZZrgw==}
     engines: {node: '>=12.0.0'}
-
-  proto3-json-serializer@3.0.1:
-    resolution: {integrity: sha512-Rug90pDIefARAG9MgaFjd0yR/YP4bN3Fov00kckXMjTZa0x86c4WoWfCQFdSeWi9DvRXjhfLlPDIvODB5LOTfg==}
-    engines: {node: '>=18'}
 
   protobufjs-cli@1.1.1:
     resolution: {integrity: sha512-VPWMgIcRNyQwWUv8OLPyGQ/0lQY/QTQAVN5fh+XzfDwsVw1FZ2L3DM/bcBf8WPiRz2tNpaov9lPZfNcmNo6LXA==}
@@ -10811,10 +10400,6 @@ packages:
   retry-request@5.0.2:
     resolution: {integrity: sha512-wfI3pk7EE80lCIXprqh7ym48IHYdwmAAzESdbU8Q9l7pnRCk9LEhpbOTNKjz6FARLm/Bl5m+4F0ABxOkYUujSQ==}
     engines: {node: '>=12'}
-
-  retry-request@8.0.0:
-    resolution: {integrity: sha512-dJkZNmyV9C8WKUmbdj1xcvVlXBSvsUQCkg89TCK8rD72RdSn9A2jlXlS2VuYSTHoPJjJEfUHhjNYrlvuksF9cg==}
-    engines: {node: '>=18'}
 
   retry@0.12.0:
     resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
@@ -11501,13 +11086,6 @@ packages:
     resolution: {integrity: sha512-51LAVKUSZSVfI05vjPESNc5vwqqZpbXCsU+/+wxlOrUjk2SnFTt97v9ZgQrD4YmxYW1Px6w2KjaDitCfkvgxMQ==}
     engines: {node: '>=8.0.0'}
 
-  tdigest@0.1.2:
-    resolution: {integrity: sha512-+G0LLgjjo9BZX2MfdvPfH+MKLCrxlXSYec5DaPYP1fe6Iyhf0/fSmJ0bFiZ1F8BT6cGXl2LpltQptzjXKWEkKA==}
-
-  teeny-request@10.1.0:
-    resolution: {integrity: sha512-3ZnLvgWF29jikg1sAQ1g0o+lr5JX6sVgYvfUJazn7ZjJroDBUTWp44/+cFVX0bULjv4vci+rBD+oGVAkWqhUbw==}
-    engines: {node: '>=18'}
-
   teeny-request@8.0.3:
     resolution: {integrity: sha512-jJZpA5He2y52yUhA7pyAGZlgQpcB+xLjcN0eUFxr9c8hP/H7uOXbBNVo/O0C/xVfJLJs680jvkFgVJEEvk9+ww==}
     engines: {node: '>=12'}
@@ -11725,9 +11303,6 @@ packages:
 
   truncate-utf8-bytes@1.0.2:
     resolution: {integrity: sha512-95Pu1QXQvruGEhv62XCMO3Mm90GscOCClvrIUwCM0PYOXK3kaF3l3sIHxx71ThJfcbM2O5Au6SO3AWCSEfW4mQ==}
-
-  ts-error@1.0.6:
-    resolution: {integrity: sha512-tLJxacIQUM82IR7JO1UUkKlYuUTmoY9HBJAmNWFzheSlDS5SPMcNIepejHJa4BpPQLAcbRhRf3GDJzyj6rbKvA==}
 
   ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
@@ -12429,10 +12004,6 @@ packages:
   web-resource-inliner@6.0.1:
     resolution: {integrity: sha512-kfqDxt5dTB1JhqsCUQVFDj0rmY+4HLwGQIsLPbyrsN9y9WV/1oFDSx3BQ4GfCv9X+jVeQ7rouTqwK53rA/7t8A==}
     engines: {node: '>=10.0.0'}
-
-  web-streams-polyfill@3.3.3:
-    resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
-    engines: {node: '>= 8'}
 
   web-streams-polyfill@4.1.0:
     resolution: {integrity: sha512-A7Jxrg7+eV+eZR/CIdESDnRGFb6/bcKukGvJBB5snI6cw3is1c2qamkYstC1bY1p08TyMRlN9eTMkxmnKJBPBw==}
@@ -13506,8 +13077,6 @@ snapshots:
   '@biomejs/cli-win32-x64@2.1.3':
     optional: true
 
-  '@bufbuild/protobuf@2.6.2': {}
-
   '@changesets/apply-release-plan@7.0.12':
     dependencies:
       '@changesets/config': 3.1.1
@@ -14111,12 +13680,6 @@ snapshots:
       - supports-color
     optional: true
 
-  '@google-cloud/tasks@6.2.0':
-    dependencies:
-      google-gax: 5.0.1
-    transitivePeerDependencies:
-      - supports-color
-
   '@grpc/grpc-js@1.13.4':
     dependencies:
       '@grpc/proto-loader': 0.7.15
@@ -14135,25 +13698,6 @@ snapshots:
       yargs: 17.7.2
 
   '@hapi/bourne@3.0.0': {}
-
-  '@hatchet-dev/typescript-sdk@1.10.3':
-    dependencies:
-      '@bufbuild/protobuf': 2.6.2
-      '@types/qs': 6.14.0
-      abort-controller-x: 0.4.3
-      axios: 1.11.0
-      long: 5.3.2
-      nice-grpc: 2.1.12
-      nice-grpc-common: 2.0.2
-      protobufjs: 7.5.3
-      qs: 6.14.0
-      semver: 7.7.2
-      yaml: 2.8.0
-      zod: 3.25.76
-    optionalDependencies:
-      prom-client: 15.1.3
-    transitivePeerDependencies:
-      - debug
 
   '@hono/node-server@1.19.14(hono@4.12.12)':
     dependencies:
@@ -14834,24 +14378,6 @@ snapshots:
   '@mongodb-js/saslprep@1.3.0':
     dependencies:
       sparse-bitfield: 3.0.3
-
-  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.3':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.3':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.3':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.3':
-    optional: true
-
-  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
-    optional: true
 
   '@noble/hashes@1.8.0': {}
 
@@ -16016,7 +15542,8 @@ snapshots:
 
   '@tootallnate/once@1.1.2': {}
 
-  '@tootallnate/once@2.0.0': {}
+  '@tootallnate/once@2.0.0':
+    optional: true
 
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 
@@ -16709,8 +16236,6 @@ snapshots:
 
   abbrev@3.0.1: {}
 
-  abort-controller-x@0.4.3: {}
-
   abort-controller@3.0.0:
     dependencies:
       event-target-shim: 5.0.1
@@ -17074,14 +16599,6 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  axios@1.11.0:
-    dependencies:
-      follow-redirects: 1.15.9
-      form-data: 4.0.4
-      proxy-from-env: 1.1.0
-    transitivePeerDependencies:
-      - debug
-
   azure-storage@2.10.7:
     dependencies:
       browserify-mime: 1.2.9
@@ -17233,9 +16750,6 @@ snapshots:
   bindings@1.5.0:
     dependencies:
       file-uri-to-path: 1.0.0
-
-  bintrees@1.0.2:
-    optional: true
 
   bl@1.2.3:
     dependencies:
@@ -17398,18 +16912,6 @@ snapshots:
     optional: true
 
   builtin-modules@1.1.1: {}
-
-  bullmq@5.65.1:
-    dependencies:
-      cron-parser: 4.9.0
-      ioredis: 5.8.2
-      msgpackr: 1.11.5
-      node-abort-controller: 3.1.1
-      semver: 7.7.2
-      tslib: 2.8.1
-      uuid: 11.1.0
-    transitivePeerDependencies:
-      - supports-color
 
   bun-types@1.3.12:
     dependencies:
@@ -18081,10 +17583,6 @@ snapshots:
 
   create-require@1.1.1: {}
 
-  cron-parser@4.9.0:
-    dependencies:
-      luxon: 3.7.1
-
   cron@4.3.2:
     dependencies:
       '@types/luxon': 3.6.2
@@ -18145,8 +17643,6 @@ snapshots:
       assert-plus: 1.0.0
 
   data-uri-to-buffer@3.0.1: {}
-
-  data-uri-to-buffer@4.0.1: {}
 
   data-uri-to-buffer@5.0.1: {}
 
@@ -19180,11 +18676,6 @@ snapshots:
 
   fecha@4.2.3: {}
 
-  fetch-blob@3.2.0:
-    dependencies:
-      node-domexception: 1.0.0
-      web-streams-polyfill: 3.3.3
-
   fetch-cookie@2.2.0:
     dependencies:
       set-cookie-parser: 2.7.1
@@ -19348,10 +18839,6 @@ snapshots:
       hasown: 2.0.2
       mime-types: 2.1.35
 
-  formdata-polyfill@4.0.10:
-    dependencies:
-      fetch-blob: 3.2.0
-
   formidable@3.5.4:
     dependencies:
       '@paralleldrive/cuid2': 2.2.2
@@ -19514,14 +19001,6 @@ snapshots:
       - encoding
       - supports-color
 
-  gaxios@7.1.1:
-    dependencies:
-      extend: 3.0.2
-      https-proxy-agent: 7.0.6
-      node-fetch: 3.3.2
-    transitivePeerDependencies:
-      - supports-color
-
   gcp-metadata@0.6.3:
     dependencies:
       axios: 0.18.1
@@ -19536,14 +19015,6 @@ snapshots:
       json-bigint: 1.0.0
     transitivePeerDependencies:
       - encoding
-      - supports-color
-
-  gcp-metadata@7.0.1:
-    dependencies:
-      gaxios: 7.1.1
-      google-logging-utils: 1.1.1
-      json-bigint: 1.0.0
-    transitivePeerDependencies:
       - supports-color
 
   gcs-resumable-upload@0.10.2(encoding@0.1.13):
@@ -19750,18 +19221,6 @@ snapshots:
       - encoding
       - supports-color
 
-  google-auth-library@10.2.0:
-    dependencies:
-      base64-js: 1.5.1
-      ecdsa-sig-formatter: 1.0.11
-      gaxios: 7.1.1
-      gcp-metadata: 7.0.1
-      google-logging-utils: 1.1.1
-      gtoken: 8.0.0
-      jws: 4.0.0
-    transitivePeerDependencies:
-      - supports-color
-
   google-auth-library@8.9.0(encoding@0.1.13):
     dependencies:
       arrify: 2.0.1
@@ -19807,24 +19266,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
-
-  google-gax@5.0.1:
-    dependencies:
-      '@grpc/grpc-js': 1.13.4
-      '@grpc/proto-loader': 0.7.15
-      abort-controller: 3.0.0
-      duplexify: 4.1.3
-      google-auth-library: 10.2.0
-      google-logging-utils: 1.1.1
-      node-fetch: 3.3.2
-      object-hash: 3.0.0
-      proto3-json-serializer: 3.0.1
-      protobufjs: 7.5.3
-      retry-request: 8.0.0
-    transitivePeerDependencies:
-      - supports-color
-
-  google-logging-utils@1.1.1: {}
 
   google-p12-pem@1.0.5:
     dependencies:
@@ -19910,13 +19351,6 @@ snapshots:
       jws: 4.0.0
     transitivePeerDependencies:
       - encoding
-      - supports-color
-
-  gtoken@8.0.0:
-    dependencies:
-      gaxios: 7.1.1
-      jws: 4.0.0
-    transitivePeerDependencies:
       - supports-color
 
   h3@1.15.1:
@@ -20084,6 +19518,7 @@ snapshots:
       debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   http-proxy-agent@7.0.2:
     dependencies:
@@ -22568,22 +22003,6 @@ snapshots:
 
   ms@2.1.3: {}
 
-  msgpackr-extract@3.0.3:
-    dependencies:
-      node-gyp-build-optional-packages: 5.2.2
-    optionalDependencies:
-      '@msgpackr-extract/msgpackr-extract-darwin-arm64': 3.0.3
-      '@msgpackr-extract/msgpackr-extract-darwin-x64': 3.0.3
-      '@msgpackr-extract/msgpackr-extract-linux-arm': 3.0.3
-      '@msgpackr-extract/msgpackr-extract-linux-arm64': 3.0.3
-      '@msgpackr-extract/msgpackr-extract-linux-x64': 3.0.3
-      '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.3
-    optional: true
-
-  msgpackr@1.11.5:
-    optionalDependencies:
-      msgpackr-extract: 3.0.3
-
   multer-azure-blob-storage@1.2.0:
     dependencies:
       azure-storage: 2.10.7
@@ -22698,16 +22117,6 @@ snapshots:
 
   next-tick@1.1.0: {}
 
-  nice-grpc-common@2.0.2:
-    dependencies:
-      ts-error: 1.0.6
-
-  nice-grpc@2.1.12:
-    dependencies:
-      '@grpc/grpc-js': 1.13.4
-      abort-controller-x: 0.4.3
-      nice-grpc-common: 2.0.2
-
   nice-try@1.0.5: {}
 
   no-case@2.3.2:
@@ -22718,13 +22127,9 @@ snapshots:
     dependencies:
       semver: 7.7.2
 
-  node-abort-controller@3.1.1: {}
-
   node-addon-api@7.1.1: {}
 
   node-addon-api@8.5.0: {}
-
-  node-domexception@1.0.0: {}
 
   node-fetch@2.6.13(encoding@0.1.13):
     dependencies:
@@ -22744,20 +22149,9 @@ snapshots:
     optionalDependencies:
       encoding: 0.1.13
 
-  node-fetch@3.3.2:
-    dependencies:
-      data-uri-to-buffer: 4.0.1
-      fetch-blob: 3.2.0
-      formdata-polyfill: 4.0.10
-
   node-forge@0.10.0: {}
 
   node-forge@1.3.1: {}
-
-  node-gyp-build-optional-packages@5.2.2:
-    dependencies:
-      detect-libc: 2.0.4
-    optional: true
 
   node-gyp-build@4.8.4: {}
 
@@ -23546,12 +22940,6 @@ snapshots:
 
   progress@2.0.3: {}
 
-  prom-client@15.1.3:
-    dependencies:
-      '@opentelemetry/api': 1.9.0
-      tdigest: 0.1.2
-    optional: true
-
   promise-inflight@1.0.1:
     optional: true
 
@@ -23587,10 +22975,6 @@ snapshots:
   proto-list@1.2.4: {}
 
   proto3-json-serializer@1.1.1:
-    dependencies:
-      protobufjs: 7.5.3
-
-  proto3-json-serializer@3.0.1:
     dependencies:
       protobufjs: 7.5.3
 
@@ -24181,14 +23565,6 @@ snapshots:
     dependencies:
       debug: 4.4.1
       extend: 3.0.2
-    transitivePeerDependencies:
-      - supports-color
-
-  retry-request@8.0.0:
-    dependencies:
-      '@types/request': 2.48.12
-      extend: 3.0.2
-      teeny-request: 10.1.0
     transitivePeerDependencies:
       - supports-color
 
@@ -25012,20 +24388,6 @@ snapshots:
 
   tarn@3.0.2: {}
 
-  tdigest@0.1.2:
-    dependencies:
-      bintrees: 1.0.2
-    optional: true
-
-  teeny-request@10.1.0:
-    dependencies:
-      http-proxy-agent: 5.0.0
-      https-proxy-agent: 5.0.1
-      node-fetch: 3.3.2
-      stream-events: 1.0.5
-    transitivePeerDependencies:
-      - supports-color
-
   teeny-request@8.0.3(encoding@0.1.13):
     dependencies:
       http-proxy-agent: 5.0.0
@@ -25273,8 +24635,6 @@ snapshots:
   truncate-utf8-bytes@1.0.2:
     dependencies:
       utf8-byte-length: 1.0.5
-
-  ts-error@1.0.6: {}
 
   ts-interface-checker@0.1.13: {}
 
@@ -26359,8 +25719,6 @@ snapshots:
       valid-data-url: 3.0.1
     transitivePeerDependencies:
       - encoding
-
-  web-streams-polyfill@3.3.3: {}
 
   web-streams-polyfill@4.1.0: {}
 

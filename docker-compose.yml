@@ -57,34 +57,3 @@ services:
       interval: 2s
       timeout: 2s
       retries: 30
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      PORT: 4445
-      PG_HOST: postgres
-      PG_PORT: 5432
-      PG_DB: agents
-      PG_USER: agents
-      PG_PASSWORD: agents
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      CLUSTER_MODE: auto       # forks N-1 workers based on container CPU
-      PG_POOL_SIZE: 20         # per-worker; total = workers × this
-      WORKER_CONCURRENCY: 50
-    ports:
-      - "4445:4445"
-    # Constrain to 2 vCPU to match the Cloud Run starter shape we tested.
-    # Bump to 4-8 vCPU for higher throughput; cluster auto-detects.
-    deploy:
-      resources:
-        limits:
-          cpus: '4'
-          memory: 4g

@@ -73,9 +73,7 @@ pnpm add @goatlab/node-utils       # Node.js specific utilities
 
 - **[@goatlab/queue-core](./packages/queue-core)** - Unified interface for message brokers (Kafka, RabbitMQ) and job schedulers (Bull, Agenda)
 - **[@goatlab/queue-node](./packages/queue-node)** - Node.js cron-based scheduler implementation
-- **[@goatlab/tasks-core](./packages/tasks-core)** - Common interface for queueable tasks
-- **[@goatlab/tasks-adapter-gcp](./packages/tasks-adapter-gcp)** - Google Cloud Tasks adapter
-- **[@goatlab/tasks-adapter-hatchet](./packages/tasks-adapter-hatchet)** - Hatchet workflow engine adapter
+The task stack (`@goatlab/tasks-core` and the BullMQ, Google Cloud Tasks, and Hatchet adapters) is maintained and published from [Goatlab Delphi](https://github.com/goat-io/delphi/tree/main/packages). Published package names remain unchanged.
 
 ### Cloud Services
 
@@ -180,28 +178,9 @@ const users = await userRepo
 
 ## ⚙️ Agent Workflow Engine — Run, Test, and Load-Benchmark
 
-This monorepo also ships a distributed agent workflow engine — see [`packages/delphi-core/README.md`](packages/delphi-core/README.md) for the full architecture. This section is the handover for **running**, **testing**, and **load-benchmarking** the engine.
+The workflow engine and task stack are maintained in [Goatlab Delphi](https://github.com/goat-io/delphi). Follow that repository's current run and benchmark instructions. Fluent's obsolete Delphi app Dockerfile and compose app entry have been removed; its remaining compose services provide only PostgreSQL and Redis.
 
-### One-shot: run the full stack with Docker
-
-```bash
-# Build + start app + Postgres 18 + Redis 7 (everything, healthchecks, 2 vCPU/2 GB by default)
-docker compose up -d
-
-# App is at http://localhost:4445
-curl http://localhost:4445/health
-# {"ok":true,"ingestWorkers":<N>,"ingestBufferDepth":0}
-
-# Tear everything down (including volumes)
-docker compose down -v --remove-orphans
-```
-
-The compose stack uses:
-- `Dockerfile` — multi-stage build (alpine runtime, ~500 MB)
-- `docker-compose.yml` — PG (with `fsync=off` for benchmarking — never in prod) + Redis + app
-- App image runs `packages/delphi-ui/test-server/server.ts` via tsx
-
-To bump capacity, edit `docker-compose.yml` → `deploy.resources.limits.cpus`. The app auto-detects container CPU and forks `cores - 1` cluster workers (`CLUSTER_MODE=auto`). Override with `CLUSTER_MODE=N` or `off`.
+The notes below describe the historical engine integration. Package paths refer to the Delphi repository.
 
 ### Local dev (no Docker for the app)
 
@@ -494,7 +473,7 @@ Drop-in [`prisma.fragment`](packages/delphi-core/prisma.fragment) ships all 12 e
 ### Where to dig deeper
 - Architecture, queue-first ingestion, key exports → [`packages/delphi-core/README.md`](packages/delphi-core/README.md)
 - Dashboard + test server + endpoint reference → [`packages/delphi-ui/README.md`](packages/delphi-ui/README.md)
-- BullMQ adapter (single vs bulk enqueue, why `addBulk` matters) → [`packages/tasks-adapter-bullmq/README.md`](packages/tasks-adapter-bullmq/README.md)
+- BullMQ adapter (single vs bulk enqueue, why `addBulk` matters) → [Delphi BullMQ adapter](https://github.com/goat-io/delphi/tree/main/packages/tasks-adapter-bullmq)
 - Express adapter (router factory, multi-tenant pattern) → [`packages/delphi-express/README.md`](packages/delphi-express/README.md)
 - Bun adapter (fetch handler, reusePort cluster) → [`packages/delphi-bun/README.md`](packages/delphi-bun/README.md)
 - Prisma schema fragment for engine tables → [`packages/delphi-core/prisma.fragment`](packages/delphi-core/prisma.fragment)

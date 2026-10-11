@@ -1,5 +1,8 @@
 # Google Cloud Tasks Integration
 
+> Source ownership: this task package is maintained and published from [Goatlab Delphi](https://github.com/goat-io/delphi/tree/main/packages). Its published npm name remains unchanged.
+
+
 The `@goatlab/tasks-adapter-gcp` package provides integration with Google Cloud Tasks for scalable, distributed task processing in the cloud.
 
 ## Overview

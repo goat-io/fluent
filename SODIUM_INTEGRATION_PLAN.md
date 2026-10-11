@@ -1,5 +1,8 @@
 # Sodium ↔ Goat Agents Engine — Full Context & Integration Plan
 
+> Task-stack source ownership has moved to [Goatlab Delphi](https://github.com/goat-io/delphi/tree/main/packages). Historical task-package paths and build commands below refer to that repository; published package names remain unchanged.
+
+
 > **Status**: planning + handover document, ready to execute in any session.
 > **Last updated**: 2026-04-15
 > **Audience**: another agent or engineer with **zero prior context**. This document is self-contained — read it cold and you should be able to pick up where we left off.

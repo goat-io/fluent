@@ -1,5 +1,8 @@
 # Hatchet Workflow Engine Adapter
 
+> Source ownership: this task package is maintained and published from [Goatlab Delphi](https://github.com/goat-io/delphi/tree/main/packages). Its published npm name remains unchanged.
+
+
 The `@goatlab/tasks-adapter-hatchet` package provides integration with the Hatchet workflow engine for distributed task processing and workflow orchestration.
 
 ## Overview

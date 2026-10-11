@@ -1,5 +1,8 @@
 # Task Processing Core - Task Queue Abstractions
 
+> Source ownership: this task package is maintained and published from [Goatlab Delphi](https://github.com/goat-io/delphi/tree/main/packages). Its published npm name remains unchanged.
+
+
 The `@goatlab/tasks-core` package provides high-level abstractions for task processing and workflow management, built on top of the queue system.
 
 ## Overview
