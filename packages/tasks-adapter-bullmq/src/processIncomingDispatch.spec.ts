@@ -39,6 +39,85 @@ describe('processIncomingDispatch', () => {
     await connector.close()
   })
 
+  it.each([1, 9])(
+    'drains %i jobs without blocking after its advisory wake marker was consumed',
+    async total => {
+      const queueName = `dispatch_partial_${total}`
+      for (let i = 0; i < total; i++) {
+        await connector.addJob(queueName, `job-${i}`, { i })
+      }
+      const handled: number[] = []
+      const started = performance.now()
+      const result = await connector.processIncomingDispatch({
+        handleTask: async (_name, data) => {
+          handled.push((data as { i: number }).i)
+          // A wake marker is advisory, not ownership of a durable queued job.
+          // Another consumer can have consumed it before this manual drain.
+          const queue = connector.getQueue(queueName)
+          await (await queue.client).zpopmin(queue.toKey('marker'))
+          return { ok: true }
+        },
+        timeBudgetMs: 10_000,
+        validQueueNames: new Set([queueName, `${queueName}_empty`]),
+        hint: { queueName },
+        batchSize: 8,
+        concurrency: 2,
+      })
+      const elapsed = performance.now() - started
+      expect(result).toEqual({ processed: total, failed: 0 })
+      expect(new Set(handled).size).toBe(total)
+      expect(await connector.getJobCounts(queueName)).toMatchObject({
+        waiting: 0,
+        active: 0,
+      })
+      expect(elapsed).toBeLessThan(2000)
+    },
+  )
+
+  it('drains only its tenant prefix while scanning an empty queue', async () => {
+    const first = new BullMQConnector({
+      connection: {
+        host: REDIS_HOST,
+        port: REDIS_PORT,
+        maxRetriesPerRequest: null,
+      },
+      prefix: `${TEST_PREFIX}:tenant-first`,
+    })
+    const second = new BullMQConnector({
+      connection: {
+        host: REDIS_HOST,
+        port: REDIS_PORT,
+        maxRetriesPerRequest: null,
+      },
+      prefix: `${TEST_PREFIX}:tenant-second`,
+    })
+    try {
+      const queueName = 'tenant_partial'
+      await first.addJob(queueName, 'same-id', { tenant: 'first' })
+      await second.addJob(queueName, 'same-id', { tenant: 'second' })
+      const handled: unknown[] = []
+      const result = await first.processIncomingDispatch({
+        handleTask: async (_name, data) => {
+          handled.push(data)
+          return { ok: true }
+        },
+        timeBudgetMs: 10_000,
+        validQueueNames: new Set(['tenant_empty', queueName]),
+        batchSize: 8,
+        concurrency: 2,
+      })
+      expect(result).toEqual({ processed: 1, failed: 0 })
+      expect(handled).toEqual([{ tenant: 'first' }])
+      expect(await second.getJobCounts(queueName)).toMatchObject({
+        waiting: 1,
+        active: 0,
+      })
+    } finally {
+      await first.close()
+      await second.close()
+    }
+  })
+
   it('should pick up a job that was enqueued before dispatch is called', async () => {
     const queueName = 'dispatch_race_test'
     const jobData = { value: 'hello-from-race-test' }

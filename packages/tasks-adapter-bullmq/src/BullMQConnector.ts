@@ -848,9 +848,11 @@ export class BullMQConnector implements TaskConnector<object> {
           //
           // Note: BullMQ's getNextJob is atomic (Lua script), so multiple
           // parallel calls won't return the same job to two callers.
+          // On-demand drains must not wait for future jobs. Later hints or
+          // recovery dispatches handle arrivals after this queue is empty.
           const pulled = await Promise.all(
             Array.from({ length: batchSize }, () =>
-              tempWorker.getNextJob('dispatch'),
+              tempWorker.getNextJob('dispatch', { block: false }),
             ),
           )
           const jobs = pulled.filter(
