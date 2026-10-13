@@ -75,7 +75,7 @@
     "swagger-ui-express": "^5.0.1",
     "tiny-lru": "^11.3.4",
     "trpc-to-openapi": "^2.3.2",
-    "ua-parser-js": "^2.0.4",
+    "ua-parser-js": "^2.0.10",
     "undici": "^7.12.0",
     "zod": "catalog:"
   },
