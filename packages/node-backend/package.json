@@ -67,7 +67,7 @@
     "helmet": "^8.1.0",
     "keyv": "^4.5.4",
     "kleur": "^4.1.5",
-    "mjml": "^4.15.3",
+    "mjml": "^5.0.0",
     "node-mocks-http": "^1.17.2",
     "passport-jwt": "^4.0.1",
     "public-ip": "^7.0.1",
