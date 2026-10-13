@@ -104,7 +104,7 @@
     "supertest": "^7.1.4",
     "ts-jest": "catalog:",
     "ts-node": "catalog:",
-    "turbo": "^1.1.10",
+    "turbo": "^2.9.14",
     "typescript": "^5.6.3",
     "vitest": "^3.1.1"
   },
