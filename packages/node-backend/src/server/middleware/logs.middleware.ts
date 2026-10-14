@@ -23,7 +23,11 @@ export interface RequestLoggerOptions {
    * By default only responses below 1000ms are eligible. Errors and throwing
    * predicates retain their logs; sampleSlowSuccesses also permits slow successes.
    */
-  shouldLogSuccess?: (req: Request, statusCode: number, durationMs: number) => boolean
+  shouldLogSuccess?: (
+    req: Request,
+    statusCode: number,
+    durationMs: number,
+  ) => boolean
 
   /** Include slow successful responses in predicate sampling; false by default. */
   sampleSlowSuccesses?: boolean
@@ -139,7 +143,12 @@ function logBatchRequests({
     ...traceMeta,
   }
 
-  const decodedUrl = decodeURIComponent(url)
+  let decodedUrl = url
+  try {
+    decodedUrl = decodeURIComponent(url)
+  } catch {
+    // Malformed client input must still produce a status log, never crash finish.
+  }
   const urlParts = decodedUrl.split('?')
   const baseUrl = urlParts[0] || ''
 
@@ -249,7 +258,15 @@ export const expressRequestLogger = (
       (durationInMilliseconds < 1000 || options?.sampleSlowSuccesses === true)
     ) {
       try {
-        if (options?.shouldLogSuccess?.(request, statusCode, durationInMilliseconds) === false) return
+        if (
+          options?.shouldLogSuccess?.(
+            request,
+            statusCode,
+            durationInMilliseconds,
+          ) === false
+        ) {
+          return
+        }
       } catch {
         // Sampling failures must retain the request log.
       }
