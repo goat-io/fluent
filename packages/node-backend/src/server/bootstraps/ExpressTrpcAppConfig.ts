@@ -299,10 +299,13 @@ export function getDefaultConfig(
   // Determine port from user config or default
   const port = userConfig.port || 3000
 
+  // Routers are opaque runtime identities, not mergeable configuration records.
+  const { trpcRouter, ...options } = userConfig
+
   // Build complete default configuration
   const defaults: ExpressTrpcAppConfig = {
     // Required fields from user config
-    trpcRouter: userConfig.trpcRouter,
+    trpcRouter,
 
     // Basic app info with defaults
     appName: pkg.name || 'express-trpc-app',
@@ -439,7 +442,7 @@ export function getDefaultConfig(
   }
 
   // Deep merge user configuration with defaults
-  const merged = deepMerge(defaults, userConfig)
+  const merged = deepMerge(defaults, options)
 
   // Special handling for baseUrl - use user-provided value if given
   if (userConfig.baseUrl) {
