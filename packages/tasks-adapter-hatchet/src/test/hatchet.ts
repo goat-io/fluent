@@ -44,6 +44,15 @@ export const getHatchetContainer = ({
     )
 }
 
+const EXPECTED_TENANT_ID = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
+
+/** Proposed semantic log matcher, reported diagnostically before changing readiness. */
+export function matchesExpectedTenantCreation(value: string) {
+  return new RegExp(`created tenant[^\\r\\n]*${EXPECTED_TENANT_ID}`, 'i').test(
+    value,
+  )
+}
+
 /** Retain bounded logs in memory; output only fixed classifications and key names. */
 export function createStartupDiagnostics() {
   let recent = ''
@@ -85,7 +94,27 @@ export function createStartupDiagnostics() {
         ['engine_serving', /listening|server started|grpc[^\n]*started/i],
         ['tenant_created', /created tenant/i],
       ]
+      const forward = recent.match(
+        new RegExp(`created tenant([^\\r\\n]*?)${EXPECTED_TENANT_ID}`, 'i'),
+      )
+      const reverse = recent.match(
+        new RegExp(`${EXPECTED_TENANT_ID}([^\\r\\n]*?)created tenant`, 'i'),
+      )
+      const separator = (forward?.[1] ?? reverse?.[1])
+        ?.replace(/[^\s,:;="'{}()[\]]+/g, '[redacted]')
+        .replace(/\s+/g, ' ')
+        .slice(0, 192)
       return {
+        proposedReadinessMatch: matchesExpectedTenantCreation(recent),
+        caseInsensitiveExactMatch: recent
+          .toLowerCase()
+          .includes(`created tenant ${EXPECTED_TENANT_ID}`),
+        tenantIdBeforeMarkerSameLine: !!reverse,
+        safeTenantCreationForm: forward
+          ? `created tenant${separator}${EXPECTED_TENANT_ID}`
+          : reverse
+            ? `${EXPECTED_TENANT_ID}${separator}created tenant`
+            : undefined,
         classifications: patterns
           .filter(([, pattern]) => pattern.test(recent))
           .map(([label]) => label),

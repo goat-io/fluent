@@ -1,7 +1,11 @@
 // pnpm --filter @goatlab/tasks-adapter-hatchet exec vitest run --config src/test/fixture.vitest.config.ts
 import { PassThrough } from 'node:stream'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createStartupDiagnostics, startHatchetFixture } from './hatchet.js'
+import {
+  createStartupDiagnostics,
+  matchesExpectedTenantCreation,
+  startHatchetFixture,
+} from './hatchet.js'
 
 const m = vi.hoisted(() => ({
   stop: vi.fn(),
@@ -100,6 +104,29 @@ beforeEach(() => {
   })
 })
 describe('Hatchet fixture diagnostics', () => {
+  it('reports a safe same-line log shape and proposed match without accepting other tenants or unrelated lines', () => {
+    const id = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
+    const logs = createStartupDiagnostics()
+    logs.append(
+      `INFO Created tenant: {"name":"not-a-real-secret","id":"${id}"} password=not-a-real-password`,
+    )
+    const summary = logs.summary()
+    expect(summary.proposedReadinessMatch).toBe(true)
+    expect(summary.caseInsensitiveExactMatch).toBe(false)
+    expect(summary.tenantIdBeforeMarkerSameLine).toBe(false)
+    expect(summary.safeTenantCreationForm).not.toContain('not-a-real-secret')
+    expect(summary.safeTenantCreationForm).not.toContain('not-a-real-password')
+    expect(matchesExpectedTenantCreation(summary.safeTenantCreationForm!)).toBe(
+      true,
+    )
+    expect(
+      matchesExpectedTenantCreation(
+        'created tenant 11111111-1111-1111-1111-111111111111',
+      ),
+    ).toBe(false)
+    expect(matchesExpectedTenantCreation(`created tenant\n${id}`)).toBe(false)
+  })
+
   it('bounds retained logs and emits classifications without raw credentials or environment values', () => {
     const log = createStartupDiagnostics()
     log.append('x'.repeat(100000))
