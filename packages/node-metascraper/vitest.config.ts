@@ -7,8 +7,6 @@ export default defineConfig({
     setupFiles: ['./setup.ts'],
     testTimeout: 30000,
     hookTimeout: 30000,
-    deps: {
-      external: ['@goatlab/js-utils']
-    }
+
   }
 })
