@@ -1,5 +1,5 @@
 // yarn test arrays.spec.ts
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Arrays, ArraysClass } from './Arrays'
 
 const arrays = new ArraysClass()
@@ -538,11 +538,17 @@ describe('ArraysClass', () => {
   describe('shuffle', () => {
     const arrays = new ArraysClass()
 
-    it('returns an array with the same elements in a different order', () => {
-      const original = [1, 2, 3, 4, 5]
-      const shuffled = arrays.shuffle(original)
-      expect(shuffled).toEqual(expect.arrayContaining(original))
-      expect(shuffled).not.toEqual(original)
+    it('returns a shuffled copy for deterministic random draws', () => {
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+      try {
+        const original = [1, 2, 3, 4, 5]
+        const shuffled = arrays.shuffle(original)
+        expect(shuffled).toEqual([2, 3, 4, 5, 1])
+        expect(shuffled).not.toBe(original)
+        expect(original).toEqual([1, 2, 3, 4, 5])
+      } finally {
+        random.mockRestore()
+      }
     })
 
     it('does not mutate the original array by default', () => {
@@ -553,9 +559,28 @@ describe('ArraysClass', () => {
     })
 
     it('mutates the original array when mutate is true', () => {
-      const original = [1, 2, 3, 4, 5]
-      arrays.shuffle(original, true)
-      expect(original).not.toEqual([1, 2, 3, 4, 5])
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+      try {
+        const original = [1, 2, 3, 4, 5]
+        expect(arrays.shuffle(original, true)).toBe(original)
+        expect(original).toEqual([2, 3, 4, 5, 1])
+      } finally {
+        random.mockRestore()
+      }
+    })
+
+    it('allows the identity permutation when each draw selects the current slot', () => {
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0.999999)
+      try {
+        const original = [1, 2, 3, 4, 5]
+        const shuffled = arrays.shuffle(original)
+        expect(shuffled).toEqual(original)
+        expect(shuffled).not.toBe(original)
+        expect(arrays.shuffle(original, true)).toBe(original)
+        expect(original).toEqual([1, 2, 3, 4, 5])
+      } finally {
+        random.mockRestore()
+      }
     })
 
     it('preserves the length of the array', () => {
