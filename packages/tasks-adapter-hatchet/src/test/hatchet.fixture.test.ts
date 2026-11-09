@@ -3,11 +3,19 @@ import { PassThrough } from 'node:stream'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createStartupDiagnostics,
+  getHatchetContainer,
   matchesExpectedTenantCreation,
   startHatchetFixture,
 } from './hatchet.js'
 
 const m = vi.hoisted(() => ({
+  timeout: vi.fn(),
+  wait: vi.fn((_pattern: string | RegExp, _count: number) => ({
+    withStartupTimeout: (timeout: number) => {
+      m.timeout(timeout)
+      return {}
+    },
+  })),
   stop: vi.fn(),
   remove: vi.fn(),
   pgStop: vi.fn(),
@@ -50,7 +58,7 @@ vi.mock('testcontainers', () => ({
       throw new Error('Expected tenant log not received after 60000ms')
     }
   },
-  Wait: { forLogMessage: () => ({ withStartupTimeout: () => ({}) }) },
+  Wait: { forLogMessage: m.wait },
   getContainerRuntimeClient: async () => ({
     container: {
       getById: (id: string) => {
@@ -104,6 +112,32 @@ beforeEach(() => {
   })
 })
 describe('Hatchet fixture diagnostics', () => {
+  it('uses the observed tenant log format without loosening tenant identity or the startup budget', () => {
+    const id = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
+    // Actual sanitized CI shape: formatting and fields separate the marker and UUID.
+    const actualSafeForm = `created tenant[redacted][[redacted] [redacted][[redacted]=[redacted][[redacted] [redacted][[redacted]=[redacted][[redacted]${id}`
+    expect(actualSafeForm.includes(`created tenant ${id}`)).toBe(false)
+    getHatchetContainer({
+      network: {} as any,
+      postgresConnectionString: 'postgresql://fixture:fixture@db/fixture',
+    })
+    const [pattern, count] = m.wait.mock.calls[0]!
+    expect(pattern).toBeInstanceOf(RegExp)
+    expect((pattern as RegExp).test(actualSafeForm)).toBe(true)
+    expect(
+      (pattern as RegExp).test(
+        'created tenant 11111111-1111-1111-1111-111111111111',
+      ),
+    ).toBe(false)
+    expect(
+      (pattern as RegExp).test(
+        ['created tenant', id].join(String.fromCharCode(10)),
+      ),
+    ).toBe(false)
+    expect(count).toBe(1)
+    expect(m.timeout).toHaveBeenCalledWith(60000)
+  })
+
   it('reports a safe same-line log shape and proposed match without accepting other tenants or unrelated lines', () => {
     const id = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
     const logs = createStartupDiagnostics()
@@ -124,7 +158,11 @@ describe('Hatchet fixture diagnostics', () => {
         'created tenant 11111111-1111-1111-1111-111111111111',
       ),
     ).toBe(false)
-    expect(matchesExpectedTenantCreation(`created tenant\n${id}`)).toBe(false)
+    expect(
+      matchesExpectedTenantCreation(
+        ['created tenant', id].join(String.fromCharCode(10)),
+      ),
+    ).toBe(false)
   })
 
   it('bounds retained logs and emits classifications without raw credentials or environment values', () => {

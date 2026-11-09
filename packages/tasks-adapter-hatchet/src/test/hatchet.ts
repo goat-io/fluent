@@ -11,6 +11,12 @@ import { cleanGlobalData, writeGlobalData } from './const.js'
 import type { HatchetStartupDiagnostics } from './hatchet.types.js'
 import { getPostgres } from './postgres.js'
 
+const EXPECTED_TENANT_ID = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
+const EXPECTED_TENANT_CREATION_LOG = new RegExp(
+  `created tenant[^\\r\\n]*${EXPECTED_TENANT_ID}`,
+  'i',
+)
+
 export const getHatchetContainer = ({
   postgresConnectionString,
   network,
@@ -37,20 +43,15 @@ export const getHatchetContainer = ({
     .withNetwork(network)
     .withExposedPorts(8888, 7077)
     .withWaitStrategy(
-      Wait.forLogMessage(
-        `created tenant 707d0855-80ab-4e1f-a156-f1c4546cbf52`,
-        1,
-      ).withStartupTimeout(60_000),
+      Wait.forLogMessage(EXPECTED_TENANT_CREATION_LOG, 1).withStartupTimeout(
+        60_000,
+      ),
     )
 }
 
-const EXPECTED_TENANT_ID = '707d0855-80ab-4e1f-a156-f1c4546cbf52'
-
-/** Proposed semantic log matcher, reported diagnostically before changing readiness. */
+/** Match the exact tenant creation event across logger formatting changes. */
 export function matchesExpectedTenantCreation(value: string) {
-  return new RegExp(`created tenant[^\\r\\n]*${EXPECTED_TENANT_ID}`, 'i').test(
-    value,
-  )
+  return EXPECTED_TENANT_CREATION_LOG.test(value)
 }
 
 /** Retain bounded logs in memory; output only fixed classifications and key names. */
