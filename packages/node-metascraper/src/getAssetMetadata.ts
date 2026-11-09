@@ -1,125 +1,76 @@
-import { readFileSync } from 'node:fs'
-import * as https from 'node:https'
-import { Jimp } from 'jimp'
+import { readFile, stat } from 'node:fs/promises'
+import { imageSize } from 'image-size'
 import filetype from 'magic-bytes.js'
+import type {
+  AssetMetadataOptions,
+  MarketplaceAsset,
+} from './assetMetadata.types.js'
+import { publicFetch } from './publicFetch.js'
 
-export type MarketplaceAsset = {
-  id?: string
-  url: string
-  originalName: string
-  mimeType: string
-  isImage: boolean
-  isVideo: boolean
-  isFile: boolean
-  height?: number
-  width?: number
-  isVertical?: boolean
-  sizeBytes?: number
-  thumbnailUrl?: string
-  pages?: number | null
-  duration?: number | null
-  storyId?: string | null
-  postId?: string | null
-  ownerId?: string | null
-  activityId?: string | null
-}
+export type { MarketplaceAsset } from './assetMetadata.types.js'
 
-// Custom fetch with SSL configuration similar to rejectUnauthorized: false
-const httpsAgent = new https.Agent({
-  rejectUnauthorized: false,
-})
-
-const customFetch = async (url: string) => {
-  return fetch(url, {
-    // @ts-ignore - agent property exists in Node.js fetch
-    agent: url.startsWith('https:') ? httpsAgent : undefined,
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.5',
-      'Accept-Encoding': 'gzip, deflate, br',
-      DNT: '1',
-      Connection: 'keep-alive',
-      'Upgrade-Insecure-Requests': '1',
-    },
-  })
-}
-
+/** Local files require an explicit trusted-caller opt-in; page metadata never enables it. */
 export const getAssetMetadata = async (
   imageUrl?: string,
+  options: AssetMetadataOptions = {},
 ): Promise<(MarketplaceAsset & { buffer?: Buffer }) | undefined> => {
-  if (!imageUrl || imageUrl.trim() === '') {
-    return
+  if (!imageUrl?.trim()) {
+    return undefined
   }
-
-  try {
-    let buffer: Buffer
-    let responseHeaders: Headers | undefined
-    const isUrl = /^https?:\/\//i.test(imageUrl)
-
-    if (isUrl) {
-      // Fetch the image data using custom fetch with SSL config
-      const response = await customFetch(imageUrl)
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      buffer = Buffer.from(await response.arrayBuffer())
-      responseHeaders = response.headers
-    } else {
-      // Read the image data from the local file system
-      buffer = readFileSync(imageUrl)
+  const maxBytes = 8 * 1024 * 1024
+  let buffer: Buffer
+  let headerMimeType: string | undefined
+  if (/^https?:\/\//i.test(imageUrl)) {
+    const response = await publicFetch(imageUrl, { maxBytes })
+    buffer = response.body
+    headerMimeType = response.headers['content-type']?.split(';')[0]
+  } else {
+    if (!options.allowLocalFiles) {
+      throw new Error('Local asset paths require explicit opt-in')
     }
-
-    // Detect MIME type using magic-bytes.js, fallback to response headers
-    const detectedMimeType = filetype(buffer)
-    const headerMimeType = responseHeaders?.get('content-type')
-    const mime =
-      detectedMimeType?.[0]?.mime || headerMimeType || 'image/unknown'
-
-    // Determine if it's an image or not
-    const isImage = mime?.startsWith('image/') || false
-    const isVideo = mime?.startsWith('video/') || false
-    const isFile = !isImage && !isVideo
-
-    // Get dimensions if it's an image
-    let height = 0
-    let width = 0
-    let isVertical = false
-
-    if (isImage) {
-      const jimpImage = await Jimp.read(buffer)
-
-      width = jimpImage.bitmap.width
-      height = jimpImage.bitmap.height
-      isVertical = !!(height > width)
+    if ((await stat(imageUrl)).size > maxBytes) {
+      throw new Error('Asset exceeds byte limit')
     }
-
-    // Calculate size in bytes
-    const sizeBytes = buffer.length
-
-    // Return the metadata object
-    const metadata: MarketplaceAsset & { buffer: Buffer } = {
-      url: imageUrl,
-      originalName: imageUrl.split('/').pop() || 'unknown',
-      mimeType: mime || 'unknown',
-      isImage,
-      isVideo,
-      isFile,
-      height,
-      width,
-      isVertical,
-      thumbnailUrl: imageUrl,
-      sizeBytes,
-      buffer,
+    buffer = await readFile(imageUrl)
+    if (buffer.length > maxBytes) {
+      throw new Error('Asset exceeds byte limit')
     }
-
-    return metadata
-  } catch (err) {
-    console.error('Error fetching image metadata:', err)
-    throw new Error('Failed to fetch image metadata')
+  }
+  const mime =
+    filetype(buffer)?.[0]?.mime || headerMimeType || 'application/octet-stream'
+  const isImage = mime.startsWith('image/')
+  const isVideo = mime.startsWith('video/')
+  let width = 0
+  let height = 0
+  if (isImage) {
+    // Inspect bounded headers rather than allocating a decoded pixel bitmap.
+    const dimensions = imageSize(buffer)
+    width = dimensions.width
+    height = dimensions.height
+    if (
+      !Number.isSafeInteger(width) ||
+      !Number.isSafeInteger(height) ||
+      width <= 0 ||
+      height <= 0 ||
+      width > 16384 ||
+      height > 16384 ||
+      width * height > 40_000_000
+    ) {
+      throw new Error('Image dimensions exceed preview limits')
+    }
+  }
+  return {
+    url: imageUrl,
+    originalName: imageUrl.split('/').pop() || 'unknown',
+    mimeType: mime,
+    isImage,
+    isVideo,
+    isFile: !isImage && !isVideo,
+    width,
+    height,
+    isVertical: height > width,
+    thumbnailUrl: imageUrl,
+    sizeBytes: buffer.length,
+    buffer,
   }
 }

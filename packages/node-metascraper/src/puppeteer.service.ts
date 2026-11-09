@@ -6,9 +6,6 @@ const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
 puppeteer.use(StealthPlugin())
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }))
 
-// const BROWSER_WS =
-//   'wss://brd-customer-hl_1cb9eac7-zone-agro:595pgyin2iqa@brd.superproxy.io:9222'
-
 export class PuppeteerService {
   private browserServiceUrl?: string = undefined
 
@@ -23,19 +20,24 @@ export class PuppeteerService {
       // args: ['--no-sandbox', '--disable-setuid-sandbox'],
     })
 
-    // Open a new page
-    const page = await browser.newPage()
+    try {
+      // Open a new page
+      const page = await browser.newPage()
 
-    await page.setRequestInterception(true)
+      await page.setRequestInterception(true)
 
-    page.on('request', async (request: any) => {
-      if (['image', 'stylesheet', 'font'].includes(request.resourceType())) {
-        await request.abort()
-      } else {
-        await request.continue()
-      }
-    })
+      page.on('request', async (request: any) => {
+        if (['image', 'stylesheet', 'font'].includes(request.resourceType())) {
+          await request.abort()
+        } else {
+          await request.continue()
+        }
+      })
 
-    return { page, browser }
+      return { page, browser }
+    } catch (error) {
+      await browser.close()
+      throw error
+    }
   }
 }

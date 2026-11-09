@@ -1,11 +1,9 @@
 import { URL } from 'node:url'
-import { Promises } from '@goatlab/js-utils'
 import * as cheerio from 'cheerio'
-import { PuppeteerService } from './puppeteer.service'
+import { publicFetch } from './publicFetch.js'
 
 const metascraper = require('metascraper')
 const metascraperAuthor = require('metascraper-author')
-const metascraperClearBit = require('metascraper-clearbit')
 const metascraperDate = require('metascraper-date')
 const metascraperDescription = require('metascraper-description')
 const metascraperFeed = require('metascraper-feed')
@@ -24,7 +22,6 @@ const scraper = metascraper([
   metascraperAuthor(),
   metascraperDate(),
   metascraperLogo(),
-  metascraperClearBit(),
   metascraperPublisher(),
   metascraperFeed(),
   metascraperLang(),
@@ -57,7 +54,7 @@ const fixMalformedUrl = (url: string): string => {
   }
 }
 
-export const getHtmlFromUrl = async ({
+const getPageResponse = async ({
   url,
   forcePuppeteer,
   puppeteerBrowserServiceUrl,
@@ -65,43 +62,45 @@ export const getHtmlFromUrl = async ({
   url: string
   forcePuppeteer?: boolean
   puppeteerBrowserServiceUrl?: string
-}): Promise<string | undefined> => {
-  if (!forcePuppeteer) {
-    const [error, response] = await Promises.try(
-      fetch(url, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          Accept:
-            'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate, br',
-          DNT: '1',
-          Connection: 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-        },
-      }).then(res => res.text()),
-    )
-
-    if (!error && response) {
-      const metadata = await scraper({ html: response, url })
-
-      if (metadata.description !== '.' && (metadata.title || metadata.author)) {
-        return response
+}) => {
+  if (forcePuppeteer) {
+    if (!puppeteerBrowserServiceUrl) {
+      throw new Error(
+        'Explicit browser mode requires a trusted browser endpoint',
+      )
+    }
+    const { PuppeteerService } = await import('./puppeteer.service.js')
+    const { browser, page } = await new PuppeteerService(
+      puppeteerBrowserServiceUrl,
+    ).getPuppeteerPage()
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 8000 })
+      const html = await page.content()
+      if (Buffer.byteLength(html) > 2 * 1024 * 1024) {
+        throw new Error('HTML exceeds preview byte limit')
       }
+      return { html, url: page.url() || url }
+    } finally {
+      await browser.close()
     }
   }
-
-  const { browser, page } = await new PuppeteerService(
-    puppeteerBrowserServiceUrl,
-  ).getPuppeteerPage()
-
-  await page.goto(url, { waitUntil: 'networkidle2' })
-  const html = await page.content()
-  await browser.close()
-
-  return html
+  const response = await publicFetch(url)
+  const contentType = response.headers['content-type']
+    ?.split(';')[0]
+    ?.toLowerCase()
+  if (
+    contentType &&
+    !['text/html', 'application/xhtml+xml'].includes(contentType)
+  ) {
+    throw new Error('Preview target is not HTML')
+  }
+  return { html: response.body.toString('utf8'), url: response.url }
 }
+
+/** Retain the existing string-only API while internal callers keep the final URL. */
+export const getHtmlFromUrl = async (
+  input: Parameters<typeof getPageResponse>[0],
+): Promise<string | undefined> => (await getPageResponse(input)).html
 
 export function extractRSSLinks(html: string, url: string): string | null {
   try {
@@ -142,44 +141,48 @@ export async function metaScraper(
   puppeteerBrowserServiceUrl?: string,
 ) {
   try {
-    const html = await getHtmlFromUrl({ url, puppeteerBrowserServiceUrl })
+    const page = await getPageResponse({ url, puppeteerBrowserServiceUrl })
 
-    if (!html) {
+    if (!page.html) {
       return null
     }
 
-    const alternativeTitle = extractRSSLinks(html, url)
-
-    // Extract metadata using metascraper
-    const metadata = await scraper({ html, url })
-    const parsedUrl = metadata.url || url || ''
-    // const title =
-
-    let imageUrl = metadata.image
-
-    if (metadata.image?.includes('imgix.com')) {
-      const imgixUrl = new URL(metadata.image).searchParams.get('logo_url')
-
-      if (imgixUrl) {
-        imageUrl = imgixUrl
-      }
-    }
-
-    return {
-      url: parsedUrl,
-      title: metadata.title || alternativeTitle || '',
-      description: metadata.description || '',
-      image: fixMalformedUrl(imageUrl || ''),
-      author: metadata.author || '',
-      date: metadata.date || '',
-      logo: metadata.logo || '',
-      publisher: metadata.publisher || '',
-      domain: getDomainFromUrl(parsedUrl),
-      lang: metadata.lang || '',
-      feed: metadata.feed || '',
-    }
-  } catch (err) {
-    console.error('Error fetching link preview:', err)
+    return await parseMetadataHtml(page.html, page.url)
+  } catch (_err) {
     return null
+  }
+}
+
+/** Extract metadata only; this function never fetches URLs or opens a browser. */
+export async function parseMetadataHtml(html: string, url: string) {
+  const alternativeTitle = extractRSSLinks(html, url)
+
+  // Extract metadata using metascraper
+  const metadata = await scraper({ html, url })
+  const parsedUrl = metadata.url || url || ''
+  // const title =
+
+  let imageUrl = metadata.image
+
+  if (metadata.image?.includes('imgix.com')) {
+    const imgixUrl = new URL(metadata.image).searchParams.get('logo_url')
+
+    if (imgixUrl) {
+      imageUrl = imgixUrl
+    }
+  }
+
+  return {
+    url: parsedUrl,
+    title: metadata.title || alternativeTitle || '',
+    description: metadata.description || '',
+    image: fixMalformedUrl(imageUrl || ''),
+    author: metadata.author || '',
+    date: metadata.date || '',
+    logo: metadata.logo || '',
+    publisher: metadata.publisher || '',
+    domain: getDomainFromUrl(parsedUrl),
+    lang: metadata.lang || '',
+    feed: metadata.feed || '',
   }
 }
