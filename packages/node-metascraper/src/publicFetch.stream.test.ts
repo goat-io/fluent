@@ -4,6 +4,7 @@ import { publicFetch, sendPinned } from './publicFetch.js'
 
 const m = vi.hoisted(() => ({
   mode: 'ok',
+  bodyBytes: 0,
   options: null as any,
   responseDestroyed: false,
   requestDestroyed: false,
@@ -30,7 +31,7 @@ vi.mock('node:https', async () => {
           response.statusCode = 200
           response.headers =
             m.mode === 'declared'
-              ? { 'content-length': '100' }
+              ? { 'content-length': String(m.bodyBytes || 100) }
               : m.mode === 'compressed'
                 ? { 'content-encoding': 'gzip' }
                 : {}
@@ -41,7 +42,9 @@ vi.mock('node:https', async () => {
           if (!m.responseDestroyed) {
             response.emit(
               'data',
-              Buffer.from(m.mode === 'stream' ? 'too large' : 'okay'),
+              m.bodyBytes
+                ? Buffer.alloc(m.bodyBytes)
+                : Buffer.from(m.mode === 'stream' ? 'too large' : 'okay'),
             )
           }
           if (!m.responseDestroyed) {
@@ -57,6 +60,7 @@ vi.mock('node:http', async () => ({
   request: (await import('node:https')).request,
 }))
 beforeEach(() => {
+  m.bodyBytes = 0
   m.mode = 'ok'
   m.options = null
   m.responseDestroyed = false
@@ -82,6 +86,17 @@ describe('pinned streamed requests without network access', () => {
     async mode => {
       m.mode = mode
       await expect(sendPinned(input())).rejects.toThrow()
+      expect(m.responseDestroyed).toBe(true)
+    },
+  )
+  it.each(['declared', 'stream'])(
+    'rejects %s HTML exceeding the explicit 4 MiB allowance',
+    async mode => {
+      m.mode = mode
+      m.bodyBytes = 4 * 1024 * 1024 + 1
+      await expect(
+        sendPinned({ ...input(), maxBytes: 4 * 1024 * 1024 }),
+      ).rejects.toThrow(/byte limit/)
       expect(m.responseDestroyed).toBe(true)
     },
   )

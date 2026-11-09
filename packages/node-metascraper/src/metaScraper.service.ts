@@ -2,6 +2,8 @@ import { URL } from 'node:url'
 import * as cheerio from 'cheerio'
 import { publicFetch } from './publicFetch.js'
 
+const MAX_HTML_BYTES = 4 * 1024 * 1024
+
 const metascraper = require('metascraper')
 const metascraperAuthor = require('metascraper-author')
 const metascraperDate = require('metascraper-date')
@@ -76,7 +78,7 @@ const getPageResponse = async ({
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 8000 })
       const html = await page.content()
-      if (Buffer.byteLength(html) > 2 * 1024 * 1024) {
+      if (Buffer.byteLength(html) > MAX_HTML_BYTES) {
         throw new Error('HTML exceeds preview byte limit')
       }
       return { html, url: page.url() || url }
@@ -84,7 +86,7 @@ const getPageResponse = async ({
       await browser.close()
     }
   }
-  const response = await publicFetch(url)
+  const response = await publicFetch(url, { maxBytes: MAX_HTML_BYTES })
   const contentType = response.headers['content-type']
     ?.split(';')[0]
     ?.toLowerCase()
