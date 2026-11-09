@@ -164,11 +164,17 @@ export async function parseMetadataHtml(html: string, url: string) {
 
   let imageUrl = metadata.image
 
-  if (metadata.image?.includes('imgix.com')) {
-    const imgixUrl = new URL(metadata.image).searchParams.get('logo_url')
-
-    if (imgixUrl) {
-      imageUrl = imgixUrl
+  if (metadata.image) {
+    try {
+      const imageTarget = new URL(metadata.image)
+      if (
+        imageTarget.hostname === 'imgix.com' ||
+        imageTarget.hostname.endsWith('.imgix.com')
+      ) {
+        imageUrl = imageTarget.searchParams.get('logo_url') || imageUrl
+      }
+    } catch {
+      // Keep malformed metadata untouched; remote asset fetching rejects unsafe URLs.
     }
   }
 

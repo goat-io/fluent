@@ -11,6 +11,27 @@ vi.mock('./publicFetch.js', () => ({ publicFetch: m.fetch }))
 beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllGlobals())
 describe('pure page metadata extraction', () => {
+  it.each(['imgix.com.evil.org', 'evil-imgix.com', 'evil.org'])(
+    'does not rewrite image URLs for lookalike host %s',
+    async host => {
+      const image = `https://${host}/imgix.com/image.png?logo_url=https%3A%2F%2Fexample.org%2Flogo.png`
+      expect(
+        await parseMetadataHtml(
+          `<meta property="og:image" content="${image}">`,
+          'https://example.org',
+        ),
+      ).toMatchObject({ image })
+    },
+  )
+  it('supports logo extraction only for an exact imgix host or its subdomain', async () => {
+    expect(
+      await parseMetadataHtml(
+        '<meta property="og:image" content="https://cdn.imgix.com/image.png?logo_url=https%3A%2F%2Fexample.org%2Flogo.png">',
+        'https://example.org',
+      ),
+    ).toMatchObject({ image: 'https://example.org/logo.png' })
+  })
+
   it('resolves relative images against the final redirected page URL', async () => {
     m.fetch.mockResolvedValue({
       url: 'https://destination.example.org/articles/final',
