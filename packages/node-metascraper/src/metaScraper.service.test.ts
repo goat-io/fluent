@@ -6,8 +6,22 @@ import {
   parseMetadataHtml,
 } from './metaScraper.service.js'
 
-const m = vi.hoisted(() => ({ fetch: vi.fn() }))
+const m = vi.hoisted(() => ({ fetch: vi.fn(), html: '', close: vi.fn() }))
 vi.mock('./publicFetch.js', () => ({ publicFetch: m.fetch }))
+vi.mock('./puppeteer.service.js', () => ({
+  PuppeteerService: class {
+    async getPuppeteerPage() {
+      return {
+        browser: { close: m.close },
+        page: {
+          goto: async () => {},
+          content: async () => m.html,
+          url: () => 'https://example.org/page',
+        },
+      }
+    }
+  },
+}))
 beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllGlobals())
 describe('pure page metadata extraction', () => {
@@ -82,5 +96,78 @@ describe('pure page metadata extraction', () => {
     await expect(
       getHtmlFromUrl({ url: 'https://example.org' }),
     ).rejects.toThrow(/not HTML/)
+  })
+})
+
+describe('bounded HTML document allowance', () => {
+  const html = (size: number) =>
+    `<html><head><title>Large article</title><meta property="og:image" content="/photo.png"></head><body>${'x'.repeat(size)}</body></html>`
+  it.each([2_146_814, 4 * 1024 * 1024])(
+    'accepts a %i-byte page through the actual secure fetch limit contract',
+    async bytes => {
+      const document = html(bytes - Buffer.byteLength(html(0)))
+      expect(Buffer.byteLength(document)).toBe(bytes)
+      const { publicFetch } =
+        await vi.importActual<typeof import('./publicFetch.js')>(
+          './publicFetch.js',
+        )
+      m.fetch.mockImplementation((url, options) =>
+        publicFetch(url, {
+          ...options,
+          resolve: async () => ['8.8.8.8'],
+          send: async () => ({
+            status: 200,
+            headers: { 'content-type': 'text/html' },
+            body: Buffer.from(document),
+          }),
+        }),
+      )
+      expect(await metaScraper('https://example.org/page')).toMatchObject({
+        title: 'Large article',
+        image: 'https://example.org/photo.png',
+      })
+      expect(m.fetch).toHaveBeenCalledWith('https://example.org/page', {
+        maxBytes: 4 * 1024 * 1024,
+      })
+    },
+  )
+  it('rejects HTML beyond 4 MiB through the same secure fetch bound', async () => {
+    const { publicFetch } =
+      await vi.importActual<typeof import('./publicFetch.js')>(
+        './publicFetch.js',
+      )
+    m.fetch.mockImplementation((url, options) =>
+      publicFetch(url, {
+        ...options,
+        resolve: async () => ['8.8.8.8'],
+        send: async () => ({
+          status: 200,
+          headers: {},
+          body: Buffer.from(html(4 * 1024 * 1024)),
+        }),
+      }),
+    )
+    await expect(
+      getHtmlFromUrl({ url: 'https://example.org' }),
+    ).rejects.toThrow(/byte limit/)
+  })
+  it('uses the same HTML allowance in explicit browser mode and closes after rejection', async () => {
+    m.html = html(2_146_814)
+    expect(
+      await getHtmlFromUrl({
+        url: 'https://example.org',
+        forcePuppeteer: true,
+        puppeteerBrowserServiceUrl: 'wss://trusted.example',
+      }),
+    ).toContain('Large article')
+    m.html = html(4 * 1024 * 1024)
+    await expect(
+      getHtmlFromUrl({
+        url: 'https://example.org',
+        forcePuppeteer: true,
+        puppeteerBrowserServiceUrl: 'wss://trusted.example',
+      }),
+    ).rejects.toThrow(/byte limit/)
+    expect(m.close).toHaveBeenCalledTimes(2)
   })
 })
