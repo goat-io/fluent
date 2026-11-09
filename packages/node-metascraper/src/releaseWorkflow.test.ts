@@ -8,6 +8,21 @@ const workflow = readFileSync(
   'utf8',
 )
 describe('reviewed package release gate', () => {
+  it('authenticates the existing publisher before dependency installation', () => {
+    expect(
+      workflow.indexOf('name: Verify publisher permission'),
+    ).toBeGreaterThan(0)
+    expect(workflow.indexOf('name: Verify publisher permission')).toBeLessThan(
+      workflow.indexOf('name: Install dependencies'),
+    )
+    expect(workflow).toContain(
+      'node --test .github/scripts/verify-metascraper-publish-access.test.mjs',
+    )
+    expect(workflow).toContain(
+      'node .github/scripts/verify-metascraper-publish-access.mjs',
+    )
+  })
+
   it('pins master source and version before a focused package publish', () => {
     expect(workflow).toContain("if: github.ref == 'refs/heads/master'")
     expect(workflow).toContain(

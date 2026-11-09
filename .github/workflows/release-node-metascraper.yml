@@ -44,6 +44,12 @@ jobs:
           const response = await fetch(`https://registry.npmjs.org/@goatlab%2fnode-metascraper/${pkg.version}`, { redirect: 'error', signal: AbortSignal.timeout(15000) })
           if (response.status !== 404) throw new Error(response.ok ? 'Version already published' : 'Unable to verify registry version')
           NODE
+      - name: Verify publisher permission
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GOATLAB_NPM_TOKEN }}
+        run: |
+          node --test .github/scripts/verify-metascraper-publish-access.test.mjs
+          node .github/scripts/verify-metascraper-publish-access.mjs
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Lint package
