@@ -42,15 +42,23 @@ export const requestContext = (request: Request, token?: DecodedUserToken) => {
   const actingAccountId =
     (request.headers['x-acting-account-id'] as string) || undefined
 
+  const user:
+    | {
+        decodedToken: DecodedUserToken
+        email: DecodedUserToken['email']
+        userId: DecodedUserToken['uid']
+      }
+    | undefined =
+    token && 'email' in token
+      ? {
+          decodedToken: token,
+          email: 'email' in token ? token.email : undefined,
+          userId: 'uid' in token ? token.uid : undefined,
+        }
+      : undefined
+
   return {
-    user:
-      token && 'email' in token
-        ? {
-            decodedToken: token,
-            email: 'email' in token ? token.email : undefined,
-            userId: 'uid' in token ? token.uid : undefined,
-          }
-        : undefined,
+    user,
     url: request.url,
     method: request.method,
     xTenantId,

@@ -77,6 +77,17 @@ export function createContextFactory(options: ContextFactoryOptions = {}) {
   }: trpcExpress.CreateExpressContextOptions & {
     info?: { connectionParams?: Record<string, unknown> | null }
   }): Promise<ReturnType<typeof requestContext>> {
+    // EventSource sends the selected actor through connection parameters.
+    // Hydrate before either authentication path; explicit headers take precedence.
+    const actingAccountId = info?.connectionParams?.['x-acting-account-id']
+    if (
+      !req.headers['x-acting-account-id'] &&
+      typeof actingAccountId === 'string' &&
+      actingAccountId.trim()
+    ) {
+      req.headers['x-acting-account-id'] = actingAccountId.trim()
+    }
+
     // Check if user was already validated by middleware (e.g., multi-tenant middleware)
     if (req.betterAuthUser) {
       return requestContext(req, {
