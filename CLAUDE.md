@@ -133,6 +133,8 @@ This is a monorepo containing the Goat Fluent ecosystem - a TypeScript-based que
 
 ### Release Process
 
+Before publishing, merge reviewed package source and its version into the default branch. Compare the latest published tarball with that source and preserve any published fixes missing from the default branch; never publish a newer version that reverts registry-only fixes.
+
 Uses changesets for versioning. Release dependency chain: js-utils → node-utils → fluent (other packages depend on these core packages).
 
 ## Common TypeScript/Build Fixes
